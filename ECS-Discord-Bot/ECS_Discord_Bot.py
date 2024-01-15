@@ -183,9 +183,9 @@ async def verify_order(ctx):
     await ctx.message.delete()
 
     # Check if the command is used in the allowed channels
-    if ctx.channel.name not in ['lapsed-membership', 'lobby']:
-        await ctx.send("This command can only be used in #lapsed-membership and #lobby.")
-        return
+    #if ctx.channel.name not in ['lapsed-membership', 'lobby']:
+     #   await ctx.send("This command can only be used in #lapsed-membership and #lobby.")
+     #   return
 
     # Send the initial prompt and store the message object
     prompt_message = await ctx.send(f"{ctx.author.mention}, please enter your order ID number:")

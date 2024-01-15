@@ -1,3 +1,5 @@
 # Environment variables
 .env
 ECS-Discord-Bot.pyproj
+current_role.json
+redeemed_orders.json
