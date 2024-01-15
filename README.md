@@ -14,6 +14,6 @@ TEAM_NAME=mlsTeamName
 
 OPENWEATHER_API_KEY=WeatherAPIkey
 
-VENUE_LONG=StadiumLong
+VENUE_LONG=StadiumLongitude
 
-VENUS_LAT=StadiumLat
+VENUS_LAT=StadiumLatitude
