@@ -10,10 +10,10 @@ BOT_TOKEN=DiscordBotToken
 
 URL=https://WEBSITE.com/wp-json/wc/v3/orders/ (WooCommerce)
 
-TEAM_NAME=MLSteamName
+TEAM_NAME=mlsTeamName
 
 OPENWEATHER_API_KEY=WeatherAPIkey
 
-VENUE_LONG=StadiumLong
+VENUE_LONG=StadiumLongitude
 
-VENUS_LAT=StadiumLat
+VENUS_LAT=StadiumLatitude
