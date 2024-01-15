@@ -180,12 +180,11 @@ async def on_command_error(ctx, error):
 # Verify command
 @bot.command(name='verify')
 async def verify_order(ctx):
-    # Delete the command message (e.g., "!verify")
     await ctx.message.delete()
 
     # Check if the command is used in the allowed channels
     if ctx.channel.name not in ['lapsed-membership', 'lobby']:
-        await ctx.send("This command can only be used in specific channels.")
+        await ctx.send("This command can only be used in #lapsed-membership and #lobby.")
         return
 
     # Send the initial prompt and store the message object
