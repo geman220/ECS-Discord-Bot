@@ -180,30 +180,32 @@ async def on_command_error(ctx, error):
 # Verify command
 @bot.command(name='verify')
 async def verify_order(ctx):
-    # Ask the user for the order ID
-    await ctx.send(f"{ctx.author.mention}, please enter your order ID number:")
+    # Delete the command message (e.g., "!verify")
+    await ctx.message.delete()
 
-    # Check for the order ID response
+    # Check if the command is used in the allowed channels
+    if ctx.channel.name not in ['lapsed-membership', 'lobby']:
+        await ctx.send("This command can only be used in specific channels.")
+        return
+
+    # Send the initial prompt and store the message object
+    prompt_message = await ctx.send(f"{ctx.author.mention}, please enter your order ID number:")
+
     def check(m):
-        # Check if the message is from the user who initiated the command and in the same channel
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
-        # Wait for a response for a certain amount of time (e.g., 60 seconds)
         order_id_message = await bot.wait_for('message', check=check, timeout=60.0)
-
-        # Immediately delete the message containing the order ID to keep it private
-        await order_id_message.delete()
+        await order_id_message.delete()  # Delete the message containing the order ID
 
         order_id = order_id_message.content
-
-        # Remove '#' if present in order_id
         if order_id.startswith('#'):
             order_id = order_id[1:]
 
-        # Check if order has already been redeemed
         if order_id in redeemed_orders:
-            await ctx.send("This order has already been redeemed.")
+            response = await ctx.send("This order has already been redeemed.")
+            await asyncio.sleep(10)
+            await response.delete()
             return
 
         # Call WooCommerce API to check order validity
@@ -242,18 +244,21 @@ async def verify_order(ctx):
                 redeemed_orders[order_id] = str(ctx.author.id)
                 save_redeemed_orders(redeemed_orders)
                 role = discord.utils.get(ctx.guild.roles, name=current_membership_role)
-                if role:
-                    await ctx.author.add_roles(role)
-                    await ctx.send("Thank you for validating your ECS membership!")
-                else:
-                    await ctx.send(f"{current_membership_role} role not found.")
-            else:
-                await ctx.send("Invalid order number.")
+        if role:
+            await ctx.author.add_roles(role)
+            response = await ctx.send("Thank you for validating your ECS membership!")
         else:
-            await ctx.send("Order not found.")
+            response = await ctx.send(f"{current_membership_role} role not found.")
+
+        await asyncio.sleep(10)
+        await response.delete()
 
     except asyncio.TimeoutError:
-        await ctx.send(f"{ctx.author.mention}, no order ID provided. Command canceled.")
+        timeout_message = await ctx.send(f"{ctx.author.mention}, no order ID provided. Command canceled.")
+        await asyncio.sleep(10)
+        await timeout_message.delete()
+    finally:
+        await prompt_message.delete()  # Delete the initial prompt message
 
 # Clear command
 @bot.command(name='clear')
