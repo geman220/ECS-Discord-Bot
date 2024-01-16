@@ -31,6 +31,8 @@ team_name = os.getenv('TEAM_NAME')
 openweather_api = os.getenv('OPENWEATHER_API_KEY')
 venue_long = os.getenv('VENUE_LONG')
 venue_lat = os.getenv('VENUE_LAT')
+flask_url = os.getenv('FLASK_URL')
+flask_token = os.getenv('FLASK_TOKEN')
 BOT_VERSION = "1.1.0"
 closed_matches = set()
 
@@ -158,46 +160,103 @@ async def get_next_match(ctx, team_name):
     url = "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"
     data = await send_async_http_request(ctx, url)
 
+    team_id = None
     if data:
-        upcoming_matches = []
-        now = datetime.now(tz=pytz.utc)
-
         for event in data.get('events', []):
-            match_id = event['id']
             for competition in event.get('competitions', []):
-                match_time_utc = datetime.fromisoformat(competition['date'].replace('Z', '+00:00'))
-                if match_time_utc > now:
-                    competitors = competition.get('competitors', [])
-                    for team in competitors:
-                        display_name = team.get('team', {}).get('displayName')
-                        if display_name == team_name:
-                            is_home_game = team['homeAway'] == 'home'
-                            opponent_details = next((t for t in competitors if t.get('team', {}).get('displayName') != team_name), None)
+                competitors = competition.get('competitors', [])
+                for team in competitors:
+                    if team.get('team', {}).get('displayName') == team_name:
+                        team_id = team.get('team', {}).get('id')
+                        break
+                if team_id:
+                    break
 
-                            match_info = {
-                                'match_id': match_id,
-                                'opponent': opponent_details['team']['displayName'] if opponent_details else "Unknown",
-                                'date_time': competition.get('date'),
-                                'venue': competition.get('venue', {}).get('fullName'),
-                                'team_logos': [t['team']['logo'] for t in competitors if 'team' in t],
-                                'team_form': team['form'] if team else "N/A",
-                                'opponent_form': opponent_details['form'] if opponent_details else "N/A",
-                                'team_stats_link': team['team']['links'][1]['href'] if team else "",
-                                'opponent_stats_link': opponent_details['team']['links'][1]['href'] if opponent_details else "",
-                                'is_home_game': is_home_game
-                            }
-                            upcoming_matches.append((match_time_utc, match_info))
+    if not team_id:
+        return "Team ID not found."
 
-                if upcoming_matches:
-                    next_match_info = sorted(upcoming_matches, key=lambda x: x[0])[0][1]
-                    event = next(e for e in data['events'] if e['id'] == next_match_info['match_id'])
-                    next_match_info['match_summary_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["summary","desktop","event"])
-                    next_match_info['match_stats_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["stats","desktop","event"])
-                    return next_match_info
+    record = await get_team_record(ctx, team_id)
+    upcoming_matches = []
+    now = datetime.now(tz=pytz.utc)
 
-                return "No upcoming matches found for {}.".format(team_name)
-            else:
-                return "Error fetching data from ESPN API."
+    for event in data.get('events', []):
+        match_id = event['id']
+        for competition in event.get('competitions', []):
+            match_time_utc = datetime.fromisoformat(competition['date'].replace('Z', '+00:00'))
+            if match_time_utc > now:
+                competitors = competition.get('competitors', [])
+                for team in competitors:
+                    display_name = team.get('team', {}).get('displayName')
+                    if display_name == team_name:
+                        is_home_game = team['homeAway'] == 'home'
+                        opponent_details = next((t for t in competitors if t.get('team', {}).get('displayName') != team_name), None)
+
+                        match_info = {
+                            'match_id': match_id,
+                            'opponent': opponent_details['team']['displayName'] if opponent_details else "Unknown",
+                            'date_time': competition.get('date'),
+                            'venue': competition.get('venue', {}).get('fullName'),
+                            'team_logos': [t['team']['logo'] for t in competitors if 'team' in t],
+                            'team_form': team['form'] if team else "N/A",
+                            'opponent_form': opponent_details['form'] if opponent_details else "N/A",
+                            'team_stats_link': team['team']['links'][1]['href'] if team else "",
+                            'opponent_stats_link': opponent_details['team']['links'][1]['href'] if opponent_details else "",
+                            'is_home_game': is_home_game
+                        }
+                        upcoming_matches.append((match_time_utc, match_info))
+
+            if upcoming_matches:
+                next_match_info = sorted(upcoming_matches, key=lambda x: x[0])[0][1]
+                event = next(e for e in data['events'] if e['id'] == next_match_info['match_id'])
+                next_match_info['match_summary_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["summary","desktop","event"])
+                next_match_info['match_stats_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["stats","desktop","event"])
+                return next_match_info, record
+
+            return "No upcoming matches found for {}.".format(team_name)
+        else:
+            return "Error fetching data from ESPN API."
+
+async def get_team_record(ctx, team_id):
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
+    data = await send_async_http_request(ctx, url)
+    if data and 'team' in data:
+        record_data = data['team'].get('record', {}).get('items', [])
+        team_logo_url = data['team']['logos'][0]['href']  # Assuming the first logo is the one you want
+        if record_data:
+            stats = record_data[0].get('stats', [])
+            record_info = {stat['name']: stat['value'] for stat in stats}
+            return record_info, team_logo_url
+    return "Record not available", None
+
+def format_stat_name(stat_name):
+    name_mappings = {
+        "gamesPlayed": "Games Played",
+        "losses": "Losses",
+        "pointDifferential": "Point Differential",
+        "points": "Points",
+        "pointsAgainst": "Points Against",
+        "pointsFor": "Points For",
+        "streak": "Streak",
+        "ties": "Ties",
+        "wins": "Wins",
+        "awayGamesPlayed": "Away Games Played",
+        "awayLosses": "Away Losses",
+        "awayPointsAgainst": "Away Points Against",
+        "awayPointsFor": "Away Points For",
+        "awayTies": "Away Ties",
+        "awayWins": "Away Wins",
+        "deductions": "Deductions",
+        "homeGamesPlayed": "Home Games Played",
+        "homeLosses": "Home Losses",
+        "homePointsAgainst": "Home Points Against",
+        "homePointsFor": "Home Points For",
+        "homeTies": "Home Ties",
+        "homeWins": "Home Wins",
+        "ppg": "Points Per Game",
+        "rank": "Rank",
+        "rankChange": "Rank Change"
+    }
+    return name_mappings.get(stat_name, stat_name)
 
 async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
     match_date = datetime.fromisoformat(date_time_utc).date()
@@ -225,9 +284,15 @@ async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
 
 @bot.event
 async def on_ready():
-    global match_thread_map
-    match_thread_map = load_match_threads()
-    print(f"Bot has started. Loaded match threads: {match_thread_map}")
+    # Check if the update_channel_id.txt file exists
+    if os.path.exists('/root/update_channel_id.txt'):
+        with open('/root/update_channel_id.txt', 'r') as f:
+            channel_id = int(f.read())
+        channel = bot.get_channel(channel_id)
+        if channel:
+            await channel.send("Update complete. Bot restarted successfully.")
+        os.remove('/root/update_channel_id.txt')
+    print(f'Logged in as {bot.user}')
 
 @bot.event
 async def on_message(message):
@@ -258,6 +323,37 @@ async def bot_version(ctx):
     if str(ctx.author.id) == '129059682257076224' or any(role.name == 'ECS Presidents' for role in ctx.author.roles):
         user_id = '129059682257076224'
         await ctx.send(f"ECS Bot - developed by <@{user_id}> version {BOT_VERSION}")
+
+@bot.command(name='update')
+@commands.has_role("ECS Presidents")
+async def update_bot(ctx):
+    with open('/root/update_channel_id.txt', 'w') as f:
+        f.write(str(ctx.channel.id))
+
+    headers = {'Authorization': f'Bearer {flask_token}'}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(flask_url, headers=headers) as response:
+            if response.status == 200:
+                await ctx.send("Bot is updating...")
+            else:
+                response_text = await response.text()
+                await ctx.send(f"Update failed: {response_text}")
+
+@bot.command(name='record')
+async def team_record(ctx):
+    match_info, record = await get_next_match(ctx, team_name)
+    if record:
+        record_info, team_logo_url = record
+        embed = discord.Embed(title=f"{team_name} Record", color=0x00ff00)
+        if team_logo_url:
+            embed.set_thumbnail(url=team_logo_url)
+        for stat, value in record_info.items():
+            readable_stat = format_stat_name(stat)
+            embed.add_field(name=readable_stat, value=str(value), inline=True)
+        
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send("Error fetching record.")
 
 @bot.command(name='predict')
 async def predict(ctx, *, prediction: str):
@@ -493,32 +589,33 @@ async def check_order(ctx):
 
 @bot.command(name='nextmatch')
 async def next_match(ctx):
-    match_info = await get_next_match(ctx, team_name)
+    match_info, team_record = await get_next_match(ctx, team_name)
 
     if isinstance(match_info, str):
         await ctx.send(match_info)
-    else:
-        opponent = match_info['opponent']
-        date_time_utc = match_info['date_time']
-        venue = match_info['venue']
-        team_logo = match_info['team_logos'][0]
-        
-        date_time_pst_obj = convert_to_pst(date_time_utc)
-        date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
+        return
 
-        embed = discord.Embed(title="Next Match Details", color=0x1a75ff)
-        embed.add_field(name="Opponent", value=opponent, inline=True)
-        embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
-        embed.add_field(name="Venue", value=venue, inline=True)
-        embed.set_image(url=team_logo)
+    opponent = match_info['opponent']
+    date_time_utc = match_info['date_time']
+    venue = match_info['venue']
+    team_logo = match_info['team_logos'][0]
+    
+    date_time_pst_obj = convert_to_pst(date_time_utc)
+    date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
 
-        await ctx.send(embed=embed)
+    embed = discord.Embed(title="Next Match Details", color=0x1a75ff)
+    embed.add_field(name="Opponent", value=opponent, inline=True)
+    embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
+    embed.add_field(name="Venue", value=venue, inline=True)
+    embed.set_image(url=team_logo)
+
+    await ctx.send(embed=embed)
 
 @bot.command(name='newmatch')
 @commands.has_role("ECS Presidents")
 async def new_match(ctx):
     global match_thread_map 
-    match_info = await get_next_match(ctx, team_name)
+    match_info, team_record = await get_next_match(ctx, team_name)
 
     if isinstance(match_info, str):
         await ctx.send(match_info)
