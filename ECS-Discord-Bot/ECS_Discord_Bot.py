@@ -33,7 +33,9 @@ venue_long = os.getenv('VENUE_LONG')
 venue_lat = os.getenv('VENUE_LAT')
 flask_url = os.getenv('FLASK_URL')
 flask_token = os.getenv('FLASK_TOKEN')
-BOT_VERSION = "1.1.0"
+discord_admin_role = os.getenv('ADMIN_ROLE')
+dev_id = os.getenv('DEV_ID')
+BOT_VERSION = "1.1.1"
 closed_matches = set()
 
 def initialize_db():
@@ -282,6 +284,16 @@ async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
     else:
         return "Unable to fetch weather information."
 
+def is_admin_or_owner():
+    async def predicate(ctx):
+        return str(ctx.author.id) == dev_id or any(role.name == discord_admin_role for role in ctx.author.roles)
+    return commands.check(predicate)
+
+def has_admin_role():
+    async def predicate(ctx):
+        return any(role.name == discord_admin_role for role in ctx.author.roles)
+    return commands.check(predicate)
+
 @bot.event
 async def on_ready():
     # Check if the update_channel_id.txt file exists
@@ -306,10 +318,11 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("Sorry, I can't find that command.")
     elif isinstance(error, commands.MissingRole):
-        if ctx.command.name in ['clear_orders', 'new_season', 'new_match', 'version']:
-            await ctx.send("You do not have the proper permission to use this command.")
-        else:
-            await ctx.send("You are not authorized to use this command.")
+        await ctx.send("You do not have the proper permission to use this command.")
+    elif isinstance(error, commands.CheckFailure):
+        # This will handle errors from your custom checks
+        if ctx.command.name in ['version', 'update', 'clear_orders', 'new_season', 'new_match', 'check_order']:
+            await ctx.send("You do not have the necessary permissions to use this command.")
     elif isinstance(error, commands.BadArgument):
         await ctx.send("Invalid argument. Please check your command and try again.")
     elif isinstance(error, commands.CommandOnCooldown):
@@ -319,13 +332,12 @@ async def on_command_error(ctx, error):
         await ctx.send("An error occurred while processing the command.")
 
 @bot.command(name='version')
+@commands.check(is_admin_or_owner())
 async def bot_version(ctx):
-    if str(ctx.author.id) == '129059682257076224' or any(role.name == 'ECS Presidents' for role in ctx.author.roles):
-        user_id = '129059682257076224'
-        await ctx.send(f"ECS Bot - developed by <@{user_id}> version {BOT_VERSION}")
+    await ctx.send(f"ECS Bot - developed by <@{dev_id}> version {BOT_VERSION}")
 
 @bot.command(name='update')
-@commands.has_role("ECS Presidents")
+@commands.check(is_admin_or_owner())
 async def update_bot(ctx):
     with open('/root/update_channel_id.txt', 'w') as f:
         f.write(str(ctx.channel.id))
@@ -486,7 +498,7 @@ async def verify_order(ctx):
         await prompt_message.delete()
 
 @bot.command(name='clear')
-@commands.has_role("ECS Presidents")
+@has_admin_role()
 async def clear_orders(ctx):
     message = await ctx.send("Are you sure you want to clear the ECS membership redemption history?  If you want to start a new season please use !newseason instead.  Reply with 'yes' to confirm.")
 
@@ -503,7 +515,7 @@ async def clear_orders(ctx):
         await ctx.send("Membership history cleared.  ECS Members can now !verify for the current season")
 
 @bot.command(name='newseason')
-@commands.has_role("ECS Presidents")
+@has_admin_role()
 async def new_season(ctx):
     confirmation_msg = await ctx.send("Are you sure you want to start a new season? Reply with 'yes' to confirm.")
     def check_confirmation(m):
@@ -544,7 +556,7 @@ async def new_season(ctx):
 
 
 @bot.command(name='checkorder')
-@commands.has_role("ECS Presidents")
+@has_admin_role()
 async def check_order(ctx):
     await ctx.send(f"{ctx.author.mention}, please enter your order ID number:")
 
@@ -612,7 +624,7 @@ async def next_match(ctx):
     await ctx.send(embed=embed)
 
 @bot.command(name='newmatch')
-@commands.has_role("ECS Presidents")
+@has_admin_role()
 async def new_match(ctx):
     global match_thread_map 
     match_info, team_record = await get_next_match(ctx, team_name)
