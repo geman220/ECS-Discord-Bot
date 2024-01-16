@@ -1,4 +1,4 @@
-import discord
+﻿import discord
 from discord.ext import commands
 from discord.ext.commands import has_role
 import json
@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
 import pytz
 import traceback
+from collections import defaultdict
+import sqlite3
 
 load_dotenv()
 
@@ -29,13 +31,85 @@ team_name = os.getenv('TEAM_NAME')
 openweather_api = os.getenv('OPENWEATHER_API_KEY')
 venue_long = os.getenv('VENUE_LONG')
 venue_lat = os.getenv('VENUE_LAT')
-BOT_VERSION = "1.0.0"
+BOT_VERSION = "1.1.0"
+closed_matches = set()
+
+def initialize_db():
+    conn = sqlite3.connect('predictions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS predictions
+                 (match_id TEXT, user_id TEXT, prediction TEXT, timestamp DATETIME)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS match_threads
+                 (thread_id TEXT, match_id TEXT)''')
+    conn.commit()
+    conn.close()
+
+initialize_db()
+
+def insert_match_thread(thread_id, match_id):
+    conn = sqlite3.connect('predictions.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO match_threads VALUES (?, ?)", (thread_id, match_id))
+    conn.commit()
+    conn.close()
+
+def insert_prediction(match_id, user_id, prediction):
+    conn = sqlite3.connect('predictions.db')
+    c = conn.cursor()
+
+    # Check if user has already made a prediction for this match
+    c.execute("SELECT * FROM predictions WHERE match_id=? AND user_id=?", (match_id, user_id))
+    if c.fetchone():
+        conn.close()
+        return False
+
+    # Insert new prediction
+    c.execute("INSERT INTO predictions VALUES (?, ?, ?, CURRENT_TIMESTAMP)", (match_id, user_id, prediction))
+    conn.commit()
+    conn.close()
+    return True
+
+def get_predictions(match_id):
+    conn = sqlite3.connect('predictions.db')
+    c = conn.cursor()
+    c.execute("SELECT prediction, COUNT(*) FROM predictions WHERE match_id=? GROUP BY prediction", (match_id,))
+    results = c.fetchall()
+    conn.close()
+    return results
+
+def load_match_threads():
+    conn = sqlite3.connect('predictions.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM match_threads")
+    threads = c.fetchall()
+    conn.close()
+    return {thread_id: match_id for thread_id, match_id in threads}
+
+match_thread_map = load_match_threads()
+
+async def schedule_poll_closing(match_start_time, match_id, thread):
+    # Ensure both datetimes are offset-aware and in the same timezone (UTC in this case)
+    now_utc = datetime.now(pytz.utc)
+    delay = (match_start_time - now_utc).total_seconds()
+
+    if delay > 0:
+        await asyncio.sleep(delay)
+
+        # Send a message indicating that predictions are closed
+        await thread.send("Predictions closed.")
+
+        predictions = get_predictions(match_id)
+        result_message = "Predictions for the match:\n" + "\n".join(f"{pred[0]}: {pred[1]} votes" for pred in predictions)
+        await thread.send(result_message)
+
+        # Mark the match as closed for predictions
+        closed_matches.add(match_id)
 
 def convert_to_pst(utc_datetime_str):
     utc_datetime = datetime.fromisoformat(utc_datetime_str.replace('Z', '+00:00'))
     utc_datetime = utc_datetime.replace(tzinfo=pytz.utc)
     pst_timezone = pytz.timezone('America/Los_Angeles')
-    return utc_datetime.astimezone(pst_timezone)  # Returns a datetime object in PST
+    return utc_datetime.astimezone(pst_timezone)
 
 async def send_async_http_request(ctx, url, method='GET', headers=None, auth=None, data=None):
     async with aiohttp.ClientSession() as session:
@@ -150,13 +224,33 @@ async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
         return "Unable to fetch weather information."
 
 @bot.event
+async def on_ready():
+    global match_thread_map
+    match_thread_map = load_match_threads()
+    print(f"Bot has started. Loaded match threads: {match_thread_map}")
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user:
+        return
+
+    await bot.process_commands(message)
+
+@bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingRole):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Sorry, I can't find that command.")
+    elif isinstance(error, commands.MissingRole):
         if ctx.command.name in ['clear_orders', 'new_season', 'new_match', 'version']:
             await ctx.send("You do not have the proper permission to use this command.")
         else:
             await ctx.send("You are not authorized to use this command.")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send("Invalid argument. Please check your command and try again.")
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(f"This command is on cooldown. Please try again after {error.retry_after:.2f} seconds.")
     else:
+        print(f"Unhandled command error: {error}")
         await ctx.send("An error occurred while processing the command.")
 
 @bot.command(name='version')
@@ -164,6 +258,59 @@ async def bot_version(ctx):
     if str(ctx.author.id) == '129059682257076224' or any(role.name == 'ECS Presidents' for role in ctx.author.roles):
         user_id = '129059682257076224'
         await ctx.send(f"ECS Bot - developed by <@{user_id}> version {BOT_VERSION}")
+
+@bot.command(name='predict')
+async def predict(ctx, *, prediction: str):
+    if not isinstance(ctx.channel, discord.Thread):
+        await ctx.send("This command can only be used in match threads.")
+        return
+
+    match_id = match_thread_map.get(str(ctx.channel.id))
+    if not match_id:
+        await ctx.send("This thread is not associated with an active match prediction.")
+        return
+
+    # Check if predictions are closed for this match
+    if match_id in closed_matches:
+        await ctx.send("Predictions are closed for this match.")
+        return
+
+    user_id = str(ctx.author.id)
+    if insert_prediction(match_id, user_id, prediction):
+        await ctx.message.add_reaction("👍")
+    else:
+        await ctx.send("You have already made a prediction for this match.")
+
+@bot.command(name='predictions')
+async def show_predictions(ctx):
+    if not isinstance(ctx.channel, discord.Thread):
+        await ctx.send("This command can only be used in match threads.")
+        return
+
+    match_id = match_thread_map.get(str(ctx.channel.id))
+    if not match_id:
+        await ctx.send("This thread is not associated with an active match prediction.")
+        return
+
+    predictions = get_predictions(match_id)
+    if not predictions:
+        await ctx.send("No predictions have been made for this match.")
+        return
+
+    # Create an embed for displaying predictions
+    embed = discord.Embed(title="Match Predictions", color=0x00ff00)
+    # Correctly access the guild icon URL
+    if ctx.guild.icon:
+        embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon.url)
+    else:
+        embed.set_author(name=ctx.guild.name)
+
+    embed.set_footer(text="Predictions are subject to change before match kickoff.")
+
+    for prediction, count in predictions:
+        embed.add_field(name=prediction, value=f"{count} prediction(s)", inline=True)
+
+    await ctx.send(embed=embed)
 
 @bot.command(name='verify')
 async def verify_order(ctx):
@@ -370,6 +517,7 @@ async def next_match(ctx):
 @bot.command(name='newmatch')
 @commands.has_role("ECS Presidents")
 async def new_match(ctx):
+    global match_thread_map 
     match_info = await get_next_match(ctx, team_name)
 
     if isinstance(match_info, str):
@@ -453,10 +601,20 @@ async def new_match(ctx):
     if channel:
         if isinstance(channel, discord.ForumChannel):
             thread, initial_message = await channel.create_thread(name=thread_name, auto_archive_duration=60, embed=embed)
+            match_thread_map[thread.id] = match_info['match_id']
+            insert_match_thread(thread.id, match_info['match_id'])
+
+            match_thread_map = load_match_threads()
+
+            # Send a message in the thread for score prediction
+            await thread.send(f"Predict the score! Use `!predict {team_name}-Score {opponent}-Score` `example: !predict 3-0` to participate.  Predictions end at kickoff!")
+
+            # Schedule the poll closing as a background task
+            match_start_time = convert_to_pst(date_time_utc)  # Convert match start time to PST
+            asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
+
             await ctx.send(f"Match thread created: [Click here to view the thread](https://discord.com/channels/{ctx.guild.id}/{channel.id}/{thread.id})")
         else:
-            await ctx.send("The channel is not a forum. Please use a forum channel.")
-    else:
-        await ctx.send("Match thread channel not found.")
+            await ctx.send("Match thread channel not found.")
 
 bot.run(bot_token)
