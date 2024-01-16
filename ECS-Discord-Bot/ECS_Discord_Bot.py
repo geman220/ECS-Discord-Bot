@@ -35,7 +35,7 @@ flask_url = os.getenv('FLASK_URL')
 flask_token = os.getenv('FLASK_TOKEN')
 discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
-BOT_VERSION = "1.1.1"
+BOT_VERSION = "1.1.11"
 closed_matches = set()
 
 def initialize_db():
