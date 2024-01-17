@@ -1,4 +1,5 @@
 ﻿import discord
+from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import has_role
 import json
@@ -11,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 import pytz
 import traceback
 from collections import defaultdict
+import re
 import sqlite3
 
 load_dotenv()
@@ -21,7 +23,7 @@ intents.members = True
 intents.messages = True
 intents.guilds = True
 intents.message_content = True
-bot = commands.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 wc_key = os.getenv('WC_KEY')
 wc_secret = os.getenv('WC_SECRET')
@@ -35,7 +37,8 @@ flask_url = os.getenv('FLASK_URL')
 flask_token = os.getenv('FLASK_TOKEN')
 discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
-BOT_VERSION = "1.2.0"
+server_id = os.getenv('SERVER_ID')
+BOT_VERSION = "1.3.0"
 closed_matches = set()
 
 def initialize_db():
@@ -61,13 +64,11 @@ def insert_prediction(match_id, user_id, prediction):
     conn = sqlite3.connect('predictions.db')
     c = conn.cursor()
 
-    # Check if user has already made a prediction for this match
     c.execute("SELECT * FROM predictions WHERE match_id=? AND user_id=?", (match_id, user_id))
     if c.fetchone():
         conn.close()
         return False
 
-    # Insert new prediction
     c.execute("INSERT INTO predictions VALUES (?, ?, ?, CURRENT_TIMESTAMP)", (match_id, user_id, prediction))
     conn.commit()
     conn.close()
@@ -92,21 +93,18 @@ def load_match_threads():
 match_thread_map = load_match_threads()
 
 async def schedule_poll_closing(match_start_time, match_id, thread):
-    # Ensure both datetimes are offset-aware and in the same timezone (UTC in this case)
     now_utc = datetime.now(pytz.utc)
     delay = (match_start_time - now_utc).total_seconds()
 
     if delay > 0:
         await asyncio.sleep(delay)
 
-        # Send a message indicating that predictions are closed
         await thread.send("Predictions closed.")
 
         predictions = get_predictions(match_id)
         result_message = "Predictions for the match:\n" + "\n".join(f"{pred[0]}: {pred[1]} votes" for pred in predictions)
         await thread.send(result_message)
 
-        # Mark the match as closed for predictions
         closed_matches.add(match_id)
 
 def convert_to_pst(utc_datetime_str):
@@ -260,7 +258,7 @@ def format_stat_name(stat_name):
     }
     return name_mappings.get(stat_name, stat_name)
 
-async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
+async def get_weather_forecast(date_time_utc, latitude, longitude):
     match_date = datetime.fromisoformat(date_time_utc).date()
 
     if match_date > datetime.utcnow().date() + timedelta(days=5):
@@ -268,7 +266,7 @@ async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
 
     url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
 
-    response = await send_async_http_request(ctx, url)
+    response = await send_async_http_request(url)
     if response and response.status == 200:
         data = await response.json()
 
@@ -284,20 +282,56 @@ async def get_weather_forecast(ctx, date_time_utc, latitude, longitude):
     else:
         return "Unable to fetch weather information."
 
-def is_admin_or_owner():
-    async def predicate(ctx):
-        return str(ctx.author.id) == dev_id or any(role.name == discord_admin_role for role in ctx.author.roles)
-    return commands.check(predicate)
+async def get_closest_away_match(ctx):
+    product_url = wc_url.replace('orders/', 'products?category=765197886')
+    products = await call_woocommerce_api(ctx, product_url)
+    
+    if products:
+        upcoming_matches = []
 
-def has_admin_role():
-    async def predicate(ctx):
-        return any(role.name == discord_admin_role for role in ctx.author.roles)
-    return commands.check(predicate)
+        for product in products:
+            title = product.get('name', '')
+            match_date = extract_date_from_title(title)
+
+            if match_date and match_date >= datetime.now():
+                link = product.get('permalink')
+                upcoming_matches.append((match_date, title, link))
+
+        upcoming_matches.sort()
+
+        if upcoming_matches:
+            closest_match = upcoming_matches[0]
+            return closest_match[1], closest_match[2]
+
+    return None
+
+def extract_date_from_title(title):
+    match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", title)
+    if match:
+        date_str = match.group(0)
+        try:
+            match_date = datetime.strptime(date_str, "%Y-%m-%d")
+            return match_date
+        except ValueError as e:
+            return None
+    return None
+
+async def is_admin_or_owner(interaction: discord.Interaction):
+    return str(interaction.user.id) == dev_id or any(role.name == discord_admin_role for role in interaction.user.roles)
+
+async def has_admin_role(interaction: discord.Interaction):
+    return any(role.name == discord_admin_role for role in interaction.user.roles)
 
 @bot.event
 async def on_ready():
+    await bot.wait_until_ready()
+
+    await bot.add_cog(MatchCommands(bot))
     await bot.add_cog(AdminCommands(bot))
     await bot.add_cog(GeneralCommands(bot))
+    await bot.tree.sync(guild=discord.Object(id=server_id))
+
+    # Other on_ready logic
     if os.path.exists('/root/update_channel_id.txt'):
         with open('/root/update_channel_id.txt', 'r') as f:
             channel_id = int(f.read())
@@ -305,6 +339,7 @@ async def on_ready():
         if channel:
             await channel.send("Update complete. Bot restarted successfully.")
         os.remove('/root/update_channel_id.txt')
+
     print(f'Logged in as {bot.user}')
 
 @bot.event
@@ -315,163 +350,252 @@ async def on_message(message):
     await bot.process_commands(message)
 
 @bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Sorry, I can't find that command.")
-    elif isinstance(error, commands.MissingRole):
-        await ctx.send("You do not have the proper permission to use this command.")
-    elif isinstance(error, commands.CheckFailure):
-        # This will handle errors from your custom checks
-        if ctx.command.name in ['version', 'update', 'clear_orders', 'new_season', 'new_match', 'check_order']:
-            await ctx.send("You do not have the necessary permissions to use this command.")
-    elif isinstance(error, commands.BadArgument):
-        await ctx.send("Invalid argument. Please check your command and try again.")
-    elif isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(f"This command is on cooldown. Please try again after {error.retry_after:.2f} seconds.")
+async def on_app_command_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message("You don't have permission to use this command.", ephemeral=True)
+    elif isinstance(error, app_commands.CommandOnCooldown):
+        await interaction.response.send_message(f"This command is on cooldown. Please try again after {error.retry_after:.2f} seconds.", ephemeral=True)
     else:
-        print(f"Unhandled command error: {error}")
-        await ctx.send("An error occurred while processing the command.")
+        print(f"Unhandled interaction command error: {error}")
+        await interaction.response.send_message("An error occurred while processing the command.", ephemeral=True)
+
+class VerifyModal(discord.ui.Modal):
+    def __init__(self, bot, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bot = bot
+
+    order_id = discord.ui.TextInput(label="Order ID", placeholder="Enter your order ID number here")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        order_id = self.order_id.value.strip()
+        if order_id.startswith('#'):
+            order_id = order_id[1:]
+
+        redeemed_orders = load_redeemed_orders()
+
+        if order_id in redeemed_orders:
+            await interaction.response.send_message("This order has already been redeemed.", ephemeral=True)
+            return
+
+        full_url = f"{wc_url}{order_id}"
+        response_data = await call_woocommerce_api(interaction, full_url)
+
+        if response_data:
+            order_data = response_data
+            order_status = order_data['status']
+            order_date_str = order_data['date_created']
+            membership_prefix = "ECS Membership 20"
+            membership_found = any(membership_prefix in item['name'] for item in order_data.get('line_items', []))
+
+            if not membership_found:
+                await interaction.response.send_message("The order does not contain the required ECS Membership item.", ephemeral=True)
+                return
+
+            order_date = datetime.fromisoformat(order_date_str)
+            current_year = datetime.now().year
+            cutoff_date = datetime(current_year - 1, 12, 1)
+
+            if order_date < cutoff_date:
+                await interaction.response.send_message("This order is not valid for the current membership period.", ephemeral=True)
+                return
+
+            if order_status in ['processing', 'completed']:
+                redeemed_orders[order_id] = str(interaction.user.id)
+                save_redeemed_orders(redeemed_orders)
+                current_membership_role = load_current_role()
+                role = discord.utils.get(interaction.guild.roles, name=current_membership_role)
+
+                if role:
+                    await interaction.user.add_roles(role)
+                    await interaction.response.send_message("Thank you for validating your ECS membership!", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"{current_membership_role} role not found.", ephemeral=True)
+            else:
+                await interaction.response.send_message("Invalid order number or order status not eligible.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Invalid order number or unable to retrieve order details.", ephemeral=True)
+
+class CheckOrderModal(discord.ui.Modal):
+    def __init__(self, bot):
+        super().__init__(title="Check Order")
+        self.bot = bot
+        self.add_item(discord.ui.TextInput(label="Order ID", placeholder="Enter the order ID number"))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        order_id = self.children[0].value.strip()  # Retrieve the entered order ID
+        if order_id.startswith('#'):
+            order_id = order_id[1:]
+
+        full_url = f"{wc_url}{order_id}"
+        response_data = await call_woocommerce_api(interaction, full_url)
+
+        if response_data:
+            order_status = response_data['status']
+            order_date_str = response_data['date_created']
+            order_date = datetime.fromisoformat(order_date_str)
+            membership_prefix = "ECS Membership 20"
+            membership_found = any(membership_prefix in item['name'] for item in response_data.get('line_items', []))
+
+            current_year = datetime.now().year
+            cutoff_date = datetime(current_year - 1, 12, 1)
+
+            if order_date < cutoff_date:
+                response_message = "Membership expired."
+            elif not membership_found:
+                response_message = "The order does not contain the required ECS Membership item."
+            elif order_status in ['processing', 'completed']:
+                response_message = "That membership is valid for the current season."
+            else:
+                response_message = "Invalid order number."
+        else:
+            response_message = "Order not found"
+
+        await interaction.response.send_message(response_message, ephemeral=True)
+
+class NewRoleModal(discord.ui.Modal):
+    def __init__(self, bot):
+        super().__init__(title="New ECS Membership Role")
+        self.bot = bot
+        self.save_current_role = save_current_role
+        self.new_role_input = None
+
+    new_role = discord.ui.TextInput(label="Enter the new ECS Membership role")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.new_role_input = self.new_role.value.strip()
+        self.bot.current_membership_role = self.new_role_input
+        self.save_current_role(self.new_role_input)
+
+        view = ConfirmResetView(self.bot, self.new_role_input)  # Pass the role to the view
+        await interaction.response.send_message("Do you want to clear the redeemed orders database for the new season?", view=view, ephemeral=True)
+
+class ConfirmResetView(discord.ui.View):
+    def __init__(self, bot, role):
+        super().__init__()
+        self.bot = bot
+        self.redeemed_orders = redeemed_orders
+        self.save_redeemed_orders = save_redeemed_orders
+        self.role = role
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user and interaction.user.guild_permissions.administrator
+
+    @discord.ui.button(label="Yes, reset", style=discord.ButtonStyle.green, custom_id="confirm_reset")
+    async def confirm_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.redeemed_orders.clear()
+        self.save_redeemed_orders(self.redeemed_orders)
+        await interaction.response.defer()
+        await interaction.followup.send(f"Order redemption history cleared. New season started with role {self.role}.", ephemeral=True)
+
+    @discord.ui.button(label="No, keep data", style=discord.ButtonStyle.red, custom_id="cancel_reset")
+    async def cancel_reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await interaction.followup.send(f"Database not cleared. New season started with role {self.role}", ephemeral=True)
 
 class AdminCommands(commands.Cog, name="Admin Commands"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='version')
-    @commands.check(is_admin_or_owner())
-    async def version(self, ctx):
-        """Get the current bot version"""
-        await ctx.send(f"ECS Bot - developed by <@{dev_id}> version {BOT_VERSION}")
+    @app_commands.command(name='update', description="Update the bot from the GitHub repository")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def update_bot(self, interaction: discord.Interaction):
+        """Update the bot from GitHub repository"""
+        if not await is_admin_or_owner(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
 
-    @commands.command(name='update')
-    @commands.check(is_admin_or_owner())
-    async def update_bot(self, ctx):
-        """Update the bot from github repository"""
         with open('/root/update_channel_id.txt', 'w') as f:
-            f.write(str(ctx.channel.id))
+            f.write(str(interaction.channel.id))
 
         headers = {'Authorization': f'Bearer {flask_token}'}
         async with aiohttp.ClientSession() as session:
             async with session.post(flask_url, headers=headers) as response:
                 if response.status == 200:
-                    await ctx.send("Bot is updating...")
+                    await interaction.response.send_message("Bot is updating...", ephemeral=True)
                 else:
                     response_text = await response.text()
-                    await ctx.send(f"Update failed: {response_text}")
+                    await interaction.response.send_message(f"Update failed: {response_text}", ephemeral=True)
 
-    @commands.command(name='clear')
-    @has_admin_role()
-    async def clear_orders(self, ctx):
-        """Clear the redemption history for roles (you probably want to use !newseason"""
-        message = await ctx.send("Are you sure you want to clear the ECS membership redemption history?  If you want to start a new season please use !newseason instead.  Reply with 'yes' to confirm.")
-
-        def check(m):
-            return m.author == ctx.author and m.content.lower() == 'yes'
-
-        try:
-            await bot.wait_for('message', check=check, timeout=30.0)
-        except asyncio.TimeoutError:
-            await ctx.send("Clear command canceled.")
-        else:
-            redeemed_orders.clear()
-            save_redeemed_orders(redeemed_orders)
-            await ctx.send("Membership history cleared.  ECS Members can now !verify for the current season")
-
-    @commands.command(name='newseason')
-    @has_admin_role()
-    async def new_season(self, ctx):
-        """Start a new season.  Create the new role in discord first ECS members 202#!"""
-        confirmation_msg = await ctx.send("Are you sure you want to start a new season? Reply with 'yes' to confirm.")
-        def check_confirmation(m):
-            return m.author == ctx.author and m.content.lower() == 'yes' and m.channel == ctx.channel
-
-        try:
-            await bot.wait_for('message', check=check_confirmation, timeout=30.0)
-        except asyncio.TimeoutError:
-            await ctx.send("New season command canceled.")
+    @app_commands.command(name='version', description="Get the current bot version")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def version(self, interaction: discord.Interaction):
+        if not await is_admin_or_owner(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        role_msg = await ctx.send("What is the new ECS Membership role?")
-        def check_role(m):
-            return m.author == ctx.author and m.channel == ctx.channel
+        await interaction.response.send_message(f"ECS Bot - developed by <@{dev_id}> version {BOT_VERSION}")
 
-        try:
-            role_message = await bot.wait_for('message', check=check_role, timeout=60.0)
-            new_role = role_message.content
-            global current_membership_role
-            current_membership_role = new_role
-
-            save_current_role(current_membership_role)
-
-        except asyncio.TimeoutError:
-            await ctx.send("New season command canceled. No new role provided.")
+    @app_commands.command(name='checkorder', description="Check an ECS membership order")
+    @app_commands.guilds(discord.Object(id=server_id))  # Replace with your server ID
+    async def check_order(self, interaction: discord.Interaction):
+        # Admin role check
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        await ctx.send(f"!verify will now assign the role {current_membership_role}. Do you want to clear the database? Reply with 'yes' to confirm.")
+        # Show the modal to the user
+        await interaction.response.send_modal(CheckOrderModal(self.bot))
 
-        try:
-            await bot.wait_for('message', check=check_confirmation, timeout=30.0)
+    @app_commands.command(name='newseason', description="Start a new season with a new ECS membership role")
+    @app_commands.guilds(discord.Object(id=server_id))  # Replace with your server ID
+    async def new_season(self, interaction: discord.Interaction):
+        # Admin role check
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
 
-            redeemed_orders.clear()
-            save_redeemed_orders(redeemed_orders)
-            await ctx.send(f"Order redemption history cleared. New season started with role {current_membership_role}.")
-        except asyncio.TimeoutError:
-            await ctx.send(f"Database not cleared. New season started with role {current_membership_role}.")
+        # Send the modal for new ECS role
+        modal = NewRoleModal(self.bot)
+        await interaction.response.send_modal(modal)
 
-    @commands.command(name='checkorder')
-    @has_admin_role()
-    async def check_order(self, ctx):
-        """You can check an order number if a user seems to have trouble using !verify"""
-        await ctx.send(f"{ctx.author.mention}, please enter the order ID number:")
+class MatchCommands(commands.Cog, name="Match Commands"):
+    def __init__(self, bot):
+        self.bot = bot
+        self.match_thread_map = match_thread_map
 
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-
-        try:
-            order_id_message = await bot.wait_for('message', check=check, timeout=60.0)
-            await order_id_message.delete()
-            order_id = order_id_message.content
-
-            if order_id.startswith('#'):
-                order_id = order_id[1:]
-
-            full_url = f"{wc_url}{order_id}"
-            response_data = await call_woocommerce_api(ctx, full_url)
-            if response_data:
-                order_status = response_data['status']
-                order_date_str = response_data['date_created']
-                order_date = datetime.fromisoformat(order_date_str)
-                membership_prefix = "ECS Membership 20"
-                membership_found = any(membership_prefix in item['name'] for item in response_data.get('line_items', []))
-
-                current_year = datetime.now().year
-                cutoff_date = datetime(current_year - 1, 12, 1)
-
-                if order_date < cutoff_date:
-                    response_message = "Membership expired."
-                elif not membership_found:
-                    response_message = "The order does not contain the required ECS Membership item."
-                elif order_status in ['processing', 'completed']:
-                    response_message = "That membership is valid for the current season."
-                else:
-                    response_message = "Invalid order number."
-            else:
-                response_message = "Order not found"
-
-            await ctx.send(response_message)
-
-        except asyncio.TimeoutError:
-            await ctx.send(f"{ctx.author.mention}, no order ID provided. Command canceled.")
-
-    @commands.command(name='newmatch')
-    @has_admin_role()
-    async def new_match(self, ctx):
-        """Create a new match thread based on the closest upcoming match.  Creates March to the match event for home games."""
-        global match_thread_map 
-        match_info, team_record = await get_next_match(ctx, team_name)
+    @app_commands.command(name='nextmatch', description="List the next scheduled match information")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def next_match(self, interaction: discord.Interaction):
+        match_info, team_record = await get_next_match(interaction, team_name)
 
         if isinstance(match_info, str):
-            await ctx.send(match_info)
+            await interaction.response.send_message(match_info)
             return
+
+        opponent = match_info['opponent']
+        date_time_utc = match_info['date_time']
+        venue = match_info['venue']
+        team_logo = match_info['team_logos'][0]
+    
+        date_time_pst_obj = convert_to_pst(date_time_utc)
+        date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
+
+        embed = discord.Embed(title="Next Match Details", color=0x1a75ff)
+        embed.add_field(name="Opponent", value=opponent, inline=True)
+        embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
+        embed.add_field(name="Venue", value=venue, inline=True)
+        embed.set_image(url=team_logo)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name='newmatch', description="Create a new match thread")
+    @app_commands.guilds(discord.Object(id=server_id))  # Replace with your server ID
+    async def new_match(self, interaction: discord.Interaction):
+        # Admin role check
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        # Deferring the response for long processing
+        await interaction.response.defer()
+
+        try:
+            match_info, team_record = await get_next_match(interaction, team_name)
+            if isinstance(match_info, str):
+                await interaction.followup.send(match_info, ephemeral=True)
+                return
+        except Exception as e:
+            await interaction.followup.send(f"Failed to process the command: {e}", ephemeral=True)
 
         opponent = match_info.get('opponent', 'Unknown Opponent')
         date_time_utc = match_info.get('date_time', 'Unknown Date/Time')
@@ -485,14 +609,14 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
 
         weather_forecast = ""
         if match_info['is_home_game']:
-            weather_forecast = await get_weather_forecast(ctx, date_time_utc, venue_lat, venue_long)
+            weather_forecast = await get_weather_forecast(date_time_utc, venue_lat, venue_long)
             weather_forecast = f"\n\n**Weather**: {weather_forecast}"
             match_time_pst = convert_to_pst(date_time_utc)
             event_start_time_pst = match_time_pst - timedelta(hours=1)
             date_time_pst_formatted = match_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
             event_start_str = event_start_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
 
-            existing_events = await ctx.guild.fetch_scheduled_events()
+            existing_events = await interaction.guild.fetch_scheduled_events()
             event_exists = any(
                 event.name == "March to the Match" and 
                 event.start_time == event_start_time_pst for event in existing_events
@@ -500,7 +624,7 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
 
             if not event_exists:
                 try:
-                    event = await ctx.guild.create_scheduled_event(
+                    event = await interaction.guild.create_scheduled_event(
                         name="March to the Match",
                         start_time=event_start_time_pst,
                         end_time=event_start_time_pst + timedelta(hours=2),
@@ -509,21 +633,21 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
                         entity_type=discord.EntityType.external,
                         privacy_level=discord.PrivacyLevel.guild_only
                     )
-                    await ctx.send(f"Event created: 'March to the Match' starting at {event_start_str}.")
+                    await interaction.followup.send(f"Event created: 'March to the Match' starting at {event_start_str}.")
                 except Exception as e:
-                    await ctx.send(f"Failed to create event: {e}")
+                    await interaction.followup.send(f"Failed to create event: {e}")
             else:
-                await ctx.send("An event for this match has already been scheduled.")
+                await interaction.followup.send("An event for this match has already been scheduled.")
 
         thread_name = f"Match Thread: {team_name} vs {opponent} - {date_time_pst_formatted}"
 
-        channel = discord.utils.get(ctx.guild.channels, name='match-thread')
+        channel = discord.utils.get(interaction.guild.channels, name='match-thread')
         if channel and isinstance(channel, discord.ForumChannel):
             existing_threads = channel.threads
 
             for thread in existing_threads:
                 if thread.name == thread_name:
-                    await ctx.send("Next match thread already created.")
+                    await interaction.followup.send("A thread for this match has already created.")
                     return
 
         starter_message = (
@@ -546,54 +670,85 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
         )
         embed.set_image(url=match_info['team_logos'][0])
 
-        channel = discord.utils.get(ctx.guild.channels, name='match-thread')
+        channel = discord.utils.get(interaction.guild.channels, name='match-thread')
         if channel:
             if isinstance(channel, discord.ForumChannel):
                 thread, initial_message = await channel.create_thread(name=thread_name, auto_archive_duration=60, embed=embed)
-                match_thread_map[thread.id] = match_info['match_id']
+                self.match_thread_map[thread.id] = match_info['match_id']
                 insert_match_thread(thread.id, match_info['match_id'])
 
-                match_thread_map = load_match_threads()
+                self.match_thread_map = load_match_threads()
 
-                # Send a message in the thread for score prediction
-                await thread.send(f"Predict the score! Use `!predict {team_name}-Score {opponent}-Score` `example: !predict 3-0` to participate.  Predictions end at kickoff!")
+                await thread.send(f"Predict the score! Use `/predict {team_name}-Score - {opponent}-Score` to participate.  Predictions end at kickoff!")
 
-                # Schedule the poll closing as a background task
-                match_start_time = convert_to_pst(date_time_utc)  # Convert match start time to PST
+                match_start_time = convert_to_pst(date_time_utc)
                 asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
 
-                await ctx.send(f"Match thread created: [Click here to view the thread](https://discord.com/channels/{ctx.guild.id}/{channel.id}/{thread.id})")
+                await interaction.followup.send(f"Match thread created: [Click here to view the thread](https://discord.com/channels/{interaction.guild_id}/{channel.id}/{thread.id})")
             else:
-                await ctx.send("Match thread channel not found.")
+                await interaction.followup.send("Match thread channel not found.", ephemeral=True)
+
+    @app_commands.command(name='predictions', description='List predictions for the current match thread')
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def show_predictions(self, interaction: discord.Interaction):
+        if not isinstance(interaction.channel, discord.Thread):
+            await interaction.response.send_message("This command can only be used in match threads.", ephemeral=True)
+            return
+
+        match_id = self.match_thread_map.get(str(interaction.channel.id))
+        if not match_id:
+            await interaction.response.send_message("This thread is not associated with an active match prediction.", ephemeral=True)
+            return
+
+        predictions = get_predictions(match_id)
+        if not predictions:
+            await interaction.response.send_message("No predictions have been made for this match.", ephemeral=True)
+            return
+
+        embed = discord.Embed(title="Match Predictions", color=0x00ff00)
+        if interaction.guild.icon:
+            embed.set_author(name=interaction.guild.name, icon_url=interaction.guild.icon.url)
+        else:
+            embed.set_author(name=interaction.guild.name)
+
+        embed.set_footer(text="Predictions are subject to change before match kickoff.")
+
+        for prediction, count in predictions:
+            embed.add_field(name=prediction, value=f"{count} prediction(s)", inline=True)
+
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name='predict', description='Predict the score of the match')
+    @app_commands.describe(prediction='Your prediction (e.g., 3-0)')
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def predict(self, interaction: discord.Interaction, prediction: str):
+        if not isinstance(interaction.channel, discord.Thread):
+            await interaction.response.send_message("This command can only be used in match threads.", ephemeral=True)
+            return
+
+        match_id = self.match_thread_map.get(str(interaction.channel.id))
+        if not match_id:
+            await interaction.response.send_message("This thread is not associated with an active match prediction.", ephemeral=True)
+            return
+
+        if match_id in closed_matches:
+            await interaction.response.send_message("Predictions are closed for this match.", ephemeral=True)
+            return
+
+        user_id = str(interaction.user.id)
+        if insert_prediction(match_id, user_id, prediction):
+            await interaction.response.send_message("Prediction recorded!", ephemeral=True)
+        else:
+            await interaction.response.send_message("You have already made a prediction for this match.", ephemeral=True)
 
 class GeneralCommands(commands.Cog, name="General Commands"):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='commands')
-    async def available_commands(self, ctx):
-        """List all commands available to the user"""
-        available_cmds = []
-
-        for command in bot.commands:
-            try:
-                # This will try to run the command's checks
-                await command.can_run(ctx)
-                available_cmds.append(command)
-            except commands.CommandError:
-                # If the command's checks fail, it's not added
-                continue
-
-        embed = discord.Embed(title="Available Commands", color=0x00ff00)
-        for cmd in available_cmds:
-            embed.add_field(name=cmd.name, value=cmd.help or "No description", inline=False)
-
-        await ctx.send(embed=embed)
-
-    @commands.command(name='record')
-    async def team_record(self, ctx):
-        """Lists the Sounders season stats"""
-        match_info, record = await get_next_match(ctx, team_name)
+    @app_commands.command(name='record', description="Lists the Sounders season stats")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def team_record(self, interaction: discord.Interaction):
+        match_info, record = await get_next_match(interaction, team_name)
         if record:
             record_info, team_logo_url = record
             embed = discord.Embed(title=f"{team_name} Record", color=0x00ff00)
@@ -603,166 +758,23 @@ class GeneralCommands(commands.Cog, name="General Commands"):
                 readable_stat = format_stat_name(stat)
                 embed.add_field(name=readable_stat, value=str(value), inline=True)
         
-            await ctx.send(embed=embed)
+            await interaction.response.send_message(embed=embed)
         else:
-            await ctx.send("Error fetching record.")
+            await interaction.response.send_message("Error fetching record.")
 
-    @commands.command(name='predict')
-    async def predict(self, ctx, *, prediction: str):
-        """Only usable in match threads - predict the score of the match !predict 3-0"""
-        if not isinstance(ctx.channel, discord.Thread):
-            await ctx.send("This command can only be used in match threads.")
-            return
-
-        match_id = match_thread_map.get(str(ctx.channel.id))
-        if not match_id:
-            await ctx.send("This thread is not associated with an active match prediction.")
-            return
-
-        # Check if predictions are closed for this match
-        if match_id in closed_matches:
-            await ctx.send("Predictions are closed for this match.")
-            return
-
-        user_id = str(ctx.author.id)
-        if insert_prediction(match_id, user_id, prediction):
-            await ctx.message.add_reaction("👍")
+    @app_commands.command(name='awaytickets', description="Get a link to the latest away tickets")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def away_tickets(self, interaction: discord.Interaction):
+        closest_match = await get_closest_away_match(interaction)
+        if closest_match:
+            match_name, match_link = closest_match
+            await interaction.response.send_message(f"Next away match: {match_name}\nTickets: {match_link}")
         else:
-            await ctx.send("You have already made a prediction for this match.")
+            await interaction.response.send_message("No upcoming away matches found.")
 
-    @commands.command(name='predictions')
-    async def show_predictions(self, ctx):
-        """Only usable in match threads - list predictions for the current match"""
-        if not isinstance(ctx.channel, discord.Thread):
-            await ctx.send("This command can only be used in match threads.")
-            return
-
-        match_id = match_thread_map.get(str(ctx.channel.id))
-        if not match_id:
-            await ctx.send("This thread is not associated with an active match prediction.")
-            return
-
-        predictions = get_predictions(match_id)
-        if not predictions:
-            await ctx.send("No predictions have been made for this match.")
-            return
-
-        # Create an embed for displaying predictions
-        embed = discord.Embed(title="Match Predictions", color=0x00ff00)
-        # Correctly access the guild icon URL
-        if ctx.guild.icon:
-            embed.set_author(name=ctx.guild.name, icon_url=ctx.guild.icon.url)
-        else:
-            embed.set_author(name=ctx.guild.name)
-
-        embed.set_footer(text="Predictions are subject to change before match kickoff.")
-
-        for prediction, count in predictions:
-            embed.add_field(name=prediction, value=f"{count} prediction(s)", inline=True)
-
-        await ctx.send(embed=embed)
-
-    @commands.command(name='verify')
-    async def verify_order(self, ctx):
-        """User verification system, the user needs their order ID to authenticate"""
-        await ctx.message.delete()
-
-        # Check if the command is used in the allowed channels
-        #if ctx.channel.name not in ['lapsed-membership', 'lobby']:
-         #   await ctx.send("This command can only be used in #lapsed-membership and #lobby.")
-         #   return
-
-        prompt_message = await ctx.send(f"{ctx.author.mention}, please enter your order ID number:")
-
-        def check(m):
-            return m.author == ctx.author and m.channel == ctx.channel
-
-        try:
-            order_id_message = await bot.wait_for('message', check=check, timeout=60.0)
-            await order_id_message.delete()
-
-            order_id = order_id_message.content
-            if order_id.startswith('#'):
-                order_id = order_id[1:]
-
-            if order_id in redeemed_orders:
-                response = await ctx.send("This order has already been redeemed.")
-                await asyncio.sleep(10)
-                await response.delete()
-                return
-
-            full_url = f"{wc_url}{order_id}"
-            response_data = await call_woocommerce_api(ctx, full_url)
-            current_membership_role = load_current_role()
-
-            if response_data:
-                order_data = response_data
-                order_status = order_data['status']
-                order_date_str = order_data['date_created']
-                membership_prefix = "ECS Membership 20"
-                membership_found = any(membership_prefix in item['name'] for item in order_data.get('line_items', []))
-
-                if not membership_found:
-                    await ctx.send("The order does not contain the required ECS Membership item.")
-                    return
-
-                order_date = datetime.fromisoformat(order_date_str)
-                current_year = datetime.now().year
-                cutoff_date = datetime(current_year - 1, 12, 1)
-
-                if order_date < cutoff_date:
-                    await ctx.send("This order is not valid for the current membership period.")
-                    return
-
-                if order_status in ['processing', 'completed']:
-                    redeemed_orders[order_id] = str(ctx.author.id)
-                    save_redeemed_orders(redeemed_orders)
-                    role = discord.utils.get(ctx.guild.roles, name=current_membership_role)
-            else:
-                invalid_order_message = await ctx.send("Invalid order number.")
-                await asyncio.sleep(10)
-                await invalid_order_message.delete()
-                return
-
-            if role:
-                await ctx.author.add_roles(role)
-                response = await ctx.send("Thank you for validating your ECS membership!")
-            else:
-                response = await ctx.send(f"{current_membership_role} role not found.")
-
-            await asyncio.sleep(10)
-            await response.delete()
-
-        except asyncio.TimeoutError:
-            timeout_message = await ctx.send(f"{ctx.author.mention}, no order ID provided. Command canceled.")
-            await asyncio.sleep(10)
-            await timeout_message.delete()
-        finally:
-            await prompt_message.delete()
-
-    @commands.command(name='nextmatch')
-    async def next_match(self, ctx):
-        """List the next scheduled match information"""
-        match_info, team_record = await get_next_match(ctx, team_name)
-
-        if isinstance(match_info, str):
-            await ctx.send(match_info)
-            return
-
-        opponent = match_info['opponent']
-        date_time_utc = match_info['date_time']
-        venue = match_info['venue']
-        team_logo = match_info['team_logos'][0]
-    
-        date_time_pst_obj = convert_to_pst(date_time_utc)
-        date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
-
-        embed = discord.Embed(title="Next Match Details", color=0x1a75ff)
-        embed.add_field(name="Opponent", value=opponent, inline=True)
-        embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
-        embed.add_field(name="Venue", value=venue, inline=True)
-        embed.set_image(url=team_logo)
-
-        await ctx.send(embed=embed)
+@bot.tree.command(name='verify', description="Verify your ECS membership", guild=discord.Object(id=server_id))
+async def verify_order(interaction: discord.Interaction):
+    modal = VerifyModal(title="Verify Membership", bot=bot)
+    await interaction.response.send_modal(modal)
 
 bot.run(bot_token)
