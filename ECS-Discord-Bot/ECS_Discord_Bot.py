@@ -334,7 +334,6 @@ async def on_ready():
     await bot.add_cog(WooCommerceCommands(bot))
     await bot.tree.sync(guild=discord.Object(id=server_id))
 
-    # Other on_ready logic
     if os.path.exists('/root/update_channel_id.txt'):
         with open('/root/update_channel_id.txt', 'r') as f:
             channel_id = int(f.read())
@@ -469,7 +468,7 @@ class NewRoleModal(discord.ui.Modal):
         self.bot.current_membership_role = self.new_role_input
         self.save_current_role(self.new_role_input)
 
-        view = ConfirmResetView(self.bot, self.new_role_input)  # Pass the role to the view
+        view = ConfirmResetView(self.bot, self.new_role_input)
         await interaction.response.send_message("Do you want to clear the redeemed orders database for the new season?", view=view, ephemeral=True)
 
 class ConfirmResetView(discord.ui.View):
@@ -531,23 +530,19 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
     @app_commands.command(name='checkorder', description="Check an ECS membership order")
     @app_commands.guilds(discord.Object(id=server_id))
     async def check_order(self, interaction: discord.Interaction):
-        # Admin role check
         if not await has_admin_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        # Show the modal to the user
         await interaction.response.send_modal(CheckOrderModal(self.bot))
 
     @app_commands.command(name='newseason', description="Start a new season with a new ECS membership role")
     @app_commands.guilds(discord.Object(id=server_id))
     async def new_season(self, interaction: discord.Interaction):
-        # Admin role check
         if not await has_admin_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        # Send the modal for new ECS role
         modal = NewRoleModal(self.bot)
         await interaction.response.send_modal(modal)
 
@@ -582,14 +577,12 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name='newmatch', description="Create a new match thread")
-    @app_commands.guilds(discord.Object(id=server_id))  # Replace with your server ID
+    @app_commands.guilds(discord.Object(id=server_id))
     async def new_match(self, interaction: discord.Interaction):
-        # Admin role check
         if not await has_admin_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        # Deferring the response for long processing
         await interaction.response.defer()
 
         try:
@@ -789,23 +782,19 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         home_tickets_category = "765197885"
         away_tickets_category = "765197886"
 
-        # Construct URLs for querying products in these categories
         home_tickets_url = wc_url.replace('orders/', f'products?category={home_tickets_category}')
         away_tickets_url = wc_url.replace('orders/', f'products?category={away_tickets_category}')
 
-        # Fetch products from each category
         home_tickets = await call_woocommerce_api(interaction, home_tickets_url)
         await asyncio.sleep(1)
         away_tickets = await call_woocommerce_api(interaction, away_tickets_url)
 
-        # Prepare message content
         message_content = "🏠 **Home Tickets:**\n"
         message_content += "\n".join([product["name"] for product in home_tickets]) if home_tickets else "No home tickets found."
 
         message_content += "\n\n🚗 **Away Tickets:**\n"
         message_content += "\n".join([product["name"] for product in away_tickets]) if away_tickets else "No away tickets found."
 
-        # Send the response
         await interaction.response.send_message(message_content, ephemeral=True)
 
     @app_commands.command(name='getorderinfo', description="Retrieve order details for a specific product")
