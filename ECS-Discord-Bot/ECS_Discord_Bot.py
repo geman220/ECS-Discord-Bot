@@ -1,7 +1,9 @@
-﻿import discord
+﻿import csv
+import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import has_role
+import io
 import json
 import aiohttp
 import aiocron
@@ -329,6 +331,7 @@ async def on_ready():
     await bot.add_cog(MatchCommands(bot))
     await bot.add_cog(AdminCommands(bot))
     await bot.add_cog(GeneralCommands(bot))
+    await bot.add_cog(WooCommerceCommands(bot))
     await bot.tree.sync(guild=discord.Object(id=server_id))
 
     # Other on_ready logic
@@ -771,6 +774,77 @@ class GeneralCommands(commands.Cog, name="General Commands"):
             await interaction.response.send_message(f"Next away match: {match_name}\nTickets: {match_link}")
         else:
             await interaction.response.send_message("No upcoming away matches found.")
+
+class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name='getorderinfo', description="Retrieve order details for a specific product")
+    @app_commands.describe(product_title='Title of the product')
+    @app_commands.guilds(discord.Object(id=server_id))  # Replace with your server ID
+    async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        # Modify the base URL to query the products endpoint
+        product_url = wc_url.replace('orders/', f'products?search={product_title}')
+
+        # Query WooCommerce for the product
+        products = await call_woocommerce_api(interaction, product_url)
+    
+        if not products:
+            await interaction.response.send_message("No products found or failed to fetch products.", ephemeral=True)
+            return
+
+        product = next((p for p in products if p['name'].lower() == product_title.lower()), None)
+
+        if not product:
+            await interaction.response.send_message("Product not found.", ephemeral=True)
+            return
+
+        # Modify the base URL to query orders for the specific product
+        orders_url = wc_url.replace('products?', f'orders?product={product["id"]}')
+
+        # Query WooCommerce for the orders
+        orders = await call_woocommerce_api(interaction, orders_url)
+
+        if not orders:
+            await interaction.response.send_message("No orders found for this product.", ephemeral=True)
+            return
+
+        # Extract data and generate CSV
+        csv_output = io.StringIO()
+        csv_writer = csv.writer(csv_output)
+        header = ["Product Name", "Customer First Name", "Customer Last Name", "Customer Username", "Customer Email",
+                  "Order Date Paid", "Order Line Item Quantity", "Order Line Item Price", "Order Number", "Order Status",
+                  "Order Customer Note", "Product Variation Name"]
+        csv_writer.writerow(header)
+
+        for order in orders:
+            for item in order.get('line_items', []):
+                if item['product_id'] == product['id']:
+                    row = [product['name'],
+                           order['billing']['first_name'],
+                           order['billing']['last_name'],
+                           order['customer_user_agent'],
+                           order['billing']['email'],
+                           order.get('date_paid', 'N/A'),
+                           item['quantity'],
+                           item['price'],
+                           order['number'],
+                           order['status'],
+                           order.get('customer_note', 'N/A'),
+                           item['name']]  # Assuming this is the variation name
+                    csv_writer.writerow(row)
+
+        csv_output.seek(0)
+        csv_file = discord.File(fp=csv_output, filename=f"{product_title}_orders.csv")
+
+        # Send CSV File
+        await interaction.response.send_message(f"Orders for product '{product_title}':", file=csv_file, ephemeral=True)
+
+        csv_output.close()
 
 @bot.tree.command(name='verify', description="Verify your ECS membership", guild=discord.Object(id=server_id))
 async def verify_order(interaction: discord.Interaction):
