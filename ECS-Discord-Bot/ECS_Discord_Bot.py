@@ -32,6 +32,7 @@ wc_secret = os.getenv('WC_SECRET')
 bot_token = os.getenv('BOT_TOKEN')
 wc_url = os.getenv('URL')
 team_name = os.getenv('TEAM_NAME')
+team_id = os.getenv('TEAM_ID')
 openweather_api = os.getenv('OPENWEATHER_API_KEY')
 venue_long = os.getenv('VENUE_LONG')
 venue_lat = os.getenv('VENUE_LAT')
@@ -40,7 +41,7 @@ flask_token = os.getenv('FLASK_TOKEN')
 discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
 server_id = os.getenv('SERVER_ID')
-BOT_VERSION = "1.3.2"
+BOT_VERSION = "1.3.5"
 closed_matches = set()
 
 def initialize_db():
@@ -158,65 +159,49 @@ def save_redeemed_orders(redeemed_orders):
 
 redeemed_orders = load_redeemed_orders()
 
-async def get_next_match(ctx, team_name):
-    url = "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"
+async def get_next_match(ctx, team_id):
+    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
     data = await send_async_http_request(ctx, url)
 
-    team_id = None
-    if data:
-        for event in data.get('events', []):
-            for competition in event.get('competitions', []):
-                competitors = competition.get('competitors', [])
-                for team in competitors:
-                    if team.get('team', {}).get('displayName') == team_name:
-                        team_id = team.get('team', {}).get('id')
-                        break
-                if team_id:
-                    break
+    if not data:
+        return "Data not found for the specified team."
 
-    if not team_id:
-        return "Team ID not found."
+    next_event = data.get("team", {}).get("nextEvent", [])
+    if not next_event:
+        return "No upcoming matches found."
 
-    record = await get_team_record(ctx, team_id)
-    upcoming_matches = []
-    now = datetime.now(tz=pytz.utc)
+    next_match = next_event[0]
+    match_id = next_match.get("id")
+    date_time_utc = next_match.get("date")
+    name = next_match.get("name")
+    venue = next_match.get("competitions", [{}])[0].get("venue", {}).get("fullName")
+    links = next_match.get("links", [])
+    match_summary_link = next((link["href"] for link in links if "summary" in link["rel"]), "Unavailable")
+    match_stats_link = next((link["href"] for link in links if "stats" in link["rel"]), "Unavailable")
 
-    for event in data.get('events', []):
-        match_id = event['id']
-        for competition in event.get('competitions', []):
-            match_time_utc = datetime.fromisoformat(competition['date'].replace('Z', '+00:00'))
-            if match_time_utc > now:
-                competitors = competition.get('competitors', [])
-                for team in competitors:
-                    display_name = team.get('team', {}).get('displayName')
-                    if display_name == team_name:
-                        is_home_game = team['homeAway'] == 'home'
-                        opponent_details = next((t for t in competitors if t.get('team', {}).get('displayName') != team_name), None)
-
-                        match_info = {
-                            'match_id': match_id,
-                            'opponent': opponent_details['team']['displayName'] if opponent_details else "Unknown",
-                            'date_time': competition.get('date'),
-                            'venue': competition.get('venue', {}).get('fullName'),
-                            'team_logos': [t['team']['logo'] for t in competitors if 'team' in t],
-                            'team_form': team['form'] if team else "N/A",
-                            'opponent_form': opponent_details['form'] if opponent_details else "N/A",
-                            'team_stats_link': team['team']['links'][1]['href'] if team else "",
-                            'opponent_stats_link': opponent_details['team']['links'][1]['href'] if opponent_details else "",
-                            'is_home_game': is_home_game
-                        }
-                        upcoming_matches.append((match_time_utc, match_info))
-
-            if upcoming_matches:
-                next_match_info = sorted(upcoming_matches, key=lambda x: x[0])[0][1]
-                event = next(e for e in data['events'] if e['id'] == next_match_info['match_id'])
-                next_match_info['match_summary_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["summary","desktop","event"])
-                next_match_info['match_stats_link'] = next(link['href'] for link in event['links'] if link['rel'] == ["stats","desktop","event"])
-                return next_match_info, record
-
-            return "No upcoming matches found for {}.".format(team_name)
+    competitors = next_match.get("competitions", [{}])[0].get("competitors", [])
+    opponent, team_logo = None, None
+    is_home_game = False
+    for competitor in competitors:
+        if competitor["team"]["id"] != team_id:
+            opponent = competitor["team"]["displayName"]
         else:
-            return "Error fetching data from ESPN API."
+            is_home_game = competitor["homeAway"] == "home"
+            team_logo = competitor["team"].get("logos", [{}])[0].get("href")
+
+    match_info = {
+        "match_id": match_id,
+        "opponent": opponent,
+        "date_time": date_time_utc,
+        "venue": venue,
+        "name": name,
+        "is_home_game": is_home_game,
+        "team_logo": team_logo,
+        "match_summary_link": match_summary_link,
+        "match_stats_link": match_stats_link
+    }
+
+    return match_info
 
 async def get_team_record(ctx, team_id):
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
@@ -318,11 +303,84 @@ def extract_date_from_title(title):
             return None
     return None
 
+async def create_event_if_necessary(interaction, match_info):
+    event_start_time_pst = convert_to_pst(match_info['date_time']) - timedelta(hours=1)
+    existing_events = await interaction.guild.fetch_scheduled_events()
+    event_exists = any(
+        event.name == "March to the Match" and 
+        event.start_time == event_start_time_pst for event in existing_events
+    )
+
+    if event_exists:
+        return "An event for this match has already been scheduled."
+
+    try:
+        await interaction.guild.create_scheduled_event(
+            name="March to the Match",
+            start_time=event_start_time_pst,
+            end_time=event_start_time_pst + timedelta(hours=2),
+            description=f"March to the Match for {match_info['name']}",
+            location="117 S Washington St, Seattle, WA 98104",
+            entity_type=discord.EntityType.external,
+            privacy_level=discord.PrivacyLevel.guild_only
+        )
+        event_start_str = event_start_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+        return f"Event created: 'March to the Match' starting at {event_start_str}."
+    except Exception as e:
+        return f"Failed to create event: {e}"
+
+async def check_existing_threads(interaction, thread_name):
+    channel = discord.utils.get(interaction.guild.channels, name='match-thread')
+    if channel and isinstance(channel, discord.ForumChannel):
+        existing_threads = channel.threads
+        for thread in existing_threads:
+            if thread.name == thread_name:
+                return True
+    return False
+
+async def prepare_starter_message(match_info, date_time_pst_formatted, team_logo, weather_forecast, thread_name):
+    starter_message = (
+        f"**Upcoming Match: {match_info['name']}**\n"
+        f"Date and Time: {date_time_pst_formatted}\n"
+        f"Venue: {match_info['venue']}\n"
+        f"**Match Details**\n"
+        f"More Info: [Match Summary](<{match_info['match_summary_link']}), [Statistics](<{match_info['match_stats_link']}>)\n"
+        f"**Broadcast**: AppleTV\n"
+    )
+
+    embed = discord.Embed(title=thread_name, description=starter_message, color=0x1a75ff)
+    embed.set_image(url=match_info['team_logo'])
+    return starter_message, embed
+
+async def create_match_thread(interaction, thread_name, embed, match_info, match_commands_cog):
+    channel = discord.utils.get(interaction.guild.channels, name='match-thread')
+    if channel and isinstance(channel, discord.ForumChannel):
+        thread, initial_message = await channel.create_thread(name=thread_name, auto_archive_duration=60, embed=embed)
+        match_id = match_info['match_id']
+        thread_id = str(thread.id)
+
+        # Update the thread map in the cog
+        match_commands_cog.update_thread_map(thread_id, match_id)
+
+        insert_match_thread(thread_id, match_id)
+
+        await thread.send(f"Predict the score! Use `/predict {match_info['name']}-Score - {match_info['opponent']}-Score` to participate. Predictions end at kickoff!")
+        match_start_time = convert_to_pst(match_info['date_time'])
+        asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
+
+        return f"Match thread created: [Click here to view the thread](https://discord.com/channels/{interaction.guild_id}/{channel.id}/{thread.id})"
+    else:
+        return "Match thread channel not found."
+
 async def is_admin_or_owner(interaction: discord.Interaction):
     return str(interaction.user.id) == dev_id or any(role.name == discord_admin_role for role in interaction.user.roles)
 
 async def has_admin_role(interaction: discord.Interaction):
     return any(role.name == discord_admin_role for role in interaction.user.roles)
+
+async def has_required_wg_role(interaction: discord.Interaction):
+    required_roles = ["WG: Travel", "WG: Home Tickets", discord_admin_role]
+    return any(role.name in required_roles for role in interaction.user.roles)
 
 @bot.event
 async def on_ready():
@@ -550,29 +608,28 @@ class MatchCommands(commands.Cog, name="Match Commands"):
     def __init__(self, bot):
         self.bot = bot
         self.match_thread_map = match_thread_map
+        self.team_id = team_id
+
+    def update_thread_map(self, thread_id, match_id):
+        self.match_thread_map[thread_id] = match_id
 
     @app_commands.command(name='nextmatch', description="List the next scheduled match information")
     @app_commands.guilds(discord.Object(id=server_id))
     async def next_match(self, interaction: discord.Interaction):
-        match_info, team_record = await get_next_match(interaction, team_name)
+        match_info = await get_next_match(interaction, team_id)
 
         if isinstance(match_info, str):
             await interaction.response.send_message(match_info)
             return
 
-        opponent = match_info['opponent']
-        date_time_utc = match_info['date_time']
-        venue = match_info['venue']
-        team_logo = match_info['team_logos'][0]
-    
-        date_time_pst_obj = convert_to_pst(date_time_utc)
+        # Format and send the response with match details
+        date_time_pst_obj = convert_to_pst(match_info['date_time'])
         date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
 
-        embed = discord.Embed(title="Next Match Details", color=0x1a75ff)
-        embed.add_field(name="Opponent", value=opponent, inline=True)
+        embed = discord.Embed(title=f"Next Match: {match_info['name']}", color=0x1a75ff)
+        embed.add_field(name="Opponent", value=match_info['opponent'], inline=True)
         embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
-        embed.add_field(name="Venue", value=venue, inline=True)
-        embed.set_image(url=team_logo)
+        embed.add_field(name="Venue", value=match_info['venue'], inline=True)
 
         await interaction.response.send_message(embed=embed)
 
@@ -586,103 +643,32 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         await interaction.response.defer()
 
         try:
-            match_info, team_record = await get_next_match(interaction, team_name)
+            match_info = await get_next_match(interaction, self.team_id)
             if isinstance(match_info, str):
                 await interaction.followup.send(match_info, ephemeral=True)
                 return
         except Exception as e:
             await interaction.followup.send(f"Failed to process the command: {e}", ephemeral=True)
 
-        opponent = match_info.get('opponent', 'Unknown Opponent')
-        date_time_utc = match_info.get('date_time', 'Unknown Date/Time')
-        venue = match_info.get('venue', 'Unknown Venue')
-        team_form = match_info.get('team_form', 'N/A')
-        opponent_form = match_info.get('opponent_form', 'N/A')
-        team_stats_link = match_info.get('team_stats_link', '')
-        opponent_stats_link = match_info.get('opponent_stats_link', '')
-        match_summary_link = match_info.get('match_summary_link', '#')
-        match_stats_link = match_info.get('match_stats_link', '#')
-
+        date_time_pst = convert_to_pst(match_info['date_time'])
+        date_time_pst_formatted = date_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+        thread_name = f"Match Thread: {match_info['name']} - {date_time_pst_formatted}"
+    
         weather_forecast = ""
         if match_info['is_home_game']:
-            weather_forecast = await get_weather_forecast(date_time_utc, venue_lat, venue_long)
-            weather_forecast = f"\n\n**Weather**: {weather_forecast}"
-            match_time_pst = convert_to_pst(date_time_utc)
-            event_start_time_pst = match_time_pst - timedelta(hours=1)
-            date_time_pst_formatted = match_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
-            event_start_str = event_start_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+            weather_forecast = await get_weather_forecast(date_time_pst, venue_lat, venue_long)
+            event_response = await create_event_if_necessary(interaction, match_info, date_time_pst)
+            if event_response:
+                await interaction.followup.send(event_response)
+                return
 
-            existing_events = await interaction.guild.fetch_scheduled_events()
-            event_exists = any(
-                event.name == "March to the Match" and 
-                event.start_time == event_start_time_pst for event in existing_events
-            )
+        if await check_existing_threads(interaction, thread_name):
+            await interaction.followup.send("A thread for this match has already been created.")
+            return
 
-            if not event_exists:
-                try:
-                    event = await interaction.guild.create_scheduled_event(
-                        name="March to the Match",
-                        start_time=event_start_time_pst,
-                        end_time=event_start_time_pst + timedelta(hours=2),
-                        description=f"March to the Match for {team_name} vs {opponent}",
-                        location="117 S Washington St, Seattle, WA 98104",
-                        entity_type=discord.EntityType.external,
-                        privacy_level=discord.PrivacyLevel.guild_only
-                    )
-                    await interaction.followup.send(f"Event created: 'March to the Match' starting at {event_start_str}.")
-                except Exception as e:
-                    await interaction.followup.send(f"Failed to create event: {e}")
-            else:
-                await interaction.followup.send("An event for this match has already been scheduled.")
-
-        thread_name = f"Match Thread: {team_name} vs {opponent} - {date_time_pst_formatted}"
-
-        channel = discord.utils.get(interaction.guild.channels, name='match-thread')
-        if channel and isinstance(channel, discord.ForumChannel):
-            existing_threads = channel.threads
-
-            for thread in existing_threads:
-                if thread.name == thread_name:
-                    await interaction.followup.send("A thread for this match has already created.")
-                    return
-
-        starter_message = (
-            f"**Upcoming Match: {team_name} vs {opponent}**\n"
-            f"Date and Time: {date_time_pst_formatted}\n"
-            f"Venue: {venue}\n"
-            f"**Season History**\n"
-            f"{team_name}: {team_form} [Team Stats]({team_stats_link})\n"
-            f"{opponent}: {opponent_form} [Opponent Stats]({opponent_stats_link})\n"
-            f"**Match Details**\n"
-            f"More Info: [Match Summary](<{match_summary_link}>), [Statistics](<{match_stats_link}>)\n"
-            f"**Broadcast**: AppleTV"
-            f"{weather_forecast}"
-        )
-
-        embed = discord.Embed(
-            title=thread_name,
-            description=starter_message,
-            color=0x1a75ff
-        )
-        embed.set_image(url=match_info['team_logos'][0])
-
-        channel = discord.utils.get(interaction.guild.channels, name='match-thread')
-        if channel:
-            if isinstance(channel, discord.ForumChannel):
-                thread, initial_message = await channel.create_thread(name=thread_name, auto_archive_duration=60, embed=embed)
-                self.match_thread_map[thread.id] = match_info['match_id']
-                insert_match_thread(thread.id, match_info['match_id'])
-
-                self.match_thread_map = load_match_threads()
-
-                await thread.send(f"Predict the score! Use `/predict {team_name}-Score - {opponent}-Score` to participate.  Predictions end at kickoff!")
-
-                match_start_time = convert_to_pst(date_time_utc)
-                asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
-
-                await interaction.followup.send(f"Match thread created: [Click here to view the thread](https://discord.com/channels/{interaction.guild_id}/{channel.id}/{thread.id})")
-            else:
-                await interaction.followup.send("Match thread channel not found.", ephemeral=True)
+        starter_message, embed = await prepare_starter_message(match_info, date_time_pst_formatted, match_info['team_logo'], weather_forecast, thread_name)
+        thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self)
+        await interaction.followup.send(thread_response)
 
     @app_commands.command(name='predictions', description='List predictions for the current match thread')
     @app_commands.guilds(discord.Object(id=server_id))
@@ -775,7 +761,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     @app_commands.command(name='ticketlist', description="List all tickets for sale")
     @app_commands.guilds(discord.Object(id=server_id))
     async def list_tickets(self, interaction: discord.Interaction):
-        if not await has_admin_role(interaction):
+        if not await has_required_wg_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
@@ -801,7 +787,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     @app_commands.describe(product_title='Title of the product')
     @app_commands.guilds(discord.Object(id=server_id))
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
-        if not await has_admin_role(interaction):
+        if not await has_required_wg_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
