@@ -359,7 +359,6 @@ async def create_match_thread(interaction, thread_name, embed, match_info, match
         match_id = match_info['match_id']
         thread_id = str(thread.id)
 
-        # Update the thread map in the cog
         match_commands_cog.update_thread_map(thread_id, match_id)
 
         insert_match_thread(thread_id, match_id)
@@ -622,7 +621,6 @@ class MatchCommands(commands.Cog, name="Match Commands"):
             await interaction.response.send_message(match_info)
             return
 
-        # Format and send the response with match details
         date_time_pst_obj = convert_to_pst(match_info['date_time'])
         date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
 
@@ -726,20 +724,20 @@ class MatchCommands(commands.Cog, name="Match Commands"):
 class GeneralCommands(commands.Cog, name="General Commands"):
     def __init__(self, bot):
         self.bot = bot
+        self.team_id = team_id
 
     @app_commands.command(name='record', description="Lists the Sounders season stats")
     @app_commands.guilds(discord.Object(id=server_id))
     async def team_record(self, interaction: discord.Interaction):
-        match_info, record = await get_next_match(interaction, team_name)
-        if record:
-            record_info, team_logo_url = record
+        record_info, team_logo_url = await get_team_record(interaction, self.team_id)
+        if record_info != "Record not available":
             embed = discord.Embed(title=f"{team_name} Record", color=0x00ff00)
             if team_logo_url:
                 embed.set_thumbnail(url=team_logo_url)
             for stat, value in record_info.items():
                 readable_stat = format_stat_name(stat)
                 embed.add_field(name=readable_stat, value=str(value), inline=True)
-        
+    
             await interaction.response.send_message(embed=embed)
         else:
             await interaction.response.send_message("Error fetching record.")
