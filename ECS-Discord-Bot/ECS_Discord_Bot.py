@@ -41,7 +41,8 @@ flask_token = os.getenv('FLASK_TOKEN')
 discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
 server_id = os.getenv('SERVER_ID')
-BOT_VERSION = "1.3.5"
+serpapi_api = os.getenv('SERPAPI_API')
+BOT_VERSION = "1.3.8"
 closed_matches = set()
 
 def initialize_db():
@@ -157,51 +158,85 @@ def load_redeemed_orders():
 def save_redeemed_orders(redeemed_orders):
     write_json_file('redeemed_orders.json', redeemed_orders)
 
-redeemed_orders = load_redeemed_orders()
+def load_team_airports():
+    return read_json_file('team_airports.json', default_value={})
 
-async def get_next_match(ctx, team_id):
+def get_airport_code_for_team(team_name, team_airports):
+    for airport_code, teams in team_airports.items():
+        if team_name in teams:
+            return airport_code
+    return None
+
+redeemed_orders = load_redeemed_orders()
+team_airports = load_team_airports()
+
+async def get_next_match(ctx, team_id, opponent=None, home_away=None):
+    schedule_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}/schedule"
+    schedule_data = await send_async_http_request(ctx, schedule_url)
+    if schedule_data and schedule_data.get("events"):
+        return "Schedule endpoint now contains events data. Please update the parsing logic.  Using backup method for now."
+
+    if opponent:
+        match_title, _ = await get_away_match(ctx, opponent)
+        match_date = extract_date_from_title(match_title)
+        if match_date:
+            formatted_date = match_date.strftime("%Y%m%d")
+            backup_data = await send_async_http_request(ctx, f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={formatted_date}")
+            if backup_data:
+                for event in backup_data.get("events", []):
+                    if "Seattle Sounders FC" in event.get("name", "") and opponent.lower() in event.get("name", "").lower():
+                        return extract_match_details(event)
+
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
     data = await send_async_http_request(ctx, url)
 
-    if not data:
+    if not data or 'team' not in data:
         return "Data not found for the specified team."
 
-    next_event = data.get("team", {}).get("nextEvent", [])
-    if not next_event:
-        return "No upcoming matches found."
+    next_events = data['team'].get('nextEvent', [])
+    for event in next_events:
+        competitors = event.get("competitions", [{}])[0].get("competitors", [])
+        for competitor in competitors:
+            if competitor["team"]["id"] == team_id:
+                match_opponent = next(op["team"]["displayName"] for op in competitors if op["team"]["id"] != team_id)
+                is_home_game = competitor["homeAway"] == "home"
+                if (not opponent or opponent.lower() == match_opponent.lower()) and (home_away is None or competitor["homeAway"] == home_away):
+                    return extract_match_details(event, competitor)
 
-    next_match = next_event[0]
-    match_id = next_match.get("id")
-    date_time_utc = next_match.get("date")
-    name = next_match.get("name")
-    venue = next_match.get("competitions", [{}])[0].get("venue", {}).get("fullName")
-    links = next_match.get("links", [])
-    match_summary_link = next((link["href"] for link in links if "summary" in link["rel"]), "Unavailable")
-    match_stats_link = next((link["href"] for link in links if "stats" in link["rel"]), "Unavailable")
+    return "No relevant away matches found."
 
-    competitors = next_match.get("competitions", [{}])[0].get("competitors", [])
-    opponent, team_logo = None, None
-    is_home_game = False
-    for competitor in competitors:
-        if competitor["team"]["id"] != team_id:
-            opponent = competitor["team"]["displayName"]
-        else:
-            is_home_game = competitor["homeAway"] == "home"
-            team_logo = competitor["team"].get("logos", [{}])[0].get("href")
+def extract_match_details(event, competitor=None):
+    match_id = event.get("id")
+    date_time_utc = event.get("date")
+    name = event.get("name")
+    venue = event.get("competitions", [{}])[0].get("venue", {}).get("fullName")
+    
+    if competitor:
+        opponent = next(op["team"]["displayName"] for op in event.get("competitions", [{}])[0].get("competitors", []) if op["team"]["id"] != competitor["team"]["id"])
+        team_logo = competitor["team"].get("logos", [{}])[0].get("href")
+        is_home_game = competitor["homeAway"] == "home"
+    else:
+        sounders_data = next(comp for comp in event["competitions"][0]["competitors"] if comp["team"]["id"] == "9726")
+        opponent = next(op["team"]["displayName"] for op in event["competitions"][0]["competitors"] if op["team"]["id"] != "9726")
+        team_logo = sounders_data["team"].get("logo")
+        is_home_game = sounders_data["homeAway"] == "home"
 
-    match_info = {
+    summary_link = next((link["href"] for link in event.get("links", []) if "summary" in link["rel"]), "Unavailable")
+    stats_link = next((link["href"] for link in event.get("links", []) if "stats" in link["rel"]), "Unavailable")
+    commentary_link = next((link["href"] for link in event.get("links", []) if "commentary" in link["rel"]), "Unavailable")
+
+    return {
         "match_id": match_id,
         "opponent": opponent,
         "date_time": date_time_utc,
         "venue": venue,
         "name": name,
-        "is_home_game": is_home_game,
         "team_logo": team_logo,
-        "match_summary_link": match_summary_link,
-        "match_stats_link": match_stats_link
+        "is_home_game": is_home_game,
+        "match_summary_link": summary_link,
+        "match_stats_link": stats_link,
+        "match_commentary_link": commentary_link
     }
-
-    return match_info
 
 async def get_team_record(ctx, team_id):
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
@@ -269,12 +304,12 @@ async def get_weather_forecast(date_time_utc, latitude, longitude):
     else:
         return "Unable to fetch weather information."
 
-async def get_closest_away_match(ctx):
+async def get_away_match(ctx, opponent=None):
     product_url = wc_url.replace('orders/', 'products?category=765197886')
     products = await call_woocommerce_api(ctx, product_url)
-    
+
     if products:
-        upcoming_matches = []
+        matches = []
 
         for product in products:
             title = product.get('name', '')
@@ -282,12 +317,17 @@ async def get_closest_away_match(ctx):
 
             if match_date and match_date >= datetime.now():
                 link = product.get('permalink')
-                upcoming_matches.append((match_date, title, link))
+                matches.append((match_date, title, link))
 
-        upcoming_matches.sort()
+        matches.sort()
 
-        if upcoming_matches:
-            closest_match = upcoming_matches[0]
+        if opponent:
+            for match in matches:
+                if opponent.lower() in match[1].lower():
+                    return match[1], match[2]
+
+        if matches:
+            closest_match = matches[0]
             return closest_match[1], closest_match[2]
 
     return None
@@ -329,14 +369,62 @@ async def create_event_if_necessary(interaction, match_info):
     except Exception as e:
         return f"Failed to create event: {e}"
 
-async def check_existing_threads(interaction, thread_name):
-    channel = discord.utils.get(interaction.guild.channels, name='match-thread')
+async def check_existing_threads(interaction, thread_name, channel_name):
+    channel = discord.utils.get(interaction.guild.channels, name=channel_name)
     if channel and isinstance(channel, discord.ForumChannel):
         existing_threads = channel.threads
         for thread in existing_threads:
             if thread.name == thread_name:
                 return True
     return False
+
+async def generate_flight_search_url(departure_airport, team_name, outbound_date, return_date):
+    arrival_airport = get_airport_code_for_team(team_name, team_airports)
+    if not arrival_airport:
+        return "Airport for the team not found."
+
+    base_url = "https://serpapi.com/search"
+    params = {
+        "engine": "google_flights",
+        "departure_id": departure_airport,
+        "arrival_id": arrival_airport,
+        "gl": "us",
+        "hl": "en",
+        "currency": "USD",
+        "type": "1",
+        "outbound_date": outbound_date.strftime("%Y-%m-%d"),
+        "return_date": return_date.strftime("%Y-%m-%d"),
+        "api_key": serpapi_api
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(base_url, params=params) as response:
+            if response.status == 200:
+                return await response.text()
+            else:
+                return f"Failed to fetch data: {response.status}"
+
+def parse_flight_data(json_response):
+    if not json_response.get("best_flights"):
+        return "No flight information available."
+
+    best_flight = json_response["best_flights"][0]
+    flight_info = best_flight["flights"][0]
+
+    price = best_flight.get("price", "N/A")
+    airline = flight_info.get("airline", "N/A")
+    departure_time = flight_info["departure_airport"].get("time", "N/A")
+    arrival_time = flight_info["arrival_airport"].get("time", "N/A")
+    current_date = datetime.now().strftime("%m/%d/%y")
+
+    message = (
+        f"**Best Flight Price**: ${price} (as of {current_date})\n"
+        f"**Airline**: {airline}\n"
+        f"**Departure Time**: {departure_time}\n"
+        f"**Arrival Time**: {arrival_time}\n"
+        f"More details and options: [Google Flights]({json_response['search_metadata']['google_flights_url']})"
+    )
+    return message
 
 async def prepare_starter_message(match_info, date_time_pst_formatted, team_logo, weather_forecast, thread_name):
     starter_message = (
@@ -352,24 +440,53 @@ async def prepare_starter_message(match_info, date_time_pst_formatted, team_logo
     embed.set_image(url=match_info['team_logo'])
     return starter_message, embed
 
-async def create_match_thread(interaction, thread_name, embed, match_info, match_commands_cog):
-    channel = discord.utils.get(interaction.guild.channels, name='match-thread')
+async def prepare_starter_message_away(match_info, date_time_pst_formatted, thread_name, ticket_link):
+    match_date = datetime.strptime(date_time_pst_formatted, '%m/%d/%Y %I:%M %p PST').date()
+    outbound_date = match_date - timedelta(days=1)
+    return_date = match_date + timedelta(days=1)
+
+    flight_response = await generate_flight_search_url("SEA", match_info['opponent'], outbound_date, return_date)
+    if isinstance(flight_response, str):
+        try:
+            flight_response = json.loads(flight_response)
+            flight_message = parse_flight_data(flight_response)
+        except json.JSONDecodeError:
+            flight_message = flight_response
+    else:
+        flight_message = parse_flight_data(flight_response)
+
+    starter_message = (
+        f"**Away Match: {match_info['name']}**\n"
+        f"Date and Time: {date_time_pst_formatted}\n"
+        f"Venue: {match_info['venue']}\n\n"
+        f"Let's discuss travel plans, accommodations, and local attractions for this away match!\n\n"
+        f"**Flight Information**\n"
+        f"{flight_message}\n\n"
+        f"**Get Your Tickets**: [Buy Tickets Here]({ticket_link})"
+    )
+
+    embed = discord.Embed(title=thread_name, description=starter_message, color=0x1a75ff)
+    embed.set_image(url=match_info['team_logo'])
+    return starter_message, embed
+
+async def create_match_thread(interaction, thread_name, embed, match_info, match_commands_cog, channel_name):
+    channel = discord.utils.get(interaction.guild.channels, name=channel_name)
     if channel and isinstance(channel, discord.ForumChannel):
         thread, initial_message = await channel.create_thread(name=thread_name, auto_archive_duration=60, embed=embed)
         match_id = match_info['match_id']
         thread_id = str(thread.id)
 
         match_commands_cog.update_thread_map(thread_id, match_id)
-
         insert_match_thread(thread_id, match_id)
 
-        await thread.send(f"Predict the score! Use `/predict {match_info['name']}-Score - {match_info['opponent']}-Score` to participate. Predictions end at kickoff!")
-        match_start_time = convert_to_pst(match_info['date_time'])
-        asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
+        if channel_name == 'match-thread':
+            await thread.send(f"Predict the score! Use `/predict {match_info['name']}-Score - {match_info['opponent']}-Score` to participate. Predictions end at kickoff!")
+            match_start_time = convert_to_pst(match_info['date_time'])
+            asyncio.create_task(schedule_poll_closing(match_start_time, match_info['match_id'], thread))
 
-        return f"Match thread created: [Click here to view the thread](https://discord.com/channels/{interaction.guild_id}/{channel.id}/{thread.id})"
+        return f"Thread created in {channel_name}: [Click here to view the thread](https://discord.com/channels/{interaction.guild_id}/{channel.id}/{thread.id})"
     else:
-        return "Match thread channel not found."
+        return f"Channel '{channel_name}' not found."
 
 async def is_admin_or_owner(interaction: discord.Interaction):
     return str(interaction.user.id) == dev_id or any(role.name == discord_admin_role for role in interaction.user.roles)
@@ -660,13 +777,57 @@ class MatchCommands(commands.Cog, name="Match Commands"):
                 await interaction.followup.send(event_response)
                 return
 
-        if await check_existing_threads(interaction, thread_name):
+        if await check_existing_threads(interaction, thread_name, "match-thread"):
             await interaction.followup.send("A thread for this match has already been created.")
             return
 
         starter_message, embed = await prepare_starter_message(match_info, date_time_pst_formatted, match_info['team_logo'], weather_forecast, thread_name)
-        thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self)
+        thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self, "match-thread")
         await interaction.followup.send(thread_response)
+
+    @app_commands.command(name='awaymatch', description="Create a new away match thread")
+    @app_commands.guilds(discord.Object(id=server_id))
+    @app_commands.describe(opponent='The name of the opponent team (optional)')
+    async def away_match(self, interaction: discord.Interaction, opponent: str = None):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        match_ticket_info = await get_away_match(interaction, opponent)
+        if not match_ticket_info:
+            await interaction.followup.send("No relevant away match or ticket info found.", ephemeral=True)
+            return
+
+        match_name, match_link = match_ticket_info
+
+        try:
+            match_info = await get_next_match(interaction, self.team_id, opponent)
+            if isinstance(match_info, str):
+                await interaction.followup.send(match_info, ephemeral=True)
+                return
+
+            match_id = match_info['match_id']
+            match_name = match_info['name']
+            match_venue = match_info['venue']
+            match_opponent = match_info['opponent']
+            match_date_time_utc = match_info['date_time']
+
+            date_time_pst = convert_to_pst(match_date_time_utc)
+            date_time_pst_formatted = date_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+            thread_name = f"Away Travel: {match_name} - {date_time_pst_formatted}"
+
+            if await check_existing_threads(interaction, thread_name, "away-travel"):
+                await interaction.followup.send("A thread for this away match has already been created.")
+                return
+
+            starter_message, embed = await prepare_starter_message_away(match_info, date_time_pst_formatted, thread_name, match_link)
+            thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self, channel_name='away-travel')
+        
+            await interaction.followup.send(thread_response)
+        except Exception as e:
+            await interaction.followup.send(f"Failed to process the command: {e}", ephemeral=True)
 
     @app_commands.command(name='predictions', description='List predictions for the current match thread')
     @app_commands.guilds(discord.Object(id=server_id))
@@ -744,11 +905,12 @@ class GeneralCommands(commands.Cog, name="General Commands"):
 
     @app_commands.command(name='awaytickets', description="Get a link to the latest away tickets")
     @app_commands.guilds(discord.Object(id=server_id))
-    async def away_tickets(self, interaction: discord.Interaction):
-        closest_match = await get_closest_away_match(interaction)
+    @app_commands.describe(opponent='The name of the opponent team (optional)')
+    async def away_tickets(self, interaction: discord.Interaction, opponent: str = None):
+        closest_match = await get_away_match(interaction, opponent)
         if closest_match:
             match_name, match_link = closest_match
-            await interaction.response.send_message(f"Next away match: {match_name}\nTickets: {match_link}")
+            await interaction.response.send_message(f"Away match: {match_name}\nTickets: {match_link}")
         else:
             await interaction.response.send_message("No upcoming away matches found.")
 
