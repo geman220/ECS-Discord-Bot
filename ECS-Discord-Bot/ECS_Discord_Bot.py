@@ -16,6 +16,10 @@ import traceback
 from collections import defaultdict
 import re
 import sqlite3
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -161,6 +165,9 @@ def save_redeemed_orders(redeemed_orders):
 def load_team_airports():
     return read_json_file('team_airports.json', default_value={})
 
+def load_match_dates():
+    return read_json_file('match_dates.json', default_value=[])
+
 def get_airport_code_for_team(team_name, team_airports):
     for airport_code, teams in team_airports.items():
         if team_name in teams:
@@ -169,6 +176,40 @@ def get_airport_code_for_team(team_name, team_airports):
 
 redeemed_orders = load_redeemed_orders()
 team_airports = load_team_airports()
+match_dates = load_match_dates()
+
+async def get_matches_for_calendar(ctx):
+    match_dates = load_match_dates()
+    all_matches = []
+
+    for date in match_dates:
+        api_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={date}"
+        logger.info(f"Fetching data for date: {date}")
+        match_data = await send_async_http_request(ctx, api_url)
+
+        if not match_data:
+            logger.warning(f"No data returned for date {date}")
+            continue
+
+        for event in match_data.get("events", []):
+            if "Seattle Sounders FC" in event.get("name", ""):
+                match_details = extract_match_details(event)
+                all_matches.append(match_details)
+                logger.info(f"Match details added: {match_details}")
+
+    logger.info(f"Total matches fetched: {len(all_matches)}")
+    return all_matches
+
+def format_for_calendar(match_details):
+    return {
+        "title": match_details["name"],
+        "description": f"Match against {match_details['opponent']}",
+        "start_date": convert_to_pst(match_details["date_time"]).strftime('%Y-%m-%dT%H:%M:%S'),
+        "end_date": (convert_to_pst(match_details["date_time"]) + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),  # Assuming average match duration is 2 hours
+        "venue": match_details["venue"],
+        "website": match_details["match_summary_link"]
+        # Add any other fields as required
+    }
 
 async def get_next_match(ctx, team_id, opponent=None, home_away=None):
     schedule_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}/schedule"
@@ -184,7 +225,7 @@ async def get_next_match(ctx, team_id, opponent=None, home_away=None):
             backup_data = await send_async_http_request(ctx, f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={formatted_date}")
             if backup_data:
                 for event in backup_data.get("events", []):
-                    if "Seattle Sounders FC" in event.get("name", "") and opponent.lower() in event.get("name", "").lower():
+                    if team_name in event.get("name", "") and opponent.lower() in event.get("name", "").lower():
                         return extract_match_details(event)
 
     url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
@@ -719,6 +760,29 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
 
         modal = NewRoleModal(self.bot)
         await interaction.response.send_modal(modal)
+        
+    @app_commands.command(name='createschedule', description="Create the team schedule file")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def create_schedule_command(self, interaction: discord.Interaction):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+    
+        await interaction.response.defer()
+        ctx = interaction  # Context from interaction
+
+        try:
+            matches = await get_matches_for_calendar(ctx)
+            if not matches:
+                await interaction.followup.send("No match data found.")
+                return
+
+            with open('team_schedule.json', 'w') as f:
+                json.dump(matches, f, indent=4)
+            await interaction.followup.send("Team schedule created successfully.")
+        except Exception as e:
+            await interaction.followup.send(f"Failed to create schedule: {e}")
+
 
 class MatchCommands(commands.Cog, name="Match Commands"):
     def __init__(self, bot):
