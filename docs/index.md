@@ -1,4 +1,4 @@
-![Sounders Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Emerald_City_Supporters_shield_round.png)
+![Sounders Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Seattle_Sounders_logo.svg.png)
 ![ECS Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Emerald_City_Supporters_shield_round.png)
 
 # ECS Bot Command Documentation
