@@ -1,3 +1,6 @@
+![Sounders Logo](images/Seattle_Sounders_logo.png)
+![ECS Logo](images/ECS_logo.png)
+
 # ECS Bot Command Documentation
 
 Welcome to the ECS Bot Command Documentation. This guide provides detailed information on the usage, permissions, and functionality of each command available in the ECS Discord bot.
