@@ -16,10 +16,6 @@ import traceback
 from collections import defaultdict
 import re
 import sqlite3
-import logging
-
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 
@@ -46,7 +42,7 @@ discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
 server_id = os.getenv('SERVER_ID')
 serpapi_api = os.getenv('SERPAPI_API')
-BOT_VERSION = "1.3.8"
+BOT_VERSION = "1.3.9"
 closed_matches = set()
 
 def initialize_db():
@@ -184,20 +180,16 @@ async def get_matches_for_calendar(ctx):
 
     for date in match_dates:
         api_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={date}"
-        logger.info(f"Fetching data for date: {date}")
         match_data = await send_async_http_request(ctx, api_url)
 
         if not match_data:
-            logger.warning(f"No data returned for date {date}")
             continue
 
         for event in match_data.get("events", []):
-            if "Seattle Sounders FC" in event.get("name", ""):
+            if team_name in event.get("name", ""):
                 match_details = extract_match_details(event)
                 all_matches.append(match_details)
-                logger.info(f"Match details added: {match_details}")
 
-    logger.info(f"Total matches fetched: {len(all_matches)}")
     return all_matches
 
 def format_for_calendar(match_details):
