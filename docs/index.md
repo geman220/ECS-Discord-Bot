@@ -1,11 +1,5 @@
----
-layout: default
-stylesheet: style.css
----
-
-
-![Sounders Logo](/images/Seattle_Sounders_logo.png)
-![ECS Logo](/images/ECS_logo.png)
+![Sounders Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Emerald_City_Supporters_shield_round.png)
+![ECS Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Emerald_City_Supporters_shield_round.png)
 
 # ECS Bot Command Documentation
 
