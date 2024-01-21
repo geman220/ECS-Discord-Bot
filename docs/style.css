@@ -1,5 +1,17 @@
 ﻿body {
-    background-color: #000000;
-    color: #ffffff;
+    background-color: #233027; /* Dark green background */
+    color: #97d700; /* Sounders green text */
+    font-family: Arial, sans-serif;
 }
 
+a {
+    color: #c0c0c0;
+}
+
+    a:hover {
+        color: #ffffff;
+    }
+
+h1, h2, h3 {
+    color: #64b5f6; /* Light blue */
+}
