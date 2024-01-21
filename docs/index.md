@@ -1,5 +1,11 @@
-![Sounders Logo](images/Seattle_Sounders_logo.png)
-![ECS Logo](images/ECS_logo.png)
+---
+layout: default
+stylesheet: style.css
+---
+
+
+![Sounders Logo](/images/Seattle_Sounders_logo.png)
+![ECS Logo](/images/ECS_logo.png)
 
 # ECS Bot Command Documentation
 
