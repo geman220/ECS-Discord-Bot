@@ -872,7 +872,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self, "match-thread")
         await interaction.followup.send(thread_response)
 
-    @app_commands.command(name='awaymatch', description="Create a new away match thread")
+    @app_commands.command(name='awaymatch', description="Create a new away match thread, create ticket item in store first!")
     @app_commands.guilds(discord.Object(id=server_id))
     @app_commands.describe(opponent='The name of the opponent team (optional)')
     async def away_match(self, interaction: discord.Interaction, opponent: str = None):
