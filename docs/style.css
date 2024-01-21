@@ -1,6 +1,6 @@
 ﻿body {
     background-color: #142530;
-    color: #5D9741; /* Sounders green text */
+    color: #5D9741;
     font-family: Arial, sans-serif;
 }
 
@@ -13,5 +13,5 @@ a {
     }
 
 h1, h2, h3 {
-    color: #64b5f6; /* Light blue */
+    color: #64b5f6;
 }
