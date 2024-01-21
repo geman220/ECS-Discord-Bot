@@ -2,9 +2,6 @@
 layout: default
 ---
 
-![Sounders Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Seattle_Sounders_logo.svg.png)
-![ECS Logo](https://github.com/geman220/ECS-Discord-Bot/blob/master/docs/images/Emerald_City_Supporters_shield_round.png)
-
 # ECS Bot Command Documentation
 
 Welcome to the ECS Bot Command Documentation. This guide provides detailed information on the usage, permissions, and functionality of each command available in the ECS Discord bot.
