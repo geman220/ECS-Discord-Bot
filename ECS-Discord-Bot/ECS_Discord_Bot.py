@@ -42,6 +42,8 @@ discord_admin_role = os.getenv('ADMIN_ROLE')
 dev_id = os.getenv('DEV_ID')
 server_id = os.getenv('SERVER_ID')
 serpapi_api = os.getenv('SERPAPI_API')
+wp_username = os.getenv('WP_USERNAME')
+wp_app_password = os.getenv('WP_APP_PASSWORD')
 BOT_VERSION = "1.3.9"
 closed_matches = set()
 
@@ -164,6 +166,9 @@ def load_team_airports():
 def load_match_dates():
     return read_json_file('match_dates.json', default_value=[])
 
+def load_team_schedule():
+    return read_json_file('team_schedule.json', default_value=[])
+
 def get_airport_code_for_team(team_name, team_airports):
     for airport_code, teams in team_airports.items():
         if team_name in teams:
@@ -173,6 +178,7 @@ def get_airport_code_for_team(team_name, team_airports):
 redeemed_orders = load_redeemed_orders()
 team_airports = load_team_airports()
 match_dates = load_match_dates()
+team_schedule = load_team_schedule()
 
 async def get_matches_for_calendar(ctx):
     match_dates = load_match_dates()
@@ -192,22 +198,11 @@ async def get_matches_for_calendar(ctx):
 
     return all_matches
 
-def format_for_calendar(match_details):
-    return {
-        "title": match_details["name"],
-        "description": f"Match against {match_details['opponent']}",
-        "start_date": convert_to_pst(match_details["date_time"]).strftime('%Y-%m-%dT%H:%M:%S'),
-        "end_date": (convert_to_pst(match_details["date_time"]) + timedelta(hours=2)).strftime('%Y-%m-%dT%H:%M:%S'),  # Assuming average match duration is 2 hours
-        "venue": match_details["venue"],
-        "website": match_details["match_summary_link"]
-        # Add any other fields as required
-    }
-
 async def get_next_match(ctx, team_id, opponent=None, home_away=None):
     schedule_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}/schedule"
     schedule_data = await send_async_http_request(ctx, schedule_url)
     if schedule_data and schedule_data.get("events"):
-        return "Schedule endpoint now contains events data. Please update the parsing logic.  Using backup method for now."
+        return "!!! Schedule endpoint now contains events data. You should tell Immortal to update the parsing logic.  Using backup method for now."
 
     if opponent:
         match_title, _ = await get_away_match(ctx, opponent)
@@ -761,7 +756,7 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
             return
     
         await interaction.response.defer()
-        ctx = interaction  # Context from interaction
+        ctx = interaction
 
         try:
             matches = await get_matches_for_calendar(ctx)
@@ -775,6 +770,42 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
         except Exception as e:
             await interaction.followup.send(f"Failed to create schedule: {e}")
 
+    @app_commands.command(name='updatecalendar', description="Update the event calendar with team schedule")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def update_calendar_command(self, interaction: discord.Interaction):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        team_schedule = load_team_schedule()
+        api_url = 'https://weareecs.com/wp-json/tribe/events/v1/events'
+        auth = aiohttp.BasicAuth(login=wp_username, password=wp_app_password)
+
+        async with aiohttp.ClientSession() as session:
+            for match in team_schedule:
+                pst_start_time = self.convert_to_pst(match['date_time'])
+                pst_end_time = pst_start_time + timedelta(hours=3)
+
+                event_data = {
+                    "title": match['name'],
+                    "description": f"{match['name']} at {match['venue']}. More details [here]({match['match_summary_link']}).",
+                    "start_date": pst_start_time.strftime('%Y-%m-%dT%H:%M:%S'),
+                    "end_date": pst_end_time.strftime('%Y-%m-%dT%H:%M:%S'),
+                    "image": match['team_logo'],
+                    "website": match['match_summary_link'],
+                    "timezone": "America/Los_Angeles",
+                }
+
+                async with session.post(api_url, json=event_data, auth=auth) as response:
+                    if response.status == 201:
+                        print(f"Event created successfully for match: {match['name']}")
+                    else:
+                        print(f"Failed to create event for match: {match['name']}. Status code: {response.status}")
+                    await asyncio.sleep(1)
+
+        await interaction.followup.send("Event calendar updated successfully.")
 
 class MatchCommands(commands.Cog, name="Match Commands"):
     def __init__(self, bot):
