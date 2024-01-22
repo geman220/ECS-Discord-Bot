@@ -6,3 +6,12 @@ ECS-Discord-Bot.pyproj
 current_role.json
 redeemed_orders.json
 predictions.db
+*.log
+.vs/
+__pycache__/
+env1/
+*.pyc
+.vscode/
+*~
+node_modules/
+*.sln
