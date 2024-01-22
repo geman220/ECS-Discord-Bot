@@ -1,6 +1,6 @@
 # utils.py
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import json
 

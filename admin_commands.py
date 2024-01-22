@@ -6,8 +6,9 @@ from discord.ext import commands
 import aiohttp
 import asyncio
 import json
-from datetime import datetime, timedelta
-from common import server_id, has_admin_role, is_admin_or_owner, dev_id, bot_version, flask_url, flask_token, wp_username, wp_app_password, CheckOrderModal, NewRoleModal, load_team_schedule, get_matches_for_calendar
+from datetime import timedelta
+from common import server_id, has_admin_role, is_admin_or_owner, dev_id, bot_version, flask_url, flask_token, wp_username, wp_app_password, load_team_schedule, get_matches_for_calendar
+from interactions import CheckOrderModal, NewRoleModal
 
 class AdminCommands(commands.Cog, name="Admin Commands"):
     def __init__(self, bot):

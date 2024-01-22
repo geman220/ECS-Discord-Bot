@@ -3,8 +3,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from common import server_id, team_id, team_name, has_admin_role, convert_to_pst, get_weather_forecast, venue_lat, venue_long, create_event_if_necessary, check_existing_threads, prepare_starter_message, prepare_starter_message_away, create_match_thread, get_next_match, get_away_match, closed_matches, match_thread_map
-from datetime import datetime, timedelta
+from common import server_id, team_id, has_admin_role, convert_to_pst, get_weather_forecast, venue_lat, venue_long, create_event_if_necessary, check_existing_threads, prepare_starter_message, prepare_starter_message_away, create_match_thread, get_next_match, get_away_match, closed_matches, match_thread_map
 from database import get_predictions, insert_prediction
 
 class MatchCommands(commands.Cog, name="Match Commands"):
