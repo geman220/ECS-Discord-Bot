@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # WooCommerce Commands
 
 This section covers commands related to WooCommerce integration in the ECS Discord bot.

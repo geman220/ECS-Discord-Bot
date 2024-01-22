@@ -6,24 +6,24 @@
 }
 
 body {
-    background-color: #2E2D30; /* Dark background for contrast */
-    color: #C4C7C7; /* Light gray for general text */
+    background-color: #142530;
+    color: #C4C7C7;
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
 }
 
 a {
-    color: #5D9741; /* Sounders green for links */
-    text-decoration: none; /* No underline for cleaner look */
+    color: #5D9741;
+    text-decoration: none;
     transition: color 0.3s ease-in-out;
 }
 
     a:hover, a:focus {
-        color: #FDB913; /* Sounders gold for hover state */
+        color: #FDB913;
     }
 
 h1, h2, h3 {
-    color: #64b5f6; /* Light blue for headings */
+    color: #005595;
     margin-bottom: 1rem;
 }
 
@@ -37,7 +37,7 @@ h1, h2, h3 {
 
 /* Navigation Styles */
 .navbar {
-    background-color: #005595; /* Sounders blue for navbar */
+    background-color: #005595;
     color: #fff;
     padding: 10px 0;
     text-align: center;

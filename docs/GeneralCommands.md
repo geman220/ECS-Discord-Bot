@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # General Commands
 
 This section covers the general commands available in the ECS Discord bot. These commands provide various functionalities related to the ECS Discord server.

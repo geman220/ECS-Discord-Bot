@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Match Commands
 
 This section details the commands related to match threads and predictions in the ECS Discord bot.
