@@ -6,7 +6,8 @@ from discord.ext import commands
 import asyncio
 import csv
 import io
-from common import server_id, has_required_wg_role, wc_url
+from common import server_id, has_required_wg_role
+from match_utils import wc_url
 from api_helpers import call_woocommerce_api
 
 class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
