@@ -1,3 +1,7 @@
+---
+layout: default
+---
+
 # Admin Commands
 
 This section describes commands available for administrators in the ECS Discord bot.
