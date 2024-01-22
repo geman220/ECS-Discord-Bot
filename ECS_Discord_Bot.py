@@ -13,7 +13,7 @@ import re
 from database import initialize_db, insert_match_thread, get_predictions, load_match_threads, insert_prediction
 from config import BOT_CONFIG
 from utils import load_json_data, save_json_data, get_airport_code_for_team, convert_to_pst
-from api_helpers import fetch_espn_data, call_woocommerce_api, send_async_http_request, fetch_openweather_data
+from api_helpers import fetch_espn_data, call_woocommerce_api, send_async_http_request, fetch_openweather_data, fetch_serpapi_flight_data
 
 intents = discord.Intents.default()
 intents.presences = True
@@ -23,13 +23,10 @@ intents.guilds = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-wc_key = BOT_CONFIG['wc_key']
-wc_secret = BOT_CONFIG['wc_secret']
 bot_token = BOT_CONFIG['bot_token']
 wc_url = BOT_CONFIG['wc_url']
 team_name = BOT_CONFIG['team_name']
 team_id = BOT_CONFIG['team_id']
-openweather_api = BOT_CONFIG['openweather_api']
 venue_long = BOT_CONFIG['venue_long']
 venue_lat = BOT_CONFIG['venue_lat']
 flask_url = BOT_CONFIG['flask_url']
@@ -308,31 +305,16 @@ async def check_existing_threads(interaction, thread_name, channel_name):
                 return True
     return False
 
-async def generate_flight_search_url(departure_airport, team_name, outbound_date, return_date):
+async def generate_flight_search_url(interaction, departure_airport, team_name, outbound_date, return_date):
     arrival_airport = get_airport_code_for_team(team_name, team_airports)
     if not arrival_airport:
         return "Airport for the team not found."
 
-    base_url = "https://serpapi.com/search"
-    params = {
-        "engine": "google_flights",
-        "departure_id": departure_airport,
-        "arrival_id": arrival_airport,
-        "gl": "us",
-        "hl": "en",
-        "currency": "USD",
-        "type": "1",
-        "outbound_date": outbound_date.strftime("%Y-%m-%d"),
-        "return_date": return_date.strftime("%Y-%m-%d"),
-        "api_key": serpapi_api
-    }
+    json_response = await fetch_serpapi_flight_data(interaction, departure_airport, arrival_airport, outbound_date, return_date)
+    if not json_response:
+        return "Failed to fetch flight data."
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(base_url, params=params) as response:
-            if response.status == 200:
-                return await response.text()
-            else:
-                return f"Failed to fetch data: {response.status}"
+    return parse_flight_data(json_response)
 
 def parse_flight_data(json_response):
     if not json_response.get("best_flights"):
@@ -370,12 +352,12 @@ async def prepare_starter_message(match_info, date_time_pst_formatted, team_logo
     embed.set_image(url=match_info['team_logo'])
     return starter_message, embed
 
-async def prepare_starter_message_away(match_info, date_time_pst_formatted, thread_name, ticket_link):
+async def prepare_starter_message_away(interaction, match_info, date_time_pst_formatted, thread_name, ticket_link):
     match_date = datetime.strptime(date_time_pst_formatted, '%m/%d/%Y %I:%M %p PST').date()
     outbound_date = match_date - timedelta(days=1)
     return_date = match_date + timedelta(days=1)
 
-    flight_response = await generate_flight_search_url("SEA", match_info['opponent'], outbound_date, return_date)
+    flight_response = await generate_flight_search_url(interaction, "SEA", match_info['opponent'], outbound_date, return_date)
     if isinstance(flight_response, str):
         try:
             flight_response = json.loads(flight_response)
@@ -811,7 +793,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
                 await interaction.followup.send("A thread for this away match has already been created.")
                 return
 
-            starter_message, embed = await prepare_starter_message_away(match_info, date_time_pst_formatted, thread_name, match_link)
+            starter_message, embed = await prepare_starter_message_away(interaction, match_info, date_time_pst_formatted, thread_name, match_link)
             thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self, channel_name='away-travel')
         
             await interaction.followup.send(thread_response)
