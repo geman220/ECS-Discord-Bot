@@ -12,6 +12,8 @@ import pytz
 import re
 from database import initialize_db, insert_match_thread, get_predictions, load_match_threads, insert_prediction
 from config import BOT_CONFIG
+from utils import load_json_data, save_json_data, get_airport_code_for_team, convert_to_pst
+from api_helpers import fetch_espn_data, call_woocommerce_api, send_async_http_request
 
 intents = discord.Intents.default()
 intents.presences = True
@@ -42,6 +44,33 @@ bot_version = BOT_CONFIG['bot_version']
 
 closed_matches = set()
 
+def load_current_role():
+    role_data = load_json_data('current_role.json', default_value={"current_role": "ECS Membership 202x"})
+    return role_data['current_role']
+
+def save_current_role(role_name):
+    save_json_data('current_role.json', {'current_role': role_name})
+
+def load_redeemed_orders():
+    return load_json_data('redeemed_orders.json', default_value={})
+
+def save_redeemed_orders(redeemed_orders):
+    save_json_data('redeemed_orders.json', redeemed_orders)
+
+def load_team_airports():
+    return load_json_data('team_airports.json', default_value={})
+
+def load_match_dates():
+    return load_json_data('match_dates.json', default_value=[])
+
+def load_team_schedule():
+    return load_json_data('team_schedule.json', default_value=[])
+
+redeemed_orders = load_redeemed_orders()
+team_airports = load_team_airports()
+match_dates = load_match_dates()
+team_schedule = load_team_schedule()
+
 try:
     initialize_db()
     match_thread_map = load_match_threads()
@@ -63,80 +92,12 @@ async def schedule_poll_closing(match_start_time, match_id, thread):
 
         closed_matches.add(match_id)
 
-def convert_to_pst(utc_datetime_str):
-    utc_datetime = datetime.fromisoformat(utc_datetime_str.replace('Z', '+00:00'))
-    utc_datetime = utc_datetime.replace(tzinfo=pytz.utc)
-    pst_timezone = pytz.timezone('America/Los_Angeles')
-    return utc_datetime.astimezone(pst_timezone)
-
-async def send_async_http_request(ctx, url, method='GET', headers=None, auth=None, data=None):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.request(method, url, headers=headers, auth=auth, data=data) as response:
-                if response.status == 200:
-                    return await response.json()
-        except aiohttp.ClientError as e:
-            await ctx.send(f"Client error occurred: {e}")
-            return None
-        except Exception as e:
-            await ctx.send(f"An unexpected error occurred: {e}")
-            return None
-
-def read_json_file(file_path, default_value):
-    try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return default_value
-
-def write_json_file(file_path, data):
-    with open(file_path, 'w') as file:
-        json.dump(data, file)
-
-async def call_woocommerce_api(ctx, url):
-    auth = aiohttp.BasicAuth(wc_key, wc_secret)
-    return await send_async_http_request(ctx, url, auth=auth)
-
-def load_current_role():
-    role_data = read_json_file('current_role.json', default_value={"current_role": "ECS Membership 202x"})
-    return role_data['current_role']
-
-def save_current_role(role_name):
-    write_json_file('current_role.json', {'current_role': role_name})
-
-def load_redeemed_orders():
-    return read_json_file('redeemed_orders.json', default_value={})
-
-def save_redeemed_orders(redeemed_orders):
-    write_json_file('redeemed_orders.json', redeemed_orders)
-
-def load_team_airports():
-    return read_json_file('team_airports.json', default_value={})
-
-def load_match_dates():
-    return read_json_file('match_dates.json', default_value=[])
-
-def load_team_schedule():
-    return read_json_file('team_schedule.json', default_value=[])
-
-def get_airport_code_for_team(team_name, team_airports):
-    for airport_code, teams in team_airports.items():
-        if team_name in teams:
-            return airport_code
-    return None
-
-redeemed_orders = load_redeemed_orders()
-team_airports = load_team_airports()
-match_dates = load_match_dates()
-team_schedule = load_team_schedule()
-
 async def get_matches_for_calendar(ctx):
     match_dates = load_match_dates()
     all_matches = []
 
     for date in match_dates:
-        api_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={date}"
-        match_data = await send_async_http_request(ctx, api_url)
+        match_data = await fetch_espn_data(f"sports/soccer/usa.1/scoreboard?dates={date}")
 
         if not match_data:
             continue
@@ -148,26 +109,26 @@ async def get_matches_for_calendar(ctx):
 
     return all_matches
 
-async def get_next_match(ctx, team_id, opponent=None, home_away=None):
-    schedule_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}/schedule"
-    schedule_data = await send_async_http_request(ctx, schedule_url)
+async def get_next_match(interaction, team_id, opponent=None, home_away=None):
+    schedule_endpoint = f"sports/soccer/usa.1/teams/{team_id}/schedule"
+    schedule_data = await fetch_espn_data(interaction, schedule_endpoint)
     if schedule_data and schedule_data.get("events"):
-        return "!!! Schedule endpoint now contains events data. You should tell Immortal to update the parsing logic.  Using backup method for now."
+        return "!!! Schedule endpoint now contains events data. You should tell Immortal to update the parsing logic. Using backup method for now."
 
     if opponent:
-        match_title, _ = await get_away_match(ctx, opponent)
+        match_title, _ = await get_away_match(interaction, opponent)
         match_date = extract_date_from_title(match_title)
         if match_date:
             formatted_date = match_date.strftime("%Y%m%d")
-            backup_data = await send_async_http_request(ctx, f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard?dates={formatted_date}")
+            scoreboard_endpoint = f"sports/soccer/usa.1/scoreboard?dates={formatted_date}"
+            backup_data = await fetch_espn_data(interaction, scoreboard_endpoint)
             if backup_data:
                 for event in backup_data.get("events", []):
                     if team_name in event.get("name", "") and opponent.lower() in event.get("name", "").lower():
                         return extract_match_details(event)
 
-    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
-    data = await send_async_http_request(ctx, url)
-
+    team_endpoint = f"sports/soccer/usa.1/teams/{team_id}"
+    data = await fetch_espn_data(interaction, team_endpoint)
     if not data or 'team' not in data:
         return "Data not found for the specified team."
 
@@ -217,11 +178,10 @@ def extract_match_details(event, competitor=None):
     }
 
 async def get_team_record(ctx, team_id):
-    url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/teams/{team_id}"
-    data = await send_async_http_request(ctx, url)
+    data = await fetch_espn_data(f"sports/soccer/usa.1/teams/{team_id}")
     if data and 'team' in data:
         record_data = data['team'].get('record', {}).get('items', [])
-        team_logo_url = data['team']['logos'][0]['href']
+        team_logo_url = data['team']['logos'][0]['href'] if data['team'].get('logos') else None
         if record_data:
             stats = record_data[0].get('stats', [])
             record_info = {stat['name']: stat['value'] for stat in stats}
