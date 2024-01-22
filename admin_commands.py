@@ -7,7 +7,8 @@ import aiohttp
 import asyncio
 import json
 from datetime import timedelta
-from common import server_id, has_admin_role, is_admin_or_owner, dev_id, bot_version, flask_url, flask_token, wp_username, wp_app_password, load_team_schedule, get_matches_for_calendar
+from common import server_id, has_admin_role, is_admin_or_owner, dev_id, bot_version, flask_url, flask_token, wp_username, wp_app_password, load_team_schedule
+from match_utils import get_matches_for_calendar
 from interactions import CheckOrderModal, NewRoleModal
 
 class AdminCommands(commands.Cog, name="Admin Commands"):
