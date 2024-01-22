@@ -9,19 +9,20 @@ wc_secret = BOT_CONFIG['wc_secret']
 openweather_api = BOT_CONFIG['openweather_api']
 serpapi_api = BOT_CONFIG['serpapi_api']
 
-async def send_async_http_request(interaction, url, method='GET', headers=None, auth=None, data=None):
+async def send_async_http_request(interaction, url, method='GET', headers=None, auth=None, data=None, params=None):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.request(method, url, headers=headers, auth=auth, data=data) as response:
+            async with session.request(method, url, headers=headers, auth=auth, data=data, params=params) as response:
                 if response.status == 200:
                     return await response.json()
+                else:
+                    print(f"Request failed with status code: {response.status}")
+                    return None
         except aiohttp.ClientError as e:
-            # You might want to send a message to the user or log the error
-            print(f"Client error occurred: {e}")  # Logging the error
+            print(f"Client error occurred: {e}")
             return None
         except Exception as e:
-            # You might want to send a message to the user or log the error
-            print(f"An unexpected error occurred: {e}")  # Logging the error
+            print(f"An unexpected error occurred: {e}")
             return None
         
 async def call_woocommerce_api(interaction, url):
@@ -42,7 +43,7 @@ async def fetch_openweather_data(interaction, latitude, longitude, date):
     url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
     return await send_async_http_request(interaction, url)
 
-async def fetch_flight_data(departure_airport, arrival_airport, outbound_date, return_date):
+async def fetch_serpapi_flight_data(interaction, departure_airport, arrival_airport, outbound_date, return_date):
     base_url = "https://serpapi.com/search"
     params = {
         "engine": "google_flights",
@@ -56,9 +57,4 @@ async def fetch_flight_data(departure_airport, arrival_airport, outbound_date, r
         "return_date": return_date.strftime("%Y-%m-%d"),
         "api_key": serpapi_api
     }
-
-    try:
-        data = await send_async_http_request(base_url, params=params)
-        return data, None
-    except Exception as e:
-        return None, str(e)
+    return await send_async_http_request(interaction, base_url, method='GET', params=params)
