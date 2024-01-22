@@ -13,7 +13,7 @@ import re
 from database import initialize_db, insert_match_thread, get_predictions, load_match_threads, insert_prediction
 from config import BOT_CONFIG
 from utils import load_json_data, save_json_data, get_airport_code_for_team, convert_to_pst
-from api_helpers import fetch_espn_data, call_woocommerce_api, send_async_http_request
+from api_helpers import fetch_espn_data, call_woocommerce_api, send_async_http_request, fetch_openweather_data
 
 intents = discord.Intents.default()
 intents.presences = True
@@ -218,25 +218,17 @@ def format_stat_name(stat_name):
     }
     return name_mappings.get(stat_name, stat_name)
 
-async def get_weather_forecast(date_time_utc, latitude, longitude):
-    match_date = datetime.fromisoformat(date_time_utc).date()
-
-    if match_date > datetime.utcnow().date() + timedelta(days=5):
-        return "No weather information available for dates more than 5 days ahead."
-
-    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
-
-    response = await send_async_http_request(url)
-    if response and response.status == 200:
-        data = await response.json()
-
-        for forecast in data.get('list', []):
+async def get_weather_forecast(interaction, date_time_utc, latitude, longitude):
+    weather_data = await fetch_openweather_data(interaction, latitude, longitude, date_time_utc)
+    
+    if weather_data:
+        for forecast in weather_data.get('list', []):
             forecast_date = datetime.fromtimestamp(forecast['dt']).date()
 
-            if forecast_date == match_date:
+            if forecast_date == datetime.fromisoformat(date_time_utc).date():
                 weather = forecast['weather'][0]['description']
                 temp = forecast['main']['temp']
-                return f"Weather: {weather}, Temperature: {temp} F"
+                return f"Weather: {weather}, Temperature: {temp}°C"
 
         return "Weather forecast not available for the selected date."
     else:

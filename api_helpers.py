@@ -33,22 +33,14 @@ async def fetch_espn_data(interaction, endpoint):
     full_url = base_url + endpoint
     return await send_async_http_request(interaction, full_url)
 
-async def fetch_weather_data(latitude, longitude, date_time_utc):
-    match_date = datetime.fromisoformat(date_time_utc).date()
+async def fetch_openweather_data(interaction, latitude, longitude, date):
+    match_date = datetime.fromisoformat(date).date()
 
     if match_date > datetime.utcnow().date() + timedelta(days=5):
-        return None, "No weather information available for dates more than 5 days ahead."
+        return "No weather information available for dates more than 5 days ahead."
 
     url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
-    data = await send_async_http_request(url)
-    if data:
-        for forecast in data.get('list', []):
-            forecast_date = datetime.fromtimestamp(forecast['dt']).date()
-            if forecast_date == match_date:
-                return forecast, None
-        return None, "Weather forecast not available for the selected date."
-    else:
-        return None, "Unable to fetch weather information."
+    return await send_async_http_request(interaction, url)
 
 async def fetch_flight_data(departure_airport, arrival_airport, outbound_date, return_date):
     base_url = "https://serpapi.com/search"
