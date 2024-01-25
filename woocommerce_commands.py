@@ -9,6 +9,7 @@ import io
 from common import server_id, has_required_wg_role
 from match_utils import wc_url
 from api_helpers import call_woocommerce_api
+import urllib.parse
 
 class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     def __init__(self, bot):
@@ -48,53 +49,59 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
-        product_url = wc_url.replace('orders/', f'products?search={product_title}')
+        await interaction.response.defer()
+
+        encoded_product_title = urllib.parse.quote_plus(product_title)
+        product_url = wc_url.replace('orders/', f'products?search={encoded_product_title}')
         products = await call_woocommerce_api(interaction, product_url)
-    
-        if not products:
-            await interaction.response.send_message("No products found or failed to fetch products.", ephemeral=True)
-            return
-
         product = next((p for p in products if p['name'].lower() == product_title.lower()), None)
-
         if not product:
-            await interaction.response.send_message("Product not found.", ephemeral=True)
+            await interaction.followup.send("Product not found.", ephemeral=True)
             return
 
-        orders_url = wc_url.replace('products?', f'orders?product={product["id"]}')
-        orders = await call_woocommerce_api(interaction, orders_url)
+        product_id = product['id']
+        await asyncio.sleep(1) 
 
-        if not orders:
-            await interaction.response.send_message("No orders found for this product.", ephemeral=True)
+        all_orders_url = wc_url.replace('orders/', f'orders?product={product_id}')
+        all_orders = await call_woocommerce_api(interaction, all_orders_url)
+
+        filtered_orders = [order for order in all_orders if any(item['name'].lower() == product_title.lower() for item in order.get('line_items', []))]
+
+        if not filtered_orders:
+            await interaction.followup.send("No orders found for this product.", ephemeral=True)
             return
 
         csv_output = io.StringIO()
         csv_writer = csv.writer(csv_output)
-        header = ["Product Name", "Customer First Name", "Customer Last Name", "Customer Username", "Customer Email",
+        header = ["Product Name", "Customer First Name", "Customer Last Name", "Customer Email",
                   "Order Date Paid", "Order Line Item Quantity", "Order Line Item Price", "Order Number", "Order Status",
-                  "Order Customer Note", "Product Variation Name"]
+                  "Order Customer Note", "Product Variation Name", "Billing Address", "Shipping Address"]
         csv_writer.writerow(header)
 
-        for order in orders:
+        for order in filtered_orders:
             for item in order.get('line_items', []):
-                if item['product_id'] == product['id']:
-                    row = [product['name'],
-                           order['billing']['first_name'],
-                           order['billing']['last_name'],
-                           order['customer_user_agent'],
-                           order['billing']['email'],
+                if item['product_id'] == product_id:
+                    billing_address = ", ".join([order['billing'].get(key, 'N/A') for key in ['address_1', 'address_2', 'city', 'state', 'postcode', 'country']])
+                    shipping_info = order.get('shipping', {})
+                    shipping_address = ", ".join([shipping_info.get(key, 'N/A') for key in ['address_1', 'address_2', 'city', 'state', 'postcode', 'country']])
+                    row = [item['name'],
+                           order['billing'].get('first_name', 'N/A'),
+                           order['billing'].get('last_name', 'N/A'),
+                           order['billing'].get('email', 'N/A'),
                            order.get('date_paid', 'N/A'),
-                           item['quantity'],
-                           item['price'],
+                           str(item.get('quantity', 0)),
+                           str(item.get('price', 'N/A')),
                            order['number'],
                            order['status'],
                            order.get('customer_note', 'N/A'),
-                           item['name']]
+                           item.get('variation_id', 'N/A'),
+                           billing_address,
+                           shipping_address]
                     csv_writer.writerow(row)
 
         csv_output.seek(0)
-        csv_file = discord.File(fp=csv_output, filename=f"{product_title}_orders.csv")
-
-        await interaction.response.send_message(f"Orders for product '{product_title}':", file=csv_file, ephemeral=True)
-
+        sanitized_name = product_title.replace('/', '_').replace('\\', '_')
+        filename = f"{sanitized_name}_orders.csv"
+        csv_file = discord.File(fp=csv_output, filename=filename)
+        await interaction.followup.send(f"Orders for product '{product_title}':", file=csv_file, ephemeral=True)
         csv_output.close()
