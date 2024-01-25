@@ -35,11 +35,11 @@ class TestWooCommerceCommands(unittest.IsolatedAsyncioTestCase):
         """
         mock_role_check.side_effect = self.mock_required_role
         mock_home_tickets = [
-            {"id": 1, "name": "Generic Home Match 1", "permalink": "https://example.com/home1"},
-            {"id": 2, "name": "Generic Home Match 2", "permalink": "https://example.com/home2"}
+            {"id": 1, "name": "Generic Home Match 1", "permalink": "https://example-website.com/home1"},
+            {"id": 2, "name": "Generic Home Match 2", "permalink": "https://example-website.com/home2"}
         ]
         mock_away_tickets = [
-            {"id": 3, "name": "Generic Away Match 1", "permalink": "https://example.com/away1"}
+            {"id": 3, "name": "Generic Away Match 1", "permalink": "https://example-website.com/away1"}
         ]
         mock_call_api.side_effect = [mock_home_tickets, mock_away_tickets]
 
@@ -47,8 +47,8 @@ class TestWooCommerceCommands(unittest.IsolatedAsyncioTestCase):
 
         expected_message = ("🏠 **Home Tickets:**\nGeneric Home Match 1\nGeneric Home Match 2\n\n"
                             "🚗 **Away Tickets:**\nGeneric Away Match 1")
-        home_tickets_url = 'https://example.com/wp-json/wc/v3/products?category=765197885'
-        away_tickets_url = 'https://example.com/wp-json/wc/v3/products?category=765197886'
+        home_tickets_url = 'https://example-website.com/wp-json/wc/v3/products?category=765197885'
+        away_tickets_url = 'https://example-website.com/wp-json/wc/v3/products?category=765197886'
         mock_call_api.assert_has_calls([
             call(self.mock_interaction, home_tickets_url),
             call(self.mock_interaction, away_tickets_url)
