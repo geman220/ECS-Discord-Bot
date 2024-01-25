@@ -6,6 +6,10 @@ from match_commands import MatchCommands
 from match_utils import closed_matches
 import discord
 from discord import Embed
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 
 class TestMatchCommands(unittest.IsolatedAsyncioTestCase):
 
