@@ -1,15 +1,11 @@
 # Common.py
 
-import asyncio
 import discord
-import re
 import json
-import pytz
 from datetime import datetime, timedelta
 from config import BOT_CONFIG
-from api_helpers import call_woocommerce_api, fetch_espn_data
 from utils import load_json_data, save_json_data, convert_to_pst, get_airport_code_for_team
-from database import insert_match_thread, get_predictions, initialize_db, load_match_threads
+from database import initialize_db, load_match_threads
 from api_helpers import fetch_openweather_data, fetch_serpapi_flight_data
 
 bot_token = BOT_CONFIG['bot_token']

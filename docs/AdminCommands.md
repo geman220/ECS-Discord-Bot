@@ -41,11 +41,4 @@ This section describes commands available for administrators in the ECS Discord 
 - **Permissions:** Admin.
 - **Details:** Generates a team schedule file based on match data, used for other functionalities.
 
-## Command: updatecalendar
-
-- **Description:** Updates the event calendar with the team schedule.
-- **Usage:** `/updatecalendar`
-- **Permissions:** Admin.
-- **Details:** Takes the team schedule and updates the event calendar on the website, ensuring all matches are listed.
-
 *For more assistance or queries regarding these commands, please contact the bot administrators.*

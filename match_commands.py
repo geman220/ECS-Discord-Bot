@@ -3,8 +3,8 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from common import server_id, team_id, has_admin_role, get_weather_forecast, venue_lat, venue_long, create_event_if_necessary, check_existing_threads, prepare_starter_message, prepare_starter_message_away, match_thread_map
-from match_utils import get_matches_for_calendar, get_away_match, create_match_thread, get_next_match, closed_matches
+from common import server_id, team_id, has_admin_role, check_existing_threads, prepare_starter_message_away, match_thread_map
+from match_utils import get_away_match, create_match_thread, get_next_match, closed_matches, prepare_match_environment, create_and_manage_thread, generate_thread_name
 from database import get_predictions, insert_prediction
 from utils import convert_to_pst
 
@@ -20,25 +20,29 @@ class MatchCommands(commands.Cog, name="Match Commands"):
     @app_commands.command(name='nextmatch', description="List the next scheduled match information")
     @app_commands.guilds(discord.Object(id=server_id))
     async def next_match(self, interaction: discord.Interaction):
-        match_info = await get_next_match(interaction, team_id)
+        try:
+            match_info = await get_next_match(interaction, team_id)
 
-        if isinstance(match_info, str):
-            await interaction.response.send_message(match_info)
-            return
+            if isinstance(match_info, str):
+                await interaction.response.send_message(match_info)
+                return
 
-        date_time_pst_obj = convert_to_pst(match_info['date_time'])
-        date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
+            date_time_pst_obj = convert_to_pst(match_info['date_time'])
+            date_time_pst_formatted = date_time_pst_obj.strftime('%m/%d/%Y %I:%M %p PST')
 
-        embed = discord.Embed(title=f"Next Match: {match_info['name']}", color=0x1a75ff)
-        embed.add_field(name="Opponent", value=match_info['opponent'], inline=True)
-        embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
-        embed.add_field(name="Venue", value=match_info['venue'], inline=True)
+            embed = discord.Embed(title=f"Next Match: {match_info['name']}", color=0x1a75ff)
+            embed.add_field(name="Opponent", value=match_info['opponent'], inline=True)
+            embed.add_field(name="Date and Time (PST)", value=date_time_pst_formatted, inline=True)
+            embed.add_field(name="Venue", value=match_info['venue'], inline=True)
 
-        await interaction.response.send_message(embed=embed)
+            await interaction.response.send_message(embed=embed)
+        except Exception as e:
+            await interaction.response.send_message(f"An error occurred: {str(e)}")
 
     @app_commands.command(name='newmatch', description="Create a new match thread")
     @app_commands.guilds(discord.Object(id=server_id))
     async def new_match(self, interaction: discord.Interaction):
+    
         if not await has_admin_role(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
@@ -47,31 +51,29 @@ class MatchCommands(commands.Cog, name="Match Commands"):
 
         try:
             match_info = await get_next_match(interaction, self.team_id)
+
             if isinstance(match_info, str):
                 await interaction.followup.send(match_info, ephemeral=True)
                 return
+
+            environment_response = await prepare_match_environment(interaction, match_info)
+
+            if environment_response:
+                await interaction.followup.send(environment_response, ephemeral=True)
+
+            thread_name = generate_thread_name(match_info)
+
+            if await check_existing_threads(interaction, thread_name, "match-thread"):
+                await interaction.followup.send("A thread for this match has already been created.")
+                return
+
+            thread_response = await create_and_manage_thread(interaction, match_info, self)
+
+            await interaction.followup.send(thread_response)
+
         except Exception as e:
             await interaction.followup.send(f"Failed to process the command: {e}", ephemeral=True)
 
-        date_time_pst = convert_to_pst(match_info['date_time'])
-        date_time_pst_formatted = date_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
-        thread_name = f"Match Thread: {match_info['name']} - {date_time_pst_formatted}"
-    
-        weather_forecast = ""
-        if match_info['is_home_game']:
-            weather_forecast = await get_weather_forecast(date_time_pst, venue_lat, venue_long)
-            event_response = await create_event_if_necessary(interaction, match_info, date_time_pst)
-            if event_response:
-                await interaction.followup.send(event_response)
-                return
-
-        if await check_existing_threads(interaction, thread_name, "match-thread"):
-            await interaction.followup.send("A thread for this match has already been created.")
-            return
-
-        starter_message, embed = await prepare_starter_message(match_info, date_time_pst_formatted, match_info['team_logo'], weather_forecast, thread_name)
-        thread_response = await create_match_thread(interaction, thread_name, embed, match_info, self, "match-thread")
-        await interaction.followup.send(thread_response)
 
     @app_commands.command(name='awaymatch', description="Create a new away match thread, create ticket item in store first!")
     @app_commands.guilds(discord.Object(id=server_id))

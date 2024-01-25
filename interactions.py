@@ -2,8 +2,6 @@
 
 from datetime import datetime
 import discord
-from discord import app_commands
-from discord.ext import commands
 from common import load_redeemed_orders, save_redeemed_orders, load_current_role, save_current_role
 from match_utils import wc_url
 from api_helpers import call_woocommerce_api

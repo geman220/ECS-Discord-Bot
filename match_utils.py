@@ -3,15 +3,13 @@
 import asyncio
 import discord
 import re
-import json
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 from config import BOT_CONFIG
 from api_helpers import call_woocommerce_api, fetch_espn_data
-from utils import load_json_data, save_json_data, convert_to_pst, get_airport_code_for_team
-from database import insert_match_thread, get_predictions, initialize_db, load_match_threads
-from api_helpers import fetch_openweather_data, fetch_serpapi_flight_data
-from common import load_match_dates
+from utils import convert_to_pst
+from database import insert_match_thread, get_predictions
+from common import load_match_dates, create_event_if_necessary, get_weather_forecast, venue_lat, venue_long, prepare_starter_message
 
 wc_url = BOT_CONFIG['wc_url']
 team_name = BOT_CONFIG['team_name']
@@ -36,9 +34,11 @@ async def get_away_match(ctx, opponent=None):
         matches.sort()
 
         if opponent:
-            for match in matches:
-                if opponent.lower() in match[1].lower():
-                    return match[1], match[2]
+            found_matches = [match for match in matches if opponent.lower() in match[1].lower()]
+            if found_matches:
+                return found_matches[0][1], found_matches[0][2]
+            else:
+                return None
 
         if matches:
             closest_match = matches[0]
@@ -135,6 +135,33 @@ def extract_match_details(event, competitor=None):
         "match_stats_link": stats_link,
         "match_commentary_link": commentary_link
     }
+
+def generate_thread_name(match_info):
+    date_time_pst = convert_to_pst(match_info['date_time'])
+    date_time_pst_formatted = date_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+    return f"Match Thread: {match_info['name']} - {date_time_pst_formatted}"
+
+async def prepare_match_environment(interaction: discord.Interaction, match_info: dict) -> str:
+    if match_info.get('is_home_game'):
+        weather_forecast = await get_weather_forecast(convert_to_pst(match_info['date_time']), venue_lat, venue_long)
+        event_response = await create_event_if_necessary(interaction, match_info)
+        if event_response:
+            return event_response
+        return weather_forecast
+    return ""
+
+async def create_and_manage_thread(interaction: discord.Interaction, match_info: dict, cog):
+    date_time_pst = convert_to_pst(match_info['date_time'])
+    date_time_pst_formatted = date_time_pst.strftime('%m/%d/%Y %I:%M %p PST')
+    thread_name = generate_thread_name(match_info)
+
+    weather_forecast = ""
+    starter_message, embed = await prepare_starter_message(match_info, date_time_pst_formatted, match_info['team_logo'], weather_forecast, thread_name)
+
+    channel_name = "match-thread"
+    thread_response = await create_match_thread(interaction, thread_name, embed, match_info, cog, channel_name)
+
+    return thread_response
 
 async def create_match_thread(interaction, thread_name, embed, match_info, match_commands_cog, channel_name):
     channel = discord.utils.get(interaction.guild.channels, name=channel_name)

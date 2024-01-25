@@ -8,7 +8,7 @@ redeemed_orders.json
 predictions.db
 *.log
 .vs/
-__pycache__/
+**/__pycache__/
 env1/
 *.pyc
 .vscode/
