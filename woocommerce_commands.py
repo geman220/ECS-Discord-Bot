@@ -6,10 +6,20 @@ from discord.ext import commands
 import asyncio
 import csv
 import io
-from common import server_id, has_required_wg_role
+import json
+from common import server_id, has_required_wg_role, has_admin_role
 from match_utils import wc_url
 from api_helpers import call_woocommerce_api
+from database import update_woo_orders, get_latest_order_id, count_orders_for_multiple_subgroups, get_members_for_subgroup
 import urllib.parse
+
+SUBGROUPS = [
+    "253 Defiance", "Anchor 'n' Rose 48", "Armed Services Group",
+    "Barra Fuerza Verde", "Bellingham Night Watch", "Dry Side Supporters",
+    "European Sounders Federation", "Fog City Faithful", "Heartland Horde",
+    "Pride of the Sound", "Seattle Sounders East", "Tropic Sound",
+    "West Sound Armada"
+]
 
 class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     def __init__(self, bot):
@@ -104,4 +114,133 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         filename = f"{sanitized_name}_orders.csv"
         csv_file = discord.File(fp=csv_output, filename=filename)
         await interaction.followup.send(f"Orders for product '{product_title}':", file=csv_file, ephemeral=True)
+        csv_output.close()
+        
+    @app_commands.command(name='updateorders', description="Update local orders database from WooCommerce")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def update_orders(self, interaction: discord.Interaction):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        latest_order_id_in_db = get_latest_order_id()
+        new_orders_count = 0
+        page = 1
+        done = False
+
+        while not done:
+            orders_url = wc_url.replace('orders/', f'orders?order=desc&page={page}')
+            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+
+            if not fetched_orders:
+                break
+
+            for order in fetched_orders:
+                order_id = str(order.get('id', ''))
+
+                if order_id == latest_order_id_in_db:
+                    done = True
+                    break
+
+                order_data = json.dumps(order)
+                update_woo_orders(order_id, order_data)
+                new_orders_count += 1
+
+            page += 1
+            await asyncio.sleep(1)
+
+        message = f"Orders database updated. Added {new_orders_count} new orders."
+        await interaction.followup.send(message, ephemeral=True)
+
+    @app_commands.command(name='subgroupcount', description="Count orders for each subgroup")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def subgroup_count(self, interaction: discord.Interaction):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        latest_order_id_in_db = get_latest_order_id()
+        new_orders_count = 0
+        page = 1
+        done = False
+
+        while not done:
+            orders_url = wc_url.replace('orders/', f'orders?order=desc&page={page}')
+            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+
+            if not fetched_orders:
+                break
+
+            for order in fetched_orders:
+                order_id = str(order.get('id', ''))
+
+                if order_id == latest_order_id_in_db:
+                    done = True
+                    break
+
+                order_data = json.dumps(order)
+                update_woo_orders(order_id, order_data)
+                new_orders_count += 1
+
+            page += 1
+            await asyncio.sleep(1)
+
+        subgroup_counts = count_orders_for_multiple_subgroups(SUBGROUPS)
+        message_content = "Subgroup Order Counts:\n"
+        for subgroup, count in subgroup_counts.items():
+            message_content += f"{subgroup}: {count}\n"
+
+        await interaction.followup.send(message_content, ephemeral=True)
+        
+    @app_commands.command(name='subgrouplist', description="Create a CSV list of members in each subgroup")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def subgrouplist(self, interaction: discord.Interaction):
+        if not await has_admin_role(interaction):
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+        
+        latest_order_id_in_db = get_latest_order_id()
+        page = 1
+        done = False
+
+        while not done:
+            orders_url = wc_url.replace('orders/', f'orders?order=desc&page={page}')
+            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+
+            if not fetched_orders:
+                break
+
+            for order in fetched_orders:
+                order_id = str(order.get('id', ''))
+
+                if order_id == latest_order_id_in_db:
+                    done = True
+                    break
+
+                order_data = json.dumps(order)
+                update_woo_orders(order_id, order_data)
+
+            page += 1
+            await asyncio.sleep(1)
+
+        csv_output = io.StringIO()
+        csv_writer = csv.writer(csv_output)
+        header = ["Subgroup", "First Name", "Last Name", "Email"]
+        csv_writer.writerow(header)
+
+        for subgroup in SUBGROUPS:
+            member_list = get_members_for_subgroup(subgroup)
+            for member in member_list:
+                csv_writer.writerow([subgroup, member['first_name'], member['last_name'], member['email']])
+
+        csv_output.seek(0)
+        filename = "subgroup_members_list.csv"
+        csv_file = discord.File(fp=csv_output, filename=filename)
+        await interaction.followup.send("Subgroup members list:", file=csv_file, ephemeral=True)
         csv_output.close()
