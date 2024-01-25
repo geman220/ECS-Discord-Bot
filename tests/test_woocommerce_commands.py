@@ -5,6 +5,10 @@ import unittest
 from unittest.mock import AsyncMock, MagicMock, patch, call
 from woocommerce_commands import WooCommerceCommands
 import discord
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 
 class TestWooCommerceCommands(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
@@ -43,8 +47,8 @@ class TestWooCommerceCommands(unittest.IsolatedAsyncioTestCase):
 
         expected_message = ("🏠 **Home Tickets:**\nGeneric Home Match 1\nGeneric Home Match 2\n\n"
                             "🚗 **Away Tickets:**\nGeneric Away Match 1")
-        home_tickets_url = 'https://weareecs.com/wp-json/wc/v3/products?category=765197885'
-        away_tickets_url = 'https://weareecs.com/wp-json/wc/v3/products?category=765197886'
+        home_tickets_url = 'https://example.com/wp-json/wc/v3/products?category=765197885'
+        away_tickets_url = 'https://example.com/wp-json/wc/v3/products?category=765197886'
         mock_call_api.assert_has_calls([
             call(self.mock_interaction, home_tickets_url),
             call(self.mock_interaction, away_tickets_url)

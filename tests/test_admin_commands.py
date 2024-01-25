@@ -3,6 +3,9 @@
 import unittest
 from unittest.mock import AsyncMock, patch, MagicMock
 from admin_commands import AdminCommands
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
 
 class TestAdminCommands(unittest.IsolatedAsyncioTestCase):
     

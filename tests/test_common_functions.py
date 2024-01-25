@@ -6,6 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch, Mock
 from common import is_admin_or_owner, dev_id, discord_admin_role, has_admin_role, format_stat_name, get_weather_forecast, create_event_if_necessary, check_existing_threads, generate_flight_search_url, parse_flight_data
 import datetime
 import discord
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 
 class TestCommonFunctions(unittest.IsolatedAsyncioTestCase):
 

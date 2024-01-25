@@ -4,6 +4,10 @@ import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 from general_commands import GeneralCommands
 import discord
+import warnings
+
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 
 class TestTeamRecordCommand(unittest.IsolatedAsyncioTestCase):
     @patch('match_utils.get_team_record')

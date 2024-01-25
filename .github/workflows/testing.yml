@@ -20,4 +20,5 @@ jobs:
     - name: Copy .env_example to .env
       run: cp .env_example .env
     - name: Run tests
-      run: python -m unittest discover -s tests
+      run: |
+        python -m unittest discover -s tests -W ignore::ResourceWarning
