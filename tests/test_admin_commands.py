@@ -121,7 +121,6 @@ class TestAdminCommands(unittest.IsolatedAsyncioTestCase):
         await self.cog.check_order.callback(self.cog, self.mock_interaction)
 
         self.mock_interaction.response.send_modal.assert_called_once()
-
         
 if __name__ == '__main__':
     unittest.main()
