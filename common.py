@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timedelta
 from config import BOT_CONFIG
 from utils import load_json_data, save_json_data, convert_to_pst, get_airport_code_for_team
-from database import initialize_db, load_match_threads
+from database import initialize_db, load_match_threads, initialize_woo_orders_db
 from api_helpers import fetch_openweather_data, fetch_serpapi_flight_data
 
 bot_token = BOT_CONFIG['bot_token']
@@ -25,6 +25,7 @@ bot_version = BOT_CONFIG['bot_version']
 
 try:
     initialize_db()
+    initialize_woo_orders_db()
     match_thread_map = load_match_threads()
 except Exception as e:
     print(f"Error during initialization: {e}")
