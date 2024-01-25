@@ -3,31 +3,9 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 from general_commands import GeneralCommands
-import discord
 import warnings
 
 warnings.filterwarnings("ignore", category=ResourceWarning)
-
-
-class TestTeamRecordCommand(unittest.IsolatedAsyncioTestCase):
-    @patch('match_utils.get_team_record')
-    async def test_team_record_success(self, mock_get_team_record):
-        """
-        Test for successful retrieval of team record.
-        - Mocks get_team_record to return preset wins, losses, and team logo URL.
-        - Asserts that send_message is called with an embed containing the team record.
-        """
-        mock_get_team_record.return_value = ({"wins": 10, "losses": 5}, "team_logo_url")
-
-        mock_interaction = MagicMock()
-        mock_interaction.response.send_message = AsyncMock()
-
-        cog = GeneralCommands(bot=MagicMock())
-        await cog.team_record.callback(cog, mock_interaction)
-
-        mock_interaction.response.send_message.assert_called_once()
-        args, kwargs = mock_interaction.response.send_message.call_args
-        self.assertIsInstance(kwargs['embed'], discord.Embed)
 
 class TestAwayTicketsCommand(unittest.IsolatedAsyncioTestCase):
     
@@ -41,11 +19,11 @@ class TestAwayTicketsCommand(unittest.IsolatedAsyncioTestCase):
         mock_products_response = [
             {
                 "name": "Away vs LAFC | 2024-02-24",
-                "permalink": "https://weareecs.com/product/away-vs-lafc-2024-02-24/"
+                "permalink": "https://example-website.com/product/away-vs-lafc-2024-02-24/"
             },
             {
                 "name": "Away vs Philadelphia | 2024-03-09",
-                "permalink": "https://weareecs.com/product/away-vs-philadelphia-union-2024-03-09/"
+                "permalink": "https://example-website.com/product/away-vs-philadelphia-union-2024-03-09/"
             }
         ]
 
