@@ -1,7 +1,6 @@
 # test_admin_commands.py
 
 import unittest
-import discord
 from unittest.mock import AsyncMock, patch, MagicMock
 from admin_commands import AdminCommands
 
