@@ -4,15 +4,20 @@ import aiohttp
 from datetime import datetime, timedelta
 from config import BOT_CONFIG
 
-wc_key = BOT_CONFIG['wc_key']
-wc_secret = BOT_CONFIG['wc_secret']
-openweather_api = BOT_CONFIG['openweather_api']
-serpapi_api = BOT_CONFIG['serpapi_api']
+wc_key = BOT_CONFIG["wc_key"]
+wc_secret = BOT_CONFIG["wc_secret"]
+openweather_api = BOT_CONFIG["openweather_api"]
+serpapi_api = BOT_CONFIG["serpapi_api"]
 
-async def send_async_http_request(interaction, url, method='GET', headers=None, auth=None, data=None, params=None):
+
+async def send_async_http_request(
+    interaction, url, method="GET", headers=None, auth=None, data=None, params=None
+):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.request(method, url, headers=headers, auth=auth, data=data, params=params) as response:
+            async with session.request(
+                method, url, headers=headers, auth=auth, data=data, params=params
+            ) as response:
                 if response.status == 200:
                     return await response.json()
                 else:
@@ -24,15 +29,18 @@ async def send_async_http_request(interaction, url, method='GET', headers=None, 
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return None
-        
+
+
 async def call_woocommerce_api(interaction, url):
     auth = aiohttp.BasicAuth(wc_key, wc_secret)
     return await send_async_http_request(interaction, url, auth=auth)
+
 
 async def fetch_espn_data(interaction, endpoint):
     base_url = "https://site.api.espn.com/apis/site/v2/"
     full_url = base_url + endpoint
     return await send_async_http_request(interaction, full_url)
+
 
 async def fetch_openweather_data(interaction, latitude, longitude, date):
     match_date = datetime.fromisoformat(date).date()
@@ -43,7 +51,10 @@ async def fetch_openweather_data(interaction, latitude, longitude, date):
     url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
     return await send_async_http_request(interaction, url)
 
-async def fetch_serpapi_flight_data(interaction, departure_airport, arrival_airport, outbound_date, return_date):
+
+async def fetch_serpapi_flight_data(
+    interaction, departure_airport, arrival_airport, outbound_date, return_date
+):
     base_url = "https://serpapi.com/search"
     params = {
         "engine": "google_flights",
@@ -55,6 +66,8 @@ async def fetch_serpapi_flight_data(interaction, departure_airport, arrival_airp
         "type": "1",
         "outbound_date": outbound_date.strftime("%Y-%m-%d"),
         "return_date": return_date.strftime("%Y-%m-%d"),
-        "api_key": serpapi_api
+        "api_key": serpapi_api,
     }
-    return await send_async_http_request(interaction, base_url, method='GET', params=params)
+    return await send_async_http_request(
+        interaction, base_url, method="GET", params=params
+    )

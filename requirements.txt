@@ -9,6 +9,7 @@ colorama==0.4.6
 discord==2.3.2
 discord.py==2.3.2
 Flask==3.0.1
+freezegun==1.4.0
 frozenlist==1.4.1
 idna==3.6
 iniconfig==2.0.0
@@ -21,9 +22,11 @@ pluggy==1.4.0
 pytest==7.4.4
 pytest-asyncio==0.23.3
 pytest-mock==3.12.0
+python-dateutil==2.8.2
 python-dotenv==1.0.1
 pytz==2023.3.post1
 requests==2.31.0
+six==1.16.0
 urllib3==2.1.0
 Werkzeug==3.0.1
 yarl==1.9.4
