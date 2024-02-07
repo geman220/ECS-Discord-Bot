@@ -110,14 +110,25 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         product_id = product["id"]
         await asyncio.sleep(1)
 
-        all_orders_url = wc_url.replace("orders/", f"orders?product={product_id}")
-        all_orders = await call_woocommerce_api(interaction, all_orders_url)
+        all_orders = []
+        page = 1
+        while True:
+            all_orders_url = wc_url.replace("orders/", f"orders?product={product_id}&page={page}")
+            orders_page = await call_woocommerce_api(interaction, all_orders_url)
+
+            if not orders_page:
+                break
+
+            all_orders.extend(orders_page)
+
+            page += 1
+            await asyncio.sleep(1)
 
         filtered_orders = [
             order
             for order in all_orders
             if any(
-                item["name"].lower() == product_title.lower()
+                item["product_id"] == product_id
                 for item in order.get("line_items", [])
             )
         ]
@@ -144,6 +155,14 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             "Product Variation Name",
             "Billing Address",
             "Shipping Address",
+            "Alias",
+            "Alias Description",
+            "Alias 1 email",
+            "Alias 1 recipient",
+            "Alias 1 type",
+            "Alias 2 email",
+            "Alias 2 recipient",
+            "Alias 2 type",
         ]
         csv_writer.writerow(header)
 
@@ -163,10 +182,9 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                             ]
                         ]
                     )
-                    shipping_info = order.get("shipping", {})
                     shipping_address = ", ".join(
                         [
-                            shipping_info.get(key, "N/A")
+                            order.get("shipping", {}).get(key, "N/A")
                             for key in [
                                 "address_1",
                                 "address_2",
@@ -177,6 +195,11 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                             ]
                         ]
                     )
+                    alias = f"ecstix-{order['number']}@weareecs.com"
+                    alias_description = f"{item['name']} entry for {order['billing'].get('first_name', 'N/A')} {order['billing'].get('last_name', 'N/A')}"
+                    alias_type = "Member"
+                    alias_1_recipient = order["billing"].get("email", "N/A")
+                    alias_2_recipient = "travel@weareecs.com"
                     row = [
                         item["name"],
                         order["billing"].get("first_name", "N/A"),
@@ -191,6 +214,14 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                         item.get("variation_id", "N/A"),
                         billing_address,
                         shipping_address,
+                        alias,
+                        alias_description,
+                        alias,
+                        alias_1_recipient,
+                        alias_type,
+                        alias,
+                        alias_2_recipient,
+                        alias_type
                     ]
                     csv_writer.writerow(row)
 
