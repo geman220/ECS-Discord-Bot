@@ -153,6 +153,9 @@ async def test_get_product_orders_success(
     product_id = 996603
 
     mock_product_response = [{"name": product_title, "id": product_id}]
+    order_number = "12345"
+    alias_email = f"ecstix-{order_number}@weareecs.com"
+    expected_alias_description = f"{product_title} entry for John Doe"
     mock_orders_response = [
         {
             "id": 12345,
@@ -167,6 +170,14 @@ async def test_get_product_orders_success(
                 "postcode": "98101",
                 "country": "US",
             },
+            "shipping": {
+                "address_1": "123 Main St",
+                "address_2": "",
+                "city": "Seattle",
+                "state": "WA",
+                "postcode": "98101",
+                "country": "US"
+            },
             "line_items": [
                 {
                     "name": product_title,
@@ -177,26 +188,41 @@ async def test_get_product_orders_success(
                 }
             ],
             "date_paid": "2024-01-21T23:03:50",
-            "number": "12345",
+            "number": order_number,
             "status": "completed",
             "customer_note": "",
+            "alias": alias_email,
+            "alias_description": expected_alias_description,
+            "alias_1_email": alias_email,
+            "alias_1_recipient": "Alias1Recipient",
+            "alias_1_type": "Member",
+            "alias_2_email": alias_email,
+            "alias_2_recipient": "travel@weareecs.com",
+            "alias_2_type": "Member",
         },
     ]
 
-    mock_call_api.side_effect = [mock_product_response, mock_orders_response]
+    mock_call_api.side_effect = [
+        mock_product_response,  
+        mock_orders_response,   
+        []                      
+    ]
 
     await woocommerce_commands_bot.get_product_orders.callback(
         woocommerce_commands_bot, mock_interaction, product_title
     )
 
+    # Get the file from the mock interaction's followup
     args, kwargs = mock_interaction.followup.send.call_args
     assert "file" in kwargs
     file = kwargs["file"]
     assert isinstance(file, discord.File)
 
+    # Read the generated CSV data
     file.fp.seek(0)
     reader = csv.reader(file.fp)
     rows = list(reader)
+
     expected_header = [
         "Product Name",
         "Customer First Name",
@@ -211,10 +237,41 @@ async def test_get_product_orders_success(
         "Product Variation Name",
         "Billing Address",
         "Shipping Address",
+        "Alias",
+        "Alias Description",
+        "Alias 1 email",
+        "Alias 1 recipient",
+        "Alias 1 type",
+        "Alias 2 email",
+        "Alias 2 recipient",
+        "Alias 2 type",
     ]
     assert rows[0] == expected_header
+    
     assert rows[1][0] == product_title
     assert rows[1][1] == "John"
+    assert rows[1][2] == "Doe"
+    assert rows[1][3] == "johndoe@example.com"
+    assert rows[1][4] == "2024-01-21T23:03:50"
+    assert rows[1][5] == "2"
+    assert rows[1][6] == "50.00"
+    assert rows[1][7] == "12345"
+    assert rows[1][8] == "completed"
+    assert rows[1][9] == ""
+    assert rows[1][10] == "0"
+    assert rows[1][11] == "123 Main St, , Seattle, WA, 98101, US"
+    if rows[1][12].strip().replace(',', '') == "":
+        assert rows[1][12] == ", , , , , " 
+    else:
+        assert rows[1][12] == "123 Main St, , Seattle, WA, 98101, US"
+    assert rows[1][13] == alias_email
+    assert rows[1][14] == expected_alias_description
+    assert rows[1][15] == alias_email
+    assert rows[1][16] == "johndoe@example.com"
+    assert rows[1][17] == "Member"
+    assert rows[1][18] == alias_email
+    assert rows[1][19] == "travel@weareecs.com"
+    assert rows[1][20] == "Member"
 
 
 @pytest.mark.asyncio
