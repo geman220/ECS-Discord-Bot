@@ -26,5 +26,5 @@ BOT_CONFIG = {
     'serpapi_api': get_env_variable('SERPAPI_API'),
     'wp_username': get_env_variable('WP_USERNAME'),
     'wp_app_password': get_env_variable('WP_APP_PASSWORD'),
-    'bot_version': "1.4.8"
+    'bot_version': "1.4.9"
 }

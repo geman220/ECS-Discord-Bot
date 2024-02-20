@@ -160,14 +160,13 @@ def insert_order_extract(order_id, product_name, first_name, last_name, email_ad
         conn.commit()
 
 
-def get_order_extract():
+def get_order_extract(product_title):
     with get_db_connection(ORDERS_DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        c.execute("SELECT * FROM order_extract ORDER BY email_address, order_id")
+        c.execute("SELECT * FROM order_extract WHERE product_name = ? ORDER BY email_address, order_id", (product_title,))
         rows = c.fetchall()
         return [dict(row) for row in rows]
-
 
 
 def prep_order_extract():

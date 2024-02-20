@@ -146,7 +146,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             )
             return
             
-        prep_order_extract
+        prep_order_extract()
         
         for order in filtered_orders:
             for item in order.get("line_items", []):
@@ -178,7 +178,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                         item.get("variation_id", "N/A"),
                         billing_address)
 
-
+        order_extract_data = get_order_extract(product_title)
         csv_output = io.StringIO()
         csv_writer = csv.writer(csv_output)
         header = [
@@ -207,7 +207,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         csv_writer.writerow(header)
         previous_email = ""
 
-        for order in get_order_extract():
+        for order in order_extract_data:
             alias = ""
             alias_description = ""
             alias_1_recipient = ""
