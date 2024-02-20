@@ -102,6 +102,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             return
 
         await interaction.response.defer()
+        
+        initialize_woo_orders_db()
 
         encoded_product_title = urllib.parse.quote_plus(product_title)
         product_url = wc_url.replace(
