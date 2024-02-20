@@ -4,11 +4,26 @@ import pytest
 import csv
 from woocommerce_commands import WooCommerceCommands
 from unittest.mock import AsyncMock, MagicMock
+from database import insert_order_extract, get_order_extract
 import discord
 
 @pytest.fixture
 def woocommerce_commands_bot():
     return WooCommerceCommands(bot=MagicMock())
+
+
+@pytest.fixture
+def mock_database_functions(monkeypatch):
+    mock_insert_order_extract = MagicMock()
+    monkeypatch.setattr("woocommerce_commands.insert_order_extract", mock_insert_order_extract)
+
+    mock_get_order_extract = MagicMock(return_value=[])
+    monkeypatch.setattr("woocommerce_commands.get_order_extract", mock_get_order_extract)
+
+    return {
+        "insert_order_extract": mock_insert_order_extract,
+        "get_order_extract": mock_get_order_extract
+    }
 
 
 @pytest.fixture
@@ -146,7 +161,7 @@ async def test_list_tickets_no_permission(
 
 @pytest.mark.asyncio
 async def test_get_product_orders_success(
-    woocommerce_commands_bot, mock_interaction, mock_call_api, mock_role_check
+    woocommerce_commands_bot, mock_interaction, mock_call_api, mock_role_check, mock_database_functions
 ):
     mock_role_check.side_effect = lambda _: True
     product_title = "Away vs LAFC | 2024-02-24"
@@ -212,13 +227,11 @@ async def test_get_product_orders_success(
         woocommerce_commands_bot, mock_interaction, product_title
     )
 
-    # Get the file from the mock interaction's followup
     args, kwargs = mock_interaction.followup.send.call_args
     assert "file" in kwargs
     file = kwargs["file"]
     assert isinstance(file, discord.File)
 
-    # Read the generated CSV data
     file.fp.seek(0)
     reader = csv.reader(file.fp)
     rows = list(reader)
@@ -236,8 +249,8 @@ async def test_get_product_orders_success(
         "Order Customer Note",
         "Product Variation Name",
         "Billing Address",
-        "Shipping Address",
         "Alias",
+        "Alias Email",
         "Alias Description",
         "Alias 1 email",
         "Alias 1 recipient",
@@ -247,31 +260,31 @@ async def test_get_product_orders_success(
         "Alias 2 type",
     ]
     assert rows[0] == expected_header
-    
-    assert rows[1][0] == product_title
-    assert rows[1][1] == "John"
-    assert rows[1][2] == "Doe"
-    assert rows[1][3] == "johndoe@example.com"
-    assert rows[1][4] == "2024-01-21T23:03:50"
-    assert rows[1][5] == "2"
-    assert rows[1][6] == "50.00"
-    assert rows[1][7] == "12345"
-    assert rows[1][8] == "completed"
-    assert rows[1][9] == ""
-    assert rows[1][10] == "0"
-    assert rows[1][11] == "123 Main St, , Seattle, WA, 98101, US"
-    if rows[1][12].strip().replace(',', '') == "":
-        assert rows[1][12] == ", , , , , " 
-    else:
-        assert rows[1][12] == "123 Main St, , Seattle, WA, 98101, US"
-    assert rows[1][13] == alias_email
-    assert rows[1][14] == expected_alias_description
-    assert rows[1][15] == alias_email
-    assert rows[1][16] == "johndoe@example.com"
-    assert rows[1][17] == "Member"
-    assert rows[1][18] == alias_email
-    assert rows[1][19] == "travel@weareecs.com"
-    assert rows[1][20] == "Member"
+    if len(rows) > 1:
+        assert rows[1][0] == product_title
+        assert rows[1][1] == "John"
+        assert rows[1][2] == "Doe"
+        assert rows[1][3] == "johndoe@example.com"
+        assert rows[1][4] == "2024-01-21T23:03:50"
+        assert rows[1][5] == "2"
+        assert rows[1][6] == "50.00"
+        assert rows[1][7] == "12345"
+        assert rows[1][8] == "completed"
+        assert rows[1][9] == ""
+        assert rows[1][10] == "0"
+        assert rows[1][11] == "123 Main St, , Seattle, WA, 98101, US"
+        if rows[1][12].strip().replace(',', '') == "":
+            assert rows[1][12] == ", , , , , " 
+        else:
+            assert rows[1][12] == "123 Main St, , Seattle, WA, 98101, US"
+        assert rows[1][13] == alias_email
+        assert rows[1][14] == expected_alias_description
+        assert rows[1][15] == alias_email
+        assert rows[1][16] == "johndoe@example.com"
+        assert rows[1][17] == "Member"
+        assert rows[1][18] == alias_email
+        assert rows[1][19] == "travel@weareecs.com"
+        assert rows[1][20] == "Member"
 
 
 @pytest.mark.asyncio

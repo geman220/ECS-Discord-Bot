@@ -132,6 +132,45 @@ def initialize_woo_orders_db():
             """CREATE TABLE IF NOT EXISTS woo_orders
                      (order_id TEXT PRIMARY KEY, order_data TEXT)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS order_extract
+                     (order_id TEXT PRIMARY KEY,
+                      product_name TEXT,
+                      first_name TEXT,
+                      last_name TEXT,
+                      email_address TEXT,
+                      order_date TEXT,
+                      item_qty INTEGER,
+                      item_price TEXT,
+                      order_status TEXT,
+                      order_note TEXT,
+                      product_variation TEXT,
+                      billing_address TEXT)"""
+        )
+        conn.commit()
+
+
+def insert_order_extract(order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address):
+    with get_db_connection(ORDERS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute(
+            "INSERT OR REPLACE INTO order_extract (order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address),
+        )
+
+
+def get_order_extract():
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT * FROM order_extract ORDER BY email_address, order_id")
+        return c.fetchall()
+
+
+def prep_order_extract():
+    with get_db_connection(ORDERS_DB_PATH) as conn:
+        conn.execute(
+            "TRUNCATE TABLE order_extract"
+        )
         conn.commit()
 
 
