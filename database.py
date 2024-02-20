@@ -3,6 +3,7 @@
 import sqlite3
 import json
 from contextlib import contextmanager
+from tkinter import E
 
 PREDICTIONS_DB_PATH = "predictions.db"
 ORDERS_DB_PATH = "woo_orders.db"
@@ -157,13 +158,17 @@ def insert_order_extract(order_id, product_name, first_name, last_name, email_ad
             "INSERT OR REPLACE INTO order_extract (order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address),
         )
+        conn.commit()
 
 
 def get_order_extract():
     with get_db_connection(ORDERS_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute("SELECT * FROM order_extract ORDER BY email_address, order_id")
-        return c.fetchall()
+        rows = c.fetchall()
+        return [dict(row) for row in rows]
+
 
 
 def prep_order_extract():
