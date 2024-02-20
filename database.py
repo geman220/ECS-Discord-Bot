@@ -3,7 +3,6 @@
 import sqlite3
 import json
 from contextlib import contextmanager
-from tkinter import E
 
 PREDICTIONS_DB_PATH = "predictions.db"
 ORDERS_DB_PATH = "woo_orders.db"
