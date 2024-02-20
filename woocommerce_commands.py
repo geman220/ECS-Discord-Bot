@@ -17,6 +17,7 @@ from database import (
     get_members_for_subgroup,
     prep_order_extract,
     insert_order_extract,
+    initialize_woo_orders_db,
     get_order_extract
 )
 import urllib.parse
@@ -260,7 +261,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     )
     @app_commands.guilds(discord.Object(id=server_id))
     async def update_orders(self, interaction: discord.Interaction):
-        if not await has_admin_role(interaction):
+        if not await has_required_wg_role(interaction):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -272,6 +273,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         new_orders_count = 0
         page = 1
         done = False
+        
+        initialize_woo_orders_db()
 
         while not done:
             orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
