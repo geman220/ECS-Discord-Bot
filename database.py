@@ -173,7 +173,7 @@ def get_order_extract():
 def prep_order_extract():
     with get_db_connection(ORDERS_DB_PATH) as conn:
         conn.execute(
-            "TRUNCATE TABLE order_extract"
+            "DELETE FROM order_extract"
         )
         conn.commit()
 
