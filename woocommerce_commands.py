@@ -15,6 +15,9 @@ from database import (
     get_latest_order_id,
     count_orders_for_multiple_subgroups,
     get_members_for_subgroup,
+    prep_order_extract,
+    insert_order_extract,
+    get_order_extract
 )
 import urllib.parse
 
@@ -63,17 +66,21 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         await asyncio.sleep(1)
         away_tickets = await call_woocommerce_api(interaction, away_tickets_url)
 
+        all_home_tickets = []
+        all_home_tickets.extend(home_tickets)
         message_content = "🏠 **Home Tickets:**\n"
         message_content += (
-            "\n".join([product["name"] for product in home_tickets])
-            if home_tickets
+            "\n".join([product["name"] for product in all_home_tickets])
+            if all_home_tickets
             else "No home tickets found."
         )
 
+        all_away_tickets = []
+        all_away_tickets.extend(away_tickets)
         message_content += "\n\n🚗 **Away Tickets:**\n"
         message_content += (
-            "\n".join([product["name"] for product in away_tickets])
-            if away_tickets
+            "\n".join([product["name"] for product in all_away_tickets])
+            if all_away_tickets
             else "No away tickets found."
         )
 
@@ -138,34 +145,9 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                 "No orders found for this product.", ephemeral=True
             )
             return
-
-        csv_output = io.StringIO()
-        csv_writer = csv.writer(csv_output)
-        header = [
-            "Product Name",
-            "Customer First Name",
-            "Customer Last Name",
-            "Customer Email",
-            "Order Date Paid",
-            "Order Line Item Quantity",
-            "Order Line Item Price",
-            "Order Number",
-            "Order Status",
-            "Order Customer Note",
-            "Product Variation Name",
-            "Billing Address",
-            "Shipping Address",
-            "Alias",
-            "Alias Description",
-            "Alias 1 email",
-            "Alias 1 recipient",
-            "Alias 1 type",
-            "Alias 2 email",
-            "Alias 2 recipient",
-            "Alias 2 type",
-        ]
-        csv_writer.writerow(header)
-
+            
+        prep_order_extract
+        
         for order in filtered_orders:
             for item in order.get("line_items", []):
                 if item["product_id"] == product_id:
@@ -182,25 +164,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                             ]
                         ]
                     )
-                    shipping_address = ", ".join(
-                        [
-                            order.get("shipping", {}).get(key, "N/A")
-                            for key in [
-                                "address_1",
-                                "address_2",
-                                "city",
-                                "state",
-                                "postcode",
-                                "country",
-                            ]
-                        ]
-                    )
-                    alias = f"ecstix-{order['number']}@weareecs.com"
-                    alias_description = f"{item['name']} entry for {order['billing'].get('first_name', 'N/A')} {order['billing'].get('last_name', 'N/A')}"
-                    alias_type = "Member"
-                    alias_1_recipient = order["billing"].get("email", "N/A")
-                    alias_2_recipient = "travel@weareecs.com"
-                    row = [
+                    insert_order_extract(
+                        order["number"],
                         item["name"],
                         order["billing"].get("first_name", "N/A"),
                         order["billing"].get("last_name", "N/A"),
@@ -208,22 +173,78 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                         order.get("date_paid", "N/A"),
                         str(item.get("quantity", 0)),
                         str(item.get("price", "N/A")),
-                        order["number"],
                         order["status"],
                         order.get("customer_note", "N/A"),
                         item.get("variation_id", "N/A"),
-                        billing_address,
-                        shipping_address,
-                        alias,
-                        alias_description,
-                        alias,
-                        alias_1_recipient,
-                        alias_type,
-                        alias,
-                        alias_2_recipient,
-                        alias_type
-                    ]
-                    csv_writer.writerow(row)
+                        billing_address)
+
+
+        csv_output = io.StringIO()
+        csv_writer = csv.writer(csv_output)
+        header = [
+            "Product Name",
+            "Customer First Name",
+            "Customer Last Name",
+            "Customer Email",
+            "Order Date Paid",
+            "Order Line Item Quantity",
+            "Order Line Item Price",
+            "Order Number",
+            "Order Status",
+            "Order Customer Note",
+            "Product Variation Name",
+            "Billing Address",
+            "Alias",
+            "Alias Email",
+            "Alias Description",
+            "Alias 1 email",
+            "Alias 1 recipient",
+            "Alias 1 type",
+            "Alias 2 email",
+            "Alias 2 recipient",
+            "Alias 2 type",
+        ]
+        csv_writer.writerow(header)
+        previous_email = ""
+
+        for order in get_order_extract():
+            alias = ""
+            alias_description = ""
+            alias_type = ""
+            alias_1_recipient = ""
+            alias_2_recipient = ""
+
+            if order["email_address"] != previous_email:
+                alias = f"ecstix-{order['number']}@weareecs.com"
+                alias_description = f"{item['name']} entry for {order['billing'].get('first_name', 'N/A')} {order['billing'].get('last_name', 'N/A')}"
+                alias_type = "MEMBER"
+                alias_1_recipient = order["billing"].get("email", "N/A")
+                alias_2_recipient = "travel@weareecs.com"
+                    
+            row = [
+                order["product_name"],
+                order["first_name"],
+                order["last_name"],
+                order["email_address"],
+                order["purchase_date"],
+                order["item_qty"],
+                order["item_price"],
+                order["order_status"],
+                order["order_note"],
+                order["product_variation"],
+                order["billing_address"],
+                alias,
+                alias,
+                alias_description,
+                alias,
+                alias_1_recipient,
+                alias_type,
+                alias,
+                alias_2_recipient,
+                alias_type
+            ]
+            csv_writer.writerow(row)
+            previous_email = order["email_address"]
 
         csv_output.seek(0)
         sanitized_name = product_title.replace("/", "_").replace("\\", "_")
