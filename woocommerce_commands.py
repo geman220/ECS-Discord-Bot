@@ -210,25 +210,24 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         for order in get_order_extract():
             alias = ""
             alias_description = ""
-            alias_type = ""
+            alias_type = "MEMBER"
             alias_1_recipient = ""
-            alias_2_recipient = ""
+            alias_2_recipient = "travel@weareecs.com"
 
             if order["email_address"] != previous_email:
-                alias = f"ecstix-{order['number']}@weareecs.com"
-                alias_description = f"{item['name']} entry for {order['billing'].get('first_name', 'N/A')} {order['billing'].get('last_name', 'N/A')}"
-                alias_type = "MEMBER"
-                alias_1_recipient = order["billing"].get("email", "N/A")
-                alias_2_recipient = "travel@weareecs.com"
-                    
+                alias = f"ecstix-{order['order_id']}@weareecs.com"
+                alias_description = f"{order['product_name']} entry for {order['first_name']} {order['last_name']}"
+                alias_1_recipient = order["email_address"]
+        
             row = [
                 order["product_name"],
                 order["first_name"],
                 order["last_name"],
                 order["email_address"],
-                order["purchase_date"],
+                order["order_date"],
                 order["item_qty"],
                 order["item_price"],
+                order["order_id"],
                 order["order_status"],
                 order["order_note"],
                 order["product_variation"],
