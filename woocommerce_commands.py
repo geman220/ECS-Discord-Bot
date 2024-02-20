@@ -17,7 +17,6 @@ from database import (
     get_members_for_subgroup,
     prep_order_extract,
     insert_order_extract,
-    initialize_woo_orders_db,
     get_order_extract
 )
 import urllib.parse
@@ -102,8 +101,6 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             return
 
         await interaction.response.defer()
-        
-        initialize_woo_orders_db()
 
         encoded_product_title = urllib.parse.quote_plus(product_title)
         product_url = wc_url.replace(
@@ -275,8 +272,6 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         new_orders_count = 0
         page = 1
         done = False
-        
-        initialize_woo_orders_db()
 
         while not done:
             orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
