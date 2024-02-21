@@ -114,6 +114,11 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             await update_orders_from_api(interaction, product_id)
 
         order_extract_data = get_order_extract(product_title)
+    
+        if not order_extract_data:
+            await interaction.followup.send("No orders found for this product.", ephemeral=True)
+            return
+
         csv_output = io.StringIO()
         csv_writer = csv.writer(csv_output)
         header = [
@@ -140,8 +145,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             "Alias 2 type",
         ]
         csv_writer.writerow(header)
-        previous_email = ""
 
+        previous_email = ""
         for order in order_extract_data:
             alias = ""
             alias_description = ""
@@ -155,7 +160,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                 alias_1_recipient = order["email_address"]
                 alias_2_recipient = "travel@weareecs.com"
                 alias_type = "MEMBER"
-    
+
             row = [
                 order["product_name"],
                 order["first_name"],
@@ -183,12 +188,18 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             previous_email = order["email_address"]
 
         csv_output.seek(0)
-        sanitized_name = product_title.replace("/", "_").replace("\\", "_")
-        filename = f"{sanitized_name}_orders.csv"
-        csv_file = discord.File(fp=csv_output, filename=filename)
-        await interaction.followup.send(
-            f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
-        )
+        if csv_output.getvalue():
+            sanitized_name = product_title.replace("/", "_").replace("\\", "_")
+            filename = f"{sanitized_name}_orders.csv"
+            csv_file = discord.File(fp=csv_output, filename=filename)
+            await interaction.followup.send(
+                f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                "No orders found for this product.", ephemeral=True
+            )
+
         csv_output.close()
 
     @app_commands.command(
