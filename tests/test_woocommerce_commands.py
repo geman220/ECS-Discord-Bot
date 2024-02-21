@@ -17,7 +17,46 @@ def mock_database_functions(monkeypatch):
     mock_insert_order_extract = MagicMock()
     monkeypatch.setattr("woocommerce_commands.insert_order_extract", mock_insert_order_extract)
 
-    mock_get_order_extract = MagicMock(return_value=[])
+    mock_get_order_extract = MagicMock(return_value=[
+        {
+            "order_id": "12345",
+            "product_name": "Away vs LAFC | 2024-02-24",
+            "first_name": "John",
+            "last_name": "Doe",
+            "email_address": "johndoe@example.com",
+            "order_date": "2024-01-21T23:03:50",
+            "item_qty": 2,
+            "item_price": "50.00",
+            "order_status": "completed",
+            "order_note": "",
+            "product_variation": "0",
+            "billing_address": "123 Main St, Seattle, WA, 98101, US",
+            "alias": "ecstix-12345@weareecs.com",
+            "alias_description": "Away vs LAFC | 2024-02-24 entry for John Doe",
+            "alias_1_recipient": "johndoe@example.com",
+            "alias_2_recipient": "travel@weareecs.com",
+            "alias_type": "MEMBER"
+        },
+        {
+            "order_id": "67890",
+            "product_name": "Away vs LAFC | 2024-02-24",
+            "first_name": "Alice",
+            "last_name": "Smith",
+            "email_address": "alicesmith@example.com",
+            "order_date": "2024-01-22T10:15:30",
+            "item_qty": 1,
+            "item_price": "55.00",
+            "order_status": "processing",
+            "order_note": "Please deliver ASAP",
+            "product_variation": "1",
+            "billing_address": "456 Another St, Seattle, WA, 98102, US",
+            "alias": "ecstix-67890@weareecs.com",
+            "alias_description": "Away vs LAFC | 2024-02-24 entry for Alice Smith",
+            "alias_1_recipient": "alicesmith@example.com",
+            "alias_2_recipient": "travel@weareecs.com",
+            "alias_type": "MEMBER"
+        }
+    ])
     monkeypatch.setattr("woocommerce_commands.get_order_extract", mock_get_order_extract)
 
     return {
@@ -261,7 +300,7 @@ async def test_get_product_orders_success(
     ]
     assert rows[0] == expected_header
     if len(rows) > 1:
-        assert rows[1][0] == product_title
+        assert rows[1][0] == "Away vs LAFC | 2024-02-24"
         assert rows[1][1] == "John"
         assert rows[1][2] == "Doe"
         assert rows[1][3] == "johndoe@example.com"
@@ -272,19 +311,16 @@ async def test_get_product_orders_success(
         assert rows[1][8] == "completed"
         assert rows[1][9] == ""
         assert rows[1][10] == "0"
-        assert rows[1][11] == "123 Main St, , Seattle, WA, 98101, US"
-        if rows[1][12].strip().replace(',', '') == "":
-            assert rows[1][12] == ", , , , , " 
-        else:
-            assert rows[1][12] == "123 Main St, , Seattle, WA, 98101, US"
+        assert rows[1][11] == "123 Main St, Seattle, WA, 98101, US"
+        assert rows[1][12] == "ecstix-12345@weareecs.com"
         assert rows[1][13] == alias_email
         assert rows[1][14] == expected_alias_description
         assert rows[1][15] == alias_email
         assert rows[1][16] == "johndoe@example.com"
-        assert rows[1][17] == "Member"
+        assert rows[1][17] == "MEMBER"
         assert rows[1][18] == alias_email
         assert rows[1][19] == "travel@weareecs.com"
-        assert rows[1][20] == "Member"
+        assert rows[1][20] == "MEMBER"
 
 
 @pytest.mark.asyncio
