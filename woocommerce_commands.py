@@ -9,7 +9,7 @@ import io
 import json
 from common import server_id, has_required_wg_role, has_admin_role
 from match_utils import wc_url
-from api_helpers import call_woocommerce_api
+from api_helpers import call_woocommerce_api, update_orders_from_api, check_new_orders
 from database import (
     update_woo_orders,
     get_latest_order_id,
@@ -91,25 +91,17 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     )
     @app_commands.describe(product_title="Title of the product")
     @app_commands.guilds(discord.Object(id=server_id))
-    async def get_product_orders(
-        self, interaction: discord.Interaction, product_title: str
-    ):
+    async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
         if not await has_required_wg_role(interaction):
-            await interaction.response.send_message(
-                "You do not have the necessary permissions.", ephemeral=True
-            )
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
         await interaction.response.defer()
 
         encoded_product_title = urllib.parse.quote_plus(product_title)
-        product_url = wc_url.replace(
-            "orders/", f"products?search={encoded_product_title}"
-        )
+        product_url = wc_url.replace("orders/", f"products?search={encoded_product_title}")
         products = await call_woocommerce_api(interaction, product_url)
-        product = next(
-            (p for p in products if p["name"].lower() == product_title.lower()), None
-        )
+        product = next((p for p in products if p["name"].lower() == product_title.lower()), None)
         if not product:
             await interaction.followup.send("Product not found.", ephemeral=True)
             return
@@ -117,66 +109,9 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         product_id = product["id"]
         await asyncio.sleep(1)
 
-        all_orders = []
-        page = 1
-        while True:
-            all_orders_url = wc_url.replace("orders/", f"orders?product={product_id}&page={page}")
-            orders_page = await call_woocommerce_api(interaction, all_orders_url)
-
-            if not orders_page:
-                break
-
-            all_orders.extend(orders_page)
-
-            page += 1
+        if await check_new_orders(interaction, product_id):
             await asyncio.sleep(1)
-
-        filtered_orders = [
-            order
-            for order in all_orders
-            if any(
-                item["product_id"] == product_id
-                for item in order.get("line_items", [])
-            )
-        ]
-
-        if not filtered_orders:
-            await interaction.followup.send(
-                "No orders found for this product.", ephemeral=True
-            )
-            return
-            
-        prep_order_extract()
-        
-        for order in filtered_orders:
-            for item in order.get("line_items", []):
-                if item["product_id"] == product_id:
-                    billing_address = ", ".join(
-                        [
-                            order["billing"].get(key, "N/A")
-                            for key in [
-                                "address_1",
-                                "address_2",
-                                "city",
-                                "state",
-                                "postcode",
-                                "country",
-                            ]
-                        ]
-                    )
-                    insert_order_extract(
-                        order["number"],
-                        item["name"],
-                        order["billing"].get("first_name", "N/A"),
-                        order["billing"].get("last_name", "N/A"),
-                        order["billing"].get("email", "N/A"),
-                        order.get("date_paid", "N/A"),
-                        str(item.get("quantity", 0)),
-                        str(item.get("price", "N/A")),
-                        order["status"],
-                        order.get("customer_note", "N/A"),
-                        item.get("variation_id", "N/A"),
-                        billing_address)
+            await update_orders_from_api(interaction, product_id)
 
         order_extract_data = get_order_extract(product_title)
         csv_output = io.StringIO()
@@ -220,7 +155,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                 alias_1_recipient = order["email_address"]
                 alias_2_recipient = "travel@weareecs.com"
                 alias_type = "MEMBER"
-        
+    
             row = [
                 order["product_name"],
                 order["first_name"],

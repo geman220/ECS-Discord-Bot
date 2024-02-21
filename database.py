@@ -147,8 +147,40 @@ def initialize_woo_orders_db():
                       product_variation TEXT,
                       billing_address TEXT)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS latest_order_info
+                     (id INTEGER PRIMARY KEY,
+                      latest_order_id TEXT)"""
+        )
+        c.execute("""
+            INSERT INTO latest_order_info (id, latest_order_id)
+            VALUES (1, '0')
+            ON CONFLICT(id) DO NOTHING
+        """)
         conn.commit()
 
+
+def update_latest_order_id(order_id):
+    try:
+        with get_db_connection(ORDERS_DB_PATH) as conn:
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO latest_order_info (id, latest_order_id)
+                VALUES (1, ?)
+                ON CONFLICT(id) DO UPDATE SET latest_order_id = excluded.latest_order_id
+                """, (order_id,))
+            conn.commit()
+    except Exception as e:
+        print(f"Error updating latest order ID: {e}")
+        
+
+def get_latest_order_id():
+    with get_db_connection(ORDERS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT latest_order_id FROM latest_order_info WHERE id = 1")
+        result = c.fetchone()
+        return result[0] if result else None
+    
 
 def insert_order_extract(order_id, product_name, first_name, last_name, email_address, order_date, item_qty, item_price, order_status, order_note, product_variation, billing_address):
     with get_db_connection(ORDERS_DB_PATH) as conn:
