@@ -93,12 +93,11 @@ async def test_get_weather_forecast(monkeypatch):
     }
     mock_fetch_openweather_data = AsyncMock(return_value=mock_weather_data)
     monkeypatch.setattr("common.fetch_openweather_data", mock_fetch_openweather_data)
-    interaction = AsyncMock()
     date_time_utc = "2024-03-01T19:00:00"
     latitude = 47.6062
     longitude = -122.3321
 
-    result = await get_weather_forecast(interaction, date_time_utc, latitude, longitude)
+    result = await get_weather_forecast(date_time_utc, latitude, longitude)
     expected_result = "Weather: sunny, Temperature: 75 F"
     assert result == expected_result
 
@@ -172,9 +171,7 @@ async def test_generate_flight_search_url(monkeypatch):
         "common.fetch_serpapi_flight_data", mock_fetch_serpapi_flight_data
     )
 
-    interaction = AsyncMock()
     result = await generate_flight_search_url(
-        interaction,
         "SEA",
         "Team XYZ",
         datetime.date(2024, 3, 1),

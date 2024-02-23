@@ -73,7 +73,7 @@ async def test_get_away_match_with_opponent(mock_call_woocommerce_api):
         "Away Match against TeamX 2024-05-20",
         "http://example.com/ticket1",
     )
-    result = await get_away_match(None, opponent="TeamX")
+    result = await get_away_match(opponent="TeamX")
     assert result == expected_result
 
 
@@ -96,7 +96,7 @@ async def test_get_team_record_success(mock_fetch_espn_data):
         }
     }
     expected_record = {"wins": "10", "losses": "2"}, "https://example.com/logo.png"
-    record, logo = await get_team_record(None, "123")
+    record, logo = await get_team_record("123")
     assert record == expected_record[0]
     assert logo == expected_record[1]
 
@@ -105,7 +105,7 @@ async def test_get_team_record_success(mock_fetch_espn_data):
 @patch("match_utils.fetch_espn_data")
 async def test_get_team_record_no_data(mock_fetch_espn_data):
     mock_fetch_espn_data.return_value = {}
-    result = await get_team_record(None, "123")
+    result = await get_team_record("123")
     assert result == ("Record not available", None)
 
 @pytest.mark.asyncio

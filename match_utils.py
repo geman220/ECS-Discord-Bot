@@ -24,9 +24,9 @@ team_name = BOT_CONFIG["team_name"]
 closed_matches = set()
 
 
-async def get_away_match(ctx, opponent=None):
+async def get_away_match(opponent=None):
     product_url = wc_url.replace("orders/", "products?category=765197886")
-    products = await call_woocommerce_api(ctx, product_url)
+    products = await call_woocommerce_api(product_url)
 
     if products:
         matches = []
@@ -69,8 +69,8 @@ def extract_date_from_title(title):
     return None
 
 
-async def get_team_record(interaction, team_id):
-    data = await fetch_espn_data(interaction, f"sports/soccer/usa.1/teams/{team_id}")
+async def get_team_record(team_id):
+    data = await fetch_espn_data(f"sports/soccer/usa.1/teams/{team_id}")
     if data and "team" in data:
         record_data = data["team"].get("record", {}).get("items", [])
         team_logo_url = (
@@ -83,21 +83,21 @@ async def get_team_record(interaction, team_id):
     return "Record not available", None
 
 
-async def get_next_match(interaction, team_id, opponent=None, home_away=None):
+async def get_next_match(team_id, opponent=None, home_away=None):
     schedule_endpoint = f"sports/soccer/usa.1/teams/{team_id}/schedule"
-    schedule_data = await fetch_espn_data(interaction, schedule_endpoint)
+    schedule_data = await fetch_espn_data(schedule_endpoint)
     if schedule_data and schedule_data.get("events"):
         return "!!! Schedule endpoint now contains events data. You should tell Immortal to update the parsing logic. Using backup method for now."
 
     if opponent:
-        match_title, _ = await get_away_match(interaction, opponent)
+        match_title, _ = await get_away_match(opponent)
         match_date = extract_date_from_title(match_title)
         if match_date:
             formatted_date = match_date.strftime("%Y%m%d")
             scoreboard_endpoint = (
                 f"sports/soccer/usa.1/scoreboard?dates={formatted_date}"
             )
-            backup_data = await fetch_espn_data(interaction, scoreboard_endpoint)
+            backup_data = await fetch_espn_data(scoreboard_endpoint)
             if backup_data:
                 for event in backup_data.get("events", []):
                     if (
@@ -107,7 +107,7 @@ async def get_next_match(interaction, team_id, opponent=None, home_away=None):
                         return extract_match_details(event)
 
     team_endpoint = f"sports/soccer/usa.1/teams/{team_id}"
-    data = await fetch_espn_data(interaction, team_endpoint)
+    data = await fetch_espn_data(team_endpoint)
     if not data or "team" not in data:
         return "Data not found for the specified team."
 
@@ -279,7 +279,7 @@ async def schedule_poll_closing(match_start_time, match_id, thread):
         closed_matches.add(match_id)
 
 
-async def get_matches_for_calendar(ctx):
+async def get_matches_for_calendar():
     match_dates = load_match_dates()
     all_matches = []
 

@@ -14,7 +14,7 @@ serpapi_api = BOT_CONFIG["serpapi_api"]
 
 
 async def send_async_http_request(
-    interaction, url, method="GET", headers=None, auth=None, data=None, params=None
+    url, method="GET", headers=None, auth=None, data=None, params=None
 ):
     async with aiohttp.ClientSession() as session:
         try:
@@ -34,29 +34,29 @@ async def send_async_http_request(
             return None
 
 
-async def call_woocommerce_api(interaction, url):
+async def call_woocommerce_api(url):
     auth = aiohttp.BasicAuth(wc_key, wc_secret)
-    return await send_async_http_request(interaction, url, auth=auth)
+    return await send_async_http_request(url, auth=auth)
 
 
-async def fetch_espn_data(interaction, endpoint):
+async def fetch_espn_data(endpoint):
     base_url = "https://site.api.espn.com/apis/site/v2/"
     full_url = base_url + endpoint
-    return await send_async_http_request(interaction, full_url)
+    return await send_async_http_request(full_url)
 
 
-async def fetch_openweather_data(interaction, latitude, longitude, date):
+async def fetch_openweather_data(latitude, longitude, date):
     match_date = datetime.fromisoformat(date).date()
 
     if match_date > datetime.utcnow().date() + timedelta(days=5):
         return "No weather information available for dates more than 5 days ahead."
 
     url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
-    return await send_async_http_request(interaction, url)
+    return await send_async_http_request(url)
 
 
 async def fetch_serpapi_flight_data(
-    interaction, departure_airport, arrival_airport, outbound_date, return_date
+    departure_airport, arrival_airport, outbound_date, return_date
 ):
     base_url = "https://serpapi.com/search"
     params = {
@@ -72,15 +72,15 @@ async def fetch_serpapi_flight_data(
         "api_key": serpapi_api,
     }
     return await send_async_http_request(
-        interaction, base_url, method="GET", params=params
+        base_url, method="GET", params=params
     )
 
 
-async def check_new_orders(interaction, product_id):
+async def check_new_orders(product_id):
     latest_order_id_in_db = get_latest_order_id()
 
     orders_url = wc_url.replace("orders/", f"orders?order=desc&product={product_id}&per_page=1")
-    latest_orders = await call_woocommerce_api(interaction, orders_url)
+    latest_orders = await call_woocommerce_api(orders_url)
 
     if latest_orders and len(latest_orders) > 0:
         latest_order_id_from_api = str(latest_orders[0].get("id", ""))
@@ -93,14 +93,14 @@ async def check_new_orders(interaction, product_id):
         return False
 
 
-async def update_orders_from_api(interaction, product_id):
+async def update_orders_from_api(product_id):
     new_orders_count = 0
     page = 1
     latest_order_updated = False
 
     while True:
         orders_url = wc_url.replace("orders/", f"orders?order=desc&product={product_id}&page={page}")
-        fetched_orders = await call_woocommerce_api(interaction, orders_url)
+        fetched_orders = await call_woocommerce_api(orders_url)
 
         if not fetched_orders:
             break

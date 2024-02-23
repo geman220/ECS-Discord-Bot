@@ -39,7 +39,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
     @app_commands.guilds(discord.Object(id=server_id))
     async def next_match(self, interaction: discord.Interaction):
         try:
-            match_info = await get_next_match(interaction, team_id)
+            match_info = await get_next_match(team_id)
 
             if isinstance(match_info, str):
                 await interaction.response.send_message(match_info)
@@ -76,7 +76,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         await interaction.response.defer()
 
         try:
-            match_info = await get_next_match(interaction, self.team_id)
+            match_info = await get_next_match(self.team_id)
 
             if isinstance(match_info, str):
                 await interaction.followup.send(match_info, ephemeral=True)
@@ -123,7 +123,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
 
         await interaction.response.defer()
 
-        match_ticket_info = await get_away_match(interaction, opponent)
+        match_ticket_info = await get_away_match(opponent)
         if not match_ticket_info:
             await interaction.followup.send(
                 "No relevant away match or ticket info found.", ephemeral=True
@@ -133,7 +133,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         match_name, match_link = match_ticket_info
 
         try:
-            match_info = await get_next_match(interaction, self.team_id, opponent)
+            match_info = await get_next_match(self.team_id, opponent)
             if isinstance(match_info, str):
                 await interaction.followup.send(match_info, ephemeral=True)
                 return

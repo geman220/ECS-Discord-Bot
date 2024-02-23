@@ -103,10 +103,9 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
             return
 
         await interaction.response.defer()
-        ctx = interaction
 
         try:
-            matches = await get_matches_for_calendar(ctx)
+            matches = await get_matches_for_calendar(interaction)
             if not matches:
                 await interaction.followup.send("No match data found.")
                 return
