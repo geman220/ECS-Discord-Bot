@@ -116,9 +116,9 @@ def format_stat_name(stat_name):
     return name_mappings.get(stat_name, stat_name)
 
 
-async def get_weather_forecast(interaction, date_time_utc, latitude, longitude):
+async def get_weather_forecast(date_time_utc, latitude, longitude):
     weather_data = await fetch_openweather_data(
-        interaction, latitude, longitude, date_time_utc
+        latitude, longitude, date_time_utc
     )
 
     if weather_data:
@@ -173,14 +173,14 @@ async def check_existing_threads(interaction, thread_name, channel_name):
 
 
 async def generate_flight_search_url(
-    interaction, departure_airport, team_name, outbound_date, return_date
+    departure_airport, team_name, outbound_date, return_date
 ):
     arrival_airport = get_airport_code_for_team(team_name, team_airports)
     if not arrival_airport:
         return "Airport for the team not found."
 
     json_response = await fetch_serpapi_flight_data(
-        interaction, departure_airport, arrival_airport, outbound_date, return_date
+        departure_airport, arrival_airport, outbound_date, return_date
     )
     if not json_response:
         return "Failed to fetch flight data."
@@ -231,7 +231,7 @@ async def prepare_starter_message(
 
 
 async def prepare_starter_message_away(
-    interaction, match_info, date_time_pst_formatted, thread_name, ticket_link
+    match_info, date_time_pst_formatted, thread_name, ticket_link
 ):
     match_date = datetime.strptime(
         date_time_pst_formatted, "%m/%d/%Y %I:%M %p PST"
@@ -240,7 +240,7 @@ async def prepare_starter_message_away(
     return_date = match_date + timedelta(days=1)
 
     flight_response = await generate_flight_search_url(
-        interaction, "SEA", match_info["opponent"], outbound_date, return_date
+        "SEA", match_info["opponent"], outbound_date, return_date
     )
     if isinstance(flight_response, str):
         try:

@@ -288,7 +288,7 @@ async def test_away_match_success(
     )
 
     mock_has_admin_role.assert_called_once()
-    mock_get_away_match.assert_called_once_with(mock_interaction, "Opponent")
+    mock_get_away_match.assert_called_once_with("Opponent")
 
 
 @pytest.mark.asyncio

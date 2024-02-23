@@ -16,7 +16,7 @@ class GeneralCommands(commands.Cog, name="General Commands"):
     @app_commands.command(name="record", description="Lists the Sounders season stats")
     @app_commands.guilds(discord.Object(id=server_id))
     async def team_record(self, interaction: discord.Interaction):
-        record_info, team_logo_url = await get_team_record(interaction, self.team_id)
+        record_info, team_logo_url = await get_team_record(self.team_id)
         if record_info != "Record not available":
             embed = discord.Embed(title=f"{team_name} Record", color=0x00FF00)
             if team_logo_url:
@@ -37,7 +37,7 @@ class GeneralCommands(commands.Cog, name="General Commands"):
     async def away_tickets(
         self, interaction: discord.Interaction, opponent: str = None
     ):
-        closest_match = await get_away_match(interaction, opponent)
+        closest_match = await get_away_match(opponent)
         if closest_match:
             match_name, match_link = closest_match
             await interaction.response.send_message(

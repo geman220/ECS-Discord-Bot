@@ -62,9 +62,9 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             "orders/", f"products?category={away_tickets_category}"
         )
 
-        home_tickets = await call_woocommerce_api(interaction, home_tickets_url)
+        home_tickets = await call_woocommerce_api(home_tickets_url)
         await asyncio.sleep(1)
-        away_tickets = await call_woocommerce_api(interaction, away_tickets_url)
+        away_tickets = await call_woocommerce_api(away_tickets_url)
 
         all_home_tickets = []
         all_home_tickets.extend(home_tickets)
@@ -100,7 +100,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
 
         encoded_product_title = urllib.parse.quote_plus(product_title)
         product_url = wc_url.replace("orders/", f"products?search={encoded_product_title}")
-        products = await call_woocommerce_api(interaction, product_url)
+        products = await call_woocommerce_api(product_url)
         product = next((p for p in products if p["name"].lower() == product_title.lower()), None)
         if not product:
             await interaction.followup.send("Product not found.", ephemeral=True)
@@ -109,9 +109,9 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         product_id = product["id"]
         await asyncio.sleep(1)
 
-        if await check_new_orders(interaction, product_id):
+        if await check_new_orders(product_id):
             await asyncio.sleep(1)
-            await update_orders_from_api(interaction, product_id)
+            await update_orders_from_api(product_id)
 
         order_extract_data = get_order_extract(product_title)
     
@@ -222,7 +222,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
 
         while not done:
             orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
-            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+            fetched_orders = await call_woocommerce_api(orders_url)
 
             if not fetched_orders:
                 break
@@ -264,7 +264,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
 
         while not done:
             orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
-            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+            fetched_orders = await call_woocommerce_api(orders_url)
 
             if not fetched_orders:
                 break
@@ -309,7 +309,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
 
         while not done:
             orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
-            fetched_orders = await call_woocommerce_api(interaction, orders_url)
+            fetched_orders = await call_woocommerce_api(orders_url)
 
             if not fetched_orders:
                 break
