@@ -4,7 +4,6 @@ on: [push, pull_request]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -20,4 +19,6 @@ jobs:
     - name: Copy .env_example to .env
       run: cp .env_example .env
     - name: Run tests
+      env:
+        MATCH_CHANNEL_ID: ${{ secrets.MATCH_CHANNEL_ID }}
       run: pytest tests
