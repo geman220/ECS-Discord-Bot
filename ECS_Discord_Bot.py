@@ -1,10 +1,18 @@
 ﻿# ECS_Bot.py
 
 import discord
+import asyncio
+import os
 from discord import app_commands
 from discord.ext import commands
-import os
-from common import bot_token, server_id
+from database import (
+    get_db_connection, 
+    PREDICTIONS_DB_PATH,
+)
+from common import (
+    bot_token, 
+    server_id,
+)
 
 intents = discord.Intents.default()
 intents.presences = True
@@ -14,15 +22,36 @@ intents.guilds = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+def get_thread_id_for_match(match_id):
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT thread_id FROM match_threads WHERE match_id = ?", (match_id,))
+        result = c.fetchone()
+        return result[0] if result else None
 
 @bot.event
 async def on_ready():
-    await bot.wait_until_ready()
+    print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
 
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT match_id FROM match_schedule WHERE live_updates_active = 1")
+        active_matches = c.fetchall()
+
+    for match in active_matches:
+        match_id = match[0]
+        thread_id = get_thread_id_for_match(match_id)
+        thread = bot.get_channel(thread_id)
+        match_commands_cog = bot.get_cog("Match Commands")
+        if thread and match_commands_cog:
+            asyncio.create_task(post_live_updates(match_id, thread, match_commands_cog))
+        
     from woocommerce_commands import WooCommerceCommands
     from general_commands import GeneralCommands
     from admin_commands import AdminCommands
     from match_commands import MatchCommands
+    from automations import periodic_check
+    from match_utils import post_live_updates
 
     await bot.add_cog(MatchCommands(bot))
     await bot.add_cog(AdminCommands(bot))
@@ -37,8 +66,8 @@ async def on_ready():
         if channel:
             await channel.send("Update complete. Bot restarted successfully.")
         os.remove("/root/update_channel_id.txt")
-
-    print(f"Logged in as {bot.user}")
+        
+    asyncio.create_task(periodic_check(bot))
 
 
 @bot.event

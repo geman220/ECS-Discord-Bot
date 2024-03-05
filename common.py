@@ -2,7 +2,7 @@
 
 import discord
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from config import BOT_CONFIG
 from utils import (
     load_json_data,
@@ -10,8 +10,15 @@ from utils import (
     convert_to_pst,
     get_airport_code_for_team,
 )
-from database import initialize_db, load_match_threads, initialize_woo_orders_db
-from api_helpers import fetch_openweather_data, fetch_serpapi_flight_data
+from database import (
+    initialize_db, 
+    load_match_threads, 
+    initialize_woo_orders_db,
+)
+from api_helpers import (
+    fetch_openweather_data, 
+    fetch_serpapi_flight_data,
+)
 
 bot_token = BOT_CONFIG["bot_token"]
 team_name = BOT_CONFIG["team_name"]
@@ -22,11 +29,12 @@ flask_url = BOT_CONFIG["flask_url"]
 flask_token = BOT_CONFIG["flask_token"]
 discord_admin_role = BOT_CONFIG["discord_admin_role"]
 dev_id = BOT_CONFIG["dev_id"]
-server_id = BOT_CONFIG["server_id"]
+server_id = int(BOT_CONFIG["server_id"])
 serpapi_api = BOT_CONFIG["serpapi_api"]
 wp_username = BOT_CONFIG["wp_username"]
 wp_app_password = BOT_CONFIG["wp_app_password"]
 bot_version = BOT_CONFIG["bot_version"]
+match_channel_id = int(BOT_CONFIG["match_channel_id"])
 
 try:
     initialize_db()
@@ -117,27 +125,45 @@ def format_stat_name(stat_name):
 
 
 async def get_weather_forecast(date_time_utc, latitude, longitude):
-    weather_data = await fetch_openweather_data(
-        latitude, longitude, date_time_utc
-    )
+    if isinstance(date_time_utc, datetime):
+        date_time_utc = date_time_utc.isoformat()
+
+    weather_data = await fetch_openweather_data(latitude, longitude, date_time_utc)
 
     if weather_data:
-        for forecast in weather_data.get("list", []):
-            forecast_date = datetime.fromtimestamp(forecast["dt"]).date()
 
-            if forecast_date == datetime.fromisoformat(date_time_utc).date():
-                weather = forecast["weather"][0]["description"]
-                temp = forecast["main"]["temp"]
-                return f"Weather: {weather}, Temperature: {temp} F"
+        match_datetime = datetime.fromisoformat(date_time_utc).replace(tzinfo=timezone.utc)
+
+        closest_forecast = None
+        min_time_diff = float('inf')
+
+        for forecast in weather_data.get("list", []):
+            forecast_datetime = datetime.fromtimestamp(forecast["dt"], tz=timezone.utc)
+            time_diff = abs((forecast_datetime - match_datetime).total_seconds())
+
+            if time_diff < min_time_diff:
+                min_time_diff = time_diff
+                closest_forecast = forecast
+
+        if closest_forecast:
+
+            weather = closest_forecast["weather"][0]["description"]
+            temp = closest_forecast["main"]["temp"]
+            degree_sign = u"\N{DEGREE SIGN}"
+            weather_info = f" {weather}, Temperature: {temp}{degree_sign}F".encode('utf-8').decode('utf-8')
+
+            return weather_info
 
         return "Weather forecast not available for the selected date."
     else:
         return "Unable to fetch weather information."
 
 
-async def create_event_if_necessary(interaction, match_info):
+async def create_event_if_necessary(
+    guild: discord.Guild, match_info: dict
+):
     event_start_time_pst = convert_to_pst(match_info["date_time"]) - timedelta(hours=1)
-    existing_events = await interaction.guild.fetch_scheduled_events()
+    existing_events = await guild.fetch_scheduled_events()
     event_exists = any(
         event.name == "March to the Match" and event.start_time == event_start_time_pst
         for event in existing_events
@@ -147,7 +173,7 @@ async def create_event_if_necessary(interaction, match_info):
         return "An event for this match has already been scheduled."
 
     try:
-        await interaction.guild.create_scheduled_event(
+        await guild.create_scheduled_event(
             name="March to the Match",
             start_time=event_start_time_pst,
             end_time=event_start_time_pst + timedelta(hours=2),
@@ -162,8 +188,10 @@ async def create_event_if_necessary(interaction, match_info):
         return f"Failed to create event: {e}"
 
 
-async def check_existing_threads(interaction, thread_name, channel_name):
-    channel = discord.utils.get(interaction.guild.channels, name=channel_name)
+async def check_existing_threads(
+    guild: discord.Guild, thread_name: str, channel_name: str
+):
+    channel = discord.utils.get(guild.channels, name=channel_name)
     if channel and isinstance(channel, discord.ForumChannel):
         existing_threads = channel.threads
         for thread in existing_threads:
@@ -211,22 +239,30 @@ def parse_flight_data(json_response):
     return message
 
 
-async def prepare_starter_message(
-    match_info, date_time_pst_formatted, team_logo, weather_forecast, thread_name
-):
+def prepare_starter_message(match_info, date_time_pst_formatted, team_logo, weather_forecast, thread_name):
+    summary_link = match_info.get('match_summary_link', 'Unavailable')
+    stats_link = match_info.get('match_stats_link', 'Unavailable')
+    venue = match_info.get('venue', 'Unknown Venue')
+
+    weather_info = f"Weather Forecast: {weather_forecast}\n" if weather_forecast else ""
+
+    summary_md_link = f"[Match Summary]({summary_link})" if "http" in summary_link else "Match Summary Unavailable"
+    stats_md_link = f"[Statistics]({stats_link})" if "http" in stats_link else "Statistics Unavailable"
+
     starter_message = (
-        f"**Upcoming Match: {match_info['name']}**\n"
+        f"**Upcoming Match: {match_info.get('name', 'Unknown Match')}**\n"
         f"Date and Time: {date_time_pst_formatted}\n"
-        f"Venue: {match_info['venue']}\n"
+        f"Venue: {venue}\n"
+        + weather_info +
         f"**Match Details**\n"
-        f"More Info: [Match Summary](<{match_info['match_summary_link']}), [Statistics](<{match_info['match_stats_link']}>)\n"
+        f"More Info: {summary_md_link}, {stats_md_link}\n"
         f"**Broadcast**: AppleTV\n"
     )
 
     embed = discord.Embed(
         title=thread_name, description=starter_message, color=0x1A75FF
     )
-    embed.set_image(url=match_info["team_logo"])
+    embed.set_image(url=team_logo)
     return starter_message, embed
 
 

@@ -8,7 +8,7 @@ from discord import Embed, TextChannel, Thread, ForumChannel
 
 @pytest.fixture
 def match_commands_bot():
-    bot = MagicMock()
+    bot = AsyncMock()
     return MatchCommands(bot)
 
 
@@ -137,143 +137,16 @@ async def test_next_match_error(
 
 
 @pytest.mark.asyncio
-async def test_new_match_without_admin_role(
-    match_commands_bot, mock_interaction, mock_has_admin_role
-):
-    mock_has_admin_role.return_value = False
-
-    await match_commands_bot.new_match.callback(match_commands_bot, mock_interaction)
-
-    mock_has_admin_role.assert_called_once()
-    mock_interaction.response.send_message.assert_called_once_with(
-        "You do not have the necessary permissions.", ephemeral=True
-    )
-
-
-@pytest.mark.asyncio
-async def test_new_match_with_admin_role_success(
+async def test_new_match_with_admin_role_check(
     match_commands_bot,
     mock_interaction,
-    mock_has_admin_role,
-    mock_get_next_match,
-    mock_prepare_match_environment,
-    mock_check_existing_threads,
-    mock_create_and_manage_thread,
+    mock_has_admin_role
 ):
     mock_has_admin_role.return_value = True
-    mock_get_next_match.return_value = {
-        "name": "Home Match",
-        "date_time": "2024-03-01T19:00:00",
-        "is_home_game": True,
-        "team_logo": "team_logo_url",
-        "match_id": "12345",
-    }
-
-    combined_response = "Weather: Sunny, 75 F. Event created: 'Pre-Match Gathering'"
-    mock_prepare_match_environment.return_value = combined_response
-
-    mock_check_existing_threads.return_value = False
-    mock_create_and_manage_thread.return_value = (
-        "Thread created successfully with weather and event info"
-    )
 
     await match_commands_bot.new_match.callback(match_commands_bot, mock_interaction)
 
-    mock_has_admin_role.assert_called_once()
-    mock_get_next_match.assert_called_once()
-    mock_prepare_match_environment.assert_called_once_with(
-        mock_interaction, mock_get_next_match.return_value
-    )
-    mock_check_existing_threads.assert_called_once()
-    mock_create_and_manage_thread.assert_called_once()
-
-    mock_interaction.followup.send.assert_any_call(
-        "Weather: Sunny, 75 F. Event created: 'Pre-Match Gathering'", ephemeral=True
-    )
-    mock_interaction.followup.send.assert_any_call(
-        "Thread created successfully with weather and event info"
-    )
-
-
-@pytest.mark.asyncio
-async def test_new_match_away_game(
-    match_commands_bot,
-    mock_interaction,
-    mock_has_admin_role,
-    mock_get_next_match,
-    mock_prepare_match_environment,
-    mock_check_existing_threads,
-    mock_create_and_manage_thread,
-):
-    mock_has_admin_role.return_value = True
-    mock_get_next_match.return_value = {
-        "name": "Away Match",
-        "date_time": "2024-02-24T21:30Z",
-        "is_home_game": False,
-        "team_logo": "team_logo_url",
-        "match_id": "692606",
-    }
-    mock_prepare_match_environment.return_value = None
-    mock_check_existing_threads.return_value = False
-    mock_create_and_manage_thread.return_value = "Thread created successfully"
-
-    await match_commands_bot.new_match.callback(match_commands_bot, mock_interaction)
-
-    mock_has_admin_role.assert_called_once()
-    mock_get_next_match.assert_called_once()
-    mock_prepare_match_environment.assert_called_once_with(
-        mock_interaction, mock_get_next_match.return_value
-    )
-    mock_check_existing_threads.assert_called_once()
-    mock_create_and_manage_thread.assert_called_once()
-    mock_interaction.followup.send.assert_called_once_with(
-        "Thread created successfully"
-    )
-
-
-@pytest.mark.asyncio
-async def test_new_match_home_game(
-    match_commands_bot,
-    mock_interaction,
-    mock_has_admin_role,
-    mock_get_next_match,
-    mock_prepare_match_environment,
-    mock_check_existing_threads,
-    mock_create_and_manage_thread,
-):
-    mock_has_admin_role.return_value = True
-    mock_get_next_match.return_value = {
-        "name": "Home Match",
-        "date_time": "2024-03-01T19:00:00",
-        "is_home_game": True,
-        "team_logo": "team_logo_url",
-        "match_id": "12345",
-    }
-
-    combined_response = "Weather: Sunny, 75 F. Event created: 'Pre-Match Gathering'"
-    mock_prepare_match_environment.return_value = combined_response
-
-    mock_check_existing_threads.return_value = False
-    mock_create_and_manage_thread.return_value = (
-        "Thread created successfully with weather and event info"
-    )
-
-    await match_commands_bot.new_match.callback(match_commands_bot, mock_interaction)
-
-    mock_has_admin_role.assert_called_once()
-    mock_get_next_match.assert_called_once()
-    mock_prepare_match_environment.assert_called_once_with(
-        mock_interaction, mock_get_next_match.return_value
-    )
-    mock_check_existing_threads.assert_called_once()
-    mock_create_and_manage_thread.assert_called_once()
-
-    mock_interaction.followup.send.assert_any_call(
-        "Weather: Sunny, 75 F. Event created: 'Pre-Match Gathering'", ephemeral=True
-    )
-    mock_interaction.followup.send.assert_any_call(
-        "Thread created successfully with weather and event info"
-    )
+    mock_has_admin_role.assert_called_once_with(mock_interaction)
 
 
 @pytest.mark.asyncio

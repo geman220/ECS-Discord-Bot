@@ -13,7 +13,8 @@ from common import (
     generate_flight_search_url,
     parse_flight_data,
 )
-import datetime
+from utils import convert_to_pst
+from datetime import datetime, timedelta, date
 import discord
 from unittest.mock import AsyncMock, MagicMock, Mock
 
@@ -85,7 +86,7 @@ async def test_get_weather_forecast(monkeypatch):
     mock_weather_data = {
         "list": [
             {
-                "dt": int(datetime.datetime(2024, 3, 1, 19, 0).timestamp()),
+                "dt": int(datetime(2024, 3, 1, 19, 0).timestamp()),
                 "weather": [{"description": "sunny"}],
                 "main": {"temp": 75},
             }
@@ -98,14 +99,20 @@ async def test_get_weather_forecast(monkeypatch):
     longitude = -122.3321
 
     result = await get_weather_forecast(date_time_utc, latitude, longitude)
-    expected_result = "Weather: sunny, Temperature: 75 F"
+    degree_sign = u"\N{DEGREE SIGN}"
+    expected_result = f" sunny, Temperature: 75{degree_sign}F".encode('utf-8').decode('utf-8')
     assert result == expected_result
 
 
 @pytest.mark.asyncio
-async def test_create_event_if_necessary(monkeypatch):
+async def test_create_event_for_home_game(monkeypatch):
+    # Mock data for an empty list of scheduled events
     mock_fetch_scheduled_events = AsyncMock(return_value=[])
+
+    # Mock for creating a scheduled event
     mock_create_scheduled_event = AsyncMock()
+
+    # Applying the mocks to the respective Guild methods
     monkeypatch.setattr(
         "discord.Guild.fetch_scheduled_events", mock_fetch_scheduled_events
     )
@@ -113,15 +120,37 @@ async def test_create_event_if_necessary(monkeypatch):
         "discord.Guild.create_scheduled_event", mock_create_scheduled_event
     )
 
+    # Creating a mock Guild and Interaction object
     mock_guild = AsyncMock(spec=discord.Guild)
     mock_interaction = AsyncMock()
     mock_interaction.guild = mock_guild
 
-    match_info = {"name": "Match Name", "date_time": "2024-03-01T19:00:00"}
+    # Prepare match_info with is_home_game as True
+    match_info = {
+        "name": "Home Game Match",
+        "date_time": "2024-03-01T19:00:00",
+        "is_home_game": True,
+        # Include other necessary fields
+    }
 
-    result = await create_event_if_necessary(mock_interaction, match_info)
+    # Call the function with the mock data
+    result = await create_event_if_necessary(mock_guild, match_info)
+
+    # Check if the event creation message is returned
     assert "Event created:" in result
-    mock_guild.create_scheduled_event.assert_called_once()
+
+    # Assert that create_scheduled_event was called with expected arguments
+    event_start_time_pst = convert_to_pst(match_info["date_time"]) - timedelta(hours=1)
+    end_time = event_start_time_pst + timedelta(hours=2)
+    mock_guild.create_scheduled_event.assert_called_once_with(
+        name="March to the Match",
+        start_time=event_start_time_pst,
+        end_time=end_time,
+        description=f"March to the Match for {match_info['name']}",
+        location="117 S Washington St, Seattle, WA 98104",
+        entity_type=discord.EntityType.external,
+        privacy_level=discord.PrivacyLevel.guild_only,
+    )
 
 
 @pytest.mark.asyncio
@@ -174,8 +203,8 @@ async def test_generate_flight_search_url(monkeypatch):
     result = await generate_flight_search_url(
         "SEA",
         "Team XYZ",
-        datetime.date(2024, 3, 1),
-        datetime.date(2024, 3, 2),
+        date(2024, 3, 1),
+        date(2024, 3, 2),
     )
 
     assert "https://www.google.com/flights" in result

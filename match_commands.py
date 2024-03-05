@@ -10,6 +10,7 @@ from common import (
     check_existing_threads,
     prepare_starter_message_away,
     match_thread_map,
+    match_channel_id,
 )
 from match_utils import (
     get_away_match,
@@ -19,9 +20,17 @@ from match_utils import (
     prepare_match_environment,
     create_and_manage_thread,
     generate_thread_name,
+    completed_matches,
+    closed_matches,
 )
-from database import get_predictions, insert_prediction
+from database import (
+    get_predictions, 
+    insert_prediction, 
+    get_db_connection, 
+    PREDICTIONS_DB_PATH,
+)
 from utils import convert_to_pst
+import traceback
 
 
 class MatchCommands(commands.Cog, name="Match Commands"):
@@ -29,6 +38,9 @@ class MatchCommands(commands.Cog, name="Match Commands"):
         self.bot = bot
         self.match_thread_map = match_thread_map
         self.team_id = team_id
+        
+    def is_match_closed(self, match_id):
+        return match_id in completed_matches
 
     def update_thread_map(self, thread_id, match_id):
         self.match_thread_map[thread_id] = match_id
@@ -66,47 +78,46 @@ class MatchCommands(commands.Cog, name="Match Commands"):
     @app_commands.command(name="newmatch", description="Create a new match thread")
     @app_commands.guilds(discord.Object(id=server_id))
     async def new_match(self, interaction: discord.Interaction):
-
         if not await has_admin_role(interaction):
-            await interaction.response.send_message(
-                "You do not have the necessary permissions.", ephemeral=True
-            )
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
         await interaction.response.defer()
 
         try:
             match_info = await get_next_match(self.team_id)
-
-            if isinstance(match_info, str):
-                await interaction.followup.send(match_info, ephemeral=True)
+            if match_info is None:
+                await interaction.followup.send("No upcoming matches found.", ephemeral=True)
                 return
 
-            environment_response = await prepare_match_environment(
-                interaction, match_info
-            )
+            if match_info.get("thread_created"):
+                await interaction.followup.send("A thread has already been created for the next match.", ephemeral=True)
+                return
 
-            if environment_response:
-                await interaction.followup.send(environment_response, ephemeral=True)
+            event_response, weather_forecast = await prepare_match_environment(interaction.guild, match_info)
+
+            if event_response:
+                await interaction.followup.send(event_response, ephemeral=True)
 
             thread_name = generate_thread_name(match_info)
-
-            if await check_existing_threads(interaction, thread_name, "match-thread"):
-                await interaction.followup.send(
-                    "A thread for this match has already been created."
-                )
+            channel = interaction.guild.get_channel(match_channel_id)
+            if channel is None or not isinstance(channel, discord.ForumChannel):
+                await interaction.followup.send("Forum channel not found or invalid.")
                 return
 
-            thread_response = await create_and_manage_thread(
-                interaction, match_info, self
-            )
+            thread_response = await create_and_manage_thread(interaction.guild, match_info, self, channel, weather_forecast)
+
+            if "Thread created" in thread_response:
+                with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+                    c = conn.cursor()
+                    c.execute("UPDATE match_schedule SET thread_created = 1 WHERE match_id = ?", (match_info["match_id"],))
+                    conn.commit()
 
             await interaction.followup.send(thread_response)
 
         except Exception as e:
-            await interaction.followup.send(
-                f"Failed to process the command: {e}", ephemeral=True
-            )
+            traceback_info = traceback.format_exc()
+            await interaction.followup.send(f"Failed to process the command: {e}\n{traceback_info}", ephemeral=True)
 
     @app_commands.command(
         name="awaymatch",
@@ -148,7 +159,7 @@ class MatchCommands(commands.Cog, name="Match Commands"):
             date_time_pst_formatted = date_time_pst.strftime("%m/%d/%Y %I:%M %p PST")
             thread_name = f"Away Travel: {match_name} - {date_time_pst_formatted}"
 
-            if await check_existing_threads(interaction, thread_name, "away-travel"):
+            if await check_existing_threads(interaction.guild, thread_name, "away-travel"):
                 await interaction.followup.send(
                     "A thread for this away match has already been created."
                 )

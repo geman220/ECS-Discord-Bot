@@ -4,7 +4,12 @@ import aiohttp
 import json
 from datetime import datetime, timedelta
 from config import BOT_CONFIG
-from database import get_latest_order_id, update_woo_orders, insert_order_extract, update_latest_order_id
+from database import (
+    get_latest_order_id, 
+    update_woo_orders, 
+    insert_order_extract, 
+    update_latest_order_id,
+)
 
 wc_url = BOT_CONFIG["wc_url"]
 wc_key = BOT_CONFIG["wc_key"]
@@ -51,7 +56,7 @@ async def fetch_openweather_data(latitude, longitude, date):
     if match_date > datetime.utcnow().date() + timedelta(days=5):
         return "No weather information available for dates more than 5 days ahead."
 
-    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=metric"
+    url = f"http://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid={openweather_api}&units=imperial"
     return await send_async_http_request(url)
 
 

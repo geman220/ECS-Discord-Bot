@@ -3,8 +3,16 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from common import server_id, team_id, team_name, format_stat_name
-from match_utils import get_away_match, get_team_record
+from common import (
+    server_id,
+    team_id, 
+    team_name, 
+    format_stat_name,
+)
+from match_utils import (
+    get_away_match, 
+    get_team_record,
+)
 from interactions import VerifyModal
 
 

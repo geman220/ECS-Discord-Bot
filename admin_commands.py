@@ -4,7 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import aiohttp
-import json
+from interactions import CheckOrderModal, NewRoleModal
 from common import (
     server_id,
     has_admin_role,
@@ -15,7 +15,7 @@ from common import (
     flask_token,
 )
 from match_utils import get_matches_for_calendar
-from interactions import CheckOrderModal, NewRoleModal
+
 
 
 class AdminCommands(commands.Cog, name="Admin Commands"):
@@ -97,21 +97,18 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
     @app_commands.guilds(discord.Object(id=server_id))
     async def create_schedule_command(self, interaction: discord.Interaction):
         if not await has_admin_role(interaction):
-            await interaction.response.send_message(
-                "You do not have the necessary permissions.", ephemeral=True
-            )
+            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 
         await interaction.response.defer()
 
         try:
-            matches = await get_matches_for_calendar(interaction)
+            matches = await get_matches_for_calendar()
             if not matches:
                 await interaction.followup.send("No match data found.")
                 return
 
-            with open("team_schedule.json", "w") as f:
-                json.dump(matches, f, indent=4)
-            await interaction.followup.send("Team schedule created successfully.")
+            await interaction.followup.send("Team schedule created and stored successfully.")
+
         except Exception as e:
             await interaction.followup.send(f"Failed to create schedule: {e}")
