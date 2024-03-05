@@ -49,7 +49,7 @@ async def test_create_schedule_success(admin_commands_bot, mock_interaction, moc
         admin_commands_bot, mock_interaction
     )
     mock_interaction.followup.send.assert_awaited_with(
-        "Team schedule created successfully."
+        "Team schedule created and stored successfully."
     )
 
 

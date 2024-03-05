@@ -3,23 +3,30 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from collections import defaultdict
+import urllib.parse
 import asyncio
 import csv
 import io
 import json
-from common import server_id, has_required_wg_role, has_admin_role
+from common import (
+    server_id, 
+    has_required_wg_role, 
+    has_admin_role,
+)
 from match_utils import wc_url
-from api_helpers import call_woocommerce_api, update_orders_from_api, check_new_orders
+from utils import find_customer_info_in_order
+from api_helpers import (
+    call_woocommerce_api, 
+    update_orders_from_api, 
+    check_new_orders,
+)
 from database import (
     update_woo_orders,
     get_latest_order_id,
-    count_orders_for_multiple_subgroups,
-    get_members_for_subgroup,
-    prep_order_extract,
+    get_order_extract,
     insert_order_extract,
-    get_order_extract
 )
-import urllib.parse
 
 SUBGROUPS = [
     "253 Defiance",
@@ -245,52 +252,6 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         await interaction.followup.send(message, ephemeral=True)
 
     @app_commands.command(
-        name="subgroupcount", description="Count orders for each subgroup"
-    )
-    @app_commands.guilds(discord.Object(id=server_id))
-    async def subgroup_count(self, interaction: discord.Interaction):
-        if not await has_admin_role(interaction):
-            await interaction.response.send_message(
-                "You do not have the necessary permissions.", ephemeral=True
-            )
-            return
-
-        await interaction.response.defer(ephemeral=True)
-
-        latest_order_id_in_db = get_latest_order_id()
-        new_orders_count = 0
-        page = 1
-        done = False
-
-        while not done:
-            orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
-            fetched_orders = await call_woocommerce_api(orders_url)
-
-            if not fetched_orders:
-                break
-
-            for order in fetched_orders:
-                order_id = str(order.get("id", ""))
-
-                if order_id == latest_order_id_in_db:
-                    done = True
-                    break
-
-                order_data = json.dumps(order)
-                update_woo_orders(order_id, order_data)
-                new_orders_count += 1
-
-            page += 1
-            await asyncio.sleep(1)
-
-        subgroup_counts = count_orders_for_multiple_subgroups(SUBGROUPS)
-        message_content = "Subgroup Order Counts:\n"
-        for subgroup, count in subgroup_counts.items():
-            message_content += f"{subgroup}: {count}\n"
-
-        await interaction.followup.send(message_content, ephemeral=True)
-
-    @app_commands.command(
         name="subgrouplist", description="Create a CSV list of members in each subgroup"
     )
     @app_commands.guilds(discord.Object(id=server_id))
@@ -306,13 +267,14 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         latest_order_id_in_db = get_latest_order_id()
         page = 1
         done = False
+        member_info_by_subgroup = defaultdict(list)
 
         while not done:
-            orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}")
+            orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}&per_page=100")
             fetched_orders = await call_woocommerce_api(orders_url)
 
-            if not fetched_orders:
-                break
+            if not fetched_orders or len(fetched_orders) < 100:
+                done = True
 
             for order in fetched_orders:
                 order_id = str(order.get("id", ""))
@@ -320,6 +282,11 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                 if order_id == latest_order_id_in_db:
                     done = True
                     break
+
+                subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
+                if subgroup_info:
+                    subgroup, customer_info = subgroup_info
+                    member_info_by_subgroup[subgroup].append(customer_info)
 
                 order_data = json.dumps(order)
                 update_woo_orders(order_id, order_data)
@@ -332,9 +299,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         header = ["Subgroup", "First Name", "Last Name", "Email"]
         csv_writer.writerow(header)
 
-        for subgroup in SUBGROUPS:
-            member_list = get_members_for_subgroup(subgroup)
-            for member in member_list:
+        for subgroup, members in member_info_by_subgroup.items():
+            for member in members:
                 csv_writer.writerow(
                     [
                         subgroup,

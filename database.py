@@ -81,6 +81,28 @@ def initialize_db():
             """CREATE TABLE IF NOT EXISTS match_threads
                      (thread_id TEXT, match_id TEXT)"""
         )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS match_schedule (
+                match_id TEXT, 
+                opponent TEXT, 
+                date_time DATETIME, 
+                venue TEXT,
+                is_home_game BOOLEAN,
+                match_summary_link TEXT,
+                match_stats_link TEXT,
+                match_commentary_link TEXT,
+                thread_created INTEGER DEFAULT 0,
+                live_updates_active INTEGER DEFAULT 0
+            )"""
+        )
+        conn.commit()
+
+
+def insert_match_schedule(match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue):
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("INSERT INTO match_schedule (match_id, opponent, date_time, is_home_game, match_summary_link, match_stats_link, match_commentary_link, venue) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                  (match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue))
         conn.commit()
 
 
