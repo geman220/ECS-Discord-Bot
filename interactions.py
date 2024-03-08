@@ -35,7 +35,7 @@ class VerifyModal(discord.ui.Modal):
             return
 
         full_url = f"{wc_url}{order_id}"
-        response_data = await call_woocommerce_api(interaction, full_url)
+        response_data = await call_woocommerce_api(full_url)
 
         if response_data:
             order_data = response_data
@@ -109,7 +109,7 @@ class CheckOrderModal(discord.ui.Modal):
             order_id = order_id[1:]
 
         full_url = f"{wc_url}{order_id}"
-        response_data = await call_woocommerce_api(interaction, full_url)
+        response_data = await call_woocommerce_api(full_url)
 
         if response_data:
             order_status = response_data["status"]
