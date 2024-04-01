@@ -343,7 +343,7 @@ async def post_live_updates(match_id, thread, match_commands_cog):
                     break
 
             else:
-                update_embed = format_match_update(match_data, reported_events, team_name)
+                update_embed = format_match_update(match_data, reported_events, team_id)
                 if update_embed:
                     await thread.send(embed=update_embed)
         
@@ -359,17 +359,17 @@ def format_current_score(match_data):
     return f"{home_team} {home_score} - {away_score} {away_team}"
 
 
-def format_match_update(match_data, reported_events, team_name):
+def format_match_update(match_data, reported_events, team_id):
     try:
         embed = discord.Embed(title="Match Update", color=0x1D2951)
         teams = match_data["competitions"][0]["competitors"]
 
         for event in match_data["competitions"][0]["details"]:
             event_type = event.get("type", {}).get("text", "")
-            team_id = event.get("team", {}).get("id", "")
-            event_team = next((team["team"]["displayName"] for team in teams if team["id"] == team_id), None)
+            event_team_id = event.get("team", {}).get("id", "")
+            event_team_name = next((team["team"]["displayName"] for team in teams if team["id"] == event_team_id), None)
             event_time = event.get("clock", {}).get("displayValue", "")
-            event_identifier = f"{event_type}-{event_time}-{team_id}"
+            event_identifier = f"{event_type}-{event_time}-{event_team_id}"
 
             if event_identifier in reported_events:
                 continue
@@ -378,24 +378,32 @@ def format_match_update(match_data, reported_events, team_name):
             
             soccer_ball_emoji = "\U000026BD"
 
-            if event_type == "Goal":
+            if "Goal" in event_type:
                 goal_scorer = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
-                if not event.get("scoringPlay", False):
-                    embed.add_field(name=f"{soccer_ball_emoji} Goal Disallowed", value=f"At {event_time}, {goal_scorer} ({event_team})", inline=False)
-                elif event_team == team_name:
-                    embed.add_field(name=f"{soccer_ball_emoji} GOALLLLLL!", value=f"SOUNDERS FC GOAL scored by {goal_scorer} at {event_time}", inline=False)
+                goal_message = f"{goal_scorer} scored a goal at {event_time}"
+                message_prefix = f"SOUNDERS FC GOAL! " if event_team_id == team_id else "Goal "
+
+            elif "Penalty" in event_type:
+                penalty_taker = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
+                if "Scored" in event_type:
+                    penalty_message = f"{penalty_taker} scored a penalty at {event_time}"
+                    message_prefix = f"SOUNDERS FC GOAL! " if event_team_id == team_id else "Goal "
                 else:
-                    embed.add_field(name=f"{soccer_ball_emoji} Goal", value=f"Goal by {goal_scorer} ({event_team}) at {event_time}", inline=False)
+                    penalty_message = f"{penalty_taker} penalty {event_type.lower()} at {event_time}"
+                    message_prefix = ""
+
+                final_message = message_prefix + penalty_message
+                embed.add_field(name=f"{soccer_ball_emoji} {event_type}", value=final_message, inline=False)
 
             elif event_type == "Yellow Card":
                 yellow_card_emoji = "\U0001F7E8"
                 player = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
-                embed.add_field(name=f"\{yellow_card_emoji} Yellow Card", value=f"{player} ({event_team}) at {event_time}", inline=False)
+                embed.add_field(name=f"{yellow_card_emoji} Yellow Card", value=f"{player} ({event_team_name}) at {event_time}", inline=False)
 
             elif event_type == "Red Card":
                 red_card_emoji = "\U0001F7E5"
                 player = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
-                embed.add_field(name=f"{red_card_emoji} Red Card", value=f"{player} ({event_team}) at {event_time}", inline=False)
+                embed.add_field(name=f"{red_card_emoji} Red Card", value=f"{player} ({event_team_name}) at {event_time}", inline=False)
 
         return embed if embed.fields else None
 

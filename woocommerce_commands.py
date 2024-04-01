@@ -15,7 +15,11 @@ from common import (
     has_admin_role,
 )
 from match_utils import wc_url
-from utils import find_customer_info_in_order
+from utils import (
+    find_customer_info_in_order, 
+    extract_base_product_title, 
+    extract_variation_detail,
+)
 from api_helpers import (
     call_woocommerce_api, 
     update_orders_from_api, 
@@ -43,6 +47,11 @@ SUBGROUPS = [
     "Tropic Sound",
     "West Sound Armada",
 ]
+
+async def get_orders_for_product(product_id: int):
+    orders_url = wc_url.replace("orders/", f"orders?product={product_id}")
+    orders = await call_woocommerce_api(orders_url)
+    return orders if orders else []
 
 
 class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
@@ -104,11 +113,18 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             return
 
         await interaction.response.defer()
+        
 
-        encoded_product_title = urllib.parse.quote_plus(product_title)
+        base_product_title = extract_base_product_title(product_title)
+        encoded_product_title = urllib.parse.quote_plus(base_product_title)
         product_url = wc_url.replace("orders/", f"products?search={encoded_product_title}")
         products = await call_woocommerce_api(product_url)
-        product = next((p for p in products if p["name"].lower() == product_title.lower()), None)
+        matching_products = [p for p in products if p["name"].lower().startswith(base_product_title.lower())]
+
+        all_orders = []
+        for product in matching_products:
+            product_orders = await get_orders_for_product(product["id"])
+            all_orders.extend(product_orders)
         if not product:
             await interaction.followup.send("Product not found.", ephemeral=True)
             return
@@ -121,7 +137,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             await update_orders_from_api(product_id)
 
         order_extract_data = get_order_extract(product_title)
-    
+
         if not order_extract_data:
             await interaction.followup.send("No orders found for this product.", ephemeral=True)
             return
@@ -150,6 +166,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             "Alias 2 email",
             "Alias 2 recipient",
             "Alias 2 type",
+            "Product Variation Detail",
         ]
         csv_writer.writerow(header)
 
@@ -191,6 +208,8 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
                 alias_2_recipient,
                 alias_type
             ]
+            variation_detail = extract_variation_detail(order)
+            row.append(variation_detail)
             csv_writer.writerow(row)
             previous_email = order["email_address"]
 
