@@ -75,3 +75,11 @@ def extract_customer_info(order_dict):
         'last_name': last_name,
         'email': email
     }
+
+def extract_base_product_title(full_title: str) -> str:
+    base_title = full_title.split(" - ")[0]
+    return base_title
+
+def extract_variation_detail(order: dict) -> str:
+    variation_detail = order.get('product_variation', '')
+    return variation_detail
