@@ -382,6 +382,8 @@ def format_match_update(match_data, reported_events, team_id):
                 goal_scorer = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
                 goal_message = f"{goal_scorer} scored a goal at {event_time}"
                 message_prefix = f"SOUNDERS FC GOAL! " if event_team_id == team_id else "Goal "
+                final_message = message_prefix + goal_message
+                embed.add_field(name=f"{soccer_ball_emoji} {event_type}", value=final_message, inline=False)
 
             elif "Penalty" in event_type:
                 penalty_taker = next((athlete["displayName"] for athlete in event.get("athletesInvolved", [])), "Unknown")
