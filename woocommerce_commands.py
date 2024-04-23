@@ -71,19 +71,20 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         home_tickets_category = "765197885"
         away_tickets_category = "765197886"
 
-        home_tickets_url = wc_url.replace(
-            "orders/", f"products?category={home_tickets_category}"
-        )
-        away_tickets_url = wc_url.replace(
-            "orders/", f"products?category={away_tickets_category}"
-        )
-
-        home_tickets = await call_woocommerce_api(home_tickets_url)
-        await asyncio.sleep(1)
-        away_tickets = await call_woocommerce_api(away_tickets_url)
-
         all_home_tickets = []
-        all_home_tickets.extend(home_tickets)
+        page = 1
+        while True:
+            home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&page={page}")
+            home_tickets_page = await call_woocommerce_api(interaction, home_tickets_url)
+
+            if not home_tickets_page:
+                break
+
+            all_home_tickets.extend(home_tickets_page)
+
+            page += 1
+            await asyncio.sleep(1)
+
         message_content = "🏠 **Home Tickets:**\n"
         message_content += (
             "\n".join([product["name"] for product in all_home_tickets])
@@ -92,7 +93,19 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         )
 
         all_away_tickets = []
-        all_away_tickets.extend(away_tickets)
+        page = 1
+        while True:
+            away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&page={page}")
+            away_tickets_page = await call_woocommerce_api(interaction, away_tickets_url)
+
+            if not away_tickets_page:
+                break
+
+            all_away_tickets.extend(away_tickets_page)
+
+            page += 1
+            await asyncio.sleep(1)
+
         message_content += "\n\n🚗 **Away Tickets:**\n"
         message_content += (
             "\n".join([product["name"] for product in all_away_tickets])
