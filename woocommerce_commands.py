@@ -132,7 +132,11 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         encoded_product_title = urllib.parse.quote_plus(base_product_title)
         product_url = wc_url.replace("orders/", f"products?search={encoded_product_title}")
         products = await call_woocommerce_api(product_url)
-        matching_products = [p for p in products if p["name"].lower().startswith(base_product_title.lower())]
+#   if the product has variations, pull the variation array instead of the parent product
+        if not products["variations"]:
+            matching_products = [p for p in products if p["name"].lower().startswith(base_product_title.lower())]
+        else:
+            matching_products = products["variations"]
 
         all_orders = []
         for product in matching_products:
