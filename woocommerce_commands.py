@@ -75,7 +75,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         page = 1
         while True:
             home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&page={page}")
-            home_tickets_page = await call_woocommerce_api(interaction, home_tickets_url)
+            home_tickets_page = await call_woocommerce_api(home_tickets_url)
 
             if not home_tickets_page:
                 break
@@ -96,7 +96,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         page = 1
         while True:
             away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&page={page}")
-            away_tickets_page = await call_woocommerce_api(interaction, away_tickets_url)
+            away_tickets_page = await call_woocommerce_api(away_tickets_url)
 
             if not away_tickets_page:
                 break
