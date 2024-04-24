@@ -48,11 +48,164 @@ SUBGROUPS = [
     "West Sound Armada",
 ]
 
-async def get_orders_for_product(product_id: int):
-    orders_url = wc_url.replace("orders/", f"orders?product={product_id}")
-    orders = await call_woocommerce_api(orders_url)
-    return orders if orders else []
+async def get_product_by_name(product_name):
+    base_wc_url = wc_url.replace("/orders/", "/")
+    encoded_name = urllib.parse.quote_plus(product_name)
+    product_url = f"{base_wc_url}products?search={encoded_name}"
+    products = await call_woocommerce_api(product_url)
+    return products[0] if products and isinstance(products, list) else None
 
+async def get_product_variations(product_id):
+    base_wc_url = wc_url.replace("/orders/", "/")
+    variations_url = f"{base_wc_url}products/{product_id}/variations"
+    variations = await call_woocommerce_api(variations_url)
+    return variations if isinstance(variations, list) else []
+
+async def get_orders_for_product_ids(product_ids):
+    all_orders = await get_all_orders()
+    relevant_orders = []
+
+    for order in all_orders:
+        line_items = order.get("line_items", [])
+        for item in line_items:
+            product_in_order = item.get("product_id", None)
+            if product_in_order in product_ids:
+                relevant_orders.append(order)
+                break
+
+    return relevant_orders
+
+async def get_all_orders():
+    base_wc_url = wc_url.replace("/orders/", "/")
+    orders_url = f"{base_wc_url}orders"
+    
+    all_orders = []
+    page = 1
+    while True:
+        current_url = f"{orders_url}?page={page}&per_page=100"
+        page_orders = await call_woocommerce_api(current_url)
+
+        if isinstance(page_orders, list):
+            all_orders.extend(page_orders)
+            if len(page_orders) < 100:
+                break
+            else:
+                page += 1
+        else:
+            break
+
+    return all_orders
+
+async def generate_csv_from_orders(orders, product_ids):
+    csv_output = io.StringIO()
+    csv_writer = csv.writer(csv_output)
+
+    headers = [
+        "Product Name",
+        "Customer First Name",
+        "Customer Last Name",
+        "Customer Email",
+        "Order Date Paid",
+        "Order Line Item Quantity",
+        "Order Line Item Price",
+        "Order Number",
+        "Order Status",
+        "Order Customer Note",
+        "Product Variation Name",
+        "Billing Address",
+        "Alias",
+        "Alias Email",
+        "Alias Description",
+        "Alias 1 email",
+        "Alias 1 recipient",
+        "Alias 1 type",
+        "Alias 2 email",
+        "Alias 2 recipient",
+        "Alias 2 type",
+        "Product Variation Detail",
+    ]
+    csv_writer.writerow(headers)
+
+    previous_email = ""
+
+    for order in orders:
+        billing = order.get("billing", {})
+        line_items = order.get("line_items", [])
+
+        for item in line_items:
+            product_in_order = item.get("product_id", None)
+            if product_in_order in product_ids:
+                alias = ""
+                alias_description = ""
+                alias_1_recipient = ""
+                alias_2_recipient = ""
+                alias_type = ""
+
+                if billing.get("email", "") != previous_email:
+                    order_id = order.get("id", "")
+                    alias = f"ecstix-{order_id}@weareecs.com"
+                    alias_description = f"{item['name']} entry for {billing['first_name']} {billing['last_name']}"
+                    alias_1_recipient = billing.get("email", "")
+                    alias_2_recipient = "travel@weareecs.com"
+                    alias_type = "MEMBER"
+
+                item_price = item.get("price", "")
+
+                row = [
+                    item.get("name", ""),
+                    billing.get("first_name", ""),
+                    billing.get("last_name", ""),
+                    billing.get("email", ""),
+                    order.get("date_paid", ""),
+                    item.get("quantity", ""),
+                    item_price,
+                    order.get("id", ""),
+                    order.get("status", ""),
+                    order.get("customer_note", ""),
+                    item.get("variation_name", ""),
+                    billing.get("address_1", ""),
+                    alias,
+                    alias_1_recipient,
+                    alias_description,
+                    alias_1_recipient,
+                    alias_1_recipient,
+                    alias_type,
+                    alias_1_recipient,
+                    alias_2_recipient,
+                    alias_type,
+                ]
+
+                variation_detail = extract_variation_detail(order)
+                row.append(variation_detail)
+
+                csv_writer.writerow(row)
+                previous_email = billing.get("email", "")
+                break
+
+    return csv_output
+
+async def generate_csv_for_product_variations(product_name):
+    product = await get_product_by_name(product_name)
+    
+    if not product:
+        raise Exception("Product not found")
+
+    product_id = product.get("id")
+    variations = await get_product_variations(product_id)
+
+    all_orders = []
+    for variation in variations:
+        variation_id = variation.get("id")
+        orders = await get_orders_for_product_ids(variation_id)
+        
+        if orders:
+            all_orders.extend(orders)
+    
+    if not all_orders:
+        raise Exception("No orders found for product variations")
+
+    csv_output = await generate_csv_from_orders(all_orders)
+    return csv_output
 
 class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     def __init__(self, bot):
@@ -114,130 +267,40 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         )
 
         await interaction.followup.send(message_content, ephemeral=True)
-
+        
     @app_commands.command(
         name="getorderinfo", description="Retrieve order details for a specific product"
     )
     @app_commands.describe(product_title="Title of the product")
     @app_commands.guilds(discord.Object(id=server_id))
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
-        if not await has_required_wg_role(interaction):
-            await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
-            return
-
         await interaction.response.defer()
-        
 
-        base_product_title = extract_base_product_title(product_title)
-        encoded_product_title = urllib.parse.quote_plus(base_product_title)
-        product_url = wc_url.replace("orders/", f"products?search={encoded_product_title}")
-        products = await call_woocommerce_api(product_url)
-        matching_products = [p for p in products if p["name"].lower().startswith(base_product_title.lower())]
-
-        all_orders = []
-        for product in matching_products:
-            product_orders = await get_orders_for_product(product["id"])
-            all_orders.extend(product_orders)
+        product = await get_product_by_name(product_title)
         if not product:
             await interaction.followup.send("Product not found.", ephemeral=True)
             return
 
         product_id = product["id"]
-        await asyncio.sleep(1)
+        variations = await get_product_variations(product_id)
 
-        if await check_new_orders(product_id):
-            await asyncio.sleep(1)
-            await update_orders_from_api(product_id)
+        product_ids = [product_id] + [variation["id"] for variation in variations]
 
-        order_extract_data = get_order_extract(product_title)
+        relevant_orders = await get_orders_for_product_ids(product_ids)
 
-        if not order_extract_data:
-            await interaction.followup.send("No orders found for this product.", ephemeral=True)
+        if not relevant_orders:
+            await interaction.followup.send("No orders found for this product or its variations.", ephemeral=True)
             return
 
-        csv_output = io.StringIO()
-        csv_writer = csv.writer(csv_output)
-        header = [
-            "Product Name",
-            "Customer First Name",
-            "Customer Last Name",
-            "Customer Email",
-            "Order Date Paid",
-            "Order Line Item Quantity",
-            "Order Line Item Price",
-            "Order Number",
-            "Order Status",
-            "Order Customer Note",
-            "Product Variation Name",
-            "Billing Address",
-            "Alias",
-            "Alias Email",
-            "Alias Description",
-            "Alias 1 email",
-            "Alias 1 recipient",
-            "Alias 1 type",
-            "Alias 2 email",
-            "Alias 2 recipient",
-            "Alias 2 type",
-            "Product Variation Detail",
-        ]
-        csv_writer.writerow(header)
-
-        previous_email = ""
-        for order in order_extract_data:
-            alias = ""
-            alias_description = ""
-            alias_1_recipient = ""
-            alias_2_recipient = ""
-            alias_type = ""
-
-            if order["email_address"] != previous_email:
-                alias = f"ecstix-{order['order_id']}@weareecs.com"
-                alias_description = f"{order['product_name']} entry for {order['first_name']} {order['last_name']}"
-                alias_1_recipient = order["email_address"]
-                alias_2_recipient = "travel@weareecs.com"
-                alias_type = "MEMBER"
-
-            row = [
-                order["product_name"],
-                order["first_name"],
-                order["last_name"],
-                order["email_address"],
-                order["order_date"],
-                order["item_qty"],
-                order["item_price"],
-                order["order_id"],
-                order["order_status"],
-                order["order_note"],
-                order["product_variation"],
-                order["billing_address"],
-                alias,
-                alias,
-                alias_description,
-                alias,
-                alias_1_recipient,
-                alias_type,
-                alias,
-                alias_2_recipient,
-                alias_type
-            ]
-            variation_detail = extract_variation_detail(order)
-            row.append(variation_detail)
-            csv_writer.writerow(row)
-            previous_email = order["email_address"]
+        csv_output = await generate_csv_from_orders(relevant_orders, product_ids)
 
         csv_output.seek(0)
-        if csv_output.getvalue():
-            sanitized_name = product_title.replace("/", "_").replace("\\", "_")
-            filename = f"{sanitized_name}_orders.csv"
-            csv_file = discord.File(fp=csv_output, filename=filename)
-            await interaction.followup.send(
-                f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
-            )
-        else:
-            await interaction.followup.send(
-                "No orders found for this product.", ephemeral=True
-            )
+        csv_filename = f"{product_title.replace('/', '_')}_orders.csv"
+        csv_file = discord.File(fp=csv_output, filename=csv_filename)
+
+        await interaction.followup.send(
+            f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
+        )
 
         csv_output.close()
 
