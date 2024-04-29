@@ -34,7 +34,7 @@ serpapi_api = BOT_CONFIG["serpapi_api"]
 wp_username = BOT_CONFIG["wp_username"]
 wp_app_password = BOT_CONFIG["wp_app_password"]
 bot_version = BOT_CONFIG["bot_version"]
-match_channel_id = int(float(BOT_CONFIG["match_channel_id"]))
+match_channel_id = int(BOT_CONFIG["match_channel_id"])
 
 try:
     initialize_db()
