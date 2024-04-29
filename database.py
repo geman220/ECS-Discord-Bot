@@ -147,6 +147,23 @@ def load_match_threads():
         return {thread_id: match_id for thread_id, match_id in c.fetchall()}
 
 
+def reset_woo_orders_db():
+    with get_db_connection(ORDERS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute(
+            """DELETE FROM order_extract WHERE 1=1"""
+        )
+        c.execute(
+            """DELETE FROM woo_orders WHERE 1=1"""
+        )
+        c.execute("""
+            UPDATE latest_order_info 
+            SET latest_order_id = '0'
+            WHERE id = 1
+        """)
+        conn.commit()
+
+
 def initialize_woo_orders_db():
     with get_db_connection(ORDERS_DB_PATH) as conn:
         c = conn.cursor()
