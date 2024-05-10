@@ -9,6 +9,7 @@ import asyncio
 import csv
 import io
 import json
+import datetime
 from common import (
     server_id, 
     has_required_wg_role, 
@@ -30,6 +31,7 @@ from database import (
     get_latest_order_id,
     get_order_extract,
     insert_order_extract,
+    reset_woo_orders_db,
 )
 
 SUBGROUPS = [
@@ -81,14 +83,19 @@ async def get_all_orders():
     
     all_orders = []
     page = 1
+    order_status = "processing"
     while True:
-        current_url = f"{orders_url}?page={page}&per_page=100"
+        current_url = f"{orders_url}?page={page}&per_page=100&status={order_status}"
         page_orders = await call_woocommerce_api(current_url)
 
         if isinstance(page_orders, list):
             all_orders.extend(page_orders)
             if len(page_orders) < 100:
-                break
+                if order_status == "processing":
+                    order_status = "completed"
+                    page = 1
+                else:
+                    break
             else:
                 page += 1
         else:
@@ -165,12 +172,12 @@ async def generate_csv_from_orders(orders, product_ids):
                     item.get("variation_name", ""),
                     billing.get("address_1", ""),
                     alias,
-                    alias_1_recipient,
+                    alias,
                     alias_description,
-                    alias_1_recipient,
+                    alias,
                     alias_1_recipient,
                     alias_type,
-                    alias_1_recipient,
+                    alias,
                     alias_2_recipient,
                     alias_type,
                 ]
@@ -223,46 +230,27 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         await interaction.response.defer(ephemeral=True)
         home_tickets_category = "765197885"
         away_tickets_category = "765197886"
+        current_year = datetime.date.now().year
 
-        all_home_tickets = []
-        page = 1
-        while True:
-            home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&page={page}")
-            home_tickets_page = await call_woocommerce_api(home_tickets_url)
-
-            if not home_tickets_page:
-                break
-
-            all_home_tickets.extend(home_tickets_page)
-
-            page += 1
-            await asyncio.sleep(1)
+        home_tickets = []
+        home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&per_page=50&search={current_year}")
+        home_tickets = await call_woocommerce_api(home_tickets_url)
 
         message_content = "🏠 **Home Tickets:**\n"
         message_content += (
-            "\n".join([product["name"] for product in all_home_tickets])
-            if all_home_tickets
+            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in home_tickets) 
+            if home_tickets
             else "No home tickets found."
         )
 
-        all_away_tickets = []
-        page = 1
-        while True:
-            away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&page={page}")
-            away_tickets_page = await call_woocommerce_api(away_tickets_url)
-
-            if not away_tickets_page:
-                break
-
-            all_away_tickets.extend(away_tickets_page)
-
-            page += 1
-            await asyncio.sleep(1)
+        away_tickets = []
+        away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&per_page=50&search={current_year}")
+        away_tickets = await call_woocommerce_api(away_tickets_url)
 
         message_content += "\n\n🚗 **Away Tickets:**\n"
         message_content += (
-            "\n".join([product["name"] for product in all_away_tickets])
-            if all_away_tickets
+            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in away_tickets)
+            if away_tickets
             else "No away tickets found."
         )
 
@@ -412,3 +400,20 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
             "Subgroup members list:", file=csv_file, ephemeral=True
         )
         csv_output.close()
+
+    @app_commands.command(
+        name="refreshorders", description="Refresh Woo Commerce order cache"
+    )
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def refreshorders(self, interaction: discord.Interaction):
+        if not await has_required_wg_role(interaction):
+            await interaction.response.send_message(
+                "You do not have the necessary permissions.", ephemeral=True
+            )
+            return
+        
+        await interaction.response.defer(ephemeral=True)
+
+        reset = reset_woo_orders_db() 
+        message = f"Orders database reset. Please run updateorders now."
+        await interaction.followup.send(message, ephemeral=True)
