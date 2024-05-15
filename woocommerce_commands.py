@@ -133,6 +133,7 @@ async def generate_csv_from_orders(orders, product_ids):
     ]
     csv_writer.writerow(headers)
 
+    rows = []
     previous_email = ""
 
     for order in orders:
@@ -185,9 +186,14 @@ async def generate_csv_from_orders(orders, product_ids):
                 variation_detail = extract_variation_detail(order)
                 row.append(variation_detail)
 
-                csv_writer.writerow(row)
+                rows.append(row)
                 previous_email = billing.get("email", "")
                 break
+
+    rows.sort(key=lambda x: (x[3].lower(), int(x[7])))
+
+    for row in rows:
+        csv_writer.writerow(row)
 
     return csv_output
 
@@ -230,7 +236,7 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         await interaction.response.defer(ephemeral=True)
         home_tickets_category = "765197885"
         away_tickets_category = "765197886"
-        current_year = datetime.date.now().year
+        current_year = datetime.datetime.now().year
 
         home_tickets = []
         home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&per_page=50&search={current_year}")
