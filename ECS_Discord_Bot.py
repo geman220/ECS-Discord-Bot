@@ -3,6 +3,7 @@
 import discord
 import asyncio
 import os
+import logging
 from discord import app_commands
 from discord.ext import commands
 from database import (
@@ -13,6 +14,13 @@ from common import (
     bot_token, 
     server_id,
 )
+
+logging.basicConfig(
+    filename='bot.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 intents = discord.Intents.default()
 intents.presences = True

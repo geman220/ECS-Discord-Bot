@@ -2,6 +2,7 @@
 
 import asyncio
 import pytz
+import logging
 from datetime import datetime, timedelta
 from discord.ext import commands
 from database import (
@@ -20,41 +21,43 @@ from common import (
     match_channel_id,
 )
 
+logger = logging.getLogger(__name__)
 
 async def automated_match_thread_creation(bot: commands.Bot, server_id):
     guild = await bot.fetch_guild(server_id)
     if guild is None:
-        print(f"Failed to find guild with ID {server_id}.")
+        logger.error(f"Failed to find guild with ID {server_id}.")
         return
 
     channel_id = match_channel_id
     channel = bot.get_channel(channel_id)
     if channel is None:
-        print("Channel 'match-thread' not found in guild.")
+        logger.error("Channel 'match-thread' not found in guild.")
         return
 
     match_info = await get_next_match(team_id, for_automation=True)
     if isinstance(match_info, str):
-        print(f"get_next_match returned a string: {match_info}")
+        logger.error(f"get_next_match returned a string: {match_info}")
         return
 
     if match_info:
         weather_forecast = ""
         if match_info.get("is_home_game"):
             _, weather_forecast = await prepare_match_environment(guild, match_info)
-            print(f"Weather forecast for automated thread: {weather_forecast}")
+            logger.info(f"Weather forecast for automated thread: {weather_forecast}")
 
         thread_name = generate_thread_name(match_info)
 
         match_commands_cog = bot.get_cog("Match Commands")
         if not match_commands_cog:
+            logger.error("Match Commands cog not found.")
             return
 
         try:
             thread_response = await create_and_manage_thread(guild, match_info, match_commands_cog, channel, weather_forecast)
-            print(f"Thread creation response: {thread_response}")
+            logger.info(f"Thread creation response: {thread_response}")
         except Exception as e:
-            print(f"Error in creating thread: {e}")
+            logger.error(f"Error in creating thread: {e}")
             return 
         
 
