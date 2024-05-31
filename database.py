@@ -95,14 +95,22 @@ def initialize_db():
                 live_updates_active INTEGER DEFAULT 0
             )"""
         )
+
+        c.execute("PRAGMA table_info(match_schedule)")
+        columns = [row[1] for row in c.fetchall()]
+        if 'competition' not in columns:
+            c.execute("ALTER TABLE match_schedule ADD COLUMN competition TEXT DEFAULT 'usa.1'")
+        
         conn.commit()
 
 
-def insert_match_schedule(match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue):
+def insert_match_schedule(match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue, competition):
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
         c = conn.cursor()
-        c.execute("INSERT INTO match_schedule (match_id, opponent, date_time, is_home_game, match_summary_link, match_stats_link, match_commentary_link, venue) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                  (match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue))
+        c.execute(
+            "INSERT INTO match_schedule (match_id, opponent, date_time, is_home_game, match_summary_link, match_stats_link, match_commentary_link, venue, competition) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (match_id, opponent, date_time, is_home_game, summary_link, stats_link, commentary_link, venue, competition)
+        )
         conn.commit()
 
 
@@ -261,6 +269,6 @@ def update_woo_orders(order_id, order_data):
 def load_existing_dates():
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
         c = conn.cursor()
-        c.execute("SELECT DISTINCT date_time FROM match_schedule")
-        existing_dates = [row[0] for row in c.fetchall()]
+        c.execute("SELECT date_time, competition FROM match_schedule")
+        existing_dates = [(row[0], row[1]) for row in c.fetchall()]
     return existing_dates

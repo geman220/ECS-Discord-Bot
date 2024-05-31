@@ -68,7 +68,9 @@ def load_team_airports():
 
 
 def load_match_dates():
-    return load_json_data("match_dates.json", default_value=[])
+    with open("match_dates.json", "r") as f:
+        match_dates = json.load(f)
+    return match_dates
 
 
 def load_team_schedule():
