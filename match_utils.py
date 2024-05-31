@@ -1,5 +1,3 @@
-# match_utils.py
-
 import logging
 from typing import Tuple
 import asyncio
@@ -336,15 +334,29 @@ def update_live_updates_status(match_id, status):
     logger.info(f"Updated live updates status for match {match_id} to {status}")
         
 
+def get_competition_for_match(match_id):
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT competition FROM match_schedule WHERE match_id = ?", (match_id,))
+        result = c.fetchone()
+        return result[0] if result else None
+
+
 async def post_live_updates(match_id, thread, match_commands_cog):
     reported_events = set()
     halftime_reported = False
     fulltime_reported = False
 
+    # Get the competition type for the match
+    competition = get_competition_for_match(match_id)
+    if not competition:
+        logging.error(f"Competition type not found for match {match_id}")
+        return
+
     while match_id not in completed_matches:
         try:
             update_live_updates_status(match_id, 1)
-            match_data = await fetch_espn_data(f"sports/soccer/usa.1/scoreboard/{match_id}")
+            match_data = await fetch_espn_data(f"sports/soccer/{competition}/scoreboard/{match_id}")
             if match_data:
                 match_status = match_data["competitions"][0]["status"]["type"]["name"]
 
@@ -445,7 +457,8 @@ def format_match_update(match_data, reported_events, team_id):
 async def get_matches_for_calendar():
     match_dates = load_match_dates()
     existing_dates = load_existing_dates()
-    new_dates = set(match_dates)
+
+    new_dates = {(match['date'], match['competition']) for match in match_dates['matches']}
     existing_dates_set = set(existing_dates)
 
     dates_to_delete = existing_dates_set - new_dates
@@ -453,22 +466,24 @@ async def get_matches_for_calendar():
 
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
         c = conn.cursor()
-        for date in dates_to_delete:
-            c.execute("DELETE FROM match_schedule WHERE date_time = ?", (date,))
+        for date, competition in dates_to_delete:
+            c.execute("DELETE FROM match_schedule WHERE date_time = ? AND competition = ?", (date, competition))
             conn.commit()
-            logger.info(f"Deleted matches for date: {date}")
+            logger.info(f"Deleted matches for date: {date} and competition: {competition}")
 
     all_matches = []
 
-    for date in dates_to_add:
+    for date, competition in dates_to_add:
         try:
-            match_data = await fetch_espn_data(f"sports/soccer/usa.1/scoreboard?dates={date}")
+            match_data = await fetch_espn_data(f"sports/soccer/{competition}/scoreboard?dates={date}")
             if not match_data or 'events' not in match_data:
+                logger.warning(f"No events found for date: {date} and competition: {competition}")
                 continue
 
             for event in match_data['events']:
                 if team_name in event.get("name", ""):
                     match_details = extract_match_details(event)
+                    match_details['competition'] = competition
                     insert_match_schedule(
                         match_details['match_id'],
                         match_details['opponent'],
@@ -477,14 +492,14 @@ async def get_matches_for_calendar():
                         match_details['match_summary_link'],
                         match_details['match_stats_link'],
                         match_details['match_commentary_link'],
-                        match_details['venue']
+                        match_details['venue'],
+                        match_details['competition']
                     )
                     all_matches.append(match_details)
                     logger.info(f"Inserted match schedule: {match_details}")
         except Exception as e:
-            logger.error(f"Error processing date {date}: {e}")
+            logger.error(f"Error processing date {date} and competition {competition}: {e}")
             continue
 
     logger.info(f"Total matches for calendar: {len(all_matches)}")
     return all_matches
-
