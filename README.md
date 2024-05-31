@@ -39,12 +39,13 @@ To use the ECS Discord Bot, you need to set up a few environment variables. Here
 ### Match_dates.json Setup
 Match_dates.json contains all known match dates for the current season.  You can find your endpoint at https://www.espn.com/soccer/competitions, select the competiton and copy the last endpoint from the new URL, for example https://www.espn.com/soccer/league/_/name/concacaf.league
 
-- `date`: YYYYMMDD format
-- `competition`: ESPN endpoint for league/cup
-- `Endpoints`:
+- `date`: `YYYYMMDD` format
+- `competition`: `usa.1` (ESPN endpoint for league/cup)
+- Endpoint Examples:
 - MLS: `usa.1`
 - US Open Cup: `usa.open`
 - FIFA Club World Cup: `fifa.cwc`
+- Concacaf: `concacaf.league`
 
 ### Step-by-Step Setup
 1. Clone the repository.
