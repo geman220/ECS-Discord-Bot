@@ -10,6 +10,10 @@ ECS Discord Bot is a custom Discord bot designed specifically for the Emerald Ci
 - Weather updates for match days
 - Integration with WooCommerce for ticket sales
 - Custom admin commands for bot management
+- Live match reporting
+- Member verification
+- Pub league team management
+- Multiple league/cup support
 
 ## Getting Started
 To use the ECS Discord Bot, you need to set up a few environment variables. Here is a list of the required variables:
@@ -32,11 +36,23 @@ To use the ECS Discord Bot, you need to set up a few environment variables. Here
 - `WP_USERNAME`: WordPress Username
 - `WP_APP_PASSWORD`: WordPress Application Password
 
+### Match_dates.json Setup
+Match_dates.json contains all known match dates for the current season.  You can find your endpoint at https://www.espn.com/soccer/competitions, select the competiton and copy the last endpoint from the new URL, for example https://www.espn.com/soccer/league/_/name/concacaf.league
+
+- `date`: YYYYMMDD format
+- `competition`: ESPN endpoint for league/cup
+- `Endpoints`:
+- MLS: `usa.1`
+- US Open Cup: `usa.open`
+- FIFA Club World Cup: `fifa.cwc`
+
 ### Step-by-Step Setup
 1. Clone the repository.
 2. Install required dependencies.
 3. Set up the `.env` file with the above variables.
-4. Run the bot using the appropriate command.
+4. Configure your `match_dates.json`
+5. Run the bot
+6. As admin execute `/createschedule`
 
 ## Contributions
 Contributions are welcome! If you'd like to contribute, feel free to fork the repository and submit a pull request.
