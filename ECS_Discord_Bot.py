@@ -61,12 +61,14 @@ async def on_ready():
     from automations import periodic_check
     from match_utils import post_live_updates
     from easter_egg_commands import EasterEggCommands
+    from publeague_commands import PubLeagueCommands
 
     await bot.add_cog(MatchCommands(bot))
     await bot.add_cog(AdminCommands(bot))
     await bot.add_cog(GeneralCommands(bot))
     await bot.add_cog(WooCommerceCommands(bot))
     await bot.add_cog(EasterEggCommands(bot))
+    await bot.add_cog(PubLeagueCommands(bot))
     await bot.tree.sync(guild=discord.Object(id=server_id))
 
     if os.path.exists("/root/update_channel_id.txt"):

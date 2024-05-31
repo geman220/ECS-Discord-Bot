@@ -92,11 +92,11 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
         await interaction.response.send_modal(modal)
 
     @app_commands.command(
-        name="createschedule", description="Create the team schedule file"
+        name="createschedule", description="Create or update the team schedule database"
     )
     @app_commands.guilds(discord.Object(id=server_id))
     async def create_schedule_command(self, interaction: discord.Interaction):
-        if not await has_admin_role(interaction):
+        if not await is_admin_or_owner(interaction):
             await interaction.response.send_message("You do not have the necessary permissions.", ephemeral=True)
             return
 

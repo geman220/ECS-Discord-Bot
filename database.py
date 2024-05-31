@@ -256,3 +256,11 @@ def update_woo_orders(order_id, order_data):
             (order_id, order_data),
         )
         conn.commit()
+
+
+def load_existing_dates():
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("SELECT DISTINCT date_time FROM match_schedule")
+        existing_dates = [row[0] for row in c.fetchall()]
+    return existing_dates

@@ -27,5 +27,5 @@ BOT_CONFIG = {
     'wp_username': get_env_variable('WP_USERNAME'),
     'wp_app_password': get_env_variable('WP_APP_PASSWORD'),
     'match_channel_id': get_env_variable('MATCH_CHANNEL_ID'),
-    'bot_version': "1.6.8"
+    'bot_version': "1.7.0"
 }

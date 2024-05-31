@@ -20,6 +20,7 @@ from database import (
     get_db_connection, 
     PREDICTIONS_DB_PATH, 
     insert_match_schedule,
+    load_existing_dates,
 )
 from common import (
     load_match_dates,
@@ -443,9 +444,23 @@ def format_match_update(match_data, reported_events, team_id):
 
 async def get_matches_for_calendar():
     match_dates = load_match_dates()
+    existing_dates = load_existing_dates()
+    new_dates = set(match_dates)
+    existing_dates_set = set(existing_dates)
+
+    dates_to_delete = existing_dates_set - new_dates
+    dates_to_add = new_dates - existing_dates_set
+
+    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
+        c = conn.cursor()
+        for date in dates_to_delete:
+            c.execute("DELETE FROM match_schedule WHERE date_time = ?", (date,))
+            conn.commit()
+            logger.info(f"Deleted matches for date: {date}")
+
     all_matches = []
 
-    for date in match_dates:
+    for date in dates_to_add:
         try:
             match_data = await fetch_espn_data(f"sports/soccer/usa.1/scoreboard?dates={date}")
             if not match_data or 'events' not in match_data:
@@ -472,3 +487,4 @@ async def get_matches_for_calendar():
 
     logger.info(f"Total matches for calendar: {len(all_matches)}")
     return all_matches
+
