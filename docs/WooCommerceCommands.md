@@ -4,46 +4,77 @@ layout: default
 
 # WooCommerce Commands
 
-This section covers commands related to WooCommerce integration in the ECS Discord bot.
+This section describes commands available for managing WooCommerce orders in the ECS Discord bot.
 
-## Command: ticketlist
+## Command: `/ticketlist`
 
-- **Description:** Lists all available tickets for sale, both home and away.
+- **Description:** List all tickets for sale.
 - **Usage:** `/ticketlist`
-- **Permissions:** Requires specific role permissions to access.
-- **Details:** Lists all tickets available in the WooCommerce store, categorized into Home and Away tickets.
+- **Permissions:** Required working group role
+- **Details:**
+  - Lists all home and away tickets currently available for sale.
+  - Searches for tickets in the specified categories for the current year.
+- **Example:**
+  - `/ticketlist`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "No home tickets found." or "No away tickets found." (If no tickets are available in the specified categories)
 
-## Command: getorderinfo
+## Command: `/getorderinfo`
 
-- **Description:** Retrieve detailed order information for a specific product.
-- **Usage:** `/getorderinfo [product_title]`
-- **Parameters:**
-  - `product_title`: Title of the product for which you want to retrieve order details.
-- **Permissions:** Requires specific role permissions to access.
-- **Details:** This command fetches detailed order information for the specified product and outputs it in a CSV format. It includes customer details, order status, and other relevant order information.
+- **Description:** Retrieve order details for a specific product.
+- **Usage:** `/getorderinfo <product_title>`
+- **Permissions:** None
+- **Details:**
+  - Retrieves and lists orders for a specified product and its variations.
+  - Generates a CSV file containing the order details.
+- **Example:**
+  - `/getorderinfo "Seattle Sounders FC Home Jersey"`
+- **Error Messages:**
+  - "Product not found." (If the specified product does not exist)
+  - "No orders found for this product or its variations." (If no orders are available)
+  - "Failed to generate CSV file." (If there is an error generating the CSV file)
 
-## Command: updateorders
+## Command: `/updateorders`
 
-- **Description:** Update the local database with the latest order information from WooCommerce.
+- **Description:** Update local orders database from WooCommerce.
 - **Usage:** `/updateorders`
-- **Parameters:** None.
-- **Permissions:** Requires admin role permissions.
-- **Details:** The `updateorders` command fetches all the latest orders from WooCommerce and updates the local database. It ensures that only new orders, which are not already present in the database, are added. This process helps maintain an up-to-date local copy of orders, enabling efficient access and analysis without repeatedly querying the WooCommerce API. The command provides a confirmation message once the database update is complete, indicating the number of new orders added.
+- **Permissions:** Required working group role
+- **Details:**
+  - Fetches and updates the local orders database with new orders from WooCommerce.
+  - Checks for new orders since the last update.
+- **Example:**
+  - `/updateorders`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "Failed to update orders database." (If there is an error updating the database)
 
-## Command: subgroupcount
+## Command: `/subgrouplist`
 
-- **Description:** Count the number of orders for each ECS subgroup.
-- **Usage:** `/subgroupcount`
-- **Parameters:** None.
-- **Permissions:** Requires admin role permissions.
-- **Details:** This command performs an automatic update of the local orders database to include any new orders from WooCommerce. It then calculates and displays the total number of orders for each ECS subgroup, such as '253 Defiance', 'Barra Fuerza Verde', 'Heartland Horde', etc. The result is presented in a message format listing each subgroup with its corresponding order count.
-
-## Command: subgrouplist
-
-- **Description:** Generate a CSV list of members for a specific ECS subgroup, including their names and email addresses.
+- **Description:** Create a CSV list of members in each subgroup.
 - **Usage:** `/subgrouplist`
-- **Parameters:** None.
-- **Permissions:** Requires admin role permissions.
-- **Details:** Similar to the `subgroupcount` command, `subgrouplist` first updates the local database with the latest orders from WooCommerce. It then generates a CSV file containing the names and email addresses of members in each ECS subgroup. The CSV file is provided as an attachment in the command response for easy download and review.
+- **Permissions:** Admin
+- **Details:**
+  - Generates a CSV list of members belonging to various subgroups.
+  - Fetches and processes WooCommerce orders to compile the member information.
+- **Example:**
+  - `/subgrouplist`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "Failed to generate subgroup members list." (If there is an error generating the list)
+
+## Command: `/refreshorders`
+
+- **Description:** Refresh WooCommerce order cache.
+- **Usage:** `/refreshorders`
+- **Permissions:** Required working group role
+- **Details:**
+  - Resets the local WooCommerce orders database.
+  - Requires a subsequent call to `/updateorders` to repopulate the database.
+- **Example:**
+  - `/refreshorders`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "Failed to reset orders database." (If there is an error resetting the database)
 
 *For more assistance or queries regarding these commands, please contact the bot administrators.*
