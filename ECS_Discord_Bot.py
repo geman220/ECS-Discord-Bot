@@ -62,6 +62,7 @@ async def on_ready():
     from match_utils import post_live_updates
     from easter_egg_commands import EasterEggCommands
     from publeague_commands import PubLeagueCommands
+    from match_dates_commands import MatchDatesCommands
 
     await bot.add_cog(MatchCommands(bot))
     await bot.add_cog(AdminCommands(bot))
@@ -69,6 +70,7 @@ async def on_ready():
     await bot.add_cog(WooCommerceCommands(bot))
     await bot.add_cog(EasterEggCommands(bot))
     await bot.add_cog(PubLeagueCommands(bot))
+    await bot.add_cog(MatchDatesCommands(bot))
     await bot.tree.sync(guild=discord.Object(id=server_id))
 
     if os.path.exists("/root/update_channel_id.txt"):
