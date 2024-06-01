@@ -7,12 +7,12 @@ layout: default
 Welcome to the ECS Bot Command Documentation. This guide provides detailed information on the usage, permissions, and functionality of each command available in the ECS Discord bot.
 
 ## Command Categories
-- [General Commands](GeneralCommands.md)
-- [Match Commands](MatchCommands.md)
-- [WooCommerce Commands](WooCommerceCommands.md)
-- [Admin Commands](AdminCommands.md)
-- [Match Dates Commands](MatchDatesCommands.md)
-- [Pub League Commands](PubLeagueCommands.md)
+- [General Commands](docs/GeneralCommands.md)
+- [Match Commands](docs/MatchCommands.md)
+- [WooCommerce Commands](docs/WooCommerceCommands.md)
+- [Admin Commands](docs/AdminCommands.md)
+- [Match Dates Commands](docs/MatchDatesCommands.md)
+- [Pub League Commands](docs/PubLeagueCommands.md)
 
 ## Contributing
 If you find any issues or have suggestions for improvements, please feel free to contribute to the repository or contact the developers.
