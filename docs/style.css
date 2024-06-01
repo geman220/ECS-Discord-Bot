@@ -7,16 +7,15 @@
 
 html, body {
     height: 100%;
-    overflow: auto;
 }
 
 body {
+    display: flex;
+    flex-direction: column;
     background-color: #142530;
     color: #C4C7C7;
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
-    display: flex;
-    flex-direction: column;
 }
 
 a {
@@ -36,11 +35,11 @@ h1, h2, h3 {
 
 /* Layout and Spacing */
 .container {
+    flex: 1;
     width: 85%;
     margin: auto;
-    overflow: hidden;
     padding: 20px 0;
-    flex: 1;
+    overflow: auto;
 }
 
 /* Navigation Styles */
@@ -81,7 +80,6 @@ header {
 /* Main Content Styles */
 main {
     padding: 20px;
-    flex: 1;
 }
 
 /* Footer Styles */
@@ -91,7 +89,7 @@ footer {
     text-align: center;
     padding: 10px 0;
     width: 100%;
-    position: fixed;
+    position: relative;
     bottom: 0;
     left: 0;
 }
