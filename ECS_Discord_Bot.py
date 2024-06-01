@@ -1,4 +1,4 @@
-﻿# ECS_Bot.py
+﻿# ECS_Discord_Bot.py
 
 import discord
 import asyncio
@@ -6,14 +6,8 @@ import os
 import logging
 from discord import app_commands
 from discord.ext import commands
-from database import (
-    get_db_connection, 
-    PREDICTIONS_DB_PATH,
-)
-from common import (
-    bot_token, 
-    server_id,
-)
+from database import get_db_connection, PREDICTIONS_DB_PATH
+from common import bot_token, server_id
 
 logging.basicConfig(
     filename='bot.log',
@@ -37,9 +31,27 @@ def get_thread_id_for_match(match_id):
         result = c.fetchone()
         return result[0] if result else None
 
+async def load_cogs():
+    await bot.load_extension('general_commands')
+    await bot.load_extension('woocommerce_commands')
+    await bot.load_extension('admin_commands')
+    await bot.load_extension('match_commands')
+    await bot.load_extension('easter_egg_commands')
+    await bot.load_extension('publeague_commands')
+    await bot.load_extension('match_dates_commands')
+    await bot.load_extension('help_commands')
+
+    await bot.tree.sync(guild=discord.Object(id=server_id))
+    logger.info(f"Commands registered after syncing: {[cmd.name for cmd in bot.tree.walk_commands()]}")
+
 @bot.event
 async def on_ready():
+    from automations import periodic_check
+    from match_utils import post_live_updates
     print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    await load_cogs()
+
+    await asyncio.sleep(5)
 
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
         c = conn.cursor()
@@ -50,28 +62,9 @@ async def on_ready():
         match_id = match[0]
         thread_id = get_thread_id_for_match(match_id)
         thread = bot.get_channel(thread_id)
-        match_commands_cog = bot.get_cog("Match Commands")
+        match_commands_cog = bot.get_cog("MatchCommands")
         if thread and match_commands_cog:
             asyncio.create_task(post_live_updates(match_id, thread, match_commands_cog))
-        
-    from woocommerce_commands import WooCommerceCommands
-    from general_commands import GeneralCommands
-    from admin_commands import AdminCommands
-    from match_commands import MatchCommands
-    from automations import periodic_check
-    from match_utils import post_live_updates
-    from easter_egg_commands import EasterEggCommands
-    from publeague_commands import PubLeagueCommands
-    from match_dates_commands import MatchDatesCommands
-
-    await bot.add_cog(MatchCommands(bot))
-    await bot.add_cog(AdminCommands(bot))
-    await bot.add_cog(GeneralCommands(bot))
-    await bot.add_cog(WooCommerceCommands(bot))
-    await bot.add_cog(EasterEggCommands(bot))
-    await bot.add_cog(PubLeagueCommands(bot))
-    await bot.add_cog(MatchDatesCommands(bot))
-    await bot.tree.sync(guild=discord.Object(id=server_id))
 
     if os.path.exists("/root/update_channel_id.txt"):
         with open("/root/update_channel_id.txt", "r") as f:
@@ -83,14 +76,12 @@ async def on_ready():
         
     asyncio.create_task(periodic_check(bot))
 
-
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
 
     await bot.process_commands(message)
-
 
 @bot.event
 async def on_app_command_error(interaction: discord.Interaction, error):
@@ -104,10 +95,9 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             ephemeral=True,
         )
     else:
-        print(f"Unhandled interaction command error: {error}")
+        logger.error(f"Unhandled interaction command error: {error}")
         await interaction.response.send_message(
             "An error occurred while processing the command.", ephemeral=True
         )
-
 
 bot.run(bot_token)

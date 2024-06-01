@@ -18,7 +18,7 @@ from match_utils import get_matches_for_calendar
 
 
 
-class AdminCommands(commands.Cog, name="Admin Commands"):
+class AdminCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -112,3 +112,6 @@ class AdminCommands(commands.Cog, name="Admin Commands"):
 
         except Exception as e:
             await interaction.followup.send(f"Failed to create schedule: {e}")
+            
+async def setup(bot):
+    await bot.add_cog(AdminCommands(bot))

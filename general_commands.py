@@ -3,20 +3,11 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from common import (
-    server_id,
-    team_id, 
-    team_name, 
-    format_stat_name,
-)
-from match_utils import (
-    get_away_match, 
-    get_team_record,
-)
+from common import server_id, team_id, team_name, format_stat_name
+from match_utils import get_away_match, get_team_record
 from interactions import VerifyModal
 
-
-class GeneralCommands(commands.Cog, name="General Commands"):
+class GeneralCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.team_id = team_id
@@ -37,27 +28,22 @@ class GeneralCommands(commands.Cog, name="General Commands"):
         else:
             await interaction.response.send_message("Error fetching record.")
 
-    @app_commands.command(
-        name="awaytickets", description="Get a link to the latest away tickets"
-    )
+    @app_commands.command(name="awaytickets", description="Get a link to the latest away tickets")
     @app_commands.guilds(discord.Object(id=server_id))
     @app_commands.describe(opponent="The name of the opponent team (optional)")
-    async def away_tickets(
-        self, interaction: discord.Interaction, opponent: str = None
-    ):
+    async def away_tickets(self, interaction: discord.Interaction, opponent: str = None):
         closest_match = await get_away_match(opponent)
         if closest_match:
             match_name, match_link = closest_match
-            await interaction.response.send_message(
-                f"Away match: {match_name}\nTickets: {match_link}"
-            )
+            await interaction.response.send_message(f"Away match: {match_name}\nTickets: {match_link}")
         else:
             await interaction.response.send_message("No upcoming away matches found.")
 
-    @app_commands.command(
-        name="verify", description="Verify your ECS membership with your Order #"
-    )
+    @app_commands.command(name="verify", description="Verify your ECS membership with your Order #")
     @app_commands.guilds(discord.Object(id=server_id))
     async def verify_order(self, interaction: discord.Interaction):
         modal = VerifyModal(title="Verify Membership", bot=self.bot)
         await interaction.response.send_modal(modal)
+
+async def setup(bot):
+    await bot.add_cog(GeneralCommands(bot))

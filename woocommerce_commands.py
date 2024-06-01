@@ -220,7 +220,7 @@ async def generate_csv_for_product_variations(product_name):
     csv_output = await generate_csv_from_orders(all_orders)
     return csv_output
 
-class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
+class WooCommerceCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -268,6 +268,12 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
     @app_commands.describe(product_title="Title of the product")
     @app_commands.guilds(discord.Object(id=server_id))
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
+        if not await has_required_wg_role(interaction):
+            await interaction.response.send_message(
+                "You do not have the necessary permissions.", ephemeral=True
+            )
+            return
+        
         await interaction.response.defer()
 
         product = await get_product_by_name(product_title)
@@ -423,3 +429,6 @@ class WooCommerceCommands(commands.Cog, name="WooCommerce Commands"):
         reset = reset_woo_orders_db() 
         message = f"Orders database reset. Please run updateorders now."
         await interaction.followup.send(message, ephemeral=True)
+        
+async def setup(bot):
+    await bot.add_cog(WooCommerceCommands(bot))
