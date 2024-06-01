@@ -33,7 +33,7 @@ from utils import convert_to_pst
 import traceback
 
 
-class MatchCommands(commands.Cog, name="Match Commands"):
+class MatchCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.match_thread_map = match_thread_map
@@ -263,3 +263,6 @@ class MatchCommands(commands.Cog, name="Match Commands"):
             await interaction.response.send_message(
                 "You have already made a prediction for this match.", ephemeral=True
             )
+
+async def setup(bot):
+    await bot.add_cog(MatchCommands(bot))
