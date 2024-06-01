@@ -10,7 +10,6 @@ body {
     color: #C4C7C7;
     font-family: 'Arial', sans-serif;
     line-height: 1.6;
-    padding-bottom: 50px; /* Ensure footer is not at the bottom */
 }
 
 a {
@@ -24,23 +23,8 @@ a {
     }
 
 h1, h2, h3 {
-    color: #FDB913;
+    color: #005595;
     margin-bottom: 1rem;
-}
-
-h1 {
-    font-size: 2.5rem;
-    margin-top: 20px;
-}
-
-h2 {
-    font-size: 2rem;
-    margin-top: 20px;
-}
-
-h3 {
-    font-size: 1.5rem;
-    margin-top: 15px;
 }
 
 /* Layout and Spacing */
@@ -60,13 +44,13 @@ h3 {
 }
 
     .navbar ul {
-        list-style-type: none;
+        list-style: none;
     }
 
-    .navbar li {
-        display: inline;
-        margin: 0 15px;
-    }
+        .navbar ul li {
+            display: inline;
+            margin: 0 15px;
+        }
 
     .navbar a {
         color: #fff;
@@ -89,25 +73,6 @@ header {
 /* Main Content Styles */
 main {
     padding: 20px;
-    background: #1E2A38;
-    border-radius: 10px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-    margin-top: 20px;
-}
-
-code {
-    background: #0D1B26;
-    color: #E7E7E7;
-    padding: 2px 5px;
-    border-radius: 3px;
-}
-
-pre {
-    background: #0D1B26;
-    color: #E7E7E7;
-    padding: 10px;
-    border-radius: 5px;
-    overflow: auto;
 }
 
 /* Footer Styles */
@@ -116,6 +81,8 @@ footer {
     color: #fff;
     text-align: center;
     padding: 10px 0;
+    position: absolute;
+    bottom: 0;
     width: 100%;
 }
 
@@ -129,22 +96,4 @@ footer {
     .container, .navbar {
         width: 95%;
     }
-}
-
-.error {
-    color: #FF6347;
-}
-
-.command {
-    color: #FFD700;
-    font-weight: bold;
-}
-
-.description {
-    font-style: italic;
-}
-
-.example {
-    color: #ADFF2F;
-    font-weight: bold;
 }

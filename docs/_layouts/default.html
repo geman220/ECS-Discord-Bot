@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>ECS Bot Documentation</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ site.baseurl }}/style.css">
 </head>
 <body>
     <div class="navbar">
@@ -22,26 +22,7 @@
     </header>
 
     <main class="container">
-        <section>
-            <h2>Command Categories</h2>
-            <ul>
-                <li><a href="{{ site.baseurl }}/GeneralCommands.md">General Commands</a></li>
-                <li><a href="{{ site.baseurl }}/MatchCommands.md">Match Commands</a></li>
-                <li><a href="{{ site.baseurl }}/WooCommerceCommands.md">WooCommerce Commands</a></li>
-                <li><a href="{{ site.baseurl }}/AdminCommands.md">Admin Commands</a></li>
-                <li><a href="{{ site.baseurl }}/PubLeagueCommands.md">Pub League Commands</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2>Contributing</h2>
-            <p>If you find any issues or have suggestions for improvements, please feel free to contribute to the repository or contact the developers.</p>
-        </section>
-
-        <section>
-            <h2>About ECS Bot</h2>
-            <p>ECS Bot is a custom Discord bot developed to enhance the user experience for the Emerald City Supporters. It provides various functionalities to manage match threads, team statistics, ticket information, and more.</p>
-        </section>
+        {{ content }}
     </main>
 
     <footer>
