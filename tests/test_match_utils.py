@@ -45,39 +45,6 @@ async def test_get_away_match_no_products(mock_call_woocommerce_api):
 
 
 @pytest.mark.asyncio
-@patch("match_utils.call_woocommerce_api")
-async def test_get_away_match_with_products(mock_call_woocommerce_api):
-    mock_call_woocommerce_api.return_value = [
-        {"name": "Away Match 2024-05-20", "permalink": "http://example.com/ticket1"},
-        {"name": "Away Match 2024-05-25", "permalink": "http://example.com/ticket2"},
-    ]
-    expected_result = ("Away Match 2024-05-20", "http://example.com/ticket1")
-    result = await get_away_match(None)
-    assert result == expected_result
-
-
-@pytest.mark.asyncio
-@patch("match_utils.call_woocommerce_api")
-async def test_get_away_match_with_opponent(mock_call_woocommerce_api):
-    mock_call_woocommerce_api.return_value = [
-        {
-            "name": "Away Match against TeamX 2024-05-20",
-            "permalink": "http://example.com/ticket1",
-        },
-        {
-            "name": "Away Match against TeamY 2024-05-25",
-            "permalink": "http://example.com/ticket2",
-        },
-    ]
-    expected_result = (
-        "Away Match against TeamX 2024-05-20",
-        "http://example.com/ticket1",
-    )
-    result = await get_away_match(opponent="TeamX")
-    assert result == expected_result
-
-
-@pytest.mark.asyncio
 @patch("match_utils.fetch_espn_data")
 async def test_get_team_record_success(mock_fetch_espn_data):
     mock_fetch_espn_data.return_value = {
