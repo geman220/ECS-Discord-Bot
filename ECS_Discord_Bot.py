@@ -32,14 +32,23 @@ def get_thread_id_for_match(match_id):
         return result[0] if result else None
 
 async def load_cogs():
-    await bot.load_extension('general_commands')
-    await bot.load_extension('woocommerce_commands')
-    await bot.load_extension('admin_commands')
-    await bot.load_extension('match_commands')
-    await bot.load_extension('easter_egg_commands')
-    await bot.load_extension('publeague_commands')
-    await bot.load_extension('match_dates_commands')
-    await bot.load_extension('help_commands')
+    cog_extensions = [
+        'general_commands',
+        'woocommerce_commands',
+        'admin_commands',
+        'match_commands',
+        'easter_egg_commands',
+        'publeague_commands',
+        'match_dates_commands',
+        'help_commands'
+    ]
+    
+    for extension in cog_extensions:
+        try:
+            await bot.load_extension(extension)
+            logger.info(f"Loaded {extension} cog")
+        except Exception as e:
+            logger.error(f"Failed to load {extension} cog: {e}")
 
     await bot.tree.sync(guild=discord.Object(id=server_id))
     logger.info(f"Commands registered after syncing: {[cmd.name for cmd in bot.tree.walk_commands()]}")
