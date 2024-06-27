@@ -64,7 +64,11 @@ async def get_product_variations(product_id):
     return variations if isinstance(variations, list) else []
 
 async def get_orders_for_product_ids(product_ids):
-    all_orders = await get_all_orders()
+    if len(product_ids)==1:
+        for product_id in product_ids:
+            all_orders = await get_single_product_orders_by_id(product_id)
+    else:
+        all_orders = await get_all_orders()
     relevant_orders = []
 
     for order in all_orders:
@@ -72,15 +76,45 @@ async def get_orders_for_product_ids(product_ids):
         for item in line_items:
             product_in_order = item.get("product_id", None)
             if product_in_order in product_ids:
-                relevant_orders.append(order)
+                append_line = True
+                meta_data = item.get("meta_data")
+                for meta in meta_data:
+                    if meta.get("key")=="_restock_refunded_items": 
+                        append_line = False
+                if append_line: 
+                    relevant_orders.append(order)
                 break
 
     return relevant_orders
 
+async def get_single_product_orders_by_id(product_id):
+    base_wc_url = wc_url.replace("/orders/", "/")
+    orders_url = f"{base_wc_url}orders"
+    all_orders = []
+    page = 1
+    order_status = "processing"
+    while True:
+        current_url = f"{orders_url}?page={page}&per_page=100&status={order_status}&product={product_id}"
+        page_orders = await call_woocommerce_api(current_url)
+
+        if isinstance(page_orders, list):
+            all_orders.extend(page_orders)
+            if len(page_orders) < 100:
+                if order_status == "processing":
+                    order_status = "completed"
+                    page = 1
+                else:
+                    break
+            else:
+                page += 1
+        else:
+            break
+
+    return all_orders
+
 async def get_all_orders():
     base_wc_url = wc_url.replace("/orders/", "/")
     orders_url = f"{base_wc_url}orders"
-    
     all_orders = []
     page = 1
     order_status = "processing"
@@ -149,13 +183,11 @@ async def generate_csv_from_orders(orders, product_ids):
                 alias_2_recipient = ""
                 alias_type = ""
 
-                if billing.get("email", "") != previous_email:
-                    order_id = order.get("id", "")
-                    alias = f"ecstix-{order_id}@weareecs.com"
-                    alias_description = f"{item['name']} entry for {billing['first_name']} {billing['last_name']}"
-                    alias_1_recipient = billing.get("email", "")
-                    alias_2_recipient = "travel@weareecs.com"
-                    alias_type = "MEMBER"
+                alias = ""
+                alias_description = ""
+                alias_1_recipient = ""
+                alias_2_recipient = ""
+                alias_type = ""
 
                 item_price = item.get("price", "")
 
@@ -191,6 +223,33 @@ async def generate_csv_from_orders(orders, product_ids):
                 break
 
     rows.sort(key=lambda x: (x[3].lower(), int(x[7])))
+
+    previous_email = "" #reset the email loop
+    for row in rows:
+        if row[3] != previous_email:
+            alias = f"ecstix-{row[7]}@weareecs.com"
+            alias_description = f"{row[0]} entry for {row[1]} {row[2]}"
+            alias_1_recipient = row[3]
+            alias_2_recipient = "travel@weareecs.com"
+            alias_type = "MEMBER"
+        else:
+            alias = ""
+            alias_description = ""
+            alias_1_recipient = ""
+            alias_2_recipient = ""
+            alias_type = ""
+
+        row[12] = alias
+        row[13] = alias
+        row[14] = alias_description
+        row[15] = alias
+        row[16] = alias_1_recipient
+        row[17] = alias_type
+        row[18] = alias
+        row[19] = alias_2_recipient
+        row[20] = alias_type
+
+        previous_email = row[3]
 
     for row in rows:
         csv_writer.writerow(row)
