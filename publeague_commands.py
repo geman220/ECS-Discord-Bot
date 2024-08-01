@@ -52,9 +52,9 @@ class PubLeagueCommands(commands.Cog):
         if not category:
             category = await self.create_category_with_retry(guild, category_name)
 
-        global_admin_role = discord.utils.get(guild.roles, name="WG: ECS FC Managers")
+        global_admin_role = discord.utils.get(guild.roles, name="WG: ECS FC Admin")
         if not global_admin_role:
-            global_admin_role = await self.create_role_with_retry(guild, "WG: ECS FC Managers")
+            global_admin_role = await self.create_role_with_retry(guild, "WG: ECS FC Admin")
 
         for team in teams:
             team_name = team['name'].lower().replace(' ', '-')
