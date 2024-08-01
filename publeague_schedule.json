@@ -1,0 +1,240 @@
+{
+  "leagues": {
+    "Classic": {
+      "teams": [
+        {
+          "name": "Coolio",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Darn Great"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Happy Place"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Thunderbolts"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Darn Great"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Darn Great",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Coolio"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Thunderbolts"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Happy Place"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Coolio"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Happy Place",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Thunderbolts"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Coolio"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Darn Great"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Thunderbolts"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Thunderbolts",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Happy Place"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Darn Great"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Coolio"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Happy Place"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "Premier": {
+	  "teams": [
+        {
+		  "name": "Awesome",
+		  "schedule": [
+		    {
+			  "week": 1,
+			  "matches": [
+			    {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Emerald Knights"},
+	 	 	    {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Shadow Panthers"}
+			  ]
+		    },
+		    {
+			  "week": 2,
+			  "matches": [
+			    {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
+			    {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Titan Warriors"}
+			  ]
+		    }
+		  ]
+	    },
+        {
+          "name": "Silver Wolves",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Flames"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Titan Warriors"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Golden Lions"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Emerald Knights"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Golden Lions",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Flames"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Bananas"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Blue Stallions"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Blue Stallions",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Titan Warriors"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Flames"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Bananas"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Golden Lions"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Flames",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Golden Lions"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Blue Stallions"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Shadow Panthers"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Bananas"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Titan Warriors",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Blue Stallions"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Silver Wolves"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Awesome"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Shadow Panthers"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Shadow Panthers",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Awesome"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Emerald Knights"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Flames"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Titan Warriors"}
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Emerald Knights",
+          "schedule": [
+            {
+              "week": 1,
+              "matches": [
+                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Awesome"},
+                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Shadow Panthers"}
+              ]
+            },
+            {
+              "week": 2,
+              "matches": [
+                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
+                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Flames"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
