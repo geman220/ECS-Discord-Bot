@@ -6,6 +6,7 @@ from contextlib import contextmanager
 
 PREDICTIONS_DB_PATH = "predictions.db"
 ORDERS_DB_PATH = "woo_orders.db"
+PUB_LEAGUE_DB_PATH = "pub_league.db"
 
 
 def get_latest_order_id():
@@ -68,9 +69,9 @@ def get_db_connection(db_path):
         yield conn
     finally:
         conn.close()
+        
 
-
-def initialize_db():
+def initialize_predictions_db():
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
         c = conn.cursor()
         c.execute(
@@ -95,7 +96,6 @@ def initialize_db():
                 live_updates_active INTEGER DEFAULT 0
             )"""
         )
-
         c.execute("PRAGMA table_info(match_schedule)")
         columns = [row[1] for row in c.fetchall()]
         if 'competition' not in columns:
@@ -272,3 +272,98 @@ def load_existing_dates():
         c.execute("SELECT date_time, competition FROM match_schedule")
         existing_dates = [(row[0], row[1]) for row in c.fetchall()]
     return existing_dates
+
+
+def initialize_pub_league_db():
+    with get_db_connection(PUB_LEAGUE_DB_PATH) as conn:
+        c = conn.cursor()
+        
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS leagues (
+                league_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE
+            )"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS teams (
+                team_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE,
+                league_id INTEGER,
+                FOREIGN KEY (league_id) REFERENCES leagues (league_id)
+            )"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS schedules (
+                schedule_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                week INTEGER,
+                date TEXT,
+                time TEXT,
+                opponent TEXT,
+                team_id INTEGER,
+                FOREIGN KEY (team_id) REFERENCES teams (team_id)
+            )"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS coaches (
+                coach_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_tag TEXT,
+                team_id INTEGER,
+                FOREIGN KEY (team_id) REFERENCES teams (team_id)
+            )"""
+        )
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS members (
+                member_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                discord_tag TEXT,
+                team_id INTEGER,
+                FOREIGN KEY (team_id) REFERENCES teams (team_id)
+            )"""
+        )
+        
+        conn.commit()
+
+
+def load_league_data(json_file):
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+
+    with get_db_connection(PUB_LEAGUE_DB_PATH) as conn:
+        c = conn.cursor()
+
+        for league_name, league_info in data['leagues'].items():
+            # Insert league
+            c.execute("INSERT OR IGNORE INTO leagues (name) VALUES (?)", (league_name,))
+            c.execute("SELECT league_id FROM leagues WHERE name=?", (league_name,))
+            league_id = c.fetchone()[0]
+
+            for team_info in league_info['teams']:
+                team_name = team_info['name']
+                # Insert team
+                c.execute("INSERT OR IGNORE INTO teams (name, league_id) VALUES (?, ?)", (team_name, league_id))
+                c.execute("SELECT team_id FROM teams WHERE name=?", (team_name,))
+                team_id = c.fetchone()[0]
+
+                for match_info in team_info['schedule']:
+                    week = match_info['week']
+                    for match in match_info['matches']:
+                        date = match['date']
+                        time = match['time']
+                        opponent = match['opponent']
+                        # Insert schedule
+                        c.execute("INSERT INTO schedules (week, date, time, opponent, team_id) VALUES (?, ?, ?, ?, ?)", (week, date, time, opponent, team_id))
+
+        conn.commit()
+
+
+def insert_coach(discord_tag, team_id):
+    with get_db_connection(PUB_LEAGUE_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("INSERT OR IGNORE INTO coaches (discord_tag, team_id) VALUES (?, ?)", (discord_tag, team_id))
+        conn.commit()
+
+
+def insert_member(discord_tag, team_id):
+    with get_db_connection(PUB_LEAGUE_DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("INSERT OR IGNORE INTO members (discord_tag, team_id) VALUES (?, ?)", (discord_tag, team_id))
+        conn.commit()

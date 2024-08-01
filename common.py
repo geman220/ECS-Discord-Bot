@@ -11,9 +11,10 @@ from utils import (
     get_airport_code_for_team,
 )
 from database import (
-    initialize_db, 
+    initialize_predictions_db, 
     load_match_threads, 
     initialize_woo_orders_db,
+    initialize_pub_league_db,
 )
 from api_helpers import (
     fetch_openweather_data, 
@@ -37,8 +38,9 @@ bot_version = BOT_CONFIG["bot_version"]
 match_channel_id = int(BOT_CONFIG["match_channel_id"])
 
 try:
-    initialize_db()
+    initialize_predictions_db()
     initialize_woo_orders_db()
+    initialize_pub_league_db()
     match_thread_map = load_match_threads()
 except Exception as e:
     print(f"Error during initialization: {e}")
