@@ -14,7 +14,8 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.command(name="setupleague", description="Set up a new league")
     @app_commands.guilds(discord.Object(id=server_id))
     async def setup_league(self, interaction: discord.Interaction, league_type: str, json_file: str = 'publeague_schedule.json'):
-        if not await has_admin_role(interaction):
+        admin_role = discord.utils.get(interaction.guild.roles, name="WG: ECS FC Admin")
+        if admin_role not in interaction.user.roles:
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -147,7 +148,8 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.describe(coach="Mention the coach to assign", team_name="Name of the team")
     @app_commands.guilds(discord.Object(id=server_id))
     async def assign_coach(self, interaction: discord.Interaction, coach: discord.Member, team_name: str):
-        if not await has_admin_role(interaction):
+        admin_role = discord.utils.get(interaction.guild.roles, name="WG: ECS FC Admin")
+        if admin_role not in interaction.user.roles:
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -200,7 +202,7 @@ class PubLeagueCommands(commands.Cog):
             if coach_role in member.roles:
                 await member.remove_roles(coach_role)
 
-    @app_commands.command(name="invite", description="Invite a player to your team")
+    @app_commands.command(name="invite", description="PL - Invite a player to your team")
     @app_commands.describe(player="Mention the player to invite to your team")
     @app_commands.guilds(discord.Object(id=server_id))
     async def invite(self, interaction: discord.Interaction, player: discord.Member):
@@ -244,7 +246,7 @@ class PubLeagueCommands(commands.Cog):
             if coach_role in member.roles:
                 await member.remove_roles(coach_role)
                 
-    @app_commands.command(name="addplayer", description="Add a player to your team")
+    @app_commands.command(name="addplayer", description="ECS FC - Add a player to your team")
     @app_commands.describe(player="Mention the player to add to your team")
     @app_commands.guilds(discord.Object(id=server_id))
     async def add_player(self, interaction: discord.Interaction, player: discord.Member):
@@ -266,7 +268,8 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.command(name="clearleague", description="Clear the existing league setup")
     @app_commands.guilds(discord.Object(id=server_id))
     async def clear_league(self, interaction: discord.Interaction, league_type: str):
-        if not await has_admin_role(interaction):
+        admin_role = discord.utils.get(interaction.guild.roles, name="WG: ECS FC Admin")
+        if admin_role not in interaction.user.roles:
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
