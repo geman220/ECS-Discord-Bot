@@ -243,6 +243,25 @@ class PubLeagueCommands(commands.Cog):
             coach_role = discord.utils.get(member.guild.roles, name=coach_role_name)
             if coach_role in member.roles:
                 await member.remove_roles(coach_role)
+                
+    @app_commands.command(name="addplayer", description="Add a player to your team")
+    @app_commands.describe(player="Mention the player to add to your team")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def add_player(self, interaction: discord.Interaction, player: discord.Member):
+        if not any(role.name.endswith('-Manager') for role in interaction.user.roles):
+            await interaction.response.send_message("You do not have the necessary permissions to add players.", ephemeral=True)
+            return
+
+        manager_role = next(role for role in interaction.user.roles if role.name.endswith('-Manager'))
+        team_name = manager_role.name.rsplit('-', 1)[0]
+        player_role_name = f"{team_name}-Player"
+        player_role = discord.utils.get(interaction.guild.roles, name=player_role_name)
+
+        if player_role:
+            await player.add_roles(player_role)
+            await interaction.response.send_message(f"{player.display_name} has been added to {player_role.name.replace('-', ' ')}.", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"Player role {player_role_name.replace('-', ' ')} not found. Please contact an admin.", ephemeral=True)
 
     @app_commands.command(name="clearleague", description="Clear the existing league setup")
     @app_commands.guilds(discord.Object(id=server_id))
