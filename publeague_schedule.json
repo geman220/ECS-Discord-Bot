@@ -2,238 +2,618 @@
   "leagues": {
     "Classic": {
       "teams": [
-        {
-          "name": "Coolio",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Darn Great"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Happy Place"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Thunderbolts"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Darn Great"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Darn Great",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Coolio"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Thunderbolts"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Happy Place"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Coolio"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Happy Place",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Thunderbolts"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Coolio"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Darn Great"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Thunderbolts"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Thunderbolts",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Happy Place"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Darn Great"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Coolio"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Happy Place"}
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "Premier": {
-	  "teams": [
-        {
-		  "name": "Awesome",
+		{
+		  "name": "AC New Horizons",
 		  "schedule": [
-		    {
+			{
 			  "week": 1,
 			  "matches": [
-			    {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Emerald Knights"},
-	 	 	    {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Shadow Panthers"}
+				{"date": "2024-09-22", "time": "1:10 PM", "opponent": "Practice", "location": "North"},
+				{"date": "2024-09-22", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "North"}
 			  ]
-		    },
-		    {
+			},
+			{
 			  "week": 2,
 			  "matches": [
-			    {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
-			    {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Titan Warriors"}
+				{"date": "2024-09-29", "time": "12:10 PM", "opponent": "Wagstaff FC", "location": "South"},
+				{"date": "2024-09-29", "time": "1:20 PM", "opponent": "Bad News Bears", "location": "North"}
 			  ]
-		    }
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "1:10 PM", "opponent": "Practice", "location": "North"},
+				{"date": "2024-10-06", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "1:10 PM", "opponent": "Wagstaff FC", "location": "North"},
+				{"date": "2024-10-13", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "1:10 PM", "opponent": "Bad News Bears", "location": "North"},
+				{"date": "2024-10-20", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "1:10 PM", "opponent": "Bad News Bears", "location": "North"},
+				{"date": "2024-10-27", "time": "2:20 PM", "opponent": "Wagstaff FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "North"},
+				{"date": "2024-11-03", "time": "2:20 PM", "opponent": "Wagstaff FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "1:10 PM", "opponent": "Bad News Bears", "location": "North"},
+				{"date": "2024-11-10", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "South"}
+			  ]
+			}
 		  ]
-	    },
-        {
-          "name": "Silver Wolves",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Flames"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Titan Warriors"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Golden Lions"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Emerald Knights"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Golden Lions",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Flames"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Bananas"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Blue Stallions"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Blue Stallions",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Titan Warriors"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Flames"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Bananas"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Golden Lions"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Flames",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Golden Lions"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Blue Stallions"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Shadow Panthers"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Bananas"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Titan Warriors",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Blue Stallions"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Silver Wolves"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Awesome"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Shadow Panthers"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Shadow Panthers",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Awesome"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Emerald Knights"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Flames"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Titan Warriors"}
-              ]
-            }
-          ]
-        },
-        {
-          "name": "Emerald Knights",
-          "schedule": [
-            {
-              "week": 1,
-              "matches": [
-                {"date": "2024-08-01", "time": "8:00 AM", "opponent": "Awesome"},
-                {"date": "2024-08-01", "time": "10:00 AM", "opponent": "Shadow Panthers"}
-              ]
-            },
-            {
-              "week": 2,
-              "matches": [
-                {"date": "2024-08-08", "time": "9:00 AM", "opponent": "Silver Wolves"},
-                {"date": "2024-08-08", "time": "11:00 AM", "opponent": "Flames"}
-              ]
-            }
-          ]
-        }
+		},
+		{
+		  "name": "Bad News Bears",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "1:10 PM", "opponent": "Practice", "location": "North"},
+				{"date": "2024-09-22", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "12:10 PM", "opponent": "G-G-Ghosts United", "location": "North"},
+				{"date": "2024-09-29", "time": "1:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "1:10 PM", "opponent": "Practice", "location": "North"},
+				{"date": "2024-10-06", "time": "2:20 PM", "opponent": "Wagstaff FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "1:10 PM", "opponent": "AC New Horizons", "location": "North"},
+				{"date": "2024-10-13", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-10-20", "time": "2:20 PM", "opponent": "Wagstaff FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "1:10 PM", "opponent": "AC New Horizons", "location": "North"},
+				{"date": "2024-10-27", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "1:10 PM", "opponent": "Wagstaff FC", "location": "South"},
+				{"date": "2024-11-03", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-11-10", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Wagstaff FC",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "1:10 PM", "opponent": "Practice", "location": "South"},
+				{"date": "2024-09-22", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "12:10 PM", "opponent": "AC New Horizons", "location": "South"},
+				{"date": "2024-09-29", "time": "1:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "1:10 PM", "opponent": "Practice", "location": "South"},
+				{"date": "2024-10-06", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "1:10 PM", "opponent": "Bad News Bears", "location": "South"},
+				{"date": "2024-10-13", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-10-20", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-10-27", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "1:10 PM", "opponent": "Wagstaff FC", "location": "South"},
+				{"date": "2024-11-03", "time": "2:20 PM", "opponent": "G-G-Ghosts United", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "1:10 PM", "opponent": "Bad News Bears", "location": "South"},
+				{"date": "2024-11-10", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "North"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "G-G-Ghosts United",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "1:10 PM", "opponent": "Practice", "location": "South"},
+				{"date": "2024-09-22", "time": "2:20 PM", "opponent": "Wagstaff FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "12:10 PM", "opponent": "Bad News Bears", "location": "North"},
+				{"date": "2024-09-29", "time": "1:20 PM", "opponent": "Wagstaff FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "1:10 PM", "opponent": "Practice", "location": "South"},
+				{"date": "2024-10-06", "time": "2:20 PM", "opponent": "AC New Horizons", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-10-13", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "1:10 PM", "opponent": "Wagstaff FC", "location": "South"},
+				{"date": "2024-10-20", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "1:10 PM", "opponent": "G-G-Ghosts United", "location": "South"},
+				{"date": "2024-10-27", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "1:10 PM", "opponent": "Wagstaff FC", "location": "South"},
+				{"date": "2024-11-03", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "1:10 PM", "opponent": "AC New Horizons", "location": "South"},
+				{"date": "2024-11-10", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
+			  ]
+			}
+		  ]
+		},
+    "Premier": {
+	  "teams": [
+		{
+		  "name": "Flawless Victory FC",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "8:30 AM", "opponent": "Meddling Kicks FC", "location": "North"},
+				{"date": "2024-09-22", "time": "9:40 AM", "opponent": "Emotional Damage FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "7:30 AM", "opponent": "Knights Who Score Nil", "location": "North"},
+				{"date": "2024-09-29", "time": "8:40 AM", "opponent": "Super Soft FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "9:40 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-10-06", "time": "12:00 PM", "opponent": "Meddling Kicks FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "8:30 AM", "opponent": "Sweep The Leg FC", "location": "North"},
+				{"date": "2024-10-13", "time": "12:00 PM", "opponent": "Sea Pandas", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Super Soft FC", "location": "North"},
+				{"date": "2024-10-20", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "7:30 AM", "opponent": "Emotional Damage FC", "location": "North"},
+				{"date": "2024-10-27", "time": "8:40 AM", "opponent": "Knights Who Score Nil", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "8:30 AM", "opponent": "Super Soft FC", "location": "North"},
+				{"date": "2024-11-03", "time": "10:50 AM", "opponent": "Sea Pandas", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group A Team 1", "location": "North"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group A Team 2", "location": "North"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Meddling Kicks FC",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "8:30 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-09-22", "time": "10:50 AM", "opponent": "Sea Pandas", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "8:40 AM", "opponent": "Super Soft FC", "location": "South"},
+				{"date": "2024-09-29", "time": "11:00 AM", "opponent": "Sea Pandas", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "9:40 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-10-06", "time": "11:00 AM", "opponent": "Super Soft FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "9:40 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-10-13", "time": "12:00 PM", "opponent": "Flawless Victory FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-10-20", "time": "10:50 AM", "opponent": "Emotional Damage FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"},
+				{"date": "2024-10-27", "time": "12:00 PM", "opponent": "Sweep The Leg FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"},
+				{"date": "2024-11-03", "time": "12:00 PM", "opponent": "Super Soft FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group A Team 3", "location": "North"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group A Team 4", "location": "North"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Super Soft FC",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "8:30 AM", "opponent": "Sea Pandas", "location": "South"},
+				{"date": "2024-09-22", "time": "9:40 AM", "opponent": "Sweep The Leg FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "8:40 AM", "opponent": "Meddling Kicks FC", "location": "South"},
+				{"date": "2024-09-29", "time": "9:50 AM", "opponent": "Flawless Victory FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "10:50 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-10-06", "time": "11:00 AM", "opponent": "Sea Pandas", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "8:30 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-10-13", "time": "9:40 AM", "opponent": "Sweep The Leg FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-10-20", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "8:30 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-10-27", "time": "9:40 AM", "opponent": "Flawless Victory FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "8:30 AM", "opponent": "Super Soft FC", "location": "North"},
+				{"date": "2024-11-03", "time": "9:40 AM", "opponent": "Sweep The Leg FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group B Team 1", "location": "South"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group B Team 2", "location": "South"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Sea Pandas",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "8:30 AM", "opponent": "Super Soft FC", "location": "South"},
+				{"date": "2024-09-22", "time": "10:50 AM", "opponent": "Meddling Kicks FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "8:40 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-09-29", "time": "11:00 AM", "opponent": "Meddling Kicks FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "8:30 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-10-06", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "9:40 AM", "opponent": "Super Soft FC", "location": "South"},
+				{"date": "2024-10-13", "time": "12:00 PM", "opponent": "Flawless Victory FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-10-20", "time": "10:50 AM", "opponent": "Sweep The Leg FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "8:30 AM", "opponent": "Super Soft FC", "location": "North"},
+				{"date": "2024-10-27", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "8:30 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-11-03", "time": "10:50 AM", "opponent": "Meddling Kicks FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group B Team 3", "location": "South"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group B Team 4", "location": "South"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Sweep The Leg FC",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "9:40 AM", "opponent": "Super Soft FC", "location": "South"},
+				{"date": "2024-09-22", "time": "12:00 PM", "opponent": "Flawless Victory FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "8:40 AM", "opponent": "Knights Who Score Nil", "location": "South"},
+				{"date": "2024-09-29", "time": "9:50 AM", "opponent": "Central Perk Rangers", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "8:30 AM", "opponent": "Emotional Damage FC", "location": "South"},
+				{"date": "2024-10-06", "time": "12:00 PM", "opponent": "Super Soft FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "9:40 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-10-13", "time": "10:50 AM", "opponent": "Sea Pandas", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Meddling Kicks FC", "location": "South"},
+				{"date": "2024-10-20", "time": "9:40 AM", "opponent": "Knights Who Score Nil", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "8:40 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-10-27", "time": "9:50 AM", "opponent": "Super Soft FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "9:40 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-11-03", "time": "12:00 PM", "opponent": "Meddling Kicks FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group B Team 1", "location": "South"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group B Team 2", "location": "South"}
+			  ]
+			}
+		  ]
+		},
+		{
+		  "name": "Knights Who Score Nil",
+		  "schedule": [
+			{
+			  "week": 1,
+			  "matches": [
+				{"date": "2024-09-22", "time": "9:40 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-09-22", "time": "12:00 PM", "opponent": "Flawless Victory FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 2,
+			  "matches": [
+				{"date": "2024-09-29", "time": "7:30 AM", "opponent": "Flawless Victory FC", "location": "North"},
+				{"date": "2024-09-29", "time": "9:50 AM", "opponent": "Sea Pandas", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 3,
+			  "matches": [
+				{"date": "2024-10-06", "time": "9:40 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-10-06", "time": "10:50 AM", "opponent": "Central Perk Rangers", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 4,
+			  "matches": [
+				{"date": "2024-10-13", "time": "9:40 AM", "opponent": "Meddling Kicks FC", "location": "North"},
+				{"date": "2024-10-13", "time": "12:00 PM", "opponent": "Super Soft FC", "location": "South"}
+			  ]
+			},
+			{
+			  "week": 5,
+			  "matches": [
+				{"date": "2024-10-20", "time": "8:30 AM", "opponent": "Central Perk Rangers", "location": "North"},
+				{"date": "2024-10-20", "time": "9:40 AM", "opponent": "Super Soft FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 6,
+			  "matches": [
+				{"date": "2024-10-27", "time": "7:30 AM", "opponent": "Sweep The Leg FC", "location": "North"},
+				{"date": "2024-10-27", "time": "9:50 AM", "opponent": "Meddling Kicks FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 7,
+			  "matches": [
+				{"date": "2024-11-03", "time": "8:30 AM", "opponent": "Sea Pandas", "location": "North"},
+				{"date": "2024-11-03", "time": "9:40 AM", "opponent": "Flawless Victory FC", "location": "North"}
+			  ]
+			},
+			{
+			  "week": 8,
+			  "matches": [
+				{"date": "2024-11-10", "time": "8:30 AM", "opponent": "Group B Team 3", "location": "South"},
+				{"date": "2024-11-10", "time": "9:40 AM", "opponent": "Group B Team 4", "location": "South"}
+			  ]
+			}
+		  ]
+		}
       ]
     }
   }
