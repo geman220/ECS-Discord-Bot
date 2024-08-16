@@ -242,10 +242,12 @@
 			  "matches": [
 				{"date": "2024-11-10", "time": "1:10 PM", "opponent": "AC New Horizons", "location": "South"},
 				{"date": "2024-11-10", "time": "2:20 PM", "opponent": "Bad News Bears", "location": "South"}
-			  ]
-			}
-		  ]
-		},
+              ]
+            }
+          ]
+        }
+      ]
+    },
     "Premier": {
 	  "teams": [
 		{
