@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="login-page-container d-flex justify-content-center align-items-center vh-100">
+    <!-- Unique class for login page -->
+    <div class="container">
+
+        <!-- Outer Row -->
+        <div class="row justify-content-center">
+
+            <div class="col-xl-10 col-lg-12 col-md-9">
+
+                <div class="card o-hidden border-0 shadow-lg my-5">
+                    <div class="card-body p-0">
+                        <!-- Nested Row within Card Body -->
+                        <div class="row">
+                            <div class="col-lg-5 d-none d-lg-block bg-login-image"></div>
+                            <div class="col-lg-7">
+                                <div class="p-5">
+                                    <div class="text-center">
+                                        <h1 class="h4 text-gray-900 mb-4">Create an Account!</h1>
+                                    </div>
+
+                                    <!-- Discord Login Button -->
+                                    <div class="text-center mb-4">
+                                        <a href="{{ url_for('auth.discord_login') }}" class="btn btn-discord btn-user btn-block">
+                                            <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
+                                            Register with Discord
+                                        </a>
+                                    </div>
+
+                                    <!-- Encouraging Text -->
+                                    <div class="text-center text-secondary mb-4">
+                                        <small>We highly encourage you to register with Discord for a seamless experience and access to exclusive ECS content. If you don't have a Discord account, <a href="https://discord.com/register" target="_blank">create one here</a> and join the <a href="https://discord.gg/weareecs" target="_blank">ECS Discord</a>!</small>
+                                    </div>
+
+                                    <!-- Alternative Registration Link -->
+                                    <div class="text-center">
+                                        <a href="#" id="toggle-register-form" class="small text-secondary">Register with Email</a>
+                                    </div>
+
+                                    <!-- Hidden Traditional Registration Form -->
+                                    <div id="email-register-form" class="collapse mt-3">
+                                        <form class="user" method="POST" action="{{ url_for('auth.register') }}">
+                                            {{ form.hidden_tag() }}
+                                            <div class="form-group row">
+                                                <div class="col-sm-6 mb-3 mb-sm-0">
+                                                    {{ form.username.label(class="small text-gray-900") }}
+                                                    {{ form.username(class="form-control form-control-user") }}
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    {{ form.email.label(class="small text-gray-900") }}
+                                                    {{ form.email(class="form-control form-control-user") }}
+                                                </div>
+                                            </div>
+                                            <div class="form-group row">
+                                                <div class="col-sm-6 mb-3 mb-sm-0">
+                                                    {{ form.password.label(class="small text-gray-900") }}
+                                                    {{ form.password(class="form-control form-control-user") }}
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    {{ form.confirm_password.label(class="small text-gray-900") }}
+                                                    {{ form.confirm_password(class="form-control form-control-user") }}
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary btn-user btn-block">
+                                                Register Account
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <hr>
+                                    <div class="text-center">
+                                        <a class="small" href="{{ url_for('auth.forgot_password') }}">Forgot Password?</a>
+                                    </div>
+                                    <div class="text-center">
+                                        <a class="small" href="{{ url_for('auth.login') }}">Already have an account? Login!</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.getElementById('toggle-register-form').addEventListener('click', function (event) {
+        event.preventDefault(); // Prevent default anchor behavior
+        var form = document.getElementById('email-register-form');
+        form.classList.toggle('collapse'); // Toggle the collapse class
+        this.textContent = form.classList.contains('collapse') ? 'Register with Email' : 'Hide Email Registration'; // Change link text
+    });
+</script>
+{% endblock %}

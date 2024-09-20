@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="light" data-content="wide">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/img/favicon/favicon.ico') }}" />
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fontawesome.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
+
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" class="template-customizer-core-css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" class="template-customizer-theme-css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
+
+    <!-- Vendors CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- Select2 Bootstrap 5 Theme CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.1.1/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+    <!-- Helpers -->
+    <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/js/template-customizer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+
+    <!-- Flatpickr CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+
+    <!-- Flatpickr JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <style>
+        /* Ensure proper background for dropdown in dark mode */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option {
+            background-color: #2a2a2a !important; /* Dark solid background */
+            color: #ffffff !important; /* Ensure the text is light */
+        }
+
+        /* Selection box background, border, and text color for both single and multiple select */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single,
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--multiple {
+            background-color: var(--vz-body-bg) !important;
+            border-color: var(--vz-border-color) !important;
+            color: var(--vz-body-color) !important;
+        }
+
+        /* Placeholder text color for single and multiple select */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection__placeholder {
+            color: var(--vz-muted-color) !important;
+        }
+
+        /* Highlighted option background and text color */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: var(--vz-primary-bg) !important;
+            color: var(--vz-primary-color) !important;
+        }
+
+        /* Adjust focus and hover styles if needed */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection:focus,
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection:hover {
+            border-color: var(--vz-primary-bg) !important;
+        }
+
+        /* Fixing the transparency issue for selected options */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection__choice {
+            background-color: var(--vz-border-color) !important;
+            color: var(--vz-body-color) !important;
+            border-radius: 4px; /* Add slight rounding */
+        }
+
+        /* Ensure the dropdown overlaps the other elements properly */
+        .select2-container .select2-dropdown {
+            z-index: 1050 !important; /* Ensure the dropdown appears above other elements */
+        }
+
+        /* Ensure the dropdown has a solid background in dark mode */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown {
+            background-color: #2a2a2a !important; /* Solid dark background for dark mode */
+            border-color: #444444 !important; /* Border color for dark mode */
+        }
+
+        /* Single selection adjustments to match multi-select */
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            color: var(--vz-body-color) !important; /* Match text color */
+        }
+
+        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+            color: var(--vz-muted-color) !important; /* Match arrow color */
+        }
+
+        /* Toast Container Customization */
+        .toast-container-custom {
+            position: absolute; /* Change to absolute to respect its parent container */
+            top: 70px; /* Adjust this based on your navbar's height */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050; /* Ensure it stays above other content */
+            width: 100%;
+            max-width: 500px;
+            padding: 1rem;
+        }
+
+        .toast {
+            min-width: 250px;
+            max-width: 500px;
+            /* Add box-shadow for depth */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            /* Initial state for animation */
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            /* Optional: Customize Progress Bar */
+            .toast .progress {
+                background-color: rgba(255, 255, 255, 0.3);
+            }
+
+            .toast .progress-bar {
+                background-color: rgba(255, 255, 255, 0.7);
+            }
+    </style>
+</head>
+
+<body>
+    <!-- Layout wrapper -->
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <!-- Sidebar Menu -->
+            {% if current_user.is_authenticated %}
+            {% include 'sidebar.html' %}
+            {% endif %}
+            <!-- / Sidebar Menu -->
+            <!-- Layout container -->
+            <div class="layout-page">
+                <!-- Navbar -->
+                {% if current_user.is_authenticated %}
+                {% include 'navbar.html' %}
+                {% endif %}
+                <!-- / Navbar -->
+                <!-- Flash Toast Container -->
+                <div class="content-wrapper">
+                    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+                        <div id="flash-toast-container" style="width: 100%; max-width: 500px;">
+                            {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                            {% for category, message in messages %}
+                            <div class="toast align-items-center text-white bg-{{ 'success' if category == 'success' else 'info' if category == 'info' else 'danger' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
+                                <div class="d-flex">
+                                    <div class="toast-body">
+                                        <i class="ti {{ 'ti-check-circle' if category == 'success' else 'ti-info-circle' if category == 'info' else 'ti-alert-circle' }} me-2"></i>
+                                        {{ message }}
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>
+                                <div class="progress mt-2" style="height: 5px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-light" role="progressbar" style="width: 100%;"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+                <!-- / Flash Toast Container -->
+                <!-- Content wrapper -->
+                <div class="content-wrapper">
+                    <!-- Content -->
+                    <div class="container-fluid flex-grow-1 container-p-y">
+                        {% block main_content %}
+                        <!-- Page-specific content will be injected here -->
+                        {% endblock %}
+                    </div>
+                    <!-- / Content -->
+                    <!-- Footer -->
+                    <footer class="content-footer footer bg-footer-theme">
+                        <div class="container-fluid">
+                            <div class="footer-container d-flex align-items-center justify-content-between py-4 flex-md-row flex-column">
+                                <div class="text-body">
+                                    ©
+                                    <script>document.write(new Date().getFullYear());</script>, made with ❤️ by George
+                                </div>
+                                <div class="d-none d-lg-inline-block">
+                                    <a href="https://github.com/geman220/ECS-Discord-Bot" target="_blank" class="footer-link me-4">Github</a>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                    <!-- / Footer -->
+
+                    <div class="content-backdrop fade"></div>
+                </div>
+                <!-- / Content wrapper -->
+            </div>
+            <!-- / Layout container -->
+        </div>
+
+        <!-- Overlay -->
+        <div class="layout-overlay layout-menu-toggle"></div>
+    </div>
+    <!-- / Layout wrapper -->
+    <!-- Core JS -->
+    <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
+
+    <!-- Other JS files -->
+    <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
+
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Cropper.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+
+    <!-- Include Socket.IO for real-time updates -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+
+    <!-- Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+
+    <!-- Feather.js -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+    <!-- Flatpickr -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- Global Scripts -->
+    <!-- Toast Auto Dismiss and Progress Bar -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const toastElList = [].slice.call(document.querySelectorAll('#flash-toast-container .toast'));
+            toastElList.forEach(function (toastEl) {
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: 5000, // 5 seconds
+                    autohide: true
+                });
+
+                // Show the toast
+                toast.show();
+
+                // Progress Bar Animation
+                const progressBar = toastEl.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.style.transition = `width 5s linear`;
+                    progressBar.style.width = '0%'; // Start the animation to shrink the width
+                }
+
+                // When the toast hides, reset the progress bar
+                toastEl.addEventListener('hidden.bs.toast', function () {
+                    if (progressBar) {
+                        progressBar.style.width = '100%'; // Reset for next toast
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            function initializeSelect2() {
+                $('.select2-single').select2({
+                    placeholder: 'Select an option',
+                    allowClear: true,
+                    width: '100%',
+                    theme: 'bootstrap-5'
+                });
+
+                $('.select2-multiple').select2({
+                    placeholder: 'Select multiple options',
+                    allowClear: true,
+                    width: '100%',
+                    theme: 'bootstrap-5'
+                });
+            }
+
+            initializeSelect2();
+
+            // Re-initialize Select2 on modal open to ensure elements are initialized correctly
+            $('#onboardingSlideModal').on('shown.bs.modal', function () {
+                initializeSelect2();
+            });
+
+            // Ensure Select2 fields are properly captured on form submission
+            $('form').on('submit', function () {
+                $('.select2-multiple').each(function () {
+                    var selectedValues = $(this).val();
+                    $(this).val(selectedValues).trigger('change');
+                });
+            });
+
+            // Sidebar and menu logic (if applicable)
+            const layoutMenu = document.querySelector('#layout-menu');
+            if (layoutMenu) {
+                new Menu(layoutMenu);
+            }
+
+            const layoutMenuToggle = document.querySelector('.layout-menu-toggle');
+            const layoutContainer = document.querySelector('.layout-container');
+            const overlay = document.querySelector('.layout-overlay');
+            const hamburgerIcon = document.querySelector('.menu-toggle-icon');
+            const closeIcon = document.querySelector('#close-icon');
+
+            function toggleMenu() {
+                layoutContainer.classList.toggle('layout-menu-expanded');
+                hamburgerIcon.classList.toggle('d-none');
+                closeIcon.classList.toggle('d-none');
+                if (overlay) {
+                    overlay.classList.toggle('show');
+                }
+            }
+
+            if (layoutMenuToggle) {
+                layoutMenuToggle.addEventListener('click', toggleMenu);
+            }
+
+            if (closeIcon) {
+                closeIcon.addEventListener('click', toggleMenu);
+            }
+
+            if (overlay) {
+                overlay.addEventListener('click', function () {
+                    layoutContainer.classList.remove('layout-menu-expanded');
+                    hamburgerIcon.classList.remove('d-none');
+                    closeIcon.classList.add('d-none');
+                    overlay.classList.remove('show');
+                });
+            }
+
+            // Feather Icons Initialization
+            feather.replace();
+        });
+    </script>
+    <!-- Initialize and Auto-Dismiss Toasts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Select all toasts within the flash-toast-container
+            const toastElList = [].slice.call(document.querySelectorAll('#flash-toast-container .toast'));
+            const maxVisibleToasts = 3; // Maximum number of toasts visible at once
+            let currentToasts = 0;
+            const toastQueue = [...toastElList];
+
+            function showNextToast() {
+                if (toastQueue.length === 0 || currentToasts >= maxVisibleToasts) return;
+
+                const toastEl = toastQueue.shift();
+                currentToasts++;
+
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: 5000, // 5 seconds
+                    autohide: true
+                });
+                toast.show();
+
+                // Decrement count when toast hides
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    currentToasts--;
+                    showNextToast();
+                });
+            }
+
+            // Initialize the queue
+            for (let i = 0; i < maxVisibleToasts && toastQueue.length > 0; i++) {
+                showNextToast();
+            }
+        });
+    </script>
+    {% if current_user.is_authenticated and (current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin')) %}
+    <script>
+        function updateNeedsReviewCount() {
+            fetch('/players/get_needs_review_count')
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            console.error('Response error:', text);
+                            if (response.status === 403) {
+                                console.log('User does not have the required role.');
+                                return null;
+                            }
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data) {
+                        const badge = document.getElementById('needs-review-count');
+                        const alertsContainer = document.getElementById('needs-review-alerts');
+
+                        if (badge && alertsContainer) {
+                            const count = data.count;
+                            badge.textContent = count;
+
+                            if (count > 0) {
+                                badge.classList.remove('badge-counter');
+                                badge.classList.add('badge-danger');
+                                badge.style.display = 'inline-block';
+                                alertsContainer.innerHTML = `<a class="dropdown-item d-flex align-items-center" href="/players/admin/review"><div class="mr-3"><div class="icon-circle bg-danger"><i class="fas fa-exclamation-triangle text-white"></i></div></div><div><div class="small text-gray-500">Manual Review</div><span class="font-weight-bold">${count} accounts need manual review</span></div></a>`;
+                            } else {
+                                badge.style.display = 'none';
+                                alertsContainer.innerHTML = '<p class="text-center">No new alerts</p>';
+                            }
+                        } else {
+                            console.error('Badge or alerts container not found in the DOM.');
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching needs review count:', error));
+        }
+
+        updateNeedsReviewCount();
+        setInterval(updateNeedsReviewCount, 30000);
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Remove conflicting layout classes
+            document.documentElement.classList.remove('layout-compact');
+
+            // Add 'layout-content-wide' class if not already present
+            if (!document.documentElement.classList.contains('layout-content-wide')) {
+                document.documentElement.classList.add('layout-content-wide');
+            }
+
+            // Ensure 'data-content' attribute is set to 'wide'
+            document.documentElement.setAttribute('data-content', 'wide');
+        });
+    </script>
+    {% endif %}
+
+    <!-- Custom JS for specific pages -->
+    {% block custom_js %}
+    {% endblock %}
+</body>
+</html>

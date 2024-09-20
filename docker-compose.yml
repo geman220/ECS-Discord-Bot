@@ -1,0 +1,91 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    hostname: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery-worker:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    command: celery -A app.celery:celery worker --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    command: celery -A app.celery:celery beat --loglevel=info
+    env_file:
+      - .env
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+
+  webui:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./predictions.db:/app/predictions.db
+      - ./Discord-Bot-WebUI/service-account-key.json:/app/service-account-key.json
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+      celery-beat:
+        condition: service_started
+
+  flower:
+    image: mher/flower
+    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - FLOWER_UNAUTHENTICATED_API=true  
+    depends_on:
+      redis:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started
+
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "5001:5001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: python ECS_Discord_Bot.py
+    restart: always

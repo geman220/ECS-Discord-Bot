@@ -1,0 +1,225 @@
+﻿<!-- Navbar -->
+<nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
+    <!-- Menu Toggle (Visible on smaller screens) -->
+    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+        <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+            <i class="ti ti-menu-2 ti-md" id="menu-toggle-icon"></i>
+        </a>
+    </div>
+
+    <!-- Navbar content -->
+    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+
+        <!-- Search -->
+        <div class="navbar-nav align-items-center">
+            <div class="nav-item navbar-search-wrapper mb-0">
+                <a class="nav-item nav-link search-toggler d-flex align-items-center px-0" href="javascript:void(0);">
+                    <i class="ti ti-search ti-md me-2 me-lg-4 ti-lg"></i>
+                    <span class="d-none d-md-inline-block text-muted fw-normal">Search (Ctrl+/)</span>
+                </a>
+            </div>
+        </div>
+        <!-- /Search -->
+
+        <ul class="navbar-nav flex-row align-items-center ms-auto">
+            <!-- Style Switcher -->
+            <li class="nav-item dropdown-style-switcher dropdown">
+                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown">
+                    <i class="ti ti-sun ti-md"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-styles">
+                    <li><a class="dropdown-item waves-effect active" href="javascript:void(0);" data-theme="light"><span class="align-middle"><i class="ti ti-sun ti-md me-3"></i>Light</span></a></li>
+                    <li><a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="dark"><span class="align-middle"><i class="ti ti-moon-stars ti-md me-3"></i>Dark</span></a></li>
+                    <li><a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="system"><span class="align-middle"><i class="ti ti-device-desktop-analytics ti-md me-3"></i>System</span></a></li>
+                </ul>
+            </li>
+            <!-- /Style Switcher -->
+            <!-- Quick Links
+            <li class="nav-item dropdown-shortcuts navbar-dropdown dropdown">
+                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="ti ti-layout-grid-add ti-md"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end p-0">
+                    <div class="dropdown-menu-header border-bottom">
+                        <div class="dropdown-header d-flex align-items-center py-3">
+                            <h6 class="mb-0 me-auto">Shortcuts</h6>
+                            <a href="javascript:void(0)" class="btn btn-text-secondary rounded-pill btn-icon dropdown-shortcuts-add waves-effect waves-light" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Add shortcuts" data-bs-original-title="Add shortcuts"><i class="ti ti-plus text-heading"></i></a>
+                        </div>
+                    </div>
+                    <div class="dropdown-shortcuts-list scrollable-container ps">
+                        <div class="row row-bordered overflow-visible g-0">
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-calendar ti-26px text-heading"></i></span>
+                                <a href="app-calendar.html" class="stretched-link">Calendar</a><small>Appointments</small>
+                            </div>
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-file-dollar ti-26px text-heading"></i></span>
+                                <a href="app-invoice-list.html" class="stretched-link">Invoice App</a><small>Manage Accounts</small>
+                            </div>
+                        </div>
+                        <div class="row row-bordered overflow-visible g-0">
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-user ti-26px text-heading"></i></span>
+                                <a href="app-user-list.html" class="stretched-link">User App</a><small>Manage Users</small>
+                            </div>
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-users ti-26px text-heading"></i></span>
+                                <a href="app-access-roles.html" class="stretched-link">Role Management</a><small>Permission</small>
+                            </div>
+                        </div>
+                        <div class="row row-bordered overflow-visible g-0">
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-device-desktop-analytics ti-26px text-heading"></i></span>
+                                <a href="index.html" class="stretched-link">Dashboard</a><small>User Dashboard</small>
+                            </div>
+                            <div class="dropdown-shortcuts-item col">
+                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-settings ti-26px text-heading"></i></span>
+                                <a href="pages-account-settings-account.html" class="stretched-link">Setting</a><small>Account Settings</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </li>
+            /Quick Links -->
+            <!-- Notifications -->
+            <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
+                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <span class="position-relative">
+                        <i class="ti ti-bell ti-md"></i>
+                        <span id="needs-review-count" class="badge rounded-pill bg-danger badge-dot badge-notifications border" style="display: none;"></span>
+                    </span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end p-0">
+                    <li class="dropdown-menu-header border-bottom">
+                        <div class="dropdown-header d-flex align-items-center py-3">
+                            <h6 class="mb-0 me-auto">Notification</h6>
+                            <div class="d-flex align-items-center h6 mb-0">
+                                <span id="needs-review-count" class="badge bg-label-primary me-2" style="display: none;"></span>
+                                <a href="{{ url_for('main.notifications') }}" class="btn btn-text-secondary rounded-pill btn-icon dropdown-notifications-all waves-effect waves-light" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Mark all as read" data-bs-original-title="Mark all as read">
+                                    <i class="ti ti-mail-opened text-heading"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                    <li id="needs-review-alerts" class="dropdown-notifications-list scrollable-container ps">
+                        <!-- Alerts will be injected here -->
+                        <ul class="list-group list-group-flush">
+                            {% for notification in notifications %}
+                            <li class="list-group-item list-group-item-action dropdown-notifications-item waves-effect {% if not notification.read %}bg-light{% endif %}">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="avatar">
+                                            <!-- Display custom icon based on notification type -->
+                                            <i class="{{ notification.icon }} ti-md"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="small mb-1">{{ notification.content }}</h6>
+                                        <small class="text-muted">{{ notification.created_at.strftime('%b %d, %I:%M %p') }}</small>
+                                    </div>
+                                    <div class="flex-shrink-0 dropdown-notifications-actions">
+                                        <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}" class="dropdown-notifications-read">
+                                            <span class="badge badge-dot"></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    <li class="border-top">
+                        <div class="d-grid p-4">
+                            <a class="btn btn-primary btn-sm d-flex waves-effect waves-light" href="{{ url_for('main.notifications') }}">
+                                <small class="align-middle">View all notifications</small>
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <!-- /Notifications -->
+            <!-- User Profile -->
+            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+                    <div class="avatar avatar-online">
+                        {% if current_user.is_authenticated %}
+                        {% if current_user.player %}
+                        <img src="{{ current_user.player.profile_picture_url if current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ current_user.player.name }}" class="rounded-circle">
+                        {% else %}
+                        <!-- User does not have a player profile yet -->
+                        <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" class="rounded-circle">
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if current_user.is_authenticated %}
+                    {% if current_user.player %}
+                    <li>
+                        <a class="dropdown-item mt-0 waves-effect" href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0 me-2">
+                                    <div class="avatar avatar-online">
+                                        <img src="{{ current_user.player.profile_picture_url if current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ current_user.player.name }}" class="rounded-circle">
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ current_user.player.name }}</h6>
+                                </div>
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="dropdown-divider my-1 mx-n2"></div>
+                    </li>
+                    <li>
+                        <a class="dropdown-item waves-effect" href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}">
+                            <i class="ti ti-user me-3 ti-md"></i><span class="align-middle">My Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item waves-effect" href="{{ url_for('account.settings') }}">
+                            <i class="ti ti-settings me-3 ti-md"></i><span class="align-middle">Settings</span>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="dropdown-divider my-1 mx-n2"></div>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a class="dropdown-item waves-effect" href="{{ url_for('players.create_profile') }}">
+                            <i class="ti ti-user-plus me-3 ti-md"></i><span class="align-middle">Create Player Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <div class="dropdown-divider my-1 mx-n2"></div>
+                    </li>
+                    {% endif %}
+                    <li>
+                        <form action="{{ url_for('auth.logout') }}" method="post" id="logout-form" style="display: none;">
+                            {% if form %}
+                            {{ form.hidden_tag() }} <!-- CSRF token -->
+                            {% endif %}
+                        </form>
+                        <a class="dropdown-item waves-effect" href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();">
+                            <small class="align-middle">Logout</small>
+                            <i class="ti ti-logout ms-2 ti-14px"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a class="dropdown-item waves-effect" href="{{ url_for('auth.login') }}">
+                            <i class="ti ti-login me-3 ti-md"></i><span class="align-middle">Login</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item waves-effect" href="{{ url_for('auth.register') }}">
+                            <i class="ti ti-user-plus me-3 ti-md"></i><span class="align-middle">Register</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </li>
+            <!-- /User Profile -->
+        </ul>
+    </div>
+</nav>

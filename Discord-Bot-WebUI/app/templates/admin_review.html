@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Manual Review Required</h1>
+
+    {% if players %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Players Needing Review</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in players %}
+                        <tr>
+                            <td>{{ player.name }}</td>
+                            <td>{{ player.email }}</td>
+                            <td>
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-warning btn-sm">
+                                    Review
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        No accounts need manual review at this time.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

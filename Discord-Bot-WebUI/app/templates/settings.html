@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">Account Settings</h4>
+
+    <!-- Notification Settings Card -->
+    <div class="card mb-4">
+        <h5 class="card-header">Notification Settings</h5>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('account.settings') }}">
+                {{ notification_form.hidden_tag() }}
+
+                <!-- Email Notifications -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ notification_form.email_notifications.id }}">{{ notification_form.email_notifications.label }}</label>
+                    <div class="form-check form-switch">
+                        {{ notification_form.email_notifications(class_="form-check-input", id=notification_form.email_notifications.id) }}
+                        <label class="form-check-label" for="emailNotifications">Enable</label>
+                    </div>
+                </div>
+
+                <!-- SMS Notifications -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ notification_form.sms_notifications.id }}">{{ notification_form.sms_notifications.label }}</label>
+                    <div class="form-check form-switch">
+                        {{ notification_form.sms_notifications(class_="form-check-input", id=notification_form.sms_notifications.id) }}
+                        <label class="form-check-label" for="smsNotifications">Enable</label>
+                    </div>
+                </div>
+
+                <!-- Discord Notifications -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ notification_form.discord_notifications.id }}">{{ notification_form.discord_notifications.label }}</label>
+                    <div class="form-check form-switch">
+                        {{ notification_form.discord_notifications(class_="form-check-input", id=notification_form.discord_notifications.id) }}
+                        <label class="form-check-label" for="discordNotifications">Enable</label>
+                    </div>
+                </div>
+
+                <!-- Profile Visibility -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ notification_form.profile_visibility.id }}">{{ notification_form.profile_visibility.label }}</label>
+                    {{ notification_form.profile_visibility(class_="form-select", id=notification_form.profile_visibility.id) }}
+                </div>
+
+                {{ notification_form.submit_notifications(class_="btn btn-primary") }}
+            </form>
+        </div>
+    </div>
+
+    <!-- Password Change Card -->
+    <div class="card mb-4">
+        <h5 class="card-header">Change Password</h5>
+        <div class="card-body">
+
+            <form method="POST" action="{{ url_for('account.settings') }}">
+                {{ password_form.hidden_tag() }}
+
+                <!-- Current Password -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ password_form.current_password.id }}">
+                        {{ password_form.current_password.label }}
+                    </label>
+                    {{ password_form.current_password(class_="form-control", id=password_form.current_password.id, placeholder="Enter current password") }}
+                    {% if password_form.current_password.errors %}
+                    <div class="text-danger">{{ password_form.current_password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- New Password -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ password_form.new_password.id }}">
+                        {{ password_form.new_password.label }}
+                    </label>
+                    {{ password_form.new_password(class_="form-control", id=password_form.new_password.id, placeholder="Enter new password") }}
+                    {% if password_form.new_password.errors %}
+                    <div class="text-danger">{{ password_form.new_password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Confirm New Password -->
+                <div class="mb-3">
+                    <label class="form-label" for="{{ password_form.confirm_new_password.id }}">
+                        {{ password_form.confirm_new_password.label }}
+                    </label>
+                    {{ password_form.confirm_new_password(class_="form-control", id=password_form.confirm_new_password.id, placeholder="Confirm new password") }}
+                    {% if password_form.confirm_new_password.errors %}
+                    <div class="text-danger">{{ password_form.confirm_new_password.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                {{ password_form.submit_password(class_="btn btn-primary") }}
+            </form>
+        </div>
+    </div>
+
+    <!-- Two-Factor Authentication (2FA) Card -->
+    <div class="card mb-4">
+        <h5 class="card-header">Two-Factor Authentication (2FA)</h5>
+        <div class="card-body">
+            {% if is_2fa_enabled %}
+            <p>Your account currently has Two-Factor Authentication enabled. You can disable it below.</p>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#disable2FAModal">
+                Disable 2FA
+            </button>
+            {% else %}
+            <p>For additional security, you can enable Two-Factor Authentication (2FA).</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enable2FAModal">
+                Enable 2FA
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal for enabling 2FA -->
+<div class="modal fade" id="enable2FAModal" tabindex="-1" aria-labelledby="enable2FALabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="enable2FALabel">Enable Two-Factor Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body with Steps -->
+            <div class="modal-body">
+                <div class="step-container" id="stepContainer">
+                    <!-- Step 1: Scan QR Code -->
+                    <div class="step-item active" id="step1">
+                        <h5>Step 1: Scan QR Code</h5>
+                        <p>Scan this QR code with your authenticator app (like Google Authenticator).</p>
+                        <div class="d-flex justify-content-center">
+                            <img src="{{ url_for('account.show_2fa_qr') }}" alt="QR Code" class="img-fluid" />
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Enter Verification Code -->
+                    <div class="step-item" id="step2" style="display:none;">
+                        <h5>Step 2: Enter 2FA Code</h5>
+                        <p>Enter the code from your authenticator app to verify.</p>
+                        <form id="verify2FAForm" method="POST" action="{{ url_for('account.verify_2fa') }}">
+                            {{ enable_2fa_form.hidden_tag() }}
+
+                            <!-- Error message area -->
+                            <div id="twoFaErrorMsg" class="alert alert-danger d-none"></div>
+
+                            <div class="mb-3">
+                                {{ enable_2fa_form.totp_token(class_="form-control", placeholder="Enter 2FA Code") }}
+                                {% if enable_2fa_form.totp_token.errors %}
+                                <div class="text-danger">{{ enable_2fa_form.totp_token.errors[0] }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                {{ enable_2fa_form.submit_enable_2fa(class_="btn btn-success") }}
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Step 3: Confirmation -->
+                    <div class="step-item" id="step3" style="display:none;">
+                        <h5>Step 3: Success!</h5>
+                        <p>2FA has been successfully enabled on your account.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-end">
+                <!-- "Previous" button initially hidden using d-none -->
+                <button class="btn btn-secondary d-none" id="prevStep">&lt; Previous</button>
+                <!-- "Next" button visible by default -->
+                <button class="btn btn-primary" id="nextStep">Next &gt;</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for disabling 2FA -->
+<div class="modal fade" id="disable2FAModal" tabindex="-1" aria-labelledby="disable2FALabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="disable2FALabel">Disable Two-Factor Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body for Disabling 2FA -->
+            <div class="modal-body">
+                <p>Are you sure you want to disable Two-Factor Authentication?</p>
+                <form id="disable2FAForm" method="POST" action="{{ url_for('account.settings') }}">
+                    {{ disable_2fa_form.hidden_tag() }}
+                    <div class="d-grid gap-2">
+                        {{ disable_2fa_form.submit_disable_2fa(class_="btn btn-danger") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-lg {
+        max-width: 800px; /* Make the modal wider */
+    }
+
+    .step-item {
+        padding: 20px;
+    }
+
+        /* Ensure the QR code and form are properly spaced */
+        .step-item img {
+            max-height: 400px;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize current step
+        let currentStep = 1;
+
+        // Select the modal
+        const enable2FAModal = document.getElementById('enable2FAModal');
+
+        // Ensure the modal exists
+        if (!enable2FAModal) {
+            console.error('Enable 2FA Modal not found!');
+            return;
+        }
+
+        // Select navigation buttons within the modal using getElementById for uniqueness
+        const prevStepButton = document.getElementById('prevStep');
+        const nextStepButton = document.getElementById('nextStep');
+        const stepContainer = document.getElementById('stepContainer');
+        const errorMsg = document.getElementById('twoFaErrorMsg');
+
+        // Function to display the current step
+        function showStep(step) {
+            console.log(`Showing step: ${step}`);
+            const allSteps = stepContainer.querySelectorAll('.step-item');
+            allSteps.forEach(stepItem => {
+                stepItem.style.display = 'none'; // Hide all steps
+                stepItem.classList.remove('active'); // Remove active class
+            });
+
+            const currentStepElement = document.getElementById(`step${step}`);
+            if (currentStepElement) {
+                console.log(`Displaying step${step}`);
+                currentStepElement.style.display = 'block';
+                currentStepElement.classList.add('active');
+            } else {
+                console.error(`Element with ID step${step} not found.`);
+            }
+
+            // Show/Hide navigation buttons based on the current step using Bootstrap's d-none class
+            if (step === 1) {
+                console.log('Configuring buttons for Step 1');
+                prevStepButton.classList.add('d-none'); // Hide "Previous"
+                nextStepButton.classList.remove('d-none'); // Show "Next"
+                nextStepButton.textContent = 'Next >';
+                nextStepButton.classList.remove('btn-success');
+                nextStepButton.classList.add('btn-primary');
+                nextStepButton.removeAttribute('data-bs-dismiss');
+            }
+            else if (step === 2) {
+                console.log('Configuring buttons for Step 2');
+                prevStepButton.classList.remove('d-none'); // Show "Previous"
+                nextStepButton.classList.add('d-none'); // Hide "Next"
+            }
+            else if (step === 3) {
+                console.log('Configuring buttons for Step 3');
+                prevStepButton.classList.add('d-none'); // Hide "Previous"
+                nextStepButton.classList.remove('d-none'); // Show "Close"
+                nextStepButton.textContent = 'Close';
+                nextStepButton.classList.remove('btn-primary');
+                nextStepButton.classList.add('btn-success');
+                nextStepButton.setAttribute('data-bs-dismiss', 'modal'); // Make it close the modal
+            }
+        }
+
+        // Event listener for Next button
+        nextStepButton.addEventListener('click', function () {
+            console.log('Next button clicked');
+            if (currentStep === 1) {
+                currentStep++;
+                showStep(currentStep);
+            }
+            // No action needed for Step 3 as it will close the modal
+        });
+
+        // Event listener for Previous button
+        prevStepButton.addEventListener('click', function () {
+            console.log('Previous button clicked');
+            if (currentStep > 1) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+        // Handle 2FA verification form submission
+        const verify2FAForm = document.getElementById('verify2FAForm');
+        if (verify2FAForm) {
+            verify2FAForm.addEventListener('submit', function (event) {
+                console.log('Verify 2FA form submitted');
+                event.preventDefault();  // Prevent default form submission
+
+                const formData = new FormData(this);
+
+                // Clear existing error messages
+                errorMsg.classList.add('d-none');
+                errorMsg.innerHTML = '';
+
+                // Disable the submit button to prevent multiple submissions
+                const submitButton = document.getElementById('enable2fa-submit_enable_2fa');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.value = 'Verifying...';
+                } else {
+                    console.error('Verify 2FA submit button not found!');
+                }
+
+                // Send the verification request to the server
+                fetch("{{ url_for('account.verify_2fa') }}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { throw err; });
+                        }
+                        return response.json();
+                    })  // Expect JSON response
+                    .then(data => {
+                        if (data.success) {
+                            console.log('2FA successfully enabled');
+                            currentStep = 3; // Move directly to Step 3
+                            showStep(currentStep);
+                            // Optionally, display a success toast notification
+                            showToast('Success', '2FA has been successfully enabled on your account.', 'success');
+                        } else {
+                            console.log('2FA verification failed');
+                            // Display specific error messages
+                            displayErrorMessages(data.errors);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        if (error.errors) {
+                            displayErrorMessages(error.errors);
+                        } else {
+                            displayErrorMessages({ general: "There was an error processing your request. Please try again." });
+                        }
+                    })
+                    .finally(() => {
+                        // Re-enable the submit button
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = 'Verify';
+                    });
+            });
+        } else {
+            console.error('Verification form not found!');
+        }
+
+        // Function to display error messages
+        function displayErrorMessages(errors) {
+            let messages = '';
+            for (const key in errors) {
+                if (errors.hasOwnProperty(key)) {
+                    messages += `<p>${errors[key]}</p>`;
+                }
+            }
+            errorMsg.innerHTML = messages;
+            errorMsg.classList.remove('d-none');
+        }
+
+        // Function to show toast notifications
+        function showToast(title, message, type) {
+            if (typeof Toast !== 'undefined') {
+                Toast.fire({
+                    icon: type,
+                    title: title,
+                    text: message
+                });
+            } else {
+                alert(`${title}: ${message}`);
+            }
+        }
+
+        // Event listener to reset modal when it's opened
+        enable2FAModal.addEventListener('shown.bs.modal', function () {
+            console.log('Enable 2FA Modal opened');
+            currentStep = 1;
+            showStep(currentStep);
+            // Clear any error messages
+            errorMsg.classList.add('d-none');
+            errorMsg.innerHTML = '';
+            // Reset the form
+            if (verify2FAForm) {
+                verify2FAForm.reset();
+            }
+        });
+    });
+</script>
+{% endblock %}

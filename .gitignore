@@ -16,3 +16,4 @@ env1/
 node_modules/
 *.sln
 env
+service-account-key.json

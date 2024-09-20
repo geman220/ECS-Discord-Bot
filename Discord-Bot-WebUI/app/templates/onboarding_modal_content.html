@@ -1,0 +1,234 @@
+<!-- onboarding_modal.html -->
+
+<form method="POST" class="needs-validation" novalidate>
+    {{ onboarding_form.hidden_tag() }} <!-- Only one hidden_tag for CSRF -->
+    <!-- Hidden input to identify form action -->
+    <input type="hidden" id="form_action" name="form_action" value="">
+
+    <!-- Carousel for onboarding steps -->
+    <div id="modalCarouselControls" class="carousel slide" data-bs-interval="false">
+        <!-- Carousel Inner -->
+        <div class="carousel-inner">
+            {% if not player %}
+            <!-- Step 0: For Users without a Profile -->
+            <div class="carousel-item active" data-step="0">
+                <div class="onboarding-content text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_questions_re_1fy7.svg') }}" alt="Step 0 Image" class="mb-4" style="max-width: 400px; height: auto;">
+                    <h4 class="text-primary mb-3">Welcome to the ECS!</h4>
+                    <p class="text-muted mb-4">It looks like you don't have a player profile yet. Would you like to create one?</p>
+                    <p class="text-muted mb-4"><strong>A player profile is required for ECS FC or ECS FC Pub League!</strong></p>
+                    <div class="d-flex justify-content-center mt-4">
+                        <!-- "Create Player Profile" Button inside Carousel -->
+                        <button type="button" id="createProfileCarouselButton" class="btn btn-primary me-2 waves-effect">I Need A Player Profile</button>
+                        <!-- "Skip" Button -->
+                        <button type="button" id="skipProfileButton" class="btn btn-outline-secondary waves-effect">Skip for now</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Step 1: Contact Info -->
+            <div class="carousel-item {% if player %}active{% endif %}" data-step="1">
+                <div class="onboarding-content text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" alt="Step 1 Image" class="mb-4" style="max-width: 400px; height: auto;">
+                    <h4 class="text-primary text-center mb-3">Contact Info</h4>
+                    <p class="text-muted text-center mb-4">Update your contact information to ensure we have the latest details.</p>
+
+                    <!-- Form Fields for Contact Info -->
+                    <div class="mb-3">
+                        {{ onboarding_form.name.label(class="form-label") }}
+                        {{ onboarding_form.name(class="form-control", required=True) }}
+                        {% if onboarding_form.name.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.name.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.email.label(class="form-label") }}
+                        {{ onboarding_form.email(class="form-control", required=True) }}
+                        {% if onboarding_form.email.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.email.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.phone.label(class="form-label") }}
+                        {{ onboarding_form.phone(class="form-control", required=True) }}
+                        {% if onboarding_form.phone.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.phone.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Player Profile -->
+            <div class="carousel-item" data-step="2">
+                <div class="onboarding-content text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_junior_soccer_6sop.svg') }}" alt="Step 2 Image" class="mb-4" style="max-width: 400px; height: auto;">
+                    <h4 class="text-primary text-center mb-3">Player Profile</h4>
+                    <p class="text-muted text-center mb-4">Provide details about your player preferences.</p>
+
+                    <!-- Form Fields for Player Profile -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ onboarding_form.jersey_size.label(class="form-label") }}
+                            {{ onboarding_form.jersey_size(class="form-select select2-single", required=True) }}
+                            {% if onboarding_form.jersey_size.errors %}
+                            <div class="invalid-feedback">
+                                {{ onboarding_form.jersey_size.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ onboarding_form.pronouns.label(class="form-label") }}
+                            {{ onboarding_form.pronouns(class="form-select select2-single", required=True) }}
+                            {% if onboarding_form.pronouns.errors %}
+                            <div class="invalid-feedback">
+                                {{ onboarding_form.pronouns.errors[0] }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.favorite_position.label(class="form-label") }}
+                        {{ onboarding_form.favorite_position(class="form-select select2-single", required=True) }}
+                        {% if onboarding_form.favorite_position.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.favorite_position.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.other_positions.label(class="form-label") }}
+                        {{ onboarding_form.other_positions(class="form-select select2-multiple", multiple=True) }}
+                        {% if onboarding_form.other_positions.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.other_positions.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.positions_not_to_play.label(class="form-label") }}
+                        {{ onboarding_form.positions_not_to_play(class="form-select select2-multiple", multiple=True) }}
+                        {% if onboarding_form.positions_not_to_play.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.positions_not_to_play.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.expected_weeks_available.label(class="form-label") }}
+                        {{ onboarding_form.expected_weeks_available(class="form-select select2-single") }}
+                        {% if onboarding_form.expected_weeks_available.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.expected_weeks_available.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.unavailable_dates.label(class="form-label") }}
+                        {{ onboarding_form.unavailable_dates(class="form-control") }}
+                        {% if onboarding_form.unavailable_dates.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.unavailable_dates.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        {{ onboarding_form.player_notes.label(class="form-label") }}
+                        {{ onboarding_form.player_notes(class="form-control", placeholder="Enter your notes here...", rows="4") }}
+                        {% if onboarding_form.player_notes.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.player_notes.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Discord Linking -->
+            <div class="carousel-item" data-step="3">
+                <div class="onboarding-content text-center">
+                    <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}" alt="Step 3 Image" class="mb-4" style="max-width: 400px; height: auto;">
+                    <h4 class="text-primary mb-3">Link Your Discord Account</h4>
+                    {% if player.discord_id %}
+                    <p class="text-muted mb-4"><i class="fab fa-discord text-success"></i> Your account is already linked to Discord. Thank you!</p>
+                    {% else %}
+                    <p class="text-muted mb-4">Link your Discord account to enhance your experience with ECS FC.</p>
+                    <!-- Provide link to Discord linking page -->
+                    <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary">
+                        <i class="fab fa-discord"></i> Link Discord Account
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Step 4: Notification Settings -->
+            <div class="carousel-item" data-step="4">
+                <div class="onboarding-content text-center">
+                    <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" alt="Step 4 Image" class="mb-4" style="max-width: 400px; height: auto;">
+                    <h4 class="text-primary text-center mb-3">Notification Settings</h4>
+                    <p class="text-muted text-center mb-4">Configure your notification preferences.</p>
+
+                    <!-- Email Notifications -->
+                    <div class="form-check form-switch mb-3">
+                        {{ onboarding_form.email_notifications(class="form-check-input", id="emailNotifications") }}
+                        {{ onboarding_form.email_notifications.label(class="form-check-label", for="emailNotifications") }}
+                    </div>
+                    <!-- SMS Notifications -->
+                    <div class="form-check form-switch mb-3">
+                        {{ onboarding_form.sms_notifications(class="form-check-input", id="smsNotifications") }}
+                        {{ onboarding_form.sms_notifications.label(class="form-check-label", for="smsNotifications") }}
+                    </div>
+                    <!-- Discord Notifications -->
+                    <div class="form-check form-switch mb-3">
+                        {{ onboarding_form.discord_notifications(class="form-check-input", id="discordNotifications") }}
+                        {{ onboarding_form.discord_notifications.label(class="form-check-label", for="discordNotifications") }}
+                    </div>
+                    <!-- Profile Visibility -->
+                    <div class="mb-3">
+                        {{ onboarding_form.profile_visibility.label(class="form-label") }}
+                        {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
+                        {% if onboarding_form.profile_visibility.errors %}
+                        <div class="invalid-feedback">
+                            {{ onboarding_form.profile_visibility.errors[0] }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Carousel Indicators -->
+        <div class="carousel-indicators mt-4">
+            {% if not player %}
+            <!-- Indicators for users without a profile -->
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4"></button>
+            {% else %}
+            <!-- Indicators for users with a profile -->
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" class="active"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3"></button>
+            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4"></button>
+            {% endif %}
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="d-flex justify-content-between mt-4" id="carouselControls">
+            <button class="btn btn-outline-secondary" type="button" data-bs-target="#modalCarouselControls" data-bs-slide="prev" id="previousButton">
+                <i class="ti ti-chevron-left me-2"></i> Previous
+            </button>
+            <button class="btn btn-primary" type="button" id="nextOrSaveButton" data-bs-target="#modalCarouselControls" data-bs-slide="next">
+                Next <i class="ti ti-chevron-right ms-2"></i>
+            </button>
+        </div>
+    </div>
+</form>

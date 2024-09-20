@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="row">
+    <!-- User Sidebar -->
+    <div class="col-md-4 col-12 mb-md-0 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="user-avatar-section">
+                    <div class="d-flex align-items-center flex-column">
+                        {% if player.profile_picture_url %}
+                        <img class="img-fluid rounded mb-3" src="{{ player.profile_picture_url }}" alt="Profile Picture" style="width: 120px; height: 120px;">
+                        {% else %}
+                        <img class="img-fluid rounded mb-3" src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" style="width: 120px; height: 120px;">
+                        {% endif %}
+                        <div class="user-info text-center">
+                            <h4 class="mb-0">{{ player.name }}</h4>
+                            {% if player.team %}
+                            <span class="badge bg-primary">
+                                <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white">
+                                    {{ player.team.name }}
+                                </a>
+                            </span>
+                            {% endif %}
+                            {% if is_admin or is_player %}
+                            <p class="text-muted mt-2 mb-0">{{ player.email }}</p>
+                            <p class="text-muted mb-0">{{ player.phone }}</p>
+                            <p class="text-muted mb-3">Jersey Size: {{ player.jersey_size }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column align-items-center text-center">
+                    {% if player.discord_id %}
+                    <span class="badge bg-success mt-2"><i class="fab fa-discord"></i> Linked to Discord</span>
+                    {% else %}
+                    {% if current_user.is_authenticated and current_user.id == player.user.id %}
+                    <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary mt-2">
+                        <i class="fab fa-discord"></i>  Link to Discord
+                    </a>
+                    {% endif %}
+                    {% endif %}
+                    {% if is_admin or is_player %}
+                    <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#profileImageModal">Upload Profile Picture</button>
+                    <form id="profile-picture-form" method="POST" enctype="multipart/form-data">
+                        {% if form %}
+                        {{ form.hidden_tag() }}
+                        {% endif %}
+                        <input type="hidden" id="cropped_image_data" name="cropped_image_data">
+                    </form>
+                    {% endif %}
+                </div>
+                <hr class="my-3">
+                <div class="stats-section d-flex justify-content-around text-center">
+                    <div class="season-stats">
+                        {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                        <h6 class="font-weight-bold text-primary mb-2">Season Stats ({{ season.name }})</h6>
+                        <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
+                        <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
+                        {% endif %}
+                        {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                        <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
+                        <p class="mb-2">Red Cards: {{ player.season_red_cards(season.id) }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="career-stats">
+                        {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                        <h6 class="font-weight-bold text-primary mb-2">Career Stats</h6>
+                        <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
+                        <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
+                        {% endif %}
+                        {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                        <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
+                        <p class="mb-2">Red Cards: {{ player.get_career_red_cards() }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Content -->
+    <div class="col-md-8 col-12">
+        <div class="card">
+            <div class="card-body">
+                <ul class="nav nav-pills flex-column flex-sm-row mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="account-details-tab" data-bs-toggle="pill" href="#account-details" role="tab" aria-controls="account-details" aria-selected="true"><i class="ti ti-user"></i> Account Details</a>
+                    </li>
+                    {% if is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings" role="tab" aria-controls="admin-settings" aria-selected="false"><i class="ti ti-lock"></i> Admin Settings</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="tab-content">
+                    <!-- Account Details Tab -->
+                    <div class="tab-pane fade show active" id="account-details" role="tabpanel" aria-labelledby="account-details-tab">
+                        {% if form %}
+                        <form method="POST" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="floatingName" placeholder=" " value="{{ form.name.data }}">
+                                        <label for="floatingName">{{ form.name.label.text }}</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="email" class="form-control" id="floatingEmail" placeholder=" " value="{{ form.email.data }}">
+                                        <label for="floatingEmail">{{ form.email.label.text }}</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="floatingPhone" placeholder=" " value="{{ form.phone.data }}">
+                                        <label for="floatingPhone">{{ form.phone.label.text }}</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.jersey_size.label(class="form-label") }}
+                                        {{ form.jersey_size(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.pronouns.label(class="form-label") }}
+                                        {{ form.pronouns(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.expected_weeks_available.label(class="form-label") }}
+                                        {{ form.expected_weeks_available(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.favorite_position.label(class="form-label") }}
+                                        {{ form.favorite_position(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.other_positions.label(class="form-label") }}
+                                        {{ form.other_positions(class_="form-control select2-multiple") }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.positions_not_to_play.label(class="form-label") }}
+                                        {{ form.positions_not_to_play(class_="form-control select2-multiple") }}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.frequency_play_goal.label(class="form-label") }}
+                                        {{ form.frequency_play_goal(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if is_classic_league_player %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ form.team_swap.label(class="form-label") }}
+                                        {{ form.team_swap(class_="form-control select2 form-select") }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <div class="form-group">
+                                {{ form.player_notes.label(class="form-label") }}
+                                {{ form.player_notes(class_="form-control") }}
+                            </div>
+
+                            <button type="submit" name="update_profile" class="btn btn-primary btn-block">Update Profile</button>
+                        </form>
+                        {% else %}
+                        <p class="text-muted">You do not have permission to view this profile.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Admin Settings Tab -->
+                    {% if has_permission('edit_player_stats') %}
+                    <div class="tab-pane fade" id="admin-settings" role="tabpanel" aria-labelledby="admin-settings-tab">
+                        <form method="POST">
+                            {% if form %}
+                            <div class="form-group mt-3">
+                                {{ form.notes.label(class="form-label") }}
+                                {{ form.notes(class_="form-control") }}
+                            </div>
+
+                            <div class="form-check mb-3">
+                                {{ form.is_coach(class_="form-check-input") }}
+                                {{ form.is_coach.label(class_="form-check-label") }}
+                            </div>
+                            {% endif %}
+
+                            <hr>
+                            <h6 class="font-weight-bold text-primary mb-2">Edit Stats</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {% if season_stats_form %}
+                                        {{ season_stats_form.hidden_tag() }}
+                                        {{ season_stats_form.season_goals.label(class="form-label") }}
+                                        {{ season_stats_form.season_goals(class_="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if season_stats_form %}
+                                        {{ season_stats_form.season_assists.label(class="form-label") }}
+                                        {{ season_stats_form.season_assists(class_="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if season_stats_form %}
+                                        {{ season_stats_form.season_yellow_cards.label(class="form-label") }}
+                                        {{ season_stats_form.season_yellow_cards(class_="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if season_stats_form %}
+                                        {{ season_stats_form.season_red_cards.label(class="form-label") }}
+                                        {{ season_stats_form.season_red_cards(class_="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {% if career_stats_form %}
+                                        {{ career_stats_form.hidden_tag() }}
+                                        {{ career_stats_form.career_goals.label(class="form-label") }}
+                                        {{ career_stats_form.career_goals(class_="form-control", value=player.get_career_goals()) }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if career_stats_form %}
+                                        {{ career_stats_form.career_assists.label(class="form-label") }}
+                                        {{ career_stats_form.career_assists(class_="form-control", value=player.get_career_assists()) }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if career_stats_form %}
+                                        {{ career_stats_form.career_yellow_cards.label(class="form-label") }}
+                                        {{ career_stats_form.career_yellow_cards(class_="form-control", value=player.get_career_yellow_cards()) }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="mb-3">
+                                        {% if career_stats_form %}
+                                        {{ career_stats_form.career_red_cards.label(class="form-label") }}
+                                        {{ career_stats_form.career_red_cards(class_="form-control", value=player.get_career_red_cards()) }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-secondary btn-block mt-3">Save Admin Settings</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cropper Modal -->
+<div class="modal fade" id="profileImageModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">Upload Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <div class="thumbimg">
+                        <input type="file" name="image" id="image" style="display:none;">
+                        <button type="button" onclick="document.getElementById('image').click();" class="btn btn-secondary btn-md">Select File</button>
+                        <div class="showimg d-flex justify-content-center pt-3">
+                            <div class="row imgdiv" id="imgdiv" style="display:none;">
+                                <img id="imagecan" style="max-width: 100%;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" onclick="onClickUpload()" class="btn btn-primary btn-md">Upload</button>
+                <button type="button" class="btn btn-secondary btn-md" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if player.needs_manual_review and is_admin %}
+<div class="modal fade" id="manualReviewModal" tabindex="-1" role="dialog" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manualReviewModalLabel">Manual Review Required</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This profile needs manual review as it was purchased with another order. Please review the player's name, email, and phone number.</p>
+                <p>You may need to reference the person who placed the original order.</p>
+                {% if player.linked_primary_player_id %}
+                <div class="text-center">
+                    <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}" class="btn btn-primary">View Original Order Profile</a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function () {
+        var cropper;
+
+        // Function to initialize cropper
+        function croppingimg(e, ratio) {
+            var imgsrc = URL.createObjectURL(e.target.files[0]);
+            $('#imagecan').attr("src", imgsrc);
+            $('#imgdiv').show();
+
+            var image = document.getElementById('imagecan');
+            if (cropper) {
+                cropper.destroy(); // Destroy previous cropper instance
+            }
+
+            cropper = new Cropper(image, {
+                viewMode: 3,
+                aspectRatio: ratio,
+                dragMode: 'move',
+                autoCropArea: 0.65,
+                restore: true,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+                checkOrientation: false,
+            });
+        }
+
+        // Function to handle the image upload
+        function onClickUpload() {
+            if (cropper) {
+                var croppedCanvas = cropper.getCroppedCanvas();
+                var croppedImageData = croppedCanvas.toDataURL('image/png');
+                document.getElementById('cropped_image_data').value = croppedImageData;
+                document.getElementById('profile-picture-form').submit();
+                $('#profilePicture').attr('src', croppedImageData);
+                cropper.destroy();
+                $('#imgdiv').hide();
+                $('#profileImageModal').modal('toggle');
+                $('#image').val("");
+            }
+        }
+
+        // Trigger the manual review modal if needed
+        {% if player.needs_manual_review and is_admin %}
+        $('#manualReviewModal').modal('show');
+        {% endif %}
+    });
+</script>
+{% endblock %}

@@ -1,4 +1,4 @@
-﻿# test_woocommerce_commands.py
+# test_woocommerce_commands.py
 
 import pytest
 import csv

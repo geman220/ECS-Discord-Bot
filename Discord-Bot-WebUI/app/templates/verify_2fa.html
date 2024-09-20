@@ -1,0 +1,61 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block main_content %}
+<style>
+    /* Consistent styling for 2FA verification page */
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background-color: #00539F;
+    }
+
+    .authentication-wrapper {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .authentication-inner {
+        width: 100%;
+        max-width: 400px;
+        background-color: white;
+        padding: 20px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    .waves-button-input {
+        background-color: #00539F !important;
+        color: white !important;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 16px;
+        width: 100%;
+    }
+
+        .waves-button-input:hover {
+            background-color: #004080 !important;
+        }
+</style>
+
+<div class="authentication-wrapper">
+    <div class="authentication-inner">
+        <h4 class="mb-3 text-primary">Two-Factor Authentication</h4>
+        <p class="mb-4 text-muted">Please enter the 6-digit code from your authenticator app.</p>
+        <form method="POST" action="{{ url_for('auth.verify_2fa_login') }}">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                {{ form.token(class="form-control form-control-lg", placeholder="123456") }}
+            </div>
+            <div class="d-grid gap-2">
+                <input type="submit" class="btn waves-button-input" value="Verify">
+            </div>
+        </form>
+        <!-- Removed Resend Code Link -->
+    </div>
+</div>
+{% endblock %}

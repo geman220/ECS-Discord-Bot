@@ -1,0 +1,113 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>e14a5851-a407-4fa9-b3c4-293020e4088b</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>app.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>Discord-Bot-WebUI</Name>
+    <RootNamespace>Discord-Bot-WebUI</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="app.py" />
+    <Compile Include="app\account.py" />
+    <Compile Include="app\admin_routes.py" />
+    <Compile Include="app\api_utils.py" />
+    <Compile Include="app\auth.py" />
+    <Compile Include="app\availability_api.py" />
+    <Compile Include="app\blueprints.py" />
+    <Compile Include="app\bot_admin.py" />
+    <Compile Include="app\celery.py" />
+    <Compile Include="app\db_utils.py" />
+    <Compile Include="app\decorators.py" />
+    <Compile Include="app\discord_utils.py" />
+    <Compile Include="app\draft.py" />
+    <Compile Include="app\email.py" />
+    <Compile Include="app\main.py" />
+    <Compile Include="app\match_pages.py" />
+    <Compile Include="app\players.py" />
+    <Compile Include="app\publeague.py" />
+    <Compile Include="app\scheduler.py" />
+    <Compile Include="app\schedule_routes.py" />
+    <Compile Include="app\season_routes.py" />
+    <Compile Include="app\tasks.py" />
+    <Compile Include="app\teams.py" />
+    <Compile Include="app\user_management.py" />
+    <Compile Include="app\woocommerce.py" />
+    <Compile Include="web_config.py" />
+    <Compile Include="app\forms.py" />
+    <Compile Include="app\models.py" />
+    <Compile Include="app\routes.py" />
+    <Compile Include="app\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="app\" />
+    <Folder Include="app\static\" />
+    <Folder Include="app\templates\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="app\templates\admin_dashboard.html" />
+    <Content Include="app\templates\admin_review.html" />
+    <Content Include="app\templates\approve_users.html" />
+    <Content Include="app\templates\base.html" />
+    <Content Include="app\templates\base_unauthenticated.html" />
+    <Content Include="app\templates\bot_management.html" />
+    <Content Include="app\templates\create_user.html" />
+    <Content Include="app\templates\draft_classic.html" />
+    <Content Include="app\templates\draft_premier.html" />
+    <Content Include="app\templates\edit_match.html" />
+    <Content Include="app\templates\edit_user_modal.html" />
+    <Content Include="app\templates\edit_week.html" />
+    <Content Include="app\templates\fc_admin.html" />
+    <Content Include="app\templates\forgot_password.html" />
+    <Content Include="app\templates\index.html" />
+    <Content Include="app\templates\login.html" />
+    <Content Include="app\templates\manage_ecsfc_schedule.html" />
+    <Content Include="app\templates\manage_publeague_schedule.html" />
+    <Content Include="app\templates\manage_roles.html" />
+    <Content Include="app\templates\manage_seasons.html" />
+    <Content Include="app\templates\manage_teams.html" />
+    <Content Include="app\templates\manage_users.html" />
+    <Content Include="app\templates\manage_users_partial.html" />
+    <Content Include="app\templates\matches.html" />
+    <Content Include="app\templates\navbar.html" />
+    <Content Include="app\templates\notifications.html" />
+    <Content Include="app\templates\onboarding_modal_content.html" />
+    <Content Include="app\templates\player_profile.html" />
+    <Content Include="app\templates\pub_league_schedule.html" />
+    <Content Include="app\templates\register.html" />
+    <Content Include="app\templates\reset_password.html" />
+    <Content Include="app\templates\roles.html" />
+    <Content Include="app\templates\settings.html" />
+    <Content Include="app\templates\sidebar.html" />
+    <Content Include="app\templates\teams_overview.html" />
+    <Content Include="app\templates\team_details.html" />
+    <Content Include="app\templates\verify_2fa.html" />
+    <Content Include="app\templates\verify_purchase.html" />
+    <Content Include="app\templates\view_match.html" />
+    <Content Include="app\templates\view_players.html" />
+    <Content Include="app\templates\view_standings.html" />
+    <Content Include="requirements.txt" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
