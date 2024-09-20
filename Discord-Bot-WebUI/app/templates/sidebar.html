@@ -1,0 +1,151 @@
+﻿<!-- Sidebar Menu -->
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+    <div class="app-brand demo">
+        <a href="{{ url_for('main.index') }}" class="app-brand-link">
+            <span class="app-brand-logo demo">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="logo" height="23">
+            </span>
+            <span class="app-brand-text demo menu-text fw-bold">ECS</span>
+        </a>
+
+        <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+            <!-- Hamburger icon for larger screens -->
+            <i class="ti ti-menu-2 d-none d-xl-block align-middle menu-toggle-icon"></i>
+            <!-- X icon for smaller screens -->
+            <i class="ti ti-x d-block d-xl-none ti-md align-middle" id="close-icon"></i>
+        </a>
+    </div>
+
+    <div class="menu-inner-shadow"></div>
+
+    <ul class="menu-inner py-1">
+        <!-- Dashboard -->
+        <li class="menu-item {{ 'active' if request.endpoint == 'main.index' }}">
+            <a class="menu-link" href="{{ url_for('main.index') }}">
+                <i data-feather="home" class="menu-icon"></i>
+                <div>Dashboard</div>
+            </a>
+        </li>
+
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Pub League</span>
+        </li>
+
+        <!-- Season Management -->
+        <li class="menu-item {{ 'open' if 'publeague' in request.path }}">
+            <a class="menu-link menu-toggle" href="javascript:void(0);">
+                <i data-feather="calendar" class="menu-icon"></i>
+                <div>Season Management</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ 'active' if request.endpoint == 'publeague.season.manage_seasons' }}">
+                    <a class="menu-link" href="{{ url_for('publeague.season.manage_seasons') }}">
+                        <div>Create Season</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'publeague.manage_teams' }}">
+                    <a class="menu-link" href="{{ url_for('publeague.manage_teams') }}">
+                        <div>Create Teams</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'publeague.schedule.manage_publeague_schedule' }}">
+                    <a class="menu-link" href="{{ url_for('publeague.schedule.manage_publeague_schedule', season_id=g.current_pub_league_season.id if g.current_pub_league_season else 0) }}">
+                        <div>Pub League Schedule</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'publeague.schedule.manage_ecsfc_schedule' }}">
+                    <a class="menu-link" href="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=g.current_ecs_fc_season.id if g.current_ecs_fc_season else 0) }}">
+                        <div>ECS FC Schedule</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Draft -->
+        <li class="menu-item {{ 'open' if 'draft' in request.path }}">
+            <a class="menu-link menu-toggle" href="javascript:void(0);">
+                <i data-feather="list" class="menu-icon"></i>
+                <div>Draft</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_classic' }}">
+                    <a class="menu-link" href="{{ url_for('draft.draft_classic') }}">
+                        <div>Classic Division</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_premier' }}">
+                    <a class="menu-link" href="{{ url_for('draft.draft_premier') }}">
+                        <div>Premier Division</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <!-- Standings -->
+        <li class="menu-item {{ 'active' if request.endpoint == 'teams.view_standings' }}">
+            <a class="menu-link" href="{{ url_for('teams.view_standings') }}">
+                <i data-feather="bar-chart" class="menu-icon"></i>
+                <div>Standings</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Teams Overview - Anyone Authenticated -->
+        {% if current_user.is_authenticated %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
+            <a class="menu-link" href="{{ url_for('teams.teams_overview') }}">
+                <i data-feather="users" class="menu-icon"></i>
+                <div>Teams</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Admin Section Header - Only if there are links for this section -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Discord Admin' in user_roles %}
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Admin</span>
+        </li>
+        {% endif %}
+
+        <!-- Player Database Management - Only Pub League Admin and Global Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'players' in request.path }}">
+            <a class="menu-link" href="{{ url_for('players.view_players') }}">
+                <i data-feather="database" class="menu-icon"></i>
+                <div>Player Database</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Manage Users for Global Admins Only -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'manage_users' in request.path }}">
+            <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
+                <i data-feather="user-check" class="menu-icon"></i>
+                <div>Manage Users</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- MLS Match Schedule - Only Discord Admin and Global Admin -->
+        {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'matches' in request.path }}">
+            <a class="menu-link" href="{{ url_for('bot_admin.matches') }}">
+                <i data-feather="calendar" class="menu-icon"></i>
+                <div>Sounders Schedule</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Dev Tools - Only Global Admins -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'admin' in request.path }}">
+            <a class="menu-link" href="{{ url_for('admin.admin_dashboard') }}">
+                <i data-feather="tool" class="menu-icon"></i>
+                <div>Dev Tools</div>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</aside>

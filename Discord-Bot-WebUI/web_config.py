@@ -1,0 +1,25 @@
+import os
+
+class Config:
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    WOO_CONSUMER_KEY = os.getenv('WC_KEY')
+    WOO_CONSUMER_SECRET = os.getenv('WC_SECRET')
+    SERVER_ID = os.getenv('SERVER_ID')
+    WOO_API_URL = os.getenv('WOO_API_URL')
+    DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID')
+    DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
+    TEAM_ID = os.getenv('TEAM_ID')
+    SESSION_TYPE = 'filesystem'
+    SESSION_PERMANENT = False
+    SESSION_USE_SIGNER = True
+    SESSION_FILE_DIR = os.getenv('SESSION_FILE_DIR')
+    SESSION_FILE_THRESHOLD = int(os.getenv('SESSION_FILE_THRESHOLD'))
+    BOT_API_URL = os.getenv('BOT_API_URL')
+    CELERY_BROKER_URL =  os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+    CELERY_RESULT_BACKEND =  os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+    TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+    TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+    TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+    GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')

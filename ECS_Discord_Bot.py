@@ -4,18 +4,27 @@ import discord
 import asyncio
 import os
 import logging
+import requests
 from discord import app_commands
 from discord.ext import commands
 from database import get_db_connection, PREDICTIONS_DB_PATH
 from common import bot_token, server_id
+import threading
+import uvicorn
+from bot_rest_api import app, bot_ready 
+from shared_states import bot_ready
 
-logging.basicConfig(
-    filename='bot.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
+if __name__ == "__main__":
+    logging.basicConfig(
+        filename='bot.log',
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+# Initialize bot instance
 intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
@@ -23,6 +32,18 @@ intents.messages = True
 intents.guilds = True
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+# Shared FastAPI app setup
+from bot_rest_api import app, set_bot_instance  # Import the FastAPI app and setter function
+
+def get_match_id_from_message(message_id):
+    api_url = f"http://webui:5000/api/get_match_id_from_message/{message_id}"
+    response = requests.get(api_url)
+
+    if response.status_code == 200:
+        data = response.json()
+        return data.get('match_id')
+    return None
 
 def get_thread_id_for_match(match_id):
     with get_db_connection(PREDICTIONS_DB_PATH) as conn:
@@ -55,9 +76,18 @@ async def load_cogs():
 
 @bot.event
 async def on_ready():
+    global bot_ready
+
     from automations import periodic_check
     from match_utils import post_live_updates
     print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+
+    guild = bot.get_guild(server_id)
+    if guild:
+        print(f"Connected to guild: {guild.name} (ID: {guild.id})")
+    else:
+        print(f"Guild with ID {server_id} not found.")
+    
     await load_cogs()
 
     await asyncio.sleep(5)
@@ -82,7 +112,12 @@ async def on_ready():
         if channel:
             await channel.send("Update complete. Bot restarted successfully.")
         os.remove("/root/update_channel_id.txt")
-        
+
+    # Perform additional setup if necessary
+    bot_ready.set()
+    set_bot_instance(bot)  # Pass the initialized bot instance to FastAPI
+    print("Bot is fully ready.")
+
     asyncio.create_task(periodic_check(bot))
 
 @bot.event
@@ -109,4 +144,106 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             "An error occurred while processing the command.", ephemeral=True
         )
 
-bot.run(bot_token)
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.bot:
+        return
+    
+    channel = reaction.message.channel
+    message_id = reaction.message.id
+    emoji = reaction.emoji
+
+    print(f"Reaction received: {emoji} by user: {user.id} in channel: {channel.id}")
+
+    # Remove any other reactions by the user on the same message
+    for react in reaction.message.reactions:
+        if react.emoji != emoji:
+            async for reacting_user in react.users():
+                if reacting_user == user:
+                    await react.remove(user)
+
+    # Get the match ID associated with this message
+    match_id = get_match_id_from_message(message_id)
+    if not match_id:
+        print(f"No match found for message ID: {message_id}")
+        return
+    
+    # Map the emoji to an availability status
+    status = None
+    if emoji == '\U0001F44D':
+        status = 'yes'
+    elif emoji == '\U0001F44E':
+        status = 'no'
+    elif emoji == '\U0001F937':
+        status = 'maybe'
+
+    if status:
+        # Send a POST request to your web UI's API to update availability
+        api_url = f"{WEBUI_API_URL}/update_availability"
+        payload = {
+            'match_id': match_id,
+            'discord_id': str(user.id),  # Ensure the ID is a string
+            'response': status
+        }
+
+        response = requests.post(api_url, json=payload)
+        
+        if response.status_code == 200:
+            print("Availability updated successfully.")
+        else:
+            print(f"Failed to update availability: {response.text}")
+
+@bot.event
+async def on_reaction_remove(reaction, user):
+    if user.bot:
+        return
+    
+    message_id = reaction.message.id
+
+    print(f"Reaction removed by user: {user.id}")
+
+    # Get the match ID associated with this message
+    match_id = get_match_id_from_message(message_id)
+    if not match_id:
+        print(f"No match found for message ID: {message_id}")
+        return
+
+    # Check if the user has any other reactions left on this message
+    has_other_reactions = False
+    for react in reaction.message.reactions:
+        async for reacting_user in react.users():
+            if reacting_user == user:
+                has_other_reactions = True
+                break
+        if has_other_reactions:
+            break
+
+    # If the user has no other reactions, set their status to "no_response"
+    if not has_other_reactions:
+        api_url = f"{WEBUI_API_URL}/update_availability"
+        payload = {
+            'match_id': match_id,
+            'discord_id': str(user.id),
+            'response': 'no_response'
+        }
+
+        response = requests.post(api_url, json=payload)
+        
+        if response.status_code == 200:
+            print("Availability updated successfully to no response.")
+        else:
+            print(f"Failed to update availability: {response.text}")
+
+async def start_fastapi():
+    config = uvicorn.Config(app, host="0.0.0.0", port=5001, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
+
+async def main():
+    await asyncio.gather(
+        start_fastapi(),
+        bot.start(bot_token)
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())

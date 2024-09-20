@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <div class="team-header text-center bg-primary text-white py-4 mb-4">
+        <h1 class="display-4 font-weight-bold">{{ team.name }}</h1>
+        <p class="lead">Division: {{ league.name }}</p>
+        <p class="lead">Season: {{ season.name }}</p>
+    </div>
+
+    <div class="row">
+        <!-- Team Members -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Team Members</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        {% for player in players %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="d-flex align-items-center">
+                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle border" style="width: 50px; height: 50px; margin-right: 15px;">
+                                <span>{{ player.name }}</span>
+                                {% if player.is_coach %}
+                                <span class="badge bg-secondary ms-2">Coach</span>
+                                {% endif %}
+                            </a>
+                            <div>
+                                {% if current_user.has_permission('view_player_goals_assists') %}
+                                <span class="badge bg-light text-dark"><i class="fas fa-futbol"></i> {{ player.season_goals(season.id) }}</span>
+                                <span class="badge bg-light text-dark"><i class="fas fa-bullseye"></i> {{ player.season_assists(season.id) }}</span>
+                                {% endif %}
+                                {% if current_user.has_permission('view_player_cards') %}
+                                <span class="badge bg-light text-dark"><i class="fas fa-square" style="color: yellow;"></i> {{ player.season_yellow_cards(season.id) }}</span>
+                                <span class="badge bg-light text-dark"><i class="fas fa-square" style="color: red;"></i> {{ player.season_red_cards(season.id) }}</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-center text-muted">No players have been assigned to this team yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Schedule List -->
+        <div class="col-lg-6">
+            <div class="accordion shadow mb-4" id="scheduleAccordion">
+                {% for date, matches in schedule.items() %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-{{ loop.index }}">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}" aria-expanded="true" aria-controls="collapse-{{ loop.index }}">
+                            {{ date.strftime('%B %d, %Y') }}
+                        </button>
+                    </h2>
+                    <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading-{{ loop.index }}" data-bs-parent="#scheduleAccordion">
+                        <div class="accordion-body">
+                            <ul class="list-group">
+                                {% for match in matches %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    {% if current_user.has_permission('view_match_page') %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}">
+                                        <span>{{ match.time.strftime('%I:%M %p') }} vs {{ match.opponent_name }} at {{ match.location }} field</span>
+                                    </a>
+                                    {% else %}
+                                    <span>{{ match.time.strftime('%I:%M %p') }} vs {{ match.opponent_name }} at {{ match.location }} field</span>
+                                    {% endif %}
+
+                                    <div>
+                                        {% if current_user.has_permission('view_game_results') %}
+                                        <span class="badge bg-{{ match.result_class }}">{{ match.your_team_score }} - {{ match.opponent_score }}</span>
+                                        {% endif %}
+
+                                        {% if current_user.has_permission('view_match_reporting') %}
+                                        <button class="btn btn-sm {{ 'btn-secondary' if match.reported else 'btn-primary' }} float-end" data-bs-toggle="modal" data-bs-target="#reportMatchModal-{{ match.id }}">
+                                            {{ 'Edit Match' if match.reported else 'Report Match' }}
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </li>
+
+                                <!-- Report Match Modal -->
+                                <div class="modal fade" id="reportMatchModal-{{ match.id }}" tabindex="-1" role="dialog" aria-labelledby="reportMatchModalLabel-{{ match.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-lg" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title" id="reportMatchModalLabel-{{ match.id }}">
+                                                    <i class="ti ti-pencil-alt"></i> {{ 'Edit' if match.reported else 'Report' }} Match: {{ match.home_team_name }} vs {{ match.away_team_name }}
+                                                </h5>
+                                                <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('teams.report_match', match_id=match.id) }}">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="redirect_url" value="{{ request.url }}">
+
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <!-- Score Input -->
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="home_team_score-{{ match.id }}" class="form-label">{{ match.home_team_name }} Score</label>
+                                                                <input type="number" class="form-control" name="home_team_score" id="home_team_score-{{ match.id }}" value="{{ match.home_team_score }}" required>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="away_team_score-{{ match.id }}" class="form-label">{{ match.away_team_name }} Score</label>
+                                                                <input type="number" class="form-control" name="away_team_score" id="away_team_score-{{ match.id }}" value="{{ match.away_team_score }}" required>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Goal Scorers -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label">Goal Scorers</label>
+                                                        <div class="card p-3 border-1">
+                                                            <div id="goalScorersContainer-{{ match.id }}" class="mb-2"></div>
+                                                            <button class="btn btn-primary btn-sm" type="button" onclick="addGoalScorer('{{ match.id }}')">
+                                                                <i class="ti ti-plus"></i> Add Goal Scorer
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Assist Providers -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label">Assist Providers</label>
+                                                        <div class="card p-3 border-1">
+                                                            <div id="assistProvidersContainer-{{ match.id }}" class="mb-2"></div>
+                                                            <button class="btn btn-primary btn-sm" type="button" onclick="addAssistProvider('{{ match.id }}')">
+                                                                <i class="ti ti-plus"></i> Add Assist Provider
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Yellow Cards -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label">Yellow Cards</label>
+                                                        <div class="card p-3 border-1">
+                                                            <div id="yellowCardsContainer-{{ match.id }}" class="mb-2"></div>
+                                                            <button class="btn btn-warning btn-sm" type="button" onclick="addYellowCard('{{ match.id }}')">
+                                                                <i class="ti ti-plus"></i> Add Yellow Card
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Red Cards -->
+                                                    <div class="mb-4">
+                                                        <label class="form-label">Red Cards</label>
+                                                        <div class="card p-3 border-1">
+                                                            <div id="redCardsContainer-{{ match.id }}" class="mb-2"></div>
+                                                            <button class="btn btn-danger btn-sm" type="button" onclick="addRedCard('{{ match.id }}')">
+                                                                <i class="ti ti-plus"></i> Add Red Card
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Match Notes -->
+                                                    <div class="mb-4">
+                                                        <label for="notes-{{ match.id }}" class="form-label">Match Notes</label>
+                                                        <textarea class="form-control" name="notes" id="notes-{{ match.id }}" rows="3">{{ match.notes }}</textarea>
+                                                    </div>
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" class="btn btn-primary">{{ 'Save Changes' if match.reported else 'Submit Report' }}</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if schedule|length == 0 %}
+                <p class="text-center text-muted my-3">No matches have been scheduled for this team yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    // Set team names and player options for each match
+    {% for date, matches in schedule.items() %}
+        {% for match in matches %}
+            window.homeTeamName_{{ match.id }} = "{{ match.home_team_name|escape }}";
+            window.awayTeamName_{{ match.id }} = "{{ match.away_team_name|escape }}";
+
+            window.homeTeamPlayersOptions_{{ match.id }} = `
+                {% for player in match.home_players %}
+                    <option value="{{ player.id }}">{{ player.name|escape }}</option>
+                {% endfor %}
+            `;
+
+            window.awayTeamPlayersOptions_{{ match.id }} = `
+                {% for player in match.away_players %}
+                    <option value="{{ player.id }}">{{ player.name|escape }}</option>
+                {% endfor %}
+            `;
+        {% endfor %}
+    {% endfor %}
+
+    // Functions to add dynamic fields for match reporting
+    function addGoalScorer(matchId) {
+        var container = document.getElementById('goalScorersContainer-' + matchId);
+        var newEntry = document.createElement('div');
+        newEntry.classList.add('input-group', 'mb-2');
+
+        // Retrieve the correct player options
+        var playerOptions = `
+        <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
+            ${window['homeTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        <optgroup label="Away Team: ${window['awayTeamName_' + matchId]}">
+            ${window['awayTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        `;
+
+        newEntry.innerHTML = `
+        <select class="form-select" name="goal_scorers[]" required>
+            <option value="" selected>Select a player</option>
+            ${playerOptions}
+        </select>
+        <input type="number" class="form-control" name="goal_minutes[]" placeholder="Minute (optional)">
+        <button class="btn btn-danger remove-entry" type="button">&times;</button>
+        `;
+        container.appendChild(newEntry);
+    }
+
+    function addAssistProvider(matchId) {
+        var container = document.getElementById('assistProvidersContainer-' + matchId);
+        var newEntry = document.createElement('div');
+        newEntry.classList.add('input-group', 'mb-2');
+
+        // Retrieve the correct player options
+        var playerOptions = `
+        <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
+            ${window['homeTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        <optgroup label="Away Team: ${window['awayTeamName_' + matchId]}">
+            ${window['awayTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        `;
+
+        newEntry.innerHTML = `
+        <select class="form-select" name="assist_providers[]" required>
+            <option value="" selected>Select a player</option>
+            ${playerOptions}
+        </select>
+        <input type="number" class="form-control" name="assist_minutes[]" placeholder="Minute (optional)">
+        <button class="btn btn-danger remove-entry" type="button">&times;</button>
+        `;
+        container.appendChild(newEntry);
+    }
+
+    function addYellowCard(matchId) {
+        var container = document.getElementById('yellowCardsContainer-' + matchId);
+        var newEntry = document.createElement('div');
+        newEntry.classList.add('input-group', 'mb-2');
+
+        // Retrieve the correct player options
+        var playerOptions = `
+        <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
+            ${window['homeTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        <optgroup label="Away Team: ${window['awayTeamName_' + matchId]}">
+            ${window['awayTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        `;
+
+        newEntry.innerHTML = `
+        <select class="form-select" name="yellow_cards[]" required>
+            <option value="" selected>Select a player</option>
+            ${playerOptions}
+        </select>
+        <input type="number" class="form-control" name="yellow_card_minutes[]" placeholder="Minute (optional)">
+        <button class="btn btn-danger remove-entry" type="button">&times;</button>
+        `;
+        container.appendChild(newEntry);
+    }
+
+    function addRedCard(matchId) {
+        var container = document.getElementById('redCardsContainer-' + matchId);
+        var newEntry = document.createElement('div');
+        newEntry.classList.add('input-group', 'mb-2');
+
+        // Retrieve the correct player options
+        var playerOptions = `
+        <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
+            ${window['homeTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        <optgroup label="Away Team: ${window['awayTeamName_' + matchId]}">
+            ${window['awayTeamPlayersOptions_' + matchId]}
+        </optgroup>
+        `;
+
+        newEntry.innerHTML = `
+        <select class="form-select" name="red_cards[]" required>
+            <option value="" selected>Select a player</option>
+            ${playerOptions}
+        </select>
+        <input type="number" class="form-control" name="red_card_minutes[]" placeholder="Minute (optional)">
+        <button class="btn btn-danger remove-entry" type="button">&times;</button>
+        `;
+        container.appendChild(newEntry);
+    }
+
+    // Attach event listeners to dynamically remove input fields
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('remove-entry')) {
+            e.target.closest('.input-group').remove();
+        }
+    });
+</script>
+{% endblock %}

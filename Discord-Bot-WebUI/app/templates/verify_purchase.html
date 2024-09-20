@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container">
+    <h2>Verify Your Purchase</h2>
+    <p>Please provide your WooCommerce order ID to verify your purchase and link your Discord account.</p>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label for="order_id" class="form-label">WooCommerce Order ID</label>
+            <input type="text" class="form-control" id="order_id" name="order_id" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Verify</button>
+    </form>
+</div>
+{% endblock %}

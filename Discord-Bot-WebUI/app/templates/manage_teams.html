@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="content-header row">
+        <div class="content-header-left col-md-9 col-12 mb-2">
+            <h2 class="content-header-title float-start mb-0">Manage Teams for Pub League {{ pub_league_season.name }} Season and ECS FC {{ ecs_fc_season.name }} Season</h2>
+        </div>
+    </div>
+
+    <div class="content-body">
+        <!-- Pub League Teams Section -->
+        <div class="card mb-4">
+            <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Pub League Teams</h6>
+                <div class="mt-2 mt-md-0">
+                    <button class="btn btn-sm btn-success me-1" data-bs-toggle="modal" data-bs-target="#addClassicTeamModal">Add Classic Team</button>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addPremierTeamModal">Add Premier Team</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="font-weight-bold">Classic League</h5>
+                        {{ render_team_list(pub_league_season.leagues, 'Classic') }}
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="font-weight-bold">Premier League</h5>
+                        {{ render_team_list(pub_league_season.leagues, 'Premier') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ECS FC Teams Section -->
+        <div class="card mb-4">
+            <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">ECS FC Teams</h6>
+                <div class="mt-2 mt-md-0">
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addEcsfcTeamModal">Add Team</button>
+                </div>
+            </div>
+            <div class="card-body">
+                {{ render_team_list(ecs_fc_season.leagues, 'ECS FC') }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for Adding Teams -->
+{{ render_add_team_modal('Classic', 'Pub League', 'addClassicTeamModal', 'Add Team to Classic League') }}
+{{ render_add_team_modal('Premier', 'Pub League', 'addPremierTeamModal', 'Add Team to Premier League') }}
+{{ render_add_team_modal('ECS FC', 'ECS FC', 'addEcsfcTeamModal', 'Add Team to ECS FC') }}
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle form submission with a spinner
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function () {
+                const spinner = this.querySelector('.spinner-border');
+                if (spinner) spinner.style.display = 'inline-block';
+                this.querySelector('button[type="submit"]').disabled = true;
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% macro render_team_list(leagues, league_name) %}
+<ul class="list-group">
+    {% for league in leagues %}
+    {% if league.name == league_name %}
+    {% for team in league.teams %}
+    <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-center">
+        {{ team.name }}
+        <div class="mt-2 mt-md-0">
+            <button class="btn btn-sm btn-info me-1 mb-2 mb-md-0" data-bs-toggle="modal" data-bs-target="#editTeamModal-{{ team.id }}" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" data-league-name="{{ league.name }}">Edit</button>
+            <form method="POST" action="{{ url_for('publeague.delete_team', league_name=league.name, team_name=team.name) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+        </div>
+    </li>
+
+    <!-- Edit Team Modal -->
+    <div class="modal fade" id="editTeamModal-{{ team.id }}" tabindex="-1" role="dialog" aria-labelledby="editTeamModalLabel-{{ team.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTeamModalLabel-{{ team.id }}">Edit Team: {{ team.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('publeague.edit_team', league_name=league.name, team_name=team.name) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit_team_name_{{ team.id }}" class="form-label">Team Name</label>
+                            <input type="text" class="form-control" id="edit_team_name_{{ team.id }}" name="team_name" value="{{ team.name }}" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro render_add_team_modal(league_name, league_type, modal_id, modal_title) %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" role="dialog" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal_id }}Label">{{ modal_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('publeague.manage_teams') }}" id="{{ modal_id }}Form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="league_type" value="{{ league_type }}">
+                <input type="hidden" name="league_name" value="{{ league_name }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="{{ league_name|lower }}_team_name" class="form-label">Team Name</label>
+                        <input type="text" class="form-control" id="{{ league_name|lower }}_team_name" name="team_name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="{{ modal_id }}Spinner" class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display:none;"></span>
+                        Add Team
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}

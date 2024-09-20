@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <!-- Available Players Section -->
+        <div class="col-lg-8">
+            <h3 class="h3 mb-3 text-gray-800">Available Players (<span id="available-players-count">{{ available_players | length }}</span>)</h3>
+
+            <!-- Search Input Field -->
+            <input type="text" id="search-player" class="form-control mb-3" placeholder="Search for a player...">
+
+            <!-- Player Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Goals</th>
+                            <th>Assists</th>
+                            <th>Yellow Cards</th>
+                            <th>Red Cards</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="available-players">
+                        {% for player in available_players %}
+                        <tr id="player-{{ player.id }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="player-photo rounded-circle">
+                                    <div class="ml-3">
+                                        <h5 class="mb-0 player-name">{{ player.name }}</h5>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ player.get_career_goals() }}</td>
+                            <td>{{ player.get_career_assists() }}</td>
+                            <td>{{ player.get_career_yellow_cards() }}</td>
+                            <td>{{ player.get_career_red_cards() }}</td>
+                            <td>
+                                <button class="btn btn-outline-warning btn-sm" onclick="viewProfile('{{ player.id }}')">More Info</button>
+                                <button class="btn btn-outline-success btn-sm" onclick="openDraftModal('{{ player.id }}', '{{ player.name }}')">Draft</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Teams Section -->
+        <div class="col-lg-4">
+            <h3 class="h3 mb-3 text-gray-800">Teams</h3>
+            <div class="accordion" id="teamsAccordion">
+                {% for team in teams %}
+                {% if team.name != "Practice" %}
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between" id="heading{{ team.id }}">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ team.id }}" aria-expanded="true" aria-controls="collapse{{ team.id }}">
+                                {{ team.name }}
+                            </button>
+                        </h5>
+                        <ul class="list-unstyled avatar-group d-flex align-items-center m-0">
+                            {% for player in drafted_players_by_team[team.id] %}
+                            <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top" class="avatar avatar-xs pull-up" title="{{ player.name }}">
+                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle">
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div id="collapse{{ team.id }}" class="collapse" aria-labelledby="heading{{ team.id }}" data-bs-parent="#teamsAccordion">
+                        <div class="card-body">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Player</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drafted-players-{{ team.id }}">
+                                    {% for player in drafted_players_by_team[team.id] %}
+                                    <tr id="drafted-player-{{ player.id }}">
+                                        <td class="d-flex align-items-center">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="player-photo-small mr-2">
+                                            <a href="#" class="player-name-link" onclick="viewProfile('{{ player.id }}')">{{ player.name }}</a>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-outline-warning btn-sm" onclick="removePlayer('{{ player.id }}', '{{ team.id }}')">
+                                                <i class="fas fa-undo-alt"></i> Release
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Draft Modal -->
+<div class="modal fade" id="draftModal" tabindex="-1" aria-labelledby="draftModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="draftModalLabel">Draft Player</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Draft <span id="draft-player-name" class="fw-bold"></span> to which team?</p>
+                <select id="team-select" class="form-select">
+                    {% for team in teams %}
+                    {% if team.name != "Practice" %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="draftPlayer()">Draft Player</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Profile Modal -->
+<div class="modal fade" id="playerProfileModal" tabindex="-1" aria-labelledby="playerProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="playerProfileModalLabel">Player Profile</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="playerProfileContent" class="text-center">
+                    <!-- Profile content will be dynamically loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom styles for draft page -->
+<style>
+    .avatar-group {
+        display: flex;
+        flex-wrap: wrap; /* Allows avatars to wrap into rows */
+        justify-content: flex-end; /* Aligns avatars to the right for better alignment with the team name */
+        gap: 2px; /* Space between avatars */
+        max-width: calc(100% - 120px); /* Restricts the width to allow space for the team name */
+        margin-left: auto; /* Pushes the avatars group to the right of the team name */
+    }
+
+    .avatar-group .avatar {
+        flex: 0 0 auto; /* Prevent shrinking */
+        width: 28px; /* Slightly smaller for better fit */
+        height: 28px;
+        margin-bottom: 2px;
+    }
+
+    .avatar-group .avatar img {
+        border-radius: 50%; /* Circular avatars */
+        width: 100%;
+        height: 100%;
+    }
+
+    .player-photo {
+        width: 40px; /* Reduced to 40px for better responsiveness */
+        height: 40px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin-right: 15px;
+    }
+
+    .player-photo-small {
+        width: 30px; /* Smaller size for collapsed views or tighter spaces */
+        height: 30px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+
+    .team-logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+
+    .profile-image {
+        width: 100px; /* Adjusted for better fit in the modal */
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin: 0 auto;
+    }
+
+    /* General responsive table styling */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    /* Responsive table for smaller screens */
+    @media (max-width: 1024px) {
+        .table th, .table td {
+            font-size: 0.875rem; /* Smaller text for better fit */
+            padding: 0.5rem;
+        }
+
+        .card-header h5 {
+            font-size: 1rem; /* Adjust header size in team cards */
+        }
+
+        .card-body {
+            padding: 0.5rem; /* Reduce padding for better use of space */
+        }
+
+        .btn {
+            padding: 0.25rem 0.5rem; /* Make buttons smaller */
+            font-size: 0.875rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    var selectedPlayerId = null;
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+    // Search players
+    document.getElementById('search-player').addEventListener('keyup', function () {
+        var searchQuery = this.value.toLowerCase();
+        var players = document.querySelectorAll('#available-players tr');
+
+        players.forEach(function (player) {
+            var playerName = player.querySelector('.player-name').textContent.toLowerCase();
+            player.style.display = playerName.includes(searchQuery) ? 'table-row' : 'none';
+        });
+
+        updateAvailablePlayersCount();
+    });
+
+    function updateAvailablePlayersCount() {
+        var visiblePlayers = document.querySelectorAll('#available-players tr');
+        var count = 0;
+        visiblePlayers.forEach(function (player) {
+            if (player.style.display !== 'none') count++;
+        });
+        document.getElementById('available-players-count').textContent = count;
+    }
+
+    // Open Draft Modal
+    function openDraftModal(playerId, playerName) {
+        selectedPlayerId = playerId;
+        document.getElementById('draft-player-name').textContent = playerName;
+        $('#draftModal').modal('show');
+    }
+
+    // Draft Player
+    function draftPlayer() {
+        var teamId = document.getElementById('team-select').value;
+        socket.emit('draft_player', { 'player_id': selectedPlayerId, 'team_id': teamId });
+        $('#draftModal').modal('hide');
+    }
+
+    // Handle player drafted event
+    socket.on('player_drafted', function (data) {
+        var playerElement = document.getElementById('player-' + data.player_id);
+        if (playerElement) playerElement.remove();
+
+        addPlayerToTeam(data.team_id, data.player_id, data.profile_picture_url, data.player_name);
+        updateTeamAvatarGroup(data.team_id, data.player_id, data.profile_picture_url, data.player_name);
+
+        sortPlayersAlphabetically();
+        updateAvailablePlayersCount();
+    });
+
+    function addPlayerToTeam(teamId, playerId, profilePictureUrl, playerName) {
+        var draftedPlayerElement = document.createElement('tr');
+        draftedPlayerElement.id = 'drafted-player-' + playerId;
+        draftedPlayerElement.innerHTML = `
+            <td class="d-flex align-items-center">
+                <img src="${profilePictureUrl || '/static/img/default_player.png'}" alt="${playerName}" class="player-photo-small mr-2">
+                <a href="#" class="player-name-link" onclick="viewProfile('${playerId}')">${playerName}</a>
+            </td>
+            <td>
+                <button class="btn btn-outline-warning btn-sm" onclick="removePlayer('${playerId}', '${teamId}')">
+                    <i class="fas fa-undo-alt"></i> Release
+                </button>
+            </td>`;
+        var teamPlayersList = document.getElementById('drafted-players-' + teamId);
+        if (teamPlayersList) teamPlayersList.appendChild(draftedPlayerElement);
+    }
+
+    function updateTeamAvatarGroup(teamId, playerId, profilePictureUrl, playerName) {
+        var teamAvatarList = $('#heading' + teamId + ' .avatar-group');
+        var avatar = `
+            <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top" class="avatar avatar-xs pull-up" title="${playerName}" data-player-id="${playerId}">
+                <img src="${profilePictureUrl || '/static/img/default_player.png'}" alt="${playerName}" class="rounded-circle">
+            </li>`;
+        teamAvatarList.append(avatar);
+
+        // Reinitialize tooltips after dynamic content update
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    }
+
+    // Remove Player
+    function removePlayer(playerId, teamId) {
+        socket.emit('remove_player', { 'player_id': playerId, 'team_id': teamId });
+    }
+
+    // Handle player removed event
+    socket.on('player_removed', function (data) {
+        var draftedPlayerElement = document.getElementById('drafted-player-' + data.player_id);
+        if (draftedPlayerElement) draftedPlayerElement.remove();
+
+        removePlayerFromTeamAvatarGroup(data.team_id, data.player_id);
+
+        var playerRow = document.createElement('tr');
+        playerRow.id = 'player-' + data.player_id;
+        playerRow.innerHTML = `
+        <td>
+            <div class="d-flex align-items-center">
+                <img src="${data.profile_picture_url || '/static/img/default_player.png'}" alt="${data.player_name}" class="rounded-circle" width="40" height="40">
+                <div class="ml-3">
+                    <h5 class="mb-0 player-name">${data.player_name}</h5>
+                </div>
+            </div>
+        </td>
+        <td>${data.goals || 0}</td>
+        <td>${data.assists || 0}</td>
+        <td>${data.yellow_cards || 0}</td>
+        <td>${data.red_cards || 0}</td>
+        <td>
+            <button class="btn btn-outline-warning btn-sm" onclick="viewProfile('${data.player_id}')">More Info</button>
+            <button class="btn btn-outline-success btn-sm" onclick="openDraftModal('${data.player_id}', '${data.player_name}')">Draft</button>
+        </td>`;
+
+        document.querySelector('#available-players').appendChild(playerRow);
+
+        // Sort the players alphabetically
+        sortPlayersAlphabetically();
+
+        // Update the available players count
+        updateAvailablePlayersCount();
+    });
+
+    function removePlayerFromTeamAvatarGroup(teamId, playerId) {
+        var teamAvatarList = $('#heading' + teamId + ' .avatar-group');
+        teamAvatarList.find(`[data-player-id="${playerId}"]`).remove();
+
+        // Reinitialize tooltips after dynamic content update
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    }
+
+    function sortPlayersAlphabetically() {
+        var availablePlayersList = document.querySelector('#available-players');
+        var players = Array.from(availablePlayersList.getElementsByTagName('tr'));
+
+        players.sort(function (a, b) {
+            var nameA = a.querySelector('.player-name').textContent.toUpperCase();
+            var nameB = b.querySelector('.player-name').textContent.toUpperCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // Clear the list and append the sorted players
+        availablePlayersList.innerHTML = '';
+        players.forEach(function (player) {
+            availablePlayersList.appendChild(player);
+        });
+    }
+
+    // View Profile
+    function viewProfile(playerId) {
+        $.ajax({
+            url: '/players/api/player_profile/' + playerId,
+            method: 'GET',
+            success: function (data) {
+                $('#playerProfileContent').html(`
+                    <img src="${data.profile_picture_url || '/static/img/default_player.png'}" class="profile-image mb-3" alt="${data.name}">
+                    <h5 class="text-center">${data.name}</h5>
+                    <p><strong>Goals:</strong> ${data.goals || 0}</p>
+                    <p><strong>Assists:</strong> ${data.assists || 0}</p>
+                    <p><strong>Yellow Cards:</strong> ${data.yellow_cards || 0}</p>
+                    <p><strong>Red Cards:</strong> ${data.red_cards || 0}</p>
+                    <p><strong>Favorite Position:</strong> ${data.favorite_position || 'Not specified'}</p>
+                    <p><strong>Other Positions Enjoyed:</strong> ${data.other_positions || 'Not specified'}</p>
+                    <p><strong>Goal Frequency:</strong> ${data.goal_frequency || 'Not specified'}</p>
+                    <p><strong>Positions to Avoid:</strong> ${data.positions_to_avoid || 'Not specified'}</p>
+                    <p><strong>Expected Availability (Weeks):</strong> ${data.expected_availability || 'Not specified'}</p>
+                `);
+                $('#playerProfileModal').modal('show');
+            },
+            error: function () {
+                alert('Failed to fetch player profile.');
+            }
+        });
+    }
+</script>
+{% endblock %}

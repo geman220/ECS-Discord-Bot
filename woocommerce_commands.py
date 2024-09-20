@@ -1,4 +1,4 @@
-﻿# woocommerce_commands.py
+# woocommerce_commands.py
 
 import discord
 from discord import app_commands

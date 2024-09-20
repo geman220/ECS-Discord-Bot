@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Match Details</h1>
+
+    <div class="row">
+        <!-- Home Team -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}">{{ match.home_team.name }}</a> (Home)
+                    </h6>
+                    {% if current_user.has_permission('view_team_record') %}
+                    <p class="mb-0">Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">Roster:</h5>
+                    <div class="row no-gutters">
+                        {% for player in match.home_team.players %}
+                        <div class="col-6 col-md-4 col-lg-3 mb-3 d-flex flex-column align-items-center">
+                            <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="rounded-circle mb-2" alt="{{ player.name }}" style="width: 50px; height: 50px;">
+                            <div class="text-center">
+                                <h6><a href="{{ url_for('players.player_profile', player_id=player.id) }}">{{ player.name }}</a></h6>
+                                {% if current_user.has_permission('view_player_goals_assists') %}
+                                <div class="d-flex justify-content-center">
+                                    <div class="mr-2">
+                                        <i class="fas fa-futbol text-primary"></i> {{ player.goals | length }}
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-hands-helping text-primary"></i> {{ player.assists | length }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if current_user.has_permission('view_rsvps') %}
+                                <div>
+                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                    {% if availability %}
+                                    {% if availability.response == 'yes' %}
+                                    <i class="fas fa-check-circle text-success"></i> Yes
+                                    {% elif availability.response == 'no' %}
+                                    <i class="fas fa-times-circle text-danger"></i> No
+                                    {% elif availability.response == 'maybe' %}
+                                    <i class="fas fa-question-circle text-warning"></i> Maybe
+                                    {% endif %}
+                                    {% else %}
+                                    <i class="fas fa-minus-circle text-secondary"></i> No Response
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Match Info -->
+        <div class="col-lg-2 mb-4 d-flex align-items-center">
+            <div class="card shadow w-100">
+                <div class="card-header py-3 text-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Match Info</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-alt text-primary"></i>
+                        <span class="ml-2"><strong>Date:</strong> {{ match.date }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-clock text-primary"></i>
+                        <span class="ml-2"><strong>Time:</strong> {{ match.time }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-map-marker-alt text-primary"></i>
+                        <span class="ml-2"><strong>Location:</strong> {{ match.location }}</span>
+                    </div>
+                    {% if current_user.has_permission('view_game_results') %}
+                    <div class="mb-3">
+                        <i class="fas fa-futbol text-primary"></i>
+                        <span class="ml-2"><strong>Score:</strong> {{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <i class="fas fa-sticky-note text-primary"></i>
+                        <span class="ml-2"><strong>Notes:</strong> {{ match.notes or 'No additional notes' }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Away Team -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}">{{ match.away_team.name }}</a> (Away)
+                    </h6>
+                    {% if current_user.has_permission('view_team_record') %}
+                    <p class="mb-0">Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}</p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">Roster:</h5>
+                    <div class="row no-gutters">
+                        {% for player in match.away_team.players %}
+                        <div class="col-6 col-md-4 col-lg-3 mb-3 d-flex flex-column align-items-center">
+                            <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="rounded-circle mb-2" alt="{{ player.name }}" style="width: 50px; height: 50px;">
+                            <div class="text-center">
+                                <h6><a href="{{ url_for('players.player_profile', player_id=player.id) }}">{{ player.name }}</a></h6>
+                                {% if current_user.has_permission('view_player_goals_assists') %}
+                                <div class="d-flex justify-content-center">
+                                    <div class="mr-2">
+                                        <i class="fas fa-futbol text-primary"></i> {{ player.goals | length }}
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-hands-helping text-primary"></i> {{ player.assists | length }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                {% if current_user.has_permission('view_rsvps') %}
+                                <div>
+                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                    {% if availability %}
+                                    {% if availability.response == 'yes' %}
+                                    <i class="fas fa-check-circle text-success"></i> Yes
+                                    {% elif availability.response == 'no' %}
+                                    <i class="fas fa-times-circle text-danger"></i> No
+                                    {% elif availability.response == 'maybe' %}
+                                    <i class="fas fa-question-circle text-warning"></i> Maybe
+                                    {% endif %}
+                                    {% else %}
+                                    <i class="fas fa-minus-circle text-secondary"></i> No Response
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

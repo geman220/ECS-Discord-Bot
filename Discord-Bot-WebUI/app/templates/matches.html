@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="row">
+    <!-- Manage Upcoming Matches -->
+    <div class="col-lg-12">
+        <div class="card shadow mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="m-0 fw-bold">Manage Upcoming Matches</h6>
+                <div class="dropdown">
+                    <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                        <li>
+                            <a class="dropdown-item" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                                <i class="fas fa-plus me-1"></i> Add a Match
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="clearAllMatches()">
+                                <i class="fas fa-trash-alt me-1"></i> Clear Matches
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-hover table-borderless align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Opponent</th>
+                            <th>Date</th>
+                            <th>Competition</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr id="row-{{ loop.index0 }}" data-match-id="{{ match.match_id }}">
+                            <td>
+                                <span class="fw-bold" id="opponent-{{ loop.index0 }}">{{ match.opponent }}</span>
+                            </td>
+                            <td>
+                                <span id="date-{{ loop.index0 }}">{{ match.formatted_date }}</span>
+                            </td>
+                            <td>
+                                <span id="competition-{{ loop.index0 }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
+                            </td>
+                            <td class="text-center" id="actions-{{ loop.index0 }}">
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ loop.index0 }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index0 }}">
+                                        <li>
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow({{ loop.index0 }})">
+                                                <i class="fas fa-edit me-1"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ url_for('bot_admin.remove_mls_match', match_index=loop.index0) }}', {{ loop.index0 }})">
+                                                <i class="fas fa-trash-alt me-1"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match Modal -->
+<div class="modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMatchModalLabel">Add New Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{{ url_for('bot_admin.add_mls_match') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date:</label>
+                        <input type="text" id="date" name="date" class="form-control flatpickr" placeholder="Select Date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="competition" class="form-label">Competition:</label>
+                        <select id="competition" name="competition" class="form-select">
+                            {% for name, value in competition_mappings.items() %}
+                            <option value="{{ name }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Add Match</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    const competitionMappings = {
+        "MLS": "usa.1",
+        "US Open Cup": "usa.open",
+        "FIFA Club World Cup": "fifa.cwc",
+        "Concacaf": "concacaf.league"
+    };
+
+    const inverseCompetitionMappings = Object.fromEntries(
+        Object.entries(competitionMappings).map(([key, value]) => [value, key])
+    );
+
+    function editRow(index) {
+        const dateCell = document.getElementById(`date-${index}`);
+        const competitionCell = document.getElementById(`competition-${index}`);
+
+        // Save current values for cancellation
+        dateCell.setAttribute('data-original-value', dateCell.textContent);
+        competitionCell.setAttribute('data-original-value', competitionCell.textContent);
+
+        // Replace date text with input field using Flatpickr
+        dateCell.innerHTML = `<input type="text" id="edit-date-${index}" class="form-control flatpickr" value="${dateCell.textContent.trim()}">`;
+        flatpickr(`#edit-date-${index}`, {
+            dateFormat: "Y-m-d",
+        });
+
+        // Create a dropdown for competition
+        let selectHtml = `<select class="form-select" id="edit-competition-${index}">`;
+        for (const [friendlyName, actualValue] of Object.entries(competitionMappings)) {
+            const selected = competitionCell.textContent.trim() === friendlyName ? 'selected' : '';
+            selectHtml += `<option value="${friendlyName}" ${selected}>${friendlyName}</option>`;
+        }
+        selectHtml += '</select>';
+
+        // Replace competition cell with dropdown
+        competitionCell.innerHTML = selectHtml;
+
+        // Set save and cancel buttons visibility
+        const actionsCell = document.getElementById(`actions-${index}`);
+        actionsCell.innerHTML = `
+        <button type="button" class="btn btn-sm btn-success" onclick="saveRow(${index})"><i class="fas fa-save"></i> Save</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit(${index})"><i class="fas fa-times"></i> Cancel</button>
+    `;
+    }
+
+    function saveRow(index) {
+        const dateValue = document.getElementById(`edit-date-${index}`).value.trim();
+        const competitionValue = document.getElementById(`edit-competition-${index}`).value.trim();
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        const matchId = document.getElementById(`row-${index}`).getAttribute('data-match-id'); // Use data-match-id
+
+        if (!dateValue || !competitionValue) {
+            alert('Date and Competition fields cannot be empty.');
+            return;
+        }
+
+        const url = `/bot/admin/update_match/${matchId}`; // Use match_id instead of index
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                date: dateValue,
+                competition: competitionValue
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the date cell with the new value and format it
+                    const newFormattedDate = formatDate(dateValue);  // This function should format the date as needed
+                    document.getElementById(`date-${index}`).textContent = newFormattedDate;
+
+                    // Update the competition cell with the new competition
+                    const newCompetitionText = inverseCompetitionMappings[competitionValue] || competitionValue;
+                    document.getElementById(`competition-${index}`).textContent = newCompetitionText;
+
+                    resetActionButtons(index);
+                } else {
+                    alert('Failed to save changes.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    // Helper function to format the date string
+    function formatDate(dateString) {
+        const dateObj = new Date(dateString);
+
+        // Adjust the date by adding 25 hours
+        dateObj.setHours(dateObj.getHours() + 25);
+
+        const options = {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        };
+
+        return dateObj.toLocaleString('en-US', options).replace(',', '');
+    }
+
+    function cancelEdit(index) {
+        const dateCell = document.getElementById(`date-${index}`);
+        const competitionCell = document.getElementById(`competition-${index}`);
+
+        // Revert to original values
+        dateCell.textContent = dateCell.getAttribute('data-original-value');
+        competitionCell.textContent = competitionCell.getAttribute('data-original-value');
+
+        // Restore actions to default
+        resetActionButtons(index);
+    }
+
+    function resetActionButtons(index) {
+        const actionsCell = document.getElementById(`actions-${index}`);
+        actionsCell.innerHTML = `
+            <div class="dropdown">
+                <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton${index}" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton${index}">
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0);" onclick="editRow(${index})">
+                            <i class="fas fa-edit me-1"></i> Edit
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('/bot/admin/remove_match/${index}', ${index})">
+                            <i class="fas fa-trash-alt me-1"></i> Delete
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        `;
+    }
+
+    function removeMatch(url, index) {
+        if (confirm('Are you sure you want to remove this match?')) {
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value; // Get the CSRF token
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken // Include CSRF token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the row from the table without reloading the page
+                    document.getElementById(`row-${index}`).remove();
+                } else {
+                    alert('Failed to remove the match.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    }
+
+    function clearAllMatches() {
+        if (confirm('Are you sure you want to clear all matches? This action cannot be undone.')) {
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+            fetch('{{ url_for("bot_admin.clear_all_mls_matches") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Reload the page to reflect the cleared matches
+                } else {
+                    alert('Failed to clear matches.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    }
+
+    // Initialize Flatpickr for the Add Match Form
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr('.flatpickr', {
+            dateFormat: "Y-m-d H:i",
+        });
+    });
+</script>
+{% endblock %}

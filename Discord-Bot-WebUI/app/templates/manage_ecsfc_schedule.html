@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <div class="content-header row">
+        <div class="content-header-left col-12 mb-2">
+            <h2 class="content-header-title mb-0">ECS FC Management</h2>
+        </div>
+    </div>
+
+    <div class="content-body">
+        <!-- Tabbed Interface for Leagues -->
+        <ul class="nav nav-tabs" id="leagueTabs" role="tablist">
+            {% for league in leagues %}
+            <li class="nav-item">
+                <a class="nav-link {% if loop.first %}active{% endif %}" id="{{ league.name }}-tab" data-bs-toggle="tab" href="#{{ league.name }}" role="tab" aria-controls="{{ league.name }}" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">{{ league.name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content mt-4" id="leagueTabsContent">
+            {% for league in leagues %}
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ league.name }}" role="tabpanel" aria-labelledby="{{ league.name }}-tab">
+                <!-- Bulk Match Creation Form -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">Bulk Match Creation for {{ league.name }}</h6>
+                        <button class="btn btn-primary" id="generateForm-{{ league.name }}">Generate Input Form</button>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" id="bulkCreationForm-{{ league.name }}" action="{{ url_for('publeague.schedule.bulk_create_ecsfc_matches', season_id=season.id, league_name=league.name) }}">
+                            {{ form_hidden_fields() }}
+                            <div class="row g-3">
+                                {{ form_input_group("Total Weeks", "number", "total_weeks", "11", league.name) }}
+                                {{ form_input_group("Matches per Week", "number", "matches_per_week", "8", league.name) }}
+                                {{ form_input_group("Start Time", "time", "start_time", "", league.name) }}
+                                {{ form_input_group("Fun Week (No Matches)", "number", "fun_week", "9", league.name) }}
+                                {{ form_input_group("TST Week (No Matches)", "number", "tst_week", "11", league.name) }}
+                                {{ form_select_group("Default Location", "location", ["North", "South"], league.name) }}
+                            </div>
+                        </form>
+                        <button type="button" class="btn btn-secondary mt-2" data-bs-toggle="modal" data-bs-target="#addWeekModal" data-league-name="{{ league.name }}">Add Single Week</button>
+                    </div>
+                </div>
+
+                <!-- Detailed Input Form for Bulk Matches -->
+                <div id="detailedInputForm-{{ league.name }}"></div>
+
+                <!-- Current Schedule Display -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Current Schedule for {{ league.name }}</h6>
+                    </div>
+                    <div class="card-body">
+                        {% if schedule[league.name] %}
+                        <div class="row g-2">
+                            {% for week, data in schedule[league.name].items() %}
+                            {{ render_week_card(week, data, season.id, league.name) }}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No matches scheduled yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Week Modal -->
+{{ render_add_week_modal() }}
+
+<!-- Edit Match Modal -->
+{{ render_edit_match_modal() }}
+
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Mobile-first design: Small screen styles */
+    .content-header-title {
+        font-size: 1.25rem;
+    }
+
+    .card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    @media (min-width: 576px) {
+        /* Styles for small screens (>=576px) */
+        .content-header-title {
+            font-size: 1.5rem;
+        }
+
+        .card {
+            padding: 1.25rem;
+        }
+    }
+
+    @media (min-width: 768px) {
+        /* Styles for medium screens (>=768px) */
+        .content-header-title {
+            font-size: 1.75rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+    }
+
+    @media (min-width: 992px) {
+        /* Styles for large screens (>=992px) */
+        .content-header-title {
+            font-size: 2rem;
+        }
+
+        .card {
+            padding: 1.5rem;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        /* Styles for extra large screens (>=1200px) */
+        .content-header-title {
+            font-size: 2.25rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            font-size: 1.125rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const leagues = {{ leagues | tojson | safe }};
+        leagues.forEach(league => {
+            document.getElementById(`generateForm-${league.name}`).addEventListener('click', function () {
+                handleGenerateForm(league.name);
+            });
+        });
+    });
+
+    function handleGenerateForm(leagueName) {
+        const totalWeeks = document.getElementById(`total_weeks-${leagueName}`).value;
+        const matchesPerWeek = document.getElementById(`matches_per_week-${leagueName}`).value;
+        const funWeek = document.getElementById(`fun_week-${leagueName}`).value;
+        const tstWeek = document.getElementById(`tst_week-${leagueName}`).value;
+        const startTimeStr = document.getElementById(`start_time-${leagueName}`).value;
+        const location = document.getElementById(`location-${leagueName}`).value;
+
+        if (!totalWeeks || !matchesPerWeek || !startTimeStr) {
+            alert("Total Weeks, Matches Per Week, and Start Time are required!");
+            return;
+        }
+
+        const league = leagues.find(l => l.name === leagueName);
+        const detailedForm = generateDetailedInputForm(totalWeeks, matchesPerWeek, funWeek, tstWeek, startTimeStr, location, league.teams, leagueName);
+        document.getElementById(`detailedInputForm-${leagueName}`).innerHTML = detailedForm;
+    }
+
+    function generateDetailedInputForm(totalWeeks, matchesPerWeek, funWeek, tstWeek, startTimeStr, location, teams, leagueName) {
+        const csrfToken = "{{ csrf_token() }}";
+        let formHTML = `<form method="POST" action="/ecsfc/bulk_create_matches/${season_id}/${leagueName}"><input type="hidden" name="csrf_token" value="${csrfToken}"><div class="row g-3">`;
+
+        for (let week = 1; week <= totalWeeks; week++) {
+            let weekDetails = week == funWeek ? 'Fun Week' : week == tstWeek ? 'TST Week' : `Week ${week}`;
+            formHTML += `<div class="col-lg-4 col-md-6 col-sm-12"><div class="card"><div class="card-header"><h6 class="m-0 font-weight-bold text-primary">${weekDetails}</h6></div><div class="card-body">`;
+
+            if (week == funWeek || week == tstWeek) {
+                formHTML += `<p>No matches scheduled this week.</p></div></div></div>`;
+            } else {
+                formHTML += `<div class="row g-2 mb-2"><label>Date</label><input type="date" class="form-control" name="date_week${week}" required>`;
+                for (let match = 1; match <= matchesPerWeek; match++) {
+                    formHTML += generateMatchInput(week, match, teams, startTimeStr, location);
+                }
+                formHTML += `</div></div></div></div>`;
+            }
+        }
+
+        formHTML += `</div><button type="submit" class="btn btn-success mt-3">Save Matches</button></form>`;
+        return formHTML;
+    }
+
+    function generateMatchInput(week, match, teams, startTimeStr, location) {
+        return `<div class="col-12"><div class="row align-items-center">
+            <div class="col-auto"><select class="form-select" name="teamA_week${week}_match${match}" required>${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}</select></div>
+            <div class="col-auto"><select class="form-select" name="teamB_week${week}_match${match}" required>${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}</select></div>
+            <div class="col-auto"><input type="time" class="form-control" name="time_week${week}_match${match}" value="${startTimeStr}" required></div>
+            <div class="col-auto"><select class="form-select" name="location_week${week}_match${match}" required><option value="North" ${location === 'North' ? 'selected' : ''}>North</option><option value="South" ${location === 'South' ? 'selected' : ''}>South</option></select></div>
+        </div></div>`;
+    }
+
+    $('#addWeekModal').on('show.bs.modal', function (event) {
+        const button = $(event.relatedTarget);
+        const leagueName = button.data('league-name');
+        const modal = $(this);
+        modal.find('#modal_league_name').val(leagueName);
+
+        const league = {{ leagues | tojson | safe }}.find(l => l.name === leagueName);
+        const teamASelect = modal.find('#teamA');
+        const teamBSelect = modal.find('#teamB');
+        teamASelect.empty();
+        teamBSelect.empty();
+
+        league.teams.forEach(function (team) {
+            const option = `<option value="${team.name}">${team.name}</option>`;
+            teamASelect.append(option);
+            teamBSelect.append(option);
+        });
+    });
+
+    function loadMatchData(matchId, teamA, teamB, time, location, date, leagueName) {
+        const formattedDate = new Date(date).toISOString().split('T')[0];
+        const formattedTime = time.replace(/(\d+):(\d+) (AM|PM)/, (match, hour, minute, period) => {
+            if (period === "PM" && hour < 12) hour = +hour + 12;
+            if (period === "AM" && hour === "12") hour = "00";
+            return `${hour}:${minute}`;
+        });
+
+        const league = {{ leagues | tojson | safe }}.find(l => l.name === leagueName);
+        const teamASelect = document.getElementById('edit_team_a');
+        const teamBSelect = document.getElementById('edit_team_b');
+
+        teamASelect.innerHTML = league.teams.map(team => `<option value="${team.name}" ${team.name === teamA ? 'selected' : ''}>${team.name}</option>`).join('');
+        teamBSelect.innerHTML = league.teams.map(team => `<option value="${team.name}" ${team.name === teamB ? 'selected' : ''}>${team.name}</option>`).join('');
+
+        document.getElementById('edit_time').value = formattedTime;
+        document.getElementById('edit_location').value = location;
+        document.getElementById('edit_date').value = formattedDate;
+        document.querySelector('#editMatchModal form').action = `/ecsfc/edit_match/${matchId}`;
+    }
+</script>
+{% endblock %}
+
+{% macro form_hidden_fields() %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% endmacro %}
+
+{% macro form_input_group(label, type, name, defaultValue, leagueName) %}
+<div class="col-12 col-sm-6 col-md-3">
+    <label for="{{ name }}-{{ leagueName }}">{{ label }}</label>
+    <input type="{{ type }}" class="form-control mb-2" id="{{ name }}-{{ leagueName }}" name="{{ name }}" value="{{ defaultValue }}" required>
+</div>
+{% endmacro %}
+
+{% macro form_select_group(label, name, options, leagueName) %}
+<div class="col-12 col-sm-6 col-md-3">
+    <label for="{{ name }}-{{ leagueName }}">{{ label }}</label>
+    <select class="form-control mb-2" id="{{ name }}-{{ leagueName }}" name="{{ name }}">
+        {% for option in options %}
+        <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{% macro render_week_card(week, data, season_id, league_name) %}
+<div class="col-12 col-md-6 col-lg-4 mb-4">
+    <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Week {{ week }} - {{ data.date }}</h6>
+            <form method="POST" action="{{ url_for('ecsfc.schedule.delete_week', league_type='ecsfc', season_id=season_id, week_number=week) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete Week</button>
+            </form>
+        </div>
+        <div class="card-body">
+            {% set sorted_matches = data.matches | sort(attribute='time') %}
+            {% set sorted_matches = sorted_matches | sort(attribute='location', reverse=false) %}
+            {% for match in sorted_matches %}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <p class="mb-0">{{ match.team_a }} vs {{ match.team_b }}</p>
+                <div class="d-flex align-items-center">
+                    <p class="mb-0 text-muted text-right">{{ match.time }} - {{ match.location }}</p>
+                    <button class="btn btn-warning btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#editMatchModal" onclick="loadMatchData({{ match.match_id }}, '{{ match.team_a }}', '{{ match.team_b }}', '{{ match.time }}', '{{ match.location }}', '{{ match.date }}', '{{ league_name }}')">Edit</button>
+                    <form action="{{ url_for('ecsfc.schedule.delete_match', match_id=match.match_id) }}" method="POST" class="ms-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_add_week_modal() %}
+<div class="modal fade" id="addWeekModal" tabindex="-1" role="dialog" aria-labelledby="addWeekModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addWeekModalLabel">Add New Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season.id) }}">
+                <input type="hidden" name="action" value="add">
+                <div class="modal-body">
+                    {{ form_hidden_fields() }}
+                    <input type="hidden" id="modal_league_name" name="league_name" value="">
+                    <div class="form-group mb-3">
+                        <label for="week">Week Number</label>
+                        <input type="number" class="form-control" id="week" name="week" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="date">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="teamA">Team A</label>
+                        <select class="form-select" id="teamA" name="teamA" required></select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="teamB">Team B</label>
+                        <select class="form-select" id="teamB" name="teamB" required></select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="time">Time</label>
+                        <input type="time" class="form-control" id="time" name="time" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="location">Location</label>
+                        <select class="form-select" id="location" name="location" required>
+                            <option value="North">North</option>
+                            <option value="South">South</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Add Week</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_edit_match_modal() %}
+<div class="modal fade" id="editMatchModal" tabindex="-1" role="dialog" aria-labelledby="editMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="#">
+                {{ form_hidden_fields() }}
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label for="edit_team_a">Team A</label>
+                        <select class="form-select" id="edit_team_a" name="teamA" required></select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="edit_team_b">Team B</label>
+                        <select class="form-select" id="edit_team_b" name="teamB" required></select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="edit_time">Time</label>
+                        <input type="time" class="form-control" id="edit_time" name="time" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="edit_location">Location</label>
+                        <select class="form-select" id="edit_location" name="location" required>
+                            <option value="North">North</option>
+                            <option value="South">South</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="edit_date" name="date">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Edit Match for {{ season.name }} - {{ league_name }} League</h1>
+</div>
+
+<form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}">
+    <!-- Correct way to include CSRF token -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="form-group">
+        <label for="date">Date</label>
+        <input type="date" class="form-control" id="date" name="date" value="{{ match.date }}" required>
+    </div>
+    <div class="form-group">
+        <label for="time">Time</label>
+        <input type="time" class="form-control" id="time" name="time" value="{{ match.time }}" required>
+    </div>
+    <div class="form-group">
+        <label for="teamA">Team A</label>
+        <select class="form-control" id="teamA" name="teamA">
+            {% for team in teams %}
+            <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="teamB">Team B</label>
+        <select class="form-control" id="teamB" name="teamB">
+            {% for team in teams %}
+            <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="location">Location</label>
+        <select class="form-control" id="location" name="location">
+            <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+            <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+        </select>
+    </div>
+    <div class="d-flex justify-content-between">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <!-- Back Button -->
+        <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}" class="btn btn-secondary ml-2">Back</a>
+    </div>
+</form>
+{% endblock %}

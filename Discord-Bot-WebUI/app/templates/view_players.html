@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-fluid">
+    <!-- Page Heading -->
+    <h1 class="h3 mb-4 text-gray-800">Player List</h1>
+
+    <!-- Search Form -->
+    <form method="POST" action="{{ url_for('players.view_players') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="input-group mb-4">
+            <input type="text" class="form-control" name="search" placeholder="Search by name, email, phone, etc." value="{{ search_term }}">
+            <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Search</button>
+            <button class="btn btn-secondary" type="button" onclick="clearSearch()"><i class="fa fa-times"></i> Clear</button>
+        </div>
+    </form>
+
+    <div class="row">
+        <!-- Classic League Players Table -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fa-solid fa-users"></i> Classic League Players
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered" id="classicPlayersTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Jersey Size</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in classic_players.items %}
+                                <tr>
+                                    <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-primary">{{ player.name }}</a></td>
+                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.phone }}</td>
+                                    <td>{{ player.jersey_size }}</td>
+                                    <td>
+                                        <span class="badge {{ 'badge-success' if player.is_current_player else 'badge-secondary' }}">
+                                            {{ 'Current Player' if player.is_current_player else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Showing {{ classic_players.page }} of {{ classic_players.pages }} pages</span>
+                        <nav aria-label="Classic players pagination">
+                            {{ classic_players.links }}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Premier League Players Table -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fa-solid fa-users"></i> Premier League Players
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered" id="premierPlayersTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Jersey Size</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in premier_players.items %}
+                                <tr>
+                                    <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-success">{{ player.name }}</a></td>
+                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.phone }}</td>
+                                    <td>{{ player.jersey_size }}</td>
+                                    <td>
+                                        <span class="badge {{ 'badge-success' if player.is_current_player else 'badge-secondary' }}">
+                                            {{ 'Current Player' if player.is_current_player else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Showing {{ premier_players.page }} of {{ premier_players.pages }} pages</span>
+                        <nav aria-label="Premier players pagination">
+                            {{ premier_players.links }}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function clearSearch() {
+        // Redirect to the same page without the search term
+        window.location.href = "{{ url_for('players.view_players') }}";
+    }
+</script>
+
+{% endblock %}
