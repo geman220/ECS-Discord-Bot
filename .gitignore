@@ -17,3 +17,5 @@ node_modules/
 *.sln
 env
 service-account-key.json
+Discord-Bot-WebUI/migrations/
+Discord-Bot-WebUI/app/static/img/uploads/
