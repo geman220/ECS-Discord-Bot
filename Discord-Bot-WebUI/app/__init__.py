@@ -68,7 +68,7 @@ def create_app():
     @app.context_processor
     def inject_form():
         from app.forms import EmptyForm  # Import inside the function
-        return dict(form=EmptyForm())
+        return dict(empty_form=EmptyForm())  # Use 'empty_form' to avoid conflicts
 
     @app.context_processor
     def inject_permissions():

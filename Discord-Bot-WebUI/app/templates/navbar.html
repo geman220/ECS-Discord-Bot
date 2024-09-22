@@ -197,7 +197,7 @@
                     <li>
                         <form action="{{ url_for('auth.logout') }}" method="post" id="logout-form" style="display: none;">
                             {% if form %}
-                            {{ form.hidden_tag() }} <!-- CSRF token -->
+                            {{ empty_form.hidden_tag() }} <!-- CSRF token -->
                             {% endif %}
                         </form>
                         <a class="dropdown-item waves-effect" href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();">

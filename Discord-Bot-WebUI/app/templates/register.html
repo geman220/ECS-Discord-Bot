@@ -42,7 +42,7 @@
                                     <!-- Hidden Traditional Registration Form -->
                                     <div id="email-register-form" class="collapse mt-3">
                                         <form class="user" method="POST" action="{{ url_for('auth.register') }}">
-                                            {{ form.hidden_tag() }}
+                                            {{ empty_form.hidden_tag() }}
                                             <div class="form-group row">
                                                 <div class="col-sm-6 mb-3 mb-sm-0">
                                                     {{ form.username.label(class="small text-gray-900") }}

@@ -72,7 +72,7 @@
 
                 <!-- Email Login Form -->
                 <form method="POST" action="{{ url_for('auth.login') }}" id="email-login-form" style="display: none;">
-                    {{ form.hidden_tag() }}
+                    {{ empty_form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email(class="form-control form-control-lg", placeholder="Enter Email Address...") }}
                     </div>

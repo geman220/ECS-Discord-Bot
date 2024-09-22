@@ -3,14 +3,14 @@ version: '3.9'
 services:
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
     hostname: redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - web
 
   celery-worker:
     build:
@@ -24,6 +24,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - web
 
   celery-beat:
     build:
@@ -39,13 +41,13 @@ services:
         condition: service_healthy
       celery-worker:
         condition: service_started
+    networks:
+      - web
 
   webui:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
-    ports:
-      - "5000:5000"
     env_file:
       - .env
     volumes:
@@ -53,6 +55,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./predictions.db:/app/predictions.db
       - ./Discord-Bot-WebUI/service-account-key.json:/app/service-account-key.json
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.rule=Host(`portal.ecsfc.com`)"  # Replace with your domain
+      - "traefik.http.routers.webui.entrypoints=web"
+      - "traefik.http.routers.webui-secure.entrypoints=websecure"
+      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
+      - "traefik.http.routers.webui-secure.tls=true"
+      - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
     depends_on:
       redis:
         condition: service_healthy
@@ -60,19 +70,29 @@ services:
         condition: service_started
       celery-beat:
         condition: service_started
+    networks:
+      - web
 
   flower:
     image: mher/flower
     command: celery --broker=redis://redis:6379/0 flower --port=5555
-    ports:
-      - "5555:5555"
     environment:
-      - FLOWER_UNAUTHENTICATED_API=true  
+      - FLOWER_UNAUTHENTICATED_API=true
     depends_on:
       redis:
         condition: service_healthy
       celery-worker:
         condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.flower.rule=Host(`flower.ecsfc.com`)"  # If you want to expose Flower
+      - "traefik.http.routers.flower.entrypoints=web"
+      - "traefik.http.routers.flower-secure.entrypoints=websecure"
+      - "traefik.http.routers.flower-secure.rule=Host(`flower.ecsfc.com`)"
+      - "traefik.http.routers.flower-secure.tls=true"
+      - "traefik.http.routers.flower-secure.tls.certresolver=myresolver"
+    networks:
+      - web
 
   discord-bot:
     build:
@@ -82,10 +102,13 @@ services:
       - .env
     volumes:
       - .:/app
-    ports:
-      - "5001:5001"
     depends_on:
       redis:
         condition: service_healthy
     command: python ECS_Discord_Bot.py
-    restart: always
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

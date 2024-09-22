@@ -55,9 +55,12 @@
   <ItemGroup>
     <Folder Include="app\" />
     <Folder Include="app\static\" />
+    <Folder Include="app\static\custom_js\" />
     <Folder Include="app\templates\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="app\static\custom_js\report_match.js" />
+    <Content Include="app\static\custom_js\tour.js" />
     <Content Include="app\templates\admin_dashboard.html" />
     <Content Include="app\templates\admin_review.html" />
     <Content Include="app\templates\approve_users.html" />
@@ -88,6 +91,7 @@
     <Content Include="app\templates\player_profile.html" />
     <Content Include="app\templates\pub_league_schedule.html" />
     <Content Include="app\templates\register.html" />
+    <Content Include="app\templates\report_match_modal.html" />
     <Content Include="app\templates\reset_password.html" />
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\settings.html" />
@@ -99,6 +103,7 @@
     <Content Include="app\templates\view_match.html" />
     <Content Include="app\templates\view_players.html" />
     <Content Include="app\templates\view_standings.html" />
+    <Content Include="app\templates\_report_edit_match_modal.html" />
     <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
