@@ -1,52 +1,59 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from collections import defaultdict
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload, selectinload
+from sqlalchemy.exc import SQLAlchemyError
 from app import db
-from app.models import Team, Player, Schedule, League, Season, Goal, Assist, YellowCard, RedCard, Match, Standings
-from flask_login import login_required
+from app.models import Team, Player, Schedule, League, Season, Match, Standings, PlayerEventType, PlayerEvent, PlayerSeasonStats
+from app.main import fetch_upcoming_matches
+from app.forms import ReportMatchForm, PlayerEventForm
+from flask_login import login_required, current_user
+import logging
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 teams_bp = Blueprint('teams', __name__)
 
-def populate_team_stats(team, season):
-    # Calculate top scorer
-    top_scorer_name, top_scorer_goals = db.session.query(Player.name, func.count(Goal.id))\
-        .join(Goal, Goal.player_id == Player.id)\
-        .join(Match, Goal.match_id == Match.id)\
-        .join(Team, Team.id == team.id)\
-        .join(League, League.id == Team.league_id)\
+def populate_team_stats(team, season, for_match_reporting=False):
+    # Calculate top scorer using PlayerSeasonStats
+    top_scorer = db.session.query(Player.name, PlayerSeasonStats.goals)\
+        .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)\
         .filter(
-            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-            League.season_id == season.id,
+            PlayerSeasonStats.season_id == season.id,
             Player.team_id == team.id
         )\
-        .group_by(Player.name)\
-        .order_by(func.count(Goal.id).desc())\
-        .first() or ("No goals scored", 0)
+        .order_by(PlayerSeasonStats.goals.desc())\
+        .first()
 
-    # Calculate top assister
-    top_assister_name, top_assister_assists = db.session.query(Player.name, func.count(Assist.id))\
-        .join(Assist, Assist.player_id == Player.id)\
-        .join(Match, Assist.match_id == Match.id)\
-        .join(Team, Team.id == team.id)\
-        .join(League, League.id == Team.league_id)\
+    top_scorer_name, top_scorer_goals = top_scorer if top_scorer and top_scorer.goals > 0 else ("No goals scored", 0)
+
+    # Calculate top assister using PlayerSeasonStats
+    top_assister = db.session.query(Player.name, PlayerSeasonStats.assists)\
+        .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)\
         .filter(
-            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-            League.season_id == season.id,
+            PlayerSeasonStats.season_id == season.id,
             Player.team_id == team.id
         )\
-        .group_by(Player.name)\
-        .order_by(func.count(Assist.id).desc())\
-        .first() or ("No assists recorded", 0)
+        .order_by(PlayerSeasonStats.assists.desc())\
+        .first()
 
-    # Calculate recent form
-    matches = Match.query.join(Team, (Match.home_team_id == team.id) | (Match.away_team_id == team.id))\
-        .join(League, League.id == Team.league_id)\
-        .filter(
-            League.season_id == season.id,
-            (Match.home_team_id == team.id) | (Match.away_team_id == team.id)
-        )\
-        .order_by(Match.date.desc()).limit(5).all()
+    top_assister_name, top_assister_assists = top_assister if top_assister and top_assister.assists > 0 else ("No assists recorded", 0)
+
+    # Calculate recent form using Match results
+    if for_match_reporting:
+        # Use match reporting logic
+        matches = Match.query.filter(
+            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
+            team.league_id == season.league_id  # This logic works for match reporting
+        ).order_by(Match.date.desc()).limit(5).all()
+    else:
+        # Use standings logic
+        matches = Match.query.filter(
+            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
+            team.league_id == League.id,  # Access the league through the team model
+            League.season_id == season.id  # This logic works for standings
+        ).order_by(Match.date.desc()).limit(5).all()
 
     recent_form = ''.join([
         'W' if (match.home_team_id == team.id and (match.home_team_score or 0) > (match.away_team_score or 0)) or
@@ -55,14 +62,24 @@ def populate_team_stats(team, season):
         else 'L'
         for match in matches
         if match.home_team_score is not None and match.away_team_score is not None
-    ])
+    ]) or "N/A"
 
-    # Calculate average goals per match
-    total_goals = sum([
-        (match.home_team_score or 0) if match.home_team_id == team.id else (match.away_team_score or 0)
-        for match in matches
-    ])
-    avg_goals_per_match = total_goals / len(matches) if matches else 0
+    # Calculate average goals per match using PlayerSeasonStats
+    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals))\
+        .join(Player, PlayerSeasonStats.player_id == Player.id)\
+        .filter(
+            PlayerSeasonStats.season_id == season.id,
+            Player.team_id == team.id
+        ).scalar() or 0
+
+    matches_played = db.session.query(func.count(Match.id))\
+        .filter(
+            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
+            team.league_id == (season.league_id if for_match_reporting else League.id),  # Adjust league access
+            (None if for_match_reporting else League.season_id == season.id)  # Skip season filter for match reporting
+        ).scalar() or 1
+
+    avg_goals_per_match = round(total_goals / matches_played, 2) if matches_played else 0
 
     return {
         "top_scorer_name": top_scorer_name,
@@ -73,146 +90,308 @@ def populate_team_stats(team, season):
         "avg_goals_per_match": avg_goals_per_match
     }
 
-def update_standings(match):
-    home_team_standing = Standings.query.filter_by(team_id=match.home_team_id, season_id=match.schedule.season.id).first()
-    away_team_standing = Standings.query.filter_by(team_id=match.away_team_id, season_id=match.schedule.season.id).first()
+def update_standings(match, old_home_score=None, old_away_score=None):
+    logger = logging.getLogger(__name__)
 
-    # Update games played
-    home_team_standing.played += 1
-    away_team_standing.played += 1
+    home_team = match.home_team
+    away_team = match.away_team
+    league = home_team.league
+    season = league.season
 
-    # Determine the match outcome and update standings
-    if match.home_team_score > match.away_team_score:
-        # Home team wins
-        home_team_standing.won += 1
-        home_team_standing.points += 3
-        away_team_standing.lost += 1
-    elif match.home_team_score < match.away_team_score:
-        # Away team wins
-        away_team_standing.won += 1
-        away_team_standing.points += 3
-        home_team_standing.lost += 1
-    else:
-        # Draw
-        home_team_standing.drawn += 1
-        away_team_standing.drawn += 1
-        home_team_standing.points += 1
-        away_team_standing.points += 1
+    try:
+        # Fetch or create standings for home and away teams
+        home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first()
+        away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first()
 
-    # Update goals for and against
-    home_team_standing.goals_for += match.home_team_score
-    home_team_standing.goals_against += match.away_team_score
-    away_team_standing.goals_for += match.away_team_score
-    away_team_standing.goals_against += match.home_team_score
+        # Revert old match result if provided (i.e., if editing a match)
+        if old_home_score is not None and old_away_score is not None:
+            logger.info(f"Reverting old match result for Match ID: {match.id}")
+            if old_home_score > old_away_score:
+                # Revert a previous win for the home team
+                home_team_standing.wins -= 1
+                away_team_standing.losses -= 1
+            elif old_home_score < old_away_score:
+                # Revert a previous win for the away team
+                away_team_standing.wins -= 1
+                home_team_standing.losses -= 1
+            else:
+                # Revert a previous draw
+                home_team_standing.draws -= 1
+                away_team_standing.draws -= 1
 
-    # Update goal difference
-    home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
-    away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
+            # Update goals for/against and goal difference
+            home_team_standing.goals_for -= old_home_score
+            home_team_standing.goals_against -= old_away_score
+            away_team_standing.goals_for -= old_away_score
+            away_team_standing.goals_against -= old_home_score
 
-    # Commit the standings update
+            home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
+            away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
+
+            # Revert points based on old result
+            home_team_standing.points = (home_team_standing.wins * 3) + home_team_standing.draws
+            away_team_standing.points = (away_team_standing.wins * 3) + away_team_standing.draws
+
+            # Decrement played matches
+            home_team_standing.played -= 1
+            away_team_standing.played -= 1
+
+        # Now apply the new match result
+        if match.home_team_score > match.away_team_score:
+            home_team_standing.wins += 1
+            away_team_standing.losses += 1
+        elif match.home_team_score < match.away_team_score:
+            away_team_standing.wins += 1
+            home_team_standing.losses += 1
+        else:
+            home_team_standing.draws += 1
+            away_team_standing.draws += 1
+
+        # Update points for the new result
+        home_team_standing.points = (home_team_standing.wins * 3) + home_team_standing.draws
+        away_team_standing.points = (away_team_standing.wins * 3) + away_team_standing.draws
+
+        # Update goals for and against
+        home_team_standing.goals_for += match.home_team_score
+        home_team_standing.goals_against += match.away_team_score
+        away_team_standing.goals_for += match.away_team_score
+        away_team_standing.goals_against += match.home_team_score
+
+        # Update goal difference
+        home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
+        away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
+
+        # Increment played matches
+        home_team_standing.played += 1
+        away_team_standing.played += 1
+
+        # Commit the standings updates
+        db.session.commit()
+        logger.info(f"Standings updated for Match ID {match.id}")
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating standings: {str(e)}")
+        raise e
+
+
+def update_player_stats(player_id, event_type):
+    player = Player.query.get(player_id)
+    season_id = current_season_id()  # Call the function to get the current season ID
+    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season_id).first()
+    career_stats = player.career_stats
+
+    if not season_stats:
+        # If season stats do not exist, create them
+        season_stats = PlayerSeasonStats(player_id=player_id, season_id=season_id)
+        db.session.add(season_stats)
+
+    # Increment season and career stats for the respective event type
+    if event_type == PlayerEventType.GOAL:
+        season_stats.goals += 1
+        career_stats.goals += 1
+
+    elif event_type == PlayerEventType.ASSIST:
+        season_stats.assists += 1
+        career_stats.assists += 1
+
+    elif event_type == PlayerEventType.YELLOW_CARD:
+        season_stats.yellow_cards += 1
+        career_stats.yellow_cards += 1
+
+    elif event_type == PlayerEventType.RED_CARD:
+        season_stats.red_cards += 1
+        career_stats.red_cards += 1
+
     db.session.commit()
+
+def current_season_id():
+    current_season = Season.query.filter_by(is_current=True).first()
+    return current_season.id if current_season else None
+
+from flask import render_template
+from collections import defaultdict
+from sqlalchemy import func
+from flask_login import login_required, current_user
 
 @teams_bp.route('/<int:team_id>')
 @login_required
 def team_details(team_id):
     team = Team.query.get_or_404(team_id)
-    league = team.league
+    league = League.query.get(team.league_id)
     season = league.season  # Assuming league.season gives the current season
     players = Player.query.filter_by(team_id=team_id).all()
 
-    # Fetch the stats for each player for the current season
+    report_form = ReportMatchForm()
+
+    # Fetch the player profile associated with the current user
+    player = getattr(current_user, 'player', None)
+    user_team = player.team if player else None
+
+    grouped_matches = fetch_upcoming_matches(team, match_limit=None) 
+
+    # Initialize player_choices_per_match as an empty dictionary
+    player_choices_per_match = {}
+
+    # Fetch the stats for each player for the current season using PlayerSeasonStats
+    player_stats = db.session.query(PlayerSeasonStats)\
+        .join(Player, PlayerSeasonStats.player_id == Player.id)\
+        .filter(
+            Player.team_id == team_id,
+            PlayerSeasonStats.season_id == season.id
+        ).all()
+
+    # Create a dictionary for easy access
+    stats_dict = {stats.player_id: stats for stats in player_stats}
+
+    # Assign stats to players
     for player in players:
-        player.goals_count = db.session.query(func.count(Goal.id))\
-            .join(Match, Goal.match_id == Match.id)\
-            .filter(
-                Goal.player_id == player.id,
-                (Match.home_team_id == team.id) | (Match.away_team_id == team.id),
-                league.season_id == season.id  # Assuming the league is associated with the current season
-            ).scalar()
+        stats = stats_dict.get(player.id, None)
+        if stats:
+            player.goals_count = stats.goals or 0
+            player.assists_count = stats.assists or 0
+            player.yellow_cards_count = stats.yellow_cards or 0
+            player.red_cards_count = stats.red_cards or 0
+        else:
+            player.goals_count = 0
+            player.assists_count = 0
+            player.yellow_cards_count = 0
+            player.red_cards_count = 0
 
-        player.assists_count = db.session.query(func.count(Assist.id))\
-            .join(Match, Assist.match_id == Match.id)\
-            .filter(
-                Assist.player_id == player.id,
-                (Match.home_team_id == team.id) | (Match.away_team_id == team.id),
-                league.season_id == season.id
-            ).scalar()
-
-        player.yellow_cards_count = db.session.query(func.count(YellowCard.id))\
-            .join(Match, YellowCard.match_id == Match.id)\
-            .filter(
-                YellowCard.player_id == player.id,
-                (Match.home_team_id == team.id) | (Match.away_team_id == team.id),
-                league.season_id == season.id
-            ).scalar()
-
-        player.red_cards_count = db.session.query(func.count(RedCard.id))\
-            .join(Match, RedCard.match_id == Match.id)\
-            .filter(
-                RedCard.player_id == player.id,
-                (Match.home_team_id == team.id) | (Match.away_team_id == team.id),
-                league.season_id == season.id
-            ).scalar()
-
-    # Aliases for home and away teams
-    home_team = aliased(Team)
-    away_team = aliased(Team)
-
-    # Updated query to fetch the schedule with opponent team names and scores, using joinedload to eagerly load related entities
+    # Fetch matches related to the team, using the team to access the league
     matches = Match.query.options(
-        selectinload(Match.goals),
-        selectinload(Match.assists),
-        selectinload(Match.yellow_cards),
-        selectinload(Match.red_cards),
         selectinload(Match.home_team).selectinload(Team.players),
         selectinload(Match.away_team).selectinload(Team.players)
     ).filter(
-        (Match.home_team_id == team_id) | (Match.away_team_id == team_id)
-    ).order_by(Match.date).all()
+        (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
+        (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
+    ).order_by(Match.date.desc()).all()
+
+    # Assign result_class based on match outcome
+    for match in matches:
+        if match.home_team_id == team_id:
+            if (match.home_team_score or 0) > (match.away_team_score or 0):
+                match.result_class = 'success'  # Win
+            elif (match.home_team_score or 0) < (match.away_team_score or 0):
+                match.result_class = 'danger'   # Loss
+            else:
+                match.result_class = 'secondary'  # Draw
+        else:
+            if (match.away_team_score or 0) > (match.home_team_score or 0):
+                match.result_class = 'success'  # Win
+            elif (match.away_team_score or 0) < (match.home_team_score or 0):
+                match.result_class = 'danger'   # Loss
+            else:
+                match.result_class = 'secondary'  # Draw
+
+    # Calculate recent form
+    recent_form = ''.join([
+        'W' if match.result_class == 'success' else
+        'L' if match.result_class == 'danger' else
+        'D'
+        for match in matches
+    ]) or "N/A"
+
+    # Calculate average goals per match using PlayerSeasonStats
+    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals))\
+        .join(Player, PlayerSeasonStats.player_id == Player.id)\
+        .filter(
+            Player.team_id == team_id,
+            PlayerSeasonStats.season_id == season.id
+        ).scalar() or 0
+
+    matches_played = db.session.query(func.count(Match.id))\
+        .filter(
+            (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
+            (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
+        ).scalar() or 1
+
+    avg_goals_per_match = round(total_goals / matches_played, 2) if matches_played else 0
+
+    # Fetch all matches for detailed schedule
+    all_matches = Match.query.options(
+        selectinload(Match.home_team).selectinload(Team.players),
+        selectinload(Match.away_team).selectinload(Team.players)
+    ).filter(
+        (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
+        (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
+    ).order_by(Match.date.desc()).all()
 
     # Group the schedule by date
-    grouped_schedule = defaultdict(list)
-    for match in matches:
-        # Determine opponent_name regardless of whether the scores are available
+    schedule = defaultdict(list)
+    for match in all_matches:
+        # Determine opponent_name and team names
         if match.home_team_id == team_id:
             opponent_name = match.away_team.name
-            your_team_name = match.home_team.name
+            your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
+            opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
+            result_class = 'success' if (match.home_team_score or 0) > (match.away_team_score or 0) else \
+                           'danger' if (match.home_team_score or 0) < (match.away_team_score or 0) else \
+                           'secondary'
+            opponent_team_name = match.away_team.name
+            home_team_name = match.home_team.name
         else:
             opponent_name = match.home_team.name
-            your_team_name = match.away_team.name
+            your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
+            opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
+            result_class = 'success' if (match.away_team_score or 0) > (match.home_team_score or 0) else \
+                           'danger' if (match.away_team_score or 0) < (match.home_team_score or 0) else \
+                           'secondary'
+            opponent_team_name = match.home_team.name
+            home_team_name = match.away_team.name
 
-        # Handle cases where scores are not reported yet
-        if match.home_team_score is not None and match.away_team_score is not None:
-            if match.home_team_id == team_id:
-                your_team_score = match.home_team_score
-                opponent_score = match.away_team_score
-                result_class = 'success' if your_team_score > opponent_score else 'danger' if your_team_score < opponent_score else 'secondary'
-            else:
-                your_team_score = match.away_team_score
-                opponent_score = match.home_team_score
-                result_class = 'success' if your_team_score > opponent_score else 'danger' if your_team_score < opponent_score else 'secondary'
-        else:
-            your_team_score = 'N/A'
-            opponent_score = 'N/A'
-            result_class = 'secondary'
+        match.result_class = result_class  # Assign result_class to match object
 
-        grouped_schedule[match.date].append({
+        schedule[match.date].append({
             'id': match.id,
             'time': match.time,
             'location': match.location,
             'opponent_name': opponent_name,
-            'your_team_name': your_team_name,
-            'home_team_name': match.home_team.name,
-            'away_team_name': match.away_team.name,
+            'home_team_name': home_team_name,
+            'opponent_team_name': opponent_team_name,
             'your_team_score': your_team_score,
             'opponent_score': opponent_score,
             'result_class': result_class,
-            'reported': match.reported,  # Access the reported property
-            'home_players': match.home_team.players,  # Pass home team players
-            'away_players': match.away_team.players   # Pass away team players
+            'reported': match.reported,
+            'home_players': match.home_team.players,
+            'away_players': match.away_team.players
         })
 
-    return render_template('team_details.html', team=team, players=players, schedule=grouped_schedule, league=league, season=season)
+    # Prepare player choices for each match
+    player_choices_per_match = {}
+    for date, matches in grouped_matches.items():
+        for match_data in matches:
+            match = match_data['match']
+            home_team_id = match_data['home_team_id']
+            opponent_team_id = match_data['opponent_team_id']
+        
+            # Rename variable here as well
+            match_players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
+        
+            # Get team names
+            home_team_name = Team.query.get(home_team_id).name
+            opponent_team_name = Team.query.get(opponent_team_id).name
+        
+            # Structure the players by team using team names
+            player_choices_per_match[match.id] = {
+                home_team_name: {player.id: player.name for player in match_players if player.team_id == home_team_id},
+                opponent_team_name: {player.id: player.name for player in match_players if player.team_id == opponent_team_id}
+            }
+
+    return render_template(
+        'team_details.html',
+        report_form=report_form,
+        matches=matches,
+        team=team,
+        league=league,
+        season=season,
+        players=players,  # Pass the players with their stats
+        recent_form=recent_form,
+        avg_goals_per_match=avg_goals_per_match,
+        grouped_matches=grouped_matches,
+        player_choices=player_choices_per_match,
+        schedule=schedule  # Add schedule here
+    )
 
 @teams_bp.route('/')
 @login_required
@@ -220,74 +399,188 @@ def teams_overview():
     teams = Team.query.order_by(Team.name).all()
     return render_template('teams_overview.html', teams=teams)
 
-@teams_bp.route('/report_match/<int:match_id>', methods=['POST'])
+@teams_bp.route('/report_match/<int:match_id>', methods=['GET', 'POST'])
 @login_required
 def report_match(match_id):
+    logger.info(f"Starting report_match for Match ID: {match_id}")
+    
+    # Fetch the match by ID
     match = Match.query.get_or_404(match_id)
-    
-    # If you need season_id
-    season_id = match.home_team.league.season.id
-    
-    # Update match scores
-    match.home_team_score = int(request.form['home_team_score'])
-    match.away_team_score = int(request.form['away_team_score'])
-    match.notes = request.form.get('notes', '')
+    logger.info(f"Match found: {match} with Home Team ID: {match.home_team_id}, Away Team ID: {match.away_team_id}")
 
-    # Dictionary to store stats changes
-    player_stats_changes = {}
+    # Fetch the home and away teams
+    home_team = match.home_team
+    away_team = match.away_team
+    if not home_team or not away_team:
+        logger.error(f"Missing team information for Match ID: {match_id}. Home Team: {home_team}, Away Team: {away_team}")
+    else:
+        logger.info(f"Home Team: {home_team.name}, Away Team: {away_team.name}")
 
-    def update_player_stats(player_id, stat_type):
-        if player_id not in player_stats_changes:
-            player_stats_changes[player_id] = {'goals': 0, 'assists': 0, 'yellow_cards': 0, 'red_cards': 0}
-        player_stats_changes[player_id][stat_type] += 1
+    # Create form instance
+    form = ReportMatchForm()
+    logger.info(f"ReportMatchForm instantiated: {form}")
 
-    # Process goal scorers
-    goal_scorers = request.form.getlist('goal_scorers[]')
-    goal_minutes = request.form.getlist('goal_minutes[]')
-    for player_id, minute in zip(goal_scorers, goal_minutes):
-        goal = Goal(player_id=player_id, match_id=match.id, minute=minute or None)
-        db.session.add(goal)
-        update_player_stats(player_id, 'goals')
+    # Fetch all players to populate the SelectFields
+    players = Player.query.all()
+    if not players:
+        logger.error("No players found in the database.")
+        flash('No players available to select.', 'danger')
+        return redirect(request.referrer)
 
-    # Process assist providers
-    assist_providers = request.form.getlist('assist_providers[]')
-    assist_minutes = request.form.getlist('assist_minutes[]')
-    for player_id, minute in zip(assist_providers, assist_minutes):
-        assist = Assist(player_id=player_id, match_id=match.id, minute=minute or None)
-        db.session.add(assist)
-        update_player_stats(player_id, 'assists')
+    # Prepare player choices
+    player_choices = [(player.id, player.name) for player in players]
 
-    # Process yellow cards
-    yellow_cards = request.form.getlist('yellow_cards[]')
-    yellow_card_minutes = request.form.getlist('yellow_card_minutes[]')
-    for player_id, minute in zip(yellow_cards, yellow_card_minutes):
-        yellow_card = YellowCard(player_id=player_id, match_id=match.id, minute=minute or None)
-        db.session.add(yellow_card)
-        update_player_stats(player_id, 'yellow_cards')
+    # Set choices for Goal Scorers
+    for scorer_form in form.goal_scorers:
+        scorer_form.player_id.choices = player_choices
 
-    # Process red cards
-    red_cards = request.form.getlist('red_cards[]')
-    red_card_minutes = request.form.getlist('red_card_minutes[]')
-    for player_id, minute in zip(red_cards, red_card_minutes):
-        red_card = RedCard(player_id=player_id, match_id=match.id, minute=minute or None)
-        db.session.add(red_card)
-        update_player_stats(player_id, 'red_cards')
+    # Set choices for Assist Providers
+    for assist_form in form.assist_providers:
+        assist_form.player_id.choices = player_choices
 
-    # Commit all changes to the match
-    db.session.commit()
+    # Set choices for Yellow Cards
+    for yellow_form in form.yellow_cards:
+        yellow_form.player_id.choices = player_choices
 
-    # Update player stats
-    for player_id, stats_changes in player_stats_changes.items():
-        player = Player.query.get(player_id)
-        if player:
-            player.update_season_stats(season_id, stats_changes)
+    # Set choices for Red Cards
+    for red_form in form.red_cards:
+        red_form.player_id.choices = player_choices
 
-    # Update standings
-    update_standings(match)
+    if request.method == 'GET':
+        logger.info(f"GET request detected, prepopulating form for Match ID: {match_id}")
 
-    flash('Match report updated successfully.', 'success')
+        # Prepopulate match details
+        form.home_team_score.data = match.home_team_score
+        form.away_team_score.data = match.away_team_score
+        form.notes.data = match.notes
 
-    # Redirect back to the page where the modal was opened
+        # Prepopulate the goal scorers
+        goals = PlayerEvent.query.filter_by(match_id=match.id, event_type=PlayerEventType.GOAL).all()
+        goal_scorers = [{'id': goal.id, 'player_id': goal.player_id, 'minute': goal.minute} for goal in goals]
+
+        # Prepopulate assists
+        assists = PlayerEvent.query.filter_by(match_id=match.id, event_type=PlayerEventType.ASSIST).all()
+        assist_providers = [{'id': assist.id, 'player_id': assist.player_id, 'minute': assist.minute} for assist in assists]
+
+        # Prepopulate yellow cards
+        yellow_cards = PlayerEvent.query.filter_by(match_id=match.id, event_type=PlayerEventType.YELLOW_CARD).all()
+        yellow_card_entries = [{'id': yellow_card.id, 'player_id': yellow_card.player_id, 'minute': yellow_card.minute} for yellow_card in yellow_cards]
+
+        # Prepopulate red cards
+        red_cards = PlayerEvent.query.filter_by(match_id=match.id, event_type=PlayerEventType.RED_CARD).all()
+        red_card_entries = [{'id': red_card.id, 'player_id': red_card.player_id, 'minute': red_card.minute} for red_card in red_cards]
+
+        logger.info(f"Returning prepopulated data for Match ID: {match_id}")
+
+        # Return the collected data as JSON
+        return jsonify({
+            'home_team_score': form.home_team_score.data,
+            'away_team_score': form.away_team_score.data,
+            'notes': form.notes.data,
+            'goal_scorers': goal_scorers,
+            'assist_providers': assist_providers,
+            'yellow_cards': yellow_card_entries,
+            'red_cards': red_card_entries,
+        })
+
+    # If the form is submitted, process the new data
+    if form.validate_on_submit():
+        logger.info(f"Form validation successful for Match ID: {match_id}")
+        try:
+            # Fetch old match scores before updating
+            old_home_score = match.home_team_score
+            old_away_score = match.away_team_score
+            # Update match scores and notes, explicitly handling None values
+            match.home_team_score = form.home_team_score.data if form.home_team_score.data is not None else 0
+            match.away_team_score = form.away_team_score.data if form.away_team_score.data is not None else 0
+            match.notes = form.notes.data or ''
+        
+            logger.info(f"Updated Match Details: Home Team Score: {match.home_team_score}, Away Team Score: {match.away_team_score}, Notes: {match.notes}")
+
+            # Clear existing events (goals, assists, cards) if re-editing the match
+            logger.info(f"Clearing existing PlayerEvents for Match ID: {match.id}")
+            PlayerEvent.query.filter_by(match_id=match.id).delete()
+
+            # Process goal scorers
+            for scorer in form.goal_scorers.entries:
+                if scorer.player_id.data and scorer.minute.data:
+                    logger.info(f"Processing Goal: Player ID {scorer.player_id.data}, Minute {scorer.minute.data}")
+                    goal_event = PlayerEvent(
+                        player_id=scorer.player_id.data,
+                        match_id=match.id,
+                        minute=scorer.minute.data,
+                        event_type=PlayerEventType.GOAL
+                    )
+                    db.session.add(goal_event)
+                    # Update player stats (season and career)
+                    update_player_stats(scorer.player_id.data, PlayerEventType.GOAL)
+
+            # Process assist providers
+            for assist in form.assist_providers.entries:
+                if assist.player_id.data and assist.minute.data:
+                    logger.info(f"Processing Assist: Player ID {assist.player_id.data}, Minute {assist.minute.data}")
+                    assist_event = PlayerEvent(
+                        player_id=assist.player_id.data,
+                        match_id=match.id,
+                        minute=assist.minute.data,
+                        event_type=PlayerEventType.ASSIST
+                    )
+                    db.session.add(assist_event)
+                    # Update player stats
+                    update_player_stats(assist.player_id.data, PlayerEventType.ASSIST)
+
+            # Process yellow cards
+            for yellow_card in form.yellow_cards.entries:
+                if yellow_card.player_id.data and yellow_card.minute.data:
+                    logger.info(f"Processing Yellow Card: Player ID {yellow_card.player_id.data}, Minute {yellow_card.minute.data}")
+                    yellow_event = PlayerEvent(
+                        player_id=yellow_card.player_id.data,
+                        match_id=match.id,
+                        minute=yellow_card.minute.data,
+                        event_type=PlayerEventType.YELLOW_CARD
+                    )
+                    db.session.add(yellow_event)
+                    # Update player stats
+                    update_player_stats(yellow_card.player_id.data, PlayerEventType.YELLOW_CARD)
+
+            # Process red cards
+            for red_card in form.red_cards.entries:
+                if red_card.player_id.data and red_card.minute.data:
+                    logger.info(f"Processing Red Card: Player ID {red_card.player_id.data}, Minute {red_card.minute.data}")
+                    red_event = PlayerEvent(
+                        player_id=red_card.player_id.data,
+                        match_id=match.id,
+                        minute=red_card.minute.data,
+                        event_type=PlayerEventType.RED_CARD
+                    )
+                    db.session.add(red_event)
+                    # Update player stats
+                    update_player_stats(red_card.player_id.data, PlayerEventType.RED_CARD)
+
+            # Commit all changes
+            db.session.commit()
+            logger.info(f"All changes committed to the database for Match ID: {match_id}")
+            flash('Match report updated successfully.', 'success')
+
+            # Update standings after reporting the match
+            update_standings(match, old_home_score, old_away_score)
+            logger.info(f"Standings updated for Match ID {match_id}")
+            return redirect(request.referrer)
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Database error reporting match {match_id}: {str(e)}")
+            flash('An error occurred while reporting the match. Please try again.', 'danger')
+            return redirect(request.referrer)
+    else:
+        logger.warning(f"Form validation failed for Match ID: {match_id}")
+        logger.error(f"Form errors: {form.errors}")  # Log form errors
+        flash('Form validation failed. Please check the input.', 'danger')
+        return redirect(request.referrer)
+
+    # Log validation failure if it doesn't validate
+    logger.warning(f"Form validation failed for Match ID: {match_id}")
+    flash('Form validation failed.', 'danger')
     return redirect(request.referrer)
 
 @teams_bp.route('/standings')

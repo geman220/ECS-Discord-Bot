@@ -4,7 +4,7 @@
 <h1>Create New User</h1>
 
 <form method="POST" action="{{ url_for('user_management.create_user') }}">
-    {{ form.hidden_tag() }}
+    {{ empty_form.hidden_tag() }}
 
     <div class="mb-3">
         {{ form.username.label(class="form-label") }}

@@ -33,7 +33,7 @@
         <!-- Announcements Card -->
         <div class="col-xl-12 col-md-12 mb-4">
             <div class="card h-100">
-                <div class="card-body">
+                <div class="card-body" id="announcements-card">
                     <h6 class="mb-2">Announcements</h6>
                     {% if announcements %}
                     <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
@@ -71,13 +71,13 @@
             </div>
         </div>
     </div>
-
+    {% endif %}
     <!-- Content Row -->
     <div class="row">
         <!-- Welcome Message Card -->
         <div class="col-xl-4 col-md-6 mb-4">
             <div class="card h-100">
-                <div class="card-body text-left">
+                <div class="card-body text-left" id="welcome-card">
                     {% if player %}
                     <h5 class="card-title">Welcome, {{ player.name }}!</h5>
                     {% if player.team %}
@@ -107,7 +107,7 @@
         <!-- Profile Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
             <div class="card h-100">
-                <div class="card-body">
+                <div class="card-body" id="profile-card">
                     {% if player %}
                     <div class="d-flex align-items-start justify-content-between">
                         <div class="content-left">
@@ -135,7 +135,7 @@
         {% if player and player.team %}
         <!-- Team Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
+            <div class="card h-100" id="team-card">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div class="content-left">
@@ -160,21 +160,22 @@
     {% if grouped_matches %}
     <div class="row">
         <div class="col-xl-12 col-md-12 mb-4">
-            <div class="card h-100">
+            <div class="card h-100" id="match-card">
                 <div class="card-body">
                     <h6 class="mb-4">Next Matches</h6>
                     <div class="row">
                         {% for date, matches in grouped_matches.items() %}
                         <div class="col-md-6 mb-3">
                             <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+
                             {% for match_data in matches %}
-                            {% set match = match_data.match %}
-                            {% set home_players = match_data.home_players %}
-                            {% set opponent_players = match_data.opponent_players %}
-                            {% set home_team_id = match_data.home_team_id %}
-                            {% set opponent_team_id = match_data.opponent_team_id %}
-                            {% set home_team_name = match_data.home_team_name %}
-                            {% set opponent_team_name = match_data.opponent_name %}
+                            {% set match = match_data['match'] %}
+                            {% set home_players = match_data['home_players'] %}
+                            {% set opponent_players = match_data['opponent_players'] %}
+                            {% set home_team_id = match_data['home_team_id'] %}
+                            {% set opponent_team_id = match_data['opponent_team_id'] %}
+                            {% set home_team_name = match_data['home_team_name'] %}
+                            {% set opponent_team_name = match_data['opponent_name'] %}
                             {% set match_id = match.id %}
 
                             <div class="match-card p-2 rounded border mb-2">
@@ -185,7 +186,10 @@
                                 <a href="{{ url_for('match_pages.view_match', match_id=match_id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
 
                                 {% if current_user.has_permission('view_match_reporting') %}
-                                <button class="btn btn-primary w-100 mb-1 waves-effect waves-light" data-bs-toggle="modal" data-bs-target="#reportMatchModal-{{ match_id }}">
+                                <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
+                                        data-match-id="{{ match.id }}"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#reportMatchModal-{{ match.id }}">
                                     {{ 'Edit Match' if match.reported else 'Report Match' }}
                                 </button>
                                 {% endif %}
@@ -208,116 +212,7 @@
                                 </div>
                             </div>
 
-                            <!-- Report Match Modal -->
-                            <div class="modal fade" id="reportMatchModal-{{ match_id }}" tabindex="-1" role="dialog" aria-labelledby="reportMatchModalLabel-{{ match_id }}" aria-hidden="true">
-                                <div class="modal-dialog modal-lg" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-primary text-white">
-                                            <h5 class="modal-title" id="reportMatchModalLabel-{{ match_id }}">
-                                                <i class="ti ti-pencil-alt"></i> {{ 'Edit' if match.reported else 'Report' }} Match: {{ home_team_name }} vs {{ opponent_team_name }}
-                                            </h5>
-                                            <button type="button" class="btn-close text-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <form method="POST" action="{{ url_for('teams.report_match', match_id=match_id) }}">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <input type="hidden" name="redirect_url" value="{{ request.url }}">
-                                            <div class="modal-body">
-                                                <div class="row">
-                                                    <!-- Score Input -->
-                                                    <div class="col-md-6">
-                                                        <div class="mb-3">
-                                                            <label for="home_team_score-{{ match_id }}" class="form-label">{{ home_team_name }} Score</label>
-                                                            <input type="number" class="form-control" name="home_team_score" id="home_team_score-{{ match_id }}" value="{{ match.home_team_score if match.home_team_score is not none else '' }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="mb-3">
-                                                            <label for="away_team_score-{{ match_id }}" class="form-label">{{ opponent_team_name }} Score</label>
-                                                            <input type="number" class="form-control" name="away_team_score" id="away_team_score-{{ match_id }}" value="{{ match.away_team_score if match.away_team_score is not none else '' }}" required>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Goal Scorers -->
-                                                <div class="mb-4">
-                                                    <label class="form-label">Goal Scorers</label>
-                                                    <div class="card p-3 border-1">
-                                                        <div id="goalScorersContainer-{{ match_id }}" class="mb-2"></div>
-                                                        <button class="btn btn-primary btn-sm" type="button" onclick="addGoalScorer('{{ match_id }}', '{{ home_team_name }}', '{{ opponent_team_name }}')">
-                                                            <i class="ti ti-plus"></i> Add Goal Scorer
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Assist Providers -->
-                                                <div class="mb-4">
-                                                    <label class="form-label">Assist Providers</label>
-                                                    <div class="card p-3 border-1">
-                                                        <div id="assistProvidersContainer-{{ match_id }}" class="mb-2"></div>
-                                                        <button class="btn btn-primary btn-sm" type="button" onclick="addAssistProvider('{{ match_id }}', '{{ home_team_name }}', '{{ opponent_team_name }}')">
-                                                            <i class="ti ti-plus"></i> Add Assist Provider
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Yellow Cards -->
-                                                <div class="mb-4">
-                                                    <label class="form-label">Yellow Cards</label>
-                                                    <div class="card p-3 border-1">
-                                                        <div id="yellowCardsContainer-{{ match_id }}" class="mb-2"></div>
-                                                        <button class="btn btn-warning btn-sm" type="button" onclick="addYellowCard('{{ match_id }}', '{{ home_team_name }}', '{{ opponent_team_name }}')">
-                                                            <i class="ti ti-plus"></i> Add Yellow Card
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Red Cards -->
-                                                <div class="mb-4">
-                                                    <label class="form-label">Red Cards</label>
-                                                    <div class="card p-3 border-1">
-                                                        <div id="redCardsContainer-{{ match_id }}" class="mb-2"></div>
-                                                        <button class="btn btn-danger btn-sm" type="button" onclick="addRedCard('{{ match_id }}', '{{ home_team_name }}', '{{ opponent_team_name }}')">
-                                                            <i class="ti ti-plus"></i> Add Red Card
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Match Notes -->
-                                                <div class="mb-4">
-                                                    <label for="notes-{{ match_id }}" class="form-label">Match Notes</label>
-                                                    <textarea class="form-control" name="notes" id="notes-{{ match_id }}" rows="3">{{ match.notes }}</textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-primary">{{ 'Save Changes' if match.reported else 'Submit Report' }}</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- JavaScript for Team-Specific Player Options -->
-                            <script>
-                            // Set the team names and pre-render player options
-                            window.homeTeamName_{{ match_id }} = "{{ home_team_name }}";
-                            window.opponentTeamName_{{ match_id }} = "{{ opponent_team_name }}";
-
-                            // Pre-render player options for home team
-                            window.homeTeamPlayersOptions_{{ match_id }} = `
-                                {% for player in home_players %}
-                                    <option value="{{ player.id }}">{{ player.name }}</option>
-                                {% endfor %}
-                            `;
-
-                            // Pre-render player options for opponent team
-                            window.opponentTeamPlayersOptions_{{ match_id }} = `
-                                {% for player in opponent_players %}
-                                    <option value="{{ player.id }}">{{ player.name }}</option>
-                                {% endfor %}
-                            `;
-                            </script>
-
+                            {% include 'report_match_modal.html' %}
                             {% endfor %}
                         </div>
                         {% endfor %}
@@ -326,7 +221,6 @@
             </div>
         </div>
     </div>
-    {% endif %}
     {% endif %}
 </div>
 <!-- Styles -->
@@ -443,6 +337,13 @@
 </style>
 {% endblock %}
 {% block custom_js %}
+<script>
+    const showTour = {{ show_tour| tojson }};
+    var playerChoices = {{ player_choices | tojson }};
+</script>
+<script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         {% if show_onboarding %}
@@ -639,118 +540,6 @@
         // Call the function to set the initial RSVP statuses
         setInitialRSVPs();
         {% endif %}
-    });
-
-    // Functions to add dynamic fields for match reporting
-    function addGoalScorer(matchId) {
-        var container = document.getElementById('goalScorersContainer-' + matchId);
-        var newEntry = document.createElement('div');
-        newEntry.classList.add('input-group', 'mb-2');
-
-        // Retrieve the correct player options based on teamId
-        var playerOptions = `
-    <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
-        ${window['homeTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    <optgroup label="Opponent Team: ${window['opponentTeamName_' + matchId]}">
-        ${window['opponentTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    `;
-
-        newEntry.innerHTML = `
-    <select class="form-select" name="goal_scorers[]" required>
-        <option value="" selected>Select a player</option>
-        ${playerOptions}
-    </select>
-    <input type="number" class="form-control" name="goal_minutes[]" placeholder="Minute (optional)">
-    <button class="btn btn-danger remove-entry" type="button">&times;</button>
-    `;
-        container.appendChild(newEntry);
-    }
-
-    function addAssistProvider(matchId) {
-        var container = document.getElementById('assistProvidersContainer-' + matchId);
-        var newEntry = document.createElement('div');
-        newEntry.classList.add('input-group', 'mb-2');
-
-        // Retrieve the correct player options based on teamId
-        var playerOptions = `
-    <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
-        ${window['homeTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    <optgroup label="Opponent Team: ${window['opponentTeamName_' + matchId]}">
-        ${window['opponentTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    `;
-
-        newEntry.innerHTML = `
-    <select class="form-select" name="assist_providers[]" required>
-        <option value="" selected>Select a player</option>
-        ${playerOptions}
-    </select>
-    <input type="number" class="form-control" name="assist_minutes[]" placeholder="Minute (optional)">
-    <button class="btn btn-danger remove-entry" type="button">&times;</button>
-    `;
-        container.appendChild(newEntry);
-    }
-
-    function addYellowCard(matchId) {
-        var container = document.getElementById('yellowCardsContainer-' + matchId);
-        var newEntry = document.createElement('div');
-        newEntry.classList.add('input-group', 'mb-2');
-
-        // Retrieve the correct player options based on teamId
-        var playerOptions = `
-    <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
-        ${window['homeTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    <optgroup label="Opponent Team: ${window['opponentTeamName_' + matchId]}">
-        ${window['opponentTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    `;
-
-        newEntry.innerHTML = `
-    <select class="form-select" name="yellow_cards[]" required>
-        <option value="" selected>Select a player</option>
-        ${playerOptions}
-    </select>
-    <input type="number" class="form-control" name="yellow_card_minutes[]" placeholder="Minute (optional)">
-    <button class="btn btn-danger remove-entry" type="button">&times;</button>
-    `;
-        container.appendChild(newEntry);
-    }
-
-    function addRedCard(matchId) {
-        var container = document.getElementById('redCardsContainer-' + matchId);
-        var newEntry = document.createElement('div');
-        newEntry.classList.add('input-group', 'mb-2');
-
-        // Retrieve the correct player options based on teamId
-        var playerOptions = `
-    <optgroup label="Home Team: ${window['homeTeamName_' + matchId]}">
-        ${window['homeTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    <optgroup label="Opponent Team: ${window['opponentTeamName_' + matchId]}">
-        ${window['opponentTeamPlayersOptions_' + matchId]}
-    </optgroup>
-    `;
-
-        newEntry.innerHTML = `
-    <select class="form-select" name="red_cards[]" required>
-        <option value="" selected>Select a player</option>
-        ${playerOptions}
-    </select>
-    <input type="number" class="form-control" name="red_card_minutes[]" placeholder="Minute (optional)">
-    <button class="btn btn-danger remove-entry" type="button">&times;</button>
-    `;
-        container.appendChild(newEntry);
-    }
-
-    // Attach event listeners to dynamically remove input fields
-    document.addEventListener('click', function (e) {
-        if (e.target && e.target.classList.contains('remove-entry')) {
-            e.target.closest('.input-group').remove();
-        }
     });
 </script>
 {% endblock %}

@@ -94,7 +94,7 @@
         <!-- Teams Overview - Anyone Authenticated -->
         {% if current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
-            <a class="menu-link" href="{{ url_for('teams.teams_overview') }}">
+            <a class="menu-link teams-link" href="{{ url_for('teams.teams_overview') }}">
                 <i data-feather="users" class="menu-icon"></i>
                 <div>Teams</div>
             </a>

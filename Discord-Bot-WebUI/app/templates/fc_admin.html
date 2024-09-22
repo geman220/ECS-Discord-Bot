@@ -56,7 +56,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="{{ url_for('admin.manage_announcements') }}">
-                {{ form.hidden_tag() }}
+                {{ empty_form.hidden_tag() }}
                 <div class="modal-body">
                     <div class="form-group">
                         {{ form.title.label(class="form-label") }}

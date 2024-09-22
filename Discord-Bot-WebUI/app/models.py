@@ -1,8 +1,9 @@
 from app import db, login_manager
 from datetime import datetime
-from flask_login import UserMixin
+from flask_login import UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, func
+import enum
 import logging
 import pyotp
 
@@ -49,6 +50,7 @@ class User(UserMixin, db.Model):
     profile_visibility = db.Column(db.String(20), default='everyone')  # options: 'everyone', 'teammates', 'admins'
     notifications = db.relationship('Notification', back_populates='user', lazy='dynamic')
     has_completed_onboarding = db.Column(db.Boolean, default=False)
+    has_completed_tour = db.Column(db.Boolean, default=False)
     has_skipped_profile_creation = db.Column(db.Boolean, default=False)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     league = db.relationship('League', back_populates='users')
@@ -158,24 +160,30 @@ class Team(db.Model):
 
     @property
     def top_scorer(self):
-        top_scorer = db.session.query(Player, func.count(Goal.id).label('goals_count')).join(Goal).filter(
-            Goal.player_id == Player.id, Player.team_id == self.id).group_by(Player.id).order_by(
-            func.count(Goal.id).desc()).first()
-        return f"{top_scorer[0].name} ({top_scorer[1]} goals)" if top_scorer else "No data"
+        # Use PlayerCareerStats to find top scorer
+        top_scorer = db.session.query(Player, PlayerCareerStats.goals).join(PlayerCareerStats).filter(
+            Player.team_id == self.id
+        ).order_by(PlayerCareerStats.goals.desc()).first()
+        return f"{top_scorer[0].name} ({top_scorer[1]} goals)" if top_scorer and top_scorer[1] > 0 else "No data"
 
     @property
     def top_assist(self):
-        top_assist = db.session.query(Player, func.count(Assist.id).label('assists_count')).join(Assist).filter(
-            Assist.player_id == Player.id, Player.team_id == self.id).group_by(Player.id).order_by(
-            func.count(Assist.id).desc()).first()
-        return f"{top_assist[0].name} ({top_assist[1]} assists)" if top_assist else "No data"
+        # Use PlayerCareerStats to find top assist
+        top_assist = db.session.query(Player, PlayerCareerStats.assists).join(PlayerCareerStats).filter(
+            Player.team_id == self.id
+        ).order_by(PlayerCareerStats.assists.desc()).first()
+        return f"{top_assist[0].name} ({top_assist[1]} assists)" if top_assist and top_assist[1] > 0 else "No data"
 
     @property
     def avg_goals_per_match(self):
-        total_goals = db.session.query(func.sum(Goal.id)).join(Match).filter(
-            (Match.home_team_id == self.id) | (Match.away_team_id == self.id)).scalar() or 0
+        # Total goals from PlayerCareerStats
+        total_goals = db.session.query(func.sum(PlayerCareerStats.goals)).join(Player).filter(
+            Player.team_id == self.id
+        ).scalar() or 0
+        # Number of matches played
         matches_played = db.session.query(func.count(Match.id)).filter(
-            (Match.home_team_id == self.id) | (Match.away_team_id == self.id)).scalar() or 1
+            (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
+        ).scalar() or 1
         return round(total_goals / matches_played, 2)
 
     @property
@@ -204,6 +212,23 @@ class PlayerOrderHistory(db.Model):
     def __repr__(self):
         return f'<PlayerOrderHistory {self.player_id} - Order {self.order_id} - Season {self.season_id} - League {self.league_id}>'
 
+class StatChangeLog(db.Model):
+    __tablename__ = 'stat_change_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    stat = db.Column(db.String(50), nullable=False)
+    old_value = db.Column(db.Integer, nullable=False)
+    new_value = db.Column(db.Integer, nullable=False)
+    change_type = db.Column(db.String(10), nullable=False)  # ADD, DELETE, EDIT
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    player = db.relationship('Player', backref='stat_change_logs')
+    user = db.relationship('User', backref='stat_change_logs')
+    season = db.relationship('Season', backref='stat_change_logs')
+
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -216,7 +241,7 @@ class Player(db.Model):
     needs_manual_review = db.Column(db.Boolean, default=False)  # New field for manual review
     linked_primary_player_id = db.Column(db.Integer, nullable=True)  # Reference to the primary player
     order_id = db.Column(db.String, nullable=True)
-
+    events = db.relationship('PlayerEvent', back_populates='player', lazy=True, cascade="all, delete-orphan")
     pronouns = db.Column(db.String(50), nullable=True)
     expected_weeks_available = db.Column(db.String(20), nullable=True)
     unavailable_dates = db.Column(db.Text, nullable=True)
@@ -238,11 +263,6 @@ class Player(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Link to User model
     user = db.relationship('User', back_populates='player')
 
-    goals = db.relationship('Goal', backref='player', lazy=True, cascade="all, delete-orphan")
-    assists = db.relationship('Assist', backref='player', lazy=True, cascade="all, delete-orphan")
-    yellow_cards = db.relationship('YellowCard', backref='player', lazy=True, cascade="all, delete-orphan")
-    red_cards = db.relationship('RedCard', backref='player', lazy=True, cascade="all, delete-orphan")
-
     availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan")
 
     notes = db.Column(db.Text, nullable=True)  # Admin notes
@@ -250,8 +270,8 @@ class Player(db.Model):
     profile_picture_url = db.Column(db.String(255), nullable=True)
 
     # Relationships with stats
-    season_stats = db.relationship('PlayerSeasonStats', back_populates='player', lazy=True, cascade="all, delete-orphan")
-    career_stats = db.relationship('PlayerCareerStats', back_populates='player', lazy=True, uselist=False, cascade="all, delete-orphan")
+    season_stats = db.relationship('PlayerSeasonStats', back_populates='player')
+    career_stats = db.relationship('PlayerCareerStats', back_populates='player', uselist=False)
 
     def __repr__(self):
         return f'<Player {self.name}>'
@@ -273,40 +293,108 @@ class Player(db.Model):
     def season_red_cards(self, season_id):
         return self.get_season_stat(season_id, 'red_cards')
 
-    # Method to update season stats
-    def update_season_stats(self, season_id, season_stats):
-        season_stat = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
-        if not season_stat:
-            season_stat = PlayerSeasonStats(player_id=self.id, season_id=season_id)
-            db.session.add(season_stat)
-            db.session.commit()  # Commit to save the new season stat entry
-            print(f"[DEBUG] Created new season stat for player {self.id} in season {season_id}")
+    def update_season_stats(self, season_id, stats_changes, user_id):
+        """
+        Updates both seasonal and career statistics based on the provided changes.
+        """
+        if not stats_changes:
+            logging.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
+            return
 
-        for key, new_value in season_stats.items():
-            # Ensure old_value is not None
-            old_value = getattr(season_stat, key, 0) or 0
-            new_value = new_value or 0  # Make sure new_value is also not None
-            diff = new_value - old_value
-            print(f"[DEBUG] {key}: old_value={old_value}, new_value={new_value}, diff={diff}")
+        # Fetch or create PlayerSeasonStats for the season
+        season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
+        if not season_stats:
+            season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
+            db.session.add(season_stats)
 
-            if diff != 0:
-                setattr(season_stat, key, new_value)
-                self.adjust_career_stat(key, diff)
+        # Update seasonal stats based on changes
+        for stat, increment in stats_changes.items():
+            if hasattr(season_stats, stat):
+                current_value = getattr(season_stats, stat)
+                setattr(season_stats, stat, current_value + increment)
+                logging.debug(
+                    f"Updated {stat} for Player ID {self.id} in Season ID {season_id}: "
+                    f"{current_value} + {increment} = {current_value + increment}"
+                )
+                # Log the stat change
+                self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id, season_id)
+            else:
+                logging.warning(
+                    f"PlayerSeasonStats has no attribute '{stat}'. Skipping update for Player ID {self.id}."
+                )
 
-        db.session.commit()
+        # Update career stats based on changes
+        self.update_career_stats(stats_changes, user_id)
 
-    def adjust_career_stat(self, stat, diff):
+        # Optionally, log the user performing the update
+        logging.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
+
+        # Removed db.session.commit()
+
+    def update_career_stats(self, stats_changes, user_id):
+        """
+        Updates career statistics based on the provided changes.
+        """
+        if not stats_changes:
+            logging.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
+            return
+
+        # Fetch or create PlayerCareerStats
         if not self.career_stats:
             self.career_stats = PlayerCareerStats(player_id=self.id)
             db.session.add(self.career_stats)
-            db.session.commit()  # Commit to save the new career stat entry
-            print(f"[DEBUG] Created new career stat for player {self.id}")
+            db.session.flush()  # Ensure ID is generated if needed
 
-        current_value = getattr(self.career_stats, stat, 0)
-        new_value = max(0, current_value + diff)
-        print(f"[DEBUG] Adjusting career stat for {stat}: current_value={current_value}, new_value={new_value}, diff={diff}")
-        setattr(self.career_stats, stat, new_value)
+        # Update career stats based on changes
+        for stat, increment in stats_changes.items():
+            if hasattr(self.career_stats, stat):
+                current_value = getattr(self.career_stats, stat)
+                setattr(self.career_stats, stat, current_value + increment)
+                logging.debug(
+                    f"Updated {stat} for Player ID {self.id} in Career Stats: "
+                    f"{current_value} + {increment} = {current_value + increment}"
+                )
+                # Log the stat change
+                self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id)
+            else:
+                logging.warning(
+                    f"PlayerCareerStats has no attribute '{stat}'. Skipping update for Player ID {self.id}."
+                )
+
+        # Optionally, log the user performing the update
+        logging.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
+
+        # Removed db.session.commit()
+
+    def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
+        """
+        Logs changes to player statistics.
+
+        :param stat: The name of the statistic being changed.
+        :param old_value: The previous value of the statistic.
+        :param new_value: The new value of the statistic.
+        :param change_type: The type of change (ADD, DELETE, EDIT).
+        :param user_id: The ID of the user performing the change.
+        :param season_id: The ID of the season (optional).
+        """
+        if change_type not in [ct.value for ct in StatChangeType]:
+            logging.warning(f"Invalid change type '{change_type}' for stat change logging.")
+            return
+
+        log_entry = StatChangeLog(
+            player_id=self.id,
+            stat=stat,
+            old_value=old_value,
+            new_value=new_value,
+            change_type=change_type,
+            user_id=user_id,
+            season_id=season_id
+        )
+        db.session.add(log_entry)
         db.session.commit()
+        logging.info(
+            f"Logged stat change for Player ID {self.id}: {stat} {change_type} from {old_value} to {new_value} by User ID {user_id}."
+        )
 
     def get_career_goals(self):
         return self.career_stats.goals if self.career_stats else 0
@@ -320,15 +408,21 @@ class Player(db.Model):
     def get_career_red_cards(self):
         return self.career_stats.red_cards if self.career_stats else 0
 
-    def update_career_stats(self, new_career_stats):
-        if not self.career_stats:
-            self.career_stats = PlayerCareerStats(player_id=self.id)
-            db.session.add(self.career_stats)
+    def get_all_matches(self):
+        """
+        Retrieves all matches in which the player's team participated.
+        Returns a list of Match objects where the player's team was either the home or away team.
+        """
+        return Match.query.filter(
+            (Match.home_team_id == self.team_id) | (Match.away_team_id == self.team_id)
+        ).all()
 
-        for key, value in new_career_stats.items():
-            setattr(self.career_stats, key, max(0, value))  # Ensure no negative stats
-
-        db.session.commit()
+    def get_all_match_stats(self):
+        """
+        Retrieves all events (stats) tied to the player, such as goals, assists, yellow cards, etc.
+        Returns a list of PlayerEvent objects related to this player.
+        """
+        return PlayerEvent.query.filter_by(player_id=self.id).all()
 
 class Schedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -338,34 +432,12 @@ class Schedule(db.Model):
     opponent = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     location = db.Column(db.String(100), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'))  # Add this line
 
     team = db.relationship('Team', foreign_keys=[team_id])
     opponent_team = db.relationship('Team', foreign_keys=[opponent], post_update=True)
     matches = db.relationship('Match', back_populates='schedule', lazy=True)
-
-class Goal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    minute = db.Column(db.Integer, nullable=True)
-
-class Assist(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    minute = db.Column(db.Integer, nullable=True)
-
-class YellowCard(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    minute = db.Column(db.Integer, nullable=True)
-
-class RedCard(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    minute = db.Column(db.Integer, nullable=True)
+    season = db.relationship('Season')
 
 class Match(db.Model):
     __tablename__ = 'matches'
@@ -381,15 +453,11 @@ class Match(db.Model):
     away_team_score = db.Column(db.Integer, nullable=True)
     notes = db.Column(db.Text, nullable=True)
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedule.id'), nullable=False)
+    events = db.relationship('PlayerEvent', back_populates='match', lazy=True, cascade="all, delete-orphan")
 
     home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_matches')
     away_team = db.relationship('Team', foreign_keys=[away_team_id], backref='away_matches')
     schedule = db.relationship('Schedule', back_populates='matches')
-
-    goals = db.relationship('Goal', backref='match', lazy=True, cascade="all, delete-orphan")
-    assists = db.relationship('Assist', backref='match', lazy=True, cascade="all, delete-orphan")
-    yellow_cards = db.relationship('YellowCard', backref='match', lazy=True, cascade="all, delete-orphan")
-    red_cards = db.relationship('RedCard', backref='match', lazy=True, cascade="all, delete-orphan")
 
     availability = db.relationship('Availability', back_populates='match', lazy=True, cascade="all, delete-orphan")
 
@@ -404,43 +472,61 @@ class Match(db.Model):
             self.away_team_score is not None
         )
 
+    def get_opponent_name(self, player):
+        """
+        Returns the name of the opponent team based on the player's team.
+        """
+        if player.team_id == self.home_team_id:
+            return self.away_team.name
+        elif player.team_id == self.away_team_id:
+            return self.home_team.name
+        else:
+            return None  # The player isn't part of either team in this match
+
 class PlayerSeasonStats(db.Model):
+    __tablename__ = 'player_season_stats'
+    
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
-    
-    goals = db.Column(db.Integer, default=0)
-    assists = db.Column(db.Integer, default=0)
-    yellow_cards = db.Column(db.Integer, default=0)
-    red_cards = db.Column(db.Integer, default=0)
-    
+    goals = db.Column(db.Integer, default=0, nullable=False)
+    assists = db.Column(db.Integer, default=0, nullable=False)
+    yellow_cards = db.Column(db.Integer, default=0, nullable=False)
+    red_cards = db.Column(db.Integer, default=0, nullable=False)
+    # Additional fields as necessary
+
+    # Use back_populates instead of backref
     player = db.relationship('Player', back_populates='season_stats')
     season = db.relationship('Season', back_populates='player_stats')
 
 class PlayerCareerStats(db.Model):
+    __tablename__ = 'player_career_stats'
+
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    
-    goals = db.Column(db.Integer, default=0)
-    assists = db.Column(db.Integer, default=0)
-    yellow_cards = db.Column(db.Integer, default=0)
-    red_cards = db.Column(db.Integer, default=0)
-    
+    goals = db.Column(db.Integer, default=0, nullable=False)
+    assists = db.Column(db.Integer, default=0, nullable=False)
+    yellow_cards = db.Column(db.Integer, default=0, nullable=False)
+    red_cards = db.Column(db.Integer, default=0, nullable=False)
+
     player = db.relationship('Player', back_populates='career_stats')
 
 class Standings(db.Model):
+    __tablename__ = 'standings'  # Ensure the table name is specified if not following naming conventions
+
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
-    played = db.Column(db.Integer, default=0)
-    won = db.Column(db.Integer, default=0)
-    drawn = db.Column(db.Integer, default=0)
-    lost = db.Column(db.Integer, default=0)
-    goals_for = db.Column(db.Integer, default=0)
-    goals_against = db.Column(db.Integer, default=0)
-    goal_difference = db.Column(db.Integer, default=0)  # Store goal difference in a column
-    points = db.Column(db.Integer, default=0)
+    played = db.Column(db.Integer, default=0, nullable=False)
+    wins = db.Column(db.Integer, default=0, nullable=False)            # Renamed from 'won'
+    draws = db.Column(db.Integer, default=0, nullable=False)           # Renamed from 'drawn'
+    losses = db.Column(db.Integer, default=0, nullable=False)          # Renamed from 'lost'
+    goals_for = db.Column(db.Integer, default=0, nullable=False)
+    goals_against = db.Column(db.Integer, default=0, nullable=False)
+    goal_difference = db.Column(db.Integer, default=0, nullable=False)  # Store goal difference in a column
+    points = db.Column(db.Integer, default=0, nullable=False)
 
+    # Relationships
     team = db.relationship('Team', backref='standings')
     season = db.relationship('Season', backref='standings')
 
@@ -498,3 +584,43 @@ class Announcement(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     position = db.Column(db.Integer, default=0)  # This field should exist
+
+class PlayerEventType(enum.Enum):
+    GOAL = 'goal'
+    ASSIST = 'assist'
+    YELLOW_CARD = 'yellow_card'
+    RED_CARD = 'red_card'
+
+class PlayerEvent(db.Model):
+    __tablename__ = 'player_event'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
+    minute = db.Column(db.Integer, nullable=True)
+    event_type = db.Column(db.Enum(PlayerEventType), nullable=False)
+
+    player = db.relationship('Player', back_populates='events')
+    match = db.relationship('Match', back_populates='events')
+
+class StatChangeType(enum.Enum):
+    ADD = 'add'
+    EDIT = 'edit'
+    DELETE = 'delete'
+
+class PlayerStatAudit(db.Model):
+    __tablename__ = 'player_stat_audit'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    stat_type = db.Column(db.String(50), nullable=False)  # e.g., 'goals', 'assists'
+    old_value = db.Column(db.Integer, nullable=False)
+    new_value = db.Column(db.Integer, nullable=False)
+    change_type = db.Column(db.Enum(StatChangeType), nullable=False)
+    changed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    player = db.relationship('Player', backref='stat_audits')
+    season = db.relationship('Season')
+    user = db.relationship('User')

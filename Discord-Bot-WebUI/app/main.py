@@ -192,50 +192,34 @@ def handle_profile_update(player, onboarding_form):
         flash('An error occurred while updating your profile. Please try again.', 'danger')
         logger.error(f"Error updating profile for user {current_user.id}: {e}")
 
-def fetch_upcoming_matches(user_team):
-    """Fetch and return upcoming matches for the user's team, including team-specific players."""
+def fetch_upcoming_matches(team,  match_limit=4):
+    """Fetch and return upcoming matches for the specified team."""
     grouped_matches = defaultdict(list)
     
-    if user_team:
-        # Aliases for teams to join multiple times
-        home_team = aliased(Team)
-        opponent_team = aliased(Team)
-        
-        # Query to fetch matches with team names and associated players
+    if team:
+        # Use joinedload to load the home_team and away_team relationships
         matches = (
-            db.session.query(
-                Match,
-                Match.date,
-                home_team.name.label('home_team_name'),
-                opponent_team.name.label('opponent_name'),
-                home_team.id.label('home_team_id'),
-                opponent_team.id.label('opponent_team_id')
+            Match.query.options(
+                joinedload(Match.home_team),
+                joinedload(Match.away_team)
             )
-            .join(home_team, Match.home_team_id == home_team.id)
-            .join(opponent_team, Match.away_team_id == opponent_team.id)
-            .filter((Match.home_team_id == user_team.id) | (Match.away_team_id == user_team.id))
+            .filter((Match.home_team_id == team.id) | (Match.away_team_id == team.id))
             .filter(Match.date >= datetime.now().date())
             .order_by(Match.date.asc(), Match.time.asc())
-            .limit(4)
+            .limit(match_limit)
             .all()
         )
         
-        for (
-            match, date, home_team_name, opponent_name,
-            home_team_id, opponent_team_id
-        ) in matches:
-            # Fetch the players for the home and opponent teams
-            home_players = [{'id': player.id, 'name': player.name} for player in match.home_team.players]
-            opponent_players = [{'id': player.id, 'name': player.name} for player in match.away_team.players]
-            
-            grouped_matches[date].append({
+        for match in matches:
+            # No need to manually create dictionaries, pass the `Match` objects
+            grouped_matches[match.date].append({
                 'match': match,
-                'home_team_name': home_team_name,
-                'opponent_name': opponent_name,
-                'home_team_id': home_team_id,
-                'opponent_team_id': opponent_team_id,
-                'home_players': home_players,
-                'opponent_players': opponent_players
+                'home_team_name': match.home_team.name,
+                'opponent_name': match.away_team.name,
+                'home_team_id': match.home_team_id,
+                'opponent_team_id': match.away_team_id,
+                'home_players': [{'id': player.id, 'name': player.name} for player in match.home_team.players],
+                'opponent_players': [{'id': player.id, 'name': player.name} for player in match.away_team.players]
             })
     
     return grouped_matches
@@ -244,7 +228,7 @@ def fetch_upcoming_matches(user_team):
 @main.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
-    from app.forms import OnboardingForm
+    from app.forms import ReportMatchForm
     current_year = datetime.now().year
 
     # Attempt to get the player profile associated with the current user
@@ -253,12 +237,21 @@ def index():
     # Initialize the combined onboarding form with formdata if POST
     onboarding_form = get_onboarding_form(player, formdata=request.form if request.method == 'POST' else None)
 
+    # Initialize ReportMatchForm
+    report_form = ReportMatchForm()
+    matches = Match.query.options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    ).all()
     # Determine if onboarding should be shown
     show_onboarding = False
     if player:
         show_onboarding = not current_user.has_completed_onboarding
     else:
         show_onboarding = not current_user.has_skipped_profile_creation
+
+    # Determine if the tour should be shown
+    show_tour = current_user.has_completed_onboarding and not current_user.has_completed_tour
 
     if request.method == 'POST':
         form_action = request.form.get('form_action', '')
@@ -316,18 +309,43 @@ def index():
     # Fetch announcements to be displayed
     announcements = fetch_announcements()
 
+    # Prepare player choices for each match
+    player_choices_per_match = {}
+    for date, matches in grouped_matches.items():
+        for match_data in matches:
+            match = match_data['match']
+            home_team_id = match_data['home_team_id']
+            opponent_team_id = match_data['opponent_team_id']
+        
+            # Fetch players from both teams
+            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
+        
+            # Get team names
+            home_team_name = Team.query.get(home_team_id).name
+            opponent_team_name = Team.query.get(opponent_team_id).name
+        
+            # Structure the players by team using team names
+            player_choices_per_match[match.id] = {
+                home_team_name: {player.id: player.name for player in players if player.team_id == home_team_id},
+                opponent_team_name: {player.id: player.name for player in players if player.team_id == opponent_team_id}
+            }
+
     # Render the main page with all context variables
     return render_template(
         'index.html',
+        report_form=report_form,  # Pass report_form
+        matches=matches,
+        onboarding_form=onboarding_form,
         user_team=user_team,
         grouped_matches=grouped_matches,
         current_year=current_year,
         player=player,
-        onboarding_form=onboarding_form,
         is_linked_to_discord=player.discord_id is not None if player else False,
         discord_server_link="https://discord.gg/weareecs",
         show_onboarding=show_onboarding,
-        announcements=announcements
+        show_tour=show_tour,  # Corrected to use the variable
+        announcements=announcements,
+        player_choices=player_choices_per_match
     )
 
 # Notification Routes
@@ -346,3 +364,17 @@ def mark_as_read(notification_id):
     notification.read = True
     db.session.commit()
     return redirect(url_for('main.notifications'))
+
+@main.route('/set_tour_skipped', methods=['POST'])
+@login_required
+def set_tour_skipped():
+    current_user.has_completed_tour = False
+    db.session.commit()
+    return '', 204  # No content response
+
+@main.route('/set_tour_complete', methods=['POST'])
+@login_required
+def set_tour_complete():
+    current_user.has_completed_tour = True
+    db.session.commit()
+    return '', 204  # No content response

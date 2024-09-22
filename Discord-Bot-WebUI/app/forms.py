@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired
 from app.models import User, Role, League
 import logging
 
@@ -285,3 +285,18 @@ class TwoFactorForm(FlaskForm):
 class Verify2FAForm(FlaskForm):
     totp_token = StringField('2FA Token', validators=[DataRequired()])
     submit = SubmitField('Verify')
+
+class PlayerEventForm(FlaskForm):
+    player_id = SelectField('Player', coerce=int, validators=[DataRequired()])
+    minute = IntegerField('Minute', validators=[NumberRange(min=1, max=120)])
+
+class ReportMatchForm(FlaskForm):
+    home_team_score = IntegerField('Home Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])
+    away_team_score = IntegerField('Away Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])
+    
+    goal_scorers = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
+    assist_providers = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
+    yellow_cards = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
+    red_cards = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
+
+    notes = TextAreaField('Match Notes')

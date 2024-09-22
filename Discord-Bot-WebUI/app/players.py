@@ -1,13 +1,15 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
-from app.models import Player, League, Season, Goal, Assist, YellowCard, RedCard, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, user_roles
+from app.models import Player, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
 from app.decorators import role_required
 from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
+from app.teams import current_season_id
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import SQLAlchemyError
 from PIL import Image
 import uuid
 import secrets
@@ -41,6 +43,75 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
     image.save(file_path)
 
     return f"/static/img/uploads/profile_pictures/{filename}"
+
+def decrement_player_stats(player_id, event_type):
+    # Logging the player ID and event type
+    current_app.logger.info(f"Decrementing stats for Player ID: {player_id}, Event Type: {event_type}")
+    
+    player = Player.query.get(player_id)
+    
+    # Log if player is not found
+    if not player:
+        current_app.logger.error(f"Player not found for Player ID: {player_id}")
+        return
+    
+    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=current_season_id()).first()
+    career_stats = player.career_stats
+
+    if not season_stats:
+        current_app.logger.error(f"Season stats not found for Player ID: {player_id}")
+        return
+
+    if not career_stats:
+        current_app.logger.error(f"Career stats not found for Player ID: {player_id}")
+        return
+
+    # Log current stats
+    log_current_stats(season_stats, career_stats)
+
+    # Map event types to corresponding stats
+    event_stats_map = {
+        PlayerEventType.GOAL: ('goals', 'Decremented goals'),
+        PlayerEventType.ASSIST: ('assists', 'Decremented assists'),
+        PlayerEventType.YELLOW_CARD: ('yellow_cards', 'Decremented yellow cards'),
+        PlayerEventType.RED_CARD: ('red_cards', 'Decremented red cards')
+    }
+
+    # Decrement the corresponding stat if the event type matches
+    if event_type in event_stats_map:
+        stat_attr, log_msg = event_stats_map[event_type]
+        decrement_stat(season_stats, career_stats, stat_attr, player_id, log_msg)
+    else:
+        current_app.logger.error(f"Unknown event type: {event_type} for Player ID: {player_id}")
+
+    # Commit the changes and log it
+    try:
+        db.session.commit()
+        current_app.logger.info(f"Successfully decremented stats for Player ID: {player_id}")
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Failed to commit decremented stats for Player ID: {player_id}. Error: {str(e)}")
+
+
+def decrement_stat(season_stats, career_stats, stat_attr, player_id, log_msg):
+    """Helper function to decrement a stat safely"""
+    # Decrement season stat
+    season_stat_value = getattr(season_stats, stat_attr)
+    if season_stat_value > 0:
+        setattr(season_stats, stat_attr, season_stat_value - 1)
+        current_app.logger.info(f"{log_msg} for Player ID: {player_id} in season stats")
+
+    # Decrement career stat
+    career_stat_value = getattr(career_stats, stat_attr)
+    if career_stat_value > 0:
+        setattr(career_stats, stat_attr, career_stat_value - 1)
+        current_app.logger.info(f"{log_msg} for Player ID: {player_id} in career stats")
+
+
+def log_current_stats(season_stats, career_stats):
+    """Log current stats before decrementing"""
+    current_app.logger.info(f"Current Season Stats: Goals: {season_stats.goals}, Assists: {season_stats.assists}, Yellow Cards: {season_stats.yellow_cards}, Red Cards: {season_stats.red_cards}")
+    current_app.logger.info(f"Current Career Stats: Goals: {career_stats.goals}, Assists: {career_stats.assists}, Yellow Cards: {career_stats.yellow_cards}, Red Cards: {career_stats.red_cards}")
 
 # Password Generation
 def generate_random_password(length=12):
@@ -379,25 +450,31 @@ def player_profile(player_id):
     current_season_name, current_year = get_current_season_and_year()
     season = Season.query.filter_by(name=current_season_name).first()
 
+    # Query all matches that the player has participated in through PlayerEvent
+    matches = Match.query.join(PlayerEvent).filter(PlayerEvent.player_id == player_id).all()
+
+    if not season:
+        flash('Current season not found.', 'danger')
+        return redirect(url_for('home'))
+
     # Query distinct jersey sizes from the Player table
     distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
-    jersey_sizes = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]  # Filter out any None or empty values
+    jersey_sizes = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]
 
-    # Fetch the Classic League before it's used
+    # Fetch the Classic League
     classic_league = League.query.filter_by(name='Classic').first()
     if not classic_league:
         flash('Classic league not found', 'danger')
         return redirect(url_for('players.player_profile', player_id=player.id))
 
-    # Fetch the season stats for the current season
+    # Ensure season stats exist
     season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season.id).first()
     if not season_stats:
-        # Create a new season stats record if it doesn't exist
         season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
         db.session.add(season_stats)
         db.session.commit()
 
-    # Fetch the career stats or create them if they don't exist
+    # Ensure career stats exist
     if not player.career_stats:
         player.career_stats = PlayerCareerStats(player_id=player.id)
         db.session.add(player.career_stats)
@@ -423,93 +500,141 @@ def player_profile(player_id):
         career_assists=player.get_career_assists(),
         career_yellow_cards=player.get_career_yellow_cards(),
         career_red_cards=player.get_career_red_cards()
-    )
+    ) if is_admin else None
 
     # Pre-populate the multi-select fields with data from the database
     if form:
-        if player.other_positions:
-            form.other_positions.data = player.other_positions.strip('{}').split(',')
-        else:
-            form.other_positions.data = []
-
-        if player.positions_not_to_play:
-            form.positions_not_to_play.data = player.positions_not_to_play.strip('{}').split(',')
-        else:
-            form.positions_not_to_play.data = []
-
-        if player.favorite_position:
-            form.favorite_position.data = player.favorite_position
-
-        # Pre-populate the team_swap field if the player is in the Classic league
+        form.other_positions.data = player.other_positions.strip('{}').split(',') if player.other_positions else []
+        form.positions_not_to_play.data = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else []
+        form.favorite_position.data = player.favorite_position
         if is_classic_league_player and hasattr(form, 'team_swap'):
             form.team_swap.data = player.team_swap
 
     # Handle profile update (only if allowed)
     if form and form.validate_on_submit() and 'update_profile' in request.form:
-        # Manually update the form data from request.form if Select2 is not working as expected
-        form.favorite_position.data = request.form.get('favorite_position')  # Ensure this is captured
-        form.other_positions.data = request.form.getlist('other_positions')
-        form.positions_not_to_play.data = request.form.getlist('positions_not_to_play')
+        try:
+            form.favorite_position.data = request.form.get('favorite_position')
+            form.other_positions.data = request.form.getlist('other_positions')
+            form.positions_not_to_play.data = request.form.getlist('positions_not_to_play')
 
-        # Convert the multi-select fields back into the format expected by the database
-        player.favorite_position = form.favorite_position.data
-        player.other_positions = "{" + ",".join(form.other_positions.data) + "}" if form.other_positions.data else None
-        player.positions_not_to_play = "{" + ",".join(form.positions_not_to_play.data) + "}" if form.positions_not_to_play.data else None
+            form.populate_obj(player)
 
-        # Update the team_swap field if the player is in the Classic league
-        if is_classic_league_player and hasattr(form, 'team_swap'):
-            player.team_swap = form.team_swap.data
+            player.favorite_position = form.favorite_position.data
+            player.other_positions = "{" + ",".join(form.other_positions.data) + "}" if form.other_positions.data else None
+            player.positions_not_to_play = "{" + ",".join(form.positions_not_to_play.data) + "}" if form.positions_not_to_play.data else None
 
-        # Populate other fields
-        player.pronouns = form.pronouns.data
-        player.expected_weeks_available = form.expected_weeks_available.data
-        player.unavailable_dates = form.unavailable_dates.data
-        player.willing_to_referee = form.willing_to_referee.data
-        player.frequency_play_goal = form.frequency_play_goal.data
-        player.player_notes = form.player_notes.data
-        player.jersey_size = form.jersey_size.data  # Update jersey size
+            if is_classic_league_player and hasattr(form, 'team_swap'):
+                player.team_swap = form.team_swap.data
 
-        # Commit the changes to the database
-        db.session.commit()
+            db.session.commit()
 
-        flash('Profile updated successfully.', 'success')
-        return redirect(url_for('players.player_profile', player_id=player.id))
+            flash('Profile updated successfully.', 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while updating the profile. Please try again.', 'danger')
+            current_app.logger.error(f"Error updating profile for player {player_id}: {str(e)}")
 
     # Handle season stats update (only if admin)
     if is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
-        player.update_season_stats(season.id, {
-            'goals': season_stats_form.season_goals.data,
-            'assists': season_stats_form.season_assists.data,
-            'yellow_cards': season_stats_form.season_yellow_cards.data,
-            'red_cards': season_stats_form.season_red_cards.data,
-        })
+        try:
+            player.update_season_stats(season.id, {
+                'goals': season_stats_form.season_goals.data,
+                'assists': season_stats_form.season_assists.data,
+                'yellow_cards': season_stats_form.season_yellow_cards.data,
+                'red_cards': season_stats_form.season_red_cards.data,
+            }, user_id=current_user.id)
 
-        flash('Season stats updated successfully.', 'success')
-        return redirect(url_for('players.player_profile', player_id=player.id))
+            flash('Season stats updated successfully.', 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while updating season stats. Please try again.', 'danger')
+            current_app.logger.error(f"Error updating season stats for player {player_id}: {str(e)}")
 
     # Handle career stats update (only if admin and manually triggered)
     if is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
-        player.update_career_stats({
-            'goals': career_stats_form.career_goals.data,
-            'assists': career_stats_form.career_assists.data,
-            'yellow_cards': career_stats_form.career_yellow_cards.data,
-            'red_cards': career_stats_form.career_red_cards.data,
-        })
-        db.session.commit()
-        flash('Career stats updated successfully.', 'success')
-        return redirect(url_for('players.player_profile', player_id=player.id))
+        try:
+            player.update_career_stats({
+                'goals': career_stats_form.career_goals.data,
+                'assists': career_stats_form.career_assists.data,
+                'yellow_cards': career_stats_form.career_yellow_cards.data,
+                'red_cards': career_stats_form.career_red_cards.data,
+            }, user_id=current_user.id)
+
+            flash('Career stats updated successfully.', 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while updating career stats. Please try again.', 'danger')
+            current_app.logger.error(f"Error updating career stats for player {player_id}: {str(e)}")
+
+    # Handle adding new match-specific stats (for admin only)
+    if is_admin and request.method == 'POST' and 'add_stat_manually' in request.form:
+        try:
+            new_stat_data = {
+                'match_id': request.form.get('match_id'),
+                'goals': int(request.form.get('goals', 0)),
+                'assists': int(request.form.get('assists', 0)),
+                'yellow_cards': int(request.form.get('yellow_cards', 0)),
+                'red_cards': int(request.form.get('red_cards', 0)),
+            }
+            player.add_stat_manually(new_stat_data, user_id=current_user.id)
+            flash('Stat added successfully.', 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while adding stats. Please try again.', 'danger')
+            current_app.logger.error(f"Error adding stats for player {player_id}: {str(e)}")
+
+    # Fetch audit logs
+    audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id).order_by(PlayerStatAudit.timestamp.desc()).all()
 
     return render_template(
         'player_profile.html',
         player=player,
+        matches=matches,
         season=season,
         is_admin=is_admin,
         is_player=is_player,
-        is_classic_league_player=is_classic_league_player,  # Pass this to the template
+        is_classic_league_player=is_classic_league_player,
         form=form,
         season_stats_form=season_stats_form,
-        career_stats_form=career_stats_form
+        career_stats_form=career_stats_form,
+        audit_logs=audit_logs
     )
+
+@players_bp.route('/add_stat_manually/<int:player_id>', methods=['POST'])
+@login_required
+def add_stat_manually(player_id):
+    player = Player.query.get_or_404(player_id)
+    
+    # Ensure the user is an admin
+    if not current_user.has_role('Pub League Admin') and not current_user.has_role('Global Admin'):
+        flash('You do not have permission to perform this action.', 'danger')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    # Collect stat data from the form
+    try:
+        new_stat_data = {
+            'match_id': request.form.get('match_id'),
+            'goals': int(request.form.get('goals', 0)),
+            'assists': int(request.form.get('assists', 0)),
+            'yellow_cards': int(request.form.get('yellow_cards', 0)),
+            'red_cards': int(request.form.get('red_cards', 0)),
+        }
+
+        # Add stats manually to the player
+        player.add_stat_manually(new_stat_data, user_id=current_user.id)
+
+        flash('Stat added successfully.', 'success')
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        flash('An error occurred while adding stats. Please try again.', 'danger')
+        current_app.logger.error(f"Error adding stats for player {player_id}: {str(e)}")
+
+    return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/api/player_profile/<int:player_id>', methods=['GET'])
 @login_required
@@ -608,3 +733,58 @@ def create_profile():
     # If the form doesn't validate, flash an error and redirect back to the index.
     flash('Error creating player profile. Please check your inputs.', 'danger')
     return redirect(url_for('main.index'))
+
+@players_bp.route('/edit_match_stat/<int:stat_id>', methods=['GET', 'POST'])
+@login_required
+def edit_match_stat(stat_id):
+    match_stat = PlayerEvent.query.get_or_404(stat_id)
+
+    if request.method == 'GET':
+        # Return stat data for the edit modal (AJAX response)
+        return jsonify({
+            'goals': match_stat.goals,
+            'assists': match_stat.assists,
+            'yellow_cards': match_stat.yellow_cards,
+            'red_cards': match_stat.red_cards,
+        })
+
+    if request.method == 'POST':
+        try:
+            match_stat.goals = request.form.get('goals', 0)  # Default to 0 if not provided
+            match_stat.assists = request.form.get('assists', 0)
+            match_stat.yellow_cards = request.form.get('yellow_cards', 0)
+            match_stat.red_cards = request.form.get('red_cards', 0)
+            db.session.commit()
+            return jsonify({'success': True})
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
+            return jsonify({'success': False}), 500
+
+@players_bp.route('/remove_match_stat/<int:stat_id>', methods=['POST'])
+@login_required
+def remove_match_stat(stat_id):
+    match_stat = PlayerEvent.query.get_or_404(stat_id)
+    
+    try:
+        # Capture the player ID and event type before deleting the event
+        player_id = match_stat.player_id
+        event_type = match_stat.event_type
+
+        # Log which stat is being removed
+        current_app.logger.info(f"Removing stat for Player ID: {player_id}, Event Type: {event_type}, Stat ID: {stat_id}")
+
+        # Decrement the player's stats before removing the event
+        decrement_player_stats(player_id, event_type)
+
+        # Now, delete the match stat itself
+        db.session.delete(match_stat)
+        db.session.commit()
+
+        current_app.logger.info(f"Successfully removed stat for Player ID: {player_id}, Stat ID: {stat_id}")
+        return jsonify({'success': True})
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting match stat {stat_id}: {str(e)}")
+        return jsonify({'success': False}), 500

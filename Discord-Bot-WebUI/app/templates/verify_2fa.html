@@ -47,7 +47,7 @@
         <h4 class="mb-3 text-primary">Two-Factor Authentication</h4>
         <p class="mb-4 text-muted">Please enter the 6-digit code from your authenticator app.</p>
         <form method="POST" action="{{ url_for('auth.verify_2fa_login') }}">
-            {{ form.hidden_tag() }}
+            {{ empty_form.hidden_tag() }}
             <div class="mb-3">
                 {{ form.token(class="form-control form-control-lg", placeholder="123456") }}
             </div>

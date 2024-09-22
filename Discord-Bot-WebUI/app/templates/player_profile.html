@@ -44,7 +44,7 @@
                     <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#profileImageModal">Upload Profile Picture</button>
                     <form id="profile-picture-form" method="POST" enctype="multipart/form-data">
                         {% if form %}
-                        {{ form.hidden_tag() }}
+                        {{ empty_form.hidden_tag() }}
                         {% endif %}
                         <input type="hidden" id="cropped_image_data" name="cropped_image_data">
                     </form>
@@ -98,7 +98,7 @@
                     <div class="tab-pane fade show active" id="account-details" role="tabpanel" aria-labelledby="account-details-tab">
                         {% if form %}
                         <form method="POST" enctype="multipart/form-data">
-                            {{ form.hidden_tag() }}
+                            {{ empty_form.hidden_tag() }}
 
                             <div class="row">
                                 <div class="col-md-6">
@@ -203,85 +203,136 @@
                     <!-- Admin Settings Tab -->
                     {% if has_permission('edit_player_stats') %}
                     <div class="tab-pane fade" id="admin-settings" role="tabpanel" aria-labelledby="admin-settings-tab">
-                        <form method="POST">
-                            {% if form %}
-                            <div class="form-group mt-3">
-                                {{ form.notes.label(class="form-label") }}
-                                {{ form.notes(class_="form-control") }}
-                            </div>
+                        <h6 class="font-weight-bold text-primary mb-2">Player Stats Overview</h6>
 
-                            <div class="form-check mb-3">
-                                {{ form.is_coach(class_="form-check-input") }}
-                                {{ form.is_coach.label(class_="form-check-label") }}
+                        <!-- Season and Career Stats -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Season Stats ({{ season.name }})</h6>
+                                <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
+                                <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
+                                <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
+                                <p class="mb-2">Red Cards: {{ player.season_red_cards(season.id) }}</p>
                             </div>
-                            {% endif %}
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Career Stats</h6>
+                                <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
+                                <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
+                                <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
+                                <p class="mb-2">Red Cards: {{ player.get_career_red_cards() }}</p>
+                            </div>
+                        </div>
 
-                            <hr>
-                            <h6 class="font-weight-bold text-primary mb-2">Edit Stats</h6>
+                        <hr>
+
+                        <!-- Match Stats Management Section -->
+                        <h6 class="font-weight-bold text-primary mb-2">Match Stats History</h6>
+                        <div class="mb-4">
+                            <label class="form-label">Filter by Match</label>
+                            <select class="form-select" id="matchFilter" onchange="filterMatchStats()">
+                                <option value="">All Matches</option>
+                                {% for match in matches %}
+                                <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- List of Match Stats for the Player -->
+                        <div id="matchStatsContainer">
+                            {% for event in player.events %}
+                            <div class="card p-3 mb-3 shadow-sm" data-match-id="{{ event.match.id }}">
+                                <h6 class="text-muted">Match Date: {{ event.match.date.strftime('%B %d, %Y') }}</h6>
+                                <p class="mb-1">Opponent: {{ event.match.away_team.name if player.team_id == event.match.home_team_id else event.match.home_team.name }}</p>
+                                <p class="mb-1">Event Type: {{ event.event_type }}</p>
+                                <p class="mb-1">Minute: {{ event.minute }}</p>
+
+                                <!-- Admin Controls -->
+                                <div class="d-flex justify-content-between">
+                                    <button class="btn btn-sm btn-primary" onclick="editMatchStat({{ event.id }})">Edit</button>
+                                    <button class="btn btn-sm btn-danger" onclick="removeMatchStat({{ event.id }})">Remove</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Add New Stat Manually -->
+                        <hr>
+                        <h6 class="font-weight-bold text-primary mb-2">Add Stats Manually</h6>
+                        <form method="POST" action="{{ url_for('players.add_stat_manually', player_id=player.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="mb-3">
+                                <label for="match_id" class="form-label">Match</label>
+                                <select class="form-select" name="match_id" required>
+                                    <option value="">Select Match</option>
+                                    {% for match in matches %}
+                                    <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        {% if season_stats_form %}
-                                        {{ season_stats_form.hidden_tag() }}
-                                        {{ season_stats_form.season_goals.label(class="form-label") }}
-                                        {{ season_stats_form.season_goals(class_="form-control") }}
-                                        {% endif %}
+                                        <label for="goals" class="form-label">Goals</label>
+                                        <input type="number" class="form-control" name="goals" min="0" value="0" />
                                     </div>
                                     <div class="mb-3">
-                                        {% if season_stats_form %}
-                                        {{ season_stats_form.season_assists.label(class="form-label") }}
-                                        {{ season_stats_form.season_assists(class_="form-control") }}
-                                        {% endif %}
-                                    </div>
-                                    <div class="mb-3">
-                                        {% if season_stats_form %}
-                                        {{ season_stats_form.season_yellow_cards.label(class="form-label") }}
-                                        {{ season_stats_form.season_yellow_cards(class_="form-control") }}
-                                        {% endif %}
-                                    </div>
-                                    <div class="mb-3">
-                                        {% if season_stats_form %}
-                                        {{ season_stats_form.season_red_cards.label(class="form-label") }}
-                                        {{ season_stats_form.season_red_cards(class_="form-control") }}
-                                        {% endif %}
+                                        <label for="assists" class="form-label">Assists</label>
+                                        <input type="number" class="form-control" name="assists" min="0" value="0" />
                                     </div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        {% if career_stats_form %}
-                                        {{ career_stats_form.hidden_tag() }}
-                                        {{ career_stats_form.career_goals.label(class="form-label") }}
-                                        {{ career_stats_form.career_goals(class_="form-control", value=player.get_career_goals()) }}
-                                        {% endif %}
+                                        <label for="yellow_cards" class="form-label">Yellow Cards</label>
+                                        <input type="number" class="form-control" name="yellow_cards" min="0" value="0" />
                                     </div>
                                     <div class="mb-3">
-                                        {% if career_stats_form %}
-                                        {{ career_stats_form.career_assists.label(class="form-label") }}
-                                        {{ career_stats_form.career_assists(class_="form-control", value=player.get_career_assists()) }}
-                                        {% endif %}
-                                    </div>
-                                    <div class="mb-3">
-                                        {% if career_stats_form %}
-                                        {{ career_stats_form.career_yellow_cards.label(class="form-label") }}
-                                        {{ career_stats_form.career_yellow_cards(class_="form-control", value=player.get_career_yellow_cards()) }}
-                                        {% endif %}
-                                    </div>
-                                    <div class="mb-3">
-                                        {% if career_stats_form %}
-                                        {{ career_stats_form.career_red_cards.label(class="form-label") }}
-                                        {{ career_stats_form.career_red_cards(class_="form-control", value=player.get_career_red_cards()) }}
-                                        {% endif %}
+                                        <label for="red_cards" class="form-label">Red Cards</label>
+                                        <input type="number" class="form-control" name="red_cards" min="0" value="0" />
                                     </div>
                                 </div>
                             </div>
-
-                            <button type="submit" class="btn btn-secondary btn-block mt-3">Save Admin Settings</button>
+                            <button type="submit" class="btn btn-primary">Add Stat</button>
                         </form>
                     </div>
                     {% endif %}
                 </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Stat Modal -->
+<div class="modal fade" id="editMatchStatModal" tabindex="-1" role="dialog" aria-labelledby="editMatchStatModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchStatModalLabel">Edit Match Stat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form id="editMatchStatForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" id="editStatId" name="stat_id">
+                    <div class="form-group">
+                        <label for="editGoalsInput">Goals</label>
+                        <input type="number" class="form-control" id="editGoalsInput" name="goals">
+                    </div>
+                    <div class="form-group">
+                        <label for="editAssistsInput">Assists</label>
+                        <input type="number" class="form-control" id="editAssistsInput" name="assists">
+                    </div>
+                    <div class="form-group">
+                        <label for="editYellowCardsInput">Yellow Cards</label>
+                        <input type="number" class="form-control" id="editYellowCardsInput" name="yellow_cards">
+                    </div>
+                    <div class="form-group">
+                        <label for="editRedCardsInput">Red Cards</label>
+                        <input type="number" class="form-control" id="editRedCardsInput" name="red_cards">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -392,6 +443,94 @@
         {% if player.needs_manual_review and is_admin %}
         $('#manualReviewModal').modal('show');
         {% endif %}
+    });
+
+    function filterMatchStats() {
+        var selectedMatchId = $('#matchFilter').val();  // Get the selected match ID
+        $('.card').each(function () {
+            var matchId = $(this).data('match-id');  // Each card should have a data-match-id attribute
+            if (selectedMatchId == '' || matchId == selectedMatchId) {
+                $(this).show();  // Show the card if it matches the filter
+            } else {
+                $(this).hide();  // Hide the card if it doesn't match the filter
+            }
+        });
+    }
+
+    function editMatchStat(statId) {
+        $('#editMatchStatModal').modal('show');  // Show the modal
+
+        var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
+
+        $.ajax({
+            url: '/edit_match_stat/' + statId,
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': csrfToken,  // Add CSRF token for protection
+            },
+            success: function (data) {
+                // Populate the inputs with the received data
+                $('#editGoalsInput').val(data.goals);
+                $('#editAssistsInput').val(data.assists);
+                $('#editYellowCardsInput').val(data.yellow_cards);
+                $('#editRedCardsInput').val(data.red_cards);
+                $('#editStatId').val(statId);  // Store statId in the hidden input for form submission
+            },
+            error: function () {
+                alert('Failed to load match stats. Please try again.');
+            }
+        });
+    }
+
+    function removeMatchStat(statId) {
+        if (confirm("Are you sure you want to remove this stat?")) {
+            var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
+            $.ajax({
+                url: '/players/remove_match_stat/' + statId,
+                method: 'POST',  // Changed to POST for testing
+                headers: {
+                    'X-CSRFToken': csrfToken  // Include CSRF token for protection
+                },
+                success: function (response) {
+                    if (response.success) {
+                        alert('Stat removed successfully.');
+                        location.reload();  // Refresh the page to reflect the updated data
+                    } else {
+                        alert('Failed to remove stat.');
+                    }
+                },
+                error: function () {
+                    alert('Failed to remove match stat. Please try again.');
+                }
+            });
+        }
+    }
+
+    $('#editMatchStatForm').submit(function (e) {
+        e.preventDefault();  // Prevent default form submission
+
+        var statId = $('#editStatId').val();  // Get the stat ID
+        var formData = $(this).serialize();  // Serialize the form data
+
+        $.ajax({
+            url: '/players/edit_match_stat/' + statId,  // Use the stat ID to send the request to the correct endpoint
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}',  // Include CSRF token for protection
+            },
+            success: function (response) {
+                if (response.success) {
+                    $('#editMatchStatModal').modal('hide');  // Hide the modal
+                    location.reload();  // Reload the page to reflect the updated data
+                } else {
+                    alert('Failed to update match stat.');
+                }
+            },
+            error: function () {
+                alert('Failed to update match stat. Please try again.');
+            }
+        });
     });
 </script>
 {% endblock %}
