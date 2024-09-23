@@ -6,7 +6,7 @@ on:
       - master
     paths:
       - 'Discord-Bot-WebUI/**'   # Watch for changes in the Web UI folder
-      - '**'                     # Watch for changes in the bot files folder
+      - '**'                     # Watch for changes in the bot files
 
   workflow_dispatch:
 
