@@ -7,6 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_socketio import SocketIO
 from flask_session import Session
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from web_config import Config
 from app.celery import make_celery
 import logging
@@ -23,6 +24,9 @@ sess = Session()
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+     # Apply ProxyFix to trust proxy headers
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # Initialize Flask extensions with the app
     db.init_app(app)
