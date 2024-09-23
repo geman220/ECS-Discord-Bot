@@ -57,7 +57,7 @@ services:
       - ./Discord-Bot-WebUI/service-account-key.json:/app/service-account-key.json
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.webui.rule=Host(`portal.ecsfc.com`)"  # Replace with your domain
+      - "traefik.http.routers.webui.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui.entrypoints=web"
       - "traefik.http.routers.webui-secure.entrypoints=websecure"
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
@@ -85,7 +85,7 @@ services:
         condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.flower.rule=Host(`flower.ecsfc.com`)"  # If you want to expose Flower
+      - "traefik.http.routers.flower.rule=Host(`flower.ecsfc.com`)"
       - "traefik.http.routers.flower.entrypoints=web"
       - "traefik.http.routers.flower-secure.entrypoints=websecure"
       - "traefik.http.routers.flower-secure.rule=Host(`flower.ecsfc.com`)"
