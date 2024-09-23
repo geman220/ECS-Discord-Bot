@@ -1,0 +1,54 @@
+name: Deploy Projects
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'Discord-Bot-WebUI/**'   # Watch for changes in the Web UI folder
+      - '**'                     # Watch for changes in the bot files
+
+  workflow_dispatch:
+
+jobs:
+  # Web UI Deployment
+  web_ui_deploy:
+    if: contains(github.event.head_commit.message, 'web-ui') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH for Deployment
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Build and Restart Web UI Service
+        run: |
+          ssh deployer@${{ secrets.SERVER_IP }} '
+            cd ~/ecs-web/ECS-Discord-Bot &&
+            docker-compose build webui celery-worker celery-beat &&
+            docker-compose up -d webui celery-worker celery-beat
+          '
+
+  # Discord Bot Deployment
+  bot_deploy:
+    if: contains(github.event.head_commit.message, 'bot') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH for Deployment
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Build and Restart Discord Bot Service
+        run: |
+          ssh deployer@${{ secrets.SERVER_IP }} '
+            cd ~/ecs-web/ECS-Discord-Bot &&
+            docker-compose build discord-bot &&
+            docker-compose up -d discord-bot
+          '
