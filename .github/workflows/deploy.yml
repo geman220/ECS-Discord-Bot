@@ -27,7 +27,7 @@ jobs:
       - name: Build and Restart Web UI Service
         run: |
           ssh -o StrictHostKeyChecking=no deployer@${{ secrets.SERVER_IP }} '
-            cd ~/ecs-web/ECS-Discord-Bot &&
+            cd /home/deployer/ecs-web/ECS-Discord-Bot &&
             docker-compose build webui celery-worker celery-beat &&
             docker-compose up -d webui celery-worker celery-beat
           '
@@ -48,7 +48,7 @@ jobs:
       - name: Build and Restart Discord Bot Service
         run: |
           ssh -o StrictHostKeyChecking=no deployer@${{ secrets.SERVER_IP }} '
-            cd ~/ecs-web/ECS-Discord-Bot &&
+            cd /home/deployer/ecs-web/ECS-Discord-Bot &&
             docker-compose build discord-bot &&
             docker-compose up -d discord-bot
           '
