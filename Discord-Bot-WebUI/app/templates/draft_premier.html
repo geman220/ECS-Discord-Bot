@@ -236,7 +236,8 @@
 {% block custom_js %}
 <script>
     var selectedPlayerId = null;
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    var protocol = window.location.protocol === "https:" ? "wss" : "ws";  // Detect WebSocket protocol
+    var socket = io.connect(protocol + '://' + document.domain + ':' + location.port);
 
     // Search players
     document.getElementById('search-player').addEventListener('keyup', function () {
