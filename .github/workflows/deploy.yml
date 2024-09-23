@@ -28,6 +28,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no deployer@${{ secrets.SERVER_IP }} '
             cd /home/deployer/ecs-web/ECS-Discord-Bot &&
+            git pull origin master &&   # Ensure the latest code is pulled
             docker-compose build webui celery-worker celery-beat &&
             docker-compose up -d webui celery-worker celery-beat
           '
@@ -49,6 +50,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no deployer@${{ secrets.SERVER_IP }} '
             cd /home/deployer/ecs-web/ECS-Discord-Bot &&
+            git pull origin master &&  # Ensure the latest code is pulled
             docker-compose build discord-bot &&
             docker-compose up -d discord-bot
           '
