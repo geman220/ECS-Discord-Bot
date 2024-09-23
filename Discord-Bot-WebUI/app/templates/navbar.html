@@ -196,9 +196,7 @@
                     {% endif %}
                     <li>
                         <form action="{{ url_for('auth.logout') }}" method="post" id="logout-form" style="display: none;">
-                            {% if form %}
-                            {{ empty_form.hidden_tag() }} <!-- CSRF token -->
-                            {% endif %}
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         </form>
                         <a class="dropdown-item waves-effect" href="javascript:void(0);" onclick="document.getElementById('logout-form').submit();">
                             <small class="align-middle">Logout</small>

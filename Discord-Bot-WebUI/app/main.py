@@ -1,5 +1,5 @@
 # main.py
-from flask import Blueprint, render_template, redirect, url_for, abort, request, flash
+from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
 from sqlalchemy.orm import aliased
@@ -8,6 +8,8 @@ from app.models import Schedule, Match, Notification, Team, Player, Announcement
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 import logging
+import subprocess
+import requests
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -370,11 +372,36 @@ def mark_as_read(notification_id):
 def set_tour_skipped():
     current_user.has_completed_tour = False
     db.session.commit()
-    return '', 204  # No content response
+    return '', 204
 
 @main.route('/set_tour_complete', methods=['POST'])
 @login_required
 def set_tour_complete():
     current_user.has_completed_tour = True
     db.session.commit()
-    return '', 204  # No content response
+    return '', 204
+
+@main.route('/version', methods=['GET'])
+def get_version():
+    with open('version.txt', 'r') as f:
+        version = f.read().strip()
+    return jsonify({"version": version})
+
+def get_latest_version():
+    url = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/refs/heads/master/Discord-Bot-WebUI/version.txt"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text.strip()
+    return None
+
+@main.route('/update', methods=['POST'])
+def update_application():
+    try:
+        project_dir = "/home/deployer/ecs-web/ECS-Discord-Bot"
+        # Run the update process (this pulls from GitHub and restarts the containers)
+        subprocess.run(["git", "pull"], cwd=project_dir, check=True)
+        subprocess.run(["docker-compose", "build"], cwd=project_dir, check=True)
+        subprocess.run(["docker-compose", "up", "-d"], cwd=project_dir, check=True)
+        return jsonify({"success": True, "message": "Update completed!"})
+    except subprocess.CalledProcessError as e:
+        return jsonify({"success": False, "message": str(e)})
