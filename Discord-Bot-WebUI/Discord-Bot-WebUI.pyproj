@@ -105,6 +105,7 @@
     <Content Include="app\templates\view_standings.html" />
     <Content Include="app\templates\_report_edit_match_modal.html" />
     <Content Include="requirements.txt" />
+    <Content Include="version.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
