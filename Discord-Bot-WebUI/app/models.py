@@ -2,7 +2,7 @@ from app import db, login_manager
 from datetime import datetime
 from flask_login import UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, func
+from sqlalchemy import event, func, Enum
 import enum
 import logging
 import pyotp
@@ -47,15 +47,15 @@ class User(UserMixin, db.Model):
     email_notifications = db.Column(db.Boolean, default=True)
     sms_notifications = db.Column(db.Boolean, default=True)
     discord_notifications = db.Column(db.Boolean, default=True)
-    profile_visibility = db.Column(db.String(20), default='everyone')  # options: 'everyone', 'teammates', 'admins'
+    profile_visibility = db.Column(db.String(20), default='everyone')
     notifications = db.relationship('Notification', back_populates='user', lazy='dynamic')
     has_completed_onboarding = db.Column(db.Boolean, default=False)
     has_completed_tour = db.Column(db.Boolean, default=False)
     has_skipped_profile_creation = db.Column(db.Boolean, default=False)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     league = db.relationship('League', back_populates='users')
-    is_2fa_enabled = db.Column(db.Boolean, default=False)  # 2FA enabled flag
-    totp_secret = db.Column(db.String(32), nullable=True)  # Change String(16) to String(32)
+    is_2fa_enabled = db.Column(db.Boolean, default=False)
+    totp_secret = db.Column(db.String(32), nullable=True)
 
     # Many-to-many relationship between User and Role
     roles = db.relationship('Role', secondary=user_roles, back_populates='users')
@@ -598,7 +598,7 @@ class PlayerEvent(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     minute = db.Column(db.Integer, nullable=True)
-    event_type = db.Column(db.Enum(PlayerEventType), nullable=False)
+    event_type = db.Column(Enum(PlayerEventType), nullable=False)
 
     player = db.relationship('Player', back_populates='events')
     match = db.relationship('Match', back_populates='events')

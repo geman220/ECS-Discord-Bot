@@ -40,7 +40,7 @@
 
     <!-- Flatpickr JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         /* Ensure proper background for dropdown in dark mode */
         html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,

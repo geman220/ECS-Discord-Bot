@@ -20,13 +20,11 @@
             </div>
 
             <!-- Modal Body -->
-            <form method="POST" action="{{ url_for('teams.report_match', match_id=match.id) }}">
-                <!-- CSRF Token -->
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
+            <form id="reportMatchForm-{{ match.id }}" class="report-match-form" data-match-id="{{ match.id }}">
                 <div class="modal-body">
                     <!-- Home and Away Team Scores -->
                     <div class="row mb-4">
+                        <!-- Home Team Score -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="home_team_score-{{ match.id }}" class="form-label">{{ home_team_name }} Score</label>
@@ -35,13 +33,10 @@
                                        class="form-control"
                                        id="home_team_score-{{ match.id }}"
                                        name="home_team_score"
-                                       required
-                                       value="{{ match.home_team_score }}" />
-                                {% for error in report_form.home_team_score.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                       required />
                             </div>
                         </div>
+                        <!-- Away Team Score -->
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="away_team_score-{{ match.id }}" class="form-label">{{ opponent_team_name }} Score</label>
@@ -50,13 +45,15 @@
                                        class="form-control"
                                        id="away_team_score-{{ match.id }}"
                                        name="away_team_score"
-                                       required
-                                       value="{{ match.away_team_score }}" />
-                                {% for error in report_form.away_team_score.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                                {% endfor %}
+                                       required />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Match Notes -->
+                    <div class="mb-4">
+                        <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
+                        <textarea class="form-control" id="match_notes-{{ match.id }}" rows="3"></textarea>
                     </div>
 
                     <!-- Goal Scorers -->
@@ -64,31 +61,7 @@
                         <label class="form-label">Goal Scorers</label>
                         <div class="card p-3 border-1 shadow-sm">
                             <div id="goalScorersContainer-{{ match.id }}" class="mb-2">
-                                {% for scorer_form in report_form.goal_scorers %}
-                                <div class="goal-scorer-entry mb-2">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            {{ scorer_form.player_id.label(class="form-label") }}
-                                            {{ scorer_form.player_id(class="form-select") }}
-                                            {% for error in scorer_form.player_id.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ scorer_form.minute.label(class="form-label") }}
-                                            {{ scorer_form.minute(class="form-control") }}
-                                            {% for error in scorer_form.minute.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeEvent(this, {{ event.id }})">
-                                                <i class="ti ti-trash"></i> Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                                <!-- Goal Scorer entries will be dynamically added here -->
                             </div>
                             <button class="btn btn-primary btn-sm"
                                     type="button"
@@ -103,31 +76,7 @@
                         <label class="form-label">Assist Providers</label>
                         <div class="card p-3 border-1 shadow-sm">
                             <div id="assistProvidersContainer-{{ match.id }}" class="mb-2">
-                                {% for assist_form in report_form.assist_providers %}
-                                <div class="assist-provider-entry mb-2">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            {{ assist_form.player_id.label(class="form-label") }}
-                                            {{ assist_form.player_id(class="form-select") }}
-                                            {% for error in assist_form.player_id.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ assist_form.minute.label(class="form-label") }}
-                                            {{ assist_form.minute(class="form-control") }}
-                                            {% for error in assist_form.minute.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeEvent(this)">
-                                                <i class="ti ti-trash"></i> Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                                <!-- Assist Provider entries will be dynamically added here -->
                             </div>
                             <button class="btn btn-primary btn-sm"
                                     type="button"
@@ -142,31 +91,7 @@
                         <label class="form-label">Yellow Cards</label>
                         <div class="card p-3 border-1 shadow-sm">
                             <div id="yellowCardsContainer-{{ match.id }}" class="mb-2">
-                                {% for yellow_card_form in report_form.yellow_cards %}
-                                <div class="yellow-card-entry mb-2">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            {{ yellow_card_form.player_id.label(class="form-label") }}
-                                            {{ yellow_card_form.player_id(class="form-select") }}
-                                            {% for error in yellow_card_form.player_id.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ yellow_card_form.minute.label(class="form-label") }}
-                                            {{ yellow_card_form.minute(class="form-control") }}
-                                            {% for error in yellow_card_form.minute.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeEvent(this)">
-                                                <i class="ti ti-trash"></i> Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                                <!-- Yellow Card entries will be dynamically added here -->
                             </div>
                             <button class="btn btn-warning btn-sm"
                                     type="button"
@@ -181,31 +106,7 @@
                         <label class="form-label">Red Cards</label>
                         <div class="card p-3 border-1 shadow-sm">
                             <div id="redCardsContainer-{{ match.id }}" class="mb-2">
-                                {% for red_card_form in report_form.red_cards %}
-                                <div class="red-card-entry mb-2">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            {{ red_card_form.player_id.label(class="form-label") }}
-                                            {{ red_card_form.player_id(class="form-select") }}
-                                            {% for error in red_card_form.player_id.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-4">
-                                            {{ red_card_form.minute.label(class="form-label") }}
-                                            {{ red_card_form.minute(class="form-control") }}
-                                            {% for error in red_card_form.minute.errors %}
-                                            <div class="text-danger">{{ error }}</div>
-                                            {% endfor %}
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="removeEvent(this)">
-                                                <i class="ti ti-trash"></i> Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
+                                <!-- Red Card entries will be dynamically added here -->
                             </div>
                             <button class="btn btn-danger btn-sm"
                                     type="button"
@@ -214,21 +115,12 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Match Notes -->
-                    <div class="mb-4">
-                        <label class="form-label" for="match_notes">Match Notes</label>
-                        {{ report_form.notes(class="form-control", id="match_notes-{{ match.id }}", rows="3") }}
-                        {% for error in report_form.notes.errors %}
-                        <div class="text-danger">{{ error }}</div>
-                        {% endfor %}
-                    </div>
                 </div>
 
                 <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}" disabled>
                         {{ 'Save Changes' if match.reported else 'Submit Report' }}
                     </button>
                 </div>

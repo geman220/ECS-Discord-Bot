@@ -60,54 +60,53 @@
                         <div class="accordion-body">
                             <ul class="list-group">
                                 {% for match_data in matches %}
-                                {% set match = match_data['match'] %}
-                                {% set home_players = match_data['home_players'] %}
-                                {% set opponent_players = match_data['opponent_players'] %}
-                                {% set home_team_id = match_data['home_team_id'] %}
-                                {% set opponent_team_id = match_data['opponent_team_id'] %}
-                                {% set home_team_name = match_data['home_team_name'] %}
-                                {% set opponent_team_name = match_data['opponent_name'] %}
-                                {% set match_id = match.id %}
+                                    {% set match = match_data['match'] %}
+                                    {% set home_team = match.home_team %}
+                                    {% set away_team = match.away_team %}
+                                    {% set is_home = team.id == home_team.id %}
+                                    {% set opponent_team = away_team if is_home else home_team %}
+                                    {% set opponent_team_name = opponent_team.name %}
+                                    {% set match_id = match.id %}
 
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-decoration-none">
-                                        <span>{{ match.time.strftime('%I:%M %p') }} vs {{ opponent_team_name }} at {{ match.location }}</span>
-                                    </a>
-                                    <div class="d-flex align-items-center">
-                                        {% if current_user.has_permission('view_game_results') %}
-                                        <span class="badge bg-{{ match.result_class }} me-3">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
-                                        {% endif %}
-                                        {% if current_user.has_permission('view_match_reporting') %}
-                                        <button class="btn btn-sm {% if match.reported %}btn-warning{% else %}btn-primary{% endif %} edit-match-btn"
-                                                data-match-id="{{ match.id }}"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#reportMatchModal-{{ match.id }}"
-                                                aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}">
-                                            {{ 'Edit' if match.reported else 'Report' }}
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-decoration-none">
+                                            <span>{{ match.time.strftime('%I:%M %p') }} vs {{ opponent_team_name }} at {{ match.location }}</span>
+                                        </a>
+                                        <div class="d-flex align-items-center">
+                                            {% if current_user.has_permission('view_game_results') %}
+                                            <span class="badge bg-{{ match.result_class }} me-3">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                            {% endif %}
+                                            {% if current_user.has_permission('view_match_reporting') %}
+                                            <button class="btn btn-sm {% if match.reported %}btn-warning{% else %}btn-primary{% endif %} edit-match-btn"
+                                                    data-match-id="{{ match.id }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#reportMatchModal-{{ match.id }}"
+                                                    aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}">
+                                                {{ 'Edit' if match.reported else 'Report' }}
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </li>
 
-                                <!-- Instead of 'with', pass the match data through the set variables above -->
-                                {% include 'report_match_modal.html' %}
+                                    <!-- Instead of 'with', pass the match data through the set variables above -->
+                                    {% include 'report_match_modal.html' %}
 
-                                {% endfor %}
-                            </ul>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
+                    {% endfor %}
 
-                {% if not grouped_matches %}
-                <p class="text-center text-muted my-3">No matches have been scheduled for this team yet.</p>
-                {% endif %}
+                    {% if not grouped_matches %}
+                    <p class="text-center text-muted my-3">No matches have been scheduled for this team yet.</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
+    {% endblock %}
 </div>
-{% endblock %}
-
 {% block custom_js %}
 <script>
     var playerChoices = {{ player_choices | tojson }};
