@@ -61,11 +61,12 @@
                             <ul class="list-group">
                                 {% for match_data in matches %}
                                     {% set match = match_data['match'] %}
-                                    {% set home_team = match.home_team %}
-                                    {% set away_team = match.away_team %}
-                                    {% set is_home = team.id == home_team.id %}
-                                    {% set opponent_team = away_team if is_home else home_team %}
-                                    {% set opponent_team_name = opponent_team.name %}
+                                    {% set home_players = match_data['home_players'] %}
+                                    {% set opponent_players = match_data['opponent_players'] %}
+                                    {% set home_team_id = match_data['home_team_id'] %}
+                                    {% set opponent_team_id = match_data['opponent_team_id'] %}
+                                    {% set home_team_name = match_data['home_team_name'] %}
+                                    {% set opponent_team_name = match_data['opponent_name'] %}
                                     {% set match_id = match.id %}
 
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
