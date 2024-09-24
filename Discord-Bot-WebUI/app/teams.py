@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 from app import db
-from app.models import Team, Player, Schedule, League, Season, Match, Standings, PlayerEventType, PlayerEvent, PlayerSeasonStats
+from app.models import Team, Player, Schedule, League, Season, Match, Standings, PlayerEventType, PlayerEvent, PlayerSeasonStats, PlayerCareerStats
 from app.main import fetch_upcoming_matches
 from app.forms import ReportMatchForm, PlayerEventForm
 from flask_login import login_required, current_user
@@ -186,8 +186,7 @@ def process_events(match, data, event_type, add_key, remove_key):
     logger.info(f"Events to add for {event_type.name}: {events_to_add}")
     logger.info(f"Events to remove for {event_type.name}: {events_to_remove}")
 
-    # Convert event_type to its value for comparison (if needed)
-    event_type_value = event_type.value
+    event_type_value = event_type.value  # Convert event_type to its value for comparison if needed
 
     # Process events to remove
     for event_data in events_to_remove:
@@ -205,25 +204,29 @@ def process_events(match, data, event_type, add_key, remove_key):
         player_id = event_data.get('player_id')
         minute = event_data.get('minute')
         stat_id = event_data.get('stat_id')
-        
-        # Convert IDs to integers
+
         player_id = int(player_id)
         if stat_id:
             stat_id = int(stat_id)
+
+        # Fetch player and ensure they belong to either the home or opponent team
+        player = Player.query.filter(
+            (Player.id == player_id) &
+            (Player.team_id.in_([match.home_team_id, match.away_team_id]))  # Allow either home or away team
+        ).first()
+
+        if not player:
+            logger.error(f"Player with ID {player_id} not found in either team for this match.")
+            raise ValueError(f"Player with ID {player_id} is not part of this match.")
 
         if stat_id:
             # Update existing event
             event = PlayerEvent.query.get(stat_id)
             if event:
-                # Check if player_id has changed
                 if event.player_id != player_id:
-                    # Decrement stats for old player
                     update_player_stats(event.player_id, event.event_type, increment=False)
-                    # Increment stats for new player
                     update_player_stats(player_id, event_type_value, increment=True)
-                    # Update player_id in the event
                     event.player_id = player_id
-                # Update minute
                 event.minute = minute if minute else None
                 logger.info(f"Updated {event_type.name}: Player ID {player_id}, Minute {event.minute}, Stat ID: {stat_id}")
         else:
@@ -236,7 +239,6 @@ def process_events(match, data, event_type, add_key, remove_key):
             )
             db.session.add(new_event)
             logger.info(f"Added New {event_type.name}: Player ID {player_id}, Minute {minute}")
-            # Increment player stats
             update_player_stats(player_id, event_type_value)
 
 def update_player_stats(player_id, event_type, increment=True):
@@ -530,6 +532,7 @@ def report_match(match_id):
             return jsonify({'success': False, 'message': 'Unsupported Media Type'}), 415
 
         data = request.get_json()
+        logger.info(f"Received data: {data}")
         if not data:
             logger.error("No data received in the request.")
             return jsonify({'success': False, 'message': 'No data received.'}), 400
