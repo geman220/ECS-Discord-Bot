@@ -450,6 +450,8 @@ def player_profile(player_id):
     current_season_name, current_year = get_current_season_and_year()
     season = Season.query.filter_by(name=current_season_name).first()
 
+    user = player.user
+
     # Query all matches that the player has participated in through PlayerEvent
     matches = Match.query.join(PlayerEvent).filter(PlayerEvent.player_id == player_id).all()
 
@@ -483,6 +485,36 @@ def player_profile(player_id):
     is_classic_league_player = player.league_id == classic_league.id
     is_player = player.user_id == current_user.id
     is_admin = current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin')
+
+    # Handle the coach status update (only if admin)
+    if is_admin and request.method == 'POST' and 'update_coach_status' in request.form:
+        try:
+            # Update the player's coach status
+            is_coach = 'is_coach' in request.form  # True if checkbox is checked
+            
+            # Update player.is_coach field
+            player.is_coach = is_coach
+            
+            # Fetch the 'Pub League Coach' role
+            coach_role = Role.query.filter_by(name='Pub League Coach').first()
+
+            if is_coach:
+                # Add 'Pub League Coach' role to the user's roles
+                if coach_role not in user.roles:
+                    user.roles.append(coach_role)
+            else:
+                # Remove 'Pub League Coach' role from the user's roles if unmarked
+                if coach_role in user.roles:
+                    user.roles.remove(coach_role)
+            
+            db.session.commit()
+            flash(f"{player.name}'s coach status updated successfully.", 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while updating the coach status. Please try again.', 'danger')
+            current_app.logger.error(f"Error updating coach status for player {player_id}: {str(e)}")
 
     form = PlayerProfileForm(obj=player) if is_player or is_admin else None
     if form:

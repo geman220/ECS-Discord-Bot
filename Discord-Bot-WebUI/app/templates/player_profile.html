@@ -205,6 +205,17 @@
                     <div class="tab-pane fade" id="admin-settings" role="tabpanel" aria-labelledby="admin-settings-tab">
                         <h6 class="font-weight-bold text-primary mb-2">Player Stats Overview</h6>
 
+                        <!-- Mark Player as Coach Section -->
+                        <h6 class="font-weight-bold text-primary mb-2">Coach Settings</h6>
+                        <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_coach" id="isCoachToggle" {% if player.is_coach %}checked{% endif %}>
+                                <label class="form-check-label" for="isCoachToggle">Mark this player as a coach</label>
+                            </div>
+                            <button type="submit" name="update_coach_status" class="btn btn-primary mt-3">Update Coach Status</button>
+                        </form>
+
                         <!-- Season and Career Stats -->
                         <div class="row">
                             <div class="col-md-6">
