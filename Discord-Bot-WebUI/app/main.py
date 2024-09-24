@@ -449,6 +449,9 @@ def update_application():
         subprocess.run(["docker-compose", "up", "-d"], cwd=PROJECT_DIR, check=True)
 
         return jsonify({"success": True, "message": "Update completed!"})
-    
+
     except subprocess.CalledProcessError as e:
-        return jsonify({"success": False, "message": str(e)})
+        return jsonify({"success": False, "message": f"Subprocess error: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
