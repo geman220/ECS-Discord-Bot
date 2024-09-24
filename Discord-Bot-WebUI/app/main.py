@@ -7,6 +7,7 @@ from app import db
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
+from app.decorators import role_required
 import logging
 import subprocess
 import requests
@@ -417,6 +418,8 @@ def get_latest_version():
 
 # Route to check if an update is available
 @main.route('/check-update', methods=['GET'])
+@login_required
+@role_required('Global Admin')
 def check_for_update():
     """Check if a new version is available by comparing the current version with the latest version on GitHub."""
     current_version = open(VERSION_FILE, 'r').read().strip()
@@ -435,23 +438,17 @@ def check_for_update():
 
 # Route to update the application
 @main.route('/update', methods=['POST'])
+@login_required
+@role_required('Global Admin')
 def update_application():
-    """Pulls the latest code from GitHub and restarts the application."""
+    """Triggers the update script on the host machine."""
     if not request.is_json or request.json.get('confirm') != 'yes':
         return jsonify({"success": False, "message": "Confirmation required"}), 400
-
+    
     try:
-        # Pull latest changes from GitHub
-        subprocess.run(["git", "pull"], cwd=PROJECT_DIR, check=True)
-        
-        # Restart Docker containers
-        subprocess.run(["docker-compose", "down"], cwd=PROJECT_DIR, check=True)
-        subprocess.run(["docker-compose", "up", "-d"], cwd=PROJECT_DIR, check=True)
-
-        return jsonify({"success": True, "message": "Update completed!"})
+        # Run the script on the host machine
+        result = subprocess.run(["/path/to/update_app.sh"], check=True, capture_output=True, text=True)
+        return jsonify({"success": True, "message": "Update initiated", "output": result.stdout})
 
     except subprocess.CalledProcessError as e:
-        return jsonify({"success": False, "message": f"Subprocess error: {str(e)}"}), 500
-
-    except Exception as e:
-        return jsonify({"success": False, "message": f"Unexpected error: {str(e)}"}), 500
+        return jsonify({"success": False, "message": str(e)}), 500

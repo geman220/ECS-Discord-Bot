@@ -505,26 +505,20 @@
 
     // Function to trigger the update
     function updateApplication() {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
         fetch('/update', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken  // Add CSRF token to the request header
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: 'yes' })
         })
             .then(response => {
                 if (!response.ok) {
                     return response.text().then(text => { throw new Error(text); });
                 }
-                return response.json();
+                return response.json();  // Proceed if the response is JSON
             })
             .then(data => {
                 if (data.success) {
-                    alert("Update completed successfully!");
-                    location.reload();
+                    alert("Update process started successfully!");
                 } else {
                     alert("Update failed: " + data.message);
                 }
