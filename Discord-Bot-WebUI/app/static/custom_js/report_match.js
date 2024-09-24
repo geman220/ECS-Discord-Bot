@@ -1,3 +1,7 @@
+// report_match.js
+
+// Assuming playerChoices and initialEvents are defined elsewhere and contain the necessary data.
+
 // Function to create player options grouped by team
 function createPlayerOptions(matchId) {
     let options = '<option value="" selected>Select a player</option>';
@@ -17,7 +21,7 @@ function createPlayerOptions(matchId) {
 function getContainerId(eventType, matchId) {
     if (!matchId) {
         console.error("Match ID is undefined!");
-        return '';  // Prevent undefined IDs
+        return '';
     }
     switch (eventType) {
         case 'goal_scorers':
@@ -29,7 +33,7 @@ function getContainerId(eventType, matchId) {
         case 'red_cards':
             return `redCardsContainer-${matchId}`;
         default:
-            return '';  // Handle any unexpected event types
+            return '';
     }
 }
 
@@ -40,23 +44,28 @@ function addEvent(matchId, eventType, statId = null) {
         console.error(`Container not found for event type: ${eventType} and match ID: ${matchId}`);
         return;
     }
-    var index = container.children().length;
+
+    // Generate a unique ID for the event
+    var uniqueId = statId ? String(statId) : 'new-' + Date.now() + '-' + Math.random();
+
+    var dataStatId = `data-stat-id="${statId || ''}"`;
+    var dataUniqueId = `data-unique-id="${uniqueId}"`;
+
     var playerOptions = createPlayerOptions(matchId);
 
-    var dataStatId = statId ? `data-stat-id="${statId}"` : '';
-
     var newForm = `
-        <div class="player-event-entry mb-2" ${dataStatId}>
+        <div class="player-event-entry mb-2" data-stat-id="${statId || ''}" data-unique-id="${uniqueId}">
+            <input type="hidden" name="${eventType}-${uniqueId}-stat_id" value="${statId || ''}">
             <div class="row">
                 <div class="col-md-6">
                     <label class="form-label">Player</label>
-                    <select name="${eventType}-${index}-player_id" class="form-select" required>
+                    <select name="${eventType}-${uniqueId}-player_id" class="form-select" required>
                         ${playerOptions}
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Minute</label>
-                    <input type="number" name="${eventType}-${index}-minute" class="form-control" required>
+                    <label class="form-label">Minute (Optional)</label>
+                    <input type="number" name="${eventType}-${uniqueId}-minute" class="form-control" placeholder="Minute (Optional)">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-danger btn-sm remove-event-button">
@@ -67,59 +76,26 @@ function addEvent(matchId, eventType, statId = null) {
         </div>`;
 
     container.append(newForm);
-    console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statId}`);
+    console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statId}, Unique ID: ${uniqueId}`);
 }
 
-function removeEvent(button, statId) {
-    if (!statId) {
-        console.error("Stat ID is undefined!");
-        return;
-    }
-
-    const eventEntry = button.closest('.player-event-entry');
-
+// Function to remove an event entry
+function removeEvent(button) {
+    const eventEntry = $(button).closest('.player-event-entry');
     if (!confirm("Are you sure you want to remove this event?")) {
         return;
     }
-
-    const csrfToken = $('input[name="csrf_token"]').val();
-
-    $.ajax({
-        url: `/players/remove_match_stat/${statId}`,
-        type: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken
-        },
-        success: function (response) {
-            if (response.success) {
-                eventEntry.remove();
-                alert('Event removed successfully!');
-            } else {
-                alert('Failed to remove event.');
-            }
-        },
-        error: function (xhr, status, error) {
-            console.error(`Error removing event: ${error}`);
-            alert('Error removing event. Please try again.');
-        }
-    });
+    eventEntry.remove();
 }
 
 $(document).on('click', '.remove-event-button', function () {
-    const button = $(this);
-    const eventEntry = button.closest('.player-event-entry');
-    let statId = eventEntry.data('stat-id');
-
-    removeEvent(button, statId);
+    removeEvent(this);
 });
 
-let initialEvents = {
-    goals: [],
-    assists: [],
-    yellowCards: [],
-    redCards: []
-};
+// Define initialEvents as an object to store initial events per matchId
+let initialEvents = {};
 
+// Event handler for opening the modal and loading match data
 $(document).on('click', '.edit-match-btn', function () {
     const matchId = $(this).data('match-id');
     console.log(`Fetching data for Match ID: ${matchId}`);
@@ -137,23 +113,49 @@ $(document).on('click', '.edit-match-btn', function () {
 
             $('#home_team_score-' + matchId).val(response.home_team_score);
             $('#away_team_score-' + matchId).val(response.away_team_score);
-            console.log(`Home Team Score: ${response.home_team_score}, Away Team Score: ${response.away_team_score}`);
+            $('#match_notes-' + matchId).val(response.notes || '');
+            $('#submitBtn-' + matchId).prop('disabled', false);
 
-            initialEvents.goals = response.goal_scorers.map(goal => ({ stat_id: goal.id, player_id: goal.player_id, minute: goal.minute }));
-            initialEvents.assists = response.assist_providers.map(assist => ({ stat_id: assist.id, player_id: assist.player_id, minute: assist.minute }));
-            initialEvents.yellowCards = response.yellow_cards.map(card => ({ stat_id: card.id, player_id: card.player_id, minute: card.minute }));
-            initialEvents.redCards = response.red_cards.map(card => ({ stat_id: card.id, player_id: card.player_id, minute: card.minute }));
+            // Update initialEvents per matchId
+            initialEvents[matchId] = {
+                goals: response.goal_scorers.map(goal => ({
+                    unique_id: String(goal.id), // Convert to string
+                    stat_id: String(goal.id),
+                    player_id: String(goal.player_id),
+                    minute: goal.minute || null
+                })),
+                assists: response.assist_providers.map(assist => ({
+                    unique_id: String(assist.id),
+                    stat_id: String(assist.id),
+                    player_id: String(assist.player_id),
+                    minute: assist.minute || null
+                })),
+                yellowCards: response.yellow_cards.map(card => ({
+                    unique_id: String(card.id),
+                    stat_id: String(card.id),
+                    player_id: String(card.player_id),
+                    minute: card.minute || null
+                })),
+                redCards: response.red_cards.map(card => ({
+                    unique_id: String(card.id),
+                    stat_id: String(card.id),
+                    player_id: String(card.player_id),
+                    minute: card.minute || null
+                }))
+            };
 
+            // Clear existing entries
             $('#goalScorersContainer-' + matchId).empty();
             $('#assistProvidersContainer-' + matchId).empty();
             $('#yellowCardsContainer-' + matchId).empty();
             $('#redCardsContainer-' + matchId).empty();
 
+            // Populate the modal with existing events
             response.goal_scorers.forEach(function (goal) {
                 addEvent(matchId, 'goal_scorers', goal.id); // Pass statId
                 const lastAddedEntry = $('#goalScorersContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name^="goal_scorers-"]`).val(goal.player_id);
-                lastAddedEntry.find(`input[name^="goal_scorers-"]`).val(goal.minute);
+                lastAddedEntry.find(`select[name^="goal_scorers-"][name$="-player_id"]`).val(goal.player_id);
+                lastAddedEntry.find(`input[type="number"][name^="goal_scorers-"][name$="-minute"]`).val(goal.minute);
                 console.log(`Added goal scorer: Player ID ${goal.player_id}, Minute ${goal.minute}, Stat ID: ${goal.id}`);
             });
 
@@ -188,55 +190,128 @@ $(document).on('click', '.edit-match-btn', function () {
         }
     });
 });
-$('#reportMatchForm').submit(function (e) {
-    e.preventDefault();
 
-    const matchId = $(this).data('match-id');
+// Attach submit handler using event delegation
+$(document).on('submit', '.report-match-form', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    var matchId = $(this).data('match-id');
+
+    // Check if initialEvents[matchId] is defined
+    if (!initialEvents[matchId]) {
+        alert('Match data is not loaded yet. Please try again.');
+        return;
+    }
 
     let finalGoals = getFinalEvents(matchId, 'goal_scorers');
     let finalAssists = getFinalEvents(matchId, 'assist_providers');
     let finalYellowCards = getFinalEvents(matchId, 'yellow_cards');
     let finalRedCards = getFinalEvents(matchId, 'red_cards');
 
-    let goalsToAdd = finalGoals.filter(goal => !eventExists(goal, initialEvents.goals));
-    let goalsToRemove = initialEvents.goals.filter(goal => !eventExists(goal, finalGoals));
+    let initialGoals = initialEvents[matchId].goals || [];
+    let initialAssists = initialEvents[matchId].assists || [];
+    let initialYellowCards = initialEvents[matchId].yellowCards || [];
+    let initialRedCards = initialEvents[matchId].redCards || [];
 
-    let assistsToAdd = finalAssists.filter(assist => !eventExists(assist, initialEvents.assists));
-    let assistsToRemove = initialEvents.assists.filter(assist => !eventExists(assist, finalAssists));
+    let goalsToAdd = finalGoals.filter(goal => !eventExists(goal, initialGoals));
+    let goalsToRemove = initialGoals.filter(goal => !eventExists(goal, finalGoals));
 
-    let yellowCardsToAdd = finalYellowCards.filter(card => !eventExists(card, initialEvents.yellowCards));
-    let yellowCardsToRemove = initialEvents.yellowCards.filter(card => !eventExists(card, finalYellowCards));
+    let assistsToAdd = finalAssists.filter(assist => !eventExists(assist, initialAssists));
+    let assistsToRemove = initialAssists.filter(assist => !eventExists(assist, finalAssists));
 
-    let redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialEvents.redCards));
-    let redCardsToRemove = initialEvents.redCards.filter(card => !eventExists(card, finalRedCards));
+    let yellowCardsToAdd = finalYellowCards.filter(card => !eventExists(card, initialYellowCards));
+    let yellowCardsToRemove = initialYellowCards.filter(card => !eventExists(card, finalYellowCards));
+
+    let redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialRedCards));
+    let redCardsToRemove = initialRedCards.filter(card => !eventExists(card, finalRedCards));
 
     updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove);
 });
-function getFinalEvents(matchId, type) {
+
+// Function to get final events from the form
+function getFinalEvents(matchId, eventType) {
     let events = [];
-    $(`#${type}Container-${matchId}`).find('.player-event-entry').each(function () {
-        let statId = $(this).data('stat-id') || null;
-        let playerId = $(this).find('select').val();
-        let minute = $(this).find('input').val();
-        events.push({ stat_id: statId, player_id: playerId, minute: minute });
+    let containerId = getContainerId(eventType, matchId);
+    $(`#${containerId}`).find('.player-event-entry').each(function () {
+        let statId = $(this).find('input[type="hidden"][name$="-stat_id"]').val() || null;
+        let playerId = $(this).find('select[name$="-player_id"]').val();
+        let minuteInput = $(this).find('input[name$="-minute"]').val();
+        let minute = minuteInput !== '' ? minuteInput : null;
+
+        // Get the unique_id and convert to string
+        let uniqueId = $(this).attr('data-unique-id');
+
+        // Convert statId and playerId to strings
+        statId = statId ? String(statId) : null;
+        playerId = playerId ? String(playerId) : null;
+
+        // Add debugging statements
+        console.log('Event Entry:', {
+            uniqueId: uniqueId,
+            statId: statId,
+            playerId: playerId,
+            minute: minute
+        });
+
+        events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
     });
     return events;
 }
 
+// Function to check if an event exists in an array
 function eventExists(event, eventsArray) {
+
+    console.log('Comparing events:', {
+        eventStatId: event.stat_id,
+        arrayStatId: eventsArray.map(e => e.stat_id),
+        eventUniqueId: event.unique_id,
+        arrayUniqueIds: eventsArray.map(e => e.unique_id)
+    });
+
     if (event.stat_id) {
-        return eventsArray.some(e => e.stat_id === event.stat_id);
+        // Compare based on stat_id for existing events
+        return eventsArray.some(e => String(e.stat_id) === String(event.stat_id));
     } else {
-        return eventsArray.some(e => e.player_id === event.player_id && e.minute === event.minute);
+        // Compare based on unique_id for new events
+        return eventsArray.some(e => String(e.unique_id) === String(event.unique_id));
     }
 }
 
+// Function to send the AJAX request to update stats
 function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove) {
+    const homeTeamScore = $('#home_team_score-' + matchId).val();
+    const awayTeamScore = $('#away_team_score-' + matchId).val();
+    const notes = $('#match_notes-' + matchId).val();
+    var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Log the data being sent
+    console.log('Data being sent to server:', {
+        home_team_score: homeTeamScore,
+        away_team_score: awayTeamScore,
+        notes: notes,
+        goals_to_add: goalsToAdd,
+        goals_to_remove: goalsToRemove,
+        assists_to_add: assistsToAdd,
+        assists_to_remove: assistsToRemove,
+        yellow_cards_to_add: yellowCardsToAdd,
+        yellow_cards_to_remove: yellowCardsToRemove,
+        red_cards_to_add: redCardsToAdd,
+        red_cards_to_remove: redCardsToRemove
+    });
+
     $.ajax({
-        url: `/update_match_stats/${matchId}`,
+        url: `/teams/report_match/${matchId}`,
         method: 'POST',
         contentType: 'application/json',
+        dataType: 'json',  // Expect JSON response
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
         data: JSON.stringify({
+            home_team_score: homeTeamScore,
+            away_team_score: awayTeamScore,
+            notes: notes,
             goals_to_add: goalsToAdd,
             goals_to_remove: goalsToRemove,
             assists_to_add: assistsToAdd,
@@ -254,9 +329,10 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                 alert(`Failed to update match report: ${response.message || 'Unknown error.'}`);
             }
         },
-        error: function (error) {
+        error: function (xhr, status, error) {
             alert('Error updating match report.');
-            console.error(error);
+            console.error('AJAX Error:', error);
+            console.error('Response:', xhr.responseText);
         }
     });
 }

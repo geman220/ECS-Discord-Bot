@@ -5,6 +5,10 @@ from app.models import Season, League, Team, Schedule
 from app.decorators import role_required
 from sqlalchemy.orm import joinedload
 from sqlalchemy import cast, Integer
+import logging
+
+# Get the logger for this module
+logger = logging.getLogger(__name__)
 
 schedule_bp = Blueprint('schedule', __name__)
 
@@ -286,10 +290,15 @@ def edit_match(match_id):
     teams = Team.query.filter_by(league_id=league.id).all()  # Get all teams in the same league
 
     if request.method == 'POST':
+        logger.info(f"POST request detected, updating data for Match ID: {match_id}")
         match.date = request.form.get('date')
         match.time = request.form.get('time')
         match.location = request.form.get('location')
         match.opponent = int(request.form.get('teamB'))
+        
+        data = request.get_json()
+        logger.info(f"Data received in POST request: {data}")
+        
         db.session.commit()
         flash('Match updated successfully!', 'success')
         return redirect(url_for('schedule.manage_publeague_schedule', season_id=league.season_id))

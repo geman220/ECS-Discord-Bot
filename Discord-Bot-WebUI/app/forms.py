@@ -288,7 +288,7 @@ class Verify2FAForm(FlaskForm):
 
 class PlayerEventForm(FlaskForm):
     player_id = SelectField('Player', coerce=int, validators=[DataRequired()])
-    minute = IntegerField('Minute', validators=[NumberRange(min=1, max=120)])
+    minute = IntegerField('Minute', validators=[Optional(), NumberRange(min=1, max=120)])
 
 class ReportMatchForm(FlaskForm):
     home_team_score = IntegerField('Home Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])

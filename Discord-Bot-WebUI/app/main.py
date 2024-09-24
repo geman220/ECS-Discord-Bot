@@ -10,11 +10,17 @@ from sqlalchemy.orm import joinedload
 import logging
 import subprocess
 import requests
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
+
+
+PROJECT_DIR = "/app"  # This will be inside the Docker container
+VERSION_FILE = os.path.join(PROJECT_DIR, "version.txt")
+LATEST_VERSION_URL = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/master/Discord-Bot-WebUI/version.txt"
 
 def fetch_announcements():
     """Fetch the latest 5 announcements."""
@@ -194,26 +200,32 @@ def handle_profile_update(player, onboarding_form):
         flash('An error occurred while updating your profile. Please try again.', 'danger')
         logger.error(f"Error updating profile for user {current_user.id}: {e}")
 
-def fetch_upcoming_matches(team,  match_limit=4):
-    """Fetch and return upcoming matches for the specified team."""
+def fetch_upcoming_matches(team, match_limit=4, include_past_matches=False):
+    """Fetch and return upcoming matches for the specified team. Optionally include past matches."""
     grouped_matches = defaultdict(list)
     
     if team:
         # Use joinedload to load the home_team and away_team relationships
-        matches = (
+        query = (
             Match.query.options(
                 joinedload(Match.home_team),
                 joinedload(Match.away_team)
             )
             .filter((Match.home_team_id == team.id) | (Match.away_team_id == team.id))
-            .filter(Match.date >= datetime.now().date())
             .order_by(Match.date.asc(), Match.time.asc())
-            .limit(match_limit)
-            .all()
         )
         
+        # If include_past_matches is False, filter to get only upcoming matches
+        if not include_past_matches:
+            query = query.filter(Match.date >= datetime.now().date())
+
+        # Apply match limit if specified
+        if match_limit:
+            query = query.limit(match_limit)
+
+        matches = query.all()
+
         for match in matches:
-            # No need to manually create dictionaries, pass the `Match` objects
             grouped_matches[match.date].append({
                 'match': match,
                 'home_team_name': match.home_team.name,
@@ -308,12 +320,19 @@ def index():
     user_team = player.team if player else None
     grouped_matches = fetch_upcoming_matches(user_team)
 
+    # Fetch previous 2 matches
+    previous_matches = fetch_upcoming_matches(user_team, match_limit=2, include_past_matches=True)
+
     # Fetch announcements to be displayed
     announcements = fetch_announcements()
 
     # Prepare player choices for each match
     player_choices_per_match = {}
-    for date, matches in grouped_matches.items():
+
+    # Combine grouped_matches and previous_matches
+    all_matches = {**grouped_matches, **previous_matches}
+
+    for date, matches in all_matches.items():
         for match_data in matches:
             match = match_data['match']
             home_team_id = match_data['home_team_id']
@@ -340,6 +359,7 @@ def index():
         onboarding_form=onboarding_form,
         user_team=user_team,
         grouped_matches=grouped_matches,
+        previous_matches=previous_matches,
         current_year=current_year,
         player=player,
         is_linked_to_discord=player.discord_id is not None if player else False,
@@ -383,25 +403,52 @@ def set_tour_complete():
 
 @main.route('/version', methods=['GET'])
 def get_version():
-    with open('version.txt', 'r') as f:
+    """Returns the current version of the application."""
+    with open(VERSION_FILE, 'r') as f:
         version = f.read().strip()
     return jsonify({"version": version})
 
+# Helper function to get the latest version from GitHub
 def get_latest_version():
-    url = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/refs/heads/master/Discord-Bot-WebUI/version.txt"
-    response = requests.get(url)
+    response = requests.get(LATEST_VERSION_URL)
     if response.status_code == 200:
         return response.text.strip()
     return None
 
+# Route to check if an update is available
+@main.route('/check-update', methods=['GET'])
+def check_for_update():
+    """Check if a new version is available by comparing the current version with the latest version on GitHub."""
+    current_version = open(VERSION_FILE, 'r').read().strip()
+    latest_version = get_latest_version()
+
+    if latest_version and latest_version != current_version:
+        return jsonify({
+            "update_available": True,
+            "current_version": current_version,
+            "latest_version": latest_version
+        })
+    return jsonify({
+        "update_available": False,
+        "current_version": current_version
+    })
+
+# Route to update the application
 @main.route('/update', methods=['POST'])
 def update_application():
+    """Pulls the latest code from GitHub and restarts the application."""
+    if not request.is_json or request.json.get('confirm') != 'yes':
+        return jsonify({"success": False, "message": "Confirmation required"}), 400
+
     try:
-        project_dir = "/home/deployer/ecs-web/ECS-Discord-Bot"
-        # Run the update process (this pulls from GitHub and restarts the containers)
-        subprocess.run(["git", "pull"], cwd=project_dir, check=True)
-        subprocess.run(["docker-compose", "build"], cwd=project_dir, check=True)
-        subprocess.run(["docker-compose", "up", "-d"], cwd=project_dir, check=True)
+        # Pull latest changes from GitHub
+        subprocess.run(["git", "pull"], cwd=PROJECT_DIR, check=True)
+        
+        # Restart Docker containers
+        subprocess.run(["docker-compose", "down"], cwd=PROJECT_DIR, check=True)
+        subprocess.run(["docker-compose", "up", "-d"], cwd=PROJECT_DIR, check=True)
+
         return jsonify({"success": True, "message": "Update completed!"})
+    
     except subprocess.CalledProcessError as e:
         return jsonify({"success": False, "message": str(e)})

@@ -156,6 +156,62 @@
         {% endif %}
     </div>
 
+    {% if previous_matches and current_user.has_permission('view_match_reporting') %}
+    <div class="row">
+        <div class="col-xl-12 col-md-12 mb-4">
+            <div class="card h-100" id="previous-match-card">
+                <div class="card-body">
+                    <h6 class="mb-4">Report Previous Matches</h6>
+
+                    {% for date, matches in previous_matches.items() %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+
+                        <!-- Create a row for the matches on this date -->
+                        <div class="row">
+                            {% for match_data in matches %}
+                            {% set match = match_data['match'] %}
+                            {% set home_players = match_data['home_players'] %}
+                            {% set opponent_players = match_data['opponent_players'] %}
+                            {% set home_team_id = match_data['home_team_id'] %}
+                            {% set opponent_team_id = match_data['opponent_team_id'] %}
+                            {% set home_team_name = match_data['home_team_name'] %}
+                            {% set opponent_team_name = match_data['opponent_name'] %}
+                            {% set match_id = match.id %}
+
+                            <!-- Each match will be a column within the row, 2 columns per row -->
+                            <div class="col-md-6 mb-2">
+                                <!-- Two columns per row -->
+                                <div class="match-card p-2 rounded border">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
+                                        <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
+                                    </div>
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
+
+                                    {% if current_user.has_permission('view_match_reporting') %}
+                                    <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
+                                            data-match-id="{{ match.id }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#reportMatchModal-{{ match.id }}">
+                                        {{ 'Edit Match' if match.reported else 'Report Match' }}
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% include 'report_match_modal.html' %}
+                            {% endfor %}
+                        </div> <!-- End of row for matches on this date -->
+
+                    </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Next Matches Section -->
     {% if grouped_matches %}
     <div class="row">
