@@ -1,5 +1,7 @@
 # woocommerce_commands.py
 
+import datetime
+from http import server
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -33,6 +35,18 @@ from database import (
     insert_order_extract,
     reset_woo_orders_db,
 )
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG to capture all levels of logs
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("bot_debug.log"),  # Log to a file
+        logging.StreamHandler()  # Also log to console
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 SUBGROUPS = [
     "253 Defiance",
@@ -408,69 +422,147 @@ class WooCommerceCommands(commands.Cog):
     @app_commands.command(
         name="subgrouplist", description="Create a CSV list of members in each subgroup"
     )
-    @app_commands.guilds(discord.Object(id=server_id))
+    @app_commands.guilds(discord.Object(id=server_id))  # Replace SERVER_ID with your actual server ID
     async def subgrouplist(self, interaction: discord.Interaction):
-        if not await has_admin_role(interaction):
-            await interaction.response.send_message(
-                "You do not have the necessary permissions.", ephemeral=True
-            )
-            return
+        try:
+            # Check permissions
+            if not await has_admin_role(interaction):
+                await interaction.response.send_message(
+                    "You do not have the necessary permissions.", ephemeral=True
+                )
+                return
 
-        await interaction.response.defer(ephemeral=True)
+            # Defer the response to give the bot time to process
+            await interaction.response.defer(ephemeral=True, thinking=True)
 
-        latest_order_id_in_db = get_latest_order_id()
-        page = 1
-        done = False
-        member_info_by_subgroup = defaultdict(list)
+            # Set a wide date range to fetch all orders
+            # Alternatively, set a date range that covers the current year
+            start_of_time = f"{datetime.datetime.now().year - 1}-01-01T00:00:00"  # Start from last year
+            today = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-        while not done:
-            orders_url = wc_url.replace("orders/", f"orders?order=desc&page={page}&per_page=100")
-            fetched_orders = await call_woocommerce_api(orders_url)
+            page = 1
+            per_page = 100  # Maximum per WooCommerce API
+            done = False
+            member_info_by_subgroup = defaultdict(list)
 
-            if not fetched_orders or len(fetched_orders) < 100:
-                done = True
+            while not done:
+                # Construct the orders URL with pagination and date filters
+                orders_url = wc_url.replace(
+                    "orders/",
+                    f"orders?order=desc&page={page}&per_page={per_page}"
+                    f"&status=any&after={start_of_time}&before={today}"
+                )
 
-            for order in fetched_orders:
-                order_id = str(order.get("id", ""))
+                logger.info(f"Fetching orders from page {page}.")
 
-                if order_id == latest_order_id_in_db:
+                # Fetch orders from WooCommerce
+                fetched_orders = await call_woocommerce_api(orders_url)
+
+                if not fetched_orders:
+                    # If the API call failed or no orders returned, stop fetching
+                    logger.info(f"No orders fetched from page {page}. Ending pagination.")
                     done = True
                     break
 
-                subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
-                if subgroup_info:
-                    subgroup, customer_info = subgroup_info
-                    member_info_by_subgroup[subgroup].append(customer_info)
+                if len(fetched_orders) < per_page:
+                    # Last page of results
+                    logger.info(f"Fetched {len(fetched_orders)} orders from page {page}. Assuming last page.")
+                    done = True
 
-                order_data = json.dumps(order)
-                update_woo_orders(order_id, order_data)
+                # Process each order
+                for order in fetched_orders:
+                    order_id = order.get('id', 'Unknown')
+                    logger.debug(f"Processing Order ID: {order_id}")
+                    # Fetch customer info based on subgroup
+                    subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
+                    if subgroup_info:
+                        matched_subgroups, customer_info = subgroup_info
+                        
+                        # Verify that 'matched_subgroups' is a list
+                        if not isinstance(matched_subgroups, list):
+                            logger.error(f"'matched_subgroups' is not a list for Order ID {order_id}.")
+                            continue  # Skip this order
 
-            page += 1
-            await asyncio.sleep(1)
+                        # Verify that each 'subgroup' is a string
+                        for subgroup in matched_subgroups:
+                            if not isinstance(subgroup, str):
+                                logger.error(f"Subgroup is not a string for Order ID {order_id}: {subgroup}")
+                                continue  # Skip this subgroup
+                            
+                            member_info_by_subgroup[subgroup].append(customer_info)
+                            logger.debug(f"Added customer from Order ID {order_id} to subgroup '{subgroup}'.")
 
-        csv_output = io.StringIO()
-        csv_writer = csv.writer(csv_output)
-        header = ["Subgroup", "First Name", "Last Name", "Email"]
-        csv_writer.writerow(header)
+                # Move to the next page
+                page += 1
 
-        for subgroup, members in member_info_by_subgroup.items():
-            for member in members:
-                csv_writer.writerow(
-                    [
-                        subgroup,
-                        member["first_name"],
-                        member["last_name"],
-                        member["email"],
-                    ]
+                # Sleep to respect API rate limits
+                await asyncio.sleep(1)
+
+            # Check if any members were found
+            if not member_info_by_subgroup:
+                logger.info("No members found matching the criteria.")
+                await interaction.followup.send(
+                    "No members found in the specified subgroups within the given date range.",
+                    ephemeral=True
                 )
+                return
 
-        csv_output.seek(0)
-        filename = "subgroup_members_list.csv"
-        csv_file = discord.File(fp=csv_output, filename=filename)
-        await interaction.followup.send(
-            "Subgroup members list:", file=csv_file, ephemeral=True
-        )
-        csv_output.close()
+            # Create CSV
+            csv_output = io.StringIO()
+            csv_writer = csv.writer(csv_output)
+            header = ["Subgroup", "First Name", "Last Name", "Email"]
+            csv_writer.writerow(header)
+
+            for subgroup, members in member_info_by_subgroup.items():
+                for member in members:
+                    # Ensure that the member's data is correctly formatted
+                    csv_writer.writerow([
+                        subgroup,
+                        member.get("first_name", "").strip(),
+                        member.get("last_name", "").strip(),
+                        member.get("email", "").strip()
+                    ])
+                    logger.debug(f"Written to CSV: {subgroup}, {member.get('first_name', '')}, {member.get('last_name', '')}, {member.get('email', '')}")
+
+            # Prepare CSV for sending
+            csv_output.seek(0)
+            filename = "subgroup_members_list.csv"
+            csv_file = discord.File(fp=csv_output, filename=filename)
+
+            # Send the CSV file as a follow-up message
+            await interaction.followup.send(
+                content="Here is the list of subgroup members:",
+                file=csv_file,
+                ephemeral=True
+            )
+
+            logger.info(f"Successfully sent CSV file '{filename}' to user {interaction.user}.")
+
+            # Close the StringIO object
+            csv_output.close()
+
+        except Exception as e:
+            # Log the error
+            logger.error(f"An error occurred: {str(e)}")
+            # Check if the interaction has already been acknowledged
+            if interaction.response.is_done():
+                # If already acknowledged (deferred), use followup
+                try:
+                    await interaction.followup.send(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as followup_error:
+                    logger.error(f"Failed to send followup message: {followup_error}")
+            else:
+                # If not acknowledged, send a response
+                try:
+                    await interaction.response.send_message(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as response_error:
+                    logger.error(f"Failed to send response message: {response_error}")
 
     @app_commands.command(
         name="refreshorders", description="Refresh Woo Commerce order cache"
