@@ -8,9 +8,12 @@ from app.routes import get_current_season_and_year
 from app.teams import current_season_id
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from sqlalchemy import select
 from PIL import Image
+from datetime import datetime
 import uuid
 import secrets
 import string
@@ -26,6 +29,62 @@ logger = logging.getLogger(__name__)
 players_bp = Blueprint('players', __name__)
 
 # Helper functions
+
+def is_order_in_current_season(order, season_map):
+    """
+    Determine if the order belongs to any of the current seasons.
+
+    Args:
+        order (dict): The order data from WooCommerce.
+        season_map (dict): Mapping of season names to Season objects.
+
+    Returns:
+        bool: True if the order is in a current season, False otherwise.
+    """
+    product_name = order['product_name']
+    # Assuming the product name starts with the season name, e.g., "2024 Fall ECS Pub League - Premier Division - AM"
+    season_name = extract_season_name(product_name)
+    return season_name in season_map
+
+def extract_season_name(product_name):
+    """
+    Extract the season name from the product name.
+
+    Args:
+        product_name (str): The product name from the order.
+
+    Returns:
+        str: The extracted season name (e.g., "2024 Fall") or empty string if not found.
+    """
+    # Regex to find patterns like "2024 Fall" or "Fall 2024"
+    match = re.search(r'(\d{4})\s+(Spring|Fall)|\b(Spring|Fall)\s+(\d{4})\b', product_name, re.IGNORECASE)
+    if match:
+        if match.group(1) and match.group(2):
+            year = match.group(1)
+            season = match.group(2).capitalize()
+        elif match.group(3) and match.group(4):
+            season = match.group(3).capitalize()
+            year = match.group(4)
+        else:
+            return ""
+        return f"{year} {season}"
+    return ""
+
+def extract_jersey_size(product_name):
+    """
+    Extract the jersey size from the product name.
+
+    Args:
+        product_name (str): The product name from the order.
+
+    Returns:
+        str: The extracted jersey size.
+    """
+    # Adjust the delimiter based on your product name format
+    if ' - ' in product_name:
+        return product_name.split(' - ')[-1].strip()
+    return ""
+
 def save_cropped_profile_picture(cropped_image_data, player_id):
     header, encoded = cropped_image_data.split(",", 1)
     image_data = base64.b64decode(encoded)
@@ -120,117 +179,178 @@ def generate_random_password(length=12):
     return ''.join(secrets.choice(characters) for _ in range(length))
 
 def fetch_existing_players(email):
-    """Fetch existing players by email."""
-    return Player.query.filter_by(email=email.lower()).all()  # Ensure email is compared in a case-insensitive manner
+    """Fetch the main player and their placeholders by email."""
+    main_player = Player.query.filter_by(email=email.lower(), linked_primary_player_id=None).first()
+    if not main_player:
+        return None, []
+    
+    placeholders = Player.query.filter_by(linked_primary_player_id=main_player.id).all()
+    return main_player, placeholders
 
 def check_if_order_processed(order_id, player_id, league_id, season_id):
     """Check if the order has already been processed for a specific league."""
     return PlayerOrderHistory.query.filter_by(
-        order_id=order_id,
+        order_id=str(order_id),  # Ensure order_id is a string
         player_id=player_id,
         league_id=league_id,
         season_id=season_id
     ).first()
 
 # Player Creation and Updating
-def create_or_update_player(player_data, league, season, existing_players, current_season_name):
-    """Create or update a player, handling placeholders if necessary."""
-    # Standardize name and email for comparison
+def create_or_update_player(player_data, league, current_seasons, existing_main_player, existing_placeholders, total_line_items):
+    """
+    Create or update a player, handling placeholders if necessary.
+
+    Args:
+        player_data (dict): Data related to the player.
+        league (League): The league object.
+        current_seasons (list): List of current Season objects.
+        existing_main_player (Player or None): Existing main player.
+        existing_placeholders (list): List of existing placeholders.
+        total_line_items (int): Total number of line items/orders for the player.
+
+    Returns:
+        Player: The main Player object.
+    """
+    # Standardize name and email
     player_data['name'] = standardize_name(player_data['name'])
     player_data['email'] = player_data['email'].lower()
 
-    # Fetch existing players by email
-    existing_players_by_email = Player.query.filter_by(email=player_data['email']).all()
+    # Logging for debugging
+    logger.info(f"Existing main player: {existing_main_player}")
+    logger.info(f"Number of existing placeholders: {len(existing_placeholders)}")
+    logger.info(f"Total line items: {total_line_items}")
 
-    # Separate placeholders from real entries
-    existing_real_players = [p for p in existing_players_by_email if not p.needs_manual_review]
-    existing_placeholders = [p for p in existing_players_by_email if p.needs_manual_review]
+    if existing_main_player:
+        # Update main player's details
+        update_player_details(existing_main_player, player_data)
 
-    # Count how many entries are already in DB for this email
-    existing_count = len(existing_real_players) + len(existing_placeholders)
+        # Calculate how many placeholders are needed
+        existing_count = 1 + len(existing_placeholders)  # 1 main player + placeholders
+        placeholders_needed = total_line_items - existing_count
 
-    # Count how many items/orders exist for this player
-    total_items_count = player_data['total_items_count']
+        if placeholders_needed > 0:
+            for _ in range(placeholders_needed):
+                create_new_player(
+                    player_data,
+                    league,
+                    original_player_id=existing_main_player.id,
+                    is_placeholder=True
+                )
+                logger.info(f"Created a new placeholder linked to {existing_main_player.name}")
+        return existing_main_player
+    else:
+        # No existing main player; create one and necessary placeholders
+        main_player = create_new_player(player_data, league, is_placeholder=False)
+        logger.info(f"Created main player: {main_player.name}")
 
-    # Logging the counts for debugging
-    logger.info(f"Existing count in DB for {player_data['email']}: {existing_count}")
-    logger.info(f"Total items count from orders for {player_data['email']}: {total_items_count}")
-
-    # Update "is_current_player" for any existing players matching the current season
-    for player in existing_real_players + existing_placeholders:
-        # If the order or product matches the current season, mark as active
-        if player.order_id and current_season_name in player.order_id:
-            player.is_current_player = True
-        elif current_season_name in player_data['product_name']:
-            player.is_current_player = True
-        else:
-            # Mark as inactive if not matching the current season
-            player.is_current_player = False
-        db.session.add(player)
-
-    # Commit updates to the existing players' statuses
-    db.session.commit()
-
-    # If we have fewer existing entries than needed, add new ones
-    if existing_count < total_items_count:
-        # Create the first entry with real info if no real entries exist
-        if not existing_real_players:
-            real_player = create_new_player(player_data, league, is_placeholder=False)  # Correctly set to False
-            existing_real_players.append(real_player)
-            existing_count += 1
-
-        # Create placeholders for any additional items
-        placeholders_needed = total_items_count - existing_count
-        for i in range(placeholders_needed):
+        placeholders_needed = total_line_items - 1  # Subtract the main player
+        for _ in range(placeholders_needed):
             create_new_player(
                 player_data,
                 league,
-                original_player_id=existing_real_players[0].id if existing_real_players else None,
-                is_placeholder=True  # Only set True for placeholders
+                original_player_id=main_player.id,
+                is_placeholder=True
             )
+            logger.info(f"Created a new placeholder linked to {main_player.name}")
 
-    # Ensure the first entry is updated with the correct details
-    if existing_real_players:
-        update_player_details(existing_real_players[0], player_data)
-
-    return existing_real_players[0] if existing_real_players else None
+        return main_player
 
 def create_new_player(player_data, league, original_player_id=None, is_placeholder=False):
-    """Create a new player entry or placeholder."""
-    # Generate contact info - use real info for the first entry, placeholders for duplicates
+    """
+    Create a new player entry or placeholder with associated user.
+
+    Args:
+        player_data (dict): Data related to the player.
+        league (League): The league object.
+        original_player_id (int, optional): ID of the main player if creating a placeholder.
+        is_placeholder (bool, optional): Indicates if the player is a placeholder.
+
+    Returns:
+        Player: The newly created Player object.
+    """
     if is_placeholder:
-        # Generate unique placeholder email and phone number
-        email, phone = generate_contact_info(player_data, is_placeholder=True)
+        # Generate unique placeholder identifier
+        placeholder_suffix = f"+{original_player_id}-{uuid.uuid4().hex[:6]}"
+        name = f"{player_data['name']} {placeholder_suffix}"
+        email = f"placeholder_{original_player_id}_{uuid.uuid4().hex[:6]}@publeague.com"
+        phone = f"000{uuid.uuid4().int % 10000:04d}"
     else:
-        # Use real player information for the first entry
+        # Use real player information
+        name = player_data['name']
         email, phone = player_data['email'], player_data['phone']
 
+    # Create or link User first
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        user = existing_user
+    else:
+        user = User(
+            username=generate_unique_username(name),
+            email=email,
+            is_approved=False  # Set based on your approval logic
+        )
+        user.set_password(generate_random_password())
+        db.session.add(user)
+        db.session.flush()  # Assign user.id
+
+    # Now create the Player with user_id set
     new_player = Player(
-        name=generate_unique_name(player_data['name']) if is_placeholder else player_data['name'],
+        name=name,
         email=email,
         phone=phone,
         jersey_size=player_data['jersey_size'],
         league_id=league.id,
-        is_current_player=True,
-        needs_manual_review=is_placeholder,  # Set flag for placeholders correctly
+        is_current_player=True,  # Mark as current player
+        needs_manual_review=is_placeholder,
         linked_primary_player_id=original_player_id,
-        order_id=str(player_data['order_id'])
+        order_id=player_data['order_id'],
+        user_id=user.id  # Set user_id here
     )
 
     db.session.add(new_player)
-    db.session.flush()  # Ensure the ID is generated before linking user
-    create_user_for_player(new_player, email, new_player.name)  # Create a user for the player
+    # Do not flush here; let the main transaction handle it
+
     return new_player
 
-def update_player_details(player, player_data):
-    """Update existing player details."""
-    if player:
-        player.is_current_player = True
-        player.phone = player_data['phone']
-        player.jersey_size = player_data['jersey_size']
-        db.session.add(player)
-    return player
-
+def generate_random_password(length=16):
+    """
+    Generates a secure random password.
+    
+    Args:
+        length (int, optional): Length of the password. Defaults to 16.
+    
+    Returns:
+        str: The generated password.
+    """
+    if length < 12:
+        raise ValueError("Password length should be at least 12 characters for security.")
+    
+    import secrets
+    import string
+    
+    # Define the character set: letters, digits, and punctuation
+    characters = string.ascii_letters + string.digits + string.punctuation
+    
+    # Remove ambiguous characters if necessary
+    ambiguous = {'"', "'", '\\', '`'}
+    allowed_characters = ''.join(c for c in characters if c not in ambiguous)
+    
+    # Ensure the password has at least one character from each category
+    password = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice(string.punctuation)
+    ]
+    
+    # Fill the rest of the password length
+    password += [secrets.choice(allowed_characters) for _ in range(length - 4)]
+    
+    # Shuffle to prevent predictable sequences
+    secrets.SystemRandom().shuffle(password)
+    
+    return ''.join(password)
 
 def update_player_details(player, player_data):
     """Update existing player details."""
@@ -244,7 +364,7 @@ def update_player_details(player, player_data):
 def create_user_for_player(player, email, name):
     """Create or link a user to a player."""
     existing_user = User.query.filter_by(email=email).first()
-
+    
     if existing_user:
         logger.info(f"User with email {email} already exists. Linking existing user to the player.")
         player.user_id = existing_user.id
@@ -258,7 +378,8 @@ def create_user_for_player(player, email, name):
         db.session.add(new_user)
         db.session.flush()  # Ensure user ID is created before linking
         player.user_id = new_user.id
-
+        logger.info(f"Created new user {new_user.username} for player {player.name}")
+    
     db.session.add(player)
 
 # Helper Functions
@@ -301,24 +422,315 @@ def standardize_name(name):
     )
     return standardized_name
 
-def record_order_history(order_id, player_id, league_id, season_id, profile_count):
-    """Record order history."""
-    new_processed_order = PlayerOrderHistory(
-        order_id=order_id,
-        player_id=player_id,
-        league_id=league_id,
-        season_id=season_id,
-        profile_count=profile_count
-    )
-    db.session.add(new_processed_order)
+def extract_player_info(billing):
+    """
+    Extracts player information from billing details.
 
-def get_league_by_product_name(product_name, existing_leagues):
-    """Determine league based on the product name."""
-    league_name = 'Classic' if 'Classic Division' in product_name else 'Premier' if 'Premier Division' in product_name else None
-    if not league_name:
-        logger.warning(f"Unrecognized product name format: {product_name}. Skipping player.")
+    Args:
+        billing (dict): Billing details from the order.
+
+    Returns:
+        dict: Extracted player information.
+    """
+    try:
+        name = f"{billing.get('first_name', '').strip()} {billing.get('last_name', '').strip()}".title()
+        phone = re.sub(r'\D', '', billing.get('phone', ''))
+        jersey_size = billing.get('jersey_size', '').strip().upper()  # Ensure jersey_size is part of billing
+        if not jersey_size:
+            jersey_size = 'N/A'  # Default value if not provided
+        return {
+            'name': name,
+            'email': billing.get('email', '').strip().lower(),
+            'phone': phone,
+            'jersey_size': jersey_size
+        }
+    except Exception as e:
+        logger.error(f"Error extracting player info: {e}", exc_info=True)
         return None
-    return next((l for l in existing_leagues if l.name == league_name), None)
+
+def create_player_profile(player_info, league, user):
+    """
+    Creates a player profile linked to an existing user.
+    
+    Args:
+        player_info (dict): Extracted player information.
+        league (League): League object.
+        user (User): Existing user object.
+    
+    Returns:
+        Player: The created Player object, or None if failed.
+    """
+    try:
+        new_player = Player(
+            name=player_info['name'],
+            email=player_info['email'],
+            phone=player_info['phone'],
+            jersey_size=player_info['jersey_size'],
+            league_id=league.id,
+            user_id=user.id,
+            is_current_player=True,
+            # Initialize other necessary fields
+        )
+        db.session.add(new_player)
+        logger.info(f"Created new player profile for '{new_player.name}' with email '{new_player.email}'.")
+        return new_player
+    except Exception as e:
+        logger.error(f"Error creating player profile for '{player_info['email']}': {e}", exc_info=True)
+        return None
+
+def create_user_and_player_profile(player_info, league):
+    """
+    Creates a new user and associated player profile with a random password.
+    If a player with the given email already exists, it skips creating a new player.
+    The user must reset their password via email.
+    
+    Args:
+        player_info (dict): Extracted player information.
+        league (League): League object.
+    
+    Returns:
+        Player: The created or existing Player object, or None if failed.
+    """
+    try:
+        # Step 1: Check if the User with this email already exists
+        user = User.query.filter_by(email=player_info['email']).first()
+
+        if not user:
+            # Step 2: Fetch the "Pub League Player" role from the Role table
+            pub_league_player_role = Role.query.filter_by(name='Pub League Player').first()
+            if not pub_league_player_role:
+                logger.error(f"Role 'Pub League Player' does not exist.")
+                return None
+
+            # Step 3: Generate a unique username if necessary
+            username = player_info['name']
+            existing_user = User.query.filter_by(username=username).first()
+            counter = 1
+            while existing_user:
+                username = f"{player_info['name']}{counter}"
+                existing_user = User.query.filter_by(username=username).first()
+                counter += 1
+
+            # Step 4: Create a new user with a random password
+            random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
+            user = User(
+                email=player_info['email'],
+                username=username,  # Use the unique username
+                league_id=league.id,  # Assuming each user belongs to a league
+                is_approved=True  # Set is_approved to True for all unique users
+            )
+            # Use the set_password method to hash the password
+            user.set_password(random_password)
+            
+            db.session.add(user)
+            db.session.flush()  # Ensure user is available for assigning user_id
+
+            # Optionally, send an email for password reset
+            # send_password_setup_email(user)
+
+            logger.info(f"Created new user '{user.email}' with username '{user.username}' and approved status.")
+
+        # Step 5: Check if a Player with this email already exists
+        existing_player = Player.query.filter_by(email=player_info['email']).first()
+        if existing_player:
+            logger.warning(f"Player with email '{player_info['email']}' already exists. Skipping Player creation.")
+            player = existing_player
+        else:
+            # Step 6: Create player profile
+            player = Player(
+                name=player_info['name'],
+                email=player_info['email'],
+                phone=player_info['phone'],
+                jersey_size=player_info['jersey_size'],
+                league_id=league.id,
+                user_id=user.id,  # Assign the newly created or existing user's ID
+                is_current_player=True,
+                # Initialize other necessary fields
+            )
+            db.session.add(player)
+            logger.info(f"Created new player profile for '{player.name}' with email '{player.email}'.")
+
+        # Step 7: Commit the changes to the database
+        db.session.commit()
+
+        return player
+
+    except IntegrityError as ie:
+        logger.error(f"IntegrityError while creating player for '{player_info['email']}': {ie}", exc_info=True)
+        db.session.rollback()
+        # Optionally, retrieve the existing Player
+        existing_player = Player.query.filter_by(email=player_info['email']).first()
+        if existing_player:
+            return existing_player
+        else:
+            return None
+
+    except Exception as e:
+        logger.error(f"Error creating user and player profile for '{player_info['email']}': {e}", exc_info=True)
+        db.session.rollback()
+        return None
+
+def send_password_setup_email(user):
+    """
+    Sends a password setup email to the user with a secure token.
+    
+    Args:
+        user (User): The User object to send the email to.
+    """
+    try:
+        serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        token = serializer.dumps(user.email, salt=current_app.config['SECURITY_PASSWORD_SALT'])
+
+        reset_url = url_for('reset_password', token=token, _external=True)
+        msg = Message('Set Your Password',
+                      recipients=[user.email])
+        msg.body = render_template('emails/password_setup.txt', reset_url=reset_url, username=user.username)
+        msg.html = render_template('emails/password_setup.html', reset_url=reset_url, username=user.username)
+
+        mail.send(msg)
+        logger.info(f"Sent password setup email to '{user.email}'.")
+    except Exception as e:
+        logger.error(f"Error sending password setup email to '{user.email}': {e}", exc_info=True)
+
+def record_order_history(order_id, player_id, league_id, season_id, profile_count):
+    """
+    Record an entry in the player_order_history table.
+
+    Args:
+        order_id (str): The WooCommerce order ID.
+        player_id (int): The Player's ID.
+        league_id (int): The League's ID.
+        season_id (int): The Season's ID.
+        profile_count (int): Number of profiles associated with the order.
+    """
+    if not player_id:
+        logger.error(f"Cannot record order history for order_id '{order_id}' because player_id is None.")
+        return
+
+    try:
+        order_history = PlayerOrderHistory(
+            player_id=player_id,
+            order_id=str(order_id),  # Ensure order_id is a string
+            season_id=season_id,
+            league_id=league_id,
+            profile_count=profile_count,
+            created_at=datetime.utcnow()  # Correct usage
+        )
+
+        db.session.add(order_history)
+        logger.debug(f"Recorded order history for order_id '{order_id}' and player_id '{player_id}'.")
+    except Exception as e:
+        logger.error(f"Error recording order history for order_id '{order_id}': {e}", exc_info=True)
+
+def get_league_by_product_name(product_name, current_seasons):
+    """
+    Determines the league based on the product name and current seasons.
+
+    Args:
+        product_name (str): The name of the product from the order.
+        current_seasons (list): List of current Season objects.
+
+    Returns:
+        League: The corresponding League object if found, else None.
+    """
+    logger.debug(f"Parsing product name: '{product_name}'")
+
+    # Patterns to extract division or ECS FC from product name
+    # Example product names:
+    # "2024 Fall ECS Pub League - Premier Division - AXXL"
+    # "2024 Fall ECS Pub League - Classic Division - AL"
+    # "2024 Fall ECS FC - Black Team - AXL"
+
+    # Pattern for Pub League divisions
+    pub_league_pattern = re.compile(r'ECS Pub League\s*-\s*(Premier|Classic)\s*Division', re.IGNORECASE)
+    # Pattern for ECS FC
+    ecs_fc_pattern = re.compile(r'ECS FC\s*-\s*\w+\s*-\s*\w+', re.IGNORECASE)
+
+    league = None
+
+    # Check for Pub League
+    pub_league_match = pub_league_pattern.search(product_name)
+    if pub_league_match:
+        division = pub_league_match.group(1).capitalize()  # 'Premier' or 'Classic'
+        league_name = division  # 'Premier' or 'Classic'
+        logger.debug(f"Identified Pub League Division: '{league_name}'")
+
+        # Fetch the league from the database based on division and season
+        for season in current_seasons:
+            league = League.query.filter_by(
+                name=league_name,
+                season_id=season.id
+            ).first()
+            if league:
+                logger.debug(f"Found league: '{league}' for division '{league_name}' in season '{season.name}'")
+                return league
+        logger.warning(f"No league found for division '{league_name}' in season '{current_season_formatted}'")
+        return None
+
+    # Check for ECS FC
+    ecs_fc_match = ecs_fc_pattern.search(product_name)
+    if ecs_fc_match:
+        league_name = 'ECS FC'
+        logger.debug(f"Identified ECS FC League")
+
+        # Fetch the ECS FC league from the database
+        for season in current_seasons:
+            league = League.query.filter_by(
+                name=league_name,
+                season_id=season.id
+            ).first()
+            if league:
+                logger.debug(f"Found league: '{league}' for ECS FC in season '{season.name}'")
+                return league
+        logger.warning(f"No league found for league type '{league_name}' in season '{current_season_formatted}'")
+        return None
+
+    logger.warning(f"Could not determine league type from product name: '{product_name}'")
+    return None
+
+def reset_current_players(current_seasons):
+    """
+    Resets the is_current_player flag for all players in the current seasons.
+
+    Args:
+        current_seasons (list): List of current Season objects.
+    """
+    try:
+        # Extract season IDs from the current_seasons list
+        season_ids = [season.id for season in current_seasons]
+        logger.debug(f"Resetting players for seasons with IDs: {season_ids}")
+
+        # Subquery to select Player IDs linked to leagues in current_seasons and currently active
+        subquery = db.session.query(Player.id).join(League).filter(
+            League.season_id.in_(season_ids),
+            Player.is_current_player == True
+        ).subquery()
+
+        # Perform bulk update on Players where id is in subquery
+        updated_rows = Player.query.filter(Player.id.in_(subquery)).update(
+            {Player.is_current_player: False},
+            synchronize_session=False
+        )
+
+        db.session.commit()
+        logger.info(f"Successfully reset {updated_rows} players.")
+    except Exception as e:
+        logger.error(f"Error resetting current players: {e}", exc_info=True)
+        db.session.rollback()
+        raise  # Re-raise the exception to be handled by the calling function
+
+def hash_password(password):
+    """
+    Hashes a password using a secure algorithm.
+    
+    Args:
+        password (str): The plain-text password.
+    
+    Returns:
+        str: The hashed password.
+    """
+    from werkzeug.security import generate_password_hash
+    return generate_password_hash(password, method='scrypt')
 
 def clean_phone_number(phone):
     """Clean phone number to digits only, keeping last 10 digits."""
@@ -326,11 +738,12 @@ def clean_phone_number(phone):
     return cleaned_phone[-10:] if len(cleaned_phone) >= 10 else cleaned_phone  # Keep last 10 digits or the entire cleaned string if shorter
 
 # View Players
-@players_bp.route('/', methods=['GET', 'POST'])
+@players_bp.route('/', methods=['GET'])
 @login_required
+@role_required(['Pub League Admin', 'Global Admin'])
 def view_players():
-    # Get the search term from the form
-    search_term = request.form.get('search', '')
+    # Get the search term from the query parameters
+    search_term = request.args.get('search', '').strip()
 
     # Get the current page numbers from the query string, default to 1
     classic_page = request.args.get('classic_page', 1, type=int)
@@ -339,108 +752,125 @@ def view_players():
     # Define how many players to display per page
     per_page = 10
 
-    # Query players with search functionality
+    # Query players by league
     classic_query = Player.query.join(League).filter(League.name == 'Classic')
     premier_query = Player.query.join(League).filter(League.name == 'Premier')
 
     # If there is a search term, apply filters to the queries
     if search_term:
-        search_filter = Player.name.ilike(f'%{search_term}%') | \
-                        Player.email.ilike(f'%{search_term}%') | \
-                        Player.phone.ilike(f'%{search_term}%') | \
-                        Player.jersey_size.ilike(f'%{search_term}%')
+        search_filter = (
+            Player.name.ilike(f'%{search_term}%') |
+            Player.email.ilike(f'%{search_term}%') |
+            Player.phone.ilike(f'%{search_term}%') |
+            Player.jersey_size.ilike(f'%{search_term}%')
+        )
         classic_query = classic_query.filter(search_filter)
         premier_query = premier_query.filter(search_filter)
 
     # Paginate the results
-    classic_players = classic_query.paginate(page=classic_page, per_page=per_page)
-    premier_players = premier_query.paginate(page=premier_page, per_page=per_page)
+    classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
+    premier_players = premier_query.paginate(page=premier_page, per_page=per_page, error_out=False)
 
-    return render_template('view_players.html', 
-                           classic_players=classic_players, 
-                           premier_players=premier_players, 
-                           search_term=search_term)
+    return render_template(
+        'view_players.html',
+        classic_players=classic_players,
+        premier_players=premier_players,
+        search_term=search_term
+    )
 
-# Update Players from WooCommerce
 @players_bp.route('/update', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def update_players():
     try:
-        current_season_name, current_year = get_current_season_and_year()
-        logger.info(f"Fetching players for season: {current_season_name}")
+        # Step 1: Fetch current seasons
+        current_seasons = Season.query.filter_by(is_current=True).all()
+        if not current_seasons:
+            raise Exception("No current seasons found in the database.")
 
-        # Fetch the current season from the database
-        season = Season.query.filter_by(name=current_season_name).first()
-        if not season:
-            raise Exception(f"Season '{current_season_name}' not found in the database.")
+        # Step 2: Fetch orders from WooCommerce
+        orders = fetch_orders_from_woocommerce(
+            current_season_name='2024 Fall',
+            filter_current_season=True,
+            current_season_names=[season.name for season in current_seasons],
+            max_pages=10  # Limit to 10 pages
+        )
 
-        existing_leagues = season.leagues
+        # Step 3: Reset current players
+        reset_current_players(current_seasons)  # Pass the required argument
 
-        # Fetch orders from WooCommerce
-        orders = fetch_orders_from_woocommerce(current_season_name)
-
-        # Reset `is_current_player` for all players to False for the current season
-        Player.query.filter(Player.league.has(season_id=season.id)).update({Player.is_current_player: False})
-        db.session.commit()
-
-        # Group orders by email
+        # Step 4: Group orders by email
         email_orders_map = {}
-        for order_data in orders:
-            email = order_data['billing']['email'].lower()
+        for order in orders:
+            email = order['billing'].get('email', '').lower()
+            if not email:
+                logger.warning(f"No email found for order ID {order['order_id']}. Skipping.")
+                continue
             if email not in email_orders_map:
                 email_orders_map[email] = []
-            email_orders_map[email].append(order_data)
+            email_orders_map[email].append(order)
 
-        # Process each player based on grouped orders by email
-        with db.session.no_autoflush:
-            for email, email_orders in email_orders_map.items():
-                # Combine orders for this email
-                total_items_count = sum(order['quantity'] for order in email_orders)
+        # Step 5: Process each email group
+        for email, email_orders in email_orders_map.items():
+            for order in email_orders:
+                product_name = order['product_name']
+                quantity = order['quantity']
 
-                # Extract basic player info from the first order
-                first_order = email_orders[0]
-                billing = first_order['billing']
-                full_name = f"{billing['first_name']} {billing['last_name']}"
-                phone = clean_phone_number(billing['phone'])
-                jersey_size = first_order['product_name'].split(' - ')[-1].strip()
+                # Extract player info
+                player_info = extract_player_info(order['billing'])
+                if not player_info:
+                    logger.warning(f"Could not extract player info for email '{email}'. Skipping order ID {order['order_id']}.")
+                    continue
 
-                # Determine the league for the first order item
-                product_name = first_order['product_name']
-                league = get_league_by_product_name(product_name, existing_leagues)  # Ensure league is determined
+                # Validate player info
+                #if not validate_player_info(player_info):
+                #    logger.warning(f"Invalid player info for email '{email}'. Skipping order ID {order['order_id']}.")
+                #    continue
+
+                # Determine league
+                league = get_league_by_product_name(product_name, current_seasons)
                 if not league:
-                    continue  # If the league is not found, skip processing
+                    logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
+                    continue
 
-                # Prepare player data including aggregated order information
-                player_data = {
-                    'name': full_name,
-                    'email': email,
-                    'phone': phone,
-                    'jersey_size': jersey_size,
-                    'product_name': product_name,
-                    'order_id': str(first_order['order_id']),
-                    'total_items_count': total_items_count,
-                    'orders': email_orders  # Include all orders for this email
-                }
+                # Check if user exists
+                user = User.query.filter_by(email=email).first()
+                if user:
+                    # Check if player profile exists
+                    existing_player = Player.query.filter_by(user_id=user.id).first()
+                    if existing_player:
+                        logger.info(f"Player profile already exists for user '{email}'. Skipping Player creation for order ID {order['order_id']}.")
+                        player = existing_player
+                    else:
+                        # Create player profile
+                        player = create_user_and_player_profile(player_info, league)
+                else:
+                    # Create user and player profile
+                    player = create_user_and_player_profile(player_info, league)
 
-                existing_players = fetch_existing_players(email)
+                if player:
+                    # Record order history
+                    record_order_history(
+                        order_id=order['order_id'],
+                        player_id=player.id,
+                        league_id=league.id,
+                        season_id=league.season_id,
+                        profile_count=quantity
+                    )
+                else:
+                    logger.error(f"Cannot record order history for order_id '{order['order_id']}' because player_id is None.")
 
-                # Process the player creation or updating logic, now including current_season_name
-                master_player = create_or_update_player(player_data, league, season, existing_players, current_season_name)
-
-                # Record order history for all orders
-                for order in email_orders:
-                    record_order_history(order['order_id'], master_player.id, league.id, season.id, order['quantity'])
-
-            db.session.commit()
-            logger.info("All players have been updated successfully.")
-            flash('Players updated successfully.', 'success')
+        # Step 6: Commit all changes
+        db.session.commit()
+        logger.info("All players have been updated successfully.")
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error updating players: {str(e)}", exc_info=True)
-        flash(f'Error updating players: {str(e)}', 'danger')
+        logger.error(f"An error occurred while updating players: {e}", exc_info=True)
+        flash(f"An error occurred: {str(e)}", "danger")
+        return redirect(url_for('players.view_players'))
 
+    flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
 
 @players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])

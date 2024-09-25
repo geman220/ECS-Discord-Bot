@@ -5,9 +5,16 @@
     <!-- Page Heading -->
     <h1 class="h3 mb-4 text-gray-800">Player List</h1>
 
-    <!-- Search Form -->
-    <form method="POST" action="{{ url_for('players.view_players') }}">
+    <!-- Update Players Button -->
+    <form method="POST" action="{{ url_for('players.update_players') }}" class="mb-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success">
+            <i class="fa-solid fa-sync"></i> Update Players
+        </button>
+    </form>
+
+    <!-- Search Form -->
+    <form method="GET" action="{{ url_for('players.view_players') }}">
         <div class="input-group mb-4">
             <input type="text" class="form-control" name="search" placeholder="Search by name, email, phone, etc." value="{{ search_term }}">
             <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Search</button>
@@ -53,11 +60,43 @@
                             </tbody>
                         </table>
                     </div>
-                    <!-- Pagination -->
+                    <!-- Pagination for Classic Players -->
                     <div class="d-flex justify-content-between align-items-center">
                         <span>Showing {{ classic_players.page }} of {{ classic_players.pages }} pages</span>
                         <nav aria-label="Classic players pagination">
-                            {{ classic_players.links }}
+                            <ul class="pagination">
+                                {% if classic_players.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.prev_num, premier_page=premier_players.page, search=search_term) }}">Previous</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in classic_players.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                {% if page_num == classic_players.page %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', classic_page=page_num, premier_page=premier_players.page, search=search_term) }}">{{ page_num }}</a></li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if classic_players.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.next_num, premier_page=premier_players.page, search=search_term) }}">Next</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                {% endif %}
+                            </ul>
                         </nav>
                     </div>
                 </div>
@@ -101,11 +140,43 @@
                             </tbody>
                         </table>
                     </div>
-                    <!-- Pagination -->
+                    <!-- Pagination for Premier Players -->
                     <div class="d-flex justify-content-between align-items-center">
                         <span>Showing {{ premier_players.page }} of {{ premier_players.pages }} pages</span>
                         <nav aria-label="Premier players pagination">
-                            {{ premier_players.links }}
+                            <ul class="pagination">
+                                {% if premier_players.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.prev_num, classic_page=classic_players.page, search=search_term) }}">Previous</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in premier_players.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                {% if page_num == premier_players.page %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', premier_page=page_num, classic_page=classic_players.page, search=search_term) }}">{{ page_num }}</a></li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if premier_players.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.next_num, classic_page=classic_players.page, search=search_term) }}">Next</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                {% endif %}
+                            </ul>
                         </nav>
                     </div>
                 </div>
@@ -117,7 +188,7 @@
 
 <script>
     function clearSearch() {
-        // Redirect to the same page without the search term
+        // Redirect to the same page without the search term and reset pagination
         window.location.href = "{{ url_for('players.view_players') }}";
     }
 </script>
