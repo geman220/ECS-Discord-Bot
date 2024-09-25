@@ -24,7 +24,7 @@
 
     <div class="row">
         <!-- Classic League Players Table -->
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">
@@ -67,7 +67,7 @@
                             <ul class="pagination">
                                 {% if classic_players.has_prev %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.prev_num, premier_page=premier_players.page, search=search_term) }}">Previous</a>
+                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.prev_num, premier_page=premier_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">Previous</a>
                                 </li>
                                 {% else %}
                                 <li class="page-item disabled">
@@ -80,7 +80,7 @@
                                 {% if page_num == classic_players.page %}
                                 <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
                                 {% else %}
-                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', classic_page=page_num, premier_page=premier_players.page, search=search_term) }}">{{ page_num }}</a></li>
+                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', classic_page=page_num, premier_page=premier_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">{{ page_num }}</a></li>
                                 {% endif %}
                                 {% else %}
                                 <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -89,7 +89,7 @@
 
                                 {% if classic_players.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.next_num, premier_page=premier_players.page, search=search_term) }}">Next</a>
+                                    <a class="page-link" href="{{ url_for('players.view_players', classic_page=classic_players.next_num, premier_page=premier_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">Next</a>
                                 </li>
                                 {% else %}
                                 <li class="page-item disabled">
@@ -104,7 +104,7 @@
         </div>
 
         <!-- Premier League Players Table -->
-        <div class="col-lg-6">
+        <div class="col-lg-4">
             <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-success">
@@ -147,7 +147,7 @@
                             <ul class="pagination">
                                 {% if premier_players.has_prev %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.prev_num, classic_page=classic_players.page, search=search_term) }}">Previous</a>
+                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.prev_num, classic_page=classic_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">Previous</a>
                                 </li>
                                 {% else %}
                                 <li class="page-item disabled">
@@ -160,7 +160,7 @@
                                 {% if page_num == premier_players.page %}
                                 <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
                                 {% else %}
-                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', premier_page=page_num, classic_page=classic_players.page, search=search_term) }}">{{ page_num }}</a></li>
+                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', premier_page=page_num, classic_page=classic_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">{{ page_num }}</a></li>
                                 {% endif %}
                                 {% else %}
                                 <li class="page-item disabled"><span class="page-link">…</span></li>
@@ -169,7 +169,87 @@
 
                                 {% if premier_players.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.next_num, classic_page=classic_players.page, search=search_term) }}">Next</a>
+                                    <a class="page-link" href="{{ url_for('players.view_players', premier_page=premier_players.next_num, classic_page=classic_players.page, ecsfc_page=ecsfc_players.page, search=search_term) }}">Next</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Next</span>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ECS FC Players Table -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fa-solid fa-users"></i> ECS FC Players
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped table-bordered" id="ecsfcPlayersTable">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Jersey Size</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in ecsfc_players.items %}
+                                <tr>
+                                    <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-info">{{ player.name }}</a></td>
+                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.phone }}</td>
+                                    <td>{{ player.jersey_size }}</td>
+                                    <td>
+                                        <span class="badge {{ 'badge-success' if player.is_current_player else 'badge-secondary' }}">
+                                            {{ 'Current Player' if player.is_current_player else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination for ECS FC Players -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Showing {{ ecsfc_players.page }} of {{ ecsfc_players.pages }} pages</span>
+                        <nav aria-label="ECS FC players pagination">
+                            <ul class="pagination">
+                                {% if ecsfc_players.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', ecsfc_page=ecsfc_players.prev_num, premier_page=premier_players.page, classic_page=classic_players.page, search=search_term) }}">Previous</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">Previous</span>
+                                </li>
+                                {% endif %}
+
+                                {% for page_num in ecsfc_players.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                {% if page_num == ecsfc_players.page %}
+                                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                                {% else %}
+                                <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', ecsfc_page=page_num, premier_page=premier_players.page, classic_page=classic_players.page, search=search_term) }}">{{ page_num }}</a></li>
+                                {% endif %}
+                                {% else %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                                {% endif %}
+                                {% endfor %}
+
+                                {% if ecsfc_players.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('players.view_players', ecsfc_page=ecsfc_players.next_num, premier_page=premier_players.page, classic_page=classic_players.page, search=search_term) }}">Next</a>
                                 </li>
                                 {% else %}
                                 <li class="page-item disabled">
