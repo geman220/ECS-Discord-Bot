@@ -37,15 +37,6 @@ from database import (
 )
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG to capture all levels of logs
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("bot_debug.log"),  # Log to a file
-        logging.StreamHandler()  # Also log to console
-    ]
-)
-
 logger = logging.getLogger(__name__)
 
 SUBGROUPS = [
@@ -472,7 +463,6 @@ class WooCommerceCommands(commands.Cog):
                 # Process each order
                 for order in fetched_orders:
                     order_id = order.get('id', 'Unknown')
-                    logger.debug(f"Processing Order ID: {order_id}")
                     # Fetch customer info based on subgroup
                     subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
                     if subgroup_info:
@@ -490,7 +480,6 @@ class WooCommerceCommands(commands.Cog):
                                 continue  # Skip this subgroup
                             
                             member_info_by_subgroup[subgroup].append(customer_info)
-                            logger.debug(f"Added customer from Order ID {order_id} to subgroup '{subgroup}'.")
 
                 # Move to the next page
                 page += 1
@@ -522,7 +511,6 @@ class WooCommerceCommands(commands.Cog):
                         member.get("last_name", "").strip(),
                         member.get("email", "").strip()
                     ])
-                    logger.debug(f"Written to CSV: {subgroup}, {member.get('first_name', '')}, {member.get('last_name', '')}, {member.get('email', '')}")
 
             # Prepare CSV for sending
             csv_output.seek(0)
@@ -535,9 +523,6 @@ class WooCommerceCommands(commands.Cog):
                 file=csv_file,
                 ephemeral=True
             )
-
-            logger.info(f"Successfully sent CSV file '{filename}' to user {interaction.user}.")
-
             # Close the StringIO object
             csv_output.close()
 
