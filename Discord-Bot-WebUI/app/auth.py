@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_paginate import Pagination, get_page_args
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
+from sqlalchemy import func
 from app import db, mail
 from app.models import User, Role, Player, League
 from app.woocommerce import fetch_order_by_id
@@ -76,8 +77,11 @@ def discord_callback():
         flash('Unable to access Discord email. Please ensure you have granted email access.', 'danger')
         return redirect(url_for('auth.login'))
 
-    # Try to find a user with the Discord email
-    user = User.query.filter_by(email=discord_email).first()
+    # Normalize email to lowercase for case-insensitive comparison
+    discord_email = discord_email.lower()
+
+    # Try to find a user with the Discord email (case-insensitive)
+    user = User.query.filter(func.lower(User.email) == discord_email).first()
 
     if not user:
         # No matching user found, redirect to verification page
