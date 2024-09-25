@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y" style="padding-top: 1rem;">
+    <!-- Reduce padding to move calendar up -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title">Pub League Schedule Overview</h4>
+                </div>
+                <div class="card-body p-0">
+                    <div id="leagueCalendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var calendarEl = document.getElementById('leagueCalendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            events: '/calendar/events',
+            eventClick: function (info) {
+                if (info.event.url) {
+                    window.open(info.event.url, '_blank');
+                    info.jsEvent.preventDefault(); // prevent browser from following the link
+                }
+            },
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
+            },
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridDay,timeGridWeek'
+            },
+            slotMinTime: "08:00:00",
+            slotMaxTime: "16:00:00",
+            hiddenDays: [1, 2, 3, 4, 5, 6],
+            allDaySlot: false,
+            slotDuration: '00:30:00',
+            themeSystem: 'bootstrap', // Ensure Bootstrap theme is used for compatibility with Vuexy
+            height: 'auto',
+            contentHeight: 'auto',
+            eventDisplay: 'block',
+            eventBackgroundColor: '#6777ef', // Vuexy's primary color
+            eventBorderColor: '#6777ef',
+            eventTextColor: '#fff',
+            selectable: true,
+            editable: false,
+            dayMaxEvents: true, // allow "more" link when too many events
+            eventDidMount: function (info) {
+                $(info.el).tooltip({
+                    title: `<strong>${info.event.title}</strong><br>${info.event.extendedProps.description || ''}`,
+                    html: true,
+                    placement: 'top',
+                    container: 'body',
+                    trigger: 'hover'
+                });
+            },
+            buttonText: {
+                today: 'Today',
+                month: 'Month',
+                week: 'Week',
+                day: 'Day'
+            },
+            slotLabelFormat: [
+                { hour: 'numeric', minute: '2-digit', meridiem: 'short' }
+            ],
+            // Customize the calendar’s header to use Vuexy's button styles
+            customButtons: {
+                prev: {
+                    text: '<i class="fas fa-chevron-left"></i>',
+                    click: function () {
+                        calendar.prev();
+                    }
+                },
+                next: {
+                    text: '<i class="fas fa-chevron-right"></i>',
+                    click: function () {
+                        calendar.next();
+                    }
+                },
+                today: {
+                    text: 'Today',
+                    click: function () {
+                        calendar.today();
+                    }
+                }
+            },
+            // Add custom CSS classes to calendar elements
+            eventClassNames: function (arg) {
+                return ['fc-event-custom']; // Define this class in your CSS
+            }
+        });
+
+        calendar.render();
+    });
+</script>
+
+<style>
+    /* Customize FullCalendar to better match Vuexy's styles */
+    .fc-toolbar-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .fc-button {
+        background-color: #ffffff;
+        border: 1px solid #ebe9f1;
+        color: #6777ef;
+    }
+
+        .fc-button:hover {
+            background-color: #f4f4f4;
+        }
+
+    .fc-event-custom {
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.875rem;
+    }
+
+    /* Adjust tooltip styles to match Vuexy */
+    .tooltip-inner {
+        background-color: #32325d;
+        color: #fff;
+        font-size: 0.875rem;
+    }
+
+    .tooltip.bs-tooltip-top .tooltip-arrow::before {
+        border-top-color: #32325d;
+    }
+
+    /* Reduce the padding between the card header and the calendar */
+    .card-body {
+        padding: 0.5rem;
+    }
+</style>
+{% endblock %}
