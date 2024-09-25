@@ -7,15 +7,6 @@ import re
 import json
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG to capture all levels of logs
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("bot_debug.log"),  # Log to a file
-        logging.StreamHandler()  # Also log to console
-    ]
-)
-
 logger = logging.getLogger(__name__)
 
 def convert_to_pst(utc_datetime):
