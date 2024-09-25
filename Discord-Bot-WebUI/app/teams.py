@@ -194,10 +194,13 @@ def process_events(match, data, event_type, add_key, remove_key):
         if stat_id:
             event = PlayerEvent.query.get(stat_id)
             if event:
-                # Decrement player stats
+                # Decrement player stats before deleting the event
                 update_player_stats(event.player_id, event.event_type.value, increment=False)
-                db.session.delete(event)
-                logger.info(f"Removed {event_type.name}: Player ID {event.player_id}, Stat ID: {stat_id}")
+                logger.info(f"Removing {event_type.name}: Player ID {event.player_id}, Stat ID: {stat_id}")
+                db.session.delete(event)  # Delete the event here
+                db.session.flush()  # Ensure deletion is properly handled in the session
+            else:
+                logger.warning(f"Event with Stat ID {stat_id} not found. Skipping removal.")
 
     # Process events to add or update
     for event_data in events_to_add:
@@ -229,6 +232,8 @@ def process_events(match, data, event_type, add_key, remove_key):
                     event.player_id = player_id
                 event.minute = minute if minute else None
                 logger.info(f"Updated {event_type.name}: Player ID {player_id}, Minute {event.minute}, Stat ID: {stat_id}")
+            else:
+                logger.warning(f"Event with Stat ID {stat_id} not found. Cannot update.")
         else:
             # Add new event
             new_event = PlayerEvent(
@@ -241,20 +246,23 @@ def process_events(match, data, event_type, add_key, remove_key):
             logger.info(f"Added New {event_type.name}: Player ID {player_id}, Minute {minute}")
             update_player_stats(player_id, event_type_value)
 
+    # Commit the changes to the database
+    db.session.commit()
+
 def update_player_stats(player_id, event_type, increment=True):
     logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}")
     player = Player.query.get(player_id)
     season_id = current_season_id()
-    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season_id).first()
-    career_stats = player.career_stats
 
+    # Get or create season stats
+    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season_id).first()
     if not season_stats:
-        # If season stats do not exist, create them
         season_stats = PlayerSeasonStats(player_id=player_id, season_id=season_id, goals=0, assists=0, yellow_cards=0, red_cards=0)
         db.session.add(season_stats)
 
+    # Get or create career stats (ensure it's a single object, not a list)
+    career_stats = PlayerCareerStats.query.filter_by(player_id=player_id).first()
     if not career_stats:
-        # If career stats do not exist, create them
         career_stats = PlayerCareerStats(player_id=player_id, goals=0, assists=0, yellow_cards=0, red_cards=0)
         db.session.add(career_stats)
 
@@ -279,8 +287,13 @@ def update_player_stats(player_id, event_type, increment=True):
             season_stats.red_cards = max((season_stats.red_cards or 0) + adjustment, 0)
             career_stats.red_cards = max((career_stats.red_cards or 0) + adjustment, 0)
             logger.info(f"Updated red cards: season {season_stats.red_cards}, career {career_stats.red_cards}")
+        
+        # Commit the changes to the database
+        db.session.commit()
+
     except Exception as e:
         logger.exception(f"Error updating stats for player_id={player_id}: {e}")
+        db.session.rollback()  # Rollback in case of any error
         raise
 
 def current_season_id():

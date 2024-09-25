@@ -480,93 +480,64 @@ def create_player_profile(player_info, league, user):
 
 def create_user_and_player_profile(player_info, league):
     """
-    Creates a new user and associated player profile with a random password.
-    If a player with the given email already exists, it skips creating a new player.
-    The user must reset their password via email.
-    
+    Creates or updates user and player profile and marks players as current.
+
     Args:
         player_info (dict): Extracted player information.
         league (League): League object.
-    
+
     Returns:
-        Player: The created or existing Player object, or None if failed.
+        Player: The created or updated Player object, or None if failed.
     """
     try:
-        # Step 1: Check if the User with this email already exists
+        # Check if the User with this email already exists
         user = User.query.filter_by(email=player_info['email']).first()
 
         if not user:
-            # Step 2: Fetch the "Pub League Player" role from the Role table
-            pub_league_player_role = Role.query.filter_by(name='Pub League Player').first()
-            if not pub_league_player_role:
-                logger.error(f"Role 'Pub League Player' does not exist.")
-                return None
-
-            # Step 3: Generate a unique username if necessary
-            username = player_info['name']
-            existing_user = User.query.filter_by(username=username).first()
-            counter = 1
-            while existing_user:
-                username = f"{player_info['name']}{counter}"
-                existing_user = User.query.filter_by(username=username).first()
-                counter += 1
-
-            # Step 4: Create a new user with a random password
+            # Create a new user
             random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
             user = User(
                 email=player_info['email'],
-                username=username,  # Use the unique username
-                league_id=league.id,  # Assuming each user belongs to a league
-                is_approved=True  # Set is_approved to True for all unique users
+                username=player_info['name'],
+                league_id=league.id,
+                is_approved=True,  # Set is_approved to True for all unique users
+                is_active=True  # Mark newly created users as active
             )
-            # Use the set_password method to hash the password
             user.set_password(random_password)
-            
             db.session.add(user)
             db.session.flush()  # Ensure user is available for assigning user_id
-
-            # Optionally, send an email for password reset
-            # send_password_setup_email(user)
-
             logger.info(f"Created new user '{user.email}' with username '{user.username}' and approved status.")
 
-        # Step 5: Check if a Player with this email already exists
+        # Check if a Player with this email already exists
         existing_player = Player.query.filter_by(email=player_info['email']).first()
         if existing_player:
-            logger.warning(f"Player with email '{player_info['email']}' already exists. Skipping Player creation.")
-            player = existing_player
+            # Mark existing player as current
+            existing_player.is_current_player = True
+            logger.info(f"Marked existing player '{existing_player.name}' as CURRENT_PLAYER and ACTIVE.")
+            return existing_player
         else:
-            # Step 6: Create player profile
+            # Create a new player profile
             player = Player(
                 name=player_info['name'],
                 email=player_info['email'],
                 phone=player_info['phone'],
                 jersey_size=player_info['jersey_size'],
                 league_id=league.id,
-                user_id=user.id,  # Assign the newly created or existing user's ID
-                is_current_player=True,
-                # Initialize other necessary fields
+                user_id=user.id,  # Link to user
+                is_current_player=True  # Set is_current_player to True initially
             )
             db.session.add(player)
+            db.session.flush()  # Ensure player is available
             logger.info(f"Created new player profile for '{player.name}' with email '{player.email}'.")
-
-        # Step 7: Commit the changes to the database
-        db.session.commit()
-
-        return player
+            return player
 
     except IntegrityError as ie:
         logger.error(f"IntegrityError while creating player for '{player_info['email']}': {ie}", exc_info=True)
         db.session.rollback()
-        # Optionally, retrieve the existing Player
-        existing_player = Player.query.filter_by(email=player_info['email']).first()
-        if existing_player:
-            return existing_player
-        else:
-            return None
+        return None
 
     except Exception as e:
-        logger.error(f"Error creating user and player profile for '{player_info['email']}': {e}", exc_info=True)
+        logger.error(f"Error creating player for '{player_info['email']}': {e}", exc_info=True)
         db.session.rollback()
         return None
 
@@ -748,13 +719,15 @@ def view_players():
     # Get the current page numbers from the query string, default to 1
     classic_page = request.args.get('classic_page', 1, type=int)
     premier_page = request.args.get('premier_page', 1, type=int)
+    ecsfc_page = request.args.get('ecsfc_page', 1, type=int)  # Added ECS FC pagination
 
     # Define how many players to display per page
     per_page = 10
 
-    # Query players by league
+    # Query players by league (Classic, Premier, ECS FC)
     classic_query = Player.query.join(League).filter(League.name == 'Classic')
     premier_query = Player.query.join(League).filter(League.name == 'Premier')
+    ecsfc_query = Player.query.join(League).filter(League.name == 'ECS FC')  # Assuming ECS FC is the league name
 
     # If there is a search term, apply filters to the queries
     if search_term:
@@ -766,15 +739,23 @@ def view_players():
         )
         classic_query = classic_query.filter(search_filter)
         premier_query = premier_query.filter(search_filter)
+        ecsfc_query = ecsfc_query.filter(search_filter)
 
     # Paginate the results
     classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
     premier_players = premier_query.paginate(page=premier_page, per_page=per_page, error_out=False)
+    ecsfc_players = ecsfc_query.paginate(page=ecsfc_page, per_page=per_page, error_out=False)  # Added ECS FC players
+
+    # Debug logs to check the queries
+    logger.debug(f"Classic players: {classic_players.items}")
+    logger.debug(f"Premier players: {premier_players.items}")
+    logger.debug(f"ECS FC players: {ecsfc_players.items}")
 
     return render_template(
         'view_players.html',
         classic_players=classic_players,
         premier_players=premier_players,
+        ecsfc_players=ecsfc_players,  # Added ECS FC players to render
         search_term=search_term
     )
 
@@ -796,8 +777,10 @@ def update_players():
             max_pages=10  # Limit to 10 pages
         )
 
-        # Step 3: Reset current players
-        reset_current_players(current_seasons)  # Pass the required argument
+        detected_players = set()  # Track all detected players (IDs)
+
+        # Step 3: Reset current players (mark all as inactive initially)
+        reset_current_players(current_seasons)
 
         # Step 4: Group orders by email
         email_orders_map = {}
@@ -822,16 +805,14 @@ def update_players():
                     logger.warning(f"Could not extract player info for email '{email}'. Skipping order ID {order['order_id']}.")
                     continue
 
-                # Validate player info
-                #if not validate_player_info(player_info):
-                #    logger.warning(f"Invalid player info for email '{email}'. Skipping order ID {order['order_id']}.")
-                #    continue
-
-                # Determine league
+                # Determine league (for both ECS FC and Pub League)
                 league = get_league_by_product_name(product_name, current_seasons)
                 if not league:
                     logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
                     continue
+
+                # Initialize player to None for proper reference later
+                player = None
 
                 # Check if user exists
                 user = User.query.filter_by(email=email).first()
@@ -839,16 +820,23 @@ def update_players():
                     # Check if player profile exists
                     existing_player = Player.query.filter_by(user_id=user.id).first()
                     if existing_player:
-                        logger.info(f"Player profile already exists for user '{email}'. Skipping Player creation for order ID {order['order_id']}.")
-                        player = existing_player
+                        # Mark existing player as current (active)
+                        existing_player.is_current_player = True
+                        detected_players.add(existing_player.id)
+                        logger.info(f"Player profile already exists for user '{email}'. Marking player as current for order ID {order['order_id']}.")
+                        player = existing_player  # Set player to existing player
                     else:
-                        # Create player profile
+                        # Create player profile if none exists
                         player = create_user_and_player_profile(player_info, league)
+                        if player:
+                            detected_players.add(player.id)
                 else:
-                    # Create user and player profile
+                    # Create user and player profile if none exists
                     player = create_user_and_player_profile(player_info, league)
+                    if player:
+                        detected_players.add(player.id)
 
-                if player:
+                if player:  # Ensure player is not None before proceeding
                     # Record order history
                     record_order_history(
                         order_id=order['order_id'],
@@ -860,7 +848,14 @@ def update_players():
                 else:
                     logger.error(f"Cannot record order history for order_id '{order['order_id']}' because player_id is None.")
 
-        # Step 6: Commit all changes
+        # Step 6: Mark all non-detected players as inactive
+        all_players = Player.query.filter(Player.league_id.in_([season.id for season in current_seasons])).all()
+        for player in all_players:
+            if player.id not in detected_players:
+                player.is_current_player = False
+                logger.info(f"Marked player '{player.name}' as NOT CURRENT_PLAYER (inactive).")
+
+        # Step 7: Commit all changes
         db.session.commit()
         logger.info("All players have been updated successfully.")
 
@@ -907,9 +902,10 @@ def player_profile(player_id):
         db.session.commit()
 
     # Ensure career stats exist
-    if not player.career_stats:
-        player.career_stats = PlayerCareerStats(player_id=player.id)
-        db.session.add(player.career_stats)
+    if not player.career_stats:  # Check if the career_stats collection is empty
+        new_career_stats = PlayerCareerStats(player_id=player.id)
+        player.career_stats.append(new_career_stats)  # Append the new object to the collection
+        db.session.add(new_career_stats)
         db.session.commit()
 
     is_classic_league_player = player.league_id == classic_league.id
@@ -945,6 +941,33 @@ def player_profile(player_id):
             db.session.rollback()
             flash('An error occurred while updating the coach status. Please try again.', 'danger')
             current_app.logger.error(f"Error updating coach status for player {player_id}: {str(e)}")
+
+    # Handle referee status update (new logic)
+    if is_admin and request.method == 'POST' and 'update_ref_status' in request.form:
+        try:
+            is_ref = 'is_ref' in request.form  # True if checkbox is checked
+            player.is_ref = is_ref
+
+            # Fetch the 'Pub League Ref' role
+            ref_role = Role.query.filter_by(name='Pub League Ref').first()
+
+            if is_ref:
+                # Add 'Pub League Ref' role to the user's roles if marked as ref
+                if ref_role and ref_role not in user.roles:
+                    user.roles.append(ref_role)
+            else:
+                # Remove 'Pub League Ref' role from the user's roles if unmarked
+                if ref_role and ref_role in user.roles:
+                    user.roles.remove(ref_role)
+
+            db.session.commit()
+            flash(f"{player.name}'s referee status updated successfully.", 'success')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('An error occurred while updating the referee status. Please try again.', 'danger')
+            current_app.logger.error(f"Error updating referee status for player {player_id}: {str(e)}")
 
     form = PlayerProfileForm(obj=player) if is_player or is_admin else None
     if form:

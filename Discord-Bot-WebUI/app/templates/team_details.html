@@ -24,7 +24,10 @@
                                 <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle border" style="width: 50px; height: 50px; margin-right: 15px;">
                                 <span>{{ player.name }}</span>
                                 {% if player.is_coach %}
-                                <span class="badge bg-secondary ms-2">Coach</span>
+                                <span class="badge bg-secondary ms-2">C</span>
+                                {% endif %}
+                                {% if player.is_ref %}
+                                <i class="material-icons" title="Referee">sports</i>
                                 {% endif %}
                             </a>
                             <div>

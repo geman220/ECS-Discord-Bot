@@ -14,7 +14,15 @@
                         <img class="img-fluid rounded mb-3" src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" style="width: 120px; height: 120px;">
                         {% endif %}
                         <div class="user-info text-center">
-                            <h4 class="mb-0">{{ player.name }}</h4>
+                            <h4 class="mb-0">
+                                {{ player.name }}
+                                {% if player.is_ref %}
+                                <i class="material-icons" title="Referee">sports</i>
+                                {% endif %}
+                                {% if player.is_coach %}
+                                <span class="badge bg-success">COACH</span>
+                                {% endif %}
+                            </h4>
                             {% if player.team %}
                             <span class="badge bg-primary">
                                 <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white">
@@ -214,6 +222,17 @@
                                 <label class="form-check-label" for="isCoachToggle">Mark this player as a coach</label>
                             </div>
                             <button type="submit" name="update_coach_status" class="btn btn-primary mt-3">Update Coach Status</button>
+                        </form>
+
+                        <!-- Mark Player as Referee Section -->
+                        <h6 class="font-weight-bold text-primary mb-2">Referee Settings</h6>
+                        <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_ref" id="isRefToggle" {% if player.is_ref %}checked{% endif %}>
+                                <label class="form-check-label" for="isRefToggle">Mark this player as a referee</label>
+                            </div>
+                            <button type="submit" name="update_ref_status" class="btn btn-primary mt-3">Update Referee Status</button>
                         </form>
 
                         <!-- Season and Career Stats -->
