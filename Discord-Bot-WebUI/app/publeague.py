@@ -171,12 +171,12 @@ def delete_team(league_name, team_name):
     return redirect(url_for('publeague.manage_teams'))
 
 # View Players
-@publeague.route('/players')
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def view_players():
-    players = Player.query.all()  # This should fetch players with their related league
-    return render_template('view_players.html', players=players)
+#@publeague.route('/players')
+#@login_required
+#@role_required(['Pub League Admin', 'Global Admin'])
+#def view_players():
+#    players = Player.query.all()  # This should fetch players with their related league
+#    return render_template('view_players.html', players=players)
 
 # Clear Players
 @publeague.route('/clear_players', methods=['POST'])

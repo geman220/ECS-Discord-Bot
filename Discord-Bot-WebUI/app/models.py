@@ -28,9 +28,9 @@ class League(db.Model):
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     season = db.relationship('Season', back_populates='leagues')
     teams = db.relationship('Team', back_populates='league', lazy=True)
-    players = db.relationship('Player', backref='league_players', lazy=True)
+    players = db.relationship('Player', back_populates='league', lazy=True)
     users = db.relationship('User', back_populates='league')
-
+    
     def __repr__(self):
         return f'<League {self.name}>'
 
@@ -271,10 +271,10 @@ class Player(db.Model):
 
     # Relationships with stats
     season_stats = db.relationship('PlayerSeasonStats', back_populates='player')
-    career_stats = db.relationship('PlayerCareerStats', back_populates='player', uselist=False)
+    career_stats = db.relationship('PlayerCareerStats', back_populates='player')
 
     def __repr__(self):
-        return f'<Player {self.name}>'
+        return f'<Player {self.name} ({self.email})>'
 
     # Methods to retrieve season stats
     def get_season_stat(self, season_id, stat):
@@ -397,16 +397,28 @@ class Player(db.Model):
         )
 
     def get_career_goals(self):
-        return self.career_stats.goals if self.career_stats else 0
+        if self.career_stats:  # Check if career_stats is not empty
+            # Sum the goals from all career stats records
+            return sum(stat.goals for stat in self.career_stats if stat.goals)
+        return 0
 
     def get_career_assists(self):
-        return self.career_stats.assists if self.career_stats else 0
+        if self.career_stats:  # Check if career_stats is not empty
+            # Sum the assists from all career stats records
+            return sum(stat.assists for stat in self.career_stats if stat.assists)
+        return 0
 
     def get_career_yellow_cards(self):
-        return self.career_stats.yellow_cards if self.career_stats else 0
+        if self.career_stats:  # Check if career_stats is not empty
+            # Sum the yellow cards from all career stats records
+            return sum(stat.yellow_cards for stat in self.career_stats if stat.yellow_cards)
+        return 0
 
     def get_career_red_cards(self):
-        return self.career_stats.red_cards if self.career_stats else 0
+        if self.career_stats:  # Check if career_stats is not empty
+            # Sum the red cards from all career stats records
+            return sum(stat.red_cards for stat in self.career_stats if stat.red_cards)
+        return 0
 
     def get_all_matches(self):
         """
