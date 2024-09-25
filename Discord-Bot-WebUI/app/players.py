@@ -309,7 +309,6 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
     )
 
     db.session.add(new_player)
-    # Do not flush here; let the main transaction handle it
 
     return new_player
 
@@ -501,7 +500,6 @@ def create_user_and_player_profile(player_info, league):
                 username=player_info['name'],
                 league_id=league.id,
                 is_approved=True,  # Set is_approved to True for all unique users
-                is_active=True  # Mark newly created users as active
             )
             user.set_password(random_password)
             db.session.add(user)
@@ -510,26 +508,29 @@ def create_user_and_player_profile(player_info, league):
 
         # Check if a Player with this email already exists
         existing_player = Player.query.filter_by(email=player_info['email']).first()
+
         if existing_player:
             # Mark existing player as current
             existing_player.is_current_player = True
-            logger.info(f"Marked existing player '{existing_player.name}' as CURRENT_PLAYER and ACTIVE.")
+            db.session.commit()  # Commit the change for existing player
+            logger.info(f"Marked existing player '{existing_player.name}' as CURRENT_PLAYER.")
             return existing_player
+
         else:
-            # Create a new player profile
-            player = Player(
+            # Create a new player profile if not existing
+            new_player = Player(
                 name=player_info['name'],
                 email=player_info['email'],
                 phone=player_info['phone'],
                 jersey_size=player_info['jersey_size'],
                 league_id=league.id,
-                user_id=user.id,  # Link to user
-                is_current_player=True  # Set is_current_player to True initially
+                user_id=user.id,  # Link to the user
+                is_current_player=True  # Mark new player as current player
             )
-            db.session.add(player)
-            db.session.flush()  # Ensure player is available
-            logger.info(f"Created new player profile for '{player.name}' with email '{player.email}'.")
-            return player
+            db.session.add(new_player)
+            db.session.flush()  # Ensure the player is available
+            logger.info(f"Created new player profile for '{new_player.name}' with email '{new_player.email}'.")
+            return new_player
 
     except IntegrityError as ie:
         logger.error(f"IntegrityError while creating player for '{player_info['email']}': {ie}", exc_info=True)
