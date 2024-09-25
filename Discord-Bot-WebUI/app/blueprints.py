@@ -17,6 +17,7 @@ def register_blueprints(app):
     from app.account import account_bp
     from app.email import email_bp
     from app.user_management import user_management_bp
+    from app.calendar import calendar_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -30,4 +31,5 @@ def register_blueprints(app):
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(email_bp)
+    app.register_blueprint(calendar_bp)
     app.register_blueprint(user_management_bp)

@@ -29,6 +29,7 @@
     <Compile Include="app\availability_api.py" />
     <Compile Include="app\blueprints.py" />
     <Compile Include="app\bot_admin.py" />
+    <Compile Include="app\calendar.py" />
     <Compile Include="app\celery.py" />
     <Compile Include="app\db_utils.py" />
     <Compile Include="app\decorators.py" />
@@ -67,6 +68,7 @@
     <Content Include="app\templates\base.html" />
     <Content Include="app\templates\base_unauthenticated.html" />
     <Content Include="app\templates\bot_management.html" />
+    <Content Include="app\templates\calendar.html" />
     <Content Include="app\templates\create_user.html" />
     <Content Include="app\templates\draft_classic.html" />
     <Content Include="app\templates\draft_premier.html" />
