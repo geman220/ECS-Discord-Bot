@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g
+from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
 from flask_login import login_required
 from app import db
-from app.models import Season, League, Team, Schedule
+from app.models import Season, League, Team, Schedule, Match
 from app.decorators import role_required
+from collections import defaultdict
 from sqlalchemy.orm import joinedload
 from sqlalchemy import cast, Integer
 import logging
@@ -63,7 +64,9 @@ def format_match_schedule(matches):
 
         schedule[match.week]['matches'].append({
             'team_a': match.team.name,
+            'team_a_id': match.team.id,  # Added team_a_id
             'team_b': opponent_team.name,
+            'team_b_id': opponent_team.id,  # Added team_b_id
             'time': formatted_time,
             'location': match.location,
             'match_id': match.id
@@ -119,6 +122,7 @@ def manage_publeague_schedule(season_id):
         elif action == 'delete':
             handle_delete_week(season_id, week)
 
+        flash(f'Action "{action}" performed successfully.', 'success')
         return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
     # Serialize the leagues to a dictionary format
@@ -136,8 +140,13 @@ def manage_publeague_schedule(season_id):
     for league in leagues:
         league_schedule = []
         for team in league.teams:
-            matches = Schedule.query.filter_by(team_id=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
-            league_schedule.extend(matches)
+            # Fetch matches where the team is team_a (home team)
+            matches_a = Schedule.query.filter_by(team_id=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
+            league_schedule.extend(matches_a)
+            # Fetch matches where the team is team_b (away team)
+            matches_b = Schedule.query.filter_by(opponent=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
+            league_schedule.extend(matches_b)
+        # Format the schedule for the league
         schedule_data[league.name] = format_match_schedule(league_schedule)
 
     return render_template('manage_publeague_schedule.html', season=season, leagues=serialized_leagues, schedule=schedule_data)
@@ -281,30 +290,65 @@ def bulk_create_ecsfc_matches(season_id, league_name):
     return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
 # Edit Match
-@schedule_bp.route('/edit_match/<int:match_id>', methods=['GET', 'POST'])
+@schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
 def edit_match(match_id):
-    match = Schedule.query.options(joinedload(Schedule.team).joinedload(Team.league)).get_or_404(match_id)
-    league = match.team.league  # Get the league for the match
-    teams = Team.query.filter_by(league_id=league.id).all()  # Get all teams in the same league
+    # Fetch the first match entry (team A) from the Schedule
+    match_schedule = Schedule.query.get_or_404(match_id)
+    
+    # Fetch the paired match entry (team B's entry) from the Schedule
+    paired_match_schedule = Schedule.query.filter_by(
+        team_id=match_schedule.opponent,
+        opponent=match_schedule.team_id,
+        date=match_schedule.date,
+        time=match_schedule.time,
+        location=match_schedule.location
+    ).first()
 
-    if request.method == 'POST':
-        logger.info(f"POST request detected, updating data for Match ID: {match_id}")
-        match.date = request.form.get('date')
-        match.time = request.form.get('time')
-        match.location = request.form.get('location')
-        match.opponent = int(request.form.get('teamB'))
-        
-        data = request.get_json()
-        logger.info(f"Data received in POST request: {data}")
-        
+    # Fetch the Match entry (from the `matches` table)
+    match_in_matches = Match.query.filter_by(schedule_id=match_schedule.id).first()
+    paired_match_in_matches = Match.query.filter_by(schedule_id=paired_match_schedule.id).first() if paired_match_schedule else None
+
+    try:
+        # Update the details in the Schedule table for both entries
+        match_schedule.date = request.form.get('date')
+        match_schedule.time = request.form.get('time')
+        match_schedule.location = request.form.get('location')
+        match_schedule.opponent = int(request.form.get('teamB'))
+        match_schedule.team_id = int(request.form.get('teamA'))
+
+        # Update the paired match in Schedule table
+        if paired_match_schedule:
+            paired_match_schedule.date = match_schedule.date
+            paired_match_schedule.time = match_schedule.time
+            paired_match_schedule.location = match_schedule.location
+            paired_match_schedule.opponent = match_schedule.team_id
+            paired_match_schedule.team_id = match_schedule.opponent
+
+        # Update the Match table if an entry exists
+        if match_in_matches:
+            match_in_matches.date = match_schedule.date
+            match_in_matches.time = match_schedule.time
+            match_in_matches.location = match_schedule.location
+            match_in_matches.home_team_id = match_schedule.team_id
+            match_in_matches.away_team_id = match_schedule.opponent
+
+        # Update the paired match in the Matches table if it exists
+        if paired_match_in_matches:
+            paired_match_in_matches.date = match_schedule.date
+            paired_match_in_matches.time = match_schedule.time
+            paired_match_in_matches.location = match_schedule.location
+            paired_match_in_matches.home_team_id = paired_match_schedule.team_id
+            paired_match_in_matches.away_team_id = paired_match_schedule.opponent
+
+        # Commit both updates
         db.session.commit()
-        flash('Match updated successfully!', 'success')
-        return redirect(url_for('schedule.manage_publeague_schedule', season_id=league.season_id))
-
-    print(teams)  # Add this line for debugging
-    return render_template('edit_match.html', match=match, teams=teams, league_name=match.team.league.name)
+        
+        return jsonify({'message': 'Match and Schedule updated successfully!'}), 200
+    except Exception as e:
+        db.session.rollback()  # Rollback transaction on failure
+        logger.error(f"Error updating match: {e}")
+        return jsonify({'error': 'Failed to update match'}), 400
 
 # Delete Match
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
