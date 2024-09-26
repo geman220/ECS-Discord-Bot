@@ -275,10 +275,8 @@
                 // Refresh calendar and referees list after a short delay
                 setTimeout(() => {
                     bootstrap.Modal.getInstance(document.getElementById('assignRefModal')).hide();
-                    forceCalendarEventRefresh();  // Refresh the calendar
-                    const currentStartDate = calendar.view.activeStart;
-                    const currentEndDate = calendar.view.activeEnd;
-                    fetchAvailableReferees(currentStartDate, currentEndDate);  // Refresh the referee list
+                    forceCalendarEventRefresh(); // Force a reload of events
+                    fetchAvailableReferees(); // Refresh the referees list
                 }, 1000);
             } catch (error) {
                 console.error('Error removing referee:', error);
@@ -413,10 +411,8 @@
                 // Refresh calendar and referees list after a short delay
                 setTimeout(() => {
                     bootstrap.Modal.getInstance(document.getElementById('assignRefModal')).hide();
-                    forceCalendarEventRefresh();  // Refresh the calendar
-                    const currentStartDate = calendar.view.activeStart;
-                    const currentEndDate = calendar.view.activeEnd;
-                    fetchAvailableReferees(currentStartDate, currentEndDate);  // Refresh the referee list
+                    forceCalendarEventRefresh(); // Force a reload of events
+                    fetchAvailableReferees(); // Refresh the referees list
                 }, 1000);
             } catch (error) {
                 console.error('Error assigning referee:', error);

@@ -186,42 +186,33 @@ def assign_ref():
 @calendar_bp.route('/calendar/available_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-def get_available_refs():
+def available_refs():
     try:
+        # Parse start_date and end_date from the request parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
 
         if not start_date or not end_date:
-            return jsonify({'error': 'Missing start_date or end_date parameter.'}), 400
+            return jsonify({'error': 'start_date and end_date parameters are required.'}), 400
 
-        # Convert dates from ISO string to actual date objects
         start_date = datetime.fromisoformat(start_date)
         end_date = datetime.fromisoformat(end_date)
 
-        # Get all referees
+        # Fetch all referees
         refs = Player.query.filter_by(is_ref=True).all()
+        ref_list = []
 
-        available_refs = []
         for ref in refs:
-            # Check if the referee is assigned to any match during the given date range
-            matches_in_week = Match.query.filter(
-                Match.ref_id == ref.id,
-                Match.date >= start_date,
-                Match.date <= end_date
+            # Count the number of matches assigned to this referee in the current week (start_date to end_date)
+            matches_assigned_in_week = Match.query.filter_by(ref_id=ref.id).filter(
+                Match.date >= start_date, Match.date <= end_date
             ).count()
+            ref_list.append({'name': ref.name, 'matches_assigned_in_week': matches_assigned_in_week})
 
-            if matches_in_week == 0:
-                available_refs.append({
-                    'id': ref.id,
-                    'name': ref.name,
-                    'matches_assigned_in_week': matches_in_week
-                })
-
-        return jsonify(available_refs)
-
+        return jsonify(ref_list)
     except Exception as e:
-        logger.exception("Error fetching available referees")
-        return jsonify({'error': 'An error occurred while fetching referees.'}), 500
+        logger.exception(f"Error fetching available referees: {str(e)}")
+        return jsonify({'error': 'An error occurred fetching referees'}), 500
 
 @calendar_bp.route('/calendar/remove_ref', methods=['POST'])
 @login_required
