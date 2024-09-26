@@ -48,19 +48,17 @@ function addEvent(matchId, eventType, statId = null) {
     // Generate a unique ID for the event
     var uniqueId = statId ? String(statId) : 'new-' + Date.now() + '-' + Math.random();
 
-    var dataStatId = `data-stat-id="${statId || ''}"`;
-    var dataUniqueId = `data-unique-id="${uniqueId}"`;
-
-    var playerOptions = createPlayerOptions(matchId);
+    // Ensure statId is a string if provided
+    var statIdValue = statId ? String(statId) : '';
 
     var newForm = `
-        <div class="player-event-entry mb-2" data-stat-id="${statId || ''}" data-unique-id="${uniqueId}">
-            <input type="hidden" name="${eventType}-${uniqueId}-stat_id" value="${statId || ''}">
+        <div class="player-event-entry mb-2" data-stat-id="${statIdValue}" data-unique-id="${uniqueId}">
+            <input type="hidden" name="${eventType}-${uniqueId}-stat_id" value="${statIdValue}">
             <div class="row">
                 <div class="col-md-6">
                     <label class="form-label">Player</label>
                     <select name="${eventType}-${uniqueId}-player_id" class="form-select" required>
-                        ${playerOptions}
+                        ${createPlayerOptions(matchId)}
                     </select>
                 </div>
                 <div class="col-md-4">
@@ -76,7 +74,7 @@ function addEvent(matchId, eventType, statId = null) {
         </div>`;
 
     container.append(newForm);
-    console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statId}, Unique ID: ${uniqueId}`);
+    console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statIdValue || 'null'}, Unique ID: ${uniqueId}`);
 }
 
 // Function to remove an event entry
@@ -162,24 +160,24 @@ $(document).on('click', '.edit-match-btn', function () {
             response.assist_providers.forEach(function (assist) {
                 addEvent(matchId, 'assist_providers', assist.id); // Pass statId
                 const lastAddedEntry = $('#assistProvidersContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name^="assist_providers-"]`).val(assist.player_id);
-                lastAddedEntry.find(`input[name^="assist_providers-"]`).val(assist.minute);
+                lastAddedEntry.find(`select[name="assist_providers-${assist.id}-player_id"]`).val(assist.player_id);
+                lastAddedEntry.find(`input[name="assist_providers-${assist.id}-minute"]`).val(assist.minute);
                 console.log(`Added assist provider: Player ID ${assist.player_id}, Minute ${assist.minute}, Stat ID: ${assist.id}`);
             });
 
             response.yellow_cards.forEach(function (yellow) {
                 addEvent(matchId, 'yellow_cards', yellow.id); // Pass statId
                 const lastAddedEntry = $('#yellowCardsContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name^="yellow_cards-"]`).val(yellow.player_id);
-                lastAddedEntry.find(`input[name^="yellow_cards-"]`).val(yellow.minute);
+                lastAddedEntry.find(`select[name="yellow_cards-${yellow.id}-player_id"]`).val(yellow.player_id);
+                lastAddedEntry.find(`input[name="yellow_cards-${yellow.id}-minute"]`).val(yellow.minute);
                 console.log(`Added yellow card: Player ID ${yellow.player_id}, Minute ${yellow.minute}, Stat ID: ${yellow.id}`);
             });
 
             response.red_cards.forEach(function (red) {
                 addEvent(matchId, 'red_cards', red.id); // Pass statId
                 const lastAddedEntry = $('#redCardsContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name^="red_cards-"]`).val(red.player_id);
-                lastAddedEntry.find(`input[name^="red_cards-"]`).val(red.minute);
+                lastAddedEntry.find(`select[name="red_cards-${red.id}-player_id"]`).val(red.player_id);
+                lastAddedEntry.find(`input[name="red_cards-${red.id}-minute"]`).val(red.minute);
                 console.log(`Added red card: Player ID ${red.player_id}, Minute ${red.minute}, Stat ID: ${red.id}`);
             });
 
@@ -234,24 +232,27 @@ function getFinalEvents(matchId, eventType) {
     let events = [];
     let containerId = getContainerId(eventType, matchId);
     $(`#${containerId}`).find('.player-event-entry').each(function () {
-        let statId = $(this).find('input[type="hidden"][name$="-stat_id"]').val() || null;
-        let playerId = $(this).find('select[name$="-player_id"]').val();
-        let minuteInput = $(this).find('input[name$="-minute"]').val();
+        let hiddenInput = $(this).find('input[type="hidden"][name$="-stat_id"]');
+        let statIdValue = hiddenInput.val();
+        let statId = statIdValue ? String(statIdValue) : null;
+        let playerId = $(this).find(`select[name^="${eventType}-"][name$="-player_id"]`).val();
+        let minuteInput = $(this).find(`input[name^="${eventType}-"][name$="-minute"]`).val();
         let minute = minuteInput !== '' ? minuteInput : null;
 
         // Get the unique_id and convert to string
         let uniqueId = $(this).attr('data-unique-id');
 
-        // Convert statId and playerId to strings
-        statId = statId ? String(statId) : null;
+        // Convert playerId to string
         playerId = playerId ? String(playerId) : null;
 
-        // Add debugging statements
+        // Add detailed debugging statements
         console.log('Event Entry:', {
             uniqueId: uniqueId,
             statId: statId,
             playerId: playerId,
-            minute: minute
+            minute: minute,
+            hiddenInputName: hiddenInput.attr('name'),
+            hiddenInputValue: hiddenInput.val()
         });
 
         events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });

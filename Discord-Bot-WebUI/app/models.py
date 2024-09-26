@@ -474,6 +474,9 @@ class Match(db.Model):
 
     availability = db.relationship('Availability', back_populates='match', lazy=True, cascade="all, delete-orphan")
 
+    ref_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    ref = db.relationship('Player', backref='assigned_matches')
+
     @property
     def reported(self):
         """

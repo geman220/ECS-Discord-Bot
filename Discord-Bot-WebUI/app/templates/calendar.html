@@ -1,18 +1,98 @@
+<!-- templates/calendar.html -->
 {% extends "base.html" %}
 
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y" style="padding-top: 1rem;">
-    <!-- Reduce padding to move calendar up -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
+<div class="container-xxl flex-grow-1 container-p-y mt-4">
+    <div class="row g-4">
+        <!-- Calendar Column -->
+        <div class="col-lg-8">
+            <div class="card h-100">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="card-title">Pub League Schedule Overview</h4>
+                    <h4 class="card-title mb-0">Pub League Schedule Overview</h4>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-3">
                     <div id="leagueCalendar"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- Referee List Column -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Available Referees</h4>
+                </div>
+                <div class="card-body p-3">
+                    <ul class="list-group" id="refereeList">
+                        <!-- Dynamically populated referees -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Referee Assignment Modal -->
+<div class="modal fade" id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="assignRefForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignRefModalLabel">Referee Assignment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Hidden Field for Match ID -->
+                    <input type="hidden" id="matchId" name="match_id">
+
+                    <!-- Match Details -->
+                    <div class="mb-3">
+                        <label for="matchDetails" class="form-label">Match Details</label>
+                        <textarea class="form-control" id="matchDetails" rows="3" readonly></textarea>
+                    </div>
+
+                    <!-- Match Date and Time -->
+                    <div class="mb-3">
+                        <label class="form-label">Match Date and Time</label>
+                        <div class="row">
+                            <div class="col-4">
+                                <strong>Date:</strong> <span id="matchDate"></span>
+                            </div>
+                            <div class="col-4">
+                                <strong>Start:</strong> <span id="matchStartTime"></span>
+                            </div>
+                            <div class="col-4">
+                                <strong>End:</strong> <span id="matchEndTime"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Referee (if any) -->
+                    <div class="mb-3" id="currentRefereeSection" style="display: none;">
+                        <label class="form-label">Current Referee</label>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span id="currentRefereeName"></span>
+                            <button type="button" class="btn btn-danger btn-sm" id="removeRefButton">Remove Referee</button>
+                        </div>
+                    </div>
+
+                    <!-- Select Referee -->
+                    <div class="mb-3">
+                        <label for="refSelect" class="form-label">Assign New Referee</label>
+                        <select class="form-select" id="refSelect" name="ref_id" required>
+                            <option value="" selected disabled>Choose a referee</option>
+                            <!-- Dynamically populated referees -->
+                        </select>
+                    </div>
+
+                    <!-- Feedback Messages -->
+                    <div id="assignRefFeedback" class="mt-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="assignRefButton">Assign Referee</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -20,128 +100,427 @@
 
 {% block custom_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var calendarEl = document.getElementById('leagueCalendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
+    document.addEventListener('DOMContentLoaded', () => {
+        const calendarEl = document.getElementById('leagueCalendar');
+        if (!calendarEl) {
+            console.error('Element with ID "leagueCalendar" not found');
+            return;
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            themeSystem: 'bootstrap5',
             initialView: 'timeGridWeek',
-            events: '/calendar/events',
-            eventClick: function (info) {
-                if (info.event.url) {
-                    window.open(info.event.url, '_blank');
-                    info.jsEvent.preventDefault(); // prevent browser from following the link
-                }
-            },
-            eventTimeFormat: {
-                hour: 'numeric',
-                minute: '2-digit',
-                meridiem: 'short'
-            },
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'timeGridDay,timeGridWeek'
             },
-            slotMinTime: "08:00:00",
-            slotMaxTime: "16:00:00",
+            slotMinTime: "07:30:00",
+            slotMaxTime: "15:30:00",
             hiddenDays: [1, 2, 3, 4, 5, 6],
             allDaySlot: false,
-            slotDuration: '00:30:00',
-            themeSystem: 'bootstrap', // Ensure Bootstrap theme is used for compatibility with Vuexy
-            height: 'auto',
-            contentHeight: 'auto',
+            slotDuration: '00:20:00',
+            slotLabelInterval: '00:15',
             eventDisplay: 'block',
-            eventBackgroundColor: '#6777ef', // Vuexy's primary color
-            eventBorderColor: '#6777ef',
-            eventTextColor: '#fff',
-            selectable: true,
-            editable: false,
-            dayMaxEvents: true, // allow "more" link when too many events
-            eventDidMount: function (info) {
-                $(info.el).tooltip({
-                    title: `<strong>${info.event.title}</strong><br>${info.event.extendedProps.description || ''}`,
-                    html: true,
-                    placement: 'top',
-                    container: 'body',
-                    trigger: 'hover'
-                });
+            eventBackgroundColor: '#6777ef',
+            eventBorderColor: '#ffffff',
+            eventTextColor: '#ffffff',
+            eventTimeFormat: {
+                hour: 'numeric',
+                minute: '2-digit',
+                meridiem: 'short'
             },
-            buttonText: {
-                today: 'Today',
-                month: 'Month',
-                week: 'Week',
-                day: 'Day'
+            datesSet: handleDateChange,
+            eventContent: (info) => {
+                const { event, timeText } = info;
+                const { ref = 'Unassigned', division = 'Unknown League', teams = 'Teams Not Available' } = event.extendedProps;
+
+                const container = document.createElement('div');
+                container.classList.add('event-content-container');
+
+                const header = document.createElement('div');
+                header.classList.add('event-header');
+                header.innerHTML = `<strong>${timeText} - ${division}</strong>`;
+
+                const teamsEl = document.createElement('div');
+                teamsEl.classList.add('event-teams');
+                teamsEl.textContent = teams;
+
+                const refEl = document.createElement('div');
+                refEl.classList.add('event-referee');
+                refEl.textContent = `Ref: ${ref}`;
+
+                container.appendChild(header);
+                container.appendChild(teamsEl);
+                container.appendChild(refEl);
+
+                return { domNodes: [container] };
             },
-            slotLabelFormat: [
-                { hour: 'numeric', minute: '2-digit', meridiem: 'short' }
-            ],
-            // Customize the calendar’s header to use Vuexy's button styles
-            customButtons: {
-                prev: {
-                    text: '<i class="fas fa-chevron-left"></i>',
-                    click: function () {
-                        calendar.prev();
-                    }
-                },
-                next: {
-                    text: '<i class="fas fa-chevron-right"></i>',
-                    click: function () {
-                        calendar.next();
-                    }
-                },
-                today: {
-                    text: 'Today',
-                    click: function () {
-                        calendar.today();
-                    }
-                }
-            },
-            // Add custom CSS classes to calendar elements
-            eventClassNames: function (arg) {
-                return ['fc-event-custom']; // Define this class in your CSS
-            }
+            eventClick: handleEventClick
         });
 
+        // Initialize calendar
         calendar.render();
-    });
-</script>
 
-<style>
-    /* Customize FullCalendar to better match Vuexy's styles */
-    .fc-toolbar-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-    }
+        // Fetch and populate referees list based on the current week
+        fetchAvailableReferees(calendar.getDate());
 
-    .fc-button {
-        background-color: #ffffff;
-        border: 1px solid #ebe9f1;
-        color: #6777ef;
-    }
+        // Fetch and load events into calendar
+        loadCalendarEvents();
 
-        .fc-button:hover {
-            background-color: #f4f4f4;
+        // Handle form submission for assigning referees
+        document.getElementById('assignRefForm').addEventListener('submit', assignReferee);
+
+        /**
+         * Handle date change in the calendar.
+         * This triggers when the visible week in the calendar changes.
+         */
+        function handleDateChange(info) {
+            const currentStartDate = info.start;
+            const currentEndDate = info.end;
+
+            // Fetch available referees for the new visible week
+            fetchAvailableReferees(currentStartDate, currentEndDate);
         }
 
-    .fc-event-custom {
-        border-radius: 4px;
-        padding: 2px 4px;
-        font-size: 0.875rem;
+        /**
+         * Fetch available referees based on the currently visible week.
+         * @param {Date} startDate - Start of the visible week in the calendar.
+         * @param {Date} endDate - End of the visible week in the calendar.
+         */
+        async function fetchAvailableReferees(startDate, endDate) {
+            try {
+                const response = await fetch(`/calendar/available_refs?start_date=${startDate.toISOString()}&end_date=${endDate.toISOString()}`);
+                if (!response.ok) throw new Error('Failed to fetch referees.');
+
+                const referees = await response.json();
+                const refList = document.getElementById('refereeList');
+                refList.innerHTML = ''; // Clear existing list
+
+                if (referees.length === 0) {
+                    const noRef = document.createElement('li');
+                    noRef.classList.add('list-group-item');
+                    noRef.textContent = 'No referees available.';
+                    refList.appendChild(noRef);
+                    return;
+                }
+
+                referees.forEach(ref => {
+                    const li = document.createElement('li');
+                    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                    li.textContent = ref.name;
+
+                    const badge = document.createElement('span');
+                    badge.classList.add('badge', 'bg-primary', 'rounded-pill');
+                    badge.textContent = ref.matches_assigned_in_week || '0';
+                    li.appendChild(badge);
+
+                    refList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Error fetching referees:', error);
+            }
+        }
+
+        /**
+         * Fetch events from the server and add them to the calendar.
+         */
+        async function loadCalendarEvents() {
+            try {
+                const response = await fetch('/calendar/events');
+                if (!response.ok) throw new Error('Failed to fetch events.');
+
+                const events = await response.json();
+                calendar.addEventSource(events);
+            } catch (error) {
+                console.error('Error loading events:', error);
+            }
+        }
+
+        /**
+         * Handle the referee removal.
+         */
+        async function removeReferee() {
+            const matchId = document.getElementById('matchId').value;
+            const feedbackEl = document.getElementById('assignRefFeedback');
+
+            // Confirmation Prompt
+            if (!confirm('Are you sure you want to remove the referee from this match?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/calendar/remove_ref', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ match_id: matchId })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    const errorMsg = result.error || 'Failed to remove referee.';
+                    displayModalFeedback('assignRefFeedback', errorMsg, 'danger');
+                    return;
+                }
+
+                displayModalFeedback('assignRefFeedback', 'Referee removed successfully!', 'success');
+
+                // Refresh calendar and referees list after a short delay
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('assignRefModal')).hide();
+                    forceCalendarEventRefresh();  // Refresh the calendar
+                    const currentStartDate = calendar.view.activeStart;
+                    const currentEndDate = calendar.view.activeEnd;
+                    fetchAvailableReferees(currentStartDate, currentEndDate);  // Refresh the referee list
+                }, 1000);
+            } catch (error) {
+                console.error('Error removing referee:', error);
+                displayModalFeedback('assignRefFeedback', 'Error removing referee.', 'danger');
+            }
+        }
+
+        /**
+         * Handle event click to open the assignment modal.
+         * @param {Object} info - FullCalendar event info.
+         */
+        async function handleEventClick(info) {
+            info.jsEvent.preventDefault();
+
+            const event = info.event;
+            const matchId = event.id;
+            const matchTitle = event.title;
+            const matchDescription = event.extendedProps.description || '';
+            const matchDate = new Date(event.start).toLocaleDateString();
+            const matchStartTime = new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const matchEndTime = new Date(event.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const currentRef = event.extendedProps.ref || 'Unassigned';
+
+            // Populate modal fields
+            document.getElementById('matchId').value = matchId;
+            document.getElementById('matchDetails').value = `${matchTitle} - ${matchDescription}`;
+            document.getElementById('matchDate').textContent = matchDate;
+            document.getElementById('matchStartTime').textContent = matchStartTime;
+            document.getElementById('matchEndTime').textContent = matchEndTime;
+
+            if (currentRef !== 'Unassigned') {
+                // Show current referee
+                document.getElementById('currentRefereeSection').style.display = 'block';
+                document.getElementById('currentRefereeName').textContent = currentRef;
+
+                // Disable the refSelect and assign button since a ref is already assigned
+                document.getElementById('refSelect').disabled = true;
+                document.getElementById('assignRefButton').disabled = true;
+            } else {
+                // Hide current referee section
+                document.getElementById('currentRefereeSection').style.display = 'none';
+
+                // Enable the refSelect and assign button
+                document.getElementById('refSelect').disabled = false;
+                document.getElementById('assignRefButton').disabled = false;
+
+                // Fetch available referees for the match
+                try {
+                    const response = await fetch(`/calendar/refs?match_id=${matchId}`);
+                    if (!response.ok) throw new Error('Failed to fetch referees for this match.');
+
+                    const referees = await response.json();
+                    const refSelect = document.getElementById('refSelect');
+                    refSelect.innerHTML = '<option value="" selected disabled>Choose a referee</option>'; // Reset options
+
+                    if (referees.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = "";
+                        option.textContent = "No referees available";
+                        option.disabled = true;
+                        refSelect.appendChild(option);
+                    } else {
+                        referees.forEach(ref => {
+                            const option = document.createElement('option');
+                            option.value = ref.id;
+                            option.textContent = ref.name;
+                            refSelect.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching referees:', error);
+                    displayModalFeedback('assignRefFeedback', 'Error fetching referees.', 'danger');
+                }
+            }
+
+            // Reset feedback messages
+            clearModalFeedback('assignRefFeedback');
+
+            // Show the modal
+            const assignRefModal = new bootstrap.Modal(document.getElementById('assignRefModal'));
+            assignRefModal.show();
+        }
+
+        /**
+         * Force reload of events by clearing and re-adding event sources
+         */
+        function forceCalendarEventRefresh() {
+            // Clear all current events
+            calendar.getEventSources().forEach(source => source.remove());
+
+            // Fetch and reload events
+            loadCalendarEvents();
+        }
+
+        /**
+         * Handle the referee assignment form submission.
+         * @param {Event} event - Form submission event.
+         */
+        async function assignReferee(event) {
+            event.preventDefault();
+
+            const matchId = document.getElementById('matchId').value;
+            const refId = document.getElementById('refSelect').value;
+            const feedbackEl = document.getElementById('assignRefFeedback');
+
+            if (!refId) {
+                displayModalFeedback('assignRefFeedback', 'Please select a referee.', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/calendar/assign_ref', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ match_id: matchId, ref_id: refId })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    const errorMsg = result.error || 'Failed to assign referee.';
+                    displayModalFeedback('assignRefFeedback', errorMsg, 'danger');
+                    return;
+                }
+
+                displayModalFeedback('assignRefFeedback', 'Referee assigned successfully!', 'success');
+
+                // Refresh calendar and referees list after a short delay
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('assignRefModal')).hide();
+                    forceCalendarEventRefresh();  // Refresh the calendar
+                    const currentStartDate = calendar.view.activeStart;
+                    const currentEndDate = calendar.view.activeEnd;
+                    fetchAvailableReferees(currentStartDate, currentEndDate);  // Refresh the referee list
+                }, 1000);
+            } catch (error) {
+                console.error('Error assigning referee:', error);
+                displayModalFeedback('assignRefFeedback', 'Error assigning referee.', 'danger');
+            }
+        }
+
+        /**
+         * Display feedback messages in the modal.
+         * @param {string} elementId - The ID of the feedback element.
+         * @param {string} message - The message to display.
+         * @param {string} type - The Bootstrap alert type (e.g., 'success', 'danger').
+         */
+        function displayModalFeedback(elementId, message, type) {
+            const feedbackEl = document.getElementById(elementId);
+            feedbackEl.innerHTML = `<div class="alert alert-${type} p-2 m-0" role="alert">${message}</div>`;
+        }
+
+        /**
+         * Clear feedback messages from the modal.
+         * @param {string} elementId - The ID of the feedback element.
+         */
+        function clearModalFeedback(elementId) {
+            const feedbackEl = document.getElementById(elementId);
+            feedbackEl.innerHTML = '';
+        }
+
+        /**
+         * Attach event listener to the Remove Referee button
+         */
+        document.getElementById('removeRefButton').addEventListener('click', removeReferee);
+    });
+</script>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Allow wrapping of event content */
+    .fc-event .event-content-container {
+        white-space: normal !important;
     }
 
-    /* Adjust tooltip styles to match Vuexy */
-    .tooltip-inner {
-        background-color: #32325d;
-        color: #fff;
-        font-size: 0.875rem;
+    /* Flex container for event content */
+    .event-content-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: space-between;
     }
 
-    .tooltip.bs-tooltip-top .tooltip-arrow::before {
-        border-top-color: #32325d;
+    /* Header styling */
+    .event-header {
+        font-size: 0.9rem;
+        margin-bottom: 2px;
     }
 
-    /* Reduce the padding between the card header and the calendar */
-    .card-body {
-        padding: 0.5rem;
+    /* Teams styling */
+    .event-teams {
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+        word-wrap: break-word; /* Allow long team names to wrap */
     }
+
+    /* Referee styling */
+    .event-referee {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap; /* Prevent breaking */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Adjust event box height and padding */
+    .fc-time-grid-event {
+        min-height: 80px; /* Increased height to accommodate content */
+    }
+
+    /* Style for referee badges */
+    .list-group-item .badge {
+        font-size: 0.8rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .event-header, .event-teams, .event-referee {
+            font-size: 0.75rem;
+        }
+
+        .fc-time-grid-event {
+            min-height: 80px;
+        }
+
+        .list-group-item .badge {
+            font-size: 0.7rem;
+        }
+    }
+
+    /* Modal Enhancements */
+    .modal-body .row > div {
+        padding-right: 10px;
+    }
+
+        .modal-body .row > div:last-child {
+            padding-right: 0;
+        }
 </style>
 {% endblock %}
