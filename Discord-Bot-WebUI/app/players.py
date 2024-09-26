@@ -447,6 +447,58 @@ def extract_player_info(billing):
         logger.error(f"Error extracting player info: {e}", exc_info=True)
         return None
 
+def determine_league(product_name, current_seasons):
+    """
+    Determines the league based on the product name.
+
+    Args:
+        product_name (str): The name of the product.
+        current_seasons (list): List of current Season objects.
+
+    Returns:
+        League: The corresponding League object, or None if not found.
+    """
+    product_name = product_name.upper().strip()
+    logger.debug(f"Determining league for product name: '{product_name}'")
+
+    # Handle ECS FC products
+    if product_name.startswith("ECS FC"):
+        league_id = 14
+        ecs_fc_league = League.query.get(league_id)
+        if ecs_fc_league:
+            logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={league_id}.")
+            return ecs_fc_league
+        else:
+            logger.error(f"ECS FC League with id={league_id} not found in the database.")
+            return None
+
+    # Handle ECS Pub League products
+    elif "ECS PUB LEAGUE" in product_name:
+        if "PREMIER DIVISION" in product_name:
+            league_id = 10  # Premier Division
+        elif "CLASSIC DIVISION" in product_name:
+            league_id = 11  # Classic Division
+        else:
+            logger.error(f"Unknown division in product name: '{product_name}'.")
+            return None
+
+        logger.debug(f"Product '{product_name}' identified as Division ID {league_id}, assigning league_id={league_id}.")
+        pub_league = League.query.get(league_id)
+        if pub_league:
+            logger.debug(f"Product '{product_name}' mapped to Pub League '{pub_league.name}' with id={league_id}.")
+            return pub_league
+        else:
+            logger.error(f"Pub League with id={league_id} not found in the database.")
+            return None
+
+    # Add additional league determination logic here if needed
+    # Example for other leagues:
+    # elif product_name.startswith("OTHER LEAGUE PREFIX"):
+    #     return League.query.filter_by(name="Other League").first()
+
+    logger.warning(f"Could not determine league type from product name: '{product_name}'")
+    return None
+
 def create_player_profile(player_info, league, user):
     """
     Creates a player profile linked to an existing user.
@@ -480,6 +532,7 @@ def create_player_profile(player_info, league, user):
 def create_user_and_player_profile(player_info, league):
     """
     Creates or updates user and player profile and marks players as current.
+    All players will be assigned to the ECS FC league (league_id=14) if the product name contains 'ECS FC'.
 
     Args:
         player_info (dict): Extracted player information.
@@ -489,6 +542,14 @@ def create_user_and_player_profile(player_info, league):
         Player: The created or updated Player object, or None if failed.
     """
     try:
+        # Override league to ensure they are placed in ECS FC league (league_id=14) if the product name starts with 'ECS FC'
+        product_name = player_info.get('product_name', '').upper()
+        if product_name.startswith("ECS FC"):
+            logger.debug(f"Product '{product_name}' identified as ECS FC, assigning league_id=14.")
+            league_id = 14  # ECS FC League
+        else:
+            league_id = league.id
+
         # Check if the User with this email already exists
         user = User.query.filter_by(email=player_info['email']).first()
 
@@ -498,7 +559,6 @@ def create_user_and_player_profile(player_info, league):
             user = User(
                 email=player_info['email'],
                 username=player_info['name'],
-                league_id=league.id,
                 is_approved=True,  # Set is_approved to True for all unique users
             )
             user.set_password(random_password)
@@ -523,7 +583,7 @@ def create_user_and_player_profile(player_info, league):
                 email=player_info['email'],
                 phone=player_info['phone'],
                 jersey_size=player_info['jersey_size'],
-                league_id=league.id,
+                league_id=league_id,  # Assign ECS FC league (14) or provided league
                 user_id=user.id,  # Link to the user
                 is_current_player=True  # Mark new player as current player
             )
@@ -770,6 +830,10 @@ def update_players():
         if not current_seasons:
             raise Exception("No current seasons found in the database.")
 
+        # Log current seasons and their leagues for debugging
+        for season in current_seasons:
+            logger.debug(f"Season: {season.name}, Leagues: {[league.name for league in season.leagues]}")
+
         # Step 2: Fetch orders from WooCommerce
         orders = fetch_orders_from_woocommerce(
             current_season_name='2024 Fall',
@@ -778,7 +842,7 @@ def update_players():
             max_pages=10  # Limit to 10 pages
         )
 
-        detected_players = set()  # Track all detected players (IDs)
+        detected_players = set()  # Track all detected player IDs
 
         # Step 3: Reset current players (mark all as inactive initially)
         reset_current_players(current_seasons)
@@ -806,8 +870,8 @@ def update_players():
                     logger.warning(f"Could not extract player info for email '{email}'. Skipping order ID {order['order_id']}.")
                     continue
 
-                # Determine league (for both ECS FC and Pub League)
-                league = get_league_by_product_name(product_name, current_seasons)
+                # Determine league using the updated function
+                league = determine_league(product_name, current_seasons)
                 if not league:
                     logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
                     continue
@@ -818,13 +882,13 @@ def update_players():
                 # Check if user exists
                 user = User.query.filter_by(email=email).first()
                 if user:
-                    # Check if player profile exists
-                    existing_player = Player.query.filter_by(user_id=user.id).first()
+                    # Check if player profile exists for this league
+                    existing_player = Player.query.filter_by(email=player_info['email'], league_id=league.id).first()
                     if existing_player:
                         # Mark existing player as current (active)
                         existing_player.is_current_player = True
                         detected_players.add(existing_player.id)
-                        logger.info(f"Player profile already exists for user '{email}'. Marking player as current for order ID {order['order_id']}.")
+                        logger.info(f"Player profile already exists for user '{email}' in league '{league.name}'. Marking player as current for order ID {order['order_id']}.")
                         player = existing_player  # Set player to existing player
                     else:
                         # Create player profile if none exists
@@ -850,7 +914,9 @@ def update_players():
                     logger.error(f"Cannot record order history for order_id '{order['order_id']}' because player_id is None.")
 
         # Step 6: Mark all non-detected players as inactive
-        all_players = Player.query.filter(Player.league_id.in_([season.id for season in current_seasons])).all()
+        # Correctly fetch league IDs from current seasons
+        current_league_ids = [league.id for season in current_seasons for league in season.leagues]
+        all_players = Player.query.filter(Player.league_id.in_(current_league_ids)).all()
         for player in all_players:
             if player.id not in detected_players:
                 player.is_current_player = False
