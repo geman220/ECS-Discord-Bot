@@ -188,7 +188,7 @@ def process_events(match, data, event_type, add_key, remove_key):
 
     event_type_value = event_type.value  # Convert event_type to its value for comparison if needed
 
-    # Process events to remove
+    # First, process events to remove
     for event_data in events_to_remove:
         stat_id = event_data.get('stat_id')
         if stat_id:
@@ -202,7 +202,7 @@ def process_events(match, data, event_type, add_key, remove_key):
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found. Skipping removal.")
 
-    # Process events to add or update
+    # Then, process events to add or update
     for event_data in events_to_add:
         player_id = event_data.get('player_id')
         minute = event_data.get('minute')
