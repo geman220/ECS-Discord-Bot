@@ -70,8 +70,6 @@ def get_schedule():
                 'teams': f"{match.home_team_name} vs {match.away_team_name}"  # Add teams to extendedProps
             })
 
-        logger.info(f"Events sent to FullCalendar: {events}")
-
         return jsonify(events)
 
     except Exception as e:
