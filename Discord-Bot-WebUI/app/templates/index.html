@@ -1,23 +1,29 @@
 {% extends "base.html" %}
 
+{% block custom_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index_custom.css') }}">
+<!-- Ensure any additional CSS is included here if necessary -->
+{% endblock %}
+
 {% block main_content %}
-<div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Page Heading -->
-    <div class="mb-4">
-        <h4 class="fw-bold">Dashboard</h4>
+<div class="container">
+    <!-- Header -->
+    <div class="content-header row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary">Dashboard</h2>
+        </div>
     </div>
 
-    {% if show_onboarding %}
     <!-- Onboarding Modal -->
+    {% if show_onboarding %}
     <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
-                <!-- Modal header -->
+                <!-- Modal Header -->
                 <div class="modal-header">
-                    <!-- Optional close button -->
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <!-- Modal body -->
+                <!-- Modal Body -->
                 <div class="modal-body">
                     {% include 'onboarding_modal_content.html' %}
                 </div>
@@ -26,60 +32,72 @@
     </div>
     {% endif %}
 
+    {% if player %}
+    <div id="rsvp-data"
+         data-player-id="{{ player.id }}"
+         data-discord-id="{{ player.discord_id }}"
+         data-csrf-token="{{ csrf_token() }}">
+    </div>
+    {% endif %}
+
     {% if not show_onboarding %}
-    <!-- User with a player profile or user who skipped onboarding -->
-    <!-- Content Row -->
-    <div class="row">
-        <!-- Announcements Card -->
-        <div class="col-xl-12 col-md-12 mb-4">
-            <div class="card h-100">
-                <div class="card-body" id="announcements-card">
-                    <h6 class="mb-2">Announcements</h6>
-                    {% if announcements %}
-                    <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
-                        <!-- Indicators -->
-                        <div class="carousel-indicators">
-                            {% for announcement in announcements %}
-                            <button type="button" data-bs-target="#announcementsCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" {% if loop.first %}aria-current="true" {% endif %} aria-label="Slide {{ loop.index }}"></button>
-                            {% endfor %}
-                        </div>
-
-                        <div class="carousel-inner">
-                            {% for announcement in announcements %}
-                            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                <h5 class="text-primary">{{ announcement.title }}</h5>
-                                <p>{{ announcement.content }}</p>
-                                <p class="text-muted"><small>{{ announcement.created_at.strftime('%B %d, %Y') }}</small></p>
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Controls -->
-                        <button class="carousel-control-prev" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                    </div>
-                    {% else %}
-                    <p class="text-muted mb-0">No new announcements</p>
-                    {% endif %}
+    <!-- Announcements Card -->
+    <div class="card card-bordered mb-4">
+        <div class="card-header">
+            <h6 class="card-title text-primary">Announcements</h6>
+        </div>
+        <div class="card-body" id="announcements-card">
+            {% if announcements %}
+            <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
+                <!-- Indicators -->
+                <div class="carousel-indicators">
+                    {% for announcement in announcements %}
+                    <button type="button" data-bs-target="#announcementsCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" {% if loop.first %}aria-current="true" {% endif %} aria-label="Slide {{ loop.index }}"></button>
+                    {% endfor %}
                 </div>
+
+                <!-- Carousel Items -->
+                <div class="carousel-inner">
+                    {% for announcement in announcements %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <h5 class="text-primary">{{ announcement.title }}</h5>
+                        <p>{{ announcement.content }}</p>
+                        <p class="text-muted"><small>{{ announcement.created_at.strftime('%B %d, %Y') }}</small></p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Controls -->
+                <button class="carousel-control-prev" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
             </div>
+            {% else %}
+            <p class="text-muted mb-0">No new announcements</p>
+            {% endif %}
         </div>
     </div>
     {% endif %}
-    <!-- Content Row -->
+
+    <!-- Cards Row -->
     <div class="row">
         <!-- Welcome Message Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body text-left" id="welcome-card">
+            <div class="card card-bordered h-100">
+                <div class="card-header">
                     {% if player %}
-                    <h5 class="card-title">Welcome, {{ player.name }}!</h5>
+                    <h6 class="card-title text-primary">Welcome, {{ player.name }}!</h6>
+                    {% else %}
+                    <h6 class="card-title text-primary">Welcome!</h6>
+                    {% endif %}
+                </div>
+                <div class="card-body" id="welcome-card">
+                    {% if player %}
                     {% if player.team %}
                     <p class="card-text">
                         You are currently playing in the <strong>{{ player.team.league.name }}</strong> league.
@@ -89,11 +107,10 @@
                         Don't forget to join our <a href="https://discord.gg/weareecs" target="_blank">Discord</a> if you haven't already. We're excited to see you on the field!
                     </p>
                     {% else %}
-                    <h5 class="card-title">Welcome!</h5>
                     <p class="card-text">
                         It looks like you don't have a player profile yet. Please create one to access all features.
                     </p>
-                    <!-- Add a form around the Create Player Profile button -->
+                    <!-- Create Player Profile Button -->
                     <form method="POST" action="{{ url_for('main.index') }}" class="d-inline">
                         {{ onboarding_form.hidden_tag() }}
                         <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
@@ -106,17 +123,19 @@
 
         <!-- Profile Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
+            <div class="card card-bordered h-100">
+                <div class="card-header">
+                    <h6 class="card-title text-primary">Your Profile</h6>
+                </div>
                 <div class="card-body" id="profile-card">
                     {% if player %}
                     <div class="d-flex align-items-start justify-content-between">
                         <div class="content-left">
-                            <span class="d-block mb-1 text-muted">Your Profile</span>
-                            <h6 class="mb-2">Update Your Profile</h6>
+                            <span class="d-block mb-1 text-muted">Update Your Profile</span>
                             <p class="text-muted mb-0">Make sure your contact details and preferences are up to date.</p>
                         </div>
                         <div class="content-right">
-                            <i class="ti ti-user-circle text-muted ti-2x"></i>
+                            <i data-feather="user" class="text-muted" style="width: 32px; height: 32px;"></i>
                         </div>
                     </div>
                     <div class="card-footer text-center">
@@ -124,7 +143,6 @@
                     </div>
                     {% else %}
                     <div class="text-center">
-                        <h6 class="text-muted">Profile Overview</h6>
                         <p class="text-muted mb-0">Please create a player profile to access this feature.</p>
                     </div>
                     {% endif %}
@@ -135,16 +153,18 @@
         {% if player and player.team %}
         <!-- Team Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100" id="team-card">
+            <div class="card card-bordered h-100" id="team-card">
+                <div class="card-header">
+                    <h6 class="card-title text-primary">Your Team</h6>
+                </div>
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div class="content-left">
-                            <span class="d-block mb-1 text-muted">Your Team</span>
                             <h6 class="mb-2">{{ player.team.name }}</h6>
                             <p class="text-muted mb-0">See your team members and upcoming matches.</p>
                         </div>
                         <div class="content-right">
-                            <i class="ti ti-users text-muted ti-2x"></i>
+                            <i data-feather="users" class="text-muted" style="width: 32px; height: 32px;"></i>
                         </div>
                     </div>
                 </div>
@@ -157,445 +177,129 @@
     </div>
 
     {% if previous_matches and current_user.has_permission('view_match_reporting') %}
-    <div class="row">
-        <div class="col-xl-12 col-md-12 mb-4">
-            <div class="card h-100" id="previous-match-card">
-                <div class="card-body">
-                    <h6 class="mb-4">Report Previous Matches</h6>
-
-                    {% for date, matches in previous_matches.items() %}
-                    <div class="mb-3">
-                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-
-                        <!-- Create a row for the matches on this date -->
-                        <div class="row">
-                            {% for match_data in matches %}
-                            {% set match = match_data['match'] %}
-                            {% set home_players = match_data['home_players'] %}
-                            {% set opponent_players = match_data['opponent_players'] %}
-                            {% set home_team_id = match_data['home_team_id'] %}
-                            {% set opponent_team_id = match_data['opponent_team_id'] %}
-                            {% set home_team_name = match_data['home_team_name'] %}
-                            {% set opponent_team_name = match_data['opponent_name'] %}
-                            {% set match_id = match.id %}
-
-                            <!-- Each match will be a column within the row, 2 columns per row -->
-                            <div class="col-md-6 mb-2">
-                                <!-- Two columns per row -->
-                                <div class="match-card p-2 rounded border">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="mb-1">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
-                                        <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
-                                    </div>
-                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
-
-                                    {% if current_user.has_permission('view_match_reporting') %}
-                                    <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
-                                            data-match-id="{{ match.id }}"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#reportMatchModal-{{ match.id }}">
-                                        {{ 'Edit Match' if match.reported else 'Report Match' }}
-                                    </button>
-                                    {% endif %}
-                                </div>
+    <!-- Report Previous Matches Card -->
+    <div class="card card-bordered mb-4" id="previous-match-card">
+        <div class="card-header">
+            <h6 class="card-title text-primary">Report Previous Matches</h6>
+        </div>
+        <div class="card-body">
+            {% for date, matches in previous_matches.items() %}
+            <div class="mb-3">
+                <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+                <div class="row">
+                    {% for match_data in matches %}
+                    {% set match = match_data['match'] %}
+                    {% set home_players = match_data['home_players'] %}
+                    {% set opponent_players = match_data['opponent_players'] %}
+                    {% set home_team_id = match_data['home_team_id'] %}
+                    {% set opponent_team_id = match_data['opponent_team_id'] %}
+                    {% set home_team_name = match_data['home_team_name'] %}
+                    {% set opponent_team_name = match_data['opponent_name'] %}
+                    {% set match_id = match.id %}
+                    <div class="col-md-6 mb-2">
+                        <div class="match-card p-2 rounded border">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
+                                <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
                             </div>
-                            {% include 'report_match_modal.html' %}
-                            {% endfor %}
-                        </div> <!-- End of row for matches on this date -->
+                            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
 
+                            {% if current_user.has_permission('view_match_reporting') %}
+                            <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
+                                    data-match-id="{{ match.id }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#reportMatchModal-{{ match.id }}">
+                                {{ 'Edit Match' if match.reported else 'Report Match' }}
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
+                    {% include 'report_match_modal.html' %}
                     {% endfor %}
-
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
 
     <!-- Next Matches Section -->
     {% if grouped_matches %}
-    <div class="row">
-        <div class="col-xl-12 col-md-12 mb-4">
-            <div class="card h-100" id="match-card">
-                <div class="card-body">
-                    <h6 class="mb-4">Next Matches</h6>
-                    <div class="row">
-                        {% for date, matches in grouped_matches.items() %}
-                        <div class="col-md-6 mb-3">
-                            <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+    <div class="card card-bordered mb-4" id="match-card">
+        <div class="card-header">
+            <h6 class="card-title text-primary">Next Matches</h6>
+        </div>
+        <div class="card-body">
+            {% for date, matches in grouped_matches.items() %}
+            <div class="mb-3">
+                <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+                <div class="row">
+                    {% for match_data in matches %}
+                    {% set match = match_data['match'] %}
+                    {% set home_players = match_data['home_players'] %}
+                    {% set opponent_players = match_data['opponent_players'] %}
+                    {% set home_team_id = match_data['home_team_id'] %}
+                    {% set opponent_team_id = match_data['opponent_team_id'] %}
+                    {% set home_team_name = match_data['home_team_name'] %}
+                    {% set opponent_team_name = match_data['opponent_name'] %}
+                    {% set match_id = match.id %}
+                    <div class="col-md-6 mb-2">
+                        <div class="match-card p-2 rounded border mb-2">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">{{ match_data.home_team_name }} vs {{ match_data.opponent_name }}</h6>
+                                <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
+                            </div>
+                            <a href="{{ url_for('match_pages.view_match', match_id=match_id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
 
-                            {% for match_data in matches %}
-                            {% set match = match_data['match'] %}
-                            {% set home_players = match_data['home_players'] %}
-                            {% set opponent_players = match_data['opponent_players'] %}
-                            {% set home_team_id = match_data['home_team_id'] %}
-                            {% set opponent_team_id = match_data['opponent_team_id'] %}
-                            {% set home_team_name = match_data['home_team_name'] %}
-                            {% set opponent_team_name = match_data['opponent_name'] %}
-                            {% set match_id = match.id %}
+                            {% if current_user.has_permission('view_match_reporting') %}
+                            <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
+                                    data-match-id="{{ match.id }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#reportMatchModal-{{ match.id }}">
+                                {{ 'Edit Match' if match.reported else 'Report Match' }}
+                            </button>
+                            {% endif %}
 
-                            <div class="match-card p-2 rounded border mb-2">
-                                <div class="d-flex justify-content-between">
-                                    <h6 class="mb-1">{{ home_team_name }} vs {{ opponent_team_name }}</h6>
-                                    <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
+                            <h6 class="small">Will you be able to attend this match?</h6>
+                            <!-- RSVP Form -->
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseYes-{{ match_id }}" value="yes">
+                                    <label class="form-check-label btn btn-outline-success" for="responseYes-{{ match_id }}">Yes</label>
                                 </div>
-                                <a href="{{ url_for('match_pages.view_match', match_id=match_id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
-
-                                {% if current_user.has_permission('view_match_reporting') %}
-                                <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
-                                        data-match-id="{{ match.id }}"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#reportMatchModal-{{ match.id }}">
-                                    {{ 'Edit Match' if match.reported else 'Report Match' }}
-                                </button>
-                                {% endif %}
-
-                                <h6 class="small">Will you be able to attend this match?</h6>
-                                <!-- RSVP Form -->
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseYes-{{ match_id }}" value="yes">
-                                        <label class="form-check-label btn btn-outline-success" for="responseYes-{{ match_id }}">Yes</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseMaybe-{{ match_id }}" value="maybe">
-                                        <label class="form-check-label btn btn-outline-warning" for="responseMaybe-{{ match_id }}">Maybe</label>
-                                    </div>
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseNo-{{ match_id }}" value="no">
-                                        <label class="form-check-label btn btn-outline-danger" for="responseNo-{{ match_id }}">No</label>
-                                    </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseMaybe-{{ match_id }}" value="maybe">
+                                    <label class="form-check-label btn btn-outline-warning" for="responseMaybe-{{ match_id }}">Maybe</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseNo-{{ match_id }}" value="no">
+                                    <label class="form-check-label btn btn-outline-danger" for="responseNo-{{ match_id }}">No</label>
                                 </div>
                             </div>
-
-                            {% include 'report_match_modal.html' %}
-                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
+                    {% include 'report_match_modal.html' %}
+                    {% endfor %}
                 </div>
             </div>
+            {% endfor %}
         </div>
     </div>
     {% endif %}
 </div>
-<!-- Styles -->
-<style>
-    /* Hidden class to hide elements */
-    .hidden {
-        display: none !important;
-    }
-
-    /* Styles for RSVP Form */
-    .match-card .form-check-inline {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 10px;
-    }
-
-    .match-card .form-check-label {
-        margin-bottom: 0;
-        padding: 0.5rem 1rem;
-        cursor: pointer;
-        border-radius: 0.25rem;
-        transition: all 0.2s ease;
-    }
-
-    .match-card .form-check-input {
-        display: none;
-    }
-
-        .match-card .form-check-input:checked + .form-check-label {
-            background-color: #0d6efd; /* Active background color */
-            color: white; /* Active text color */
-        }
-
-    .match-card .btn-primary {
-        padding: 0.5rem 1rem;
-    }
-
-    /* Adjust z-index of Select2 dropdowns inside modal */
-    .select2-container--open {
-        z-index: 9999 !important;
-    }
-
-    /* Styles for the Carousel */
-    /* Adjusted Styles for the Carousel */
-    #announcementsCarousel {
-        position: relative;
-    }
-
-    #announcementsCarousel .carousel-inner {
-        overflow: hidden;
-        padding-bottom: 40px; /* Ensure space at the bottom for indicators */
-    }
-
-    #announcementsCarousel .carousel-item {
-        padding: 0 15px; /* Ensure some padding to avoid text overlapping */
-        text-align: center; /* Center the text */
-        white-space: normal; /* Ensure text wraps properly */
-    }
-
-    #announcementsCarousel h5,
-    #announcementsCarousel p {
-        margin: 0;
-    }
-
-    #announcementsCarousel h5 {
-        font-size: 1.25rem;
-        margin-bottom: 0.5rem;
-    }
-
-    #announcementsCarousel p {
-        font-size: 1rem;
-    }
-
-    /* Adjust the carousel controls */
-    #announcementsCarousel .carousel-control-prev,
-    #announcementsCarousel .carousel-control-next {
-        width: auto;
-        padding: 10px;
-        background: none;
-    }
-
-    #announcementsCarousel .carousel-control-prev-icon,
-    #announcementsCarousel .carousel-control-next-icon {
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-    }
-
-    /* Center the indicators below the content */
-    #announcementsCarousel .carousel-indicators {
-        position: absolute;
-        bottom: 0; /* Position at the bottom of the carousel */
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        justify-content: center;
-        margin: 0;
-    }
-
-    #announcementsCarousel .carousel-indicators li {
-        background-color: rgba(255, 255, 255, 0.5);
-        border: none;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        margin: 0 5px;
-    }
-
-    #announcementsCarousel .carousel-indicators .active {
-        background-color: rgba(255, 255, 255, 1);
-    }
-</style>
 {% endblock %}
+
 {% block custom_js %}
 <script>
-    const showTour = {{ show_tour| tojson }};
-    var playerChoices = {{ player_choices | tojson }};
+    const showTour = {{ show_tour | tojson }};
+    const playerChoices = {{ player_choices | tojson }};
 </script>
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        {% if show_onboarding %}
-        // Initialize and show the onboarding modal if it exists
-        const modalElement = document.getElementById('onboardingSlideModal');
-        if (modalElement) {
-            const onboardingModal = new bootstrap.Modal(modalElement, {
-                backdrop: 'static',
-                keyboard: false
-            });
-            onboardingModal.show();
-        }
-
-        const carouselElement = document.getElementById('modalCarouselControls');
-        const nextOrSaveButton = document.getElementById('nextOrSaveButton');
-        const previousButton = document.getElementById('previousButton');
-        const carouselControls = document.getElementById('carouselControls');
-        const createProfileButton = document.getElementById('createProfileCarouselButton');
-        const skipProfileButton = document.getElementById('skipProfileButton');
-        const form = document.querySelector('form.needs-validation');
-        const formActionInput = document.getElementById('form_action');
-
-        // Initialize the Bootstrap Carousel
-        let bootstrapCarousel;
-        if (carouselElement) {
-            bootstrapCarousel = new bootstrap.Carousel(carouselElement, {
-                interval: false,
-                ride: false,
-                touch: false
-            });
-        }
-
-        // Function to get the current step
-        function getCurrentStep() {
-            const activeItem = carouselElement.querySelector('.carousel-item.active');
-            return activeItem ? parseInt(activeItem.getAttribute('data-step'), 10) : null;
-        }
-
-        // Function to update the Next/Save button based on the current step
-        function updateButton() {
-            const step = getCurrentStep();
-
-            if (step === 0) {
-                carouselControls.classList.add('d-none');
-            } else {
-                carouselControls.classList.remove('d-none');
-
-                if (step === 4) {  // Last step
-                    nextOrSaveButton.innerHTML = 'Save and Finish';
-                    nextOrSaveButton.type = 'submit';
-                    nextOrSaveButton.removeAttribute('data-bs-slide');
-                } else {
-                    nextOrSaveButton.innerHTML = 'Next <i class="ti ti-chevron-right ms-2"></i>';
-                    nextOrSaveButton.type = 'button';
-                    nextOrSaveButton.setAttribute('data-bs-slide', 'next');
-                }
-            }
-        }
-
-        // Initial button setup
-        updateButton();
-
-        // Listen for carousel slide events to update buttons
-        carouselElement.addEventListener('slid.bs.carousel', updateButton);
-
-        // Handle "Create Player Profile" Button
-        if (createProfileButton) {
-            createProfileButton.addEventListener('click', function () {
-                console.log('Create Player Profile button clicked');
-                formActionInput.value = 'create_profile';
-                bootstrapCarousel.next(); // Move to Step 1
-            });
-        }
-
-        // Handle "Skip for now" Button
-        if (skipProfileButton) {
-            skipProfileButton.addEventListener('click', function () {
-                formActionInput.value = 'skip_profile';
-                form.submit();
-            });
-        }
-
-        // Handle "Next or Save" Button
-        if (nextOrSaveButton) {
-            nextOrSaveButton.addEventListener('click', function () {
-                const step = getCurrentStep();
-
-                if (step === 4) {  // Last step - Submit the form
-                    formActionInput.value = 'update_profile';
-                    // The form will be submitted naturally because the button is of type 'submit'
-                } else {
-                    // For other steps, navigate to the next slide
-                    formActionInput.value = '';
-                }
-            });
-        }
-
-        // Bootstrap form validation
-        const forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (formElement) {
-            formElement.addEventListener('submit', function (event) {
-                if (!formElement.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                formElement.classList.add('was-validated');
-            }, false);
-        });
-        {% endif %}
-
-        // RSVP Submission Logic
-        {% if player %}
-        const playerId = {{ player.id }};
-        const discordId = "{{ player.discord_id }}";
-
-        function submitRSVP(matchId, response) {
-            fetch(`/rsvp/${matchId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}'  // Include CSRF token
-                },
-                body: JSON.stringify({
-                    response: response,
-                    player_id: playerId,
-                    discord_id: discordId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('RSVP updated successfully');
-                    // Optionally, display a success message to the user
-                } else {
-                    console.error('Failed to update RSVP:', data.message);
-                    // Optionally, display an error message to the user
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        // Track the last selected response to allow "unclick" behavior
-        const lastSelected = {};
-
-        // Attach event listeners for RSVP radio buttons
-        document.querySelectorAll('.form-check-input').forEach(function (element) {
-            element.addEventListener('click', function (event) {
-                const matchId = event.target.name.split('-')[1];  // Extract match ID from name attribute
-                const response = event.target.value;
-
-                if (lastSelected[matchId] === response) {
-                    // If the same option is clicked twice, uncheck it and reset to "no response"
-                    event.target.checked = false;
-                    submitRSVP(matchId, 'no_response');
-                    lastSelected[matchId] = null;
-                } else {
-                    // Otherwise, submit the selected response
-                    submitRSVP(matchId, response);
-                    lastSelected[matchId] = response;
-                }
-            });
-        });
-
-        // Load and set the existing RSVP values when the page loads
-        function setInitialRSVPs() {
-            const matchIds = [...new Set([...document.querySelectorAll('.form-check-input')].map(input => input.name.split('-')[1]))];
-
-            matchIds.forEach(matchId => {
-                fetch(`/rsvp/status/${matchId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'  // Include CSRF token
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.response) {
-                        const radioButton = document.querySelector(`input[name="response-${matchId}"][value="${data.response}"]`);
-                        if (radioButton) {
-                            radioButton.checked = true;
-                            lastSelected[matchId] = data.response;
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-            });
-        }
-
-        // Call the function to set the initial RSVP statuses
-        setInitialRSVPs();
-        {% endif %}
-    });
-</script>
+{% if show_onboarding %}
+<script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+{% endif %}
+{% if player %}
+<script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
+{% endif %}
 {% endblock %}

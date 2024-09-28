@@ -67,7 +67,7 @@ function addEvent(matchId, eventType, statId = null) {
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-danger btn-sm remove-event-button">
-                        <i class="ti ti-trash"></i> Remove
+                        <i data-feather="trash-2"></i> Remove
                     </button>
                 </div>
             </div>
@@ -75,15 +75,34 @@ function addEvent(matchId, eventType, statId = null) {
 
     container.append(newForm);
     console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statIdValue || 'null'}, Unique ID: ${uniqueId}`);
+
+    // Initialize Feather Icons for new icons
+    if (feather) {
+        feather.replace();
+    }
 }
 
 // Function to remove an event entry
 function removeEvent(button) {
     const eventEntry = $(button).closest('.player-event-entry');
-    if (!confirm("Are you sure you want to remove this event?")) {
-        return;
-    }
-    eventEntry.remove();
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Do you want to remove this event entry?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, remove it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            eventEntry.remove();
+            Swal.fire(
+                'Removed!',
+                'The event entry has been removed.',
+                'success'
+            );
+        }
+    });
 }
 
 $(document).on('click', '.remove-event-button', function () {
@@ -181,10 +200,16 @@ $(document).on('click', '.edit-match-btn', function () {
                 console.log(`Added red card: Player ID ${red.player_id}, Minute ${red.minute}, Stat ID: ${red.id}`);
             });
 
+            // Show the modal after populating it
             $('#reportMatchModal-' + matchId).modal('show');
         },
         error: function (xhr, status, error) {
             console.error(`Error fetching match data: ${error}`);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to load match data. Please try again later.'
+            });
         }
     });
 });
@@ -198,7 +223,11 @@ $(document).on('submit', '.report-match-form', function (e) {
 
     // Check if initialEvents[matchId] is defined
     if (!initialEvents[matchId]) {
-        alert('Match data is not loaded yet. Please try again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Match data is not loaded yet. Please try again.'
+        });
         return;
     }
 
@@ -224,7 +253,20 @@ $(document).on('submit', '.report-match-form', function (e) {
     let redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialRedCards));
     let redCardsToRemove = initialRedCards.filter(card => !eventExists(card, finalRedCards));
 
-    updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove);
+    // Confirmation before submitting
+    Swal.fire({
+        title: 'Confirm Submission',
+        text: "Are you sure you want to submit this match report?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, submit it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove);
+        }
+    });
 });
 
 // Function to get final events from the form
@@ -262,7 +304,6 @@ function getFinalEvents(matchId, eventType) {
 
 // Function to check if an event exists in an array
 function eventExists(event, eventsArray) {
-
     console.log('Comparing events:', {
         eventStatId: event.stat_id,
         arrayStatId: eventsArray.map(e => e.stat_id),
@@ -322,16 +363,53 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             red_cards_to_add: redCardsToAdd,
             red_cards_to_remove: redCardsToRemove
         }),
+        beforeSend: function () {
+            // Disable the submit button to prevent multiple submissions
+            $(`#submitBtn-${matchId}`).prop('disabled', true);
+            // Optionally, show a loading spinner
+            Swal.fire({
+                title: 'Submitting...',
+                text: 'Please wait while your report is being submitted.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
+        },
         success: function (response) {
             if (response.success) {
-                alert('Match report updated successfully.');
-                location.reload();
+                Swal.fire(
+                    'Success!',
+                    'Your match report has been submitted successfully.',
+                    'success'
+                ).then(() => {
+                    // Optionally, close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById(`reportMatchModal-${matchId}`));
+                    modal.hide();
+
+                    // Optionally, reload the page to reflect changes
+                    location.reload();
+                });
             } else {
-                alert(`Failed to update match report: ${response.message || 'Unknown error.'}`);
+                Swal.fire(
+                    'Error!',
+                    response.message || 'There was an error submitting your report.',
+                    'error'
+                ).then(() => {
+                    // Re-enable the submit button
+                    $(`#submitBtn-${matchId}`).prop('disabled', false);
+                });
             }
         },
         error: function (xhr, status, error) {
-            alert('Error updating match report.');
+            Swal.fire(
+                'Error!',
+                'An unexpected error occurred while submitting your report.',
+                'error'
+            ).then(() => {
+                // Re-enable the submit button
+                $(`#submitBtn-${matchId}`).prop('disabled', false);
+            });
             console.error('AJAX Error:', error);
             console.error('Response:', xhr.responseText);
         }

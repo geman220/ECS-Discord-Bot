@@ -144,30 +144,35 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             "An error occurred while processing the command.", ephemeral=True
         )
 
+# A set to store message IDs that require reaction management
+managed_message_ids = set()
+
 @bot.event
 async def on_reaction_add(reaction, user):
     if user.bot:
         return
-    
+
     channel = reaction.message.channel
     message_id = reaction.message.id
     emoji = reaction.emoji
 
     print(f"Reaction received: {emoji} by user: {user.id} in channel: {channel.id}")
 
-    # Remove any other reactions by the user on the same message
-    for react in reaction.message.reactions:
-        if react.emoji != emoji:
-            async for reacting_user in react.users():
-                if reacting_user == user:
-                    await react.remove(user)
+    # Check if this message is in the set of managed messages
+    if message_id in managed_message_ids:
+        # Remove any other reactions by the user on the same message
+        for react in reaction.message.reactions:
+            if react.emoji != emoji:
+                async for reacting_user in react.users():
+                    if reacting_user == user:
+                        await react.remove(user)
 
     # Get the match ID associated with this message
     match_id = get_match_id_from_message(message_id)
     if not match_id:
         print(f"No match found for message ID: {message_id}")
         return
-    
+
     # Map the emoji to an availability status
     status = None
     if emoji == '\U0001F44D':
@@ -187,7 +192,7 @@ async def on_reaction_add(reaction, user):
         }
 
         response = requests.post(api_url, json=payload)
-        
+
         if response.status_code == 200:
             print("Availability updated successfully.")
         else:
