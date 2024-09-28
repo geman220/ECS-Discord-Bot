@@ -6,7 +6,7 @@ from app.decorators import role_required
 from datetime import datetime, timedelta
 from sqlalchemy import cast, Integer
 from sqlalchemy.orm import joinedload
-from app.discord_utils import create_discord_channel, delete_discord_channel, rename_discord_channel,  rename_discord_roles, delete_discord_roles, rename_discord_role, create_discord_role, create_discord_roles
+from app.discord_utils import create_discord_channel, delete_discord_channel, rename_discord_channel,  rename_discord_roles, delete_discord_roles, rename_discord_role, create_discord_roles, assign_role_to_player
 from .season_routes import season_bp
 from .schedule_routes import schedule_bp
 import asyncio
@@ -20,6 +20,15 @@ publeague = Blueprint('publeague', __name__, url_prefix='/publeague')
 # Registering blueprints under publeague
 publeague.register_blueprint(season_bp, url_prefix='/seasons')
 publeague.register_blueprint(schedule_bp, url_prefix='/schedules')
+
+async def assign_roles_to_players(players):
+    semaphore = asyncio.Semaphore(10)  # Limit to 10 concurrent tasks
+
+    async def sem_task(player):
+        async with semaphore:
+            await assign_role_to_player(player)
+
+    await asyncio.gather(*(sem_task(player) for player in players))
 
 def get_latest_season(league_type):
     latest_season = Season.query.filter_by(league_type=league_type, is_current=True).first()
@@ -74,9 +83,9 @@ def manage_teams():
 
                 # Handle Discord channel creation differently for Pub League and ECS FC
                 if league_type == 'Pub League':
-                    division = "classic" if "classic" in league_name.lower() else "premier"
+                    division = "pl classic" if "classic" in league_name.lower() else "pl premier"
                 else:
-                    division = "ecsfc"  # Placeholder division name for ECS FC or any custom logic you need
+                    division = "ecsfc" 
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
@@ -218,3 +227,39 @@ def choose_team(league, match_num, team_type):
 def calculate_date_for_week(start_date, week):
     # This function calculates the date for each week based on the start date of the season
     return start_date + timedelta(weeks=week - 1)
+
+@publeague.route('/one_time_discord_setup', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def one_time_discord_setup():
+    teams_without_discord = Team.query.filter(
+        (Team.discord_channel_id == None) | 
+        (Team.discord_coach_role_id == None) | 
+        (Team.discord_player_role_id == None)
+    ).all()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    for team in teams_without_discord:
+        # Call the existing logic to create channels and roles
+        division = "pl classic" if "classic" in team.league.name.lower() else "pl premier"
+        loop.run_until_complete(create_discord_channel(team.name, division, team.id))
+
+    loop.close()
+    flash('Discord channels and roles created for all missing teams.', 'success')
+    return redirect(url_for('publeague.manage_teams'))
+
+@publeague.route('/assign_discord_roles', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def assign_discord_roles():
+    players = Player.query.filter(Player.discord_id != None, Player.team_id != None).all()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(assign_roles_to_players(players))
+    loop.close()
+    flash('Discord roles assigned to all players with linked Discord IDs.', 'success')
+    return redirect(url_for('publeague.manage_teams'))
