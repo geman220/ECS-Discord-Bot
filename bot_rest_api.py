@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
+from typing import List, Optional
 from shared_states import bot_ready
 import logging
 import discord
@@ -59,10 +60,17 @@ async def get_bot():
         raise HTTPException(status_code=500, detail="Bot is not initialized properly.")
     return bot_instance
 
+class PermissionOverwriteRequest(BaseModel):
+    id: int  # Role or Member ID
+    type: int  # 0 for role, 1 for member
+    allow: Optional[str] = "0"
+    deny: Optional[str] = "0"
+
 class ChannelRequest(BaseModel):
     name: str
     type: int = Field(..., description="Channel type: 0 for text channel, 4 for category")
-    parent_id: int = Field(None, description="Parent category ID (only for text channels)")
+    parent_id: Optional[int] = Field(None, description="Parent category ID (only for text channels)")
+    permission_overwrites: Optional[List[PermissionOverwriteRequest]] = None
 
 class PermissionRequest(BaseModel):
     id: int
@@ -72,6 +80,8 @@ class PermissionRequest(BaseModel):
 
 class RoleRequest(BaseModel):
     name: str
+    permissions: str = "0"  # String representation of permissions integer
+    mentionable: bool = False
 
 class UpdateChannelRequest(BaseModel):
     new_name: str
@@ -104,9 +114,36 @@ async def create_channel(guild_id: int, request: ChannelRequest, bot: commands.B
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
 
+    overwrites = {}
+
+    if request.permission_overwrites:
+        for overwrite_data in request.permission_overwrites:
+            target_id = overwrite_data.id
+            overwrite_type = overwrite_data.type
+            allow = int(overwrite_data.allow)
+            deny = int(overwrite_data.deny)
+
+            # Get the role or member object
+            if overwrite_type == 0:  # Role
+                target = guild.get_role(target_id)
+            elif overwrite_type == 1:  # Member
+                target = guild.get_member(target_id)
+            else:
+                continue  # Invalid type, skip
+
+            if not target:
+                logger.warning(f"Target with ID {target_id} not found")
+                continue
+
+            # Create PermissionOverwrite object
+            permissions = discord.PermissionOverwrite.from_pair(
+                discord.Permissions(allow), discord.Permissions(deny)
+            )
+            overwrites[target] = permissions
+
     if request.type == 4:  # Category creation
         try:
-            new_category = await guild.create_category(request.name)
+            new_category = await guild.create_category(request.name, overwrites=overwrites)
             return {"id": new_category.id, "name": new_category.name}
         except Exception as e:
             logger.error(f"Failed to create category: {e}")
@@ -114,7 +151,9 @@ async def create_channel(guild_id: int, request: ChannelRequest, bot: commands.B
     else:  # Text channel creation
         try:
             parent_category = guild.get_channel(request.parent_id) if request.parent_id else None
-            new_channel = await guild.create_text_channel(request.name, category=parent_category)
+            new_channel = await guild.create_text_channel(
+                request.name, category=parent_category, overwrites=overwrites
+            )
             return {"id": new_channel.id, "name": new_channel.name}
         except Exception as e:
             logger.error(f"Failed to create channel: {e}")
@@ -159,17 +198,45 @@ async def delete_channel(guild_id: int, channel_id: int, bot: commands.Bot = Dep
 
 # Create a new role in a guild
 @app.post("/guilds/{guild_id}/roles")
-async def create_role(guild_id: int, request: RoleRequest, bot: commands.Bot = Depends(get_bot)):
+async def create_role(
+    guild_id: int,
+    request: RoleRequest,
+    bot: commands.Bot = Depends(get_bot)
+):
+    logger.info(f"Received request to create role '{request.name}' in guild '{guild_id}'")
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        logger.error(f"Guild not found: {guild_id}")
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    try:
+        permissions = discord.Permissions(int(request.permissions))
+        logger.debug(f"Creating role with permissions: {permissions.value}")
+        new_role = await guild.create_role(
+            name=request.name,
+            permissions=permissions,
+            mentionable=request.mentionable
+        )
+        logger.info(f"Created role '{new_role.name}' with ID {new_role.id}")
+        response_data = {"id": str(new_role.id), "name": new_role.name}
+        logger.debug(f"Returning response: {response_data}")
+        return response_data
+    except discord.errors.HTTPException as e:
+        logger.exception(f"HTTPException occurred: {e.status} {e.text}")
+        raise HTTPException(status_code=e.status, detail=e.text)
+    except Exception as e:
+        logger.exception(f"Failed to create role '{request.name}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create role: {e}")
+
+# Get roles from guild
+@app.get("/guilds/{guild_id}/roles")
+async def get_roles(guild_id: int, bot: commands.Bot = Depends(get_bot)):
     guild = bot.get_guild(guild_id)
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
 
-    try:
-        new_role = await guild.create_role(name=request.name)
-        return {"id": new_role.id, "name": new_role.name}
-    except Exception as e:
-        logger.error(f"Failed to create role: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create role")
+    roles = [{"id": role.id, "name": role.name} for role in guild.roles]
+    return roles
 
 # Rename a role in a guild
 @app.put("/guilds/{guild_id}/roles/{role_id}")
