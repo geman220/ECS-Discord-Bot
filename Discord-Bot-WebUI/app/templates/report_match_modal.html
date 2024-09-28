@@ -5,12 +5,12 @@
      role="dialog"
      aria-labelledby="reportMatchModalLabel-{{ match.id }}"
      aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <!-- Modal Header -->
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="reportMatchModalLabel-{{ match.id }}">
-                    <i class="ti ti-pencil-alt me-2"></i>
+                    <i data-feather="edit" class="me-2"></i>
                     {{ 'Edit' if match.reported else 'Report' }} Match: {{ home_team_name }} vs {{ opponent_team_name }}
                 </h5>
                 <button type="button"
@@ -50,12 +50,6 @@
                         </div>
                     </div>
 
-                    <!-- Match Notes -->
-                    <div class="mb-4">
-                        <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
-                        <textarea class="form-control" id="match_notes-{{ match.id }}" rows="3"></textarea>
-                    </div>
-
                     <!-- Goal Scorers -->
                     <div class="mb-4">
                         <label class="form-label">Goal Scorers</label>
@@ -66,7 +60,7 @@
                             <button class="btn btn-primary btn-sm"
                                     type="button"
                                     onclick="addEvent('{{ match.id }}', 'goal_scorers')">
-                                <i class="ti ti-plus"></i> Add Goal Scorer
+                                <i data-feather="plus" class="me-1"></i> Add Goal Scorer
                             </button>
                         </div>
                     </div>
@@ -81,7 +75,7 @@
                             <button class="btn btn-primary btn-sm"
                                     type="button"
                                     onclick="addEvent('{{ match.id }}', 'assist_providers')">
-                                <i class="ti ti-plus"></i> Add Assist Provider
+                                <i data-feather="plus" class="me-1"></i> Add Assist Provider
                             </button>
                         </div>
                     </div>
@@ -96,7 +90,7 @@
                             <button class="btn btn-warning btn-sm"
                                     type="button"
                                     onclick="addEvent('{{ match.id }}', 'yellow_cards')">
-                                <i class="ti ti-plus"></i> Add Yellow Card
+                                <i data-feather="plus" class="me-1"></i> Add Yellow Card
                             </button>
                         </div>
                     </div>
@@ -111,16 +105,22 @@
                             <button class="btn btn-danger btn-sm"
                                     type="button"
                                     onclick="addEvent('{{ match.id }}', 'red_cards')">
-                                <i class="ti ti-plus"></i> Add Red Card
+                                <i data-feather="plus" class="me-1"></i> Add Red Card
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Match Notes -->
+                    <div class="mb-4">
+                        <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
+                        <textarea class="form-control" id="match_notes-{{ match.id }}" name="match_notes" rows="3"></textarea>
                     </div>
                 </div>
 
                 <!-- Modal Footer -->
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}" disabled>
+                    <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}">
                         {{ 'Save Changes' if match.reported else 'Submit Report' }}
                     </button>
                 </div>

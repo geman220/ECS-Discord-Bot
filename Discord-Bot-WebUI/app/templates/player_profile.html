@@ -1,85 +1,120 @@
 {% extends "base.html" %}
 
 {% block main_content %}
+<div id="manualReviewData" data-needs-review="{{ 'true' if player.needs_manual_review and is_admin else 'false' }}"></div>
 <div class="row">
     <!-- User Sidebar -->
-    <div class="col-md-4 col-12 mb-md-0 mb-4">
-        <div class="card">
-            <div class="card-body">
-                <div class="user-avatar-section">
-                    <div class="d-flex align-items-center flex-column">
-                        {% if player.profile_picture_url %}
-                        <img class="img-fluid rounded mb-3" src="{{ player.profile_picture_url }}" alt="Profile Picture" style="width: 120px; height: 120px;">
-                        {% else %}
-                        <img class="img-fluid rounded mb-3" src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" style="width: 120px; height: 120px;">
-                        {% endif %}
-                        <div class="user-info text-center">
-                            <h4 class="mb-0">
-                                {{ player.name }}
-                                {% if player.is_ref %}
-                                <i class="material-icons" title="Referee">sports</i>
-                                {% endif %}
-                                {% if player.is_coach %}
-                                <span class="badge bg-success">COACH</span>
-                                {% endif %}
-                            </h4>
-                            {% if player.team %}
-                            <span class="badge bg-primary">
-                                <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white">
-                                    {{ player.team.name }}
-                                </a>
-                            </span>
-                            {% endif %}
-                            {% if is_admin or is_player %}
-                            <p class="text-muted mt-2 mb-0">{{ player.email }}</p>
-                            <p class="text-muted mb-0">{{ player.phone }}</p>
-                            <p class="text-muted mb-3">Jersey Size: {{ player.jersey_size }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                <div class="d-flex flex-column align-items-center text-center">
+    <div class="col-xl-4 col-lg-5 col-md-5 col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <!-- Profile Picture -->
+                {% if player.profile_picture_url %}
+                <img class="rounded-circle mb-3" src="{{ player.profile_picture_url }}" alt="Profile Picture" width="120" height="120">
+                {% else %}
+                <img class="rounded-circle mb-3" src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" width="120" height="120">
+                {% endif %}
+
+                <!-- Player Information -->
+                <h4 class="card-title">
+                    {{ player.name }}
+                    {% if player.is_ref %}
+                    <i class="ti ti-sports" title="Referee"></i>
+                    {% endif %}
+                    {% if player.is_coach %}
+                    <span class="badge bg-success ms-2">COACH</span>
+                    {% endif %}
+                </h4>
+                {% if player.team %}
+                <span class="badge bg-primary">
+                    <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white text-decoration-none">
+                        {{ player.team.name }}
+                    </a>
+                </span>
+                {% endif %}
+                {% if is_admin or is_player %}
+                <p class="text-muted mt-2 mb-0">{{ player.email }}</p>
+                <p class="text-muted mb-0">{{ player.phone }}</p>
+                <p class="text-muted mb-3">Jersey Size: {{ player.jersey_size }}</p>
+                {% endif %}
+
+                <!-- Discord Link -->
+                <div class="mb-3">
                     {% if player.discord_id %}
-                    <span class="badge bg-success mt-2"><i class="fab fa-discord"></i> Linked to Discord</span>
+                    <span class="badge bg-success"><i class="fab fa-discord me-1"></i>Linked to Discord</span>
                     {% else %}
                     {% if current_user.is_authenticated and current_user.id == player.user.id %}
-                    <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary mt-2">
-                        <i class="fab fa-discord"></i>  Link to Discord
+                    <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-sm">
+                        <i class="fab fa-discord me-1"></i> Link to Discord
                     </a>
                     {% endif %}
                     {% endif %}
-                    {% if is_admin or is_player %}
-                    <button type="button" class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#profileImageModal">Upload Profile Picture</button>
-                    <form id="profile-picture-form" method="POST" enctype="multipart/form-data">
-                        {% if form %}
-                        {{ empty_form.hidden_tag() }}
-                        {% endif %}
-                        <input type="hidden" id="cropped_image_data" name="cropped_image_data">
-                    </form>
-                    {% endif %}
                 </div>
-                <hr class="my-3">
-                <div class="stats-section d-flex justify-content-around text-center">
-                    <div class="season-stats">
+
+                <!-- Upload Profile Picture Button -->
+                {% if is_admin or is_player %}
+                <button type="button" class="btn btn-outline-primary btn-sm mb-2" data-bs-toggle="modal" data-bs-target="#profileImageModal">
+                    <i class="ti ti-upload me-1"></i> Upload Profile Picture
+                </button>
+                {% endif %}
+
+                <!-- Admin Actions Dropdown -->
+                {% if has_permission('edit_player_stats') %}
+                <div class="dropdown">
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="adminActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="ti ti-settings me-1"></i> Admin Actions
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="adminActionsDropdown">
+                        <!-- Mark as Coach -->
+                        <li>
+                            <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="px-3 py-2">
+                                {{ csrf_token() }}
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_coach" id="isCoachToggleDropdown" {% if player.is_coach %}checked{% endif %} onchange="this.form.submit();">
+                                    <label class="form-check-label" for="isCoachToggleDropdown">Mark as Coach</label>
+                                </div>
+                                <input type="hidden" name="update_coach_status" value="1">
+                            </form>
+                        </li>
+                        <li>
+                            <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="px-3 py-2">
+                                {{ csrf_token() }}
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_ref" id="isRefToggleDropdown" {% if player.is_ref %}checked{% endif %} onchange="this.form.submit();">
+                                    <label class="form-check-label" for="isRefToggleDropdown">Mark as Referee</label>
+                                </div>
+                                <input type="hidden" name="update_ref_status" value="1">
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Player Stats -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <h6 class="mb-0">Season Stats ({{ season.name }})</h6>
                         {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
-                        <h6 class="font-weight-bold text-primary mb-2">Season Stats ({{ season.name }})</h6>
                         <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
                         <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
                         {% endif %}
                         {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
                         <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
-                        <p class="mb-2">Red Cards: {{ player.season_red_cards(season.id) }}</p>
+                        <p class="mb-0">Red Cards: {{ player.season_red_cards(season.id) }}</p>
                         {% endif %}
                     </div>
-                    <div class="career-stats">
+                    <div>
+                        <h6 class="mb-0">Career Stats</h6>
                         {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
-                        <h6 class="font-weight-bold text-primary mb-2">Career Stats</h6>
                         <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
                         <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
                         {% endif %}
                         {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
                         <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
-                        <p class="mb-2">Red Cards: {{ player.get_career_red_cards() }}</p>
+                        <p class="mb-0">Red Cards: {{ player.get_career_red_cards() }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -88,120 +123,94 @@
     </div>
 
     <!-- Profile Content -->
-    <div class="col-md-8 col-12">
+    <div class="col-xl-8 col-lg-7 col-md-7 col-12">
         <div class="card">
             <div class="card-body">
-                <ul class="nav nav-pills flex-column flex-sm-row mb-4">
+                <!-- Navigation Pills -->
+                <ul class="nav nav-pills mb-4">
                     <li class="nav-item">
-                        <a class="nav-link active" id="account-details-tab" data-bs-toggle="pill" href="#account-details" role="tab" aria-controls="account-details" aria-selected="true"><i class="ti ti-user"></i> Account Details</a>
+                        <a class="nav-link active" id="account-details-tab" data-bs-toggle="pill" href="#account-details" role="tab" aria-controls="account-details" aria-selected="true">
+                            <i class="ti ti-user me-1"></i> Account Details
+                        </a>
                     </li>
                     {% if is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings" role="tab" aria-controls="admin-settings" aria-selected="false"><i class="ti ti-lock"></i> Admin Settings</a>
+                        <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings" role="tab" aria-controls="admin-settings" aria-selected="false">
+                            <i class="ti ti-lock me-1"></i> Admin Settings
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
+
+                <!-- Tab Content -->
                 <div class="tab-content">
                     <!-- Account Details Tab -->
                     <div class="tab-pane fade show active" id="account-details" role="tabpanel" aria-labelledby="account-details-tab">
                         {% if form %}
-                        <form method="POST" enctype="multipart/form-data">
+                        <form method="POST" enctype="multipart/form-data" class="row g-3">
                             {{ empty_form.hidden_tag() }}
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="text" class="form-control" id="floatingName" placeholder=" " value="{{ form.name.data }}">
-                                        <label for="floatingName">{{ form.name.label.text }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="email" class="form-control" id="floatingEmail" placeholder=" " value="{{ form.email.data }}">
-                                        <label for="floatingEmail">{{ form.email.label.text }}</label>
-                                    </div>
-                                </div>
+                            <!-- Personal Information -->
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">{{ form.name.label.text }}</label>
+                                {{ form.name(class_="form-control", id="name", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">{{ form.email.label.text }}</label>
+                                {{ form.email(class_="form-control", id="email", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">{{ form.phone.label.text }}</label>
+                                {{ form.phone(class_="form-control", id="phone", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="jersey_size" class="form-label">{{ form.jersey_size.label.text }}</label>
+                                {{ form.jersey_size(class_="form-select select2", id="jersey_size", required=True) }}
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-floating mb-3">
-                                        <input type="text" class="form-control" id="floatingPhone" placeholder=" " value="{{ form.phone.data }}">
-                                        <label for="floatingPhone">{{ form.phone.label.text }}</label>
-                                    </div>
-                                </div>
+                            <!-- Additional Details -->
+                            <div class="col-md-6">
+                                <label for="pronouns" class="form-label">{{ form.pronouns.label.text }}</label>
+                                {{ form.pronouns(class_="form-select select2", id="pronouns", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="expected_weeks_available" class="form-label">{{ form.expected_weeks_available.label.text }}</label>
+                                {{ form.expected_weeks_available(class_="form-select select2", id="expected_weeks_available", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="favorite_position" class="form-label">{{ form.favorite_position.label.text }}</label>
+                                {{ form.favorite_position(class_="form-select select2", id="favorite_position", required=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="other_positions" class="form-label">{{ form.other_positions.label.text }}</label>
+                                {{ form.other_positions(class_="form-select select2-multiple", id="other_positions", multiple=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="positions_not_to_play" class="form-label">{{ form.positions_not_to_play.label.text }}</label>
+                                {{ form.positions_not_to_play(class_="form-select select2-multiple", id="positions_not_to_play", multiple=True) }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="frequency_play_goal" class="form-label">{{ form.frequency_play_goal.label.text }}</label>
+                                {{ form.frequency_play_goal(class_="form-select select2", id="frequency_play_goal", required=True) }}
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.jersey_size.label(class="form-label") }}
-                                        {{ form.jersey_size(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.pronouns.label(class="form-label") }}
-                                        {{ form.pronouns(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.expected_weeks_available.label(class="form-label") }}
-                                        {{ form.expected_weeks_available(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.favorite_position.label(class="form-label") }}
-                                        {{ form.favorite_position(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.other_positions.label(class="form-label") }}
-                                        {{ form.other_positions(class_="form-control select2-multiple") }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.positions_not_to_play.label(class="form-label") }}
-                                        {{ form.positions_not_to_play(class_="form-control select2-multiple") }}
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.frequency_play_goal.label(class="form-label") }}
-                                        {{ form.frequency_play_goal(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
-                            </div>
                             {% if is_classic_league_player %}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        {{ form.team_swap.label(class="form-label") }}
-                                        {{ form.team_swap(class_="form-control select2 form-select") }}
-                                    </div>
-                                </div>
+                            <div class="col-md-6">
+                                <label for="team_swap" class="form-label">{{ form.team_swap.label.text }}</label>
+                                {{ form.team_swap(class_="form-select select2", id="team_swap") }}
                             </div>
                             {% endif %}
 
-                            <div class="form-group">
-                                {{ form.player_notes.label(class="form-label") }}
-                                {{ form.player_notes(class_="form-control") }}
+                            <!-- Player Notes -->
+                            <div class="col-12">
+                                <label for="player_notes" class="form-label">{{ form.player_notes.label.text }}</label>
+                                {{ form.player_notes(class_="form-control", id="player_notes", rows=3) }}
                             </div>
 
-                            <button type="submit" name="update_profile" class="btn btn-primary btn-block">Update Profile</button>
+                            <!-- Submit Button -->
+                            <div class="col-12 text-end">
+                                <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
+                            </div>
                         </form>
                         {% else %}
                         <p class="text-muted">You do not have permission to view this profile.</p>
@@ -211,356 +220,214 @@
                     <!-- Admin Settings Tab -->
                     {% if has_permission('edit_player_stats') %}
                     <div class="tab-pane fade" id="admin-settings" role="tabpanel" aria-labelledby="admin-settings-tab">
-                        <h6 class="font-weight-bold text-primary mb-2">Player Stats Overview</h6>
-
-                        <!-- Mark Player as Coach Section -->
-                        <h6 class="font-weight-bold text-primary mb-2">Coach Settings</h6>
-                        <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="is_coach" id="isCoachToggle" {% if player.is_coach %}checked{% endif %}>
-                                <label class="form-check-label" for="isCoachToggle">Mark this player as a coach</label>
-                            </div>
-                            <button type="submit" name="update_coach_status" class="btn btn-primary mt-3">Update Coach Status</button>
-                        </form>
-
-                        <!-- Mark Player as Referee Section -->
-                        <h6 class="font-weight-bold text-primary mb-2">Referee Settings</h6>
-                        <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" name="is_ref" id="isRefToggle" {% if player.is_ref %}checked{% endif %}>
-                                <label class="form-check-label" for="isRefToggle">Mark this player as a referee</label>
-                            </div>
-                            <button type="submit" name="update_ref_status" class="btn btn-primary mt-3">Update Referee Status</button>
-                        </form>
-
-                        <!-- Season and Career Stats -->
-                        <div class="row">
+                        <!-- Player Stats Overview -->
+                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <h6 class="text-muted">Season Stats ({{ season.name }})</h6>
-                                <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
-                                <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
-                                <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
-                                <p class="mb-2">Red Cards: {{ player.season_red_cards(season.id) }}</p>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Season Stats ({{ season.name }})</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
+                                        <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
+                                        <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
+                                        <p class="mb-0">Red Cards: {{ player.season_red_cards(season.id) }}</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <h6 class="text-muted">Career Stats</h6>
-                                <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
-                                <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
-                                <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
-                                <p class="mb-2">Red Cards: {{ player.get_career_red_cards() }}</p>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Career Stats</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
+                                        <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
+                                        <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
+                                        <p class="mb-0">Red Cards: {{ player.get_career_red_cards() }}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-
-                        <hr>
 
                         <!-- Match Stats Management Section -->
-                        <h6 class="font-weight-bold text-primary mb-2">Match Stats History</h6>
-                        <div class="mb-4">
-                            <label class="form-label">Filter by Match</label>
-                            <select class="form-select" id="matchFilter" onchange="filterMatchStats()">
-                                <option value="">All Matches</option>
-                                {% for match in matches %}
-                                <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-
-                        <!-- List of Match Stats for the Player -->
-                        <div id="matchStatsContainer">
-                            {% for event in player.events %}
-                            <div class="card p-3 mb-3 shadow-sm" data-match-id="{{ event.match.id }}">
-                                <h6 class="text-muted">Match Date: {{ event.match.date.strftime('%B %d, %Y') }}</h6>
-                                <p class="mb-1">Opponent: {{ event.match.away_team.name if player.team_id == event.match.home_team_id else event.match.home_team.name }}</p>
-                                <p class="mb-1">Event Type: {{ event.event_type }}</p>
-                                <p class="mb-1">Minute: {{ event.minute }}</p>
-
-                                <!-- Admin Controls -->
-                                <div class="d-flex justify-content-between">
-                                    <button class="btn btn-sm btn-primary" onclick="editMatchStat({{ event.id }})">Edit</button>
-                                    <button class="btn btn-sm btn-danger" onclick="removeMatchStat({{ event.id }})">Remove</button>
-                                </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Match Stats History</h6>
                             </div>
-                            {% endfor %}
-                        </div>
+                            <div class="card-body">
+                                <!-- Filter by Match -->
+                                <div class="mb-4">
+                                    <label for="matchFilter" class="form-label">Filter by Match</label>
+                                    <select class="form-select" id="matchFilter">
+                                        <option value="">All Matches</option>
+                                        {% for match in matches %}
+                                        <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
 
-                        <!-- Add New Stat Manually -->
-                        <hr>
-                        <h6 class="font-weight-bold text-primary mb-2">Add Stats Manually</h6>
-                        <form method="POST" action="{{ url_for('players.add_stat_manually', player_id=player.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <div class="mb-3">
-                                <label for="match_id" class="form-label">Match</label>
-                                <select class="form-select" name="match_id" required>
-                                    <option value="">Select Match</option>
-                                    {% for match in matches %}
-                                    <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                <!-- List of Match Stats -->
+                                <div id="matchStatsContainer">
+                                    {% for event in player.events %}
+                                    <div class="card p-3 mb-3 shadow-sm" data-match-id="{{ event.match.id }}">
+                                        <h6 class="text-muted">Match Date: {{ event.match.date.strftime('%B %d, %Y') }}</h6>
+                                        <p class="mb-1">Opponent: {{ event.match.away_team.name if player.team_id == event.match.home_team_id else event.match.home_team.name }}</p>
+                                        <p class="mb-1">Event Type: {{ event.event_type }}</p>
+                                        <p class="mb-1">Minute: {{ event.minute }}</p>
+
+                                        <!-- Admin Controls -->
+                                        <div class="d-flex justify-content-end">
+                                            <button class="btn btn-sm btn-primary me-2 edit-match-stat-btn" data-stat-id="{{ event.id }}">
+                                                <i class="ti ti-edit me-1"></i> Edit
+                                            </button>
+                                            <button class="btn btn-sm btn-danger remove-match-stat-btn" data-stat-id="{{ event.id }}">
+                                                <i class="ti ti-trash me-1"></i> Remove
+                                            </button>
+                                        </div>
+                                    </div>
                                     {% endfor %}
-                                </select>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
+                                </div>
+
+                                <!-- Add New Stat Manually -->
+                                <hr>
+                                <h6 class="font-weight-bold text-primary mb-2">Add Stats Manually</h6>
+                                <form method="POST" action="{{ url_for('players.add_stat_manually', player_id=player.id) }}" class="row g-3">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <div class="col-md-6">
+                                        <label for="match_id" class="form-label">Match</label>
+                                        <select class="form-select" name="match_id" id="match_id" required>
+                                            <option value="">Select Match</option>
+                                            {% for match in matches %}
+                                            <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
                                         <label for="goals" class="form-label">Goals</label>
-                                        <input type="number" class="form-control" name="goals" min="0" value="0" />
+                                        <input type="number" class="form-control" name="goals" id="goals" min="0" value="0" required>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="col-md-6">
                                         <label for="assists" class="form-label">Assists</label>
-                                        <input type="number" class="form-control" name="assists" min="0" value="0" />
+                                        <input type="number" class="form-control" name="assists" id="assists" min="0" value="0" required>
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
+                                    <div class="col-md-6">
                                         <label for="yellow_cards" class="form-label">Yellow Cards</label>
-                                        <input type="number" class="form-control" name="yellow_cards" min="0" value="0" />
+                                        <input type="number" class="form-control" name="yellow_cards" id="yellow_cards" min="0" value="0" required>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="col-md-6">
                                         <label for="red_cards" class="form-label">Red Cards</label>
-                                        <input type="number" class="form-control" name="red_cards" min="0" value="0" />
+                                        <input type="number" class="form-control" name="red_cards" id="red_cards" min="0" value="0" required>
                                     </div>
-                                </div>
+                                    <div class="col-12 text-end">
+                                        <button type="submit" name="add_stat_manually" class="btn btn-primary">Add Stat</button>
+                                    </div>
+                                </form>
                             </div>
-                            <button type="submit" class="btn btn-primary">Add Stat</button>
-                        </form>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Match Stat Modal -->
-<div class="modal fade" id="editMatchStatModal" tabindex="-1" role="dialog" aria-labelledby="editMatchStatModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editMatchStatModalLabel">Edit Match Stat</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="editMatchStatForm" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" id="editStatId" name="stat_id">
-                    <div class="form-group">
-                        <label for="editGoalsInput">Goals</label>
-                        <input type="number" class="form-control" id="editGoalsInput" name="goals">
-                    </div>
-                    <div class="form-group">
-                        <label for="editAssistsInput">Assists</label>
-                        <input type="number" class="form-control" id="editAssistsInput" name="assists">
-                    </div>
-                    <div class="form-group">
-                        <label for="editYellowCardsInput">Yellow Cards</label>
-                        <input type="number" class="form-control" id="editYellowCardsInput" name="yellow_cards">
-                    </div>
-                    <div class="form-group">
-                        <label for="editRedCardsInput">Red Cards</label>
-                        <input type="number" class="form-control" id="editRedCardsInput" name="red_cards">
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save changes</button>
-                </div>
-            </form>
         </div>
-    </div>
-</div>
 
-<!-- Cropper Modal -->
-<div class="modal fade" id="profileImageModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-md" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalLabel">Upload Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <div class="thumbimg">
-                        <input type="file" name="image" id="image" style="display:none;">
-                        <button type="button" onclick="document.getElementById('image').click();" class="btn btn-secondary btn-md">Select File</button>
-                        <div class="showimg d-flex justify-content-center pt-3">
-                            <div class="row imgdiv" id="imgdiv" style="display:none;">
-                                <img id="imagecan" style="max-width: 100%;">
-                            </div>
+        <!-- Cropper Modal -->
+        <div class="modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Image</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('image').click();">
+                                <i class="ti ti-upload me-1"></i> Select Image
+                            </button>
+                        </div>
+                        <div class="img-container d-none">
+                            <img id="imagecan" style="max-width: 100%;">
                         </div>
                     </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="onClickUpload()">Upload</button>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer d-flex justify-content-center">
-                <button type="button" onclick="onClickUpload()" class="btn btn-primary btn-md">Upload</button>
-                <button type="button" class="btn btn-secondary btn-md" data-bs-dismiss="modal">Close</button>
-            </div>
         </div>
-    </div>
-</div>
 
-{% if player.needs_manual_review and is_admin %}
-<div class="modal fade" id="manualReviewModal" tabindex="-1" role="dialog" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="manualReviewModalLabel">Manual Review Required</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>This profile needs manual review as it was purchased with another order. Please review the player's name, email, and phone number.</p>
-                <p>You may need to reference the person who placed the original order.</p>
-                {% if player.linked_primary_player_id %}
-                <div class="text-center">
-                    <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}" class="btn btn-primary">View Original Order Profile</a>
+        <!-- Edit Match Stat Modal -->
+        <div class="modal fade" id="editMatchStatModal" tabindex="-1" aria-labelledby="editMatchStatModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editMatchStatModalLabel">Edit Match Stat</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="editMatchStatForm" method="POST">
+                        <div class="modal-body">
+                            <input type="hidden" id="editStatId" name="stat_id">
+                            <div class="mb-3">
+                                <label for="editGoalsInput" class="form-label">Goals</label>
+                                <input type="number" class="form-control" id="editGoalsInput" name="goals" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editAssistsInput" class="form-label">Assists</label>
+                                <input type="number" class="form-control" id="editAssistsInput" name="assists" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editYellowCardsInput" class="form-label">Yellow Cards</label>
+                                <input type="number" class="form-control" id="editYellowCardsInput" name="yellow_cards" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editRedCardsInput" class="form-label">Red Cards</label>
+                                <input type="number" class="form-control" id="editRedCardsInput" name="red_cards" min="0" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </form>
                 </div>
-                {% endif %}
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
+
+        <!-- Manual Review Modal -->
+        {% if player.needs_manual_review and is_admin %}
+        <div class="modal fade" id="manualReviewModal" tabindex="-1" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manualReviewModalLabel">Manual Review Required</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>This profile needs manual review as it was purchased with another order. Please review the player's name, email, and phone number.</p>
+                        <p>You may need to reference the person who placed the original order.</p>
+                        {% if player.linked_primary_player_id %}
+                        <div class="text-center">
+                            <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}" class="btn btn-primary">View Original Order Profile</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 {% endblock %}
 
 {% block custom_js %}
-<script>
-    $(document).ready(function () {
-        var cropper;
-
-        // Function to initialize cropper
-        function croppingimg(e, ratio) {
-            var imgsrc = URL.createObjectURL(e.target.files[0]);
-            $('#imagecan').attr("src", imgsrc);
-            $('#imgdiv').show();
-
-            var image = document.getElementById('imagecan');
-            if (cropper) {
-                cropper.destroy(); // Destroy previous cropper instance
-            }
-
-            cropper = new Cropper(image, {
-                viewMode: 3,
-                aspectRatio: ratio,
-                dragMode: 'move',
-                autoCropArea: 0.65,
-                restore: true,
-                guides: true,
-                center: true,
-                highlight: true,
-                cropBoxMovable: true,
-                cropBoxResizable: true,
-                toggleDragModeOnDblclick: false,
-                checkOrientation: false,
-            });
-        }
-
-        // Function to handle the image upload
-        function onClickUpload() {
-            if (cropper) {
-                var croppedCanvas = cropper.getCroppedCanvas();
-                var croppedImageData = croppedCanvas.toDataURL('image/png');
-                document.getElementById('cropped_image_data').value = croppedImageData;
-                document.getElementById('profile-picture-form').submit();
-                $('#profilePicture').attr('src', croppedImageData);
-                cropper.destroy();
-                $('#imgdiv').hide();
-                $('#profileImageModal').modal('toggle');
-                $('#image').val("");
-            }
-        }
-
-        // Trigger the manual review modal if needed
-        {% if player.needs_manual_review and is_admin %}
-        $('#manualReviewModal').modal('show');
-        {% endif %}
-    });
-
-    function filterMatchStats() {
-        var selectedMatchId = $('#matchFilter').val();  // Get the selected match ID
-        $('.card').each(function () {
-            var matchId = $(this).data('match-id');  // Each card should have a data-match-id attribute
-            if (selectedMatchId == '' || matchId == selectedMatchId) {
-                $(this).show();  // Show the card if it matches the filter
-            } else {
-                $(this).hide();  // Hide the card if it doesn't match the filter
-            }
-        });
-    }
-
-    function editMatchStat(statId) {
-        $('#editMatchStatModal').modal('show');  // Show the modal
-
-        var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
-
-        $.ajax({
-            url: '/edit_match_stat/' + statId,
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': csrfToken,  // Add CSRF token for protection
-            },
-            success: function (data) {
-                // Populate the inputs with the received data
-                $('#editGoalsInput').val(data.goals);
-                $('#editAssistsInput').val(data.assists);
-                $('#editYellowCardsInput').val(data.yellow_cards);
-                $('#editRedCardsInput').val(data.red_cards);
-                $('#editStatId').val(statId);  // Store statId in the hidden input for form submission
-            },
-            error: function () {
-                alert('Failed to load match stats. Please try again.');
-            }
-        });
-    }
-
-    function removeMatchStat(statId) {
-        if (confirm("Are you sure you want to remove this stat?")) {
-            var csrfToken = $('input[name="csrf_token"]').val();  // Get CSRF token
-            $.ajax({
-                url: '/players/remove_match_stat/' + statId,
-                method: 'POST',  // Changed to POST for testing
-                headers: {
-                    'X-CSRFToken': csrfToken  // Include CSRF token for protection
-                },
-                success: function (response) {
-                    if (response.success) {
-                        alert('Stat removed successfully.');
-                        location.reload();  // Refresh the page to reflect the updated data
-                    } else {
-                        alert('Failed to remove stat.');
-                    }
-                },
-                error: function () {
-                    alert('Failed to remove match stat. Please try again.');
-                }
-            });
-        }
-    }
-
-    $('#editMatchStatForm').submit(function (e) {
-        e.preventDefault();  // Prevent default form submission
-
-        var statId = $('#editStatId').val();  // Get the stat ID
-        var formData = $(this).serialize();  // Serialize the form data
-
-        $.ajax({
-            url: '/players/edit_match_stat/' + statId,  // Use the stat ID to send the request to the correct endpoint
-            method: 'POST',
-            data: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token() }}',  // Include CSRF token for protection
-            },
-            success: function (response) {
-                if (response.success) {
-                    $('#editMatchStatModal').modal('hide');  // Hide the modal
-                    location.reload();  // Reload the page to reflect the updated data
-                } else {
-                    alert('Failed to update match stat.');
-                }
-            },
-            error: function () {
-                alert('Failed to update match stat. Please try again.');
-            }
-        });
-    });
-</script>
+<!-- Include External JavaScript Files -->
+<script src="{{ url_for('static', filename='custom_js/cropper.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/match_stats.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/modals.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/admin_actions.js') }}"></script>
 {% endblock %}
