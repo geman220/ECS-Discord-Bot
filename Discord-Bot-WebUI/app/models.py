@@ -275,7 +275,7 @@ class Player(db.Model):
     career_stats = db.relationship('PlayerCareerStats', back_populates='player')
 
     def __repr__(self):
-        return f'<Player {self.name} ({self.email})>'
+        return f'<Player {self.name} ({self.user.email})>'
 
     # Methods to retrieve season stats
     def get_season_stat(self, season_id, stat):
