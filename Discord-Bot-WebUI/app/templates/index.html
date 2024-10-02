@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
+{% import 'macros.html' as macros %}
+
 {% block custom_css %}
+<!-- Include any additional CSS or Vuexy-specific styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/index_custom.css') }}">
-<!-- Ensure any additional CSS is included here if necessary -->
 {% endblock %}
 
 {% block main_content %}
-<div class="container">
+<div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header -->
-    <div class="content-header row mb-4">
+    <div class="row mb-4">
         <div class="col-12">
             <h2 class="text-primary">Dashboard</h2>
         </div>
@@ -20,7 +22,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <!-- Modal Header -->
-                <div class="modal-header">
+                <div class="modal-header border-bottom-0">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <!-- Modal Body -->
@@ -41,13 +43,10 @@
     {% endif %}
 
     {% if not show_onboarding %}
-    <!-- Announcements Card -->
-    <div class="card card-bordered mb-4">
-        <div class="card-header">
-            <h6 class="card-title text-primary">Announcements</h6>
-        </div>
-        <div class="card-body" id="announcements-card">
-            {% if announcements %}
+    <!-- Announcements Carousel -->
+    {% if announcements %}
+    <div class="row mb-4">
+        <div class="col-12">
             <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
                 <!-- Indicators -->
                 <div class="carousel-indicators">
@@ -60,9 +59,13 @@
                 <div class="carousel-inner">
                     {% for announcement in announcements %}
                     <div class="carousel-item {% if loop.first %}active{% endif %}">
-                        <h5 class="text-primary">{{ announcement.title }}</h5>
-                        <p>{{ announcement.content }}</p>
-                        <p class="text-muted"><small>{{ announcement.created_at.strftime('%B %d, %Y') }}</small></p>
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5 class="text-primary">{{ announcement.title }}</h5>
+                                <p>{{ announcement.content }}</p>
+                                <p class="text-muted"><small>{{ announcement.created_at.strftime('%B %d, %Y') }}</small></p>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -77,44 +80,46 @@
                     <span class="visually-hidden">Next</span>
                 </button>
             </div>
-            {% else %}
-            <p class="text-muted mb-0">No new announcements</p>
-            {% endif %}
         </div>
     </div>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+        <p class="mb-0">No new announcements</p>
+    </div>
+    {% endif %}
     {% endif %}
 
     <!-- Cards Row -->
     <div class="row">
         <!-- Welcome Message Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card card-bordered h-100">
-                <div class="card-header">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
                     {% if player %}
-                    <h6 class="card-title text-primary">Welcome, {{ player.name }}!</h6>
+                    <h5 class="card-title mb-0">Welcome, {{ player.name }}!</h5>
                     {% else %}
-                    <h6 class="card-title text-primary">Welcome!</h6>
+                    <h5 class="card-title mb-0">Welcome!</h5>
                     {% endif %}
                 </div>
-                <div class="card-body" id="welcome-card">
+                <div class="card-body">
                     {% if player %}
                     {% if player.team %}
-                    <p class="card-text">
+                    <p>
                         You are currently playing in the <strong>{{ player.team.league.name }}</strong> league.
                     </p>
                     {% endif %}
-                    <p class="card-text">
+                    <p>
                         Don't forget to join our <a href="https://discord.gg/weareecs" target="_blank">Discord</a> if you haven't already. We're excited to see you on the field!
                     </p>
                     {% else %}
-                    <p class="card-text">
+                    <p>
                         It looks like you don't have a player profile yet. Please create one to access all features.
                     </p>
                     <!-- Create Player Profile Button -->
                     <form method="POST" action="{{ url_for('main.index') }}" class="d-inline">
                         {{ onboarding_form.hidden_tag() }}
                         <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
-                        <button type="submit" class="btn btn-primary waves-effect">Create My Player Profile</button>
+                        <button type="submit" class="btn btn-primary">Create My Player Profile</button>
                     </form>
                     {% endif %}
                 </div>
@@ -123,28 +128,27 @@
 
         <!-- Profile Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card card-bordered h-100">
-                <div class="card-header">
-                    <h6 class="card-title text-primary">Your Profile</h6>
+            <div class="card h-100">
+                <div class="card-header bg-info text-white d-flex align-items-center">
+                    <h5 class="card-title mb-0">Your Profile</h5>
                 </div>
-                <div class="card-body" id="profile-card">
+                <div class="card-body">
                     {% if player %}
-                    <div class="d-flex align-items-start justify-content-between">
-                        <div class="content-left">
-                            <span class="d-block mb-1 text-muted">Update Your Profile</span>
-                            <p class="text-muted mb-0">Make sure your contact details and preferences are up to date.</p>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar me-3">
+                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_avatar.png') }}" alt="Avatar" class="rounded-circle">
                         </div>
-                        <div class="content-right">
-                            <i data-feather="user" class="text-muted" style="width: 32px; height: 32px;"></i>
+                        <div>
+                            <h6 class="mb-0">{{ player.name }}</h6>
+                            {% if player.team %}
+                            <small class="text-muted">{{ player.team.name }} - {{ player.team.league.name }}</small>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="card-footer text-center">
-                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-info w-100">Update Profile</a>
-                    </div>
+                    <p class="mt-3">Make sure your contact details and preferences are up to date.</p>
+                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-info w-100">Update Profile</a>
                     {% else %}
-                    <div class="text-center">
-                        <p class="text-muted mb-0">Please create a player profile to access this feature.</p>
-                    </div>
+                    <p class="text-muted mb-0 text-center">Please create a player profile to access this feature.</p>
                     {% endif %}
                 </div>
             </div>
@@ -153,136 +157,171 @@
         {% if player and player.team %}
         <!-- Team Overview Card -->
         <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card card-bordered h-100" id="team-card">
-                <div class="card-header">
-                    <h6 class="card-title text-primary">Your Team</h6>
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Your Team</h5>
                 </div>
                 <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between">
-                        <div class="content-left">
-                            <h6 class="mb-2">{{ player.team.name }}</h6>
-                            <p class="text-muted mb-0">See your team members and upcoming matches.</p>
+                    {% if player and player.team %}
+                    <div class="d-flex align-items-center">
+                        <div class="icon-container me-3">
+                            <!-- SVG Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-users text-success">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
                         </div>
-                        <div class="content-right">
-                            <i data-feather="users" class="text-muted" style="width: 32px; height: 32px;"></i>
+                        <div>
+                            <h6 class="mb-0">{{ player.team.name }}</h6>
+                            <small class="text-muted">{{ player.team.league.name }}</small>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer text-center">
-                    <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="btn btn-primary w-100">View Team</a>
+                    <p class="mt-3">See your team members and upcoming matches.</p>
+                    <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="btn btn-success w-100">View Team</a>
+                    {% else %}
+                    <p class="text-muted mb-0 text-center">You are not part of any team currently.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
         {% endif %}
     </div>
 
-    {% if previous_matches and current_user.has_permission('view_match_reporting') %}
-    <!-- Report Previous Matches Card -->
-    <div class="card card-bordered mb-4" id="previous-match-card">
-        <div class="card-header">
-            <h6 class="card-title text-primary">Report Previous Matches</h6>
-        </div>
-        <div class="card-body">
-            {% for date, matches in previous_matches.items() %}
-            <div class="mb-3">
-                <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-                <div class="row">
-                    {% for match_data in matches %}
-                    {% set match = match_data['match'] %}
-                    {% set home_players = match_data['home_players'] %}
-                    {% set opponent_players = match_data['opponent_players'] %}
-                    {% set home_team_id = match_data['home_team_id'] %}
-                    {% set opponent_team_id = match_data['opponent_team_id'] %}
-                    {% set home_team_name = match_data['home_team_name'] %}
-                    {% set opponent_team_name = match_data['opponent_name'] %}
-                    {% set match_id = match.id %}
-                    <div class="col-md-6 mb-2">
-                        <div class="match-card p-2 rounded border">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="mb-1">{{ match.home_team.name }} vs {{ match.away_team.name }}</h6>
-                                <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
-                            </div>
-                            <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
+    <!-- Next Matches Section -->
+    {% if next_matches %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="card-title mb-0">Next Matches</h5>
+                </div>
+                <div class="card-body">
+                    {% for date, matches in next_matches.items() %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+                        <div class="row">
+                            {% for match_data in matches %}
+                            {% set match = match_data['match'] %}
+                            {% set home_team_name = match_data['home_team_name'] %}
+                            {% set opponent_team_name = match_data['opponent_name'] %}
+                            {% set current_team_id = player.team.id %}  {# Ensure 'player.team' is available #}
 
-                            {% if current_user.has_permission('view_match_reporting') %}
-                            <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
-                                    data-match-id="{{ match.id }}"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#reportMatchModal-{{ match.id }}">
-                                {{ 'Edit Match' if match.reported else 'Report Match' }}
-                            </button>
+                            {# Determine if the current team is the home or away team #}
+                            {% if match_data['home_team_id'] == current_team_id %}
+                            {% set display_home = home_team_name %}
+                            {% set display_away = opponent_team_name %}
+                            {% else %}
+                            {% set display_home = opponent_team_name %}
+                            {% set display_away = home_team_name %}
                             {% endif %}
+
+                            <div class="col-md-6 mb-2">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ display_home }} vs {{ display_away }}</h6>
+                                        <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
+                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
+
+                                        {% if current_user.has_permission('view_match_reporting') %}
+                                        <button class="btn btn-outline-primary w-100 mb-2 edit-match-btn"
+                                                data-match-id="{{ match.id }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#reportMatchModal-{{ match.id }}">
+                                            {{ 'Edit Match' if match.reported else 'Report Match' }}
+                                        </button>
+                                        {% endif %}
+
+                                        <!-- RSVP Form -->
+                                        <h6 class="small mt-3">Will you be able to attend this match?</h6>
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes">
+                                                <label class="form-check-label" for="responseYes-{{ match.id }}">Yes</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseMaybe-{{ match.id }}" value="maybe">
+                                                <label class="form-check-label" for="responseMaybe-{{ match.id }}">Maybe</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseNo-{{ match.id }}" value="no">
+                                                <label class="form-check-label" for="responseNo-{{ match.id }}">No</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Include the Report Match Modal using the macro -->
+                            {{ macros.render_report_match_modal(player.team, match, home_team_name, opponent_team_name, player_choices) }}
+
+                            {% endfor %}
                         </div>
                     </div>
-                    {% include 'report_match_modal.html' %}
                     {% endfor %}
                 </div>
             </div>
-            {% endfor %}
         </div>
     </div>
     {% endif %}
 
-    <!-- Next Matches Section -->
-    {% if grouped_matches %}
-    <div class="card card-bordered mb-4" id="match-card">
-        <div class="card-header">
-            <h6 class="card-title text-primary">Next Matches</h6>
-        </div>
-        <div class="card-body">
-            {% for date, matches in grouped_matches.items() %}
-            <div class="mb-3">
-                <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-                <div class="row">
-                    {% for match_data in matches %}
-                    {% set match = match_data['match'] %}
-                    {% set home_players = match_data['home_players'] %}
-                    {% set opponent_players = match_data['opponent_players'] %}
-                    {% set home_team_id = match_data['home_team_id'] %}
-                    {% set opponent_team_id = match_data['opponent_team_id'] %}
-                    {% set home_team_name = match_data['home_team_name'] %}
-                    {% set opponent_team_name = match_data['opponent_name'] %}
-                    {% set match_id = match.id %}
-                    <div class="col-md-6 mb-2">
-                        <div class="match-card p-2 rounded border mb-2">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="mb-1">{{ match_data.home_team_name }} vs {{ match_data.opponent_name }}</h6>
-                                <p class="text-muted mb-0">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
-                            </div>
-                            <a href="{{ url_for('match_pages.view_match', match_id=match_id) }}" class="btn btn-success w-100 mb-1 waves-effect waves-light">View Match Details</a>
+    <!-- Previous Matches Section -->
+    {% if previous_matches and current_user.has_permission('view_match_reporting') %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">Report Previous Matches</h5>
+                </div>
+                <div class="card-body">
+                    {% for date, matches in previous_matches.items() %}
+                    <div class="mb-3">
+                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
+                        <div class="row">
+                            {% for match_data in matches %}
+                            {% set match = match_data['match'] %}
+                            {% set home_team_name = match_data['home_team_name'] %}
+                            {% set opponent_team_name = match_data['opponent_name'] %}
+                            {% set current_team_id = player.team.id %}  {# Ensure 'player.team' is available #}
 
-                            {% if current_user.has_permission('view_match_reporting') %}
-                            <button class="btn btn-primary w-100 mb-1 waves-effect waves-light edit-match-btn"
-                                    data-match-id="{{ match.id }}"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#reportMatchModal-{{ match.id }}">
-                                {{ 'Edit Match' if match.reported else 'Report Match' }}
-                            </button>
+                            {# Determine if the current team is the home or away team #}
+                            {% if match_data['home_team_id'] == current_team_id %}
+                            {% set display_home = home_team_name %}
+                            {% set display_away = opponent_team_name %}
+                            {% else %}
+                            {% set display_home = opponent_team_name %}
+                            {% set display_away = home_team_name %}
                             {% endif %}
 
-                            <h6 class="small">Will you be able to attend this match?</h6>
-                            <!-- RSVP Form -->
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseYes-{{ match_id }}" value="yes">
-                                    <label class="form-check-label btn btn-outline-success" for="responseYes-{{ match_id }}">Yes</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseMaybe-{{ match_id }}" value="maybe">
-                                    <label class="form-check-label btn btn-outline-warning" for="responseMaybe-{{ match_id }}">Maybe</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input rsvp-input" type="radio" name="response-{{ match_id }}" id="responseNo-{{ match_id }}" value="no">
-                                    <label class="form-check-label btn btn-outline-danger" for="responseNo-{{ match_id }}">No</label>
+                            <div class="col-md-6 mb-2">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ display_home }} vs {{ display_away }}</h6>
+                                        <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
+                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
+
+                                        {% if current_user.has_permission('view_match_reporting') %}
+                                        <button class="btn btn-outline-primary w-100 edit-match-btn"
+                                                data-match-id="{{ match.id }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#reportMatchModal-{{ match.id }}">
+                                            {{ 'Edit Match' if match.reported else 'Report Match' }}
+                                        </button>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Include the Report Match Modal using the macro -->
+                            {{ macros.render_report_match_modal(player.team, match, home_team_name, opponent_team_name, player_choices) }}
+
+                            {% endfor %}
                         </div>
                     </div>
-                    {% include 'report_match_modal.html' %}
                     {% endfor %}
                 </div>
             </div>
-            {% endfor %}
         </div>
     </div>
     {% endif %}

@@ -6,7 +6,7 @@
     <div class="row g-4">
         <!-- Calendar Column -->
         <div class="col-lg-8">
-            <div class="card h-100">
+            <div class="card h-100 shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="card-title mb-0">Pub League Schedule Overview</h4>
                 </div>
@@ -18,7 +18,7 @@
 
         <!-- Referee List Column -->
         <div class="col-lg-4">
-            <div class="card h-100">
+            <div class="card h-100 shadow">
                 <div class="card-header bg-primary text-white">
                     <h4 class="card-title mb-0">Available Referees</h4>
                 </div>
@@ -34,7 +34,7 @@
 
 <!-- Referee Assignment Modal -->
 <div class="modal fade" id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form id="assignRefForm">
                 <div class="modal-header">
@@ -48,20 +48,20 @@
                     <!-- Match Details -->
                     <div class="mb-3">
                         <label for="matchDetails" class="form-label">Match Details</label>
-                        <textarea class="form-control" id="matchDetails" rows="3" readonly></textarea>
+                        <textarea class="form-control" id="matchDetails" rows="2" readonly></textarea>
                     </div>
 
                     <!-- Match Date and Time -->
                     <div class="mb-3">
                         <label class="form-label">Match Date and Time</label>
                         <div class="row">
-                            <div class="col-4">
+                            <div class="col-md-4 mb-2">
                                 <strong>Date:</strong> <span id="matchDate"></span>
                             </div>
-                            <div class="col-4">
+                            <div class="col-md-4 mb-2">
                                 <strong>Start:</strong> <span id="matchStartTime"></span>
                             </div>
-                            <div class="col-4">
+                            <div class="col-md-4 mb-2">
                                 <strong>End:</strong> <span id="matchEndTime"></span>
                             </div>
                         </div>
@@ -201,7 +201,7 @@
 
                 if (referees.length === 0) {
                     const noRef = document.createElement('li');
-                    noRef.classList.add('list-group-item');
+                    noRef.classList.add('list-group-item', 'text-center', 'text-muted');
                     noRef.textContent = 'No referees available.';
                     refList.appendChild(noRef);
                     return;
@@ -518,5 +518,17 @@
         .modal-body .row > div:last-child {
             padding-right: 0;
         }
+
+    /* Referee List Scroll */
+    #refereeList {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    /* Calendar Height */
+    #leagueCalendar {
+        max-height: 600px;
+        overflow: hidden;
+    }
 </style>
 {% endblock %}

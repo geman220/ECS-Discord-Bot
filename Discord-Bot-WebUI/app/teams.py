@@ -188,7 +188,7 @@ def process_events(match, data, event_type, add_key, remove_key):
 
     event_type_value = event_type.value  # Convert event_type to its value for comparison if needed
 
-    # First, process events to remove
+    # Process events to remove
     for event_data in events_to_remove:
         stat_id = event_data.get('stat_id')
         if stat_id:
@@ -202,7 +202,7 @@ def process_events(match, data, event_type, add_key, remove_key):
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found. Skipping removal.")
 
-    # Then, process events to add or update
+    # Process events to add or update
     for event_data in events_to_add:
         player_id = event_data.get('player_id')
         minute = event_data.get('minute')
@@ -305,7 +305,7 @@ def current_season_id():
 def team_details(team_id):
     team = Team.query.get_or_404(team_id)
     league = League.query.get(team.league_id)
-    season = league.season  # Assuming league.season gives the current season
+    season = league.season if league.season else None
     players = Player.query.filter_by(team_id=team_id).all()
 
     report_form = ReportMatchForm()
@@ -314,86 +314,6 @@ def team_details(team_id):
     player = getattr(current_user, 'player', None)
     user_team = player.team if player else None
 
-    grouped_matches = fetch_upcoming_matches(team, match_limit=None, include_past_matches=True) 
-
-    # Initialize player_choices_per_match as an empty dictionary
-    player_choices_per_match = {}
-
-    # Fetch the stats for each player for the current season using PlayerSeasonStats
-    player_stats = db.session.query(PlayerSeasonStats)\
-        .join(Player, PlayerSeasonStats.player_id == Player.id)\
-        .filter(
-            Player.team_id == team_id,
-            PlayerSeasonStats.season_id == season.id
-        ).all()
-
-    # Create a dictionary for easy access
-    stats_dict = {stats.player_id: stats for stats in player_stats}
-
-    # Assign stats to players
-    for player in players:
-        stats = stats_dict.get(player.id, None)
-        if stats:
-            player.goals_count = stats.goals or 0
-            player.assists_count = stats.assists or 0
-            player.yellow_cards_count = stats.yellow_cards or 0
-            player.red_cards_count = stats.red_cards or 0
-        else:
-            player.goals_count = 0
-            player.assists_count = 0
-            player.yellow_cards_count = 0
-            player.red_cards_count = 0
-
-    # Fetch matches related to the team, using the team to access the league
-    matches = Match.query.options(
-        selectinload(Match.home_team).selectinload(Team.players),
-        selectinload(Match.away_team).selectinload(Team.players)
-    ).filter(
-        (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
-        (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
-    ).order_by(Match.date.desc()).all()
-
-    # Assign result_class based on match outcome
-    for match in matches:
-        if match.home_team_id == team_id:
-            if (match.home_team_score or 0) > (match.away_team_score or 0):
-                match.result_class = 'success'  # Win
-            elif (match.home_team_score or 0) < (match.away_team_score or 0):
-                match.result_class = 'danger'   # Loss
-            else:
-                match.result_class = 'secondary'  # Draw
-        else:
-            if (match.away_team_score or 0) > (match.home_team_score or 0):
-                match.result_class = 'success'  # Win
-            elif (match.away_team_score or 0) < (match.home_team_score or 0):
-                match.result_class = 'danger'   # Loss
-            else:
-                match.result_class = 'secondary'  # Draw
-
-    # Calculate recent form
-    recent_form = ''.join([
-        'W' if match.result_class == 'success' else
-        'L' if match.result_class == 'danger' else
-        'D'
-        for match in matches
-    ]) or "N/A"
-
-    # Calculate average goals per match using PlayerSeasonStats
-    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals))\
-        .join(Player, PlayerSeasonStats.player_id == Player.id)\
-        .filter(
-            Player.team_id == team_id,
-            PlayerSeasonStats.season_id == season.id
-        ).scalar() or 0
-
-    matches_played = db.session.query(func.count(Match.id))\
-        .filter(
-            (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
-            (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
-        ).scalar() or 1
-
-    avg_goals_per_match = round(total_goals / matches_played, 2) if matches_played else 0
-
     # Fetch all matches for detailed schedule
     all_matches = Match.query.options(
         selectinload(Match.home_team).selectinload(Team.players),
@@ -401,7 +321,7 @@ def team_details(team_id):
     ).filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
         (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
-    ).order_by(Match.date.desc()).all()
+    ).order_by(Match.date.asc()).all()  # Changed to ascending order
 
     # Group the schedule by date
     schedule = defaultdict(list)
@@ -411,22 +331,49 @@ def team_details(team_id):
             opponent_name = match.away_team.name
             your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
             opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
-            result_class = 'success' if (match.home_team_score or 0) > (match.away_team_score or 0) else \
-                           'danger' if (match.home_team_score or 0) < (match.away_team_score or 0) else \
-                           'secondary'
-            opponent_team_name = match.away_team.name
+            if your_team_score != 'N/A' and opponent_score != 'N/A':
+                if your_team_score > opponent_score:
+                    result_text = 'W'
+                    result_class = 'success'  # Green
+                elif your_team_score < opponent_score:
+                    result_text = 'L'
+                    result_class = 'danger'  # Red
+                else:
+                    result_text = 'T'
+                    result_class = 'warning'  # Yellow
+            else:
+                result_text = '-'
+                result_class = 'secondary'  # Grey
             home_team_name = match.home_team.name
+            away_team_name = match.away_team.name
         else:
             opponent_name = match.home_team.name
             your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
             opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
-            result_class = 'success' if (match.away_team_score or 0) > (match.home_team_score or 0) else \
-                           'danger' if (match.away_team_score or 0) < (match.home_team_score or 0) else \
-                           'secondary'
-            opponent_team_name = match.home_team.name
+            if your_team_score != 'N/A' and opponent_score != 'N/A':
+                if your_team_score > opponent_score:
+                    result_text = 'W'
+                    result_class = 'success'
+                elif your_team_score < opponent_score:
+                    result_text = 'L'
+                    result_class = 'danger'
+                else:
+                    result_text = 'T'
+                    result_class = 'warning'
+            else:
+                result_text = '-'
+                result_class = 'secondary'
             home_team_name = match.away_team.name
+            away_team_name = match.home_team.name
 
         match.result_class = result_class  # Assign result_class to match object
+        match.result_text = result_text    # Assign result_text to match object
+
+        # Prepare display score
+        if your_team_score != 'N/A' and opponent_score != 'N/A':
+            display_score = f"{your_team_score} - {opponent_score}"
+        else:
+            display_score = '-'
 
         schedule[match.date].append({
             'id': match.id,
@@ -434,10 +381,14 @@ def team_details(team_id):
             'location': match.location,
             'opponent_name': opponent_name,
             'home_team_name': home_team_name,
-            'opponent_team_name': opponent_team_name,
+            'away_team_name': away_team_name,
+            'home_team_id': match.home_team_id,
+            'away_team_id': match.away_team_id,
             'your_team_score': your_team_score,
             'opponent_score': opponent_score,
             'result_class': result_class,
+            'result_text': result_text,       # New field
+            'display_score': display_score,   # New field
             'reported': match.reported,
             'home_players': match.home_team.players,
             'away_players': match.away_team.players
@@ -445,40 +396,34 @@ def team_details(team_id):
 
     # Prepare player choices for each match
     player_choices_per_match = {}
-    for date, matches in grouped_matches.items():
-        for match_data in matches:
-            match = match_data['match']
-            home_team_id = match_data['home_team_id']
-            opponent_team_id = match_data['opponent_team_id']
-        
-            # Rename variable here as well
-            match_players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
-        
+    for date, matches_on_date in schedule.items():
+        for match in matches_on_date:
+            home_team_id = match['home_team_id']
+            away_team_id = match['away_team_id']
+
+            match_players = Player.query.filter(Player.team_id.in_([home_team_id, away_team_id])).all()
+
             # Get team names
-            home_team_name = Team.query.get(home_team_id).name
-            opponent_team_name = Team.query.get(opponent_team_id).name
-        
+            home_team_name = match['home_team_name']
+            away_team_name = match['away_team_name']
+
             # Structure the players by team using team names
-            player_choices_per_match[match.id] = {
+            player_choices_per_match[match['id']] = {
                 home_team_name: {player.id: player.name for player in match_players if player.team_id == home_team_id},
-                opponent_team_name: {player.id: player.name for player in match_players if player.team_id == opponent_team_id}
+                away_team_name: {player.id: player.name for player in match_players if player.team_id == away_team_id}
             }
 
     return render_template(
         'team_details.html',
         report_form=report_form,
-        matches=matches,
         team=team,
         league=league,
         season=season,
-        players=players,  # Pass the players with their stats
-        recent_form=recent_form,
-        avg_goals_per_match=avg_goals_per_match,
-        grouped_matches=grouped_matches,
+        players=players,
+        schedule=schedule,
         player_choices=player_choices_per_match,
-        schedule=schedule  # Add schedule here
+        current_user=current_user  # Ensure current_user is passed if used in the template
     )
-
 @teams_bp.route('/')
 @login_required
 def teams_overview():

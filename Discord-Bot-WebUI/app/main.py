@@ -1,12 +1,14 @@
 # main.py
 from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify
 from flask_login import login_required, current_user
-from datetime import datetime
+from collections import defaultdict
+from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased
 from app import db
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
+from sqlalchemy import or_, func
 from app.decorators import role_required
 import logging
 import subprocess
@@ -201,45 +203,122 @@ def handle_profile_update(player, onboarding_form):
         flash('An error occurred while updating your profile. Please try again.', 'danger')
         logger.error(f"Error updating profile for user {current_user.id}: {e}")
 
-def fetch_upcoming_matches(team, match_limit=4, include_past_matches=False):
-    """Fetch and return upcoming matches for the specified team. Optionally include past matches."""
-    grouped_matches = defaultdict(list)
+def fetch_upcoming_matches(
+    team, 
+    match_limit=4, 
+    include_past_matches=False, 
+    start_date=None, 
+    end_date=None, 
+    order='asc', 
+    specific_day=None, 
+    per_day_limit=None
+):
+    """
+    Fetch and return matches for the specified team.
     
+    Parameters:
+    - team: Team object.
+    - match_limit: int, maximum number of matches to fetch.
+    - include_past_matches: bool, whether to include past matches.
+    - start_date: datetime.date, start of the date range.
+    - end_date: datetime.date, end of the date range.
+    - order: 'asc' or 'desc', ordering of matches by date.
+    - specific_day: int (0=Sunday, 6=Saturday in PostgreSQL), filter matches on this day of the week.
+    - per_day_limit: int, maximum number of matches per specific day.
+    
+    Returns:
+    - grouped_matches: defaultdict(list), matches grouped by date.
+    """
+    grouped_matches = defaultdict(list)
+    today = datetime.now().date()
+
     if team:
-        # Use joinedload to load the home_team and away_team relationships
+        # Define default date range if not provided
+        if not start_date:
+            if include_past_matches:
+                # For past matches: fetch the last 4 weeks
+                start_date = today - timedelta(weeks=4)
+            else:
+                # For upcoming matches: from today onwards
+                start_date = today
+        if not end_date:
+            if include_past_matches:
+                # For past matches: up to yesterday
+                end_date = today - timedelta(days=1)
+            else:
+                # For upcoming matches: next 4 weeks
+                end_date = today + timedelta(weeks=4)
+
+        # Define ordering
+        if order == 'asc':
+            order_by = [Match.date.asc(), Match.time.asc()]
+        else:
+            order_by = [Match.date.desc(), Match.time.desc()]
+        
+        # Base query
         query = (
             Match.query.options(
                 joinedload(Match.home_team),
                 joinedload(Match.away_team)
             )
-            .filter((Match.home_team_id == team.id) | (Match.away_team_id == team.id))
-            .order_by(Match.date.asc(), Match.time.asc())
+            .filter(
+                or_(
+                    Match.home_team_id == team.id,
+                    Match.away_team_id == team.id
+                ),
+                Match.date >= start_date,
+                Match.date <= end_date
+            )
+            .order_by(*order_by)
         )
         
-        # If include_past_matches is False, filter to get only upcoming matches
-        if not include_past_matches:
-            query = query.filter(Match.date >= datetime.now().date())
-
-        # Apply match limit if specified
-        if match_limit:
-            query = query.limit(match_limit)
-
+        # Apply specific day filter if provided
+        if specific_day is not None:
+            # Note: Adjust 'dow' extraction based on your DB's representation
+            # PostgreSQL: 0=Sunday, 6=Saturday
+            query = query.filter(func.extract('dow', Match.date) == specific_day)
+        
+        # Fetch all relevant matches
         matches = query.all()
+        
+        if specific_day is not None and per_day_limit is not None:
+            # Enforce per-day limit
+            day_count = defaultdict(int)  # Tracks count per date
 
-        for match in matches:
-            grouped_matches[match.date].append({
-                'match': match,
-                'home_team_name': match.home_team.name,
-                'opponent_name': match.away_team.name,
-                'home_team_id': match.home_team_id,
-                'opponent_team_id': match.away_team_id,
-                'home_players': [{'id': player.id, 'name': player.name} for player in match.home_team.players],
-                'opponent_players': [{'id': player.id, 'name': player.name} for player in match.away_team.players]
-            })
+            for match in matches:
+                match_date = match.date
+                if day_count[match_date] < per_day_limit:
+                    grouped_matches[match_date].append({
+                        'match': match,
+                        'home_team_name': match.home_team.name,
+                        'opponent_name': match.away_team.name,
+                        'home_team_id': match.home_team_id,
+                        'opponent_team_id': match.away_team_id,
+                        'home_players': [{'id': player.id, 'name': player.name} for player in match.home_team.players],
+                        'opponent_players': [{'id': player.id, 'name': player.name} for player in match.away_team.players]
+                    })
+                    day_count[match_date] += 1
+                # Continue until all matches are processed; no global limit
+        else:
+            # Apply match limit if specified
+            if match_limit:
+                matches = matches[:match_limit]
+            
+            # Group matches by date
+            for match in matches:
+                grouped_matches[match.date].append({
+                    'match': match,
+                    'home_team_name': match.home_team.name,
+                    'opponent_name': match.away_team.name,
+                    'home_team_id': match.home_team_id,
+                    'opponent_team_id': match.away_team_id,
+                    'home_players': [{'id': player.id, 'name': player.name} for player in match.home_team.players],
+                    'opponent_players': [{'id': player.id, 'name': player.name} for player in match.away_team.players]
+                })
     
     return grouped_matches
 
-# Home Route
+# Home
 @main.route('/', methods=['GET', 'POST'])
 @login_required
 def index():
@@ -317,12 +396,43 @@ def index():
             flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
             return redirect(url_for('main.index'))
 
-    # Fetch the user's team and upcoming matches, if applicable
+    # Fetch the user's team and matches, if applicable
     user_team = player.team if player else None
-    grouped_matches = fetch_upcoming_matches(user_team)
 
-    # Fetch previous 2 matches
-    previous_matches = fetch_upcoming_matches(user_team, match_limit=2, include_past_matches=True)
+    today = datetime.now().date()
+    two_weeks_later = today + timedelta(weeks=2)
+    one_week_ago = today - timedelta(weeks=1)
+    yesterday = today - timedelta(days=1)
+
+    # **Fetch Next Matches**:
+    # Requirements:
+    # - Next 2 weeks (4 matches total)
+    # - 2 matches per Sunday
+
+    # Determine the day number for Sunday based on PostgreSQL (0=Sunday)
+    sunday_dow = 0  # Adjust if using different DB; PostgreSQL uses 0=Sunday
+
+    next_matches = fetch_upcoming_matches(
+        team=user_team,
+        start_date=today,
+        end_date=two_weeks_later,
+        specific_day=sunday_dow,
+        per_day_limit=2,
+        order='asc'
+    )
+
+    # **Fetch Previous Matches**:
+    # Requirements:
+    # - Last week's 2 matches
+
+    previous_matches = fetch_upcoming_matches(
+        team=user_team,
+        start_date=one_week_ago,
+        end_date=yesterday,
+        match_limit=2,
+        include_past_matches=True,
+        order='desc'  # Latest past matches first
+    )
 
     # Fetch announcements to be displayed
     announcements = fetch_announcements()
@@ -330,22 +440,40 @@ def index():
     # Prepare player choices for each match
     player_choices_per_match = {}
 
-    # Combine grouped_matches and previous_matches
-    all_matches = {**grouped_matches, **previous_matches}
-
-    for date, matches in all_matches.items():
+    # Process Next Matches
+    for date_key, matches in next_matches.items():
         for match_data in matches:
             match = match_data['match']
             home_team_id = match_data['home_team_id']
             opponent_team_id = match_data['opponent_team_id']
-        
+
             # Fetch players from both teams
             players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
-        
+
             # Get team names
-            home_team_name = Team.query.get(home_team_id).name
-            opponent_team_name = Team.query.get(opponent_team_id).name
-        
+            home_team_name = match_data['home_team_name']
+            opponent_team_name = match_data['opponent_name']
+
+            # Structure the players by team using team names
+            player_choices_per_match[match.id] = {
+                home_team_name: {player.id: player.name for player in players if player.team_id == home_team_id},
+                opponent_team_name: {player.id: player.name for player in players if player.team_id == opponent_team_id}
+            }
+
+    # Process Previous Matches
+    for date_key, matches in previous_matches.items():
+        for match_data in matches:
+            match = match_data['match']
+            home_team_id = match_data['home_team_id']
+            opponent_team_id = match_data['opponent_team_id']
+
+            # Fetch players from both teams
+            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
+
+            # Get team names
+            home_team_name = match_data['home_team_name']
+            opponent_team_name = match_data['opponent_name']
+
             # Structure the players by team using team names
             player_choices_per_match[match.id] = {
                 home_team_name: {player.id: player.name for player in players if player.team_id == home_team_id},
@@ -359,9 +487,10 @@ def index():
         matches=matches,
         onboarding_form=onboarding_form,
         user_team=user_team,
-        grouped_matches=grouped_matches,
-        previous_matches=previous_matches,
+        next_matches=next_matches,  # Use next_matches
+        previous_matches=previous_matches,  # Use previous_matches
         current_year=current_year,
+        team=user_team,  # Pass the team object for identification
         player=player,
         is_linked_to_discord=player.discord_id is not None if player else False,
         discord_server_link="https://discord.gg/weareecs",
