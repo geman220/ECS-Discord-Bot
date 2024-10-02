@@ -792,15 +792,16 @@ def view_players():
 
     # If there is a search term, apply filters to the queries
     if search_term:
+        # Join with User to access email, but keep other filters on Player
         search_filter = (
-            Player.name.ilike(f'%{search_term}%') |
-            Player.email.ilike(f'%{search_term}%') |
-            Player.phone.ilike(f'%{search_term}%') |
-            Player.jersey_size.ilike(f'%{search_term}%')
+            Player.name.ilike(f'%{search_term}%') |  # Search by Player's name
+            User.email.ilike(f'%{search_term}%') |   # Search by User's email
+            Player.phone.ilike(f'%{search_term}%') |  # Search by Player's phone
+            Player.jersey_size.ilike(f'%{search_term}%')  # Search by Player's jersey size
         )
-        classic_query = classic_query.filter(search_filter)
-        premier_query = premier_query.filter(search_filter)
-        ecsfc_query = ecsfc_query.filter(search_filter)
+        classic_query = classic_query.join(User).filter(search_filter)  # Join User for email search
+        premier_query = premier_query.join(User).filter(search_filter)  # Join User for email search
+        ecsfc_query = ecsfc_query.join(User).filter(search_filter)      # Join User for email search
 
     # Paginate the results
     classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
