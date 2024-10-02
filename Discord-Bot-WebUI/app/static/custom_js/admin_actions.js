@@ -11,7 +11,6 @@ function toggleRole(role, playerId) {
             role: role,
             value: isChecked,
             csrf_token: csrfToken,
-            # Add a hidden field or identifier to specify the role update action
             update_role: 1
         },
         beforeSend: function () {

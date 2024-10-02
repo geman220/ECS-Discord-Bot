@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tourVar.addStep({
         title: 'Announcements! \uD83D\uDCE2',
         text: 'You can see new announcements here.',
-        attachTo: { element: '#announcements-card', on: 'top' },
+        attachTo: { element: '#announcementsCarousel', on: 'top' },
         buttons: [
             {
                 text: 'Next',
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tourVar.addStep({
         title: 'Profile',
         text: 'You can view and update your profile here.',
-        attachTo: { element: '#profile-card', on: 'top' },
+        attachTo: { element: '#playerProfile', on: 'top' },
         buttons: [
             {
                 text: 'Next',
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tourVar.addStep({
         title: 'Team Page',
         text: 'You can find your teammates here.',
-        attachTo: { element: '#team-card', on: 'top' },
+        attachTo: { element: '#teamOverview', on: 'top' },
         buttons: [
             {
                 text: 'Next',
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
     tourVar.addStep({
         title: 'Matches',
         text: 'You can view and RSVP to your upcomming matches here.',
-        attachTo: { element: '#match-card', on: 'top' },
+        attachTo: { element: '#matchOverview', on: 'top' },
         buttons: [
             {
                 text: 'Next',

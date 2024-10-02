@@ -132,7 +132,7 @@
                 <div class="card-header bg-info text-white d-flex align-items-center">
                     <h5 class="card-title mb-0">Your Profile</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="playerProfile">
                     {% if player %}
                     <div class="d-flex align-items-center">
                         <div class="avatar me-3">
@@ -161,7 +161,7 @@
                 <div class="card-header bg-success text-white">
                     <h5 class="card-title mb-0">Your Team</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="teamOverview">
                     {% if player and player.team %}
                     <div class="d-flex align-items-center">
                         <div class="icon-container me-3">
@@ -197,7 +197,7 @@
                 <div class="card-header bg-warning text-white">
                     <h5 class="card-title mb-0">Next Matches</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body" id="matchOverview">
                     {% for date, matches in next_matches.items() %}
                     <div class="mb-3">
                         <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
