@@ -1,0 +1,222 @@
+{% macro render_report_match_modal(team, match, home_team_name, opponent_team_name, player_choices) %}
+<div class="modal fade"
+     id="reportMatchModal-{{ match.id }}"
+     tabindex="-1"
+     role="dialog"
+     aria-labelledby="reportMatchModalLabel-{{ match.id }}"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="reportMatchModalLabel-{{ match.id }}">
+                    <i data-feather="edit" class="me-2"></i>
+                    {{ 'Edit' if match.reported else 'Report' }} Match: {{ home_team_name }} vs {{ opponent_team_name }}
+                </h5>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+
+            <!-- Modal Body -->
+            <form id="reportMatchForm-{{ match.id }}" class="report-match-form" data-match-id="{{ match.id }}" action="{{ url_for('teams.report_match', match_id=match.id) }}" method="POST">
+                <div class="modal-body">
+                    <!-- CSRF Token -->
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <!-- Home and Away Team Scores -->
+                    <div class="row mb-4">
+                        <!-- Home Team Score -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="home_team_score-{{ match.id }}" class="form-label">{{ home_team_name }} Score</label>
+                                <input type="number"
+                                       min="0"
+                                       class="form-control"
+                                       id="home_team_score-{{ match.id }}"
+                                       name="home_team_score"
+                                       value="{{ match.home_team_score }}" {# Pre-fill if editing #}
+                                       required />
+                            </div>
+                        </div>
+                        <!-- Away Team Score -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="away_team_score-{{ match.id }}" class="form-label">{{ opponent_team_name }} Score</label>
+                                <input type="number"
+                                       min="0"
+                                       class="form-control"
+                                       id="away_team_score-{{ match.id }}"
+                                       name="away_team_score"
+                                       value="{{ match.away_team_score }}" {# Pre-fill if editing #}
+                                       required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goal Scorers -->
+                    <div class="mb-4">
+                        <label class="form-label">Goal Scorers</label>
+                        <div class="card p-3 border-1 shadow-sm">
+                            <div id="goalScorersContainer-{{ match.id }}" class="mb-2">
+                                {% for scorer in match.goal_scorers %}
+                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ scorer.id }}">
+                                    <input type="hidden" name="goal_scorers-stat_id[]" value="{{ scorer.id }}">
+                                    <select class="form-select" name="goal_scorers-player_id[]">
+                                        {% for team_name, players in player_choices[match.id].items() %}
+                                        <optgroup label="{{ team_name }}">
+                                            {% for player_id, player_name in players.items() %}
+                                            <option value="{{ player_id }}" {% if scorer.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="goal_scorers-minute[]" placeholder="Minute" value="{{ scorer.minute }}">
+                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-primary btn-sm"
+                                    type="button"
+                                    onclick="addEvent('{{ match.id }}', 'goalScorersContainer-{{ match.id }}')">
+                                <i data-feather="plus" class="me-1"></i> Add Goal Scorer
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Assist Providers -->
+                    <div class="mb-4">
+                        <label class="form-label">Assist Providers</label>
+                        <div class="card p-3 border-1 shadow-sm">
+                            <div id="assistProvidersContainer-{{ match.id }}" class="mb-2">
+                                {% for assist in match.assist_providers %}
+                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ assist.id }}">
+                                    <input type="hidden" name="assist_providers-stat_id[]" value="{{ assist.id }}">
+                                    <select class="form-select" name="assist_providers-player_id[]">
+                                        {% for team_name, players in player_choices[match.id].items() %}
+                                        <optgroup label="{{ team_name }}">
+                                            {% for player_id, player_name in players.items() %}
+                                            <option value="{{ player_id }}" {% if assist.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="assist_providers-minute[]" placeholder="Minute" value="{{ assist.minute }}">
+                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-primary btn-sm"
+                                    type="button"
+                                    onclick="addEvent('{{ match.id }}', 'assistProvidersContainer-{{ match.id }}')">
+                                <i data-feather="plus" class="me-1"></i> Add Assist Provider
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Yellow Cards -->
+                    <div class="mb-4">
+                        <label class="form-label">Yellow Cards</label>
+                        <div class="card p-3 border-1 shadow-sm">
+                            <div id="yellowCardsContainer-{{ match.id }}" class="mb-2">
+                                {% for card in match.yellow_cards %}
+                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ card.id }}">
+                                    <input type="hidden" name="yellow_cards-stat_id[]" value="{{ card.id }}">
+                                    <select class="form-select" name="yellow_cards-player_id[]">
+                                        {% for team_name, players in player_choices[match.id].items() %}
+                                        <optgroup label="{{ team_name }}">
+                                            {% for player_id, player_name in players.items() %}
+                                            <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="yellow_cards-minute[]" placeholder="Minute" value="{{ card.minute }}">
+                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-primary btn-sm"
+                                    type="button"
+                                    onclick="addEvent('{{ match.id }}', 'yellowCardsContainer-{{ match.id }}')">
+                                <i data-feather="plus" class="me-1"></i> Add Yellow Card
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Red Cards -->
+                    <div class="mb-4">
+                        <label class="form-label">Red Cards</label>
+                        <div class="card p-3 border-1 shadow-sm">
+                            <div id="redCardsContainer-{{ match.id }}" class="mb-2">
+                                {% for card in match.red_cards %}
+                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ card.id }}">
+                                    <input type="hidden" name="red_cards-stat_id[]" value="{{ card.id }}">
+                                    <select class="form-select" name="red_cards-player_id[]">
+                                        {% for team_name, players in player_choices[match.id].items() %}
+                                        <optgroup label="{{ team_name }}">
+                                            {% for player_id, player_name in players.items() %}
+                                            <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="number" class="form-control" name="red_cards-minute[]" placeholder="Minute" value="{{ card.minute }}">
+                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-primary btn-sm"
+                                    type="button"
+                                    onclick="addEvent('{{ match.id }}', 'redCardsContainer-{{ match.id }}')">
+                                <i data-feather="plus" class="me-1"></i> Add Red Card
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Match Notes -->
+                    <div class="mb-4">
+                        <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
+                        <textarea class="form-control" id="match_notes-{{ match.id }}" name="match_notes" rows="3">{{ match.notes }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}">
+                        {{ 'Save Changes' if match.reported else 'Submit Report' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_player_item(player, current_user, season) %}
+<li class="list-group-item d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="d-flex align-items-center text-decoration-none">
+        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle border" style="width: 50px; height: 50px; margin-right: 15px;">
+        <span>{{ player.name }}</span>
+        {% if player.is_coach %}
+        <span class="badge bg-secondary ms-2">C</span>
+        {% endif %}
+        {% if player.is_ref %}
+        <!-- Use a valid Boxicons class for Referee -->
+        <i class="bx bx-user-check" title="Referee"></i>
+        {% endif %}
+    </a>
+    <div>
+        {% if current_user.has_permission('view_player_goals_assists') %}
+        <span class="badge bg-light text-dark"><i class="bx bx-football"></i> {{ player.season_goals(season.id) }}</span>
+        <span class="badge bg-light text-dark"><i class="bx bx-football"></i> <i class="bx bx-right-arrow-alt"></i> {{ player.season_assists(season.id) }}</span>
+        {% endif %}
+        {% if current_user.has_permission('view_player_cards') %}
+        <span class="badge bg-light text-dark"><i class="bx bxs-square text-warning"></i> {{ player.season_yellow_cards(season.id) }}</span>
+        <span class="badge bg-light text-dark"><i class="bx bxs-square text-danger"></i> {{ player.season_red_cards(season.id) }}</span>
+        {% endif %}
+    </div>
+</li>
+{% endmacro %}

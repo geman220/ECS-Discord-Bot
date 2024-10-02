@@ -1,7 +1,5 @@
 // report_match.js
 
-// Assuming playerChoices and initialEvents are defined elsewhere and contain the necessary data.
-
 // Function to create player options grouped by team
 function createPlayerOptions(matchId) {
     let options = '<option value="" selected>Select a player</option>';
@@ -19,72 +17,61 @@ function createPlayerOptions(matchId) {
 
 // Function to get the container ID based on event type
 function getContainerId(eventType, matchId) {
-    if (!matchId) {
-        console.error("Match ID is undefined!");
-        return '';
+    let containerId;
+    if (eventType === 'goal_scorers') {
+        containerId = 'goalScorersContainer-' + matchId;
+    } else if (eventType === 'assist_providers') {
+        containerId = 'assistProvidersContainer-' + matchId;
+    } else if (eventType === 'yellow_cards') {
+        containerId = 'yellowCardsContainer-' + matchId;
+    } else if (eventType === 'red_cards') {
+        containerId = 'redCardsContainer-' + matchId;
     }
-    switch (eventType) {
-        case 'goal_scorers':
-            return `goalScorersContainer-${matchId}`;
-        case 'assist_providers':
-            return `assistProvidersContainer-${matchId}`;
-        case 'yellow_cards':
-            return `yellowCardsContainer-${matchId}`;
-        case 'red_cards':
-            return `redCardsContainer-${matchId}`;
-        default:
-            return '';
-    }
+    return containerId;
 }
 
 // Function to add a new event entry
-function addEvent(matchId, eventType, statId = null) {
-    var container = $('#' + getContainerId(eventType, matchId));
-    if (!container.length) {
-        console.error(`Container not found for event type: ${eventType} and match ID: ${matchId}`);
-        return;
-    }
+function addEvent(matchId, containerId, statId = null, playerId = null, minute = null) {
+    var containerSelector = '#' + containerId;
 
-    // Generate a unique ID for the event
+    // Generate a unique ID for the event if not provided
     var uniqueId = statId ? String(statId) : 'new-' + Date.now() + '-' + Math.random();
 
-    // Ensure statId is a string if provided
-    var statIdValue = statId ? String(statId) : '';
+    // Get the base name for input fields
+    var baseName = containerId.split('Container-')[0];
 
-    var newForm = `
-        <div class="player-event-entry mb-2" data-stat-id="${statIdValue}" data-unique-id="${uniqueId}">
-            <input type="hidden" name="${eventType}-${uniqueId}-stat_id" value="${statIdValue}">
-            <div class="row">
-                <div class="col-md-6">
-                    <label class="form-label">Player</label>
-                    <select name="${eventType}-${uniqueId}-player_id" class="form-select" required>
-                        ${createPlayerOptions(matchId)}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Minute (Optional)</label>
-                    <input type="number" name="${eventType}-${uniqueId}-minute" class="form-control" placeholder="Minute (Optional)">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-danger btn-sm remove-event-button">
-                        <i data-feather="trash-2"></i> Remove
-                    </button>
-                </div>
-            </div>
-        </div>`;
+    // Define the new input group with appropriate naming conventions and data attributes
+    var newInputGroup = `
+        <div class="input-group mb-2 player-event-entry" data-unique-id="${uniqueId}">
+            <input type="hidden" name="${baseName}-stat_id[]" value="${statId ? statId : ''}">
+            <select class="form-select" name="${baseName}-player_id[]">
+                ${createPlayerOptions(matchId)}
+            </select>
+            <input type="number" class="form-control" name="${baseName}-minute[]" placeholder="Minute" value="${minute ? minute : ''}">
+            <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+        </div>
+    `;
 
-    container.append(newForm);
-    console.log(`Added new event entry for Match ID: ${matchId}, Event Type: ${eventType}, Stat ID: ${statIdValue || 'null'}, Unique ID: ${uniqueId}`);
+    // Append the new input group to the container
+    $(containerSelector).append(newInputGroup);
 
-    // Initialize Feather Icons for new icons
+    // Set the selected player if provided
+    if (playerId) {
+        const lastAddedEntry = $(containerSelector).children().last();
+        lastAddedEntry.find(`select[name="${baseName}-player_id[]"]`).val(playerId);
+    }
+
+    // Re-initialize Feather icons if necessary
     if (feather) {
         feather.replace();
     }
+
+    console.log(`Added new event entry to ${containerId}:`, newInputGroup);
 }
 
 // Function to remove an event entry
 function removeEvent(button) {
-    const eventEntry = $(button).closest('.player-event-entry');
+    const eventEntry = $(button).closest('.input-group');
     Swal.fire({
         title: 'Are you sure?',
         text: "Do you want to remove this event entry?",
@@ -104,10 +91,6 @@ function removeEvent(button) {
         }
     });
 }
-
-$(document).on('click', '.remove-event-button', function () {
-    removeEvent(this);
-});
 
 // Define initialEvents as an object to store initial events per matchId
 let initialEvents = {};
@@ -169,34 +152,22 @@ $(document).on('click', '.edit-match-btn', function () {
 
             // Populate the modal with existing events
             response.goal_scorers.forEach(function (goal) {
-                addEvent(matchId, 'goal_scorers', goal.id); // Pass statId
-                const lastAddedEntry = $('#goalScorersContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name^="goal_scorers-"][name$="-player_id"]`).val(goal.player_id);
-                lastAddedEntry.find(`input[type="number"][name^="goal_scorers-"][name$="-minute"]`).val(goal.minute);
+                addEvent(matchId, 'goalScorersContainer-' + matchId, goal.id, goal.player_id, goal.minute);
                 console.log(`Added goal scorer: Player ID ${goal.player_id}, Minute ${goal.minute}, Stat ID: ${goal.id}`);
             });
 
             response.assist_providers.forEach(function (assist) {
-                addEvent(matchId, 'assist_providers', assist.id); // Pass statId
-                const lastAddedEntry = $('#assistProvidersContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name="assist_providers-${assist.id}-player_id"]`).val(assist.player_id);
-                lastAddedEntry.find(`input[name="assist_providers-${assist.id}-minute"]`).val(assist.minute);
+                addEvent(matchId, 'assistProvidersContainer-' + matchId, assist.id, assist.player_id, assist.minute);
                 console.log(`Added assist provider: Player ID ${assist.player_id}, Minute ${assist.minute}, Stat ID: ${assist.id}`);
             });
 
             response.yellow_cards.forEach(function (yellow) {
-                addEvent(matchId, 'yellow_cards', yellow.id); // Pass statId
-                const lastAddedEntry = $('#yellowCardsContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name="yellow_cards-${yellow.id}-player_id"]`).val(yellow.player_id);
-                lastAddedEntry.find(`input[name="yellow_cards-${yellow.id}-minute"]`).val(yellow.minute);
+                addEvent(matchId, 'yellowCardsContainer-' + matchId, yellow.id, yellow.player_id, yellow.minute);
                 console.log(`Added yellow card: Player ID ${yellow.player_id}, Minute ${yellow.minute}, Stat ID: ${yellow.id}`);
             });
 
             response.red_cards.forEach(function (red) {
-                addEvent(matchId, 'red_cards', red.id); // Pass statId
-                const lastAddedEntry = $('#redCardsContainer-' + matchId).children().last();
-                lastAddedEntry.find(`select[name="red_cards-${red.id}-player_id"]`).val(red.player_id);
-                lastAddedEntry.find(`input[name="red_cards-${red.id}-minute"]`).val(red.minute);
+                addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute);
                 console.log(`Added red card: Player ID ${red.player_id}, Minute ${red.minute}, Stat ID: ${red.id}`);
             });
 
@@ -273,28 +244,25 @@ $(document).on('submit', '.report-match-form', function (e) {
 function getFinalEvents(matchId, eventType) {
     let events = [];
     let containerId = getContainerId(eventType, matchId);
-    $(`#${containerId}`).find('.player-event-entry').each(function () {
-        let hiddenInput = $(this).find('input[type="hidden"][name$="-stat_id"]');
-        let statIdValue = hiddenInput.val();
-        let statId = statIdValue ? String(statIdValue) : null;
-        let playerId = $(this).find(`select[name^="${eventType}-"][name$="-player_id"]`).val();
-        let minuteInput = $(this).find(`input[name^="${eventType}-"][name$="-minute"]`).val();
-        let minute = minuteInput !== '' ? minuteInput : null;
+    let baseName = containerId.split('Container-')[0];
 
-        // Get the unique_id and convert to string
+    $(`#${containerId}`).find('.player-event-entry').each(function () {
+        let statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
+        let playerId = $(this).find(`select[name="${baseName}-player_id[]"]`).val();
+        let minute = $(this).find(`input[name="${baseName}-minute[]"]`).val();
         let uniqueId = $(this).attr('data-unique-id');
 
-        // Convert playerId to string
+        // Convert values to strings or null
+        statId = statId ? String(statId) : null;
         playerId = playerId ? String(playerId) : null;
+        minute = minute ? String(minute) : null;
 
         // Add detailed debugging statements
         console.log('Event Entry:', {
             uniqueId: uniqueId,
             statId: statId,
             playerId: playerId,
-            minute: minute,
-            hiddenInputName: hiddenInput.attr('name'),
-            hiddenInputValue: hiddenInput.val()
+            minute: minute
         });
 
         events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
@@ -306,7 +274,7 @@ function getFinalEvents(matchId, eventType) {
 function eventExists(event, eventsArray) {
     console.log('Comparing events:', {
         eventStatId: event.stat_id,
-        arrayStatId: eventsArray.map(e => e.stat_id),
+        arrayStatIds: eventsArray.map(e => e.stat_id),
         eventUniqueId: event.unique_id,
         arrayUniqueIds: eventsArray.map(e => e.unique_id)
     });
@@ -325,7 +293,7 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
     const homeTeamScore = $('#home_team_score-' + matchId).val();
     const awayTeamScore = $('#away_team_score-' + matchId).val();
     const notes = $('#match_notes-' + matchId).val();
-    var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    var csrfToken = $('input[name="csrf_token"]').val();
 
     // Log the data being sent
     console.log('Data being sent to server:', {
@@ -346,7 +314,7 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
         url: `/teams/report_match/${matchId}`,
         method: 'POST',
         contentType: 'application/json',
-        dataType: 'json',  // Expect JSON response
+        dataType: 'json',
         headers: {
             'X-CSRFToken': csrfToken
         },
@@ -384,7 +352,8 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                     'success'
                 ).then(() => {
                     // Optionally, close the modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById(`reportMatchModal-${matchId}`));
+                    const modalElement = document.getElementById(`reportMatchModal-${matchId}`);
+                    const modal = bootstrap.Modal.getInstance(modalElement);
                     modal.hide();
 
                     // Optionally, reload the page to reflect changes

@@ -1,79 +1,92 @@
 {% extends "base.html" %}
 
 {% block main_content %}
-<div class="container-fluid">
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Available Players Section -->
     <div class="row mb-4">
-        <!-- Available Players Section -->
         <div class="col-lg-8">
-            <h3 class="h3 mb-3 text-gray-800">Available Players (<span id="available-players-count">{{ available_players | length }}</span>)</h3>
+            <h4 class="fw-bold py-3 mb-4">
+                Available Players (<span id="available-players-count">{{ available_players | length }}</span>)
+            </h4>
 
             <!-- Search Input Field -->
-            <input type="text" id="search-player" class="form-control mb-3" placeholder="Search for a player...">
+            <div class="mb-3">
+                <div class="input-group input-group-merge">
+                    <span class="input-group-text"><i class="bx bx-search"></i></span>
+                    <input type="text" id="search-player" class="form-control" placeholder="Search for a player...">
+                </div>
+            </div>
 
             <!-- Player Table -->
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Goals</th>
-                            <th>Assists</th>
-                            <th>Yellow Cards</th>
-                            <th>Red Cards</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="available-players">
-                        {% for player in available_players %}
-                        <tr id="player-{{ player.id }}">
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="player-photo rounded-circle">
-                                    <div class="ml-3">
-                                        <h5 class="mb-0 player-name">{{ player.name }}</h5>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Player</th>
+                                <th>Goals</th>
+                                <th>Assists</th>
+                                <th>Yellow Cards</th>
+                                <th>Red Cards</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="available-players">
+                            {% for player in available_players %}
+                            <tr id="player-{{ player.id }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar avatar-md">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle">
+                                        </div>
+                                        <div class="ms-3">
+                                            <h6 class="mb-0 player-name">{{ player.name }}</h6>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>{{ player.get_career_goals() }}</td>
-                            <td>{{ player.get_career_assists() }}</td>
-                            <td>{{ player.get_career_yellow_cards() }}</td>
-                            <td>{{ player.get_career_red_cards() }}</td>
-                            <td>
-                                <button class="btn btn-outline-warning btn-sm" onclick="viewProfile('{{ player.id }}')">More Info</button>
-                                <button class="btn btn-outline-success btn-sm" onclick="openDraftModal('{{ player.id }}', '{{ player.name }}')">Draft</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </td>
+                                <td>{{ player.get_career_goals() }}</td>
+                                <td>{{ player.get_career_assists() }}</td>
+                                <td>{{ player.get_career_yellow_cards() }}</td>
+                                <td>{{ player.get_career_red_cards() }}</td>
+                                <td>
+                                    <button class="btn btn-icon btn-outline-warning btn-sm" onclick="viewProfile('{{ player.id }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="More Info">
+                                        <i class="bx bx-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-outline-success btn-sm" onclick="openDraftModal('{{ player.id }}', '{{ player.name }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Draft Player">
+                                        <i class="bx bx-user-plus"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
         <!-- Teams Section -->
         <div class="col-lg-4">
-            <h3 class="h3 mb-3 text-gray-800">Teams</h3>
-            <div class="accordion" id="teamsAccordion">
+            <h4 class="fw-bold py-3 mb-4">Teams</h4>
+            <div class="accordion accordion-flush" id="teamsAccordion">
                 {% for team in teams %}
                 {% if team.name != "Practice" %}
-                <div class="card">
-                    <div class="card-header d-flex align-items-center justify-content-between" id="heading{{ team.id }}">
-                        <h5 class="mb-0">
-                            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ team.id }}" aria-expanded="true" aria-controls="collapse{{ team.id }}">
-                                {{ team.name }}
-                            </button>
-                        </h5>
-                        <ul class="list-unstyled avatar-group d-flex align-items-center m-0">
-                            {% for player in drafted_players_by_team[team.id] %}
-                            <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top" class="avatar avatar-xs pull-up" title="{{ player.name }}">
-                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle">
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div id="collapse{{ team.id }}" class="collapse" aria-labelledby="heading{{ team.id }}" data-bs-parent="#teamsAccordion">
-                        <div class="card-body">
-                            <table class="table">
-                                <thead>
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ team.id }}">
+                        <button class="accordion-button collapsed d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ team.id }}" aria-expanded="false" aria-controls="collapse{{ team.id }}">
+                            {{ team.name }}
+                            <div class="avatar-group flex-wrap ms-3">
+                                {% for player in drafted_players_by_team[team.id] %}
+                                <div class="avatar avatar-xs me-1 mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ player.name }}">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ team.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ team.id }}" data-bs-parent="#teamsAccordion">
+                        <div class="accordion-body">
+                            <table class="table mb-0">
+                                <thead class="table-light">
                                     <tr>
                                         <th>Player</th>
                                         <th>Actions</th>
@@ -82,13 +95,19 @@
                                 <tbody id="drafted-players-{{ team.id }}">
                                     {% for player in drafted_players_by_team[team.id] %}
                                     <tr id="drafted-player-{{ player.id }}">
-                                        <td class="d-flex align-items-center">
-                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="player-photo-small mr-2">
-                                            <a href="#" class="player-name-link" onclick="viewProfile('{{ player.id }}')">{{ player.name }}</a>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm">
+                                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle">
+                                                </div>
+                                                <div class="ms-2">
+                                                    <a href="#" class="fw-semibold player-name-link" onclick="viewProfile('{{ player.id }}')">{{ player.name }}</a>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td>
-                                            <button class="btn btn-outline-warning btn-sm" onclick="removePlayer('{{ player.id }}', '{{ team.id }}')">
-                                                <i class="fas fa-undo-alt"></i> Release
+                                            <button class="btn btn-icon btn-outline-danger btn-sm" onclick="removePlayer('{{ player.id }}', '{{ team.id }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Release Player">
+                                                <i class="bx bx-user-minus"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -110,7 +129,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="draftModalLabel">Draft Player</h5>
+                <h5 class="modal-title">Draft Player</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -124,7 +143,7 @@
                 </select>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="draftPlayer()">Draft Player</button>
             </div>
         </div>
@@ -133,111 +152,94 @@
 
 <!-- Player Profile Modal -->
 <div class="modal fade" id="playerProfileModal" tabindex="-1" aria-labelledby="playerProfileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="playerProfileModalLabel">Player Profile</h5>
+                <h5 class="modal-title">Player Profile</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="playerProfileContent" class="text-center">
+                <div id="playerProfileContent">
                     <!-- Profile content will be dynamically loaded here -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Custom styles for draft page -->
+{% block custom_css %}
 <style>
+    /* Adjust the avatar group to allow wrapping into two rows */
     .avatar-group {
         display: flex;
-        flex-wrap: wrap; /* Allows avatars to wrap into rows */
-        justify-content: flex-end; /* Aligns avatars to the right for better alignment with the team name */
-        gap: 2px; /* Space between avatars */
-        max-width: calc(100% - 120px); /* Restricts the width to allow space for the team name */
-        margin-left: auto; /* Pushes the avatars group to the right of the team name */
+        flex-wrap: wrap;
+        gap: 4px; /* Space between avatars */
+        max-height: 70px; /* Adjust as needed for two rows */
+        overflow: hidden;
     }
 
-    .avatar-group .avatar {
-        flex: 0 0 auto; /* Prevent shrinking */
-        width: 28px; /* Slightly smaller for better fit */
-        height: 28px;
-        margin-bottom: 2px;
+        /* Ensure avatars are evenly spaced and wrapped */
+        .avatar-group .avatar {
+            flex: 0 0 auto;
+        }
+
+            /* Optional: Style for tooltips */
+            .avatar-group .avatar img {
+                width: 32px;
+                height: 32px;
+            }
+
+    /* Responsive adjustments if needed */
+    @media (max-width: 768px) {
+        .avatar-group {
+            max-height: 100px; /* More space for smaller screens */
+        }
+
+            .avatar-group .avatar img {
+                width: 28px;
+                height: 28px;
+            }
     }
 
-    .avatar-group .avatar img {
-        border-radius: 50%; /* Circular avatars */
-        width: 100%;
-        height: 100%;
-    }
-
-    .player-photo {
-        width: 40px; /* Reduced to 40px for better responsiveness */
-        height: 40px;
-        object-fit: cover;
-        border-radius: 50%;
-        margin-right: 15px;
-    }
-
-    .player-photo-small {
-        width: 30px; /* Smaller size for collapsed views or tighter spaces */
-        height: 30px;
-        object-fit: cover;
-        border-radius: 50%;
-        margin-right: 10px;
-    }
-
-    .team-logo {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-    }
-
+    /* Additional Styling for Player Profile Modal */
     .profile-image {
-        width: 100px; /* Adjusted for better fit in the modal */
-        height: 100px;
+        width: 150px; /* Increased size */
+        height: 150px;
         object-fit: cover;
         border-radius: 50%;
         margin: 0 auto;
+        display: block;
     }
 
-    /* General responsive table styling */
-    .table-responsive {
-        overflow-x: auto;
+    /* Ensure avatar images are not stretched */
+    .avatar img {
+        object-fit: cover;
     }
 
-    /* Responsive table for smaller screens */
-    @media (max-width: 1024px) {
-        .table th, .table td {
-            font-size: 0.875rem; /* Smaller text for better fit */
-            padding: 0.5rem;
-        }
+    /* Center text in the Player Profile Modal */
+    #playerProfileContent .text-center {
+        text-align: center;
+    }
 
-        .card-header h5 {
-            font-size: 1rem; /* Adjust header size in team cards */
-        }
-
-        .card-body {
-            padding: 0.5rem; /* Reduce padding for better use of space */
-        }
-
-        .btn {
-            padding: 0.25rem 0.5rem; /* Make buttons smaller */
-            font-size: 0.875rem;
-        }
+    /* Add some spacing around player notes */
+    #playerProfileContent .player-notes {
+        margin-top: 20px;
     }
 </style>
 {% endblock %}
 
 {% block custom_js %}
 <script>
+    // Initialize Socket.IO
+    var socket = io();
+
     var selectedPlayerId = null;
-    var protocol = window.location.protocol === "https:" ? "wss" : "ws";  // Detect WebSocket protocol
-    var socket = io.connect(protocol + '://' + document.domain + ':' + location.port);
+
+    // Initialize all tooltips on page load
+    $(document).ready(function () {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
 
     // Search players
     document.getElementById('search-player').addEventListener('keyup', function () {
@@ -262,17 +264,30 @@
     }
 
     // Open Draft Modal
-    function openDraftModal(playerId, playerName) {
+    window.openDraftModal = function (playerId, playerName) {
         selectedPlayerId = playerId;
         document.getElementById('draft-player-name').textContent = playerName;
-        $('#draftModal').modal('show');
+        var draftModal = new bootstrap.Modal(document.getElementById('draftModal'), {
+            keyboard: false
+        });
+        draftModal.show();
     }
 
     // Draft Player
-    function draftPlayer() {
+    window.draftPlayer = function () {
         var teamId = document.getElementById('team-select').value;
+        if (!teamId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Team Selected',
+                text: 'Please select a team to draft the player.'
+            });
+            return;
+        }
+
         socket.emit('draft_player', { 'player_id': selectedPlayerId, 'team_id': teamId });
-        $('#draftModal').modal('hide');
+        var draftModal = bootstrap.Modal.getInstance(document.getElementById('draftModal'));
+        draftModal.hide();
     }
 
     // Handle player drafted event
@@ -285,40 +300,69 @@
 
         sortPlayersAlphabetically();
         updateAvailablePlayersCount();
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Player Drafted',
+            text: `${data.player_name} has been drafted to ${data.team_name}.`,
+            timer: 3000,
+            showConfirmButton: false
+        });
     });
 
     function addPlayerToTeam(teamId, playerId, profilePictureUrl, playerName) {
         var draftedPlayerElement = document.createElement('tr');
         draftedPlayerElement.id = 'drafted-player-' + playerId;
         draftedPlayerElement.innerHTML = `
-            <td class="d-flex align-items-center">
-                <img src="${profilePictureUrl || '/static/img/default_player.png'}" alt="${playerName}" class="player-photo-small mr-2">
-                <a href="#" class="player-name-link" onclick="viewProfile('${playerId}')">${playerName}</a>
+            <td>
+                <div class="d-flex align-items-center">
+                    <div class="avatar avatar-sm">
+                        <img src="${profilePictureUrl || '/static/img/default_player.png'}" alt="${playerName}" class="rounded-circle">
+                    </div>
+                    <div class="ms-2">
+                        <a href="#" class="fw-semibold player-name-link" onclick="viewProfile('${playerId}')">${playerName}</a>
+                    </div>
+                </div>
             </td>
             <td>
-                <button class="btn btn-outline-warning btn-sm" onclick="removePlayer('${playerId}', '${teamId}')">
-                    <i class="fas fa-undo-alt"></i> Release
+                <button class="btn btn-icon btn-outline-danger btn-sm" onclick="removePlayer('${playerId}', '${teamId}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Release Player">
+                    <i class="bx bx-user-minus"></i>
                 </button>
             </td>`;
         var teamPlayersList = document.getElementById('drafted-players-' + teamId);
         if (teamPlayersList) teamPlayersList.appendChild(draftedPlayerElement);
+
+        // Initialize tooltips for the new button
+        $('[data-bs-toggle="tooltip"]').tooltip();
     }
 
     function updateTeamAvatarGroup(teamId, playerId, profilePictureUrl, playerName) {
         var teamAvatarList = $('#heading' + teamId + ' .avatar-group');
         var avatar = `
-            <li data-bs-toggle="tooltip" data-popup="tooltip-custom" data-bs-placement="top" class="avatar avatar-xs pull-up" title="${playerName}" data-player-id="${playerId}">
+            <div class="avatar avatar-xs me-1 mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="${playerName}" data-player-id="${playerId}">
                 <img src="${profilePictureUrl || '/static/img/default_player.png'}" alt="${playerName}" class="rounded-circle">
-            </li>`;
+            </div>`;
         teamAvatarList.append(avatar);
 
         // Reinitialize tooltips after dynamic content update
         $('[data-bs-toggle="tooltip"]').tooltip();
     }
 
-    // Remove Player
-    function removePlayer(playerId, teamId) {
-        socket.emit('remove_player', { 'player_id': playerId, 'team_id': teamId });
+    // Remove Player with Confirmation
+    window.removePlayer = function (playerId, teamId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to release this player back to available players?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, release it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                socket.emit('remove_player', { 'player_id': playerId, 'team_id': teamId });
+            }
+        });
     }
 
     // Handle player removed event
@@ -333,9 +377,11 @@
         playerRow.innerHTML = `
         <td>
             <div class="d-flex align-items-center">
-                <img src="${data.profile_picture_url || '/static/img/default_player.png'}" alt="${data.player_name}" class="rounded-circle" width="40" height="40">
-                <div class="ml-3">
-                    <h5 class="mb-0 player-name">${data.player_name}</h5>
+                <div class="avatar avatar-md">
+                    <img src="${data.profile_picture_url || '/static/img/default_player.png'}" alt="${data.player_name}" class="rounded-circle">
+                </div>
+                <div class="ms-3">
+                    <h6 class="mb-0 player-name">${data.player_name}</h6>
                 </div>
             </div>
         </td>
@@ -344,17 +390,32 @@
         <td>${data.yellow_cards || 0}</td>
         <td>${data.red_cards || 0}</td>
         <td>
-            <button class="btn btn-outline-warning btn-sm" onclick="viewProfile('${data.player_id}')">More Info</button>
-            <button class="btn btn-outline-success btn-sm" onclick="openDraftModal('${data.player_id}', '${data.player_name}')">Draft</button>
+            <button class="btn btn-icon btn-outline-warning btn-sm" onclick="viewProfile('${data.player_id}')" data-bs-toggle="tooltip" data-bs-placement="top" title="More Info">
+                <i class="bx bx-info-circle"></i>
+            </button>
+            <button class="btn btn-icon btn-outline-success btn-sm" onclick="openDraftModal('${data.player_id}', '${data.player_name}')" data-bs-toggle="tooltip" data-bs-placement="top" title="Draft Player">
+                <i class="bx bx-user-plus"></i>
+            </button>
         </td>`;
 
         document.querySelector('#available-players').appendChild(playerRow);
+
+        // Initialize tooltips for the new buttons
+        $('[data-bs-toggle="tooltip"]').tooltip();
 
         // Sort the players alphabetically
         sortPlayersAlphabetically();
 
         // Update the available players count
         updateAvailablePlayersCount();
+
+        Swal.fire({
+            icon: 'info',
+            title: 'Player Released',
+            text: `${data.player_name} has been released back to available players.`,
+            timer: 3000,
+            showConfirmButton: false
+        });
     });
 
     function removePlayerFromTeamAvatarGroup(teamId, playerId) {
@@ -383,28 +444,47 @@
     }
 
     // View Profile
-    function viewProfile(playerId) {
+    window.viewProfile = function (playerId) {
         $.ajax({
             url: '/players/api/player_profile/' + playerId,
             method: 'GET',
             success: function (data) {
                 $('#playerProfileContent').html(`
-                    <img src="${data.profile_picture_url || '/static/img/default_player.png'}" class="profile-image mb-3" alt="${data.name}">
-                    <h5 class="text-center">${data.name}</h5>
-                    <p><strong>Goals:</strong> ${data.goals || 0}</p>
-                    <p><strong>Assists:</strong> ${data.assists || 0}</p>
-                    <p><strong>Yellow Cards:</strong> ${data.yellow_cards || 0}</p>
-                    <p><strong>Red Cards:</strong> ${data.red_cards || 0}</p>
-                    <p><strong>Favorite Position:</strong> ${data.favorite_position || 'Not specified'}</p>
-                    <p><strong>Other Positions Enjoyed:</strong> ${data.other_positions || 'Not specified'}</p>
-                    <p><strong>Goal Frequency:</strong> ${data.goal_frequency || 'Not specified'}</p>
-                    <p><strong>Positions to Avoid:</strong> ${data.positions_to_avoid || 'Not specified'}</p>
-                    <p><strong>Expected Availability (Weeks):</strong> ${data.expected_availability || 'Not specified'}</p>
+                    <div class="text-center mb-4">
+                        <img src="${data.profile_picture_url || '/static/img/default_player.png'}" class="profile-image mb-3" alt="${data.name}">
+                        <h4>${data.name}</h4>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Goals:</strong> ${data.goals || 0}</p>
+                            <p><strong>Assists:</strong> ${data.assists || 0}</p>
+                            <p><strong>Yellow Cards:</strong> ${data.yellow_cards || 0}</p>
+                            <p><strong>Red Cards:</strong> ${data.red_cards || 0}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Favorite Position:</strong> ${data.favorite_position || 'Not specified'}</p>
+                            <p><strong>Other Positions Enjoyed:</strong> ${data.other_positions || 'Not specified'}</p>
+                            <p><strong>Goal Frequency:</strong> ${data.goal_frequency || 'Not specified'}</p>
+                            <p><strong>Positions to Avoid:</strong> ${data.positions_to_avoid || 'Not specified'}</p>
+                            <p><strong>Expected Availability (Weeks):</strong> ${data.expected_availability || 'Not specified'}</p>
+                        </div>
+                    </div>
+                    <div class="player-notes mt-4">
+                        <h5>Player Notes</h5>
+                        <p>${data.player_notes || 'No notes available.'}</p>
+                    </div>
                 `);
-                $('#playerProfileModal').modal('show');
+                var playerProfileModal = new bootstrap.Modal(document.getElementById('playerProfileModal'), {
+                    keyboard: false
+                });
+                playerProfileModal.show();
             },
             error: function () {
-                alert('Failed to fetch player profile.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to fetch player profile.',
+                });
             }
         });
     }

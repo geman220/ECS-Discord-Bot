@@ -89,17 +89,17 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
     header, encoded = cropped_image_data.split(",", 1)
     image_data = base64.b64decode(encoded)
 
-    image = Image.open(BytesIO(image_data))
+    image = Image.open(BytesIO(image_data)).convert("RGBA")
 
     player = Player.query.get(player_id)
     player_name = player.name.replace(" ", "_")  # Replace spaces with underscores
     filename = secure_filename(f"{player_name}_{player_id}.png")
 
-    file_path = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures', filename)
+    upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures')
+    os.makedirs(upload_folder, exist_ok=True)
 
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-    image.save(file_path)
+    file_path = os.path.join(upload_folder, filename)
+    image.save(file_path, format='PNG')
 
     return f"/static/img/uploads/profile_pictures/{filename}"
 
@@ -1340,3 +1340,29 @@ def remove_match_stat(stat_id):
         db.session.rollback()
         current_app.logger.error(f"Error deleting match stat {stat_id}: {str(e)}")
         return jsonify({'success': False}), 500
+
+@players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
+@login_required
+def upload_profile_picture(player_id):
+    player = Player.query.get_or_404(player_id)
+
+    # Check if the current user is authorized to update the profile
+    if not (current_user.is_admin or current_user.id == player.user_id):
+        flash('You do not have permission to update this profile.', 'danger')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    cropped_image_data = request.form.get('cropped_image_data')
+    if not cropped_image_data:
+        flash('No image data provided.', 'danger')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+    try:
+        image_url = save_cropped_profile_picture(cropped_image_data, player_id)
+        player.profile_picture_url = image_url
+        db.session.commit()
+        flash('Profile picture updated successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
+
+    return redirect(url_for('players.player_profile', player_id=player_id))

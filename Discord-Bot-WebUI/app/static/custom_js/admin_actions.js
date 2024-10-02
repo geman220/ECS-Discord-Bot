@@ -5,14 +5,14 @@ function toggleRole(role, playerId) {
     var isChecked = $('#' + role + 'ToggleDropdown').is(':checked');
 
     $.ajax({
-        url: '/players/update_role/' + playerId,
+        url: '/players/player_profile/' + playerId,  // Updated to use existing endpoint
         method: 'POST',
         data: {
             role: role,
-            value: isChecked
-        },
-        headers: {
-            'X-CSRFToken': csrfToken
+            value: isChecked,
+            csrf_token: csrfToken,
+            # Add a hidden field or identifier to specify the role update action
+            update_role: 1
         },
         beforeSend: function () {
             Swal.fire({

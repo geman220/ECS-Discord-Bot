@@ -137,6 +137,7 @@
     <Content Include="app\templates\forgot_password.html" />
     <Content Include="app\templates\index.html" />
     <Content Include="app\templates\login.html" />
+    <Content Include="app\templates\macros.html" />
     <Content Include="app\templates\manage_ecsfc_schedule.html" />
     <Content Include="app\templates\manage_publeague_schedule.html" />
     <Content Include="app\templates\manage_roles.html" />
@@ -151,7 +152,6 @@
     <Content Include="app\templates\player_profile.html" />
     <Content Include="app\templates\pub_league_schedule.html" />
     <Content Include="app\templates\register.html" />
-    <Content Include="app\templates\report_match_modal.html" />
     <Content Include="app\templates\reset_password.html" />
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\settings.html" />
