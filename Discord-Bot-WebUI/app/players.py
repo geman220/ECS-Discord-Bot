@@ -1,7 +1,7 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
 from app.models import Player, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
-from app.decorators import role_required
+from app.decorators import role_required, admin_or_owner_required
 from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
@@ -1343,13 +1343,9 @@ def remove_match_stat(stat_id):
 
 @players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
 @login_required
+@admin_or_owner_required
 def upload_profile_picture(player_id):
     player = Player.query.get_or_404(player_id)
-
-    # Check if the current user is authorized to update the profile
-    if not (current_user.is_admin or current_user.id == player.user_id):
-        flash('You do not have permission to update this profile.', 'danger')
-        return redirect(url_for('players.player_profile', player_id=player_id))
 
     cropped_image_data = request.form.get('cropped_image_data')
     if not cropped_image_data:
