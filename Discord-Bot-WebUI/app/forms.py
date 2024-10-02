@@ -301,3 +301,11 @@ class ReportMatchForm(FlaskForm):
     red_cards = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
 
     notes = TextAreaField('Match Notes')
+
+class CreatePlayerForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    phone = StringField('Phone', validators=[DataRequired()])
+    jersey_size = SelectField('Jersey Size', choices=[('S', 'Small'), ('M', 'Medium'), ('L', 'Large'), ('XL', 'Extra Large')], validators=[DataRequired()])
+    league_id = SelectField('League', coerce=int, choices=[(1, 'Classic League'), (2, 'Premier League'), (3, 'ECS FC')], validators=[DataRequired()])
+    submit = SubmitField('Create Player')
