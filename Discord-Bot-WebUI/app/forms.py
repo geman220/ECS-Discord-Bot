@@ -145,24 +145,24 @@ class CreateUserForm(FlaskForm):
             raise ValidationError('Email is already in use. Please choose a different one.')
 
 class PlayerProfileForm(FlaskForm):
-    name = StringField('Name', validators=[Optional()])
-    email = StringField('Email', validators=[Optional(), Email()])
-    phone = StringField('Phone', validators=[Optional()])
-    jersey_size = SelectField('Jersey Size', choices=[], validators=[Optional()])
+    name = StringField('Name', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    phone = StringField('Phone', validators=[DataRequired()])
+    jersey_size = SelectField('Jersey Size', choices=[], validators=[DataRequired()])
     jersey_number = IntegerField('Jersey Number', validators=[Optional()])
     profile_picture = FileField('Profile Picture', validators=[Optional()])
     edit_career_stats = HiddenField(default='false')
 
-    pronouns = SelectField('Preferred Pronouns', choices=pronoun_choices, validators=[Optional()])
-    expected_weeks_available = SelectField('Expected Availability (Weeks)', choices=availability_choices, validators=[Optional()])
+    pronouns = SelectField('Preferred Pronouns', choices=pronoun_choices, validators=[DataRequired()])
+    expected_weeks_available = SelectField('Expected Availability (Weeks)', choices=availability_choices, validators=[DataRequired()])
     unavailable_dates = StringField('Unavailable Dates', validators=[Optional()])
     willing_to_referee = SelectField('Interested in Refereeing?', choices=willing_to_referee_choices, validators=[Optional()])
 
-    favorite_position = SelectField('Favorite Position', choices=soccer_positions, validators=[Optional()])
+    favorite_position = SelectField('Favorite Position', choices=soccer_positions, validators=[DataRequired()])
     other_positions = SelectMultipleField('Other Positions Enjoyed', choices=soccer_positions, validators=[Optional()])
     positions_not_to_play = SelectMultipleField('Positions to Avoid', choices=soccer_positions, validators=[Optional()])
 
-    frequency_play_goal = SelectField('Goal Frequency', choices=goal_frequency_choices, validators=[Optional()])
+    frequency_play_goal = SelectField('Goal Frequency', choices=goal_frequency_choices, validators=[DataRequired()])
     additional_info = TextAreaField('Additional Information', validators=[Optional()])
     player_notes = TextAreaField('Player Notes', validators=[Optional()])
     team_swap = SelectField('Willing to Switch Teams for a Day if Needed?', choices=[('yes', 'Yes'), ('no', 'No'), ('maybe', 'Maybe')], validators=[Optional()])
@@ -170,6 +170,7 @@ class PlayerProfileForm(FlaskForm):
     # Admin-only fields
     notes = TextAreaField('Admin Notes', validators=[Optional()])
     is_coach = BooleanField('Coach', validators=[Optional()])
+    is_ref = BooleanField('Referee', validators=[Optional()])
 
 class SeasonStatsForm(FlaskForm):
     season_goals = IntegerField('Season Goals', filters=[to_int], validators=[Optional()])
