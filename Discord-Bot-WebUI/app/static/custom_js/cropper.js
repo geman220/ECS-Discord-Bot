@@ -8,24 +8,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const files = e.target.files;
         if (files && files.length > 0) {
             const imgsrc = URL.createObjectURL(files[0]);
-            document.getElementById('imagecan').src = imgsrc;
-            document.querySelector('.img-container').classList.remove('d-none');
-            document.querySelector('.img-container').classList.add('d-block');
+            const imageElement = document.getElementById('imagecan');
+            imageElement.src = imgsrc;
 
-            const image = document.getElementById('imagecan');
+            const imgContainer = document.querySelector('.img-container');
+            imgContainer.classList.remove('d-none');
+            imgContainer.classList.add('d-block');
+
             if (cropper) {
                 cropper.destroy(); // Destroy previous cropper instance
             }
 
-            cropper = new Cropper(image, {
-                viewMode: 3,
+            cropper = new Cropper(imageElement, {
+                viewMode: 1, // Changed to allow more flexibility
                 aspectRatio: ratio,
                 dragMode: 'move',
-                autoCropArea: 0.65,
-                restore: true,
+                autoCropArea: 0.8, // Adjusted autoCropArea
+                restore: false,
                 guides: true,
                 center: true,
                 highlight: true,
+                background: false,
+                responsive: true,
+                movable: true,
+                zoomable: true,
+                rotatable: false,
+                scalable: false,
                 cropBoxMovable: true,
                 cropBoxResizable: true,
                 toggleDragModeOnDblclick: false,
@@ -38,8 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.onClickUpload = function () {
         if (cropper) {
             const canvas = cropper.getCroppedCanvas({
-                width: 120,
-                height: 120,
+                width: 300, // Increased width for better resolution
+                height: 300, // Increased height for better resolution
+                imageSmoothingQuality: 'high',
             });
             canvas.toBlob(function (blob) {
                 const reader = new FileReader();
@@ -50,13 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Submit the form
                     document.querySelector('#profileImageModal form').submit();
                 }
-            });
+            }, 'image/png');
         }
     }
 
     // Initialize Cropper when an image is selected
     document.getElementById('image').addEventListener('change', function (e) {
-        const ratio = 1; // Adjust aspect ratio as needed
+        const ratio = 1; // 1:1 aspect ratio for square images
         croppingimg(e, ratio);
     });
 });

@@ -340,6 +340,7 @@
                     <!-- Changed to modal-xl -->
                     <div class="modal-content">
                         <form method="POST" action="{{ url_for('players.upload_profile_picture', player_id=player.id) }}" enctype="multipart/form-data">
+                            {{ form.csrf_token }}
                             <div class="modal-header">
                                 <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Image</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -444,115 +445,35 @@
 
 {% block custom_css %}
 
+<!-- Cropper.css -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
 
 <style>
-    /* Allow wrapping of event content */
-    .fc-event .event-content-container {
-        white-space: normal !important;
+    /* Existing Styles... */
+
+    /* Cropper Modal Styles */
+    .img-container {
+        width: 100%;
+        max-height: 600px; /* Increased max-height for larger modals */
+        overflow: hidden;
     }
 
-    /* Flex container for event content */
-    .event-content-container {
+        .img-container img {
+            display: block;
+            max-width: 100%;
+            height: auto; /* Ensure the image scales properly */
+        }
+
+    /* Ensure the modal body has enough space for the image */
+    .modal-body {
         display: flex;
         flex-direction: column;
-        height: 100%;
-        justify-content: space-between;
+        align-items: center;
     }
 
-    /* Header styling */
-    .event-header {
-        font-size: 0.9rem;
-        margin-bottom: 2px;
+    /* Optional: Adjust the button alignment */
+    .modal-footer {
+        justify-content: flex-end;
     }
-
-    /* Teams styling */
-    .event-teams {
-        font-size: 0.85rem;
-        margin-bottom: 2px;
-        word-wrap: break-word; /* Allow long team names to wrap */
-    }
-
-    /* Referee styling */
-    .event-referee {
-        font-size: 0.8rem;
-        color: rgba(255, 255, 255, 0.85);
-        white-space: nowrap; /* Prevent breaking */
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Adjust event box height and padding */
-    .fc-time-grid-event {
-        min-height: 80px; /* Increased height to accommodate content */
-    }
-
-    /* Style for referee badges */
-    .list-group-item .badge {
-        font-size: 0.8rem;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .event-header, .event-teams, .event-referee {
-            font-size: 0.75rem;
-        }
-
-        .fc-time-grid-event {
-            min-height: 80px;
-        }
-
-        .list-group-item .badge {
-            font-size: 0.7rem;
-        }
-    }
-
-    /* Modal Enhancements */
-    .modal-body .row > div {
-        padding-right: 10px;
-    }
-
-        .modal-body .row > div:last-child {
-            padding-right: 0;
-        }
-
-    /* Referee List Scroll */
-    #refereeList {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-
-    /* Calendar Height */
-    #leagueCalendar {
-        max-height: 600px;
-        overflow: hidden;
-    }
-
-    /* Additional Styles for Player Profile */
-    .card-title i {
-        font-size: 1rem;
-    }
-
-    .dropdown-menu form {
-        margin: 0;
-    }
-
-        .dropdown-menu form .form-check-label {
-            margin-left: 0.5rem;
-        }
-
-    .btn-close {
-        background: transparent;
-        border: none;
-    }
-
-    .nav-pills .nav-link {
-        border-radius: 0.25rem;
-    }
-
-        .nav-pills .nav-link.active {
-            background-color: #6777ef;
-            color: white;
-        }
 </style>
 {% endblock %}
