@@ -13,6 +13,11 @@
         </button>
     </form>
 
+    <!-- Create Player Button -->
+    <a href="{{ url_for('players.create_player') }}" class="btn btn-primary mb-4">
+        <i class="fa fa-plus"></i> Create Player
+    </a>
+
     <!-- Search Form -->
     <form method="GET" action="{{ url_for('players.view_players') }}">
         <div class="input-group mb-4">
@@ -47,7 +52,7 @@
                                 {% for player in classic_players.items %}
                                 <tr>
                                     <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-primary">{{ player.name }}</a></td>
-                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.user.email }}</td>
                                     <td>{{ player.phone }}</td>
                                     <td>{{ player.jersey_size }}</td>
                                     <td>
@@ -127,7 +132,7 @@
                                 {% for player in premier_players.items %}
                                 <tr>
                                     <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-success">{{ player.name }}</a></td>
-                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.user.email }}</td>
                                     <td>{{ player.phone }}</td>
                                     <td>{{ player.jersey_size }}</td>
                                     <td>
@@ -207,7 +212,7 @@
                                 {% for player in ecsfc_players.items %}
                                 <tr>
                                     <td><a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-info">{{ player.name }}</a></td>
-                                    <td>{{ player.email }}</td>
+                                    <td>{{ player.user.email }}</td>
                                     <td>{{ player.phone }}</td>
                                     <td>{{ player.jersey_size }}</td>
                                     <td>

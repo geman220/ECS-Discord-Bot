@@ -6,12 +6,12 @@ from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
 from app.teams import current_season_id
-from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
+from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, CreatePlayerForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, func
 from PIL import Image
 from datetime import datetime
 import uuid
@@ -360,26 +360,25 @@ def update_player_details(player, player_data):
         db.session.add(player)
     return player
 
-def create_user_for_player(player, email, name):
-    """Create or link a user to a player."""
-    existing_user = User.query.filter_by(email=email).first()
+def create_user_for_player(email, name):
+    """Create or link a user to a player with case-insensitive email matching."""
+    # Force both email and database field to lowercase for comparison
+    existing_user = User.query.filter(func.lower(User.email) == func.lower(email)).first()
     
     if existing_user:
-        logger.info(f"User with email {email} already exists. Linking existing user to the player.")
-        player.user_id = existing_user.id
+        logger.info(f"User with email {email} already exists. Linking existing user.")
+        return existing_user
     else:
         new_user = User(
             username=generate_unique_username(name),
-            email=email,
+            email=email.lower(),  # Ensure email is stored in lowercase
             is_approved=False
         )
         new_user.set_password(generate_random_password())
         db.session.add(new_user)
         db.session.flush()  # Ensure user ID is created before linking
-        player.user_id = new_user.id
-        logger.info(f"Created new user {new_user.username} for player {player.name}")
-    
-    db.session.add(player)
+        logger.info(f"Created new user {new_user.username} with email {new_user.email}")
+        return new_user
 
 # Helper Functions
 def generate_unique_name(base_name):
@@ -514,7 +513,6 @@ def create_player_profile(player_info, league, user):
     try:
         new_player = Player(
             name=player_info['name'],
-            email=player_info['email'],
             phone=player_info['phone'],
             jersey_size=player_info['jersey_size'],
             league_id=league.id,
@@ -523,16 +521,15 @@ def create_player_profile(player_info, league, user):
             # Initialize other necessary fields
         )
         db.session.add(new_player)
-        logger.info(f"Created new player profile for '{new_player.name}' with email '{new_player.email}'.")
+        logger.info(f"Created new player profile for '{new_player.name}' with email '{user.email}'.")
         return new_player
     except Exception as e:
-        logger.error(f"Error creating player profile for '{player_info['email']}': {e}", exc_info=True)
+        logger.error(f"Error creating player profile for '{user.email}': {e}", exc_info=True)
         return None
 
 def create_user_and_player_profile(player_info, league):
     """
     Creates or updates user and player profile and marks players as current.
-    All players will be assigned to the ECS FC league (league_id=14) if the product name contains 'ECS FC'.
 
     Args:
         player_info (dict): Extracted player information.
@@ -542,22 +539,14 @@ def create_user_and_player_profile(player_info, league):
         Player: The created or updated Player object, or None if failed.
     """
     try:
-        # Override league to ensure they are placed in ECS FC league (league_id=14) if the product name starts with 'ECS FC'
-        product_name = player_info.get('product_name', '').upper()
-        if product_name.startswith("ECS FC"):
-            logger.debug(f"Product '{product_name}' identified as ECS FC, assigning league_id=14.")
-            league_id = 14  # ECS FC League
-        else:
-            league_id = league.id
-
-        # Check if the User with this email already exists
-        user = User.query.filter_by(email=player_info['email']).first()
+        # Check if the User with this email already exists, case-insensitive
+        user = User.query.filter(func.lower(User.email) == func.lower(player_info['email'])).first()
 
         if not user:
             # Create a new user
             random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
             user = User(
-                email=player_info['email'],
+                email=player_info['email'].lower(),  # Store email in lowercase
                 username=player_info['name'],
                 is_approved=True,  # Set is_approved to True for all unique users
             )
@@ -566,8 +555,8 @@ def create_user_and_player_profile(player_info, league):
             db.session.flush()  # Ensure user is available for assigning user_id
             logger.info(f"Created new user '{user.email}' with username '{user.username}' and approved status.")
 
-        # Check if a Player with this email already exists
-        existing_player = Player.query.filter_by(email=player_info['email']).first()
+        # Check if a Player with this user_id and league_id already exists
+        existing_player = Player.query.filter_by(user_id=user.id, league_id=league.id).first()
 
         if existing_player:
             # Mark existing player as current
@@ -580,25 +569,24 @@ def create_user_and_player_profile(player_info, league):
             # Create a new player profile if not existing
             new_player = Player(
                 name=player_info['name'],
-                email=player_info['email'],
                 phone=player_info['phone'],
                 jersey_size=player_info['jersey_size'],
-                league_id=league_id,  # Assign ECS FC league (14) or provided league
+                league_id=league.id,  # Assign ECS FC league or provided league
                 user_id=user.id,  # Link to the user
                 is_current_player=True  # Mark new player as current player
             )
             db.session.add(new_player)
             db.session.flush()  # Ensure the player is available
-            logger.info(f"Created new player profile for '{new_player.name}' with email '{new_player.email}'.")
+            logger.info(f"Created new player profile for '{new_player.name}' with email '{user.email}'.")
             return new_player
 
     except IntegrityError as ie:
-        logger.error(f"IntegrityError while creating player for '{player_info['email']}': {ie}", exc_info=True)
+        logger.error(f"IntegrityError while creating player for '{user.email}': {ie}", exc_info=True)
         db.session.rollback()
         return None
 
     except Exception as e:
-        logger.error(f"Error creating player for '{player_info['email']}': {e}", exc_info=True)
+        logger.error(f"Error creating player for '{user.email}': {e}", exc_info=True)
         db.session.rollback()
         return None
 
@@ -831,16 +819,12 @@ def update_players():
         if not current_seasons:
             raise Exception("No current seasons found in the database.")
 
-        # Log current seasons and their leagues for debugging
-        for season in current_seasons:
-            logger.debug(f"Season: {season.name}, Leagues: {[league.name for league in season.leagues]}")
-
         # Step 2: Fetch orders from WooCommerce
         orders = fetch_orders_from_woocommerce(
             current_season_name='2024 Fall',
             filter_current_season=True,
             current_season_names=[season.name for season in current_seasons],
-            max_pages=10  # Limit to 10 pages
+            max_pages=10
         )
 
         detected_players = set()  # Track all detected player IDs
@@ -877,14 +861,13 @@ def update_players():
                     logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
                     continue
 
-                # Initialize player to None for proper reference later
+                # Initialize player and user
+                user = User.query.filter_by(email=email).first()
                 player = None
 
-                # Check if user exists
-                user = User.query.filter_by(email=email).first()
                 if user:
                     # Check if player profile exists for this league
-                    existing_player = Player.query.filter_by(email=player_info['email'], league_id=league.id).first()
+                    existing_player = Player.query.filter_by(league_id=league.id, user_id=user.id).first()
                     if existing_player:
                         # Mark existing player as current (active)
                         existing_player.is_current_player = True
@@ -893,17 +876,16 @@ def update_players():
                         player = existing_player  # Set player to existing player
                     else:
                         # Create player profile if none exists
-                        player = create_user_and_player_profile(player_info, league)
-                        if player:
-                            detected_players.add(player.id)
-                else:
-                    # Create user and player profile if none exists
-                    player = create_user_and_player_profile(player_info, league)
-                    if player:
+                        player = create_player_profile(player_info, league, user)
                         detected_players.add(player.id)
+                else:
+                    # Create user and then create player profile
+                    user = create_user_for_player(email, player_info['name'])
+                    player = create_player_profile(player_info, league, user)
+                    detected_players.add(player.id)
 
-                if player:  # Ensure player is not None before proceeding
-                    # Record order history
+                # Record order history
+                if player:
                     record_order_history(
                         order_id=order['order_id'],
                         player_id=player.id,
@@ -911,11 +893,8 @@ def update_players():
                         season_id=league.season_id,
                         profile_count=quantity
                     )
-                else:
-                    logger.error(f"Cannot record order history for order_id '{order['order_id']}' because player_id is None.")
 
         # Step 6: Mark all non-detected players as inactive
-        # Correctly fetch league IDs from current seasons
         current_league_ids = [league.id for season in current_seasons for league in season.leagues]
         all_players = Player.query.filter(Player.league_id.in_(current_league_ids)).all()
         for player in all_players:
@@ -935,6 +914,43 @@ def update_players():
 
     flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
+
+@players_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def create_player():
+    form = CreatePlayerForm()
+
+    if form.validate_on_submit():
+        try:
+            # Create User first
+            user = User(
+                email=form.email.data,
+                username=form.name.data,
+                phone=form.phone.data
+            )
+            db.session.add(user)
+            db.session.flush()  # Flush to get the user ID for player creation
+
+            # Create Player linked to the user
+            player = Player(
+                name=form.name.data,
+                phone=form.phone.data,
+                jersey_size=form.jersey_size.data,
+                league_id=form.league_id.data,
+                user_id=user.id
+            )
+            db.session.add(player)
+
+            db.session.commit()
+            flash(f"Player {player.name} created successfully.", "success")
+            return redirect(url_for('players.view_players'))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash(f"An error occurred while creating the player: {str(e)}", "danger")
+
+    return render_template('create_player.html', form=form)
 
 @players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])
 @login_required
