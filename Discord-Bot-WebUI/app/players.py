@@ -6,7 +6,7 @@ from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
 from app.teams import current_season_id
-from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, CreatePlayerForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
+from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
@@ -352,33 +352,62 @@ def generate_random_password(length=16):
     return ''.join(password)
 
 def update_player_details(player, player_data):
-    """Update existing player details."""
+    """Update existing player details without overwriting user's email."""
     if player:
         player.is_current_player = True
-        player.phone = player_data['phone']
-        player.jersey_size = player_data['jersey_size']
+        player.phone = standardize_phone(player_data.get('phone', ''))
+        player.jersey_size = player_data.get('jersey_size', '')
+        
+        # Do not update the user's email if it's different
+        new_email = player_data.get('email', '').lower()
+        if not player.user.email:
+            # User's email is missing; update it
+            player.user.email = new_email
+            logger.info(f"Set email for user '{player.user.username}' to '{new_email}'.")
+            db.session.add(player.user)
+        elif player.user.email.lower() != new_email:
+            # Emails are different; prefer the user's current email
+            logger.info(
+                f"Email from WooCommerce '{new_email}' does not match user's email '{player.user.email}'. "
+                "Keeping the user's current email."
+            )
+            # Optionally, store the WooCommerce email in a separate field
+        else:
+            # Emails match; no action needed
+            pass
+        
         db.session.add(player)
     return player
 
-def create_user_for_player(email, name):
-    """Create or link a user to a player with case-insensitive email matching."""
-    # Force both email and database field to lowercase for comparison
-    existing_user = User.query.filter(func.lower(User.email) == func.lower(email)).first()
-    
-    if existing_user:
-        logger.info(f"User with email {email} already exists. Linking existing user.")
-        return existing_user
+def create_user_for_player(player_data):
+    """
+    Create or link a user to a player using composite matching.
+
+    Args:
+        player_data (dict): Data related to the player.
+
+    Returns:
+        User: The existing or newly created User object.
+    """
+    user = match_user(player_data)
+    if user:
+        logger.info(f"User '{user.email}' matched using composite criteria.")
+        return user
     else:
-        new_user = User(
-            username=generate_unique_username(name),
-            email=email.lower(),  # Ensure email is stored in lowercase
-            is_approved=False
+        email = player_data.get('email', '').lower()
+        name = standardize_name(player_data.get('name', ''))
+        # Generate a unique username if necessary
+        username = generate_unique_username(name)
+        user = User(
+            username=username,
+            email=email,
+            is_approved=False  # Adjust based on your logic
         )
-        new_user.set_password(generate_random_password())
-        db.session.add(new_user)
-        db.session.flush()  # Ensure user ID is created before linking
-        logger.info(f"Created new user {new_user.username} with email {new_user.email}")
-        return new_user
+        user.set_password(generate_random_password())
+        db.session.add(user)
+        db.session.flush()  # Assign user.id
+        logger.info(f"Created new user '{user.username}' with email '{user.email}'.")
+        return user
 
 # Helper Functions
 def generate_unique_name(base_name):
@@ -420,6 +449,89 @@ def standardize_name(name):
     )
     return standardized_name
 
+def standardize_phone(phone):
+    """Standardize phone number by keeping only digits."""
+    if phone:
+        return ''.join(filter(str.isdigit, phone))
+    return ''
+
+def match_user(player_data):
+    """
+    Attempts to find an existing user based on email or by matching player's name and phone number.
+
+    Args:
+        player_data (dict): Data related to the player.
+
+    Returns:
+        User or None: The matched User object or None if not found.
+    """
+    email = player_data.get('email', '').lower()
+    name = standardize_name(player_data.get('name', ''))
+    phone = standardize_phone(player_data.get('phone', ''))
+
+    # Try to find user by email (case-insensitive)
+    user = User.query.filter(func.lower(User.email) == email).first()
+    if user:
+        return user
+
+    # If email matching fails, try matching by Player.name and phone number
+    if name and phone:
+        # Standardize phone numbers in the database
+        standardized_phone_db = func.replace(
+            func.replace(
+                func.replace(
+                    func.replace(Player.phone, '-', ''), '(', ''
+                ), ')', ''
+            ), ' ', ''
+        )
+        player = Player.query.filter(
+            func.lower(Player.name) == func.lower(name),
+            standardized_phone_db == phone
+        ).first()
+        if player:
+            return player.user  # Return the associated user
+
+    return None
+
+def match_player(player_data, league):
+    """
+    Attempts to find an existing player based on user_id or name and phone number.
+
+    Args:
+        player_data (dict): Data related to the player.
+        league (League): The league object.
+
+    Returns:
+        Player or None: The matched Player object or None if not found.
+    """
+    user = match_user(player_data)
+    if user:
+        # Try to find player in the specified league
+        player = Player.query.filter_by(user_id=user.id, league_id=league.id).first()
+        if player:
+            return player
+    else:
+        # Try to find player based on name and phone
+        name = standardize_name(player_data.get('name', ''))
+        phone = standardize_phone(player_data.get('phone', ''))
+        if name and phone:
+            # Standardize phone numbers in the database
+            standardized_phone_db = func.replace(
+                func.replace(
+                    func.replace(
+                        func.replace(Player.phone, '-', ''), '(', ''
+                    ), ')', ''
+                ), ' ', ''
+            )
+            player = Player.query.filter(
+                func.lower(Player.name) == func.lower(name),
+                standardized_phone_db == phone,
+                Player.league_id == league.id
+            ).first()
+            if player:
+                return player
+    return None
+
 def extract_player_info(billing):
     """
     Extracts player information from billing details.
@@ -433,18 +545,44 @@ def extract_player_info(billing):
     try:
         name = f"{billing.get('first_name', '').strip()} {billing.get('last_name', '').strip()}".title()
         phone = re.sub(r'\D', '', billing.get('phone', ''))
-        jersey_size = billing.get('jersey_size', '').strip().upper()  # Ensure jersey_size is part of billing
-        if not jersey_size:
-            jersey_size = 'N/A'  # Default value if not provided
+        email = billing.get('email', '').strip().lower()
+        jersey_size = 'N/A'  # We'll set the actual jersey size later
         return {
             'name': name,
-            'email': billing.get('email', '').strip().lower(),
+            'email': email,
             'phone': phone,
             'jersey_size': jersey_size
         }
     except Exception as e:
         logger.error(f"Error extracting player info: {e}", exc_info=True)
         return None
+
+def extract_jersey_size_from_product_name(product_name):
+    """
+    Extracts the jersey size from the product name.
+
+    Assumes that the jersey size is the last token in the product name,
+    separated by ' - ', and is typically a code like 'WL', 'WM', 'S', 'M', 'L', etc.
+
+    Args:
+        product_name (str): The name of the product.
+
+    Returns:
+        str: The extracted jersey size, or 'N/A' if not found.
+    """
+    try:
+        # Split the product name by ' - ' and get the last part
+        tokens = product_name.split(' - ')
+        if tokens:
+            last_token = tokens[-1].strip()
+            # Check if the last token is a jersey size code
+            if last_token.isupper() and len(last_token) <= 3:
+                # Additional validation can be added if necessary
+                return last_token
+        return 'N/A'
+    except Exception as e:
+        logger.error(f"Error extracting jersey size from product name '{product_name}': {e}", exc_info=True)
+        return 'N/A'
 
 def determine_league(product_name, current_seasons):
     """
@@ -498,34 +636,37 @@ def determine_league(product_name, current_seasons):
     logger.warning(f"Could not determine league type from product name: '{product_name}'")
     return None
 
-def create_player_profile(player_info, league, user):
+def create_player_profile(player_data, league, user):
     """
-    Creates a player profile linked to an existing user.
-    
+    Creates or updates a player profile linked to a user.
+
     Args:
-        player_info (dict): Extracted player information.
+        player_data (dict): Data related to the player.
         league (League): League object.
-        user (User): Existing user object.
-    
+        user (User): User object.
+
     Returns:
-        Player: The created Player object, or None if failed.
+        Player: The existing or newly created Player object.
     """
-    try:
-        new_player = Player(
-            name=player_info['name'],
-            phone=player_info['phone'],
-            jersey_size=player_info['jersey_size'],
+    player = match_player(player_data, league)
+    if player:
+        # Update existing player details
+        update_player_details(player, player_data)
+        logger.info(f"Updated existing player '{player.name}' for user '{user.email}'.")
+    else:
+        # Create new player profile
+        player = Player(
+            name=standardize_name(player_data.get('name', '')),
+            phone=standardize_phone(player_data.get('phone', '')),
+            jersey_size=player_data.get('jersey_size', ''),
             league_id=league.id,
             user_id=user.id,
-            is_current_player=True,
-            # Initialize other necessary fields
+            is_current_player=True
         )
-        db.session.add(new_player)
-        logger.info(f"Created new player profile for '{new_player.name}' with email '{user.email}'.")
-        return new_player
-    except Exception as e:
-        logger.error(f"Error creating player profile for '{user.email}': {e}", exc_info=True)
-        return None
+        db.session.add(player)
+        db.session.flush()
+        logger.info(f"Created new player profile '{player.name}' for user '{user.email}'.")
+    return player
 
 def create_user_and_player_profile(player_info, league):
     """
@@ -757,7 +898,6 @@ def clean_phone_number(phone):
     cleaned_phone = re.sub(r'\D', '', phone)  # Remove all non-digit characters
     return cleaned_phone[-10:] if len(cleaned_phone) >= 10 else cleaned_phone  # Keep last 10 digits or the entire cleaned string if shorter
 
-# View Players
 @players_bp.route('/', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
@@ -773,23 +913,64 @@ def view_players():
     # Define how many players to display per page
     per_page = 10
 
-    # Query players by league (Classic, Premier, ECS FC)
-    classic_query = Player.query.join(League).filter(League.name == 'Classic')
-    premier_query = Player.query.join(League).filter(League.name == 'Premier')
-    ecsfc_query = Player.query.join(League).filter(League.name == 'ECS FC')  # Assuming ECS FC is the league name
+    # Base queries for each league with explicit joins and distinct to prevent duplication
+    classic_query = (
+        Player.query
+        .join(League, Player.league_id == League.id)
+        .filter(func.lower(League.name) == 'classic')
+        .distinct()
+    )
+    premier_query = (
+        Player.query
+        .join(League, Player.league_id == League.id)
+        .filter(func.lower(League.name) == 'premier')
+        .distinct()
+    )
+    ecsfc_query = (
+        Player.query
+        .join(League, Player.league_id == League.id)
+        .filter(func.lower(League.name) == 'ecs fc')
+        .distinct()
+    )
 
     # If there is a search term, apply filters to the queries
     if search_term:
-        # Join with User to access email, but keep other filters on Player
+        # Define the search filter
         search_filter = (
             Player.name.ilike(f'%{search_term}%') |  # Search by Player's name
-            User.email.ilike(f'%{search_term}%') |   # Search by User's email
-            Player.phone.ilike(f'%{search_term}%') |  # Search by Player's phone
-            Player.jersey_size.ilike(f'%{search_term}%')  # Search by Player's jersey size
+            func.lower(User.email).ilike(f'%{search_term.lower()}%') |  # Search by User's email
+            (Player.phone.isnot(None) & Player.phone.ilike(f'%{search_term}%')) |  # Search by Player's phone if not null
+            (Player.jersey_size.isnot(None) & Player.jersey_size.ilike(f'%{search_term}%'))  # Search by Player's jersey size if not null
         )
-        classic_query = classic_query.join(User).filter(search_filter)  # Join User for email search
-        premier_query = premier_query.join(User).filter(search_filter)  # Join User for email search
-        ecsfc_query = ecsfc_query.join(User).filter(search_filter)      # Join User for email search
+        # Apply search filters with explicit join to User
+        classic_query = (
+            classic_query
+            .join(User, Player.user_id == User.id)
+            .filter(search_filter)
+            .distinct()
+        )
+        premier_query = (
+            premier_query
+            .join(User, Player.user_id == User.id)
+            .filter(search_filter)
+            .distinct()
+        )
+        ecsfc_query = (
+            ecsfc_query
+            .join(User, Player.user_id == User.id)
+            .filter(search_filter)
+            .distinct()
+        )
+    else:
+        # Join with User to include user information
+        classic_query = classic_query.join(User, Player.user_id == User.id).distinct()
+        premier_query = premier_query.join(User, Player.user_id == User.id).distinct()
+        ecsfc_query = ecsfc_query.join(User, Player.user_id == User.id).distinct()
+
+    # Debug logs to check the count before pagination
+    logger.debug(f"Classic query count: {classic_query.count()}")
+    logger.debug(f"Premier query count: {premier_query.count()}")
+    logger.debug(f"ECS FC query count: {ecsfc_query.count()}")
 
     # Paginate the results
     classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
@@ -801,12 +982,35 @@ def view_players():
     logger.debug(f"Premier players: {premier_players.items}")
     logger.debug(f"ECS FC players: {ecsfc_players.items}")
 
+    # Determine the active tab based on search results
+    if search_term:
+        if classic_players.total > 0:
+            active_tab = 'classic'
+        elif premier_players.total > 0:
+            active_tab = 'premier'
+        elif ecsfc_players.total > 0:
+            active_tab = 'ecsfc'
+        else:
+            active_tab = 'classic'
+    else:
+        active_tab = 'classic'  # Default active tab
+
+    # Fetch leagues for the Create Player modal
+    leagues = League.query.all()
+
+    # Fetch distinct jersey sizes for the Create Player modal
+    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
+    jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))  # Exclude None values
+
     return render_template(
         'view_players.html',
         classic_players=classic_players,
         premier_players=premier_players,
         ecsfc_players=ecsfc_players,  # Added ECS FC players to render
-        search_term=search_term
+        search_term=search_term,
+        active_tab=active_tab,
+        leagues=leagues,
+        jersey_sizes=jersey_sizes
     )
 
 @players_bp.route('/update', methods=['POST'])
@@ -832,69 +1036,43 @@ def update_players():
         # Step 3: Reset current players (mark all as inactive initially)
         reset_current_players(current_seasons)
 
-        # Step 4: Group orders by email
-        email_orders_map = {}
+        # Step 4: Process each order individually
         for order in orders:
-            email = order['billing'].get('email', '').lower()
-            if not email:
-                logger.warning(f"No email found for order ID {order['order_id']}. Skipping.")
+            # Extract player info
+            player_info = extract_player_info(order['billing'])
+            if not player_info:
+                logger.warning(f"Could not extract player info for order ID {order['order_id']}. Skipping.")
                 continue
-            if email not in email_orders_map:
-                email_orders_map[email] = []
-            email_orders_map[email].append(order)
 
-        # Step 5: Process each email group
-        for email, email_orders in email_orders_map.items():
-            for order in email_orders:
-                product_name = order['product_name']
-                quantity = order['quantity']
+            # Determine league
+            product_name = order['product_name']
+            league = determine_league(product_name, current_seasons)
+            if not league:
+                logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
+                continue
 
-                # Extract player info
-                player_info = extract_player_info(order['billing'])
-                if not player_info:
-                    logger.warning(f"Could not extract player info for email '{email}'. Skipping order ID {order['order_id']}.")
-                    continue
+            # Extract jersey size from product name
+            jersey_size = extract_jersey_size_from_product_name(product_name)
+            player_info['jersey_size'] = jersey_size
 
-                # Determine league using the updated function
-                league = determine_league(product_name, current_seasons)
-                if not league:
-                    logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
-                    continue
+            # Create or update user
+            user = create_user_for_player(player_info)
 
-                # Initialize player and user
-                user = User.query.filter_by(email=email).first()
-                player = None
+            # Create or update player profile
+            player = create_player_profile(player_info, league, user)
+            detected_players.add(player.id)
 
-                if user:
-                    # Check if player profile exists for this league
-                    existing_player = Player.query.filter_by(league_id=league.id, user_id=user.id).first()
-                    if existing_player:
-                        # Mark existing player as current (active)
-                        existing_player.is_current_player = True
-                        detected_players.add(existing_player.id)
-                        logger.info(f"Player profile already exists for user '{email}' in league '{league.name}'. Marking player as current for order ID {order['order_id']}.")
-                        player = existing_player  # Set player to existing player
-                    else:
-                        # Create player profile if none exists
-                        player = create_player_profile(player_info, league, user)
-                        detected_players.add(player.id)
-                else:
-                    # Create user and then create player profile
-                    user = create_user_for_player(email, player_info['name'])
-                    player = create_player_profile(player_info, league, user)
-                    detected_players.add(player.id)
+            # Record order history
+            if player:
+                record_order_history(
+                    order_id=order['order_id'],
+                    player_id=player.id,
+                    league_id=league.id,
+                    season_id=league.season_id,
+                    profile_count=order['quantity']
+                )
 
-                # Record order history
-                if player:
-                    record_order_history(
-                        order_id=order['order_id'],
-                        player_id=player.id,
-                        league_id=league.id,
-                        season_id=league.season_id,
-                        profile_count=quantity
-                    )
-
-        # Step 6: Mark all non-detected players as inactive
+        # Step 5: Mark all non-detected players as inactive
         current_league_ids = [league.id for season in current_seasons for league in season.leagues]
         all_players = Player.query.filter(Player.league_id.in_(current_league_ids)).all()
         for player in all_players:
@@ -902,7 +1080,7 @@ def update_players():
                 player.is_current_player = False
                 logger.info(f"Marked player '{player.name}' as NOT CURRENT_PLAYER (inactive).")
 
-        # Step 7: Commit all changes
+        # Step 6: Commit all changes
         db.session.commit()
         logger.info("All players have been updated successfully.")
 
@@ -915,42 +1093,59 @@ def update_players():
     flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
 
-@players_bp.route('/create', methods=['GET', 'POST'])
+@players_bp.route('/create_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def create_player():
     form = CreatePlayerForm()
+    # Manually populate form data since we're not using Flask-WTF in the modal
+    form.name.data = request.form.get('name')
+    form.email.data = request.form.get('email')
+    form.phone.data = request.form.get('phone')
+    form.jersey_size.data = request.form.get('jersey_size')
+    form.league_id.data = request.form.get('league_id')
 
-    if form.validate_on_submit():
+    # Set the choices for the SelectFields
+    leagues = League.query.all()
+    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
+    jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))
+
+    form.jersey_size.choices = [(size, size) for size in jersey_sizes]
+    form.league_id.choices = [(str(league.id), league.name) for league in leagues]
+
+    if form.validate():
         try:
-            # Create User first
-            user = User(
-                email=form.email.data,
-                username=form.name.data,
-                phone=form.phone.data
-            )
-            db.session.add(user)
-            db.session.flush()  # Flush to get the user ID for player creation
+            # Get form data
+            player_data = {
+                'name': form.name.data,
+                'email': form.email.data.lower(),
+                'phone': form.phone.data,
+                'jersey_size': form.jersey_size.data
+            }
+            league_id = form.league_id.data
+            league = League.query.get(league_id)
 
-            # Create Player linked to the user
-            player = Player(
-                name=form.name.data,
-                phone=form.phone.data,
-                jersey_size=form.jersey_size.data,
-                league_id=form.league_id.data,
-                user_id=user.id
-            )
-            db.session.add(player)
+            # Create or update user using composite matching
+            user = create_user_for_player(player_data)
+
+            # Create or update player profile using composite matching
+            player = create_player_profile(player_data, league, user)
 
             db.session.commit()
-            flash(f"Player {player.name} created successfully.", "success")
+
+            flash('Player created or updated successfully.', 'success')
             return redirect(url_for('players.view_players'))
 
         except SQLAlchemyError as e:
             db.session.rollback()
-            flash(f"An error occurred while creating the player: {str(e)}", "danger")
+            current_app.logger.error(f"Error creating or updating player: {str(e)}")
+            flash('An error occurred while creating or updating the player. Please try again.', 'danger')
 
-    return render_template('create_player.html', form=form)
+    else:
+        flash('Form validation failed. Please check your inputs.', 'danger')
+
+    # If form validation fails or an error occurs, redirect back to the player list
+    return redirect(url_for('players.view_players'))
 
 @players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])
 @login_required
@@ -1081,6 +1276,7 @@ def player_profile(player_id):
     # Handle profile update (only if allowed)
     if form and form.validate_on_submit() and 'update_profile' in request.form:
         try:
+            email = form.email.data.lower()
             current_app.logger.info(f"Profile update triggered for player {player_id}, User: {user.id}")
     
             # Log the form data
@@ -1436,3 +1632,51 @@ def upload_profile_picture(player_id):
         flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
 
     return redirect(url_for('players.player_profile', player_id=player_id))
+
+@players_bp.route('/delete_player/<int:player_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def delete_player(player_id):
+    try:
+        player = Player.query.get_or_404(player_id)
+        user = player.user
+
+        # Delete the player
+        db.session.delete(player)
+
+        # Delete the user
+        db.session.delete(user)
+
+        db.session.commit()
+
+        flash('Player and user account deleted successfully.', 'success')
+        return redirect(url_for('players.view_players'))
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting player {player_id}: {str(e)}")
+        flash('An error occurred while deleting the player. Please try again.', 'danger')
+        return redirect(url_for('players.view_players'))
+
+@players_bp.route('/edit_player/<int:player_id>', methods=['GET', 'POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def edit_player(player_id):
+    player = Player.query.get_or_404(player_id)
+    form = EditPlayerForm(obj=player)
+
+    if form.validate_on_submit():
+        try:
+            # Update player fields
+            form.populate_obj(player)
+            db.session.commit()
+
+            flash('Player updated successfully.', 'success')
+            return redirect(url_for('players.view_players'))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error updating player {player_id}: {str(e)}")
+            flash('An error occurred while updating the player. Please try again.', 'danger')
+
+    return render_template('edit_player.html', form=form, player=player)

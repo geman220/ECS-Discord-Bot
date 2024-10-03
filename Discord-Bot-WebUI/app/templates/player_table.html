@@ -1,0 +1,108 @@
+<div class="card">
+    <div class="card-header">
+        <h4 class="card-title">{{ league_name }}</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <!-- Table headers -->
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Jersey Size</th>
+                        <th>Status</th>
+                        <th>Actions</th> <!-- New Actions column -->
+                    </tr>
+                </thead>
+                <!-- Table body -->
+                <tbody>
+                    {% for player in players.items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}">
+                                {{ player.name }}
+                            </a>
+                        </td>
+                        <td>{{ player.user.email }}</td>
+                        <td>{{ player.phone }}</td>
+                        <td>{{ player.jersey_size }}</td>
+                        <td>
+                            <span class="badge rounded-pill bg-{{ 'success' if player.is_current_player else 'secondary' }}">
+                                {{ 'Current Player' if player.is_current_player else 'Inactive' }}
+                            </span>
+                        </td>
+                        <!-- Actions Column -->
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-icon btn-light" type="button" id="dropdownMenuButton{{ player.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i data-feather="more-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ player.id }}">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('players.edit_player', player_id=player.id) }}">
+                                            <i data-feather="edit"></i> Edit
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" onclick="confirmDeletePlayer({{ player.id }})">
+                                            <i data-feather="trash-2"></i> Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination -->
+        {% if players.pages > 1 %}
+        <nav aria-label="Pagination">
+            <ul class="pagination justify-content-center mt-3">
+                {% if players.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('players.view_players', page=players.prev_num, search=search_term) }}">
+                        Previous
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Previous</span>
+                </li>
+                {% endif %}
+
+                {% for page_num in players.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+                {% if page_num %}
+                {% if page_num == players.page %}
+                <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% endif %}
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+                {% endfor %}
+
+                {% if players.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('players.view_players', page=players.next_num, search=search_term) }}">
+                        Next
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Next</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
