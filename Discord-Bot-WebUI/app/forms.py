@@ -3,6 +3,7 @@ from flask_login import current_user
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired
 from app.models import User, Role, League
+from sqlalchemy import func
 import logging
 
 # Get the logger for this module
@@ -302,9 +303,21 @@ class ReportMatchForm(FlaskForm):
     notes = TextAreaField('Match Notes')
 
 class CreatePlayerForm(FlaskForm):
-    name = StringField('Name', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    phone = StringField('Phone', validators=[DataRequired()])
-    jersey_size = SelectField('Jersey Size', choices=[('S', 'Small'), ('M', 'Medium'), ('L', 'Large'), ('XL', 'Extra Large')], validators=[DataRequired()])
-    league_id = SelectField('League', coerce=int, choices=[(1, 'Classic League'), (2, 'Premier League'), (3, 'ECS FC')], validators=[DataRequired()])
-    submit = SubmitField('Create Player')
+    name = StringField('Name', validators=[DataRequired(), Length(max=100)])
+    email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
+    phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
+    jersey_size = SelectField('Jersey Size', validators=[DataRequired()], choices=[])  # Choices will be set in the view
+    league_id = SelectField('League', validators=[DataRequired()], choices=[])  # Choices will be set in the view
+    csrf_token = HiddenField()  # CSRF token
+
+    def validate_email(self, field):
+        email = field.data.lower()
+        if User.query.filter(func.lower(User.email) == email).first():
+            raise ValidationError('Email is already registered.')
+
+class EditPlayerForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired(), Length(max=100)])
+    phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
+    jersey_size = SelectField('Jersey Size', validators=[DataRequired()], choices=[])
+    league_id = SelectField('League', validators=[DataRequired()], choices=[])
+    submit = SubmitField('Update Player')

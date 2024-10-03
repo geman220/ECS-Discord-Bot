@@ -3,6 +3,7 @@ from datetime import datetime
 from flask_login import UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, func, Enum
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 import enum
 import logging
 import pyotp
@@ -39,7 +40,7 @@ class User(UserMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    _email = db.Column('email', db.String(120), unique=True, nullable=False)  # Private attribute
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp(), nullable=False)
@@ -56,11 +57,26 @@ class User(UserMixin, db.Model):
     league = db.relationship('League', back_populates='users')
     is_2fa_enabled = db.Column(db.Boolean, default=False)
     totp_secret = db.Column(db.String(32), nullable=True)
-
-    # Many-to-many relationship between User and Role
     roles = db.relationship('Role', secondary=user_roles, back_populates='users')
-
     player = db.relationship('Player', back_populates='user', uselist=False)  # Link to Player model
+    stat_change_logs = db.relationship('StatChangeLog', back_populates='user', cascade='all, delete-orphan')
+    stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
+
+    @hybrid_property
+    def email(self):
+        return self._email
+
+    @email.setter
+    def email(self, value):
+        self._email = value.lower() if value else None
+
+    @email.expression
+    def email(cls):
+        return cls._email
+
+    @email.comparator
+    def email(cls):
+        return cls._email
 
     # Method to generate TOTP secret
     def generate_totp_secret(self):
@@ -121,6 +137,8 @@ class Season(db.Model):
     is_current = db.Column(db.Boolean, default=False, nullable=False)
     leagues = db.relationship('League', back_populates='season', lazy=True)
     player_stats = db.relationship('PlayerSeasonStats', back_populates='season', lazy=True, cascade="all, delete-orphan")
+    stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
+    stat_audits = db.relationship('PlayerStatAudit', back_populates='season', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Season {self.name} ({self.league_type})>'
@@ -135,6 +153,8 @@ class Team(db.Model):
     discord_channel_id = db.Column(db.BigInteger, nullable=True)
     discord_coach_role_id = db.Column(db.BigInteger, nullable=True)
     discord_player_role_id = db.Column(db.BigInteger, nullable=True)
+    schedules = db.relationship('Schedule', foreign_keys='Schedule.team_id', back_populates='team', overlaps='matches')
+    opponent_schedules = db.relationship('Schedule', foreign_keys='Schedule.opponent', back_populates='opponent_team')
 
     @property
     def recent_form(self):
@@ -197,7 +217,7 @@ class PlayerOrderHistory(db.Model):
     __tablename__ = 'player_order_history'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)  # Link to Player
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)  # Link to Player
     order_id = db.Column(db.String, nullable=False)  # WooCommerce Order ID
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)  # Link to Season
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)  # Link to League
@@ -205,7 +225,7 @@ class PlayerOrderHistory(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)  # Date the order was created
 
     # Relationships
-    player = db.relationship('Player', backref='order_histories', lazy=True)
+    player = db.relationship('Player', back_populates='order_history')
     season = db.relationship('Season', backref='order_histories', lazy=True)
     league = db.relationship('League', backref='order_histories', lazy=True)
 
@@ -216,18 +236,18 @@ class StatChangeLog(db.Model):
     __tablename__ = 'stat_change_logs'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     stat = db.Column(db.String(50), nullable=False)
     old_value = db.Column(db.Integer, nullable=False)
     new_value = db.Column(db.Integer, nullable=False)
     change_type = db.Column(db.String(10), nullable=False)  # ADD, DELETE, EDIT
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    player = db.relationship('Player', backref='stat_change_logs')
-    user = db.relationship('User', backref='stat_change_logs')
-    season = db.relationship('Season', backref='stat_change_logs')
+    player = db.relationship('Player', back_populates='stat_change_logs')
+    user = db.relationship('User', back_populates='stat_change_logs')
+    season = db.relationship('Season', back_populates='stat_change_logs')
 
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -242,7 +262,7 @@ class Player(db.Model):
     needs_manual_review = db.Column(db.Boolean, default=False)  # New field for manual review
     linked_primary_player_id = db.Column(db.Integer, nullable=True)  # Reference to the primary player
     order_id = db.Column(db.String, nullable=True)
-    events = db.relationship('PlayerEvent', back_populates='player', lazy=True, cascade="all, delete-orphan")
+    events = db.relationship('PlayerEvent', back_populates='player', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
     pronouns = db.Column(db.String(50), nullable=True)
     expected_weeks_available = db.Column(db.String(20), nullable=True)
     unavailable_dates = db.Column(db.Text, nullable=True)
@@ -254,25 +274,22 @@ class Player(db.Model):
     additional_info = db.Column(db.Text, nullable=True)
     player_notes = db.Column(db.Text, nullable=True)
     team_swap = db.Column(db.String(10), nullable=True) 
-
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
     team = db.relationship('Team', back_populates='players')
-
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     league = db.relationship('League', back_populates='players')
-
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Link to User model
     user = db.relationship('User', back_populates='player')
-
-    availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan")
-
+    availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
     notes = db.Column(db.Text, nullable=True)  # Admin notes
     is_current_player = db.Column(db.Boolean, default=False)
     profile_picture_url = db.Column(db.String(255), nullable=True)
-
+    stat_change_logs = db.relationship('StatChangeLog', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
+    stat_audits = db.relationship('PlayerStatAudit', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
     # Relationships with stats
-    season_stats = db.relationship('PlayerSeasonStats', back_populates='player')
-    career_stats = db.relationship('PlayerCareerStats', back_populates='player')
+    season_stats = db.relationship('PlayerSeasonStats', back_populates='player', passive_deletes=True)
+    career_stats = db.relationship('PlayerCareerStats', back_populates='player', passive_deletes=True)
+    order_history = db.relationship('PlayerOrderHistory', back_populates='player', cascade='all, delete')
 
     def __repr__(self):
         return f'<Player {self.name} ({self.user.email})>'
@@ -447,8 +464,8 @@ class Schedule(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'))  # Add this line
 
-    team = db.relationship('Team', foreign_keys=[team_id])
-    opponent_team = db.relationship('Team', foreign_keys=[opponent], post_update=True)
+    team = db.relationship('Team', foreign_keys=[team_id], back_populates='schedules', overlaps='matches')
+    opponent_team = db.relationship('Team', foreign_keys=[opponent], back_populates='opponent_schedules', post_update=True)
     matches = db.relationship('Match', back_populates='schedule', lazy=True)
     season = db.relationship('Season')
 
@@ -503,7 +520,7 @@ class PlayerSeasonStats(db.Model):
     __tablename__ = 'player_season_stats'
     
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     goals = db.Column(db.Integer, default=0, nullable=False)
     assists = db.Column(db.Integer, default=0, nullable=False)
@@ -519,7 +536,7 @@ class PlayerCareerStats(db.Model):
     __tablename__ = 'player_career_stats'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     goals = db.Column(db.Integer, default=0, nullable=False)
     assists = db.Column(db.Integer, default=0, nullable=False)
     yellow_cards = db.Column(db.Integer, default=0, nullable=False)
@@ -558,7 +575,7 @@ event.listen(Standings, 'before_update', Standings.update_goal_difference)
 class Availability(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
     discord_id = db.Column(db.String(100), nullable=False)  # Link to Discord user
     response = db.Column(db.String(10), nullable=False)  # yes, no, maybe
 
@@ -611,12 +628,12 @@ class PlayerEvent(db.Model):
     __tablename__ = 'player_event'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     minute = db.Column(db.Integer, nullable=True)
     event_type = db.Column(Enum(PlayerEventType), nullable=False)
 
-    player = db.relationship('Player', back_populates='events')
+    player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
 
 class StatChangeType(enum.Enum):
@@ -628,15 +645,15 @@ class PlayerStatAudit(db.Model):
     __tablename__ = 'player_stat_audit'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=True)
     stat_type = db.Column(db.String(50), nullable=False)  # e.g., 'goals', 'assists'
     old_value = db.Column(db.Integer, nullable=False)
     new_value = db.Column(db.Integer, nullable=False)
     change_type = db.Column(db.Enum(StatChangeType), nullable=False)
-    changed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    changed_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    player = db.relationship('Player', backref='stat_audits')
-    season = db.relationship('Season')
-    user = db.relationship('User')
+    player = db.relationship('Player', back_populates='stat_audits')
+    season = db.relationship('Season', back_populates='stat_audits')
+    user = db.relationship('User', back_populates='stat_audits')

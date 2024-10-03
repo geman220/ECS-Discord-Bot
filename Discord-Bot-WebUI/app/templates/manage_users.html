@@ -56,6 +56,7 @@
             <th>Username</th>
             <th>Email</th>
             <th>Roles</th>
+            <th>Team</th>
             <th>League</th>
             <th>Active Player</th>
             <th>Approved</th>
@@ -69,12 +70,13 @@
             <td>{{ user.email }}</td>
             <td>
                 {% for role in user.roles %}
-                <span class="badge bg-secondary">{{ role }}</span>
+                <span class="badge bg-secondary">{{ role.name }}</span>
                 {% endfor %}
             </td>
-            <td>{{ user.league }}</td>
+            <td>{{ user.player.team.name if user.player and user.player.team else 'N/A' }}</td>
+            <td>{{ user.league.name if user.league else 'N/A' }}</td>
             <td>
-                {% if user.is_current_player %}
+                {% if user.player and user.player.is_current_player %}
                 <span class="badge bg-success">Yes</span>
                 {% else %}
                 <span class="badge bg-warning">No</span>
@@ -89,18 +91,25 @@
             </td>
             <td>
                 <!-- Edit Button -->
-                <button class="btn btn-sm btn-primary edit-user-btn" data-user-id="{{ user.id }}">Edit User</button>
+                <button class="btn btn-sm btn-primary edit-user-btn" data-user-id="{{ user.id }}" title="Edit User">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
 
                 <!-- Remove Button -->
                 <form action="{{ url_for('user_management.remove_user', user_id=user.id) }}" method="post" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this user?');">Remove</button>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to remove this user?');" title="Remove User">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </form>
 
                 <!-- Approve Button -->
                 {% if not user.is_approved %}
                 <form action="{{ url_for('user_management.approve_user', user_id=user.id) }}" method="post" style="display:inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                    <button type="submit" class="btn btn-sm btn-success" title="Approve User">
+                        <i class="bi bi-check-circle"></i>
+                    </button>
                 </form>
                 {% endif %}
             </td>
@@ -109,13 +118,14 @@
     </tbody>
 </table>
 
+<!-- Edit User Modal -->
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <form method="POST" action="" id="editUserForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editUserModalLabel">Edit User</h5>
+                    <h5 class="modal-title">Edit User</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -127,8 +137,23 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="editFirstName" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="editFirstName" name="first_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editLastName" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="editLastName" name="last_name" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="editEmail" class="form-label">Email</label>
                         <input type="email" class="form-control" id="editEmail" name="email" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editPhoneNumber" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="editPhoneNumber" name="phone_number">
                     </div>
 
                     <div class="mb-3">
