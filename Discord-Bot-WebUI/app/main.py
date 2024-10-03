@@ -60,6 +60,11 @@ def get_onboarding_form(player=None, formdata=None):
             onboarding_form.positions_not_to_play.data = [pos.strip() for pos in player.positions_not_to_play.strip('{}').split(',')]
         else:
             onboarding_form.positions_not_to_play.data = []
+
+        # Pre-populate the email field from the User model (since it's no longer in the Player model)
+        if player.user:
+            onboarding_form.email.data = player.user.email  # Populate email from the User model
+
     elif not player:
         # If no player data, ensure multi-select fields are empty
         onboarding_form.other_positions.data = []
@@ -151,7 +156,6 @@ def handle_profile_update(player, onboarding_form):
     try:
         # Assign single-select and string fields directly
         player.name = onboarding_form.name.data
-        player.email = onboarding_form.email.data
         player.phone = onboarding_form.phone.data
         player.jersey_size = onboarding_form.jersey_size.data
         player.jersey_number = onboarding_form.jersey_number.data
@@ -171,11 +175,14 @@ def handle_profile_update(player, onboarding_form):
         player.team_swap = onboarding_form.team_swap.data
         player.additional_info = onboarding_form.additional_info.data
 
-        # Assign settings fields
+        # Assign settings fields (notifications, visibility)
         current_user.email_notifications = onboarding_form.email_notifications.data
         current_user.sms_notifications = onboarding_form.sms_notifications.data
         current_user.discord_notifications = onboarding_form.discord_notifications.data
         current_user.profile_visibility = onboarding_form.profile_visibility.data
+
+        # Update the email from the onboarding form to the User model
+        current_user.email = onboarding_form.email.data
 
         # Handle profile picture upload if necessary
         if onboarding_form.profile_picture.data:
