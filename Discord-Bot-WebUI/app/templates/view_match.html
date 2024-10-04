@@ -1,55 +1,95 @@
 {% extends "base.html" %}
 
+{% block title %}Match Info{% endblock %}
+
 {% block main_content %}
-<div class="container-fluid">
-    <h1 class="h3 mb-4 text-gray-800">Match Details</h1>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-primary">Match Info</h2>
+        </div>
+    </div>
 
     <div class="row">
-        <!-- Home Team -->
+        <!-- Home Team Card -->
         <div class="col-lg-5 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}">{{ match.home_team.name }}</a> (Home)
-                    </h6>
-                    {% if current_user.has_permission('view_team_record') %}
-                    <p class="mb-0">Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}</p>
-                    {% endif %}
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="m-0 font-weight-bold">
+                            <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}" class="text-white text-decoration-none">{{ match.home_team.name }}</a> (Home)
+                        </h6>
+                        {% if current_user.has_permission('view_team_record') %}
+                        <small>Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}</small>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
-                    <h5 class="mb-3">Roster:</h5>
-                    <div class="row no-gutters">
+                    <h5 class="mb-3">Roster</h5>
+
+                    <!-- RSVP Summary displayed horizontally -->
+                    <div class="mb-3 d-flex justify-content-between">
+                        <div>
+                            <strong>Available</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in home_rsvp_data['available'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ home_rsvp_data['available'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Maybe</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in home_rsvp_data['maybe'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ home_rsvp_data['maybe'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Not Available</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in home_rsvp_data['not_available'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ home_rsvp_data['not_available'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>No Response</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in home_rsvp_data['no_response'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ home_rsvp_data['no_response'] | length }})
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
                         {% for player in match.home_team.players %}
-                        <div class="col-6 col-md-4 col-lg-3 mb-3 d-flex flex-column align-items-center">
-                            <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="rounded-circle mb-2" alt="{{ player.name }}" style="width: 50px; height: 50px;">
-                            <div class="text-center">
-                                <h6><a href="{{ url_for('players.player_profile', player_id=player.id) }}">{{ player.name }}</a></h6>
-                                {% if current_user.has_permission('view_player_goals_assists') %}
-                                <div class="d-flex justify-content-center">
-                                    <div class="mr-2">
-                                        <i class="fas fa-futbol text-primary"></i> {{ player.goals | length }}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="card h-100 text-center">
+                                <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="card-img-top rounded-circle mx-auto mt-3" alt="{{ player.name }}" style="width: 100px; height: 100px; object-fit: cover;">
+                                <div class="card-body p-1">
+                                    <h6 class="card-title">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-decoration-none">{{ player.name }}</a>
+                                    </h6>
+                                    {% if current_user.has_permission('view_rsvps') %}
+                                    <div class="mt-2">
+                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                        {% if availability %}
+                                        {% if availability.response == 'yes' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i> Available
+                                        </span>
+                                        {% elif availability.response == 'no' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i> Not Available
+                                        </span>
+                                        {% elif availability.response == 'maybe' %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-question-circle me-1"></i> Maybe
+                                        </span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-minus-circle me-1"></i> No Response
+                                        </span>
+                                        {% endif %}
                                     </div>
-                                    <div>
-                                        <i class="fas fa-hands-helping text-primary"></i> {{ player.assists | length }}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if current_user.has_permission('view_rsvps') %}
-                                <div>
-                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                    {% if availability %}
-                                    {% if availability.response == 'yes' %}
-                                    <i class="fas fa-check-circle text-success"></i> Yes
-                                    {% elif availability.response == 'no' %}
-                                    <i class="fas fa-times-circle text-danger"></i> No
-                                    {% elif availability.response == 'maybe' %}
-                                    <i class="fas fa-question-circle text-warning"></i> Maybe
-                                    {% endif %}
-                                    {% else %}
-                                    <i class="fas fa-minus-circle text-secondary"></i> No Response
                                     {% endif %}
                                 </div>
-                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
@@ -58,84 +98,117 @@
             </div>
         </div>
 
-        <!-- Match Info -->
-        <div class="col-lg-2 mb-4 d-flex align-items-center">
+        <!-- Match Info Card -->
+        <div class="col-lg-2 mb-4 d-flex">
             <div class="card shadow w-100">
-                <div class="card-header py-3 text-center">
-                    <h6 class="m-0 font-weight-bold text-primary">Match Info</h6>
+                <div class="card-header bg-info text-white text-center">
+                    <h6 class="m-0 font-weight-bold">Match Info</h6>
                 </div>
-                <div class="card-body text-center">
+                <div class="card-body">
                     <div class="mb-3">
-                        <i class="fas fa-calendar-alt text-primary"></i>
-                        <span class="ml-2"><strong>Date:</strong> {{ match.date }}</span>
+                        <i class="fas fa-calendar-alt text-info"></i>
+                        <span class="ms-2"><strong>Date:</strong> {{ match.date }}</span>
                     </div>
                     <div class="mb-3">
-                        <i class="fas fa-clock text-primary"></i>
-                        <span class="ml-2"><strong>Time:</strong> {{ match.time }}</span>
+                        <i class="fas fa-clock text-info"></i>
+                        <span class="ms-2"><strong>Time:</strong> {{ match.time }}</span>
                     </div>
                     <div class="mb-3">
-                        <i class="fas fa-map-marker-alt text-primary"></i>
-                        <span class="ml-2"><strong>Location:</strong> {{ match.location }}</span>
+                        <i class="fas fa-map-marker-alt text-info"></i>
+                        <span class="ms-2"><strong>Location:</strong> {{ match.location }}</span>
                     </div>
                     {% if current_user.has_permission('view_game_results') %}
                     <div class="mb-3">
-                        <i class="fas fa-futbol text-primary"></i>
-                        <span class="ml-2"><strong>Score:</strong> {{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                        <i class="fas fa-futbol text-info"></i>
+                        <span class="ms-2"><strong>Score:</strong> {{ match.home_team_score }} - {{ match.away_team_score }}</span>
                     </div>
                     <div class="mb-3">
-                        <i class="fas fa-sticky-note text-primary"></i>
-                        <span class="ml-2"><strong>Notes:</strong> {{ match.notes or 'No additional notes' }}</span>
+                        <i class="fas fa-sticky-note text-info"></i>
+                        <span class="ms-2"><strong>Notes:</strong> {{ match.notes or 'No additional notes' }}</span>
                     </div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- Away Team -->
+        <!-- Away Team Card -->
         <div class="col-lg-5 mb-4">
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}">{{ match.away_team.name }}</a> (Away)
-                    </h6>
-                    {% if current_user.has_permission('view_team_record') %}
-                    <p class="mb-0">Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}</p>
-                    {% endif %}
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="m-0 font-weight-bold">
+                            <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}" class="text-white text-decoration-none">{{ match.away_team.name }}</a> (Away)
+                        </h6>
+                        {% if current_user.has_permission('view_team_record') %}
+                        <small>Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}</small>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
-                    <h5 class="mb-3">Roster:</h5>
-                    <div class="row no-gutters">
+                    <h5 class="mb-3">Roster</h5>
+
+                    <!-- RSVP Summary for Away Team -->
+                    <div class="mb-3 d-flex justify-content-between">
+                        <div>
+                            <strong>Available</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in away_rsvp_data['available'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ away_rsvp_data['available'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Maybe</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in away_rsvp_data['maybe'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ away_rsvp_data['maybe'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>Not Available</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in away_rsvp_data['not_available'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ away_rsvp_data['not_available'] | length }})
+                            </span>
+                        </div>
+                        <div>
+                            <strong>No Response</strong>
+                            <span data-bs-toggle="tooltip" data-bs-html="true" title="{% for player in away_rsvp_data['no_response'] %}{{ player.name }}<br>{% endfor %}">
+                                ({{ away_rsvp_data['no_response'] | length }})
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
                         {% for player in match.away_team.players %}
-                        <div class="col-6 col-md-4 col-lg-3 mb-3 d-flex flex-column align-items-center">
-                            <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="rounded-circle mb-2" alt="{{ player.name }}" style="width: 50px; height: 50px;">
-                            <div class="text-center">
-                                <h6><a href="{{ url_for('players.player_profile', player_id=player.id) }}">{{ player.name }}</a></h6>
-                                {% if current_user.has_permission('view_player_goals_assists') %}
-                                <div class="d-flex justify-content-center">
-                                    <div class="mr-2">
-                                        <i class="fas fa-futbol text-primary"></i> {{ player.goals | length }}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <div class="card h-100 text-center">
+                                <img src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" class="card-img-top rounded-circle mx-auto mt-3" alt="{{ player.name }}" style="width: 100px; height: 100px; object-fit: cover;">
+                                <div class="card-body p-1">
+                                    <h6 class="card-title">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-decoration-none">{{ player.name }}</a>
+                                    </h6>
+                                    {% if current_user.has_permission('view_rsvps') %}
+                                    <div class="mt-2">
+                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                        {% if availability %}
+                                        {% if availability.response == 'yes' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i> Available
+                                        </span>
+                                        {% elif availability.response == 'no' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i> Not Available
+                                        </span>
+                                        {% elif availability.response == 'maybe' %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-question-circle me-1"></i> Maybe
+                                        </span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-minus-circle me-1"></i> No Response
+                                        </span>
+                                        {% endif %}
                                     </div>
-                                    <div>
-                                        <i class="fas fa-hands-helping text-primary"></i> {{ player.assists | length }}
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% if current_user.has_permission('view_rsvps') %}
-                                <div>
-                                    {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
-                                    {% if availability %}
-                                    {% if availability.response == 'yes' %}
-                                    <i class="fas fa-check-circle text-success"></i> Yes
-                                    {% elif availability.response == 'no' %}
-                                    <i class="fas fa-times-circle text-danger"></i> No
-                                    {% elif availability.response == 'maybe' %}
-                                    <i class="fas fa-question-circle text-warning"></i> Maybe
-                                    {% endif %}
-                                    {% else %}
-                                    <i class="fas fa-minus-circle text-secondary"></i> No Response
                                     {% endif %}
                                 </div>
-                                {% endif %}
                             </div>
                         </div>
                         {% endfor %}
@@ -145,4 +218,14 @@
         </div>
     </div>
 </div>
+
+<!-- Include Bootstrap Tooltip JS initialization -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 {% endblock %}
