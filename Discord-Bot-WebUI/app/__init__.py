@@ -81,4 +81,4 @@ def create_app():
     
         return dict(has_permission=has_permission)
 
-    return app
+    return app, celery  # Return both app and celery instances
