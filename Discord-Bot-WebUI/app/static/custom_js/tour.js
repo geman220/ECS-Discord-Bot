@@ -232,6 +232,43 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     tourVar.addStep({
+        title: 'Feedback',
+        text: 'You can report bugs or give feedback here.  We need your feedback to get better!',
+        attachTo: { element: 'a.feedback-link', on: 'top' },
+        buttons: [
+            {
+                text: 'Next',
+                action: tourVar.next
+            },
+            {
+                text: 'Skip',
+                action: function () {
+                    // Get the CSRF token from the hidden input field
+                    const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+                    // Send the fetch request with the CSRF token
+                    fetch('/set_tour_complete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken  // Add the CSRF token here
+                        },
+                        body: JSON.stringify({}) // You can pass any data here if needed
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                tourVar.cancel();
+                            } else {
+                                console.error('Failed to complete the tour');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            }
+        ]
+    });
+
+    tourVar.addStep({
         title: 'Teams',
         text: 'You can view other teams here.',
         attachTo: { element: 'a.teams-link', on: 'bottom' },
