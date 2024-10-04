@@ -64,6 +64,7 @@ class User(UserMixin, db.Model):
     stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
     feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
     notes = db.relationship('Note', back_populates='author', lazy=True)
+    last_login = db.Column(db.DateTime, default=datetime.utcnow)
 
     @hybrid_property
     def email(self):

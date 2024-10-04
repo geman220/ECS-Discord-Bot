@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_paginate import Pagination, get_page_args
@@ -102,8 +103,13 @@ def discord_callback():
         return redirect(url_for('auth.verify_2fa_login'))
 
     # If 2FA is not enabled, log in the user
-    login_user(user)
-    return redirect(url_for('main.index'))
+    if not user.is_2fa_enabled:
+        # Update last_login before logging in
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+
+        login_user(user)
+        return redirect(url_for('main.index'))
 
 # Verify Purchase and Link Discord
 @auth.route('/verify_purchase', methods=['GET', 'POST'])
@@ -178,11 +184,14 @@ def login():
 
         # Check if 2FA is enabled for the user
         if user.is_2fa_enabled:
-            # Store the user ID in session and redirect to 2FA verification page
             session['pending_2fa_user_id'] = user.id
-            session['remember_me'] = form.remember.data  # Store remember me for after 2FA
-            return redirect(url_for('auth.verify_2fa_login'))  # Redirect to 2FA page
-        
+            session['remember_me'] = form.remember.data
+            return redirect(url_for('auth.verify_2fa_login'))
+
+        # Update last_login before logging in
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+
         login_user(user, remember=form.remember.data)
         
         if not user.has_completed_onboarding and not user.has_skipped_profile_creation:
@@ -206,18 +215,24 @@ def verify_2fa_login():
         return redirect(url_for('auth.login'))
 
     form = TwoFactorForm()
+    if 'pending_2fa_user_id' not in session:
+        flash('No 2FA login pending.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(session['pending_2fa_user_id'])
 
     if form.validate_on_submit():
-        totp = pyotp.TOTP(user.totp_secret)
-        if totp.verify(form.token.data):
+        if user.verify_totp(form.token.data):
+            # Update last_login before logging in
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+
             login_user(user, remember=session.get('remember_me', False))
             session.pop('pending_2fa_user_id', None)
             session.pop('remember_me', None)
-            flash('You have successfully logged in.', 'success')
             return redirect(url_for('main.index'))
         else:
-            flash('Invalid 2FA token. Please try again.', 'danger')
-
+            flash('Invalid 2FA token.', 'danger')
     return render_template('verify_2fa.html', form=form)
 
 # User Registration
