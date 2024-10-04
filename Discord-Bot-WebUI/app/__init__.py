@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -80,5 +81,30 @@ def create_app():
             return current_user.is_authenticated and current_user.has_permission(permission_name)
     
         return dict(has_permission=has_permission)
+
+    @app.template_filter('datetimeformat')
+    def datetimeformat(value, format='%B %d, %Y'):
+        """
+        Formats a date string (YYYY-MM-DD) into a specified format.
+
+        :param value: Date string in 'YYYY-MM-DD' format.
+        :param format: Desired output format, e.g., '%B %d, %Y' for 'September 22, 2024'.
+        :return: Formatted date string or the original value if parsing fails.
+        """
+        if not value:
+            return value  # Return as-is if value is None or empty
+
+        try:
+            # If value is already a date or datetime object, use it directly
+            if isinstance(value, datetime):
+                date_obj = value
+            else:
+                # Parse the date string
+                date_obj = datetime.strptime(value, '%Y-%m-%d')
+            return date_obj.strftime(format)
+        except (ValueError, TypeError) as e:
+            # Log the error if needed
+            app.logger.error(f"datetimeformat filter error: {e} for value: {value}")
+            return value  # Return the original value if parsing fails
 
     return app, celery
