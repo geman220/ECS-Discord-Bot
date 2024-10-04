@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_login import current_user
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField, EmailField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
 from app.models import User, Role, League
 from sqlalchemy import func
@@ -203,36 +203,55 @@ class ResetPasswordForm(FlaskForm):
     submit = SubmitField('Reset Password')
 
 class EditUserForm(FlaskForm):
+    user_id = HiddenField('User ID', validators=[DataRequired()])
     username = StringField('Username', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    roles = SelectMultipleField('Roles', coerce=int)  # Remove DataRequired validator
-    league_id = SelectField('League', coerce=int, choices=[])
+    email = EmailField('Email', validators=[DataRequired(), Email()])
+    roles = SelectMultipleField('Roles', coerce=int, validators=[Optional()])
+    league_id = SelectField('League', coerce=int, choices=[], validators=[Optional()])
     is_current_player = BooleanField('Active Player')
     submit = SubmitField('Update User')
 
-    def __init__(self, user_id=None, *args, **kwargs):
+    def __init__(self, roles_choices=None, leagues_choices=None, *args, **kwargs):
         super(EditUserForm, self).__init__(*args, **kwargs)
-        self.user_id = user_id
-        self.roles.choices = [(role.id, role.name) for role in Role.query.all()]
-        self.league_id.choices = [(0, 'Select League')] + [(league.id, league.name) for league in League.query.all()]
-
-        if user_id:
-            user = User.query.get(user_id)
-            if user:
-                self.roles.data = [role.id for role in user.roles]
-                if user.player:
-                    self.league_id.data = user.player.league_id
-                    self.is_current_player.data = user.player.is_current_player
+        self.roles.choices = roles_choices if roles_choices else []
+        self.league_id.choices = leagues_choices if leagues_choices else []
 
     def validate_email(self, email):
+        if not self.user_id.data:
+            raise ValidationError('User ID is missing.')
+
+        try:
+            user_id_int = int(self.user_id.data)
+        except ValueError:
+            raise ValidationError('Invalid User ID.')
+
         user = User.query.filter_by(email=email.data).first()
-        if user and user.id != self.user_id:
+        if user and user.id != user_id_int:
             raise ValidationError('Email is already in use. Please choose a different one.')
 
     def validate_username(self, username):
+        if not self.user_id.data:
+            raise ValidationError('User ID is missing.')
+
+        try:
+            user_id_int = int(self.user_id.data)
+        except ValueError:
+            raise ValidationError('Invalid User ID.')
+
         user = User.query.filter_by(username=username.data).first()
-        if user and user.id != self.user_id:
+        if user and user.id != user_id_int:
             raise ValidationError('Username is already taken. Please choose a different one.')
+
+class FilterUsersForm(FlaskForm):
+    class Meta:
+        csrf = False
+
+    search = StringField('Search', validators=[Optional()])
+    role = SelectField('Role', coerce=str, validators=[Optional()], choices=[])
+    approved = SelectField('Approval Status', coerce=str, validators=[Optional()], choices=[('', 'All'), ('true', 'Approved'), ('false', 'Not Approved')])
+    league = SelectField('League', coerce=str, validators=[Optional()], choices=[('', 'All'), ('none', 'No League')])
+    active = SelectField('Active Status', coerce=str, validators=[Optional()], choices=[('', 'All'), ('true', 'Active Players'), ('false', 'Inactive Players')])
+    submit = SubmitField('Filter')
 
 class NotificationSettingsForm(FlaskForm):
     email_notifications = BooleanField('Email Notifications')
