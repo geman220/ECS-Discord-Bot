@@ -1,0 +1,112 @@
+<!-- templates/view_feedback_user.html -->
+{% extends 'base.html' %}
+
+{% block title %}Feedback #{{ feedback.id }} - View Feedback{% endblock %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10 col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title">Feedback #{{ feedback.id }}</h4>
+
+                </div>
+                <div class="card-body">
+                    <!-- Feedback Details -->
+                    <div class="mb-4">
+                        <h5>Details</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <strong>Category:</strong>
+                                <p class="text-muted">{{ feedback.category }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Title:</strong>
+                                <p class="text-muted">{{ feedback.title }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Priority:</strong>
+                                {% if feedback.priority == 'Low' %}
+                                <span class="badge bg-success">{{ feedback.priority }}</span>
+                                {% elif feedback.priority == 'Medium' %}
+                                <span class="badge bg-warning text-dark">{{ feedback.priority }}</span>
+                                {% elif feedback.priority == 'High' %}
+                                <span class="badge bg-danger">{{ feedback.priority }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ feedback.priority }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Status:</strong>
+                                {% if feedback.status == 'Open' %}
+                                <span class="badge bg-primary">{{ feedback.status }}</span>
+                                {% elif feedback.status == 'In Progress' %}
+                                <span class="badge bg-info text-dark">{{ feedback.status }}</span>
+                                {% elif feedback.status == 'Closed' %}
+                                <span class="badge bg-secondary">{{ feedback.status }}</span>
+                                {% else %}
+                                <span class="badge bg-dark">{{ feedback.status }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Submitted At:</strong>
+                                <p class="text-muted">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <strong>Submitted By:</strong>
+                                {% if feedback.user %}
+                                <p class="text-muted">{{ feedback.user.username }} ({{ feedback.user.email }})</p>
+                                {% else %}
+                                <p class="text-muted">Anonymous ({{ feedback.name }})</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <hr>
+                        <p>{{ feedback.description }}</p>
+                    </div>
+
+                    <!-- Notes Section -->
+                    <div class="mb-4">
+                        <h5>Notes</h5>
+                        <hr>
+                        {% if feedback.notes %}
+                        <div class="accordion" id="notesAccordion">
+                            {% for note in feedback.notes %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ note.id }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ note.id }}" aria-expanded="false" aria-controls="collapse{{ note.id }}">
+                                        {{ note.author.username }} - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ note.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ note.id }}" data-bs-parent="#notesAccordion">
+                                    <div class="accordion-body">
+                                        {{ note.content }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No Notes Available.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="d-flex justify-content-end">
+                        <a href="{{ url_for('feedback.submit_feedback') }}" class="btn btn-secondary">
+                            <i data-feather="arrow-left" class="me-1"></i> Back to Feedback
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

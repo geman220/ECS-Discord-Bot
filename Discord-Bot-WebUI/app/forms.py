@@ -342,13 +342,17 @@ class EditPlayerForm(FlaskForm):
     submit = SubmitField('Update Player')
 
 class FeedbackForm(FlaskForm):
-    category = SelectField('Category', choices=[('Bug', 'Bug'), ('Feature', 'Feature')], validators=[DataRequired()])
-    title = StringField('Title', validators=[DataRequired(), Length(max=255)])
+    name = StringField('Name', validators=[])
+    category = SelectField('Category', choices=[('Bug', 'Bug'), ('Feature', 'Feature Request'), ('Other', 'Other')], validators=[DataRequired()])
+    title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[DataRequired()])
     submit = SubmitField('Submit Feedback')
 
-class UpdateFeedbackForm(FlaskForm):
-    priority = SelectField('Priority', choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], validators=[DataRequired(), AnyOf(['Low', 'Medium', 'High'])])
-    status = SelectField('Status', choices=[('Open', 'Open'), ('In Progress', 'In Progress'), ('Closed', 'Closed')], validators=[DataRequired(), AnyOf(['Open', 'In Progress', 'Closed'])])
-    notes = TextAreaField('Notes', validators=[Length(max=1000)])
+class AdminFeedbackForm(FlaskForm):
+    priority = SelectField('Priority', choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], validators=[DataRequired()])
+    status = SelectField('Status', choices=[('Open', 'Open'), ('In Progress', 'In Progress'), ('Closed', 'Closed')], validators=[DataRequired()])
     submit = SubmitField('Update Feedback')
+
+class NoteForm(FlaskForm):
+    content = TextAreaField('Add Note', validators=[DataRequired()])
+    submit = SubmitField('Add Note')

@@ -10,7 +10,7 @@ from flask import (
     current_app,
     jsonify
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from sqlalchemy import or_
 from datetime import datetime
@@ -26,9 +26,11 @@ from app.models import (
     Permission,
     User,
     Feedback,
+    Feedback, 
+    Note,
     League
 )
-from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, UpdateFeedbackForm
+from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm
 from app.tasks import schedule_post_availability
 from app import db
 import pytz
@@ -545,64 +547,66 @@ def get_announcement_data():
     }), 200
 
 # admin_routes.py
-@admin_bp.route('/admin/reports')
+@admin_bp.route('/admin/reports', methods=['GET'])
+@login_required
 @role_required('Global Admin')
 def admin_reports():
-    search = request.args.get('search', '')
-    category = request.args.get('category', '')
-    status = request.args.get('status', '')
-    priority = request.args.get('priority', '')
+    # Filtering
+    status_filter = request.args.get('status')
+    priority_filter = request.args.get('priority')
     sort_by = request.args.get('sort_by', 'created_at')
-    order = request.args.get('order', 'desc')  # 'asc' or 'desc'
+    order = request.args.get('order', 'desc')
 
-    query = Feedback.query
+    feedback_query = Feedback.query
 
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            db.or_(
-                Feedback.title.ilike(search_term),
-                Feedback.description.ilike(search_term)
-            )
-        )
-    if category:
-        query = query.filter_by(category=category)
-    if status:
-        query = query.filter_by(status=status)
-    if priority:
-        query = query.filter_by(priority=priority)
-
+    if status_filter:
+        feedback_query = feedback_query.filter_by(status=status_filter)
+    if priority_filter:
+        feedback_query = feedback_query.filter_by(priority=priority_filter)
+    
     # Sorting
-    if sort_by == 'priority':
+    if sort_by in ['priority', 'status', 'created_at']:
+        sort_column = getattr(Feedback, sort_by)
         if order == 'asc':
-            query = query.order_by(Feedback.priority.asc())
+            feedback_query = feedback_query.order_by(sort_column.asc())
         else:
-            query = query.order_by(Feedback.priority.desc())
-    elif sort_by == 'status':
-        if order == 'asc':
-            query = query.order_by(Feedback.status.asc())
-        else:
-            query = query.order_by(Feedback.status.desc())
-    else:
-        # Default sorting by created_at
-        if order == 'asc':
-            query = query.order_by(Feedback.created_at.asc())
-        else:
-            query = query.order_by(Feedback.created_at.desc())
-
-    feedbacks = query.all()
+            feedback_query = feedback_query.order_by(sort_column.desc())
+    
+    feedbacks = feedback_query.all()
     return render_template('admin_reports.html', feedbacks=feedbacks)
 
 @admin_bp.route('/admin/report/<int:feedback_id>', methods=['GET', 'POST'])
-@role_required('Global Admin')  # Using your existing role_required decorator
+@login_required
+@role_required('Global Admin')
 def view_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
-    form = UpdateFeedbackForm(obj=feedback)  # Populate form with existing feedback data
-    if form.validate_on_submit():
-        feedback.priority = form.priority.data
-        feedback.status = form.status.data
-        feedback.notes = form.notes.data  # Update notes
-        db.session.commit()
-        flash('Feedback updated successfully.', 'success')
-        return redirect(url_for('admin.admin_reports'))
-    return render_template('admin_report_detail.html', feedback=feedback, form=form)
+    feedback_form = AdminFeedbackForm(obj=feedback)
+    note_form = NoteForm()
+
+    if request.method == 'POST':
+        # Handle feedback update
+        if 'update_feedback' in request.form and feedback_form.validate_on_submit():
+            feedback.priority = feedback_form.priority.data
+            feedback.status = feedback_form.status.data
+            db.session.commit()
+            flash('Feedback updated successfully.', 'success')
+            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+        
+        # Handle adding a note
+        if 'add_note' in request.form and note_form.validate_on_submit():
+            note = Note(
+                feedback_id=feedback.id,
+                author_id=current_user.id,
+                content=note_form.content.data.strip()
+            )
+            db.session.add(note)
+            db.session.commit()
+            flash('Note added successfully.', 'success')
+            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+    
+    return render_template(
+        'admin_report_detail.html',
+        feedback=feedback,
+        form=feedback_form,
+        note_form=note_form
+    )
