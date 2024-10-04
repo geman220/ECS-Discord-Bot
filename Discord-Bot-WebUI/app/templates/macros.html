@@ -1,4 +1,4 @@
-{% macro render_report_match_modal(team, match, home_team_name, opponent_team_name, player_choices) %}
+{% macro render_report_match_modal(match, player_choices) %}
 <div class="modal fade"
      id="reportMatchModal-{{ match.id }}"
      tabindex="-1"
@@ -11,7 +11,7 @@
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="reportMatchModalLabel-{{ match.id }}">
                     <i data-feather="edit" class="me-2"></i>
-                    {{ 'Edit' if match.reported else 'Report' }} Match: {{ home_team_name }} vs {{ opponent_team_name }}
+                    {{ 'Edit' if match.reported else 'Report' }} Match: {{ match.home_team_name }} vs {{ match.away_team_name }}
                 </h5>
                 <button type="button"
                         class="btn-close btn-close-white"
@@ -30,7 +30,7 @@
                         <!-- Home Team Score -->
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="home_team_score-{{ match.id }}" class="form-label">{{ home_team_name }} Score</label>
+                                <label for="home_team_score-{{ match.id }}" class="form-label">{{ match.home_team_name }} Score</label>
                                 <input type="number"
                                        min="0"
                                        class="form-control"
@@ -43,7 +43,7 @@
                         <!-- Away Team Score -->
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="away_team_score-{{ match.id }}" class="form-label">{{ opponent_team_name }} Score</label>
+                                <label for="away_team_score-{{ match.id }}" class="form-label">{{ match.away_team_name }} Score</label>
                                 <input type="number"
                                        min="0"
                                        class="form-control"
