@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_wtf.csrf import validate_csrf, CSRFError
 from collections import defaultdict
+from datetime import datetime, date
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
@@ -337,13 +338,13 @@ def team_details(team_id):
             your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
             opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
         else:
-            # **Critical Change:** Swap display_home and display_away when current team is away
+            # Swap display_home and display_away when current team is away
             display_home = away_team_name
             display_away = home_team_name
             your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
             opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
 
-        # **Move result determination AFTER setting your_team_score and opponent_score**
+        # Determine match result
         if your_team_score != 'N/A' and opponent_score != 'N/A':
             if your_team_score > opponent_score:
                 result_text = 'W'
@@ -357,22 +358,6 @@ def team_details(team_id):
         else:
             result_text = '-'
             result_class = 'secondary'  # Grey
-
-        # Always assign actual home and away team names
-        home_team_name = match.home_team.name
-        away_team_name = match.away_team.name
-
-        # Determine display variables based on whether current team is home or away
-        if match.home_team_id == team_id:
-            display_home = home_team_name
-            display_away = away_team_name
-            your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
-            opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
-        else:
-            display_home = home_team_name
-            display_away = away_team_name
-            your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
-            opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
 
         # Prepare display score
         if your_team_score != 'N/A' and opponent_score != 'N/A':
@@ -392,12 +377,27 @@ def team_details(team_id):
             'your_team_score': your_team_score,
             'opponent_score': opponent_score,
             'result_class': result_class,
-            'result_text': result_text,       # New field
-            'display_score': display_score,   # New field
+            'result_text': result_text,
+            'display_score': display_score,
             'reported': match.reported,
             'home_players': match.home_team.players,
             'away_players': match.away_team.players
         })
+
+    # Determine the next upcoming match date
+    if schedule:
+        today = datetime.today().date()
+        match_dates = sorted(schedule.keys())
+        next_match_date = None
+        for match_date in match_dates:
+            if match_date >= today:
+                next_match_date = match_date
+                break
+        if next_match_date is None:
+            # All matches are in the past; default to the last date
+            next_match_date = match_dates[-1]
+    else:
+        next_match_date = None
 
     # Prepare player choices for each match
     player_choices_per_match = {}
@@ -427,7 +427,8 @@ def team_details(team_id):
         players=players,
         schedule=schedule,
         player_choices=player_choices_per_match,
-        current_user=current_user  # Ensure current_user is passed if used in the template
+        current_user=current_user,  # Ensure current_user is passed if used in the template
+        next_match_date=next_match_date  # Pass the next upcoming match date
     )
 
 @teams_bp.route('/')
