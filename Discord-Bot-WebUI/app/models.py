@@ -12,9 +12,10 @@ import pyotp
 logger = logging.getLogger(__name__)
 
 # Association table for the many-to-many relationship between User and Role
-user_roles = db.Table('user_roles',
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id')),
-    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'))
+user_roles = db.Table(
+    'user_roles',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
 )
 
 # Association table for the many-to-many relationship between Role and Permission
@@ -57,12 +58,11 @@ class User(UserMixin, db.Model):
     league = db.relationship('League', back_populates='users')
     is_2fa_enabled = db.Column(db.Boolean, default=False)
     totp_secret = db.Column(db.String(32), nullable=True)
-    roles = db.relationship('Role', secondary=user_roles, back_populates='users')
+    roles = db.relationship('Role', secondary=user_roles, back_populates='users')  # Removed cascade
     player = db.relationship('Player', back_populates='user', uselist=False)  # Link to Player model
     stat_change_logs = db.relationship('StatChangeLog', back_populates='user', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
     feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
-
 
     @hybrid_property
     def email(self):
