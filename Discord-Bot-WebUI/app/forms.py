@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_login import current_user
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired
+from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
 from app.models import User, Role, League
 from sqlalchemy import func
 import logging
@@ -321,3 +321,15 @@ class EditPlayerForm(FlaskForm):
     jersey_size = SelectField('Jersey Size', validators=[DataRequired()], choices=[])
     league_id = SelectField('League', validators=[DataRequired()], choices=[])
     submit = SubmitField('Update Player')
+
+class FeedbackForm(FlaskForm):
+    category = SelectField('Category', choices=[('Bug', 'Bug'), ('Feature', 'Feature')], validators=[DataRequired()])
+    title = StringField('Title', validators=[DataRequired(), Length(max=255)])
+    description = TextAreaField('Description', validators=[DataRequired()])
+    submit = SubmitField('Submit Feedback')
+
+class UpdateFeedbackForm(FlaskForm):
+    priority = SelectField('Priority', choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], validators=[DataRequired(), AnyOf(['Low', 'Medium', 'High'])])
+    status = SelectField('Status', choices=[('Open', 'Open'), ('In Progress', 'In Progress'), ('Closed', 'Closed')], validators=[DataRequired(), AnyOf(['Open', 'In Progress', 'Closed'])])
+    notes = TextAreaField('Notes', validators=[Length(max=1000)])
+    submit = SubmitField('Update Feedback')

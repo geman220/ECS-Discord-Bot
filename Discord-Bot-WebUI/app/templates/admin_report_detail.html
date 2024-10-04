@@ -1,0 +1,100 @@
+<!-- templates/admin_report_detail.html -->
+{% extends 'base.html' %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Feedback #{{ feedback.id }}</h2>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <strong>Category:</strong>
+            <p>{{ feedback.category }}</p>
+        </div>
+        <div class="col-md-6">
+            <strong>Title:</strong>
+            <p>{{ feedback.title }}</p>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <strong>Description:</strong>
+        <p>{{ feedback.description }}</p>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <strong>Priority:</strong>
+            {% if feedback.priority == 'Low' %}
+            <span class="badge bg-success">{{ feedback.priority }}</span>
+            {% elif feedback.priority == 'Medium' %}
+            <span class="badge bg-warning text-dark">{{ feedback.priority }}</span>
+            {% elif feedback.priority == 'High' %}
+            <span class="badge bg-danger">{{ feedback.priority }}</span>
+            {% else %}
+            {{ feedback.priority }}
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <strong>Status:</strong>
+            {% if feedback.status == 'Open' %}
+            <span class="badge bg-primary">{{ feedback.status }}</span>
+            {% elif feedback.status == 'In Progress' %}
+            <span class="badge bg-info text-dark">{{ feedback.status }}</span>
+            {% elif feedback.status == 'Closed' %}
+            <span class="badge bg-secondary">{{ feedback.status }}</span>
+            {% else %}
+            {{ feedback.status }}
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            <strong>Submitted By:</strong>
+            {% if feedback.user %}
+            {{ feedback.user.username }} ({{ feedback.user.email }})
+            {% else %}
+            <span class="text-muted">Anonymous</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <strong>Submitted At:</strong>
+        <p>{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <!-- Notes Section -->
+    <div class="mb-3">
+        <strong>Notes:</strong>
+        <textarea name="notes" class="form-control" rows="4" placeholder="Add notes here...">{{ feedback.notes }}</textarea>
+        {% if form.notes.errors %}
+        <div class="text-danger">{{ form.notes.errors[0] }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Update Form -->
+    <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
+        {{ form.hidden_tag() }}  <!-- CSRF Token -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                {{ form.priority.label(class="form-label") }}
+                {{ form.priority(class="form-select") }}
+                {% for error in form.priority.errors %}
+                <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="col-md-6">
+                {{ form.status.label(class="form-label") }}
+                {{ form.status(class="form-select") }}
+                {% for error in form.status.errors %}
+                <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success me-2">
+            <i data-feather="check-circle" class="me-1"></i> Update Feedback
+        </button>
+        <a href="{{ url_for('admin.admin_reports') }}" class="btn btn-secondary">
+            <i data-feather="arrow-left" class="me-1"></i> Back to Reports
+        </a>
+    </form>
+</div>
+{% endblock %}

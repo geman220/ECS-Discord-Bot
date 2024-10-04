@@ -16,6 +16,7 @@ def register_blueprints(app):
     from app.match_pages import match_pages
     from app.account import account_bp
     from app.email import email_bp
+    from app.feedback import feedback_bp
     from app.user_management import user_management_bp
     from app.calendar import calendar_bp
 
@@ -30,6 +31,7 @@ def register_blueprints(app):
     app.register_blueprint(bot_admin_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(feedback_bp)
     app.register_blueprint(email_bp)
     app.register_blueprint(calendar_bp)
     app.register_blueprint(user_management_bp)

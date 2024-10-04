@@ -25,9 +25,10 @@ from app.models import (
     Role,
     Permission,
     User,
+    Feedback,
     League
 )
-from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm
+from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, UpdateFeedbackForm
 from app.tasks import schedule_post_availability
 from app import db
 import pytz
@@ -542,3 +543,66 @@ def get_announcement_data():
         'title': announcement.title,
         'content': announcement.content
     }), 200
+
+# admin_routes.py
+@admin_bp.route('/admin/reports')
+@role_required('Global Admin')
+def admin_reports():
+    search = request.args.get('search', '')
+    category = request.args.get('category', '')
+    status = request.args.get('status', '')
+    priority = request.args.get('priority', '')
+    sort_by = request.args.get('sort_by', 'created_at')
+    order = request.args.get('order', 'desc')  # 'asc' or 'desc'
+
+    query = Feedback.query
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            db.or_(
+                Feedback.title.ilike(search_term),
+                Feedback.description.ilike(search_term)
+            )
+        )
+    if category:
+        query = query.filter_by(category=category)
+    if status:
+        query = query.filter_by(status=status)
+    if priority:
+        query = query.filter_by(priority=priority)
+
+    # Sorting
+    if sort_by == 'priority':
+        if order == 'asc':
+            query = query.order_by(Feedback.priority.asc())
+        else:
+            query = query.order_by(Feedback.priority.desc())
+    elif sort_by == 'status':
+        if order == 'asc':
+            query = query.order_by(Feedback.status.asc())
+        else:
+            query = query.order_by(Feedback.status.desc())
+    else:
+        # Default sorting by created_at
+        if order == 'asc':
+            query = query.order_by(Feedback.created_at.asc())
+        else:
+            query = query.order_by(Feedback.created_at.desc())
+
+    feedbacks = query.all()
+    return render_template('admin_reports.html', feedbacks=feedbacks)
+
+@admin_bp.route('/admin/report/<int:feedback_id>', methods=['GET', 'POST'])
+@role_required('Global Admin')  # Using your existing role_required decorator
+def view_feedback(feedback_id):
+    feedback = Feedback.query.get_or_404(feedback_id)
+    form = UpdateFeedbackForm(obj=feedback)  # Populate form with existing feedback data
+    if form.validate_on_submit():
+        feedback.priority = form.priority.data
+        feedback.status = form.status.data
+        feedback.notes = form.notes.data  # Update notes
+        db.session.commit()
+        flash('Feedback updated successfully.', 'success')
+        return redirect(url_for('admin.admin_reports'))
+    return render_template('admin_report_detail.html', feedback=feedback, form=form)
