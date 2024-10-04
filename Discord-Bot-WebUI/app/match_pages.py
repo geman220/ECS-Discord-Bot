@@ -11,9 +11,40 @@ def view_match(match_id):
     # Fetch the match details from the database
     match = Match.query.get_or_404(match_id)
     schedule = match.schedule
-
-    # Render the match page template with the match data
-    return render_template('view_match.html', match=match, schedule=schedule)
+    
+    # Create RSVP dictionaries for home and away teams
+    def get_rsvp_data(team):
+        rsvp_data = {
+            'available': [],
+            'not_available': [],
+            'maybe': [],
+            'no_response': []
+        }
+        for player in team.players:
+            availability = next((a for a in player.availability if a.match_id == match.id), None)
+            if availability:
+                if availability.response == 'yes':
+                    rsvp_data['available'].append(player)
+                elif availability.response == 'no':
+                    rsvp_data['not_available'].append(player)
+                elif availability.response == 'maybe':
+                    rsvp_data['maybe'].append(player)
+            else:
+                rsvp_data['no_response'].append(player)
+        return rsvp_data
+    
+    # Calculate RSVP data for home and away teams
+    home_rsvp_data = get_rsvp_data(match.home_team)
+    away_rsvp_data = get_rsvp_data(match.away_team)
+    
+    # Render the match page template with the match data and RSVP data
+    return render_template(
+        'view_match.html', 
+        match=match, 
+        schedule=schedule,
+        home_rsvp_data=home_rsvp_data,
+        away_rsvp_data=away_rsvp_data
+    )
 
 @match_pages.route('/rsvp/<int:match_id>', methods=['POST'])
 @login_required
