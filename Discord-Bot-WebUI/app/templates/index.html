@@ -254,7 +254,7 @@
                             </div>
 
                             <!-- Include the Report Match Modal using the macro -->
-                            {{ macros.render_report_match_modal(player.team, match, home_team_name, opponent_team_name, player_choices) }}
+                            {{ macros.render_report_match_modal(match, player_choices) }}
 
                             {% endfor %}
                         </div>
@@ -314,7 +314,7 @@
                             </div>
 
                             <!-- Include the Report Match Modal using the macro -->
-                            {{ macros.render_report_match_modal(player.team, match, home_team_name, opponent_team_name, player_choices) }}
+                            {{ macros.render_report_match_modal(match, player_choices) }}
 
                             {% endfor %}
                         </div>

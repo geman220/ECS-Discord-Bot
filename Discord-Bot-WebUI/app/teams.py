@@ -326,48 +326,53 @@ def team_details(team_id):
     # Group the schedule by date
     schedule = defaultdict(list)
     for match in all_matches:
-        # Determine opponent_name and team names
+        # Always assign actual home and away team names
+        home_team_name = match.home_team.name
+        away_team_name = match.away_team.name
+
+        # Determine display variables based on whether current team is home or away
         if match.home_team_id == team_id:
-            opponent_name = match.away_team.name
+            display_home = home_team_name
+            display_away = away_team_name
             your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
             opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
-            if your_team_score != 'N/A' and opponent_score != 'N/A':
-                if your_team_score > opponent_score:
-                    result_text = 'W'
-                    result_class = 'success'  # Green
-                elif your_team_score < opponent_score:
-                    result_text = 'L'
-                    result_class = 'danger'  # Red
-                else:
-                    result_text = 'T'
-                    result_class = 'warning'  # Yellow
-            else:
-                result_text = '-'
-                result_class = 'secondary'  # Grey
-            home_team_name = match.home_team.name
-            away_team_name = match.away_team.name
         else:
-            opponent_name = match.home_team.name
+            # **Critical Change:** Swap display_home and display_away when current team is away
+            display_home = away_team_name
+            display_away = home_team_name
             your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
             opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
-            if your_team_score != 'N/A' and opponent_score != 'N/A':
-                if your_team_score > opponent_score:
-                    result_text = 'W'
-                    result_class = 'success'
-                elif your_team_score < opponent_score:
-                    result_text = 'L'
-                    result_class = 'danger'
-                else:
-                    result_text = 'T'
-                    result_class = 'warning'
-            else:
-                result_text = '-'
-                result_class = 'secondary'
-            home_team_name = match.away_team.name
-            away_team_name = match.home_team.name
 
-        match.result_class = result_class  # Assign result_class to match object
-        match.result_text = result_text    # Assign result_text to match object
+        # **Move result determination AFTER setting your_team_score and opponent_score**
+        if your_team_score != 'N/A' and opponent_score != 'N/A':
+            if your_team_score > opponent_score:
+                result_text = 'W'
+                result_class = 'success'  # Green
+            elif your_team_score < opponent_score:
+                result_text = 'L'
+                result_class = 'danger'  # Red
+            else:
+                result_text = 'T'
+                result_class = 'warning'  # Yellow
+        else:
+            result_text = '-'
+            result_class = 'secondary'  # Grey
+
+        # Always assign actual home and away team names
+        home_team_name = match.home_team.name
+        away_team_name = match.away_team.name
+
+        # Determine display variables based on whether current team is home or away
+        if match.home_team_id == team_id:
+            display_home = home_team_name
+            display_away = away_team_name
+            your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
+            opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
+        else:
+            display_home = home_team_name
+            display_away = away_team_name
+            your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
+            opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
 
         # Prepare display score
         if your_team_score != 'N/A' and opponent_score != 'N/A':
@@ -379,7 +384,7 @@ def team_details(team_id):
             'id': match.id,
             'time': match.time,
             'location': match.location,
-            'opponent_name': opponent_name,
+            'opponent_name': match.away_team.name if match.home_team_id == team_id else match.home_team.name,
             'home_team_name': home_team_name,
             'away_team_name': away_team_name,
             'home_team_id': match.home_team_id,
@@ -424,6 +429,7 @@ def team_details(team_id):
         player_choices=player_choices_per_match,
         current_user=current_user  # Ensure current_user is passed if used in the template
     )
+
 @teams_bp.route('/')
 @login_required
 def teams_overview():
