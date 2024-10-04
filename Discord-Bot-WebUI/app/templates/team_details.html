@@ -122,6 +122,9 @@
 {% endblock %}
 
 {% block custom_css %}
+<!-- Include any additional CSS or Vuexy-specific styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index_custom.css') }}">
+
 <style>
     /* Team Header Styling */
     .team-header {
