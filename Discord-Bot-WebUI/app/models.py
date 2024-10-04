@@ -61,6 +61,8 @@ class User(UserMixin, db.Model):
     player = db.relationship('Player', back_populates='user', uselist=False)  # Link to Player model
     stat_change_logs = db.relationship('StatChangeLog', back_populates='user', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
+    feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
+
 
     @hybrid_property
     def email(self):
@@ -657,3 +659,22 @@ class PlayerStatAudit(db.Model):
     player = db.relationship('Player', back_populates='stat_audits')
     season = db.relationship('Season', back_populates='stat_audits')
     user = db.relationship('User', back_populates='stat_audits')
+
+# New Feedback model
+class Feedback(db.Model):
+    __tablename__ = 'feedback'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Optional: link to user
+    category = db.Column(db.String(50), nullable=False)  # 'Bug' or 'Feature'
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.String(20), default='Low')  # Low, Medium, High
+    status = db.Column(db.String(20), default='Open')  # Open, In Progress, Closed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', back_populates='feedbacks')
+
+    def __repr__(self):
+        return f'<Feedback {self.id} - {self.title}>'

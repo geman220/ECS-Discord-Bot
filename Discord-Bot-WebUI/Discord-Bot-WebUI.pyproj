@@ -36,6 +36,7 @@
     <Compile Include="app\discord_utils.py" />
     <Compile Include="app\draft.py" />
     <Compile Include="app\email.py" />
+    <Compile Include="app\feedback.py" />
     <Compile Include="app\main.py" />
     <Compile Include="app\match_pages.py" />
     <Compile Include="app\players.py" />
@@ -121,6 +122,8 @@
     <Content Include="app\static\custom_js\rsvp.js" />
     <Content Include="app\static\custom_js\tour.js" />
     <Content Include="app\templates\admin_dashboard.html" />
+    <Content Include="app\templates\admin_reports.html" />
+    <Content Include="app\templates\admin_report_detail.html" />
     <Content Include="app\templates\admin_review.html" />
     <Content Include="app\templates\approve_users.html" />
     <Content Include="app\templates\base.html" />
@@ -157,6 +160,7 @@
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />
+    <Content Include="app\templates\submit_feedback.html" />
     <Content Include="app\templates\teams_overview.html" />
     <Content Include="app\templates\team_details.html" />
     <Content Include="app\templates\verify_2fa.html" />

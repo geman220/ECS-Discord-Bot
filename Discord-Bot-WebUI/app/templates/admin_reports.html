@@ -1,0 +1,158 @@
+<!-- templates/admin_reports.html -->
+{% extends 'base.html' %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <h2 class="mb-4">All Feedback</h2>
+
+    <!-- Optional: Filters for Status and Priority -->
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <select id="filterStatus" class="form-select">
+                <option value="">Filter by Status</option>
+                <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
+                <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
+                <option value="Closed" {% if request.args.get('status') == 'Closed' %}selected{% endif %}>Closed</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <select id="filterPriority" class="form-select">
+                <option value="">Filter by Priority</option>
+                <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
+                <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
+                <option value="High" {% if request.args.get('priority') == 'High' %}selected{% endif %}>High</option>
+            </select>
+        </div>
+    </div>
+
+    <table class="table table-striped table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Category</th>
+                <th>Title</th>
+                <th>
+                    <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
+                        Priority
+                        {% if request.args.get('sort_by') == 'priority' %}
+                        {% if request.args.get('order') == 'asc' %}
+                        <i data-feather="arrow-up" class="ms-1"></i>
+                        {% else %}
+                        <i data-feather="arrow-down" class="ms-1"></i>
+                        {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
+                        Status
+                        {% if request.args.get('sort_by') == 'status' %}
+                        {% if request.args.get('order') == 'asc' %}
+                        <i data-feather="arrow-up" class="ms-1"></i>
+                        {% else %}
+                        <i data-feather="arrow-down" class="ms-1"></i>
+                        {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>Submitted By</th>
+                <th>
+                    <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="text-white text-decoration-none">
+                        Submitted At
+                        {% if request.args.get('sort_by') == 'created_at' %}
+                        {% if request.args.get('order') == 'asc' %}
+                        <i data-feather="arrow-up" class="ms-1"></i>
+                        {% else %}
+                        <i data-feather="arrow-down" class="ms-1"></i>
+                        {% endif %}
+                        {% endif %}
+                    </a>
+                </th>
+                <th>Notes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feedback in feedbacks %}
+            <tr>
+                <td>{{ feedback.id }}</td>
+                <td>{{ feedback.category }}</td>
+                <td>{{ feedback.title }}</td>
+                <td>
+                    {% if feedback.priority == 'Low' %}
+                    <span class="badge bg-success">{{ feedback.priority }}</span>
+                    {% elif feedback.priority == 'Medium' %}
+                    <span class="badge bg-warning text-dark">{{ feedback.priority }}</span>
+                    {% elif feedback.priority == 'High' %}
+                    <span class="badge bg-danger">{{ feedback.priority }}</span>
+                    {% else %}
+                    {{ feedback.priority }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if feedback.status == 'Open' %}
+                    <span class="badge bg-primary">{{ feedback.status }}</span>
+                    {% elif feedback.status == 'In Progress' %}
+                    <span class="badge bg-info text-dark">{{ feedback.status }}</span>
+                    {% elif feedback.status == 'Closed' %}
+                    <span class="badge bg-secondary">{{ feedback.status }}</span>
+                    {% else %}
+                    {{ feedback.status }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if feedback.user %}
+                    {{ feedback.user.username }}
+                    {% else %}
+                    <span class="text-muted">Anonymous</span>
+                    {% endif %}
+                </td>
+                <td>{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if feedback.notes %}
+                    {{ feedback.notes }}
+                    {% else %}
+                    <span class="text-muted">No Notes</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-primary">
+                        <i data-feather="edit" class="me-1"></i> Edit
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Optional: JavaScript for Filters -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterStatus = document.getElementById('filterStatus');
+    const filterPriority = document.getElementById('filterPriority');
+
+    filterStatus.addEventListener('change', function() {
+        const status = this.value;
+        let url = new URL(window.location.href);
+        if (status) {
+            url.searchParams.set('status', status);
+        } else {
+            url.searchParams.delete('status');
+        }
+        window.location.href = url.toString();
+    });
+
+    filterPriority.addEventListener('change', function() {
+        const priority = this.value;
+        let url = new URL(window.location.href);
+        if (priority) {
+            url.searchParams.set('priority', priority);
+        } else {
+            url.searchParams.delete('priority');
+        }
+        window.location.href = url.toString();
+    });
+});
+</script>
+{% endblock %}

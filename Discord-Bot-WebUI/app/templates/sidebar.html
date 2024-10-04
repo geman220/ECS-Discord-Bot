@@ -109,6 +109,16 @@
         </li>
         {% endif %}
 
+        <!-- Feedback - Anyone Authenticated -->
+        {% if current_user.is_authenticated %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
+            <a class="menu-link teams-link" href="{{ url_for('feedback.submit_feedback') }}">
+                <i data-feather="alert-circle" class="menu-icon"></i>
+                <div>Submit Feedback / Bug</div>
+            </a>
+        </li>
+        {% endif %}
+
         <!-- Admin Section Header - Only if there are links for this section -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Discord Admin' in user_roles %}
         <li class="menu-header small text-uppercase">
@@ -148,10 +158,20 @@
 
         <!-- Dev Tools - Only Global Admins -->
         {% if 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'admin' in request.path }}">
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">
             <a class="menu-link" href="{{ url_for('admin.admin_dashboard') }}">
                 <i data-feather="tool" class="menu-icon"></i>
                 <div>Dev Tools</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Feedback - Only Global Admins -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_reports' }}">
+            <a class="menu-link" href="{{ url_for('admin.admin_reports') }}">
+                <i data-feather="alert-circle" class="menu-icon"></i>
+                <div>Review Feedback</div>
             </a>
         </li>
         {% endif %}

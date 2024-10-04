@@ -1,0 +1,71 @@
+<!-- templates/submit_feedback.html -->
+{% extends 'base.html' %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Submit Feedback</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Tips Section -->
+                    <div class="mb-4">
+                        <h5>How to Submit Good Feedback</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <strong>Be Clear and Concise:</strong> Clearly describe the issue or feature request.
+                            </li>
+                            <li class="list-group-item">
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <strong>Provide Details:</strong> Include steps to reproduce bugs or detailed feature descriptions.
+                            </li>
+                            <li class="list-group-item">
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <strong>Include Screenshots:</strong> Visuals help in understanding the context better.  You can upload the image to imgur.com
+                            </li>
+                            <li class="list-group-item">
+                                <i data-feather="check-circle" class="text-success me-2"></i>
+                                <strong>Specify the Environment:</strong> Mention browser, OS, or any relevant details.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Feedback Form -->
+                    <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="mb-3">
+                            {{ form.category.label(class="form-label fw-bold") }}
+                            {{ form.category(class="form-select", aria_label="Category") }}
+                            {% for error in form.category.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label fw-bold") }}
+                            {{ form.title(class="form-control", placeholder="Enter a brief title") }}
+                            {% for error in form.title.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-4">
+                            {{ form.description.label(class="form-label fw-bold") }}
+                            {{ form.description(class="form-control", rows="6", placeholder="Describe the issue or feature in detail") }}
+                            {% for error in form.description.errors %}
+                            <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i data-feather="send" class="me-2"></i> Submit Feedback
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
