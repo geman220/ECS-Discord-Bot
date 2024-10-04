@@ -112,7 +112,7 @@
         <!-- Feedback - Anyone Authenticated -->
         {% if current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
-            <a class="menu-link teams-link" href="{{ url_for('feedback.submit_feedback') }}">
+            <a class="menu-link feedback-link" href="{{ url_for('feedback.submit_feedback') }}">
                 <i data-feather="alert-circle" class="menu-icon"></i>
                 <div>Submit Feedback / Bug</div>
             </a>
