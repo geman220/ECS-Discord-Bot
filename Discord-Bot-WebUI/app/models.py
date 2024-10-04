@@ -63,6 +63,7 @@ class User(UserMixin, db.Model):
     stat_change_logs = db.relationship('StatChangeLog', back_populates='user', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
     feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
+    notes = db.relationship('Note', back_populates='author', lazy=True)
 
     @hybrid_property
     def email(self):
@@ -660,12 +661,12 @@ class PlayerStatAudit(db.Model):
     season = db.relationship('Season', back_populates='stat_audits')
     user = db.relationship('User', back_populates='stat_audits')
 
-# New Feedback model
 class Feedback(db.Model):
     __tablename__ = 'feedback'
-
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Optional: link to user
+    name = db.Column(db.String(150), nullable=True)  # Initially nullable
     category = db.Column(db.String(50), nullable=False)  # 'Bug' or 'Feature'
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -675,6 +676,22 @@ class Feedback(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user = db.relationship('User', back_populates='feedbacks')
+    notes = db.relationship('Note', back_populates='feedback', cascade='all, delete-orphan', lazy=True)
 
     def __repr__(self):
         return f'<Feedback {self.id} - {self.title}>'
+
+class Note(db.Model):
+    __tablename__ = 'notes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+
+    feedback = db.relationship('Feedback', back_populates='notes')
+    author = db.relationship('User', back_populates='notes')
+
+    def __repr__(self):
+        return f'<Note {self.id} by {self.author.username}>'

@@ -165,6 +165,7 @@
     <Content Include="app\templates\team_details.html" />
     <Content Include="app\templates\verify_2fa.html" />
     <Content Include="app\templates\verify_purchase.html" />
+    <Content Include="app\templates\view_feedback_user.html" />
     <Content Include="app\templates\view_match.html" />
     <Content Include="app\templates\view_players.html" />
     <Content Include="app\templates\view_standings.html" />

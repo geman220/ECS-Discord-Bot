@@ -5,7 +5,7 @@
 <div class="container mt-5">
     <h2 class="mb-4">All Feedback</h2>
 
-    <!-- Optional: Filters for Status and Priority -->
+    <!-- Filters for Status and Priority -->
     <div class="row mb-3">
         <div class="col-md-3">
             <select id="filterStatus" class="form-select">
@@ -110,7 +110,7 @@
                 <td>{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
                     {% if feedback.notes %}
-                    {{ feedback.notes }}
+                    {{ feedback.notes|length }}
                     {% else %}
                     <span class="text-muted">No Notes</span>
                     {% endif %}
@@ -128,31 +128,31 @@
 
 <!-- Optional: JavaScript for Filters -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const filterStatus = document.getElementById('filterStatus');
-    const filterPriority = document.getElementById('filterPriority');
+    document.addEventListener('DOMContentLoaded', function () {
+        const filterStatus = document.getElementById('filterStatus');
+        const filterPriority = document.getElementById('filterPriority');
 
-    filterStatus.addEventListener('change', function() {
-        const status = this.value;
-        let url = new URL(window.location.href);
-        if (status) {
-            url.searchParams.set('status', status);
-        } else {
-            url.searchParams.delete('status');
-        }
-        window.location.href = url.toString();
-    });
+        filterStatus.addEventListener('change', function () {
+            const status = this.value;
+            let url = new URL(window.location.href);
+            if (status) {
+                url.searchParams.set('status', status);
+            } else {
+                url.searchParams.delete('status');
+            }
+            window.location.href = url.toString();
+        });
 
-    filterPriority.addEventListener('change', function() {
-        const priority = this.value;
-        let url = new URL(window.location.href);
-        if (priority) {
-            url.searchParams.set('priority', priority);
-        } else {
-            url.searchParams.delete('priority');
-        }
-        window.location.href = url.toString();
+        filterPriority.addEventListener('change', function () {
+            const priority = this.value;
+            let url = new URL(window.location.href);
+            if (priority) {
+                url.searchParams.set('priority', priority);
+            } else {
+                url.searchParams.delete('priority');
+            }
+            window.location.href = url.toString();
+        });
     });
-});
 </script>
 {% endblock %}
