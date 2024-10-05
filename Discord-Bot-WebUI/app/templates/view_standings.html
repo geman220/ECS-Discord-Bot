@@ -1,128 +1,202 @@
 {% extends "base.html" %}
 
 {% block main_content %}
-<div class="container-fluid">
-    <!-- Premier League Standings -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="card-title text-primary mb-0">Premier Divison Standings</h4>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered table-striped mb-0">
-                    <thead class="thead-light">
-                        <tr>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Position</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Team</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Played</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Won</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Drawn</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Lost</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goals For</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goals Against</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goal Difference</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for standing_tuple in premier_standings %}
-                        {% set standing = standing_tuple[0] %}
-                        {% set stats = standing_tuple[1] %}
-                        <tr class="align-middle {% if loop.index == 1 %}table-success{% elif loop.index == 2 %}table-info{% elif loop.index == 3 %}table-warning{% elif loop.previtem and loop.previtem.points == standing.points and loop.previtem.goal_difference == standing.goal_difference %}table-secondary{% endif %}">
-                            <td class="font-weight-bold" style="padding: 4px 8px;">{{ loop.index }}</td>
-                            <td class="text-left text-wrap" style="padding: 4px 8px;">
-                                <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
-                                   class="text-primary font-weight-bold"
-                                   data-bs-toggle="popover" title="{{ standing.team.name }}"
-                                   data-bs-html="true" data-bs-content="
-                                   <strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)<br>
-                                   <strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)<br>
-                                   <strong>Recent Form:</strong> {{ stats.recent_form }}<br>
-                                   <strong>Avg Goals per Match:</strong> {{ stats.avg_goals_per_match }}">
-                                    {{ standing.team.name }}
-                                </a>
-                            </td>
-                            <td style="padding: 4px 8px;">{{ standing.played }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.won }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.drawn }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.lost }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goals_for }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goals_against }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goal_difference }}</td>
-                            <td class="font-weight-bold" style="padding: 4px 8px;">{{ standing.points }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+<div class="container">
+    <!-- Content Header -->
+    <div class="content-header row">
+        <div class="col-12 mb-2">
+            <h2 class="content-header-title float-start mb-0 text-primary">Pub League Standings</h2>
         </div>
     </div>
 
-    <!-- Classic League Standings -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h4 class="card-title text-primary mb-0">Classic Division Standings</h4>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-bordered table-striped mb-0">
-                    <thead class="thead-light">
-                        <tr>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Position</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Team</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Played</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Won</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Drawn</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Lost</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goals For</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goals Against</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Goal Difference</th>
-                            <th class="text-nowrap" style="padding: 4px 8px;">Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for standing_tuple in classic_standings %}
-                        {% set standing = standing_tuple[0] %}
-                        {% set stats = standing_tuple[1] %}
-                        <tr class="align-middle {% if loop.index == 1 %}table-success{% elif loop.index == 2 %}table-info{% elif loop.index == 3 %}table-warning{% elif loop.previtem and loop.previtem.points == standing.points and loop.previtem.goal_difference == standing.goal_difference %}table-secondary{% endif %}">
-                            <td class="font-weight-bold" style="padding: 4px 8px;">{{ loop.index }}</td>
-                            <td class="text-left text-wrap" style="padding: 4px 8px;">
-                                <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
-                                   class="text-primary font-weight-bold"
-                                   data-bs-toggle="popover" title="{{ standing.team.name }}"
-                                   data-bs-html="true" data-bs-content="
-                                   <strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)<br>
-                                   <strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)<br>
-                                   <strong>Recent Form:</strong> {{ stats.recent_form }}<br>
-                                   <strong>Avg Goals per Match:</strong> {{ stats.avg_goals_per_match }}">
-                                    {{ standing.team.name }}
-                                </a>
-                            </td>
-                            <td style="padding: 4px 8px;">{{ standing.played }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.won }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.drawn }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.lost }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goals_for }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goals_against }}</td>
-                            <td style="padding: 4px 8px;">{{ standing.goal_difference }}</td>
-                            <td class="font-weight-bold" style="padding: 4px 8px;">{{ standing.points }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <!-- Content Body -->
+    <div class="content-body">
+        <!-- Nav Tabs for Leagues -->
+        <ul class="nav nav-tabs mb-3" id="leagueTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="premier-tab" data-bs-toggle="tab" data-bs-target="#premier" type="button" role="tab" aria-controls="premier" aria-selected="true">
+                    Premier Division
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="classic-tab" data-bs-toggle="tab" data-bs-target="#classic" type="button" role="tab" aria-controls="classic" aria-selected="false">
+                    Classic Division
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="leagueTabsContent">
+            <!-- Premier Division Standings -->
+            <div class="tab-pane fade show active" id="premier" role="tabpanel" aria-labelledby="premier-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title text-primary">Premier Division Standings</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Team</th>
+                                        <th>Played</th>
+                                        <th>Won</th>
+                                        <th>Drawn</th>
+                                        <th>Lost</th>
+                                        <th>Goals For</th>
+                                        <th>Goals Against</th>
+                                        <th>Goal Difference</th>
+                                        <th>Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for standing in premier_standings %}
+                                    {% set stats = premier_stats[standing.team.id] %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                               class="text-primary"
+                                               data-bs-toggle="popover"
+                                               data-bs-trigger="hover focus"
+                                               data-bs-html="true"
+                                               title="{{ standing.team.name }}"
+                                               data-bs-content="
+                                               <strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)<br>
+                                               <strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)<br>
+                                               <strong>Recent Form:</strong> {{ stats.recent_form }}<br>
+                                               <strong>Avg Goals per Match:</strong> {{ stats.avg_goals_per_match }}">
+                                                {{ standing.team.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ standing.played }}</td>
+                                        <td>{{ standing.wins }}</td>
+                                        <td>{{ standing.draws }}</td>
+                                        <td>{{ standing.losses }}</td>
+                                        <td>{{ standing.goals_for }}</td>
+                                        <td>{{ standing.goals_against }}</td>
+                                        <td>{{ standing.goal_difference }}</td>
+                                        <td>{{ standing.points }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classic Division Standings -->
+            <div class="tab-pane fade" id="classic" role="tabpanel" aria-labelledby="classic-tab">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title text-primary">Classic Division Standings</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered table-striped">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Team</th>
+                                        <th>Played</th>
+                                        <th>Won</th>
+                                        <th>Drawn</th>
+                                        <th>Lost</th>
+                                        <th>Goals For</th>
+                                        <th>Goals Against</th>
+                                        <th>Goal Difference</th>
+                                        <th>Points</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for standing in classic_standings %}
+                                    {% set stats = classic_stats[standing.team.id] %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                               class="text-primary"
+                                               data-bs-toggle="popover"
+                                               data-bs-trigger="hover focus"
+                                               data-bs-html="true"
+                                               title="{{ standing.team.name }}"
+                                               data-bs-content="
+                                               <strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)<br>
+                                               <strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)<br>
+                                               <strong>Recent Form:</strong> {{ stats.recent_form }}<br>
+                                               <strong>Avg Goals per Match:</strong> {{ stats.avg_goals_per_match }}">
+                                                {{ standing.team.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ standing.played }}</td>
+                                        <td>{{ standing.wins }}</td>
+                                        <td>{{ standing.draws }}</td>
+                                        <td>{{ standing.losses }}</td>
+                                        <td>{{ standing.goals_for }}</td>
+                                        <td>{{ standing.goals_against }}</td>
+                                        <td>{{ standing.goal_difference }}</td>
+                                        <td>{{ standing.points }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Additional Modals or Content can go here -->
     </div>
 </div>
 {% endblock %}
 
+{% block custom_css %}
+<style>
+    /* Custom styles to match Vuexy design */
+    .content-header-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .card {
+        border: 1px solid #e3e6ef;
+        border-radius: 0.5rem;
+    }
+
+    .nav-tabs .nav-link.active {
+        background-color: #fff;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+
+    .nav-tabs .nav-link {
+        border: 1px solid transparent;
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
 {% block custom_js %}
-<!-- Popover Initialization -->
 <script>
-    $(document).ready(function () {
-        $('[data-bs-toggle="popover"]').popover({
-            trigger: 'hover',
-            placement: 'top',
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Feather Icons
+        if (feather) {
+            feather.replace();
+        }
+
+        // Initialize Bootstrap popovers
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
         });
     });
 </script>

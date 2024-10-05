@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 teams_bp = Blueprint('teams', __name__)
 
-def populate_team_stats(team, season, for_match_reporting=False):
+from sqlalchemy import func
+
+def populate_team_stats(team, season):
     # Calculate top scorer using PlayerSeasonStats
     top_scorer = db.session.query(Player.name, PlayerSeasonStats.goals)\
         .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)\
@@ -28,7 +30,10 @@ def populate_team_stats(team, season, for_match_reporting=False):
         .order_by(PlayerSeasonStats.goals.desc())\
         .first()
 
-    top_scorer_name, top_scorer_goals = top_scorer if top_scorer and top_scorer.goals > 0 else ("No goals scored", 0)
+    if top_scorer and top_scorer[1] > 0:
+        top_scorer_name, top_scorer_goals = top_scorer
+    else:
+        top_scorer_name, top_scorer_goals = "No goals scored", 0
 
     # Calculate top assister using PlayerSeasonStats
     top_assister = db.session.query(Player.name, PlayerSeasonStats.assists)\
@@ -40,46 +45,61 @@ def populate_team_stats(team, season, for_match_reporting=False):
         .order_by(PlayerSeasonStats.assists.desc())\
         .first()
 
-    top_assister_name, top_assister_assists = top_assister if top_assister and top_assister.assists > 0 else ("No assists recorded", 0)
-
-    # Calculate recent form using Match results
-    if for_match_reporting:
-        # Use match reporting logic
-        matches = Match.query.filter(
-            ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-            team.league_id == season.league_id  # This logic works for match reporting
-        ).order_by(Match.date.desc()).limit(5).all()
+    if top_assister and top_assister[1] > 0:
+        top_assister_name, top_assister_assists = top_assister
     else:
-        # Use standings logic
-        matches = Match.query.filter(
+        top_assister_name, top_assister_assists = "No assists recorded", 0
+
+    # Fetch last 5 matches for recent form
+    matches = Match.query \
+        .join(Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))) \
+        .join(League, Team.league_id == League.id) \
+        .filter(
             ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-            team.league_id == League.id,  # Access the league through the team model
-            League.season_id == season.id  # This logic works for standings
-        ).order_by(Match.date.desc()).limit(5).all()
+            League.season_id == season.id,
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        ) \
+        .order_by(Match.date.desc()) \
+        .limit(5) \
+        .all()
 
-    recent_form = ''.join([
-        'W' if (match.home_team_id == team.id and (match.home_team_score or 0) > (match.away_team_score or 0)) or
-               (match.away_team_id == team.id and (match.away_team_score or 0) > (match.home_team_score or 0))
-        else 'D' if (match.home_team_score or 0) == (match.away_team_score or 0)
-        else 'L'
-        for match in matches
-        if match.home_team_score is not None and match.away_team_score is not None
-    ]) or "N/A"
+    recent_form_list = []
+    for match in matches:
+        if match.home_team_id == team.id:
+            if match.home_team_score > match.away_team_score:
+                recent_form_list.append('W')
+            elif match.home_team_score == match.away_team_score:
+                recent_form_list.append('D')
+            else:
+                recent_form_list.append('L')
+        else:
+            if match.away_team_score > match.home_team_score:
+                recent_form_list.append('W')
+            elif match.away_team_score == match.home_team_score:
+                recent_form_list.append('D')
+            else:
+                recent_form_list.append('L')
 
-    # Calculate average goals per match using PlayerSeasonStats
-    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals))\
-        .join(Player, PlayerSeasonStats.player_id == Player.id)\
+    recent_form = ' '.join(recent_form_list) if recent_form_list else "N/A"
+
+    # Calculate average goals per match
+    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals)) \
+        .join(Player, PlayerSeasonStats.player_id == Player.id) \
         .filter(
             PlayerSeasonStats.season_id == season.id,
             Player.team_id == team.id
         ).scalar() or 0
 
-    matches_played = db.session.query(func.count(Match.id))\
+    matches_played = db.session.query(func.count(Match.id)) \
+        .join(Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))) \
+        .join(League, Team.league_id == League.id) \
         .filter(
             ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-            team.league_id == (season.league_id if for_match_reporting else League.id),  # Adjust league access
-            (None if for_match_reporting else League.season_id == season.id)  # Skip season filter for match reporting
-        ).scalar() or 1
+            League.season_id == season.id,
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        ).scalar() or 0
 
     avg_goals_per_match = round(total_goals / matches_played, 2) if matches_played else 0
 
@@ -101,24 +121,42 @@ def update_standings(match, old_home_score=None, old_away_score=None):
     season = league.season
 
     try:
-        # Fetch or create standings for home team
+        # Fetch or create standings for home and away teams
         home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first()
-        if home_team_standing is None:
-            home_team_standing = Standings(team_id=home_team.id, season_id=season.id, played=0, goals_for=0,
-                                           goals_against=0, points=0, goal_difference=0, wins=0, draws=0, losses=0)
-            db.session.add(home_team_standing)
-
-        # Fetch or create standings for away team
         away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first()
-        if away_team_standing is None:
-            away_team_standing = Standings(team_id=away_team.id, season_id=season.id, played=0, goals_for=0,
-                                           goals_against=0, points=0, goal_difference=0, wins=0, draws=0, losses=0)
-            db.session.add(away_team_standing)
 
         # Revert old match result if provided (i.e., if editing a match)
         if old_home_score is not None and old_away_score is not None:
             logger.info(f"Reverting old match result for Match ID: {match.id}")
-            # Reversion logic remains the same...
+            if old_home_score > old_away_score:
+                # Revert a previous win for the home team
+                home_team_standing.wins -= 1
+                away_team_standing.losses -= 1
+            elif old_home_score < old_away_score:
+                # Revert a previous win for the away team
+                away_team_standing.wins -= 1
+                home_team_standing.losses -= 1
+            else:
+                # Revert a previous draw
+                home_team_standing.draws -= 1
+                away_team_standing.draws -= 1
+
+            # Update goals for/against and goal difference
+            home_team_standing.goals_for -= old_home_score
+            home_team_standing.goals_against -= old_away_score
+            away_team_standing.goals_for -= old_away_score
+            away_team_standing.goals_against -= old_home_score
+
+            home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
+            away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
+
+            # Revert points based on old result
+            home_team_standing.points = (home_team_standing.wins * 3) + home_team_standing.draws
+            away_team_standing.points = (away_team_standing.wins * 3) + away_team_standing.draws
+
+            # Decrement played matches
+            home_team_standing.played -= 1
+            away_team_standing.played -= 1
 
         # Now apply the new match result
         if match.home_team_score > match.away_team_score:
@@ -156,7 +194,7 @@ def update_standings(match, old_home_score=None, old_away_score=None):
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error updating standings: {str(e)}")
-        raise  # Re-raise the exception to ensure the calling code is aware of the failure
+        raise e
 
 def process_events(match, data, event_type, add_key, remove_key):
     logger.info(f"Processing events for {event_type.name}")
@@ -538,73 +576,46 @@ def view_standings():
         flash('No current season found.', 'warning')
         return redirect(url_for('home.index'))
 
-    # Fetch all standings for the current season in one query
-    all_standings = Standings.query.filter_by(season_id=season.id).all()
-    standings_by_team = {standing.team_id: standing for standing in all_standings}
-
-    # Get all teams in Premier and Classic leagues for the current season
-    premier_teams = Team.query.join(League).filter(
-        League.name == 'Premier',
-        League.season_id == season.id
+    # Fetch standings for Premier League
+    premier_standings = Standings.query.join(Team).join(League).filter(
+        Standings.season_id == season.id,
+        Team.id == Standings.team_id,
+        League.id == Team.league_id,
+        League.name == 'Premier'
+    ).order_by(
+        Standings.points.desc(),
+        Standings.goal_difference.desc(),
+        Standings.goals_for.desc()
     ).all()
 
-    classic_teams = Team.query.join(League).filter(
-        League.name == 'Classic',
-        League.season_id == season.id
+    # Fetch standings for Classic League
+    classic_standings = Standings.query.join(Team).join(League).filter(
+        Standings.season_id == season.id,
+        Team.id == Standings.team_id,
+        League.id == Team.league_id,
+        League.name == 'Classic'
+    ).order_by(
+        Standings.points.desc(),
+        Standings.goal_difference.desc(),
+        Standings.goals_for.desc()
     ).all()
 
-    # Initialize standings for all Premier league teams
-    premier_standings = []
-    for team in premier_teams:
-        standing = standings_by_team.get(team.id)
-        if not standing:
-            standing = Standings(
-                team_id=team.id,
-                season_id=season.id,
-                played=0,
-                won=0,
-                drawn=0,
-                lost=0,
-                goals_for=0,
-                goals_against=0,
-                goal_difference=0,
-                points=0
-            )
-            db.session.add(standing)
-            db.session.commit()
+    # Fetch additional stats for Premier teams
+    premier_stats = {}
+    for standing in premier_standings:
+        team_stats = populate_team_stats(standing.team, season)
+        premier_stats[standing.team.id] = team_stats
 
-        # Populate team stats
-        team_stats = populate_team_stats(team, season)
-        premier_standings.append((standing, team_stats))
+    # Fetch additional stats for Classic teams
+    classic_stats = {}
+    for standing in classic_standings:
+        team_stats = populate_team_stats(standing.team, season)
+        classic_stats[standing.team.id] = team_stats
 
-    # Sort the premier standings
-    premier_standings.sort(key=lambda s: (s[0].points, s[0].goal_difference, s[0].goals_for), reverse=True)
-
-    # Initialize standings for all Classic league teams
-    classic_standings = []
-    for team in classic_teams:
-        standing = standings_by_team.get(team.id)
-        if not standing:
-            standing = Standings(
-                team_id=team.id,
-                season_id=season.id,
-                played=0,
-                won=0,
-                drawn=0,
-                lost=0,
-                goals_for=0,
-                goals_against=0,
-                goal_difference=0,
-                points=0
-            )
-            db.session.add(standing)
-            db.session.commit()
-
-        # Populate team stats
-        team_stats = populate_team_stats(team, season)
-        classic_standings.append((standing, team_stats))
-
-    # Sort the classic standings
-    classic_standings.sort(key=lambda s: (s[0].points, s[0].goal_difference, s[0].goals_for), reverse=True)
-
-    return render_template('view_standings.html', premier_standings=premier_standings, classic_standings=classic_standings)
+    return render_template(
+        'view_standings.html',
+        premier_standings=premier_standings,
+        classic_standings=classic_standings,
+        premier_stats=premier_stats,
+        classic_stats=classic_stats
+    )
