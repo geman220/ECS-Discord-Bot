@@ -454,12 +454,18 @@ def index():
             home_team_id = match_data['home_team_id']
             opponent_team_id = match_data['opponent_team_id']
 
-            # Fetch players from both teams
-            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
-
             # Get team names
             home_team_name = match_data['home_team_name']
             opponent_team_name = match_data['opponent_name']
+
+            # Set attributes on the match object
+            setattr(match, 'home_team_id', home_team_id)
+            setattr(match, 'away_team_id', opponent_team_id)
+            setattr(match, 'home_team_name', home_team_name)
+            setattr(match, 'away_team_name', opponent_team_name)
+
+            # Fetch players from both teams
+            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
 
             # Structure the players by team using team names
             player_choices_per_match[match.id] = {
@@ -474,12 +480,18 @@ def index():
             home_team_id = match_data['home_team_id']
             opponent_team_id = match_data['opponent_team_id']
 
-            # Fetch players from both teams
-            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
-
             # Get team names
             home_team_name = match_data['home_team_name']
             opponent_team_name = match_data['opponent_name']
+
+            # Set attributes on the match object
+            setattr(match, 'home_team_id', home_team_id)
+            setattr(match, 'away_team_id', opponent_team_id)
+            setattr(match, 'home_team_name', home_team_name)
+            setattr(match, 'away_team_name', opponent_team_name)
+
+            # Fetch players from both teams
+            players = Player.query.filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
 
             # Structure the players by team using team names
             player_choices_per_match[match.id] = {
