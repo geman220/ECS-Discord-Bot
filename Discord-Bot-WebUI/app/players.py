@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, and_
 from PIL import Image
 from datetime import datetime
 import uuid
@@ -925,11 +925,6 @@ def view_players():
     classic_query = create_base_query('classic')
     premier_query = create_base_query('premier')
     ecsfc_query = create_base_query('ecs fc')
-
-    # Debug logs
-    logger.debug(f"Classic query count: {classic_query.count()}")
-    logger.debug(f"Premier query count: {premier_query.count()}")
-    logger.debug(f"ECS FC query count: {ecsfc_query.count()}")
 
     # Paginate the results
     classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
