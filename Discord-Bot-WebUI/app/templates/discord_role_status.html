@@ -92,7 +92,16 @@ $(document).ready(function () {
             responsive: true,
             pageLength: 25,
             dom: 'Bfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+            drawCallback: function() {
+                // Re-initialize status for all rows after each draw
+                $('.status-cell').each(function () {
+                    var $cell = $(this);
+                    var currentRoles = JSON.parse($cell.attr('data-current-roles'));
+                    var expectedRoles = JSON.parse($cell.attr('data-expected-roles'));
+                    $cell.html(createStatusHTML(currentRoles, expectedRoles));
+                });
+            }
         });
     } else {
         console.warn('DataTables not loaded. Falling back to standard table functionality.');
@@ -108,16 +117,8 @@ $(document).ready(function () {
         };
     }
 
-    // Initialize status for all rows
-    $('.status-cell').each(function () {
-        var $cell = $(this);
-        var currentRoles = JSON.parse($cell.attr('data-current-roles'));
-        var expectedRoles = JSON.parse($cell.attr('data-expected-roles'));
-        $cell.html(createStatusHTML(currentRoles, expectedRoles));
-    });
-
-    // Individual update button click handler
-    $('.update-role-btn').on('click', function () {
+    // Use event delegation for the update button click handler
+    $('#discordRolesTable').on('click', '.update-role-btn', function () {
         const playerId = $(this).data('player-id');
         updatePlayerRoles(playerId);
     });
@@ -172,13 +173,13 @@ $(document).ready(function () {
         if (rowData) {
             // Update the row data
             rowData[2] = createRolesHTML(playerData);
-            rowData[3] = playerData.status_html;
+            rowData[3] = createStatusHTML(playerData.current_roles, playerData.expected_roles);
 
-            table.row($row).data(rowData).draw();
+            table.row($row).data(rowData).draw(false);  // Use draw(false) to stay on the current page
         } else {
             // Fallback if DataTables is not working
             $row.find('td').eq(2).html(createRolesHTML(playerData));
-            $row.find('td').eq(3).html(playerData.status_html);
+            $row.find('td').eq(3).html(createStatusHTML(playerData.current_roles, playerData.expected_roles));
         }
     }
 
