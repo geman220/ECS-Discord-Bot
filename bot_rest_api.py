@@ -306,6 +306,31 @@ async def update_channel_permissions(guild_id: int, channel_id: int, role_id: in
         bot_token = os.getenv("DISCORD_BOT_TOKEN")  # Make sure to set this in your environment
         return await direct_api_permission_update(channel_id, role_id, request.allow, request.deny, bot_token)
 
+@app.get("/guilds/{guild_id}/members/{user_id}/roles")
+async def get_member_roles(guild_id: int, user_id: int, bot: commands.Bot = Depends(get_bot)):
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        raise HTTPException(status_code=404, detail="Guild not found")
+    
+    try:
+        member = await guild.fetch_member(user_id)
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        roles = [{"id": str(role.id), "name": role.name} for role in member.roles]
+        return {
+            "user_id": str(member.id),
+            "username": member.name,
+            "roles": roles
+        }
+    except discord.errors.NotFound:
+        raise HTTPException(status_code=404, detail="Member not found")
+    except discord.errors.Forbidden:
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to access this member")
+    except Exception as e:
+        logger.error(f"Failed to get member roles: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get member roles")
+
 @app.put("/guilds/{guild_id}/members/{user_id}/roles/{role_id}")
 async def add_role_to_member(guild_id: int, user_id: int, role_id: int, bot: commands.Bot = Depends(get_bot)):
     guild = bot.get_guild(guild_id)

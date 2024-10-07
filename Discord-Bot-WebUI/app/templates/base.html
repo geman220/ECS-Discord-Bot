@@ -41,6 +41,9 @@
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+
     <!-- Helpers and Misc Scripts -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/template-customizer.js') }}"></script>
@@ -54,6 +57,10 @@
     <!-- Flatpickr JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
+        /* Ensure SweetAlert2 overlays everything */
+        .swal2-container {
+            z-index: 99999 !important;
+        }
         /* Ensure proper background for dropdown in dark mode */
         html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,
         html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option {
@@ -267,6 +274,9 @@
 
     <!-- SweetAlert2 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.0/sweetalert2.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
 
     <!-- Global Scripts -->
     <!-- Toast Auto Dismiss and Progress Bar -->

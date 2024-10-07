@@ -1,5 +1,7 @@
 # app/admin_routes.py
 
+import aiohttp
+import asyncio
 from flask import (
     Blueprint,
     render_template,
@@ -12,6 +14,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
+from functools import wraps
 from sqlalchemy import or_
 from datetime import datetime
 from twilio.rest import Client
@@ -31,6 +34,7 @@ from app.models import (
     League
 )
 from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm
+from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles
 from app.tasks import schedule_post_availability
 from app import db
 import pytz
@@ -47,6 +51,34 @@ admin_bp = Blueprint('admin', __name__, template_folder='templates')
 # --------------------
 # Helper Functions
 # --------------------
+
+def async_action(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(f(*args, **kwargs))
+        finally:
+            loop.close()
+    return wrapped
+
+def create_status_html(player):
+    current_roles = player['current_roles']
+    expected_roles = player['expected_roles']
+
+    # Check if all expected roles are present in current roles
+    if not current_roles:
+        status = "Not Found"
+        status_class = "bg-danger"
+    elif not all(role in current_roles for role in expected_roles):
+        status = "Check Roles"
+        status_class = "bg-warning"
+    else:
+        status = "Synced"
+        status_class = "bg-success"
+
+    return f'<span class="badge {status_class}">{status}</span>'
 
 def get_docker_client():
     """Initialize and return the Docker client."""
@@ -487,7 +519,7 @@ def schedule_availability():
         return redirect(url_for('admin.admin_dashboard'))
 
 # --------------------
-# Additional Routes (If Needed)
+# Additional Routes
 # --------------------
 
 @admin_bp.route('/admin/celery_tasks', methods=['GET'])
@@ -610,3 +642,61 @@ def view_feedback(feedback_id):
         form=feedback_form,
         note_form=note_form
     )
+
+# --------------------
+# Discord Routes
+# --------------------
+
+@admin_bp.route('/admin/discord_role_status', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def discord_role_status():
+    players = Player.query.filter(Player.discord_id.isnot(None)).all()
+    
+    player_data = [{
+        'id': player.id,
+        'name': player.name,
+        'discord_id': player.discord_id,
+        'team': player.team.name if player.team else 'No Team',
+        'league': player.team.league.name if player.team and player.team.league else 'No League',
+        'current_roles': player.discord_roles or [],
+        'expected_roles': get_expected_roles(player),
+        'last_verified': player.discord_last_verified,
+        'status_html': create_status_html({
+            'current_roles': player.discord_roles or [],
+            'expected_roles': get_expected_roles(player)
+        })
+    } for player in players]
+
+    return render_template('discord_role_status.html', players=player_data)
+
+@admin_bp.route('/admin/update_player_roles/<int:player_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+@async_action
+async def update_player_roles_route(player_id):
+    player = Player.query.get(player_id)
+    if not player:
+        return jsonify({'success': False, 'error': 'Player not found'})
+    
+    async with aiohttp.ClientSession() as session:
+        success = await update_player_roles(player, session, force_update=True)
+    
+    if success:
+        player_data = {
+            'id': player.id,
+            'current_roles': player.discord_roles or [],
+            'expected_roles': get_expected_roles(player),
+            'status': 'synced' if not player.discord_needs_update else 'needs_update'
+        }
+        return jsonify({'success': True, 'player_data': player_data})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to update player roles'})
+
+@admin_bp.route('/admin/update_discord_roles', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+@async_action
+async def update_discord_roles():
+    success = await process_role_updates(force_update=True)
+    return jsonify({'success': success, 'status': 'Role update process completed'})

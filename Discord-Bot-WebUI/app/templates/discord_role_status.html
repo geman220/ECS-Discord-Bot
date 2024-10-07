@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}Discord Role Status and Management{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Discord /</span> Role Status and Management
+    </h4>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Discord Role Status</h5>
+            <button id="massUpdateBtn" class="btn btn-primary btn-sm">
+                <i class="ti ti-refresh me-1"></i> Mass Update Roles
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="discordRolesTable" class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Team / League</th>
+                            <th>Roles</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in players %}
+                        <tr>
+                            <td>
+                                <strong>{{ player.name }}</strong>
+                                <br>
+                                <small class="text-muted">{{ player.discord_id }}</small>
+                            </td>
+                            <td>
+                                {{ player.team }}
+                                <br>
+                                <small class="text-muted">{{ player.league }}</small>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#roleCollapse{{ player.id }}" aria-expanded="false">
+                                    Show Roles
+                                </button>
+                                <div class="collapse mt-2" id="roleCollapse{{ player.id }}">
+                                    <div class="card card-body p-2">
+                                        <strong>Current:</strong>
+                                        <ul class="list-unstyled mb-1 small">
+                                            {% for role in player.current_roles %}
+                                            <li><i class="ti ti-circle-check text-success me-1"></i> {{ role }}</li>
+                                            {% else %}
+                                            <li>No current roles</li>
+                                            {% endfor %}
+                                        </ul>
+                                        <strong>Expected:</strong>
+                                        <ul class="list-unstyled mb-0 small">
+                                            {% for role in player.expected_roles %}
+                                            <li><i class="ti ti-circle-dot text-primary me-1"></i> {{ role }}</li>
+                                            {% else %}
+                                            <li>No expected roles</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ player.status_html|safe }}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary update-role-btn" data-player-id="{{ player.id }}">
+                                    <i class="ti ti-refresh me-1"></i> Update
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+$(document).ready(function () {
+    var table;
+    if ($.fn.DataTable) {
+        table = $('#discordRolesTable').DataTable({
+            responsive: true,
+            pageLength: 25,
+            dom: 'Bfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
+        });
+    } else {
+        console.warn('DataTables not loaded. Falling back to standard table functionality.');
+        table = {
+            row: function ($tr) {
+                return {
+                    data: function () {
+                        return Array.from($tr.find('td')).map(td => td.innerHTML);
+                    },
+                    draw: function () { }
+                };
+            }
+        };
+    }
+
+    // Initialize status for all rows
+    $('.status-cell').each(function () {
+        var $cell = $(this);
+        var currentRoles = JSON.parse($cell.attr('data-current-roles'));
+        var expectedRoles = JSON.parse($cell.attr('data-expected-roles'));
+        $cell.html(createStatusHTML(currentRoles, expectedRoles));
+    });
+
+    // Individual update button click handler
+    $('.update-role-btn').on('click', function () {
+        const playerId = $(this).data('player-id');
+        updatePlayerRoles(playerId);
+    });
+
+    // Mass update button click handler
+    $('#massUpdateBtn').on('click', function () {
+        massUpdateRoles();
+    });
+
+    function updatePlayerRoles(playerId) {
+        Swal.fire({
+            title: 'Updating roles...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: '/admin/update_player_roles/' + playerId,
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            success: function (response) {
+                if (response.success) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: 'Player roles updated successfully',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            updatePlayerRow(playerId, response.player_data);
+                        }
+                    });
+                } else {
+                    Swal.fire('Error', 'Failed to update player roles: ' + (response.error || 'Unknown error'), 'error');
+                }
+            },
+            error: function (xhr, status, error) {
+                Swal.fire('Error', 'An error occurred while updating player roles: ' + error, 'error');
+            }
+        });
+    }
+
+    function updatePlayerRow(playerId, playerData) {
+        var $row = $(`button[data-player-id="${playerId}"]`).closest('tr');
+        var rowData = table.row($row).data();
+
+        if (rowData) {
+            // Update the row data
+            rowData[2] = createRolesHTML(playerData);
+            rowData[3] = createStatusHTML(playerData.current_roles, playerData.expected_roles);
+
+            table.row($row).data(rowData).draw();
+        } else {
+            // Fallback if DataTables is not working
+            $row.find('td').eq(2).html(createRolesHTML(playerData));
+            $row.find('td').eq(3).html(createStatusHTML(playerData.current_roles, playerData.expected_roles));
+        }
+    }
+
+    function createRolesHTML(playerData) {
+        return `
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#roleCollapse${playerData.id}" aria-expanded="false">
+                Show Roles
+            </button>
+            <div class="collapse mt-2" id="roleCollapse${playerData.id}">
+                <div class="card card-body p-2">
+                    <strong>Current:</strong>
+                    <ul class="list-unstyled mb-1 small">
+                        ${playerData.current_roles.map(role => `<li><i class="ti ti-circle-check text-success me-1"></i> ${role}</li>`).join('') || '<li>No current roles</li>'}
+                    </ul>
+                    <strong>Expected:</strong>
+                    <ul class="list-unstyled mb-0 small">
+                        ${playerData.expected_roles.map(role => `<li><i class="ti ti-circle-dot text-primary me-1"></i> ${role}</li>`).join('') || '<li>No expected roles</li>'}
+                    </ul>
+                </div>
+            </div>
+        `;
+    }
+
+    function createStatusHTML(currentRoles, expectedRoles) {
+        let status, statusClass;
+
+        if (!currentRoles || currentRoles.length === 0) {
+            status = "Not Found";
+            statusClass = "bg-danger";
+        } else if (JSON.stringify(currentRoles.sort()) !== JSON.stringify(expectedRoles.sort())) {
+            status = "Check Roles";
+            statusClass = "bg-warning";
+        } else {
+            status = "Synced";
+            statusClass = "bg-success";
+        }
+
+        return `<span class="badge ${statusClass}">${status}</span>`;
+    }
+
+    function massUpdateRoles() {
+        Swal.fire({
+            title: 'Confirm Mass Update',
+            text: 'This will update roles for all players. It may take some time. Continue?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, update all',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Updating all roles...',
+                    text: 'This may take a while. Please wait.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/admin/update_discord_roles',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'Success',
+                                text: 'All player roles updated successfully',
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    location.reload();
+                                }
+                            });
+                        } else {
+                            Swal.fire('Error', 'Failed to update all player roles: ' + (response.error || 'Unknown error'), 'error');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        Swal.fire('Error', 'An error occurred during mass role update: ' + error, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    // Helper function to capitalize first letter of a string
+    String.prototype.capitalize = function() {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    }
+});
+</script>
+{% endblock %}

@@ -2,7 +2,7 @@ from app import db, login_manager
 from datetime import datetime
 from flask_login import UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, func, Enum
+from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 import enum
 import logging
@@ -294,6 +294,10 @@ class Player(db.Model):
     season_stats = db.relationship('PlayerSeasonStats', back_populates='player', passive_deletes=True)
     career_stats = db.relationship('PlayerCareerStats', back_populates='player', passive_deletes=True)
     order_history = db.relationship('PlayerOrderHistory', back_populates='player', cascade='all, delete')
+    
+    discord_roles = db.Column(JSON)
+    discord_last_verified = db.Column(DateTime)
+    discord_needs_update = db.Column(Boolean, default=False)
 
     def __repr__(self):
         return f'<Player {self.name} ({self.user.email})>'

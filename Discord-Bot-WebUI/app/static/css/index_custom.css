@@ -1,4 +1,0 @@
-/* Ensure SweetAlert2 overlays everything */
-.swal2-container {
-    z-index: 99999 !important;
-}
