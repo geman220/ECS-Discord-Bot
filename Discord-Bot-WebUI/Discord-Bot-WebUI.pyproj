@@ -66,7 +66,6 @@
   <ItemGroup>
     <Content Include="app\static\css\core-dark.css" />
     <Content Include="app\static\css\core.css" />
-    <Content Include="app\static\css\index_custom.css" />
     <Content Include="app\static\css\pages\advanced-wizard.css" />
     <Content Include="app\static\css\pages\app-academy-details.css" />
     <Content Include="app\static\css\pages\app-academy.css" />
@@ -158,6 +157,7 @@
     <Content Include="app\templates\register.html" />
     <Content Include="app\templates\reset_password.html" />
     <Content Include="app\templates\roles.html" />
+    <Content Include="app\templates\discord_role_status.html" />
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />
     <Content Include="app\templates\submit_feedback.html" />

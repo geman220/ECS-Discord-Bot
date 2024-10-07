@@ -146,6 +146,16 @@
         </li>
         {% endif %}
 
+        <!-- Discord Tools - Only Global Admins -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_role_status' }}">
+            <a class="menu-link" href="{{ url_for('admin.discord_role_status') }}">
+                <i data-feather="link" class="menu-icon"></i>
+                <div>Discord Tools</div>
+            </a>
+        </li>
+        {% endif %}
+
         <!-- MLS Match Schedule - Only Discord Admin and Global Admin -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if 'matches' in request.path }}">

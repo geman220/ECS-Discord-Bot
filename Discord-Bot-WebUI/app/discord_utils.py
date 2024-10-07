@@ -1,7 +1,10 @@
 import os
 import aiohttp
+from aiohttp import ClientSession
 import asyncio
+from datetime import datetime, timedelta
 from web_config import Config
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON
 import logging
 
 # Set up logging
@@ -479,3 +482,326 @@ async def delete_discord_channel(team):
             logger.info(f"Deleted Discord channel ID {team.discord_channel_id}: {team.name}")
         except Exception as e:
             logger.error(f"Failed to delete channel ID {team.discord_channel_id}: {e}")
+
+
+
+
+async def process_role_assignments(players):
+    results = []
+    async with aiohttp.ClientSession() as session:
+        for player in players:
+            player_result = await process_single_player(player, session)
+            results.append(player_result)
+            logger.info(f"Processed player {player.name}: {player_result}")
+    return results
+
+async def process_single_player(player, session):
+    player_result = {
+        'name': player.name,
+        'discord_id': player.discord_id,
+        'team': player.team.name if player.team else 'No Team',
+        'league': player.team.league.name if player.team and player.team.league else 'No League',
+        'assigned_roles': [],
+        'errors': []
+    }
+
+    if not player.discord_id:
+        player_result['errors'].append("No linked Discord account")
+        return player_result
+
+    if not player.team:
+        player_result['errors'].append("No team assigned")
+        return player_result
+
+    team = player.team
+    guild_id = int(os.getenv('SERVER_ID'))
+
+    # Assign team-specific role
+    role_id = team.discord_player_role_id if not player.is_coach else team.discord_coach_role_id
+    if not role_id:
+        player_result['errors'].append(f"No {'coach' if player.is_coach else 'player'} role found for team {team.name}")
+    else:
+        role_name = f"{'Coach' if player.is_coach else 'Player'} - {team.name}"
+        await assign_role(player, role_id, role_name, guild_id, session, player_result)
+
+    # Assign global league role
+    league_name = team.league.name.strip().lower()
+    global_role_name = get_global_role_name(league_name)
+    if global_role_name:
+        global_role_id = await get_or_create_global_role(global_role_name, session)
+        if global_role_id:
+            await assign_role(player, global_role_id, global_role_name, guild_id, session, player_result)
+        else:
+            player_result['errors'].append(f"Failed to get or create global role {global_role_name}")
+    else:
+        player_result['errors'].append(f"Unknown league '{league_name}'")
+
+    return player_result
+
+async def assign_role(player, role_id, role_name, guild_id, session, player_result):
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles/{role_id}"
+    try:
+        await make_discord_request('PUT', url, session)
+        player_result['assigned_roles'].append(role_name)
+        logger.info(f"Assigned role '{role_name}' (ID: {role_id}) to player {player.name}")
+    except Exception as e:
+        error_msg = f"Failed to assign role '{role_name}': {str(e)}"
+        player_result['errors'].append(error_msg)
+        logger.error(error_msg)
+
+def get_global_role_name(league_name):
+    if league_name == "classic":
+        return "ECS-FC-PL-CLASSIC"
+    elif league_name == "premier":
+        return "ECS-FC-PL-PREMIER"
+    elif league_name == "ecs fc":
+        return "ECS-FC-LEAGUE"
+    else:
+        return None
+
+async def get_player_role_data(players):
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_player_data(player, session) for player in players]
+        return await asyncio.gather(*tasks)
+
+async def fetch_player_data(player, session):
+    try:
+        current_roles, status = await get_discord_roles(player.discord_id, session)
+        expected_roles = get_expected_roles(player)
+        
+        return {
+            'id': player.id,
+            'name': player.name,
+            'discord_id': player.discord_id,
+            'team': player.team.name if player.team else 'No Team',
+            'league': player.team.league.name if player.team and player.team.league else 'No League',
+            'current_roles': current_roles,
+            'expected_roles': expected_roles,
+            'status': status
+        }
+    except Exception as e:
+        logger.error(f"Error fetching data for player {player.name}: {str(e)}")
+        return {
+            'id': player.id,
+            'name': player.name,
+            'discord_id': player.discord_id,
+            'team': player.team.name if player.team else 'No Team',
+            'league': player.team.league.name if player.team and player.team.league else 'No League',
+            'current_roles': [],
+            'expected_roles': get_expected_roles(player),
+            'status': 'error'
+        }
+
+def get_expected_roles(player):
+    roles = []
+    if player.team:
+        roles.append(f"ECS-FC-PL-{player.team.name}-{'Coach' if player.is_coach else 'Player'}")
+        if player.team.league:
+            roles.append(f"ECS-FC-PL-{player.team.league.name.upper()}")
+    if player.is_ref:
+        roles.append("Referee")
+    return roles
+
+def mark_player_for_update(player_id):
+    from app import db
+    from app.models import Player
+    Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
+    db.session.commit()
+
+def mark_team_for_update(team_id):
+    from app import db
+    from app.models import Player
+    Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
+    db.session.commit()
+
+def mark_league_for_update(league_id):
+    from app import db
+    from app.models import Player, Team
+    Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
+    db.session.commit()
+
+async def update_player_roles(player, session, force_update=False):
+    from app import db
+    if not player.discord_id:
+        return False
+
+    current_roles, status = await get_discord_roles(player.discord_id, session, force_check=force_update)
+    expected_roles = get_expected_roles(player)
+
+    if set(current_roles) == set(expected_roles) and not force_update:
+        player.discord_needs_update = False
+        db.session.commit()
+        return True
+
+    roles_to_add = set(expected_roles) - set(current_roles)
+    roles_to_remove = set(current_roles) - set(expected_roles)
+
+    guild_id = int(os.getenv('SERVER_ID'))
+
+    try:
+        for role_name in roles_to_add:
+            role_id = await get_role_id(guild_id, role_name, session)
+            if role_id:
+                await add_role_to_member(guild_id, player.discord_id, role_id, session)
+
+        for role_name in roles_to_remove:
+            role_id = await get_role_id(guild_id, role_name, session)
+            if role_id:
+                await remove_role_from_member(guild_id, player.discord_id, role_id, session)
+
+        # Fetch roles again to confirm changes
+        updated_roles, _ = await get_discord_roles(player.discord_id, session, force_check=True)
+        player.discord_roles = updated_roles
+        player.discord_last_verified = datetime.utcnow()
+        player.discord_needs_update = False
+        db.session.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating roles for player {player.name}: {str(e)}")
+        return False
+
+async def add_role_to_member(guild_id, user_id, role_id, session):
+    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    try:
+        await make_discord_request('PUT', url, session)
+    except Exception as e:
+        logger.error(f"Error adding role {role_id} to user {user_id}: {str(e)}")
+
+async def remove_role_from_member(guild_id, user_id, role_id, session):
+    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    try:
+        await make_discord_request('DELETE', url, session)
+    except Exception as e:
+        logger.error(f"Error removing role {role_id} from user {user_id}: {str(e)}")
+
+async def process_role_updates(force_update=False):
+    from app.models import Player
+    if force_update:
+        players_to_update = Player.query.filter(Player.discord_id.isnot(None)).all()
+    else:
+        players_to_update = Player.query.filter(
+            (Player.discord_needs_update == True) |
+            (Player.discord_last_verified == None) |
+            (Player.discord_last_verified < datetime.utcnow() - timedelta(days=90))
+        ).all()
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [update_player_roles(player, session, force_update) for player in players_to_update]
+        results = await asyncio.gather(*tasks)
+    
+    return all(results)
+
+
+async def get_role_id(guild_id, role_name, session):
+    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/roles"
+    try:
+        response = await make_discord_request('GET', url, session)
+        for role in response:
+            if role['name'] == role_name:
+                return role['id']
+    except Exception as e:
+        logger.error(f"Error fetching role ID for {role_name}: {str(e)}")
+    return None
+
+async def fetch_user_roles(discord_id, session):
+    guild_id = int(os.getenv('SERVER_ID'))
+    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{discord_id}/roles"
+    
+    try:
+        response = await make_discord_request('GET', url, session)
+        if response and 'roles' in response:
+            return [role['name'] for role in response['roles']]
+        else:
+            return []
+    except Exception as e:
+        print(f"Error fetching roles for user {discord_id}: {str(e)}")
+        return []
+
+async def process_single_player_update(player):
+    async with aiohttp.ClientSession() as session:
+        try:
+            await assign_role_to_player(player)
+            return True
+        except Exception as e:
+            print(f"Error updating roles for player {player.name}: {str(e)}")
+            return False
+
+async def process_mass_update(players):
+    async with aiohttp.ClientSession() as session:
+        tasks = [process_single_player_update(player) for player in players]
+        results = await asyncio.gather(*tasks)
+        return all(results)
+
+async def get_discord_roles(user_id, session, force_check=False):
+    from app import db
+    from app.models import Player
+    player = Player.query.filter_by(discord_id=user_id).first()
+    if player and player.discord_roles and player.discord_last_verified and not force_check:
+        if datetime.utcnow() - player.discord_last_verified < timedelta(days=90):
+            return player.discord_roles, "cached"
+
+    guild_id = int(os.getenv('SERVER_ID'))
+    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles"
+    
+    try:
+        response = await make_discord_request('GET', url, session)
+        if response and 'roles' in response:
+            roles = [role['name'] for role in response['roles']]
+            if player:
+                player.discord_roles = roles
+                player.discord_last_verified = datetime.utcnow()
+                db.session.commit()
+            return roles, "active"
+        else:
+            logger.warning(f"No roles found for user {user_id}")
+            return [], "no_roles"
+    except Exception as e:
+        logger.error(f"Error fetching roles for user {user_id}: {str(e)}")
+        return [], "error"
+
+async def get_role_names(guild_id, role_ids, session):
+    """
+    Fetches the names of roles given their IDs.
+    
+    :param guild_id: The ID of the Discord server
+    :param role_ids: A list of role IDs
+    :param session: An aiohttp ClientSession
+    :return: A list of role names
+    """
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
+
+    try:
+        response = await make_discord_request('GET', url, session)
+        if response:
+            role_map = {role['id']: role['name'] for role in response}
+            return [role_map.get(role_id, "Unknown Role") for role_id in role_ids]
+        else:
+            logger.warning(f"No roles found for guild {guild_id}")
+            return []
+    except Exception as e:
+        logger.error(f"Error fetching role names for guild {guild_id}: {str(e)}")
+        return []
+
+def debug_player_discord_ids():
+    from app.models import Player
+    all_players = Player.query.all()
+    players_with_discord = []
+    players_without_discord = []
+
+    for player in all_players:
+        if player.discord_id:
+            players_with_discord.append(f"ID: {player.id}, Name: {player.name}, Discord ID: {player.discord_id}")
+        else:
+            players_without_discord.append(f"ID: {player.id}, Name: {player.name}")
+
+    logger.info(f"Total players: {len(all_players)}")
+    logger.info(f"Players with Discord ID: {len(players_with_discord)}")
+    logger.info(f"Players without Discord ID: {len(players_without_discord)}")
+
+    logger.debug("Players with Discord IDs:")
+    for player in players_with_discord:
+        logger.debug(player)
+
+    logger.debug("Sample of players without Discord IDs (first 10):")
+    for player in players_without_discord[:10]:
+        logger.debug(player)
