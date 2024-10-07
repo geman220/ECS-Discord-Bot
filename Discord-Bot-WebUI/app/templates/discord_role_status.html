@@ -172,13 +172,13 @@ $(document).ready(function () {
         if (rowData) {
             // Update the row data
             rowData[2] = createRolesHTML(playerData);
-            rowData[3] = createStatusHTML(playerData.current_roles, playerData.expected_roles);
+            rowData[3] = playerData.status_html;
 
             table.row($row).data(rowData).draw();
         } else {
             // Fallback if DataTables is not working
             $row.find('td').eq(2).html(createRolesHTML(playerData));
-            $row.find('td').eq(3).html(createStatusHTML(playerData.current_roles, playerData.expected_roles));
+            $row.find('td').eq(3).html(playerData.status_html);
         }
     }
 

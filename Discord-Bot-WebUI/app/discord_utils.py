@@ -628,13 +628,7 @@ async def update_player_roles(player, session, force_update=False):
     current_roles, status = await get_discord_roles(player.discord_id, session, force_check=force_update)
     expected_roles = get_expected_roles(player)
 
-    if set(current_roles) == set(expected_roles) and not force_update:
-        player.discord_needs_update = False
-        db.session.commit()
-        return True
-
     roles_to_add = set(expected_roles) - set(current_roles)
-    roles_to_remove = set(current_roles) - set(expected_roles)
 
     guild_id = int(os.getenv('SERVER_ID'))
 
@@ -643,11 +637,6 @@ async def update_player_roles(player, session, force_update=False):
             role_id = await get_role_id(guild_id, role_name, session)
             if role_id:
                 await add_role_to_member(guild_id, player.discord_id, role_id, session)
-
-        for role_name in roles_to_remove:
-            role_id = await get_role_id(guild_id, role_name, session)
-            if role_id:
-                await remove_role_from_member(guild_id, player.discord_id, role_id, session)
 
         # Fetch roles again to confirm changes
         updated_roles, _ = await get_discord_roles(player.discord_id, session, force_check=True)
