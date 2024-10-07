@@ -902,72 +902,31 @@ def clean_phone_number(phone):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def view_players():
-    # Get the search term from the query parameters
     search_term = request.args.get('search', '').strip()
-
-    # Get the current page numbers from the query string, default to 1
     classic_page = request.args.get('classic_page', 1, type=int)
     premier_page = request.args.get('premier_page', 1, type=int)
-    ecsfc_page = request.args.get('ecsfc_page', 1, type=int)  # Added ECS FC pagination
-
-    # Define how many players to display per page
+    ecsfc_page = request.args.get('ecsfc_page', 1, type=int)
     per_page = 10
 
-    # Base queries for each league with explicit joins and distinct to prevent duplication
-    classic_query = (
-        Player.query
-        .join(League, Player.league_id == League.id)
-        .filter(func.lower(League.name) == 'classic')
-        .distinct()
-    )
-    premier_query = (
-        Player.query
-        .join(League, Player.league_id == League.id)
-        .filter(func.lower(League.name) == 'premier')
-        .distinct()
-    )
-    ecsfc_query = (
-        Player.query
-        .join(League, Player.league_id == League.id)
-        .filter(func.lower(League.name) == 'ecs fc')
-        .distinct()
-    )
+    def create_base_query(league_name):
+        base_query = db.session.query(Player).join(League).join(User)
+        base_query = base_query.filter(func.lower(League.name) == league_name.lower())
+        
+        if search_term:
+            base_query = base_query.filter(or_(
+                Player.name.ilike(f'%{search_term}%'),
+                func.lower(User.email).ilike(f'%{search_term.lower()}%'),
+                and_(Player.phone.isnot(None), Player.phone.ilike(f'%{search_term}%')),
+                and_(Player.jersey_size.isnot(None), Player.jersey_size.ilike(f'%{search_term}%'))
+            ))
+        
+        return base_query
 
-    # If there is a search term, apply filters to the queries
-    if search_term:
-        # Define the search filter
-        search_filter = (
-            Player.name.ilike(f'%{search_term}%') |  # Search by Player's name
-            func.lower(User.email).ilike(f'%{search_term.lower()}%') |  # Search by User's email
-            (Player.phone.isnot(None) & Player.phone.ilike(f'%{search_term}%')) |  # Search by Player's phone if not null
-            (Player.jersey_size.isnot(None) & Player.jersey_size.ilike(f'%{search_term}%'))  # Search by Player's jersey size if not null
-        )
-        # Apply search filters with explicit join to User
-        classic_query = (
-            classic_query
-            .join(User, Player.user_id == User.id)
-            .filter(search_filter)
-            .distinct()
-        )
-        premier_query = (
-            premier_query
-            .join(User, Player.user_id == User.id)
-            .filter(search_filter)
-            .distinct()
-        )
-        ecsfc_query = (
-            ecsfc_query
-            .join(User, Player.user_id == User.id)
-            .filter(search_filter)
-            .distinct()
-        )
-    else:
-        # Join with User to include user information
-        classic_query = classic_query.join(User, Player.user_id == User.id).distinct()
-        premier_query = premier_query.join(User, Player.user_id == User.id).distinct()
-        ecsfc_query = ecsfc_query.join(User, Player.user_id == User.id).distinct()
+    classic_query = create_base_query('classic')
+    premier_query = create_base_query('premier')
+    ecsfc_query = create_base_query('ecs fc')
 
-    # Debug logs to check the count before pagination
+    # Debug logs
     logger.debug(f"Classic query count: {classic_query.count()}")
     logger.debug(f"Premier query count: {premier_query.count()}")
     logger.debug(f"ECS FC query count: {ecsfc_query.count()}")
@@ -975,14 +934,9 @@ def view_players():
     # Paginate the results
     classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
     premier_players = premier_query.paginate(page=premier_page, per_page=per_page, error_out=False)
-    ecsfc_players = ecsfc_query.paginate(page=ecsfc_page, per_page=per_page, error_out=False)  # Added ECS FC players
+    ecsfc_players = ecsfc_query.paginate(page=ecsfc_page, per_page=per_page, error_out=False)
 
-    # Debug logs to check the queries
-    logger.debug(f"Classic players: {classic_players.items}")
-    logger.debug(f"Premier players: {premier_players.items}")
-    logger.debug(f"ECS FC players: {ecsfc_players.items}")
-
-    # Determine the active tab based on search results
+    # Determine the active tab
     if search_term:
         if classic_players.total > 0:
             active_tab = 'classic'
@@ -993,20 +947,17 @@ def view_players():
         else:
             active_tab = 'classic'
     else:
-        active_tab = 'classic'  # Default active tab
+        active_tab = 'classic'
 
-    # Fetch leagues for the Create Player modal
+    # Fetch leagues and jersey sizes
     leagues = League.query.all()
-
-    # Fetch distinct jersey sizes for the Create Player modal
-    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
-    jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))  # Exclude None values
+    jersey_sizes = sorted(set(size[0] for size in db.session.query(Player.jersey_size).distinct().all() if size[0]))
 
     return render_template(
         'view_players.html',
         classic_players=classic_players,
         premier_players=premier_players,
-        ecsfc_players=ecsfc_players,  # Added ECS FC players to render
+        ecsfc_players=ecsfc_players,
         search_term=search_term,
         active_tab=active_tab,
         leagues=leagues,
