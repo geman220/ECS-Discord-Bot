@@ -63,20 +63,19 @@ def async_action(f):
             loop.close()
     return wrapped
 
-def create_status_html(player):
-    current_roles = player['current_roles']
-    expected_roles = player['expected_roles']
+def create_status_html(player_data):
+    current_roles = set(player_data['current_roles'])
+    expected_roles = set(player_data['expected_roles'])
 
-    # Check if all expected roles are present in current roles
     if not current_roles:
         status = "Not Found"
         status_class = "bg-danger"
-    elif not all(role in current_roles for role in expected_roles):
-        status = "Check Roles"
-        status_class = "bg-warning"
-    else:
+    elif expected_roles.issubset(current_roles):
         status = "Synced"
         status_class = "bg-success"
+    else:
+        status = "Check Roles"
+        status_class = "bg-warning"
 
     return f'<span class="badge {status_class}">{status}</span>'
 
@@ -687,7 +686,10 @@ async def update_player_roles_route(player_id):
             'id': player.id,
             'current_roles': player.discord_roles or [],
             'expected_roles': get_expected_roles(player),
-            'status': 'synced' if not player.discord_needs_update else 'needs_update'
+            'status_html': create_status_html({
+                'current_roles': player.discord_roles or [],
+                'expected_roles': get_expected_roles(player)
+            })
         }
         return jsonify({'success': True, 'player_data': player_data})
     else:
