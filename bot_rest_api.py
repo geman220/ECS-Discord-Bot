@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from shared_states import bot_ready
+from shared_states import bot_ready, bot_state
 import logging
 import discord
 import asyncio
@@ -378,43 +378,32 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
 @app.post("/api/post_availability")
 async def post_availability(request: AvailabilityRequest, bot: commands.Bot = Depends(get_bot)):
     try:
-        print(f"Received request: {request.dict()}")  # Log the received request data
-
-        # Use the channel IDs provided in the request
+        print(f"Received request: {request.dict()}")
         home_channel = bot.get_channel(request.home_channel_id)
         away_channel = bot.get_channel(request.away_channel_id)
-
         if not home_channel or not away_channel:
             raise HTTPException(status_code=404, detail="Channel not found")
-
         match_datetime = datetime.strptime(f"{request.match_date} {request.match_time}", "%Y-%m-%d %H:%M:%S")
         formatted_date = match_datetime.strftime('%-m/%-d/%y')
         formatted_time = match_datetime.strftime('%-I:%M %p')
-
-        # Send the messages to both channels
+        
         home_message = await home_channel.send(
             f"\u26BD **{request.home_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
             "React with \U0001F44D for Yes, \U0001F44E for No, or \U0001F937 for Maybe."
         )
-
         away_message = await away_channel.send(
             f"\u26BD **{request.away_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
             "React with \U0001F44D for Yes, \U0001F44E for No, or \U0001F937 for Maybe."
         )
-
-        await home_message.add_reaction("\U0001F44D")  # Thumbs Up
-        await home_message.add_reaction("\U0001F44E")  # Thumbs Down
-        await home_message.add_reaction("\U0001F937")  # Shrug
-
-        await away_message.add_reaction("\U0001F44D")
-        await away_message.add_reaction("\U0001F44E")
-        await away_message.add_reaction("\U0001F937")
-
-        # Send the message IDs back to the Web UI
+        
+        for message in [home_message, away_message]:
+            await message.add_reaction("\U0001F44D")  # Thumbs Up
+            await message.add_reaction("\U0001F44E")  # Thumbs Down
+            await message.add_reaction("\U0001F937")  # Shrug
+            bot_state.add_managed_message_id(message.id)
+        
         store_message_ids_in_web_ui(request.match_id, home_message.id, away_message.id)
-
         return {"home_message_id": home_message.id, "away_message_id": away_message.id}
-
     except Exception as e:
         print(f"Error in posting availability: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -16,6 +16,7 @@ from flask_login import login_required, current_user
 from flask_paginate import Pagination, get_page_parameter
 from functools import wraps
 from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from datetime import datetime
 from twilio.rest import Client
 from app.decorators import role_required
@@ -31,11 +32,12 @@ from app.models import (
     Feedback,
     Feedback, 
     Note,
-    League
+    League,
+    ScheduledMessage
 )
 from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm
 from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles
-from app.tasks import schedule_post_availability
+from app.tasks import schedule_season_availability, send_availability_message
 from app import db
 import pytz
 import docker
@@ -476,46 +478,67 @@ def reorder_announcements():
         return jsonify({'error': 'Failed to reorder announcements.'}), 500
 
 # --------------------
-# Schedule Availability Task
+# Schedule Availability
 # --------------------
 
-@admin_bp.route('/admin/schedule_availability', methods=['POST'])
+@admin_bp.route('/admin/schedule_season', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-def schedule_availability():
-    """
-    Schedule an availability task between two teams at a specified time.
-    """
-    try:
-        team1_id = int(request.form.get('team1_id'))
-        team2_id = int(request.form.get('team2_id'))
-        schedule_time_str = request.form.get('schedule_time')
+def schedule_season():
+    task = schedule_season_availability.delay()
+    flash('Season scheduling task has been initiated.', 'success')
+    return redirect(url_for('admin.view_scheduled_messages'))
 
-        if not team1_id or not team2_id or not schedule_time_str:
-            flash("Please select both teams and provide a schedule time.", "danger")
-            return redirect(url_for('admin.admin_dashboard'))
+@admin_bp.route('/admin/scheduled_messages')
+@login_required
+@role_required('Global Admin')
+def view_scheduled_messages():
+    messages = ScheduledMessage.query.order_by(ScheduledMessage.scheduled_send_time).all()
+    return render_template('admin/scheduled_messages.html', messages=messages)
 
-        # Parse and localize schedule time
-        local_tz = pytz.timezone('America/Los_Angeles')
-        schedule_time = datetime.strptime(schedule_time_str, '%Y-%m-%dT%H:%M')
-        schedule_time = local_tz.localize(schedule_time)
+@admin_bp.route('/admin/force_send/<int:message_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def force_send_message(message_id):
+    message = ScheduledMessage.query.get_or_404(message_id)
+    task = send_availability_message.delay(message.id)
+    flash('Message sending has been initiated.', 'success')
+    return redirect(url_for('admin.view_scheduled_messages'))
 
-        match_date = schedule_time.strftime('%Y-%m-%d')
-        match_time = schedule_time.strftime('%H:%M:%S')
+@admin_bp.route('/admin/rsvp_status/<int:match_id>')
+@login_required
+@role_required('Global Admin')
+def rsvp_status(match_id):
+    match = Match.query.get_or_404(match_id)
+    
+    # Get all players from both teams with their availability for this match
+    players_with_availability = db.session.query(Player, Availability).\
+        outerjoin(Availability, (Player.id == Availability.player_id) & (Availability.match_id == match_id)).\
+        filter((Player.team_id == match.home_team_id) | (Player.team_id == match.away_team_id)).\
+        options(joinedload(Player.team)).\
+        all()
 
-        # Schedule the Celery task
-        schedule_post_availability.apply_async(
-            args=[team1_id, team2_id, match_date, match_time],
-            countdown=30  # Adjust as needed
-        )
+    rsvp_data = []
+    for player, availability in players_with_availability:
+        rsvp_data.append({
+            'player': player,
+            'team': player.team,
+            'response': availability.response if availability else 'No Response',
+            'responded_at': availability.responded_at if availability else None
+        })
 
-        flash("Availability task scheduled successfully.", "success")
-        return redirect(url_for('admin.admin_dashboard'))
+    # Sort the data by team name and then by player name
+    rsvp_data.sort(key=lambda x: (x['team'].name, x['player'].name))
 
-    except Exception as e:
-        logger.error(f"Error scheduling availability task: {e}")
-        flash(f"Error scheduling task: {e}", "danger")
-        return redirect(url_for('admin.admin_dashboard'))
+    return render_template('admin/rsvp_status.html', match=match, rsvps=rsvp_data)
+
+@admin_bp.route('/admin/schedule_next_week', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def schedule_next_week():
+    task = schedule_season_availability.delay()
+    flash('Next week scheduling task has been initiated.', 'success')
+    return redirect(url_for('admin.view_scheduled_messages'))
 
 # --------------------
 # Additional Routes
