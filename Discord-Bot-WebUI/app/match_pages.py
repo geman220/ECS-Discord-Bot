@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.models import Match, Schedule, Availability
 from app import db
+from datetime import datetime
 
 match_pages = Blueprint('match_pages', __name__)
 
@@ -59,11 +60,13 @@ def rsvp(match_id):
 
     # Update the player's availability in the database
     availability = Availability.query.filter_by(match_id=match_id, player_id=player_id).first()
+
     if availability:
         if response == 'no_response':
             db.session.delete(availability)
         else:
             availability.response = response
+            availability.responded_at = datetime.utcnow()
     else:
         # If no availability record exists and it's not "no_response", create one
         if response != 'no_response':
@@ -71,7 +74,8 @@ def rsvp(match_id):
                 match_id=match_id,
                 player_id=player_id,
                 response=response,
-                discord_id=discord_id
+                discord_id=discord_id,
+                responded_at=datetime.utcnow()
             )
             db.session.add(availability)
 

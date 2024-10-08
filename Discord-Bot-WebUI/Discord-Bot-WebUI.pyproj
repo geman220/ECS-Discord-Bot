@@ -62,6 +62,7 @@
     <Folder Include="app\static\css\rtl\" />
     <Folder Include="app\static\custom_js\" />
     <Folder Include="app\templates\" />
+    <Folder Include="app\templates\admin\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="app\static\css\core-dark.css" />
@@ -120,6 +121,8 @@
     <Content Include="app\static\custom_js\report_match.js" />
     <Content Include="app\static\custom_js\rsvp.js" />
     <Content Include="app\static\custom_js\tour.js" />
+    <Content Include="app\templates\admin\rsvp_status.html" />
+    <Content Include="app\templates\admin\scheduled_messages.html" />
     <Content Include="app\templates\admin_dashboard.html" />
     <Content Include="app\templates\admin_reports.html" />
     <Content Include="app\templates\admin_report_detail.html" />

@@ -268,44 +268,7 @@
             </div>
         </div>
 
-        <!-- Schedule Availability Task Section -->
-        <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h6 class="m-0 font-weight-bold">Schedule Availability Task</h6>
-                </div>
-                <div class="card-body">
-                    <form action="{{ url_for('admin.schedule_availability') }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="mb-3">
-                            <label for="team1_id" class="form-label">Select Team 1</label>
-                            <select class="form-select" id="team1_id" name="team1_id" required>
-                                <option value="" disabled selected>Select Team 1...</option>
-                                {% for team in teams %}
-                                <option value="{{ team.id }}">{{ team.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="team2_id" class="form-label">Select Team 2</label>
-                            <select class="form-select" id="team2_id" name="team2_id" required>
-                                <option value="" disabled selected>Select Team 2...</option>
-                                {% for team in teams %}
-                                <option value="{{ team.id }}">{{ team.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="schedule_time" class="form-label">Schedule Time (PST)</label>
-                            <input type="datetime-local" class="form-control" id="schedule_time" name="schedule_time" value="{{ default_datetime }}" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-calendar-alt me-1"></i> Schedule Task
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Send Test SMS Section -->
         <div class="col-lg-6 mb-4">

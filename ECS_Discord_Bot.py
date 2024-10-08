@@ -1,5 +1,6 @@
 ﻿# ECS_Discord_Bot.py
 
+from datetime import datetime
 import discord
 import asyncio
 import os
@@ -12,7 +13,7 @@ from common import bot_token, server_id
 import threading
 import uvicorn
 from bot_rest_api import app, bot_ready 
-from shared_states import bot_ready
+from shared_states import bot_ready, bot_state
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
@@ -152,51 +153,52 @@ async def on_reaction_add(reaction, user):
     if user.bot:
         return
 
-    channel = reaction.message.channel
     message_id = reaction.message.id
+    channel = reaction.message.channel
     emoji = reaction.emoji
 
     print(f"Reaction received: {emoji} by user: {user.id} in channel: {channel.id}")
 
     # Check if this message is in the set of managed messages
-    if message_id in managed_message_ids:
+    if message_id in bot_state.get_managed_message_ids():
         # Remove any other reactions by the user on the same message
         for react in reaction.message.reactions:
             if react.emoji != emoji:
-                async for reacting_user in react.users():
-                    if reacting_user == user:
-                        await react.remove(user)
+                try:
+                    await reaction.message.remove_reaction(react.emoji, user)
+                except discord.errors.HTTPException:
+                    pass  # Ignore if the reaction was already removed
 
-    # Get the match ID associated with this message
-    match_id = get_match_id_from_message(message_id)
-    if not match_id:
-        print(f"No match found for message ID: {message_id}")
-        return
+        # Get the match ID associated with this message
+        match_id = get_match_id_from_message(message_id)
+        if not match_id:
+            print(f"No match found for message ID: {message_id}")
+            return
 
-    # Map the emoji to an availability status
-    status = None
-    if emoji == '\U0001F44D':
-        status = 'yes'
-    elif emoji == '\U0001F44E':
-        status = 'no'
-    elif emoji == '\U0001F937':
-        status = 'maybe'
+        # Map the emoji to an availability status
+        status = None
+        if emoji == '\U0001F44D':
+            status = 'yes'
+        elif emoji == '\U0001F44E':
+            status = 'no'
+        elif emoji == '\U0001F937':
+            status = 'maybe'
 
-    if status:
-        # Send a POST request to your web UI's API to update availability
-        api_url = f"{WEBUI_API_URL}/update_availability"
-        payload = {
-            'match_id': match_id,
-            'discord_id': str(user.id),  # Ensure the ID is a string
-            'response': status
-        }
+        if status:
+            # Send a POST request to your web UI's API to update availability
+            api_url = f"{WEBUI_API_URL}/update_availability"
+            payload = {
+                'match_id': match_id,
+                'discord_id': str(user.id),
+                'response': status,
+                'responded_at': datetime.utcnow().isoformat()
+            }
+            response = requests.post(api_url, json=payload)
 
-        response = requests.post(api_url, json=payload)
-
-        if response.status_code == 200:
-            print("Availability updated successfully.")
-        else:
-            print(f"Failed to update availability: {response.text}")
+            if response.status_code == 200:
+                print(f"Availability updated successfully for user {user.id} with status {status}.")
+            else:
+                print(f"Failed to update availability: {response.text}")
 
 @bot.event
 async def on_reaction_remove(reaction, user):
@@ -204,40 +206,41 @@ async def on_reaction_remove(reaction, user):
         return
     
     message_id = reaction.message.id
-
     print(f"Reaction removed by user: {user.id}")
 
-    # Get the match ID associated with this message
-    match_id = get_match_id_from_message(message_id)
-    if not match_id:
-        print(f"No match found for message ID: {message_id}")
-        return
+    # Check if this message is in the set of managed messages
+    if message_id in bot_state.get_managed_message_ids():
+        # Get the match ID associated with this message
+        match_id = get_match_id_from_message(message_id)
+        if not match_id:
+            print(f"No match found for message ID: {message_id}")
+            return
 
-    # Check if the user has any other reactions left on this message
-    has_other_reactions = False
-    for react in reaction.message.reactions:
-        async for reacting_user in react.users():
-            if reacting_user == user:
-                has_other_reactions = True
+        # Check if the user has any other reactions left on this message
+        has_other_reactions = False
+        for react in reaction.message.reactions:
+            async for reacting_user in react.users():
+                if reacting_user == user:
+                    has_other_reactions = True
+                    break
+            if has_other_reactions:
                 break
-        if has_other_reactions:
-            break
 
-    # If the user has no other reactions, set their status to "no_response"
-    if not has_other_reactions:
-        api_url = f"{WEBUI_API_URL}/update_availability"
-        payload = {
-            'match_id': match_id,
-            'discord_id': str(user.id),
-            'response': 'no_response'
-        }
-
-        response = requests.post(api_url, json=payload)
-        
-        if response.status_code == 200:
-            print("Availability updated successfully to no response.")
-        else:
-            print(f"Failed to update availability: {response.text}")
+        # If the user has no other reactions, set their status to "no_response"
+        if not has_other_reactions:
+            api_url = f"{WEBUI_API_URL}/update_availability"
+            payload = {
+                'match_id': match_id,
+                'discord_id': str(user.id),
+                'response': 'no_response',
+                'responded_at': datetime.utcnow().isoformat()
+            }
+            response = requests.post(api_url, json=payload)
+            
+            if response.status_code == 200:
+                print(f"Availability updated successfully to no response for user {user.id}.")
+            else:
+                print(f"Failed to update availability: {response.text}")
 
 async def start_fastapi():
     config = uvicorn.Config(app, host="0.0.0.0", port=5001, log_level="info")

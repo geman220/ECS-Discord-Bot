@@ -146,13 +146,25 @@
         </li>
         {% endif %}
 
-        <!-- Discord Tools - Only Global Admins -->
-        {% if 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_role_status' }}">
-            <a class="menu-link" href="{{ url_for('admin.discord_role_status') }}">
+        <!-- Discord Tools - Global Admin / Pub League Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'open' if 'admin' in request.path and ('discord_role_status' in request.path or 'scheduled_messages' in request.path) }}">
+            <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i data-feather="link" class="menu-icon"></i>
                 <div>Discord Tools</div>
             </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_role_status' }}">
+                    <a class="menu-link" href="{{ url_for('admin.discord_role_status') }}">
+                        <div>Discord Roles</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.view_scheduled_messages' }}">
+                    <a class="menu-link" href="{{ url_for('admin.view_scheduled_messages') }}">
+                        <div>Scheduled Messages</div>
+                    </a>
+                </li>
+            </ul>
         </li>
         {% endif %}
 
