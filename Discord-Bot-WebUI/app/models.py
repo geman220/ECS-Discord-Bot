@@ -711,6 +711,7 @@ class FeedbackReply(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    is_admin_reply = db.Column(db.Boolean, default=False)  # New field
 
     feedback = db.relationship('Feedback', back_populates='replies')
     user = db.relationship('User', back_populates='feedback_replies')
