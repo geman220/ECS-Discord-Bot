@@ -19,6 +19,7 @@ def register_blueprints(app):
     from app.feedback import feedback_bp
     from app.user_management import user_management_bp
     from app.calendar import calendar_bp
+    from app.sms_rsvp import sms_rsvp_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -34,4 +35,5 @@ def register_blueprints(app):
     app.register_blueprint(feedback_bp)
     app.register_blueprint(email_bp)
     app.register_blueprint(calendar_bp)
+    app.register_blueprint(sms_rsvp_bp)
     app.register_blueprint(user_management_bp)

@@ -19,7 +19,6 @@ def get_schedule():
     try:
         # Get all current seasons
         seasons = Season.query.filter_by(is_current=True).all()
-
         if not seasons:
             logger.warning("No current season found.")
             return jsonify({'error': 'No current season found.'}), 404
@@ -54,10 +53,18 @@ def get_schedule():
 
         # Format the matches as events for FullCalendar
         events = []
+        total_matches = len(matches)
+        assigned_refs = 0
+
         for match in matches:
             division = 'Premier' if match.home_league_id == 10 else 'Classic'
             # Combine date and time into a single datetime object
             start_datetime = datetime.combine(match.date, match.time)
+            ref_name = match.ref_name if match.ref_name else 'Unassigned'
+            
+            if ref_name != 'Unassigned':
+                assigned_refs += 1
+
             events.append({
                 'id': match.id,
                 'title': f"{division}: {match.home_team_name} vs {match.away_team_name}",
@@ -65,12 +72,21 @@ def get_schedule():
                 'description': f"Location: {match.location}",
                 'color': 'blue' if division == 'Premier' else 'green',
                 'url': f"/matches/{match.id}",
-                'ref': match.ref_name if match.ref_name else 'Unassigned',
-                'division': division,  # Add division to extendedProps
-                'teams': f"{match.home_team_name} vs {match.away_team_name}"  # Add teams to extendedProps
+                'ref': ref_name,
+                'division': division,
+                'teams': f"{match.home_team_name} vs {match.away_team_name}"
             })
 
-        return jsonify(events)
+        unassigned_matches = total_matches - assigned_refs
+
+        return jsonify({
+            'events': events,
+            'stats': {
+                'totalMatches': total_matches,
+                'assignedRefs': assigned_refs,
+                'unassignedMatches': unassigned_matches
+            }
+        })
 
     except Exception as e:
         logger.exception("An error occurred while fetching events.")
@@ -83,47 +99,34 @@ def get_refs():
     try:
         match_id = request.args.get('match_id', type=int)
         if not match_id:
-            logger.warning("Missing match_id parameter.")
             return jsonify({'error': 'match_id parameter is required.'}), 400
 
         match = Match.query.get(match_id)
         if not match:
-            logger.warning(f"Match not found: ID {match_id}")
             return jsonify({'error': 'Match not found.'}), 404
 
-        logger.info(f"Fetching referees for Match ID: {match_id}")
-
-        match_date = match.date
-        match_time = match.time
-        home_team_id = match.home_team_id
-        away_team_id = match.away_team_id
-
         # Query refs who are eligible
-        refs = Player.query.filter_by(is_ref=True).filter(
-            ~Player.team_id.in_([home_team_id, away_team_id])  # Exclude refs on either team
-        )
+        refs = Player.query.filter_by(is_ref=True).all()
 
-        # Log the refs being considered
-        logger.info(f"Refs available before conflict filtering: {[ref.name for ref in refs]}")
+        ref_list = []
+        for ref in refs:
+            # Check if ref is on either team in this match
+            if ref.team_id not in [match.home_team_id, match.away_team_id]:
+                # Count the matches assigned to this referee in the current week
+                matches_assigned_in_week = Match.query.filter_by(ref_id=ref.id).filter(
+                    Match.date == match.date
+                ).count()
 
-        # Subquery to find refs already assigned to a match at the same date and time
-        conflicting_refs_subquery = db.session.query(Match.ref_id).filter(
-            Match.date == match_date,
-            Match.time == match_time,
-            Match.ref_id != None,  # Ensure ref_id is not null
-            Match.id != match_id  # Exclude current match if ref is already assigned
-        ).subquery()
+                # Count the total matches assigned to this referee
+                total_matches_assigned = Match.query.filter_by(ref_id=ref.id).count()
 
-        # Exclude refs who are already assigned to another match at the same date and time
-        refs = refs.filter(~Player.id.in_(conflicting_refs_subquery))
+                ref_list.append({
+                    'id': ref.id,
+                    'name': ref.name,
+                    'matches_assigned_in_week': matches_assigned_in_week,
+                    'total_matches_assigned': total_matches_assigned
+                })
 
-        # Log conflicting refs to help debug assignment issues
-        conflicting_refs = db.session.query(Player.name).filter(Player.id.in_(conflicting_refs_subquery)).all()
-        logger.info(f"Conflicting refs at the same time: {conflicting_refs}")
-
-        ref_list = [{'id': ref.id, 'name': ref.name} for ref in refs]
-        logger.info(f"Returning refs: {ref_list}")
-        
         return jsonify(ref_list)
 
     except Exception as e:
@@ -205,7 +208,16 @@ def available_refs():
             matches_assigned_in_week = Match.query.filter_by(ref_id=ref.id).filter(
                 Match.date >= start_date, Match.date <= end_date
             ).count()
-            ref_list.append({'name': ref.name, 'matches_assigned_in_week': matches_assigned_in_week})
+
+            # Count the total number of matches assigned to this referee
+            total_matches_assigned = Match.query.filter_by(ref_id=ref.id).count()
+
+            ref_list.append({
+                'id': ref.id,
+                'name': ref.name,
+                'matches_assigned_in_week': matches_assigned_in_week,
+                'total_matches_assigned': total_matches_assigned
+            })
 
         return jsonify(ref_list)
     except Exception as e:
