@@ -140,6 +140,7 @@
     <Content Include="app\templates\calendar.html" />
     <Content Include="app\templates\create_user.html" />
     <Content Include="app\templates\draft_classic.html" />
+    <Content Include="app\templates\draft_ecs_fc.html" />
     <Content Include="app\templates\draft_premier.html" />
     <Content Include="app\templates\edit_match.html" />
     <Content Include="app\templates\edit_user_modal.html" />

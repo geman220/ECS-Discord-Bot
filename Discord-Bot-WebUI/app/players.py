@@ -494,20 +494,10 @@ def match_user(player_data):
     return None
 
 def match_player(player_data, league):
-    """
-    Attempts to find an existing player based on user_id or name and phone number.
-
-    Args:
-        player_data (dict): Data related to the player.
-        league (League): The league object.
-
-    Returns:
-        Player or None: The matched Player object or None if not found.
-    """
     user = match_user(player_data)
     if user:
-        # Try to find player in the specified league
-        player = Player.query.filter_by(user_id=user.id, league_id=league.id).first()
+        # Try to find player linked to the user
+        player = Player.query.filter_by(user_id=user.id).first()
         if player:
             return player
     else:
@@ -515,18 +505,10 @@ def match_player(player_data, league):
         name = standardize_name(player_data.get('name', ''))
         phone = standardize_phone(player_data.get('phone', ''))
         if name and phone:
-            # Standardize phone numbers in the database
-            standardized_phone_db = func.replace(
-                func.replace(
-                    func.replace(
-                        func.replace(Player.phone, '-', ''), '(', ''
-                    ), ')', ''
-                ), ' ', ''
-            )
+            standardized_phone_db = func.replace(func.replace(func.replace(func.replace(Player.phone, '-', ''), '(', ''), ')', ''), ' ', '')
             player = Player.query.filter(
                 func.lower(Player.name) == func.lower(name),
-                standardized_phone_db == phone,
-                Player.league_id == league.id
+                standardized_phone_db == phone
             ).first()
             if player:
                 return player
@@ -637,21 +619,23 @@ def determine_league(product_name, current_seasons):
     return None
 
 def create_player_profile(player_data, league, user):
-    """
-    Creates or updates a player profile linked to a user.
-
-    Args:
-        player_data (dict): Data related to the player.
-        league (League): League object.
-        user (User): User object.
-
-    Returns:
-        Player: The existing or newly created Player object.
-    """
     player = match_player(player_data, league)
     if player:
         # Update existing player details
         update_player_details(player, player_data)
+        
+        # Check if the player-league association already exists
+        if league not in player.other_leagues:
+            player.other_leagues.append(league)
+        
+        # Set primary league if not set or based on priority
+        if not player.primary_league:
+            player.primary_league = league
+        else:
+            current_priority = ['Classic', 'Premier', 'ECS FC']
+            if current_priority.index(league.name) < current_priority.index(player.primary_league.name):
+                player.primary_league = league
+        
         logger.info(f"Updated existing player '{player.name}' for user '{user.email}'.")
     else:
         # Create new player profile
@@ -659,10 +643,11 @@ def create_player_profile(player_data, league, user):
             name=standardize_name(player_data.get('name', '')),
             phone=standardize_phone(player_data.get('phone', '')),
             jersey_size=player_data.get('jersey_size', ''),
-            league_id=league.id,
+            primary_league=league,
             user_id=user.id,
             is_current_player=True
         )
+        player.other_leagues.append(league)
         db.session.add(player)
         db.session.flush()
         logger.info(f"Created new player profile '{player.name}' for user '{user.email}'.")
@@ -862,7 +847,7 @@ def reset_current_players(current_seasons):
         logger.debug(f"Resetting players for seasons with IDs: {season_ids}")
 
         # Subquery to select Player IDs linked to leagues in current_seasons and currently active
-        subquery = db.session.query(Player.id).join(League).filter(
+        subquery = db.session.query(Player.id).join(League, Player.league_id == League.id).filter(
             League.season_id.in_(season_ids),
             Player.is_current_player == True
         ).subquery()
@@ -903,46 +888,20 @@ def clean_phone_number(phone):
 @role_required(['Pub League Admin', 'Global Admin'])
 def view_players():
     search_term = request.args.get('search', '').strip()
-    classic_page = request.args.get('classic_page', 1, type=int)
-    premier_page = request.args.get('premier_page', 1, type=int)
-    ecsfc_page = request.args.get('ecsfc_page', 1, type=int)
+    page = request.args.get('page', 1, type=int)
     per_page = 10
 
-    def create_base_query(league_name):
-        base_query = db.session.query(Player).join(League).join(User)
-        base_query = base_query.filter(func.lower(League.name) == league_name.lower())
-        
-        if search_term:
-            base_query = base_query.filter(or_(
-                Player.name.ilike(f'%{search_term}%'),
-                func.lower(User.email).ilike(f'%{search_term.lower()}%'),
-                and_(Player.phone.isnot(None), Player.phone.ilike(f'%{search_term}%')),
-                and_(Player.jersey_size.isnot(None), Player.jersey_size.ilike(f'%{search_term}%'))
-            ))
-        
-        return base_query
+    base_query = db.session.query(Player).join(User)
 
-    classic_query = create_base_query('classic')
-    premier_query = create_base_query('premier')
-    ecsfc_query = create_base_query('ecs fc')
-
-    # Paginate the results
-    classic_players = classic_query.paginate(page=classic_page, per_page=per_page, error_out=False)
-    premier_players = premier_query.paginate(page=premier_page, per_page=per_page, error_out=False)
-    ecsfc_players = ecsfc_query.paginate(page=ecsfc_page, per_page=per_page, error_out=False)
-
-    # Determine the active tab
     if search_term:
-        if classic_players.total > 0:
-            active_tab = 'classic'
-        elif premier_players.total > 0:
-            active_tab = 'premier'
-        elif ecsfc_players.total > 0:
-            active_tab = 'ecsfc'
-        else:
-            active_tab = 'classic'
-    else:
-        active_tab = 'classic'
+        base_query = base_query.filter(or_(
+            Player.name.ilike(f'%{search_term}%'),
+            func.lower(User.email).ilike(f'%{search_term.lower()}%'),
+            and_(Player.phone.isnot(None), Player.phone.ilike(f'%{search_term}%')),
+            and_(Player.jersey_size.isnot(None), Player.jersey_size.ilike(f'%{search_term}%'))
+        ))
+
+    players = base_query.paginate(page=page, per_page=per_page, error_out=False)
 
     # Fetch leagues and jersey sizes
     leagues = League.query.all()
@@ -950,11 +909,8 @@ def view_players():
 
     return render_template(
         'view_players.html',
-        classic_players=classic_players,
-        premier_players=premier_players,
-        ecsfc_players=ecsfc_players,
+        players=players,
         search_term=search_term,
-        active_tab=active_tab,
         leagues=leagues,
         jersey_sizes=jersey_sizes
     )
@@ -1004,9 +960,29 @@ def update_players():
             # Create or update user
             user = create_user_for_player(player_info)
 
-            # Create or update player profile
-            player = create_player_profile(player_info, league, user)
-            detected_players.add(player.id)
+            try:
+                # Create or update player profile
+                player = create_player_profile(player_info, league, user)
+                detected_players.add(player.id)
+
+                # Update player's primary league and other leagues
+                if not player.primary_league:
+                    player.primary_league = league
+                elif league.name in ['Classic', 'Premier', 'ECS FC']:
+                    if player.primary_league.name != league.name:
+                        if player.primary_league not in player.other_leagues:
+                            player.other_leagues.append(player.primary_league)
+                        player.primary_league = league
+                else:
+                    if league not in player.other_leagues:
+                        player.other_leagues.append(league)
+
+                db.session.add(player)
+
+            except IntegrityError as ie:
+                db.session.rollback()
+                logger.warning(f"Duplicate player-league association for player '{player_info['name']}' and league '{league.name}'. Skipping.")
+                continue
 
             # Record order history
             if player:

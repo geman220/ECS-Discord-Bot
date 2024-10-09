@@ -19,20 +19,46 @@
     <div class="menu-inner-shadow"></div>
 
     <ul class="menu-inner py-1">
-        <!-- Dashboard -->
+        <!-- Global Admin Section Header -->
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Main</span>
+        </li>
+
+        <!-- Dashboard - Available for everyone logged in -->
+        {% if current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'main.index' }}">
             <a class="menu-link" href="{{ url_for('main.index') }}">
                 <i data-feather="home" class="menu-icon"></i>
                 <div>Dashboard</div>
             </a>
         </li>
+        {% endif %}
 
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+        <!-- Feedback - Anyone Authenticated -->
+        {% if current_user.is_authenticated %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
+            <a class="menu-link feedback-link" href="{{ url_for('feedback.submit_feedback') }}">
+                <i data-feather="alert-circle" class="menu-icon"></i>
+                <div>Submit Feedback / Bug</div>
+            </a>
+        </li>
+        {% endif %}
+
+        {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'Pub League Player' in user_roles %}
+        {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+        {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'Pub League Ref' in user_roles %}
+        {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_standings or can_view_calendar or can_view_teams %}
+
+        <!-- ECS FC Leagues - Only show if user has permission to view at least one link -->
+        {% if can_view_any_ecsfc_section %}
         <li class="menu-header small text-uppercase">
-            <span class="menu-header-text">Pub League</span>
+            <span class="menu-header-text">ECS FC League</span>
         </li>
 
-        <!-- Season Management -->
+        {% if can_view_season_management %}
+        <!-- Season Management - Only Pub League Admin / Global Admin -->
         <li class="menu-item {{ 'open' if 'publeague' in request.path }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i data-feather="calendar" class="menu-icon"></i>
@@ -61,8 +87,10 @@
                 </li>
             </ul>
         </li>
+        {% endif %}
 
-        <!-- Draft -->
+        {% if can_view_draft %}
+        <!-- Draft - Pub League Admin / Global Admin / Pub League Coach -->
         <li class="menu-item {{ 'open' if 'draft' in request.path }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i data-feather="list" class="menu-icon"></i>
@@ -79,18 +107,36 @@
                         <div>Premier Division</div>
                     </a>
                 </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_ecs_fc' }}">
+                    <a class="menu-link" href="{{ url_for('draft.draft_ecs_fc') }}">
+                        <div>ECS FC Division</div>
+                    </a>
+                </li>
             </ul>
         </li>
+        {% endif %}
 
-        <!-- Standings -->
+        <!-- Teams Overview -->
+        {% if can_view_teams %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
+            <a class="menu-link teams-link" href="{{ url_for('teams.teams_overview') }}">
+                <i data-feather="users" class="menu-icon"></i>
+                <div>Teams</div>
+            </a>
+        </li>
+        {% endif %}
+        {% endif %}
+
+        {% if can_view_standings %}
         <li class="menu-item {{ 'active' if request.endpoint == 'teams.view_standings' }}">
             <a class="menu-link" href="{{ url_for('teams.view_standings') }}">
                 <i data-feather="bar-chart" class="menu-icon"></i>
                 <div>Standings</div>
             </a>
         </li>
+        {% endif %}
 
-        <!-- Pub League Calendar -->
+        {% if can_view_calendar %}
         <li class="menu-item {{ 'active' if request.endpoint == 'calendar.calendar_view' }}">
             <a class="menu-link" href="{{ url_for('calendar.calendar_view') }}">
                 <i data-feather="calendar" class="menu-icon"></i>
@@ -99,50 +145,10 @@
         </li>
         {% endif %}
 
-        <!-- Teams Overview - Anyone Authenticated -->
-        {% if current_user.is_authenticated %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'teams.teams_overview' }}">
-            <a class="menu-link teams-link" href="{{ url_for('teams.teams_overview') }}">
-                <i data-feather="users" class="menu-icon"></i>
-                <div>Teams</div>
-            </a>
-        </li>
-        {% endif %}
-
-        <!-- Feedback - Anyone Authenticated -->
-        {% if current_user.is_authenticated %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
-            <a class="menu-link feedback-link" href="{{ url_for('feedback.submit_feedback') }}">
-                <i data-feather="alert-circle" class="menu-icon"></i>
-                <div>Submit Feedback / Bug</div>
-            </a>
-        </li>
-        {% endif %}
-
         <!-- Admin Section Header - Only if there are links for this section -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Discord Admin' in user_roles %}
         <li class="menu-header small text-uppercase">
-            <span class="menu-header-text">Admin</span>
-        </li>
-        {% endif %}
-
-        <!-- Player Database Management - Only Pub League Admin and Global Admin -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'players' in request.path }}">
-            <a class="menu-link" href="{{ url_for('players.view_players') }}">
-                <i data-feather="database" class="menu-icon"></i>
-                <div>Player Database</div>
-            </a>
-        </li>
-        {% endif %}
-
-        <!-- Manage Users for Global Admins Only -->
-        {% if 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'manage_users' in request.path }}">
-            <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
-                <i data-feather="user-check" class="menu-icon"></i>
-                <div>Manage Users</div>
-            </a>
+            <span class="menu-header-text">ECS FC Admin</span>
         </li>
         {% endif %}
 
@@ -168,6 +174,33 @@
         </li>
         {% endif %}
 
+        <!-- Player Database Management - Only Pub League Admin and Global Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'players' in request.path }}">
+            <a class="menu-link" href="{{ url_for('players.view_players') }}">
+                <i data-feather="database" class="menu-icon"></i>
+                <div>Player Database</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Manage Users for Global Admins Only -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'manage_users' in request.path }}">
+            <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
+                <i data-feather="user-check" class="menu-icon"></i>
+                <div>Manage Users</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- Discord Admin Section Header -->
+        {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Discord Bot Admin</span>
+        </li>
+        {% endif %}
+
         <!-- MLS Match Schedule - Only Discord Admin and Global Admin -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if 'matches' in request.path }}">
@@ -175,6 +208,13 @@
                 <i data-feather="calendar" class="menu-icon"></i>
                 <div>Sounders Schedule</div>
             </a>
+        </li>
+        {% endif %}
+
+        <!-- Global Admin Section Header -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-header small text-uppercase">
+            <span class="menu-header-text">Global Admins</span>
         </li>
         {% endif %}
 

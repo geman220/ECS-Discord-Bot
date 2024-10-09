@@ -89,14 +89,59 @@
         </div>
     </div>
 
+    <!-- ECS FC Teams -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-warning">
+                <i class="bx bx-shield"></i> ECS FC Division Teams
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
+                {% if ecs_fc_teams %}
+                {% for team in ecs_fc_teams %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2 text-center">
+                                    <h5 class="card-title text-warning mb-1">{{ team.name }}</h5>
+                                    <p class="card-text text-muted mb-2">
+                                        <i class="bx bx-calendar"></i> {{ team.league.season.name }}
+                                    </p>
+                                    <p class="card-text text-muted mb-3">
+                                        <i class="bx bx-user"></i> {{ team.players | length }} Players
+                                    </p>
+                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-warning btn-sm">
+                                        <i class="bx bx-show"></i> View Team
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="col-12">
+                    <p class="text-muted text-center">No ECS FC Division teams available.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
-
 {% block custom_css %}
 <style>
     /* Custom Card Borders */
     .border-left-primary {
         border-left: .25rem solid #4e73df !important;
+    }
+
+    .border-left-warning {
+        border-left: .25rem solid #f6c23e !important;
     }
 
     .border-left-success {

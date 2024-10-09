@@ -18,6 +18,11 @@ user_roles = db.Table(
     db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
 )
 
+player_league = db.Table('player_league',
+    db.Column('player_id', db.Integer, db.ForeignKey('player.id'), primary_key=True),
+    db.Column('league_id', db.Integer, db.ForeignKey('league.id'), primary_key=True)
+)
+
 # Association table for the many-to-many relationship between Role and Permission
 role_permissions = db.Table('role_permissions',
     db.Column('role_id', db.Integer, db.ForeignKey('roles.id')),
@@ -30,7 +35,9 @@ class League(db.Model):
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     season = db.relationship('Season', back_populates='leagues')
     teams = db.relationship('Team', back_populates='league', lazy=True)
-    players = db.relationship('Player', back_populates='league', lazy=True)
+    players = db.relationship('Player', back_populates='league', foreign_keys='Player.league_id')
+    primary_players = db.relationship('Player', back_populates='primary_league', foreign_keys='Player.primary_league_id')
+    other_players = db.relationship('Player', secondary='player_league', back_populates='other_leagues')
     users = db.relationship('User', back_populates='league')
     
     def __repr__(self):
@@ -286,8 +293,14 @@ class Player(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
     team = db.relationship('Team', back_populates='players')
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
-    league = db.relationship('League', back_populates='players')
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Link to User model
+    league = db.relationship('League', back_populates='players', foreign_keys=[league_id])
+
+    primary_league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
+    primary_league = db.relationship('League', back_populates='primary_players', foreign_keys=[primary_league_id])
+
+    other_leagues = db.relationship('League', secondary='player_league', back_populates='other_players')
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     user = db.relationship('User', back_populates='player')
     availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
     notes = db.Column(db.Text, nullable=True)  # Admin notes
@@ -295,7 +308,7 @@ class Player(db.Model):
     profile_picture_url = db.Column(db.String(255), nullable=True)
     stat_change_logs = db.relationship('StatChangeLog', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
     stat_audits = db.relationship('PlayerStatAudit', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
-    # Relationships with stats
+    
     season_stats = db.relationship('PlayerSeasonStats', back_populates='player', passive_deletes=True)
     career_stats = db.relationship('PlayerCareerStats', back_populates='player', passive_deletes=True)
     order_history = db.relationship('PlayerOrderHistory', back_populates='player', cascade='all, delete')

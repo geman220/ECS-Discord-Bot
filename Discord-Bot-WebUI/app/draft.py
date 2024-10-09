@@ -54,6 +54,28 @@ def draft_premier():
 
     return render_template('draft_premier.html', teams=teams, available_players=available_players, drafted_players_by_team=drafted_players_by_team, season=season)
 
+# Draft ECS FC League
+@draft.route('/ecs_fc')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def draft_ecs_fc():
+    ecs_fc_league = League.query.filter_by(name='ECS FC').first()
+    teams = ecs_fc_league.teams
+
+    # Fetch the current season
+    current_season_name, current_year = get_current_season_and_year()
+    current_season = Season.query.filter_by(name=current_season_name).first()
+
+    # Fetch players who are available (not yet drafted) in the ECS FC league
+    available_players = Player.query.filter_by(league_id=ecs_fc_league.id, team_id=None).order_by(Player.name.asc()).all()
+
+    # Fetch players who have been drafted to a team in the ECS FC league
+    drafted_players_by_team = {}
+    for team in teams:
+        drafted_players_by_team[team.id] = Player.query.filter_by(league_id=ecs_fc_league.id, team_id=team.id).order_by(Player.name.asc()).all()
+
+    return render_template('draft_ecs_fc.html', teams=teams, available_players=available_players, drafted_players_by_team=drafted_players_by_team, season=current_season)
+
 # Handle Draft via WebSocket
 @socketio.on('draft_player')
 def handle_draft_player(data):
