@@ -65,6 +65,8 @@
     <Folder Include="app\static\custom_js\" />
     <Folder Include="app\templates\" />
     <Folder Include="app\templates\admin\" />
+    <Folder Include="app\templates\emails\" />
+    <Folder Include="app\templates\feedback\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="app\static\css\core-dark.css" />
@@ -142,6 +144,11 @@
     <Content Include="app\templates\edit_match.html" />
     <Content Include="app\templates\edit_user_modal.html" />
     <Content Include="app\templates\edit_week.html" />
+    <Content Include="app\templates\emails\feedback_closed.html" />
+    <Content Include="app\templates\emails\feedback_update.html" />
+    <Content Include="app\templates\emails\new_feedback.html" />
+    <Content Include="app\templates\emails\new_feedback_notification.html" />
+    <Content Include="app\templates\emails\new_reply_admin.html" />
     <Content Include="app\templates\fc_admin.html" />
     <Content Include="app\templates\forgot_password.html" />
     <Content Include="app\templates\index.html" />
@@ -169,7 +176,7 @@
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />
     <Content Include="app\templates\sms_rsvp_form.html" />
-    <Content Include="app\templates\submit_feedback.html" />
+    <Content Include="app\templates\feedback\submit_feedback.html" />
     <Content Include="app\templates\teams_overview.html" />
     <Content Include="app\templates\team_details.html" />
     <Content Include="app\templates\verify_2fa.html" />

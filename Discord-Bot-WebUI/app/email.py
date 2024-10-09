@@ -55,17 +55,15 @@ def send_email(to, subject, body):
     try:
         # Set the MIME type as 'html' to ensure the email is rendered as HTML
         message = MIMEText(body, "html")
-        message['to'] = to
+        message['to'] = ', '.join(to) if isinstance(to, list) else to
         message['from'] = 'donotreply@weareecs.com'
         message['subject'] = subject
-
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
         message_body = {'raw': raw}
-
         message = service.users().messages().send(userId="me", body=message_body).execute()
         logging.debug(f"Email sent successfully with Message Id: {message['id']}")
         return message
     except Exception as error:
         logging.error(f"An error occurred while sending the email: {error}")
-        traceback.print_exc()  # Log full stack trace for debugging
+        traceback.print_exc()
         return None

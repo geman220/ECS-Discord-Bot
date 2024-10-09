@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Submit New Feedback{% endblock %}
+
+{% block main_content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-10 col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">Submit New Feedback</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control") }}
+                            {% for error in form.name.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-select") }}
+                            {% for error in form.category.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control") }}
+                            {% for error in form.title.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows=5) }}
+                            {% for error in form.description.errors %}
+                            <span class="text-danger">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

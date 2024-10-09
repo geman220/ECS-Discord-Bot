@@ -20,6 +20,7 @@ from sqlalchemy.orm import joinedload
 from datetime import datetime
 from twilio.rest import Client
 from app.decorators import role_required
+from app.email import send_email
 from app.models import (
     Team,
     Match,
@@ -33,7 +34,8 @@ from app.models import (
     Feedback, 
     Note,
     League,
-    ScheduledMessage
+    ScheduledMessage,
+    FeedbackReply
 )
 from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm
 from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles
@@ -600,70 +602,110 @@ def get_announcement_data():
         'content': announcement.content
     }), 200
 
-# admin_routes.py
-@admin_bp.route('/admin/reports', methods=['GET'])
+
+# --------------------
+# Feedback Routes
+# --------------------
+
+@admin_bp.route('/admin/reports')
 @login_required
 @role_required('Global Admin')
 def admin_reports():
-    # Filtering
-    status_filter = request.args.get('status')
-    priority_filter = request.args.get('priority')
+    page = request.args.get('page', 1, type=int)
+    per_page = 20  # Number of feedbacks per page
+    status_filter = request.args.get('status', '')
+    priority_filter = request.args.get('priority', '')
     sort_by = request.args.get('sort_by', 'created_at')
     order = request.args.get('order', 'desc')
 
-    feedback_query = Feedback.query
+    query = Feedback.query
 
     if status_filter:
-        feedback_query = feedback_query.filter_by(status=status_filter)
+        query = query.filter(Feedback.status == status_filter)
     if priority_filter:
-        feedback_query = feedback_query.filter_by(priority=priority_filter)
-    
-    # Sorting
-    if sort_by in ['priority', 'status', 'created_at']:
-        sort_column = getattr(Feedback, sort_by)
-        if order == 'asc':
-            feedback_query = feedback_query.order_by(sort_column.asc())
-        else:
-            feedback_query = feedback_query.order_by(sort_column.desc())
-    
-    feedbacks = feedback_query.all()
+        query = query.filter(Feedback.priority == priority_filter)
+
+    if order == 'asc':
+        query = query.order_by(getattr(Feedback, sort_by).asc())
+    else:
+        query = query.order_by(getattr(Feedback, sort_by).desc())
+
+    feedbacks = query.paginate(page=page, per_page=per_page, error_out=False)
+
     return render_template('admin_reports.html', feedbacks=feedbacks)
 
-@admin_bp.route('/admin/report/<int:feedback_id>', methods=['GET', 'POST'])
+@admin_bp.route('/admin/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 def view_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
-    feedback_form = AdminFeedbackForm(obj=feedback)
+    form = AdminFeedbackForm(obj=feedback)
     note_form = NoteForm()
 
-    if request.method == 'POST':
-        # Handle feedback update
-        if 'update_feedback' in request.form and feedback_form.validate_on_submit():
-            feedback.priority = feedback_form.priority.data
-            feedback.status = feedback_form.status.data
-            db.session.commit()
-            flash('Feedback updated successfully.', 'success')
-            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
-        
-        # Handle adding a note
-        if 'add_note' in request.form and note_form.validate_on_submit():
-            note = Note(
-                feedback_id=feedback.id,
-                author_id=current_user.id,
-                content=note_form.content.data.strip()
-            )
-            db.session.add(note)
-            db.session.commit()
-            flash('Note added successfully.', 'success')
-            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
-    
-    return render_template(
-        'admin_report_detail.html',
-        feedback=feedback,
-        form=feedback_form,
-        note_form=note_form
+    if form.validate_on_submit():
+        form.populate_obj(feedback)
+        db.session.commit()
+        flash('Feedback has been updated successfully.', 'success')
+
+        # Send email notification to user
+        send_email(
+            to=feedback.user.email,
+            subject=f"Update on your Feedback #{feedback.id}",
+            body=render_template('emails/feedback_update.html', feedback=feedback)
+        )
+
+        return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+
+    if note_form.validate_on_submit():
+        note = FeedbackReply(
+            feedback_id=feedback.id,
+            user_id=current_user.id,
+            content=note_form.content.data,
+            is_admin_reply=True
+        )
+        db.session.add(note)
+        db.session.commit()
+
+        # Send email notification to user
+        send_email(
+            to=feedback.user.email,
+            subject=f"New admin reply to your Feedback #{feedback.id}",
+            body=render_template('emails/new_admin_reply.html', feedback=feedback, reply=note)
+        )
+
+        flash('Note added successfully.', 'success')
+        return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+
+    return render_template('admin_report_detail.html', feedback=feedback, form=form, note_form=note_form)
+
+@admin_bp.route('/admin/feedback/<int:feedback_id>/close', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def close_feedback(feedback_id):
+    feedback = Feedback.query.get_or_404(feedback_id)
+    feedback.status = 'Closed'
+    feedback.closed_at = datetime.utcnow()
+    db.session.commit()
+
+    # Send email notification to user
+    send_email(
+        to=feedback.user.email,
+        subject=f"Your Feedback #{feedback.id} has been closed",
+        body=render_template('emails/feedback_closed.html', feedback=feedback)
     )
+
+    flash('Feedback has been closed successfully.', 'success')
+    return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+
+@admin_bp.route('/admin/feedback/<int:feedback_id>/delete', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def delete_feedback(feedback_id):
+    feedback = Feedback.query.get_or_404(feedback_id)
+    db.session.delete(feedback)
+    db.session.commit()
+    flash('Feedback has been permanently deleted.', 'success')
+    return redirect(url_for('admin.admin_reports'))
 
 # --------------------
 # Discord Routes

@@ -66,6 +66,7 @@ class User(UserMixin, db.Model):
     feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
     notes = db.relationship('Note', back_populates='author', lazy=True)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
+    feedback_replies = db.relationship('FeedbackReply', back_populates='user', lazy=True)
 
     @hybrid_property
     def email(self):
@@ -676,21 +677,46 @@ class Feedback(db.Model):
     __tablename__ = 'feedback'
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # Optional: link to user
-    name = db.Column(db.String(150), nullable=True)  # Initially nullable
-    category = db.Column(db.String(50), nullable=False)  # 'Bug' or 'Feature'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    name = db.Column(db.String(150), nullable=True)
+    category = db.Column(db.String(50), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    priority = db.Column(db.String(20), default='Low')  # Low, Medium, High
-    status = db.Column(db.String(20), default='Open')  # Open, In Progress, Closed
+    priority = db.Column(db.String(20), default='Low')
+    status = db.Column(db.String(20), default='Open')
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
+    closed_at = db.Column(db.DateTime, nullable=True)
+    
     user = db.relationship('User', back_populates='feedbacks')
     notes = db.relationship('Note', back_populates='feedback', cascade='all, delete-orphan', lazy=True)
+    replies = db.relationship('FeedbackReply', back_populates='feedback', cascade='all, delete-orphan', lazy=True)
 
     def __repr__(self):
         return f'<Feedback {self.id} - {self.title}>'
+
+    @classmethod
+    def delete_old_closed_tickets(cls):
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
+        for ticket in old_closed_tickets:
+            db.session.delete(ticket)
+        db.session.commit()
+
+class FeedbackReply(db.Model):
+    __tablename__ = 'feedback_replies'
+
+    id = db.Column(db.Integer, primary_key=True)
+    feedback_id = db.Column(db.Integer, db.ForeignKey('feedback.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    feedback = db.relationship('Feedback', back_populates='replies')
+    user = db.relationship('User', back_populates='feedback_replies')
+
+    def __repr__(self):
+        return f'<FeedbackReply {self.id} for Feedback {self.feedback_id}>'
 
 class Note(db.Model):
     __tablename__ = 'notes'
