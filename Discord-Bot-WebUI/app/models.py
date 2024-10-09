@@ -1,5 +1,5 @@
 from app import db, login_manager
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean
@@ -48,6 +48,7 @@ class User(UserMixin, db.Model):
     is_approved = db.Column(db.Boolean, default=False, nullable=False)
     email_notifications = db.Column(db.Boolean, default=True)
     sms_notifications = db.Column(db.Boolean, default=True)
+    sms_confirmation_code = db.Column(db.String(6), nullable=True)
     discord_notifications = db.Column(db.Boolean, default=True)
     profile_visibility = db.Column(db.String(20), default='everyone')
     notifications = db.relationship('Notification', back_populates='user', lazy='dynamic')
@@ -256,8 +257,11 @@ class StatChangeLog(db.Model):
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
-    # email = db.Column(db.String(120), unique=True, nullable=False)
     phone = db.Column(db.String(20), nullable=True)
+    is_phone_verified = db.Column(db.Boolean, default=False)
+    sms_consent_given = db.Column(db.Boolean, default=False)
+    sms_consent_timestamp = db.Column(db.DateTime)
+    sms_opt_out_timestamp = db.Column(db.DateTime)
     jersey_size = db.Column(db.String(10), nullable=True)
     jersey_number = db.Column(db.Integer, nullable=True)
     is_coach = db.Column(db.Boolean, default=False)
@@ -713,3 +717,36 @@ class ScheduledMessage(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     match = db.relationship('Match', back_populates='scheduled_messages')
+
+class Token(db.Model):
+    __tablename__ = 'tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    token = db.Column(db.String(32), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False, nullable=False)
+
+    player = db.relationship('Player', backref=db.backref('tokens', lazy=True))
+
+    def __init__(self, player_id, token, expires_at=None):
+        self.player_id = player_id
+        self.token = token
+        self.created_at = datetime.utcnow()
+        self.expires_at = expires_at or (self.created_at + timedelta(hours=24))
+
+    def __repr__(self):
+        return f'<Token {self.token} for player {self.player_id}>'
+
+    @property
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
+
+    @property
+    def is_valid(self):
+        return not self.is_expired and not self.used
+
+    def invalidate(self):
+        self.used = True
+        db.session.commit()

@@ -391,66 +391,144 @@
 
             <!-- Step 4: Notification Settings -->
             <div class="carousel-item" data-step="4">
-                <div class="onboarding-content text-center">
-                    <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" alt="Notification Settings Image" class="mb-4" style="max-width: 400px; height: auto;">
-                    <h4 class="text-primary text-center mb-3">Notification Settings</h4>
-                    <p class="text-muted text-center mb-4">Configure your notification preferences.</p>
-
-                    <!-- Notification Switches -->
-                    <div class="form-check form-switch mb-3">
-                        {{ onboarding_form.email_notifications(class="form-check-input", id="emailNotifications") }}
-                        {{ onboarding_form.email_notifications.label(class="form-check-label", for="emailNotifications") }}
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        {{ onboarding_form.sms_notifications(class="form-check-input", id="smsNotifications") }}
-                        {{ onboarding_form.sms_notifications.label(class="form-check-label", for="smsNotifications") }}
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        {{ onboarding_form.discord_notifications(class="form-check-input", id="discordNotifications") }}
-                        {{ onboarding_form.discord_notifications.label(class="form-check-label", for="discordNotifications") }}
-                    </div>
-
-                    <!-- Profile Visibility -->
-                    <div class="mb-3">
-                        {{ onboarding_form.profile_visibility.label(class="form-label") }}
-                        {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
-                        {% if onboarding_form.profile_visibility.errors %}
-                        <div class="invalid-feedback">
-                            {{ onboarding_form.profile_visibility.errors[0] }}
+                <div class="onboarding-content">
+                    <h4 class="text-primary text-center mb-4">Notification Settings</h4>
+                    <div class="notification-options">
+                        <!-- Email Notifications -->
+                        <div class="form-check form-switch mb-3">
+                            {{ onboarding_form.email_notifications(class="form-check-input", id="emailNotifications") }}
+                            {{ onboarding_form.email_notifications.label(class="form-check-label", for="emailNotifications") }}
                         </div>
-                        {% endif %}
+
+                        <!-- SMS Notifications -->
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="smsNotifications" name="sms_notifications">
+                            <label class="form-check-label" for="smsNotifications">Receive SMS Notifications</label>
+                        </div>
+
+                        <!-- SMS Opt-in Section (Initially hidden) -->
+                        <div id="smsOptInSection" class="mt-3" style="display: none;">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">SMS Verification</h5>
+                                    <p class="card-text">Verify your phone number to receive SMS notifications.</p>
+
+                                    <!-- Phone Number Input -->
+                                    <div class="mb-3">
+                                        <label for="phoneNumber" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phoneNumber" name="phone_number" required>
+                                    </div>
+
+                                    <!-- Consent Checkbox -->
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" id="smsConsent" name="sms_consent" required>
+                                        <label class="form-check-label" for="smsConsent">I agree to receive SMS notifications</label>
+                                    </div>
+
+                                    <!-- Send Verification Code Button -->
+                                    <button type="button" id="sendVerificationCode" class="btn btn-primary">Send Verification Code</button>
+
+                                    <!-- Verification Code Input (Initially hidden) -->
+                                    <div id="verificationCodeSection" class="mt-3" style="display: none;">
+                                        <input type="text" class="form-control mb-2" id="verificationCode" name="verification_code" placeholder="Enter verification code">
+                                        <button type="button" id="verifyCode" class="btn btn-success">Verify Code</button>
+                                        <button type="button" id="resendCode" class="btn btn-link">Resend Code</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Discord Notifications -->
+                        <div class="form-check form-switch mb-3">
+                            {{ onboarding_form.discord_notifications(class="form-check-input", id="discordNotifications") }}
+                            {{ onboarding_form.discord_notifications.label(class="form-check-label", for="discordNotifications") }}
+                        </div>
+
+                        <!-- Profile Visibility -->
+                        <div class="mb-3">
+                            {{ onboarding_form.profile_visibility.label(class="form-label") }}
+                            {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Carousel Indicators -->
-        <div class="carousel-indicators mt-4">
-            {% if not player %}
-            <!-- Indicators for Users without a Profile -->
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4" aria-label="Step 5"></button>
-            {% else %}
-            <!-- Indicators for Users with a Profile -->
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
-            <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
-            {% endif %}
-        </div>
+            <!-- Carousel Indicators -->
+            <div class="carousel-indicators mt-4">
+                {% if not player %}
+                <!-- Indicators for Users without a Profile -->
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4" aria-label="Step 5"></button>
+                {% else %}
+                <!-- Indicators for Users with a Profile -->
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
+                {% endif %}
+            </div>
 
-        <!-- Navigation Buttons -->
-        <div class="d-flex justify-content-between mt-4" id="carouselControls">
-            <button class="btn btn-outline-secondary" type="button" data-bs-target="#modalCarouselControls" data-bs-slide="prev" id="previousButton">
-                <i class="ti ti-chevron-left me-2"></i> Previous
-            </button>
-            <button class="btn btn-primary" type="button" id="nextOrSaveButton" data-bs-target="#modalCarouselControls" data-bs-slide="next">
-                Next <i class="ti ti-chevron-right ms-2"></i>
-            </button>
+            <!-- Navigation Buttons -->
+            <div class="d-flex justify-content-between mt-4" id="carouselControls">
+                <button class="btn btn-outline-secondary" type="button" data-bs-target="#modalCarouselControls" data-bs-slide="prev" id="previousButton">
+                    <i class="ti ti-chevron-left me-2"></i> Previous
+                </button>
+                <button class="btn btn-primary" type="button" id="nextOrSaveButton" data-bs-target="#modalCarouselControls" data-bs-slide="next">
+                    Next <i class="ti ti-chevron-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+</form>
+{% endmacro %}
+
+{% macro render_sms_optin_modal() %}
+<div class="modal fade" id="smsOptInModal" tabindex="-1" aria-labelledby="smsOptInModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="smsOptInModalLabel">Enable SMS Notifications</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Consent and Phone Number -->
+                <div id="smsConsentStep">
+                    <p>By providing your phone number, you consent to receive SMS notifications from ECS FC, including match reminders, RSVP confirmations, and important club announcements. Message and data rates may apply. You can opt-out at any time by replying END to any message.</p>
+                    <form id="smsOptInForm">
+                        <div class="mb-3">
+                            <label for="phoneNumber" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phoneNumber" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="smsConsent" required>
+                            <label class="form-check-label" for="smsConsent">I agree to receive SMS notifications</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Verification Code</button>
+                    </form>
+                </div>
+                <!-- Step 2: Verification Code -->
+                <div id="smsVerificationStep" style="display: none;">
+                    <p>We sent a verification code to <span id="sentPhoneNumber"></span>. Please enter it below to confirm your opt-in.</p>
+                    <form id="smsVerificationForm">
+                        <div class="mb-3">
+                            <label for="verificationCode" class="form-label">Verification Code</label>
+                            <input type="text" class="form-control" id="verificationCode" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Verify & Enable SMS</button>
+                    </form>
+                    <button id="resendCodeBtn" class="btn btn-link" style="display: none;">Resend Verification Code</button>
+                </div>
+                <!-- Step 3: Confirmation -->
+                <div id="smsConfirmationStep" style="display: none;">
+                    <p>Congratulations! You've successfully opted in for SMS notifications from ECS FC.</p>
+                    <p>You'll now receive important updates like match reminders, RSVP confirmations, and club announcements via text message.</p>
+                    <p>Remember, you can opt-out at any time by replying END to any of our messages.</p>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+                </div>
+            </div>
         </div>
     </div>
-</form>
+</div>
 {% endmacro %}

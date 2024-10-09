@@ -44,6 +44,8 @@
     <Compile Include="app\scheduler.py" />
     <Compile Include="app\schedule_routes.py" />
     <Compile Include="app\season_routes.py" />
+    <Compile Include="app\sms_helpers.py" />
+    <Compile Include="app\sms_rsvp.py" />
     <Compile Include="app\tasks.py" />
     <Compile Include="app\teams.py" />
     <Compile Include="app\user_management.py" />
@@ -115,11 +117,13 @@
     <Content Include="app\static\css\theme-semi-dark.css" />
     <Content Include="app\static\custom_js\admin_actions.js" />
     <Content Include="app\static\custom_js\cropper.js" />
+    <Content Include="app\static\custom_js\handle_2fa.js" />
     <Content Include="app\static\custom_js\match_stats.js" />
     <Content Include="app\static\custom_js\modals.js" />
     <Content Include="app\static\custom_js\onboarding.js" />
     <Content Include="app\static\custom_js\report_match.js" />
     <Content Include="app\static\custom_js\rsvp.js" />
+    <Content Include="app\static\custom_js\settings.js" />
     <Content Include="app\static\custom_js\tour.js" />
     <Content Include="app\templates\admin\rsvp_status.html" />
     <Content Include="app\templates\admin\scheduled_messages.html" />
@@ -161,8 +165,10 @@
     <Content Include="app\templates\reset_password.html" />
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\discord_role_status.html" />
+    <Content Include="app\templates\rsvp_success.html" />
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />
+    <Content Include="app\templates\sms_rsvp_form.html" />
     <Content Include="app\templates\submit_feedback.html" />
     <Content Include="app\templates\teams_overview.html" />
     <Content Include="app\templates\team_details.html" />

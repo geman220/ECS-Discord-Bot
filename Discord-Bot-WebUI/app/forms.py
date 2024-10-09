@@ -270,7 +270,7 @@ class PasswordChangeForm(FlaskForm):
             message="Password must contain at least one uppercase letter, one number, and one special character."
         )
     ])
-    confirm_new_password = PasswordField('Confirm New Password', validators=[
+    confirm_password = PasswordField('Confirm New Password', validators=[
         DataRequired(message="Please confirm your new password."),
         EqualTo('new_password', message='Passwords must match.')
     ])
