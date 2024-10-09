@@ -14,7 +14,7 @@ calendar_bp = Blueprint('calendar', __name__)
 
 @calendar_bp.route('/calendar/events', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def get_schedule():
     try:
         # Get all current seasons
@@ -94,7 +94,7 @@ def get_schedule():
 
 @calendar_bp.route('/calendar/refs', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def get_refs():
     try:
         match_id = request.args.get('match_id', type=int)
@@ -186,7 +186,7 @@ def assign_ref():
 
 @calendar_bp.route('/calendar/available_refs', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def available_refs():
     try:
         # Parse start_date and end_date from the request parameters
@@ -258,6 +258,6 @@ def remove_ref():
 
 @calendar_bp.route('/calendar', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def calendar_view():
     return render_template('calendar.html')

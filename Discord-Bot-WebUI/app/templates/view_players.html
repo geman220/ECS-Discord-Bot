@@ -36,41 +36,69 @@
         </div>
     </div>
 
-    <!-- Tabs for Leagues -->
-    <ul class="nav nav-tabs" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'classic' %}active{% endif %}" id="classic-tab" data-bs-toggle="tab" href="#classic" role="tab" aria-controls="classic" aria-selected="{% if active_tab == 'classic' %}true{% else %}false{% endif %}">Classic League</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'premier' %}active{% endif %}" id="premier-tab" data-bs-toggle="tab" href="#premier" role="tab" aria-controls="premier" aria-selected="{% if active_tab == 'premier' %}true{% else %}false{% endif %}">Premier League</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'ecsfc' %}active{% endif %}" id="ecsfc-tab" data-bs-toggle="tab" href="#ecsfc" role="tab" aria-controls="ecsfc" aria-selected="{% if active_tab == 'ecsfc' %}true{% else %}false{% endif %}">ECS FC</a>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <!-- Classic League Players Table -->
-        <div class="tab-pane fade {% if active_tab == 'classic' %}show active{% endif %}" id="classic" role="tabpanel" aria-labelledby="classic-tab">
-            {% set players = classic_players %}
-            {% set league_name = 'Classic League' %}
-            {% include 'player_table.html' %}
-        </div>
-
-        <!-- Premier League Players Table -->
-        <div class="tab-pane fade {% if active_tab == 'premier' %}show active{% endif %}" id="premier" role="tabpanel" aria-labelledby="premier-tab">
-            {% set players = premier_players %}
-            {% set league_name = 'Premier League' %}
-            {% include 'player_table.html' %}
-        </div>
-
-        <!-- ECS FC Players Table -->
-        <div class="tab-pane fade {% if active_tab == 'ecsfc' %}show active{% endif %}" id="ecsfc" role="tabpanel" aria-labelledby="ecsfc-tab">
-            {% set players = ecsfc_players %}
-            {% set league_name = 'ECS FC' %}
-            {% include 'player_table.html' %}
-        </div>
+    <!-- Players Table -->
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Jersey Size</th>
+                    <th>Primary League</th>
+                    <th>Other Leagues</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in players.items %}
+                <tr>
+                    <td>{{ player.name }}</td>
+                    <td>{{ player.user.email }}</td>
+                    <td>{{ player.phone }}</td>
+                    <td>{{ player.jersey_size }}</td>
+                    <td>{{ player.primary_league.name if player.primary_league else 'N/A' }}</td>
+                    <td>{{ player.other_leagues|map(attribute='name')|join(', ') }}</td>
+                    <td>
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-sm btn-primary">View</a>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="confirmDeletePlayer({{ player.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            {% if players.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('players.view_players', page=players.prev_num, search=search_term) }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            {% for page_num in players.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+            {% if page_num %}
+            {% if players.page == page_num %}
+            <li class="page-item active"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
+            {% endif %}
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+            {% endfor %}
+            {% if players.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('players.view_players', page=players.next_num, search=search_term) }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
 </div>
 
 <!-- Create Player Modal -->
