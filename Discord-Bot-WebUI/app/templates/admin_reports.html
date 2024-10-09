@@ -68,7 +68,7 @@
                         {% endif %}
                     </a>
                 </th>
-                <th>Notes</th>
+                <th>Comments</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -109,15 +109,15 @@
                 </td>
                 <td>{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
-                    {% if feedback.notes %}
-                    {{ feedback.notes|length }}
+                    {% if feedback.replies %}
+                    {{ feedback.replies|length }}
                     {% else %}
-                    <span class="text-muted">No Notes</span>
+                    <span class="text-muted">No Comments</span>
                     {% endif %}
                 </td>
                 <td>
                     <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-primary">
-                        <i data-feather="edit" class="me-1"></i> Edit
+                        <i data-feather="edit" class="me-1"></i> View/Edit
                     </a>
                 </td>
             </tr>
@@ -125,7 +125,9 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
 
+{% block custom_js %}
 <!-- Optional: JavaScript for Filters -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {

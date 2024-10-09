@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Feedback Submitted</title>
+</head>
+<body>
+    <h1>New Feedback Submitted</h1>
+    <p>A new feedback has been submitted with the following details:</p>
+    <ul>
+        <li><strong>Title:</strong> {{ feedback.title }}</li>
+        <li><strong>Category:</strong> {{ feedback.category }}</li>
+        <li><strong>Submitted by:</strong> {{ feedback.name }}</li>
+        <li><strong>Submitted at:</strong> {{ feedback.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+    </ul>
+    <h2>Feedback Description:</h2>
+    <p>{{ feedback.description }}</p>
+    <p>Please review this feedback at your earliest convenience.</p>
+</body>
+</html>

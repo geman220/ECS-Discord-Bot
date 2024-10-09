@@ -342,7 +342,7 @@ class EditPlayerForm(FlaskForm):
     submit = SubmitField('Update Player')
 
 class FeedbackForm(FlaskForm):
-    name = StringField('Name', validators=[])
+    name = StringField('Name', validators=[Optional()])
     category = SelectField('Category', choices=[('Bug', 'Bug'), ('Feature', 'Feature Request'), ('Other', 'Other')], validators=[DataRequired()])
     title = StringField('Title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[DataRequired()])
@@ -356,3 +356,7 @@ class AdminFeedbackForm(FlaskForm):
 class NoteForm(FlaskForm):
     content = TextAreaField('Add Note', validators=[DataRequired()])
     submit = SubmitField('Add Note')
+
+class FeedbackReplyForm(FlaskForm):
+    content = TextAreaField('Reply', validators=[DataRequired()])
+    submit = SubmitField('Submit Reply')
