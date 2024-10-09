@@ -37,7 +37,7 @@ from app.models import (
     ScheduledMessage,
     FeedbackReply
 )
-from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm
+from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm, FeedbackReplyForm
 from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles
 from app.tasks import schedule_season_availability, send_availability_message
 from app import db
@@ -640,43 +640,53 @@ def admin_reports():
 def view_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     form = AdminFeedbackForm(obj=feedback)
+    reply_form = FeedbackReplyForm()
     note_form = NoteForm()
 
-    if form.validate_on_submit():
-        form.populate_obj(feedback)
-        db.session.commit()
-        flash('Feedback has been updated successfully.', 'success')
+    if request.method == 'POST':
+        if 'update_feedback' in request.form and form.validate():
+            form.populate_obj(feedback)
+            db.session.commit()
+            flash('Feedback has been updated successfully.', 'success')
+            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
-        # Send email notification to user
-        send_email(
-            to=feedback.user.email,
-            subject=f"Update on your Feedback #{feedback.id}",
-            body=render_template('emails/feedback_update.html', feedback=feedback)
-        )
+        elif 'submit_reply' in request.form and reply_form.validate():
+            reply = FeedbackReply(
+                feedback_id=feedback.id,
+                user_id=current_user.id,
+                content=reply_form.content.data,
+                is_admin_reply=True  # Set this to True for admin replies
+            )
+            db.session.add(reply)
+            db.session.commit()
 
-        return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+            # Send email notification to user
+            if feedback.user:
+                send_email(
+                    to=feedback.user.email,
+                    subject=f"New admin reply to your Feedback #{feedback.id}",
+                    body=render_template('emails/new_reply_admin.html', feedback=feedback, reply=reply)
+                )
 
-    if note_form.validate_on_submit():
-        note = FeedbackReply(
-            feedback_id=feedback.id,
-            user_id=current_user.id,
-            content=note_form.content.data,
-            is_admin_reply=True
-        )
-        db.session.add(note)
-        db.session.commit()
+            flash('Your reply has been added successfully.', 'success')
+            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
-        # Send email notification to user
-        send_email(
-            to=feedback.user.email,
-            subject=f"New admin reply to your Feedback #{feedback.id}",
-            body=render_template('emails/new_admin_reply.html', feedback=feedback, reply=note)
-        )
+        elif 'add_note' in request.form and note_form.validate():
+            note = Note(
+                content=note_form.content.data,
+                feedback_id=feedback.id,
+                author_id=current_user.id
+            )
+            db.session.add(note)
+            db.session.commit()
+            flash('Note added successfully.', 'success')
+            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
-        flash('Note added successfully.', 'success')
-        return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
-
-    return render_template('admin_report_detail.html', feedback=feedback, form=form, note_form=note_form)
+    return render_template('admin_report_detail.html', 
+                           feedback=feedback, 
+                           form=form, 
+                           reply_form=reply_form, 
+                           note_form=note_form)
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required

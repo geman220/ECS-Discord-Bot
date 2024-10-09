@@ -65,26 +65,12 @@
                         <p>{{ feedback.description }}</p>
                     </div>
 
-                    <!-- Notes and Replies Section -->
+                    <!-- Replies Section -->
                     <div class="mb-4">
-                        <h5>Notes and Replies</h5>
+                        <h5>Replies</h5>
                         <hr>
-                        {% if feedback.notes or feedback.replies %}
-                        <div class="accordion" id="feedbackAccordion">
-                            {% for note in feedback.notes %}
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="headingNote{{ note.id }}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNote{{ note.id }}" aria-expanded="false" aria-controls="collapseNote{{ note.id }}">
-                                        Admin Note - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
-                                    </button>
-                                </h2>
-                                <div id="collapseNote{{ note.id }}" class="accordion-collapse collapse" aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#feedbackAccordion">
-                                    <div class="accordion-body">
-                                        {{ note.content }}
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
+                        {% if feedback.replies %}
+                        <div class="accordion" id="repliesAccordion">
                             {% for reply in feedback.replies %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingReply{{ reply.id }}">
@@ -96,7 +82,7 @@
                                         {% endif %}
                                     </button>
                                 </h2>
-                                <div id="collapseReply{{ reply.id }}" class="accordion-collapse collapse" aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#feedbackAccordion">
+                                <div id="collapseReply{{ reply.id }}" class="accordion-collapse collapse" aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion">
                                     <div class="accordion-body">
                                         {{ reply.content }}
                                     </div>
@@ -105,24 +91,28 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted">No Notes or Replies Available.</p>
+                        <p class="text-muted">No Replies Available.</p>
                         {% endif %}
                     </div>
 
-                    <!-- Reply Form -->
-                    {% if feedback.status != 'Closed' %}
+                    <!-- Add Reply Form -->
                     <div class="mb-4">
                         <h5>Add a Reply</h5>
-                        <form method="POST">
+                        <hr>
+                        <form method="POST" action="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}">
                             {{ form.hidden_tag() }}
                             <div class="mb-3">
                                 {{ form.content.label(class="form-label") }}
-                                {{ form.content(class="form-control", rows="4") }}
+                                {{ form.content(class="form-control", rows="4", placeholder="Enter your reply here...") }}
+                                {% for error in form.content.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
                             </div>
-                            {{ form.submit(class="btn btn-primary") }}
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="send" class="me-1"></i> Send Reply
+                            </button>
                         </form>
                     </div>
-                    {% endif %}
 
                     <!-- Footer -->
                     <div class="d-flex justify-content-between">

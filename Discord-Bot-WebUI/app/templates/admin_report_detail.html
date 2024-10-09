@@ -80,20 +80,24 @@
                         </div>
                     </div>
 
-                    <!-- User Comments Section -->
+                    <!-- Replies Section -->
                     <div class="mb-4">
-                        <h5 class="fw-bold">User Comments</h5>
+                        <h5 class="fw-bold">Replies</h5>
                         <hr>
                         {% if feedback.replies %}
-                        <div class="accordion" id="userCommentsAccordion">
+                        <div class="accordion" id="repliesAccordion">
                             {% for reply in feedback.replies %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingReply{{ reply.id }}">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReply{{ reply.id }}" aria-expanded="false" aria-controls="collapseReply{{ reply.id }}">
-                                        {{ reply.user.username }} - {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% if reply.is_admin_reply %}
+                                        Admin Reply - {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                        User Reply - {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% endif %}
                                     </button>
                                 </h2>
-                                <div id="collapseReply{{ reply.id }}" class="accordion-collapse collapse" aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#userCommentsAccordion">
+                                <div id="collapseReply{{ reply.id }}" class="accordion-collapse collapse" aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion">
                                     <div class="accordion-body">
                                         {{ reply.content }}
                                     </div>
@@ -102,11 +106,30 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted">No User Comments Available.</p>
+                        <p class="text-muted">No Replies Available.</p>
                         {% endif %}
                     </div>
 
-                    <!-- Admin Notes Section -->
+                    <!-- Add Reply Form -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold">Add a Reply</h5>
+                        <hr>
+                        <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
+                            {{ reply_form.hidden_tag() }}
+                            <div class="mb-3">
+                                {{ reply_form.content.label(class="form-label") }}
+                                {{ reply_form.content(class="form-control", rows="4", placeholder="Enter your reply here...") }}
+                                {% for error in reply_form.content.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" name="submit_reply" class="btn btn-primary">
+                                <i data-feather="send" class="me-1"></i> Send Reply
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Notes Section -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Admin Notes</h5>
                         <hr>
@@ -114,12 +137,12 @@
                         <div class="accordion" id="notesAccordion">
                             {% for note in feedback.notes %}
                             <div class="accordion-item">
-                                <h2 class="accordion-header" id="heading{{ note.id }}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ note.id }}" aria-expanded="false" aria-controls="collapse{{ note.id }}">
-                                        {{ note.author.username }} - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                <h2 class="accordion-header" id="headingNote{{ note.id }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNote{{ note.id }}" aria-expanded="false" aria-controls="collapseNote{{ note.id }}">
+                                        Admin Note - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
                                     </button>
                                 </h2>
-                                <div id="collapse{{ note.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ note.id }}" data-bs-parent="#notesAccordion">
+                                <div id="collapseNote{{ note.id }}" class="accordion-collapse collapse" aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#notesAccordion">
                                     <div class="accordion-body">
                                         {{ note.content }}
                                     </div>
