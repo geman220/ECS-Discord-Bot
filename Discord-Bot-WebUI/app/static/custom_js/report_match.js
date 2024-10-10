@@ -47,7 +47,11 @@ function addEvent(matchId, containerId, statId = null, playerId = null, minute =
             <select class="form-select" name="${baseName}-player_id[]">
                 ${createPlayerOptions(matchId)}
             </select>
-            <input type="number" class="form-control" name="${baseName}-minute[]" placeholder="Minute" value="${minute ? minute : ''}">
+            <input type="text" class="form-control" name="${baseName}-minute[]" 
+                   placeholder="Minute (e.g., '45' or '45+2')" 
+                   value="${minute ? minute : ''}"
+                   pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
+                   title="Enter a valid minute (e.g., '45' or '45+2')">
             <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
         </div>
     `;
@@ -62,7 +66,7 @@ function addEvent(matchId, containerId, statId = null, playerId = null, minute =
     }
 
     // Re-initialize Feather icons if necessary
-    if (feather) {
+    if (typeof feather !== 'undefined' && feather) {
         feather.replace();
     }
 
