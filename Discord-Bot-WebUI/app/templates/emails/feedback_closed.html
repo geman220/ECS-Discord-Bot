@@ -1,3 +1,4 @@
+<!-- 1. Feedback Closed Template -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,9 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
         }
 
         .container {
@@ -16,17 +20,18 @@
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #ffffff;
         }
 
         .header {
-            background-color: #28a745;
+            background-color: #007bff;
             color: #ffffff;
-            padding: 10px;
+            padding: 20px;
             text-align: center;
         }
 
         .content {
-            background-color: #f8f9fa;
+            background-color: #ffffff;
             padding: 20px;
         }
 
@@ -35,13 +40,25 @@
             margin-top: 20px;
             font-size: 0.8em;
             color: #6c757d;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Feedback Closed</h1>
+            <h1 style="margin: 0;">Feedback Closed</h1>
         </div>
         <div class="content">
             <p>Dear {{ feedback.user.username }},</p>
@@ -54,6 +71,9 @@
             </ul>
             <p>We appreciate your feedback and hope that we have addressed your concerns satisfactorily. If you have any questions or if you feel that this feedback was closed prematurely, please don't hesitate to contact our support team.</p>
             <p>Thank you for helping us improve our services.</p>
+            <p style="text-align: center;">
+                <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
+            </p>
         </div>
         <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>
