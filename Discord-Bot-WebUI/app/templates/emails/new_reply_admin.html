@@ -1,3 +1,4 @@
+<!-- 4. New Reply Admin Template -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +10,9 @@
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
         }
 
         .container {
@@ -16,17 +20,18 @@
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
+            background-color: #ffffff;
         }
 
         .header {
-            background-color: #17a2b8;
+            background-color: #007bff;
             color: #ffffff;
-            padding: 10px;
+            padding: 20px;
             text-align: center;
         }
 
         .content {
-            background-color: #f8f9fa;
+            background-color: #ffffff;
             padding: 20px;
         }
 
@@ -35,13 +40,25 @@
             margin-top: 20px;
             font-size: 0.8em;
             color: #6c757d;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>New Feedback Reply</h1>
+            <h1 style="margin: 0;">New Reply</h1>
         </div>
         <div class="content">
             <p>Dear Admin,</p>
@@ -57,6 +74,9 @@
             <p><strong>From:</strong> {{ reply.user.username }}</p>
             <p><strong>Content:</strong> {{ reply.content }}</p>
             <p>Please review this reply and take appropriate action if necessary.</p>
+            <p style="text-align: center;">
+                <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
+            </p>
         </div>
         <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>

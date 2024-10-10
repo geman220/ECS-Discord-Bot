@@ -1,58 +1,35 @@
-{% extends 'base.html' %}
-
-{% block title %}Submit New Feedback{% endblock %}
-
-{% block main_content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-xl-8 col-lg-10 col-md-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="card-title mb-0">Submit New Feedback</h4>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-
-                        <div class="mb-3">
-                            {{ form.name.label(class="form-label") }}
-                            {{ form.name(class="form-control") }}
-                            {% for error in form.name.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.category.label(class="form-label") }}
-                            {{ form.category(class="form-select") }}
-                            {% for error in form.category.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.title.label(class="form-label") }}
-                            {{ form.title(class="form-control") }}
-                            {% for error in form.title.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-
-                        <div class="mb-3">
-                            {{ form.description.label(class="form-label") }}
-                            {{ form.description(class="form-control", rows=5) }}
-                            {% for error in form.description.errors %}
-                            <span class="text-danger">{{ error }}</span>
-                            {% endfor %}
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
-                    </form>
-                </div>
-            </div>
+<!-- 3. New Feedback Notification Template -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Feedback Submitted</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="width: 100%; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #007bff; color: #ffffff; padding: 10px; text-align: center;">
+            <h1 style="margin: 0;">New Feedback</h1>
+        </div>
+        <div class="content">
+            <p>Dear Admin,</p>
+            <p>A new feedback has been submitted with the following details:</p>
+            <ul>
+                <li><strong>Title:</strong> {{ feedback.title }}</li>
+                <li><strong>Category:</strong> {{ feedback.category }}</li>
+                <li><strong>Submitted by:</strong> {{ feedback.name }}</li>
+                <li><strong>Submitted at:</strong> {{ feedback.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+            </ul>
+            <h3>Feedback Description:</h3>
+            <p>{{ feedback.description }}</p>
+            <p>Please review this feedback at your earliest convenience.</p>
+            <p style="text-align: center;">
+                <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True) }}" class="button">View Feedback</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
         </div>
     </div>
-</div>
-{% endblock %}
+</body>
+</html>
