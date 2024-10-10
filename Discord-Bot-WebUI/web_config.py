@@ -1,4 +1,5 @@
 import os
+import redis
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
@@ -25,3 +26,8 @@ class Config:
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
     TEXTMAGIC_USERNAME = os.getenv('TEXTMAGIC_USERNAME')
     TEXTMAGIC_API_KEY = os.getenv('TEXTMAGIC_API_KEY')
+    SESSION_TYPE = 'redis' 
+    SESSION_PERMANENT = False
+    SESSION_USE_SIGNER = True
+    SESSION_REDIS = redis.from_url('redis://redis:6379')
+    SESSION_KEY_PREFIX = 'flask_session:'
