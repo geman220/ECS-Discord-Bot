@@ -3,6 +3,7 @@ from flask_login import current_user
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField, EmailField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
 from app.models import User, Role, League
+import re
 from sqlalchemy import func
 import logging
 
@@ -308,7 +309,16 @@ class Verify2FAForm(FlaskForm):
 
 class PlayerEventForm(FlaskForm):
     player_id = SelectField('Player', coerce=int, validators=[DataRequired()])
-    minute = IntegerField('Minute', validators=[Optional(), NumberRange(min=1, max=120)])
+    minute = StringField('Minute', validators=[Optional()])
+
+    def validate_minute(form, field):
+        if field.data:  # Only validate if the field is not empty
+            # Regex to validate formats like '45' or '45+3'
+            pattern = r'^\d{1,3}(\+\d{1,2})?$'
+            if not re.match(pattern, field.data):
+                raise ValidationError("Invalid minute format. Please enter a valid minute (e.g., '45' or '45+3').")
+
+    submit = SubmitField('Submit')
 
 class ReportMatchForm(FlaskForm):
     home_team_score = IntegerField('Home Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])

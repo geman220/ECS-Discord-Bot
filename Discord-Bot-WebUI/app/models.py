@@ -658,7 +658,7 @@ class PlayerEvent(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
-    minute = db.Column(db.Integer, nullable=True)
+    minute = db.Column(db.String, nullable=True)
     event_type = db.Column(Enum(PlayerEventType), nullable=False)
 
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
