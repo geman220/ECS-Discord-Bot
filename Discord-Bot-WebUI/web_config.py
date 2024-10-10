@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 import redis
 
@@ -27,7 +28,8 @@ class Config:
     TEXTMAGIC_USERNAME = os.getenv('TEXTMAGIC_USERNAME')
     TEXTMAGIC_API_KEY = os.getenv('TEXTMAGIC_API_KEY')
     SESSION_TYPE = 'redis' 
-    SESSION_PERMANENT = False
+    SESSION_PERMANENT = True
+    PERMANENT_SESSION_LIFETIME = timedelta(days=8)
     SESSION_USE_SIGNER = True
     SESSION_REDIS = redis.from_url('redis://redis:6379')
     SESSION_KEY_PREFIX = 'flask_session:'
