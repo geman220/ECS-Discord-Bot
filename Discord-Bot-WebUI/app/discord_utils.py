@@ -483,9 +483,6 @@ async def delete_discord_channel(team):
         except Exception as e:
             logger.error(f"Failed to delete channel ID {team.discord_channel_id}: {e}")
 
-
-
-
 async def process_role_assignments(players):
     results = []
     async with aiohttp.ClientSession() as session:
@@ -680,7 +677,6 @@ async def process_role_updates(force_update=False):
     
     return all(results)
 
-
 async def get_role_id(guild_id, role_name, session):
     url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/roles"
     try:
@@ -771,26 +767,62 @@ async def get_role_names(guild_id, role_ids, session):
         logger.error(f"Error fetching role names for guild {guild_id}: {str(e)}")
         return []
 
-def debug_player_discord_ids():
-    from app.models import Player
-    all_players = Player.query.all()
-    players_with_discord = []
-    players_without_discord = []
-
-    for player in all_players:
-        if player.discord_id:
-            players_with_discord.append(f"ID: {player.id}, Name: {player.name}, Discord ID: {player.discord_id}")
-        else:
-            players_without_discord.append(f"ID: {player.id}, Name: {player.name}")
-
-    logger.info(f"Total players: {len(all_players)}")
-    logger.info(f"Players with Discord ID: {len(players_with_discord)}")
-    logger.info(f"Players without Discord ID: {len(players_without_discord)}")
-
-    logger.debug("Players with Discord IDs:")
-    for player in players_with_discord:
-        logger.debug(player)
-
-    logger.debug("Sample of players without Discord IDs (first 10):")
-    for player in players_without_discord[:10]:
-        logger.debug(player)
+async def create_match_thread(match):
+    match_channel_id = Config.MATCH_CHANNEL_ID
+    
+    thread_name = f"Match Thread: Seattle Sounders FC vs {match.opponent} - {match.date_time.strftime('%m/%d/%Y %I:%M %p PST')}"
+    
+    payload = {
+        "name": thread_name,
+        "type": 11,  # public thread
+        "auto_archive_duration": 4320,  # 72 hours
+        "message": {
+            "content": "Match thread created! Discuss the game here and make your predictions.",
+            "embed_data": {
+                "title": f"Match Thread: Seattle Sounders FC vs {match.opponent}",
+                "description": f"**Let's go Sounders!**",
+                "color": 0x5B9A49,  # Sounders green color
+                "fields": [
+                    {"name": "Date and Time", "value": match.date_time.strftime("%m/%d/%Y %I:%M %p PST"), "inline": False},
+                    {"name": "Venue", "value": match.venue, "inline": False},
+                    {"name": "Competition", "value": match.competition, "inline": True},
+                    {"name": "Broadcast", "value": "AppleTV", "inline": True},
+                    {"name": "Home/Away", "value": "Home" if match.is_home_game else "Away", "inline": True}
+                ],
+                "thumbnail_url": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png",
+                "footer_text": "Use /predict to participate in match predictions!"
+            }
+        }
+    }
+    
+    # Add links if available
+    if match.summary_link:
+        payload["message"]["embed_data"]["fields"].append(
+            {"name": "Match Summary", "value": f"[Click here]({match.summary_link})", "inline": True}
+        )
+    if match.stats_link:
+        payload["message"]["embed_data"]["fields"].append(
+            {"name": "Match Statistics", "value": f"[Click here]({match.stats_link})", "inline": True}
+        )
+    if match.commentary_link:
+        payload["message"]["embed_data"]["fields"].append(
+            {"name": "Live Commentary", "value": f"[Click here]({match.commentary_link})", "inline": True}
+        )
+    
+    async with aiohttp.ClientSession() as session:
+        url = f"{Config.BOT_API_URL}/channels/{match_channel_id}/threads"
+        
+        try:
+            async with session.post(url, json=payload) as response:
+                if response.status == 200:
+                    thread_data = await response.json()
+                    thread_id = thread_data['id']
+                    logger.info(f"Successfully created thread: {thread_id} for match against {match.opponent}")
+                    return thread_id
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to create thread. Status: {response.status}, Response: {error_text}")
+                    return None
+        except Exception as e:
+            logger.error(f"Error creating thread: {str(e)}")
+            return None

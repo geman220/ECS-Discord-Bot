@@ -57,10 +57,27 @@ async def send_async_http_request(url, method="GET", headers=None, auth=None, da
             print(f"An unexpected error occurred: {e}")
             return None
 
-async def fetch_espn_data(endpoint):
-    base_url = "https://site.api.espn.com/apis/site/v2/"
-    full_url = base_url + endpoint
-    return await send_async_http_request(full_url)
+async def fetch_espn_data(endpoint=None, full_url=None):
+    if full_url:
+        url = full_url
+    elif endpoint:
+        url = f"https://site.api.espn.com/apis/site/v2/{endpoint}"
+    else:
+        raise ValueError("Either 'endpoint' or 'full_url' must be provided")
+    logger.info(f"[API UTILS] Fetching data from ESPN API: {url}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    logger.info(f"Successfully fetched data from ESPN API")
+                    return data
+                else:
+                    logger.error(f"Failed to fetch data from ESPN API. Status: {response.status}")
+                    return None
+    except Exception as e:
+        logger.error(f"[API UTILS] Error fetching data from ESPN API: {str(e)}", exc_info=True)
+        return None
 
 def async_to_sync(coroutine):
     loop = asyncio.new_event_loop()

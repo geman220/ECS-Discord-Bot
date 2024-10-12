@@ -32,39 +32,69 @@
                             <th>Opponent</th>
                             <th>Date</th>
                             <th>Competition</th>
+                            <th>Live Reporting Status</th>
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for match in matches %}
-                        <tr id="row-{{ loop.index0 }}" data-match-id="{{ match.match_id }}">
+                        <tr id="row-{{ match.match_id }}" data-match-id="{{ match.match_id }}">
                             <td>
-                                <span class="fw-bold" id="opponent-{{ loop.index0 }}">{{ match.opponent }}</span>
+                                <span class="fw-bold" id="opponent-{{ match.match_id }}">{{ match.opponent }}</span>
                             </td>
                             <td>
-                                <span id="date-{{ loop.index0 }}">{{ match.formatted_date }}</span>
+                                <span id="date-{{ match.match_id }}">{{ match.formatted_date }}</span>
                             </td>
                             <td>
-                                <span id="competition-{{ loop.index0 }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
+                                <span id="competition-{{ match.match_id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
                             </td>
-                            <td class="text-center" id="actions-{{ loop.index0 }}">
-                                <div class="dropdown">
-                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ loop.index0 }}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <td>
+                                <span id="status-{{ match.match_id }}" class="badge
+                                    {% if match.live_reporting_status == 'running' %}
+                                        bg-success
+                                    {% elif match.live_reporting_status == 'scheduled' %}
+                                        bg-warning
+                                    {% elif match.live_reporting_status == 'failed' %}
+                                        bg-danger
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}">
+                                    {{ match.live_reporting_status|capitalize }}
+                                </span>
+                            </td>
+                            <td class="text-center" id="actions-{{ match.match_id }}">
+                                <div class="dropdown d-inline-block me-2">
+                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ match.match_id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ loop.index0 }}">
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ match.match_id }}">
                                         <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow({{ loop.index0 }})">
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('{{ match.match_id }}')">
                                                 <i class="fas fa-edit me-1"></i> Edit
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ url_for('bot_admin.remove_mls_match', match_index=loop.index0) }}', {{ loop.index0 }})">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.match_id }}')">
                                                 <i class="fas fa-trash-alt me-1"></i> Delete
                                             </a>
                                         </li>
                                     </ul>
                                 </div>
+                                <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('{{ match.match_id }}')"
+                                        {% if match.live_reporting_status == 'running' %}disabled{% endif %}
+                                        aria-label="Start live reporting for match against {{ match.opponent }}">
+                                    {% if match.live_reporting_status == 'scheduled' %}
+                                    Force Start
+                                    {% elif match.live_reporting_status == 'running' %}
+                                    Running
+                                    {% else %}
+                                    Start
+                                    {% endif %}
+                                </button>
+                                <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('{{ match.match_id }}')"
+                                        {% if match.live_reporting_status !='running' %}disabled{% endif %}>
+                                    Stop
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -104,10 +134,17 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
-
 {% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr('.flatpickr', {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true
+        });
+    });
+</script>
 <script>
     const competitionMappings = {
         "MLS": "usa.1",
@@ -120,22 +157,29 @@
         Object.entries(competitionMappings).map(([key, value]) => [value, key])
     );
 
-    function editRow(index) {
-        const dateCell = document.getElementById(`date-${index}`);
-        const competitionCell = document.getElementById(`competition-${index}`);
+    function editRow(matchId) {
+        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+        if (!row) {
+            console.error(`Row with match ID ${matchId} not found`);
+            return;
+        }
+        const dateCell = row.querySelector('td:nth-child(2)');
+        const competitionCell = row.querySelector('td:nth-child(3)');
 
         // Save current values for cancellation
         dateCell.setAttribute('data-original-value', dateCell.textContent);
         competitionCell.setAttribute('data-original-value', competitionCell.textContent);
 
         // Replace date text with input field using Flatpickr
-        dateCell.innerHTML = `<input type="text" id="edit-date-${index}" class="form-control flatpickr" value="${dateCell.textContent.trim()}">`;
-        flatpickr(`#edit-date-${index}`, {
-            dateFormat: "Y-m-d",
+        dateCell.innerHTML = `<input type="text" id="edit-date-${matchId}" class="form-control flatpickr" value="${dateCell.textContent.trim()}">`;
+        flatpickr(`#edit-date-${matchId}`, {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true
         });
 
         // Create a dropdown for competition
-        let selectHtml = `<select class="form-select" id="edit-competition-${index}">`;
+        let selectHtml = `<select class="form-select" id="edit-competition-${matchId}">`;
         for (const [friendlyName, actualValue] of Object.entries(competitionMappings)) {
             const selected = competitionCell.textContent.trim() === friendlyName ? 'selected' : '';
             selectHtml += `<option value="${friendlyName}" ${selected}>${friendlyName}</option>`;
@@ -146,25 +190,25 @@
         competitionCell.innerHTML = selectHtml;
 
         // Set save and cancel buttons visibility
-        const actionsCell = document.getElementById(`actions-${index}`);
+        const actionsCell = row.querySelector('td:last-child');
         actionsCell.innerHTML = `
-        <button type="button" class="btn btn-sm btn-success" onclick="saveRow(${index})"><i class="fas fa-save"></i> Save</button>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit(${index})"><i class="fas fa-times"></i> Cancel</button>
+    <button type="button" class="btn btn-sm btn-success" onclick="saveRow('${matchId}')"><i class="fas fa-save"></i> Save</button>
+    <button type="button" class="btn btn-sm btn-secondary" onclick="cancelEdit('${matchId}')"><i class="fas fa-times"></i> Cancel</button>
     `;
     }
 
-    function saveRow(index) {
-        const dateValue = document.getElementById(`edit-date-${index}`).value.trim();
-        const competitionValue = document.getElementById(`edit-competition-${index}`).value.trim();
+    function saveRow(matchId) {
+        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+        const dateValue = document.getElementById(`edit-date-${matchId}`).value.trim();
+        const competitionValue = document.getElementById(`edit-competition-${matchId}`).value.trim();
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        const matchId = document.getElementById(`row-${index}`).getAttribute('data-match-id'); // Use data-match-id
 
         if (!dateValue || !competitionValue) {
             alert('Date and Competition fields cannot be empty.');
             return;
         }
 
-        const url = `/bot/admin/update_match/${matchId}`; // Use match_id instead of index
+        const url = `/bot/admin/update_match/${matchId}`;
 
         fetch(url, {
             method: 'POST',
@@ -181,14 +225,14 @@
             .then(data => {
                 if (data.success) {
                     // Update the date cell with the new value and format it
-                    const newFormattedDate = formatDate(dateValue);  // This function should format the date as needed
-                    document.getElementById(`date-${index}`).textContent = newFormattedDate;
+                    const newFormattedDate = formatDate(dateValue);
+                    row.querySelector('td:nth-child(2)').textContent = newFormattedDate;
 
                     // Update the competition cell with the new competition
                     const newCompetitionText = inverseCompetitionMappings[competitionValue] || competitionValue;
-                    document.getElementById(`competition-${index}`).textContent = newCompetitionText;
+                    row.querySelector('td:nth-child(3)').textContent = newCompetitionText;
 
-                    resetActionButtons(index);
+                    resetActionButtons(matchId);
                 } else {
                     alert('Failed to save changes.');
                 }
@@ -217,64 +261,95 @@
         return dateObj.toLocaleString('en-US', options).replace(',', '');
     }
 
-    function cancelEdit(index) {
-        const dateCell = document.getElementById(`date-${index}`);
-        const competitionCell = document.getElementById(`competition-${index}`);
+    function cancelEdit(matchId) {
+        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+        const dateCell = row.querySelector('td:nth-child(2)');
+        const competitionCell = row.querySelector('td:nth-child(3)');
 
         // Revert to original values
         dateCell.textContent = dateCell.getAttribute('data-original-value');
         competitionCell.textContent = competitionCell.getAttribute('data-original-value');
 
         // Restore actions to default
-        resetActionButtons(index);
+        resetActionButtons(matchId);
     }
 
-    function resetActionButtons(index) {
-        const actionsCell = document.getElementById(`actions-${index}`);
+    function resetActionButtons(matchId) {
+        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+        if (!row) {
+            console.error(`Row with match ID ${matchId} not found`);
+            return;
+        }
+        const actionsCell = row.querySelector('td:last-child');
+        const statusElement = row.querySelector('td:nth-child(4) span');
+        if (!statusElement) {
+            console.error(`Status element for match ID ${matchId} not found`);
+            return;
+        }
+        const currentStatus = statusElement.textContent.toLowerCase().trim();
+
         actionsCell.innerHTML = `
-            <div class="dropdown">
-                <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton${index}" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton${index}">
-                    <li>
-                        <a class="dropdown-item" href="javascript:void(0);" onclick="editRow(${index})">
-                            <i class="fas fa-edit me-1"></i> Edit
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('/bot/admin/remove_match/${index}', ${index})">
-                            <i class="fas fa-trash-alt me-1"></i> Delete
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        `;
+        <div class="dropdown d-inline-block me-2">
+            <button class="btn btn-link text-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('${matchId}')">
+                        <i class="fas fa-edit me-1"></i> Edit
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('${matchId}')">
+                        <i class="fas fa-trash-alt me-1"></i> Delete
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('${matchId}')"
+                ${currentStatus === 'running' ? 'disabled' : ''}>
+            ${currentStatus === 'scheduled' ? 'Force Start' : currentStatus === 'running' ? 'Running' : 'Start'}
+        </button>
+        <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('${matchId}')"
+                ${currentStatus !== 'running' ? 'disabled' : ''}>
+            Stop
+        </button>
+    `;
     }
 
-    function removeMatch(url, index) {
-        if (confirm('Are you sure you want to remove this match?')) {
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value; // Get the CSRF token
+    function removeMatch(matchId) {
+        if (!matchId) {
+            console.error('Invalid match ID');
+            alert('Error: Unable to remove match due to invalid ID.');
+            return;
+        }
 
-            fetch(url, {
+        if (confirm('Are you sure you want to remove this match? This action cannot be undone.')) {
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+            fetch(`/bot/admin/matches/remove/${matchId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken // Include CSRF token
+                    'X-CSRFToken': csrfToken
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Remove the row from the table without reloading the page
-                    document.getElementById(`row-${index}`).remove();
-                } else {
-                    alert('Failed to remove the match.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
+                        if (row) {
+                            row.remove();
+                        }
+                        alert(data.message);
+                    } else {
+                        alert(data.message || 'Failed to remove the match.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while removing the match.');
+                });
         }
     }
 
@@ -303,11 +378,113 @@
         }
     }
 
-    // Initialize Flatpickr for the Add Match Form
-    document.addEventListener('DOMContentLoaded', function () {
-        flatpickr('.flatpickr', {
-            dateFormat: "Y-m-d H:i",
-        });
-    });
+    function startLiveReporting(matchId) {
+        fetch(`/bot/admin/start_live_reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateMatchStatus(matchId, 'running');
+                    console.log(`Live reporting started for match ${matchId}. Task ID: ${data.task_id}`);
+                } else {
+                    console.error(`Failed to start live reporting: ${data.message}`);
+                    alert(`Failed to start live reporting: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while starting live reporting.');
+            });
+    }
+
+    function stopLiveReporting(matchId) {
+        fetch(`/bot/admin/stop_live_reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateMatchStatus(matchId, 'stopped');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while stopping live reporting.');
+            });
+    }
+
+    function updateMatchStatus(matchId, status) {
+        const statusSpan = document.getElementById(`status-${matchId}`);
+        const startButton = document.querySelector(`button.start-button[onclick="startLiveReporting('${matchId}')"]`);
+        const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
+
+        if (statusSpan && startButton && stopButton) {
+            statusSpan.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusSpan.className = `badge bg-${getStatusColor(status)}`;
+
+            if (status === 'running') {
+                startButton.textContent = 'Running';
+                startButton.disabled = true;
+                stopButton.disabled = false;
+            } else {
+                startButton.textContent = 'Start';
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        } else {
+            console.warn(`Elements not found for match ID: ${matchId}`);
+        }
+    }
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'running':
+                return 'success';
+            case 'scheduled':
+                return 'warning';
+            case 'failed':
+                return 'danger';
+            default:
+                return 'secondary';
+        }
+    }
+
+    // Periodically update match statuses
+    function updateAllMatchStatuses() {
+        fetch('/bot/admin/get_all_match_statuses')
+            .then(response => response.json())
+            .then(data => {
+                for (const [matchId, status] of Object.entries(data)) {
+                    updateMatchStatus(matchId, status);
+                }
+            });
+    }
+
+    // Update statuses every 30 seconds
+    setInterval(updateAllMatchStatuses, 30000);
+
+    // Initial update on page load
+    document.addEventListener('DOMContentLoaded', updateAllMatchStatuses);
 </script>
 {% endblock %}

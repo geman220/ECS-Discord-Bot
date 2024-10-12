@@ -4,6 +4,7 @@ import redis
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
+    MATCH_CHANNEL_ID = os.getenv('MATCH_CHANNEL_ID')
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WOO_CONSUMER_KEY = os.getenv('WC_KEY')
@@ -13,14 +14,9 @@ class Config:
     DISCORD_CLIENT_ID = os.getenv('DISCORD_CLIENT_ID')
     DISCORD_CLIENT_SECRET = os.getenv('DISCORD_CLIENT_SECRET')
     TEAM_ID = os.getenv('TEAM_ID')
-    SESSION_TYPE = 'filesystem'
-    SESSION_PERMANENT = False
-    SESSION_USE_SIGNER = True
-    SESSION_FILE_DIR = os.getenv('SESSION_FILE_DIR')
-    SESSION_FILE_THRESHOLD = int(os.getenv('SESSION_FILE_THRESHOLD'))
     BOT_API_URL = os.getenv('BOT_API_URL')
-    CELERY_BROKER_URL =  os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
-    CELERY_RESULT_BACKEND =  os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
+    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
+    RESULTS_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')  # Changed from CELERY_RESULT_BACKEND
     TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
@@ -33,3 +29,4 @@ class Config:
     SESSION_USE_SIGNER = True
     SESSION_REDIS = redis.from_url('redis://redis:6379')
     SESSION_KEY_PREFIX = 'flask_session:'
+    WEBUI_API_URL = os.getenv('WEBUI_API_URL')

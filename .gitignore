@@ -20,3 +20,12 @@ service-account-key.json
 Discord-Bot-WebUI/migrations/
 Discord-Bot-WebUI/app/static/img/uploads/
 docker-compose.override.yml
+
+# Celery beat schedule
+celerybeat-schedule.bak
+celerybeat-schedule.dat
+celerybeat-schedule.dir
+
+# Other Celery-related logs or pid files
+*.pid
+*.log
