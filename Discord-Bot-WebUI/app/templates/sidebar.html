@@ -203,10 +203,20 @@
 
         <!-- MLS Match Schedule - Only Discord Admin and Global Admin -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'matches' in request.path }}">
+        <li class="menu-item {{ 'active' if '/bot' in request.path }}">
             <a class="menu-link" href="{{ url_for('bot_admin.matches') }}">
                 <i data-feather="calendar" class="menu-icon"></i>
                 <div>Sounders Schedule</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- MLS Match Thread Scheduling - Only Discord Admin and Global Admin -->
+        {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.view_mls_matches' }}">
+            <a class="menu-link" href="{{ url_for('admin.view_mls_matches') }}">
+                <i data-feather="message-square" class="menu-icon"></i>
+                <div>MLS Match Threads</div>
             </a>
         </li>
         {% endif %}

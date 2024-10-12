@@ -1,23 +1,23 @@
+from app import celery as celery_app
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify
 from flask_login import login_required
 from app.routes import load_match_dates, save_match_dates
 from app import db
+from app.tasks import start_live_reporting
 from app.db_utils import (
-    insert_match_schedule,
-    update_match_in_db,
-    delete_match_from_db,
-    load_existing_dates,
+    insert_mls_match,
+    update_mls_match,
+    delete_mls_match,
     load_match_dates_from_db,
-    format_match_data,
     format_match_display_data,
-    PREDICTIONS_DB_PATH
 )
 from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
 from app.decorators import role_required
-from app.models import Match
+from app.models import Match, MLSMatch
+from datetime import datetime
+from dateutil import parser
 import json
 import logging
-from datetime import datetime
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -35,6 +35,23 @@ COMPETITION_MAPPINGS = {
 # Create inverse mappings to convert JSON value to friendly name
 INVERSE_COMPETITION_MAPPINGS = {v: k for k, v in COMPETITION_MAPPINGS.items()}
 
+def load_match_dates_from_db():
+    matches = MLSMatch.query.all()
+    return [
+        {
+            'match_id': match.match_id,
+            'opponent': match.opponent,
+            'date': match.date_time.isoformat(),
+            'venue': match.venue,
+            'is_home_game': match.is_home_game,
+            'summary_link': match.summary_link,
+            'stats_link': match.stats_link,
+            'commentary_link': match.commentary_link,
+            'competition': match.competition
+        }
+        for match in matches
+    ]
+
 # Bot Management Page
 @bot_admin_bp.route('/')
 @login_required
@@ -51,15 +68,20 @@ def roles():
 @bot_admin_bp.route('/matches')
 @login_required
 def matches():
-    # Fetch match dates directly from the database
     match_dates = load_match_dates_from_db()
     
-    # Format the match dates
-    match_dates = format_match_display_data(match_dates)
-
-    # Sort matches by date
-    match_dates.sort(key=lambda x: datetime.strptime(x['date'], "%Y-%m-%d %H:%M:%S%z"))
-
+    for match in match_dates:
+        if isinstance(match['date'], str):
+            dt_object = parser.parse(match['date'])
+            match['date'] = dt_object
+            match['formatted_date'] = dt_object.strftime('%m/%d/%Y %I:%M %p')
+        
+        # Add live reporting status to the match dictionary
+        match['live_reporting_scheduled'] = match.get('live_reporting_scheduled', False)
+        match['live_reporting_started'] = match.get('live_reporting_started', False)
+    
+    match_dates.sort(key=lambda x: x['date'])
+    
     return render_template(
         'matches.html', 
         title='Sounders Match Dates', 
@@ -67,6 +89,44 @@ def matches():
         competition_mappings=COMPETITION_MAPPINGS,
         inverse_competition_mappings=INVERSE_COMPETITION_MAPPINGS
     )
+
+@bot_admin_bp.route('/start_live_reporting/<match_id>', methods=['POST'])
+@login_required
+def start_live_reporting_route(match_id):
+    match = MLSMatch.query.filter_by(match_id=match_id).first()
+    if not match:
+        return jsonify({'success': False, 'message': 'Match not found'}), 404
+    
+    if match.live_reporting_status in ['running', 'scheduled']:
+        return jsonify({'success': False, 'message': 'Live reporting already started or scheduled'}), 400
+    
+    # Schedule the task
+    task = start_live_reporting.apply_async(args=[match_id])
+    
+    match.live_reporting_status = 'scheduled'
+    match.live_reporting_task_id = task.id
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Live reporting scheduled'})
+
+@bot_admin_bp.route('/stop_live_reporting/<match_id>', methods=['POST'])
+@login_required
+def stop_live_reporting(match_id):
+    match = MLSMatch.query.filter_by(match_id=match_id).first()
+    if not match:
+        return jsonify({'success': False, 'message': 'Match not found'}), 404
+    
+    if match.live_reporting_status not in ['running', 'scheduled']:
+        return jsonify({'success': False, 'message': 'Live reporting is not running or scheduled for this match'}), 400
+    
+    match.live_reporting_status = 'stopped'
+    db.session.commit()
+    
+    # If there's a running task, revoke it
+    if match.live_reporting_task_id:
+        celery_app.control.revoke(match.live_reporting_task_id, terminate=True)
+    
+    return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
 
 # Add New MLS Match
 @bot_admin_bp.route('/matches/add', methods=['POST'])
@@ -99,7 +159,7 @@ def add_mls_match():
             match_details = extract_match_details(event)
 
             # Add to Database
-            insert_match_schedule(
+            insert_mls_match(
                 match_id=match_details['match_id'],
                 opponent=match_details['opponent'],
                 date_time=match_details['date_time'],  # This will include the correct time from the API
@@ -161,7 +221,7 @@ def update_mls_match(match_id):
                 match_details = extract_match_details(event)
 
                 # Update the match in the database
-                update_match_in_db(
+                update_mls_match(
                     match_id=match_id,
                     opponent=match_details['opponent'],
                     date_time=match_details['date_time'],  # This will include the correct time from the API
@@ -184,33 +244,24 @@ def update_mls_match(match_id):
         return jsonify(success=False, message=f"An error occurred while updating the match: {str(e)}"), 500
 
 # Remove Match
-@bot_admin_bp.route('/matches/remove/<int:match_index>', methods=['POST'])
+@bot_admin_bp.route('/matches/remove/<int:match_id>', methods=['POST'])
 @login_required
-def remove_mls_match(match_index):
-    # Fetch matches from the DB
-    matches = load_match_dates_from_db()
-
-    if match_index < 0 or match_index >= len(matches):
-        return jsonify(success=False, message="Invalid match index."), 400
-
-    # Find the match to remove using its index
-    match_to_remove = matches[match_index]
-    match_id = match_to_remove['match_id']  # Use match_id for the DB
-    date = match_to_remove['date'].split(' ')[0].replace('-', '')  # Convert to match JSON format (YYYYMMDD)
-    competition = match_to_remove['competition']
-
-    # Remove from the database using match_id
-    delete_match_from_db(match_id)
-
-    # Update JSON by matching date and competition
-    match_dates = load_match_dates()
-    match_dates = [
-        m for m in match_dates
-        if not (m['date'] == date and m['competition'] == competition)
-    ]
-    save_match_dates(match_dates)
-
-    return jsonify(success=True)  # No redirection, just a JSON response
+def remove_mls_match(match_id):
+    try:
+        match = MLSMatch.query.get(match_id)
+        if not match:
+            return jsonify(success=False, message="Match not found."), 404
+        
+        # Remove from the database
+        db.session.delete(match)
+        db.session.commit()
+        
+        logger.info(f"Match {match_id} removed successfully.")
+        return jsonify(success=True, message="Match removed successfully.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error removing match {match_id}: {str(e)}")
+        return jsonify(success=False, message="An error occurred while removing the match."), 500
 
 @bot_admin_bp.route('/clear_all_mls_matches', methods=['POST'])
 @login_required
@@ -225,3 +276,10 @@ def clear_all_mls_matches():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@bot_admin_bp.route('/get_all_match_statuses', methods=['GET'])
+@login_required
+def get_all_match_statuses():
+    matches = MLSMatch.query.all()
+    match_statuses = {match.match_id: match.live_reporting_status for match in matches}
+    return jsonify(match_statuses)

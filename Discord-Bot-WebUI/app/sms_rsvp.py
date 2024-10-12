@@ -90,9 +90,6 @@ def rsvp_page(token):
 
 @sms_rsvp_bp.route('/dev_test_send_rsvp_requests', methods=['GET'])
 def dev_test_send_rsvp_requests():
-    ip_address = request.args.get('ip', '174.21.84.5')
-    port = request.args.get('port', '5000')
-    
     opted_in_players = Player.query.filter_by(sms_consent_given=True).all()
     
     results = []
@@ -124,8 +121,8 @@ def dev_test_send_rsvp_requests():
         new_token = Token(player_id=player.id, token=token, expires_at=expiration)
         db.session.add(new_token)
         
-        # Generate RSVP link
-        rsvp_link = f"http://{ip_address}:{port}/rsvp/{token}"
+        # Generate RSVP link with domain instead of IP
+        rsvp_link = f"https://ecsfc.com/rsvp/{token}"
         
         # Compose and send SMS
         message = f"Please RSVP for your upcoming matches: {rsvp_link}"

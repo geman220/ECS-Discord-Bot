@@ -17,7 +17,7 @@ from flask_paginate import Pagination, get_page_parameter
 from functools import wraps
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
-from datetime import datetime
+from datetime import datetime, timedelta
 from twilio.rest import Client
 from app.decorators import role_required
 from app.email import send_email
@@ -35,11 +35,12 @@ from app.models import (
     Note,
     League,
     ScheduledMessage,
-    FeedbackReply
+    FeedbackReply,
+    MLSMatch
 )
 from app.forms import AnnouncementForm, EditUserForm, ResetPasswordForm, AdminFeedbackForm, NoteForm, FeedbackReplyForm
-from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles
-from app.tasks import schedule_season_availability, send_availability_message
+from app.discord_utils import process_role_updates, get_expected_roles, update_player_roles, create_match_thread
+from app.tasks import schedule_season_availability, send_availability_message, create_scheduled_mls_match_threads, create_mls_match_thread
 from app import db
 import pytz
 import docker
@@ -777,3 +778,72 @@ async def update_player_roles_route(player_id):
 async def update_discord_roles():
     success = await process_role_updates(force_update=True)
     return jsonify({'success': success, 'status': 'Role update process completed'})
+
+# --------------------
+# MLS Schedule Routes
+# --------------------
+
+@admin_bp.route('/admin/mls_matches')
+@login_required
+@role_required('Global Admin')
+def view_mls_matches():
+    matches = MLSMatch.query.order_by(MLSMatch.date_time).all()
+    return render_template('admin/mls_matches.html', matches=matches)
+
+@admin_bp.route('/admin/schedule_mls_match_thread/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def schedule_mls_match_thread(match_id):
+    match = MLSMatch.query.get_or_404(match_id)
+    hours_before = int(request.form.get('hours_before', 24))
+    match.thread_creation_time = match.date_time - timedelta(hours=hours_before)
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'message': f'Match thread for {match.opponent} scheduled to be created on {match.thread_creation_time}'
+    })
+
+@admin_bp.route('/admin/force_create_mls_thread/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def force_create_mls_thread(match_id):
+    match = MLSMatch.query.get_or_404(match_id)
+    
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        thread_id = loop.run_until_complete(create_match_thread(match))
+        
+        if thread_id:
+            match.thread_created = True
+            match.discord_thread_id = thread_id
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'MLS match thread created successfully. Thread ID: {thread_id}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to create MLS match thread. Please check the logs for more information.'
+            })
+    except Exception as e:
+        logger.error(f"Error in force_create_mls_thread: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+
+@admin_bp.route('/admin/schedule_all_mls_threads', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def schedule_all_mls_threads():
+    matches = MLSMatch.query.filter(MLSMatch.thread_created == False).all()
+    for match in matches:
+        if not match.thread_creation_time:
+            match.thread_creation_time = match.date_time - timedelta(hours=24)
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'message': 'All unscheduled MLS match threads have been scheduled.'
+    })

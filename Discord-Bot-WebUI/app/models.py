@@ -790,3 +790,33 @@ class Token(db.Model):
     def invalidate(self):
         self.used = True
         db.session.commit()
+
+class MLSMatch(db.Model):
+    __tablename__ = 'mls_matches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.String, unique=True, nullable=False)
+    opponent = db.Column(db.String(100), nullable=False)
+    date_time = db.Column(db.DateTime, nullable=False)
+    is_home_game = db.Column(db.Boolean, nullable=False)
+    summary_link = db.Column(db.String(200))
+    stats_link = db.Column(db.String(200))
+    commentary_link = db.Column(db.String(200))
+    venue = db.Column(db.String(100))
+    competition = db.Column(db.String(50))
+    thread_creation_time = db.Column(db.DateTime)
+    thread_created = db.Column(db.Boolean, default=False)
+    discord_thread_id = db.Column(db.String)
+
+    live_reporting_scheduled = db.Column(db.Boolean, default=False)
+    live_reporting_started = db.Column(db.Boolean, default=False)
+    live_reporting_status = db.Column(db.String(20), default='not_started')
+    live_reporting_task_id = db.Column(db.String(50))
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.date_time and not self.thread_creation_time:
+            self.thread_creation_time = self.date_time - timedelta(hours=24)
+
+    def __repr__(self):
+        return f'<MLSMatch {self.match_id}: {self.opponent} on {self.date_time}>'

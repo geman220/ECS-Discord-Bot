@@ -1,5 +1,6 @@
 from celery import Celery
 from celery.schedules import crontab
+from web_config import Config
 import logging
 
 logger = logging.getLogger(__name__)
@@ -7,10 +8,10 @@ logger = logging.getLogger(__name__)
 def make_celery(app=None):
     celery = Celery(
         app.import_name if app else __name__,
-        backend='redis://redis:6379/0',
-        broker='redis://redis:6379/0'
     )
     celery.conf.update(
+        broker_url=Config.CELERY_BROKER_URL,
+        result_backend=Config.RESULTS_BACKEND,
         task_serializer='json',
         accept_content=['json'],
         result_serializer='json',
@@ -25,6 +26,14 @@ def make_celery(app=None):
                     return self.run(*args, **kwargs)
         celery.Task = ContextTask
     celery.autodiscover_tasks(['app'])
+
+    # Configure the beat schedule
+    celery.conf.beat_schedule = {
+        'schedule_live_reporting_every_hour': {
+            'task': 'app.tasks.schedule_live_reporting',
+            'schedule': crontab(minute=0),  # Run every hour
+        },
+    }
 
     @celery.on_after_configure.connect
     def setup_periodic_tasks(sender, **kwargs):
