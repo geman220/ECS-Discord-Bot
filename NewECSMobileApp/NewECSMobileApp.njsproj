@@ -113,6 +113,7 @@
     <Content Include="constants\tabs.js" />
     <Content Include="constants\Theme.js" />
     <Content Include="constants\utils.js" />
+    <Content Include="eas.json" />
     <Content Include="index.js" />
     <Content Include="LICENSE.md" />
     <Content Include="navigation\Menu.js" />
@@ -125,6 +126,7 @@
     <Content Include="screens\Cart.js" />
     <Content Include="screens\Category.js" />
     <Content Include="screens\Chat.js" />
+    <Content Include="DeepLinkHandler.js" />
     <Content Include="screens\DiscordAuth.js" />
     <Content Include="screens\Elements.js" />
     <Content Include="screens\Fashion.js" />

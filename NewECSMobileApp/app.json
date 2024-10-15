@@ -18,10 +18,26 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ecsfc.app"
+      "bundleIdentifier": "com.ecsfc.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "associatedDomains": [ "applinks:portal.ecsfc.com" ]
     },
     "android": {
-      "package": "com.ecsfc.app"
+      "package": "com.ecsfc.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "ecs-fc-scheme",
+              "host": "auth"
+            }
+          ],
+          "category": [ "BROWSABLE", "DEFAULT" ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

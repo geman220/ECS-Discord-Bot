@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from "./navigation/Screens";
 import { Images, articles, argonTheme } from "./constants";
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 
 // Enable screens for better performance with react-navigation
 enableScreens();
@@ -76,6 +77,17 @@ export default function App() {
         prepare();
     }, []);
 
+    const linking = {
+        prefixes: ['ecs-fc-scheme://'],
+        config: {
+            screens: {
+                Login: 'auth',
+                Home: 'home',
+                Profile: 'profile',
+            },
+        },
+    };
+
     const onLayoutRootView = useCallback(async () => {
         if (appIsReady) {
             await SplashScreen.hideAsync();
@@ -88,7 +100,7 @@ export default function App() {
 
     return (
         <SafeAreaProvider onLayout={onLayoutRootView}>
-            <NavigationContainer>
+            <NavigationContainer linking={linking}>
                 <GalioProvider theme={argonTheme}>
                     <Block flex>
                         <RootNavigator />
