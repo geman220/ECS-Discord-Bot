@@ -1,22 +1,28 @@
 // DiscordAuth.js
-import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
+import * as Linking from 'expo-linking';
 import globalConfig from '../config/globalConfig';
 
+const redirectUri = Linking.createURL('auth');
+
+WebBrowser.maybeCompleteAuthSession();
+
+// Endpoint
 const discovery = {
     authorizationEndpoint: 'https://discord.com/api/oauth2/authorize',
     tokenEndpoint: 'https://discord.com/api/oauth2/token',
-    revocationEndpoint: 'https://discord.com/api/oauth2/token/revoke',
 };
 
 export const useDiscordAuth = (navigation) => {
-    const [request, response, promptAsync] = AuthSession.useAuthRequest(
+    const [request, response, promptAsync] = useAuthRequest(
         {
             clientId: globalConfig.DISCORD_CLIENT_ID,
             scopes: ['identify', 'email'],
-            redirectUri: AuthSession.makeRedirectUri({
-                scheme: 'ecs-fc-scheme',
-            }),
+            redirectUri: redirectUri,
         },
         discovery
     );
@@ -26,10 +32,10 @@ export const useDiscordAuth = (navigation) => {
             const result = await promptAsync();
             if (result.type === 'success') {
                 const { code } = result.params;
+                // Send the code to your backend
                 const backendResponse = await axios.post(`${globalConfig.API_URL}/discord_callback`, {
                     code,
-                    redirect_uri: request.redirectUri,
-                    code_verifier: request.codeVerifier,
+                    redirect_uri: redirectUri,
                 });
 
                 const data = backendResponse.data;
