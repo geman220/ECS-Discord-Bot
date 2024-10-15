@@ -1169,17 +1169,20 @@ def player_profile(player_id):
             db.session.rollback()
             flash('An error occurred while updating the referee status. Please try again.', 'danger')
             current_app.logger.error(f"Error updating referee status for player {player_id}: {str(e)}")
+
     form = PlayerProfileForm(obj=player) if is_player or is_admin else None
     if form:
         form.jersey_size.choices = jersey_sizes  # Populate jersey size choices
         if request.method == 'GET':
             form.email.data = user.email
+
     season_stats_form = SeasonStatsForm(
         season_goals=season_stats.goals,
         season_assists=season_stats.assists,
         season_yellow_cards=season_stats.yellow_cards,
         season_red_cards=season_stats.red_cards
     ) if is_admin else None
+
     career_stats_form = CareerStatsForm(
         career_goals=player.get_career_goals(),
         career_assists=player.get_career_assists(),
@@ -1189,8 +1192,8 @@ def player_profile(player_id):
 
     # Pre-populate the multi-select fields with data from the database
     if form:
-        form.other_positions.data = player.other_positions.strip('{}').split(',') if player.other_positions else []
-        form.positions_not_to_play.data = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else []
+        form.other_positions.data = player.other_positions.split(',') if player.other_positions else []
+        form.positions_not_to_play.data = player.positions_not_to_play.split(',') if player.positions_not_to_play else []
         form.favorite_position.data = player.favorite_position
         if is_classic_league_player and hasattr(form, 'team_swap'):
             form.team_swap.data = player.team_swap
@@ -1253,8 +1256,8 @@ def player_profile(player_id):
 
             # Manually update fields that need special handling
             player.favorite_position = form.favorite_position.data
-            player.other_positions = "{" + ",".join(form.other_positions.data) + "}" if form.other_positions.data else None
-            player.positions_not_to_play = "{" + ",".join(form.positions_not_to_play.data) + "}" if form.positions_not_to_play.data else None
+            player.other_positions = ','.join(form.other_positions.data)
+            player.positions_not_to_play = ','.join(form.positions_not_to_play.data)
 
             # Log after updating player fields
             current_app.logger.debug(f"After Update - Player: {player.id}, Favorite Position: {player.favorite_position}, Other Positions: {player.other_positions}, Positions Not To Play: {player.positions_not_to_play}")
@@ -1265,6 +1268,9 @@ def player_profile(player_id):
 
             # Log before committing to the database
             current_app.logger.info(f"Committing updates for User {user.id} and Player {player.id}")
+
+            # Add user to the session
+            db.session.add(user)
     
             # Commit both the player and the user to the database
             db.session.commit()
@@ -1331,6 +1337,7 @@ def player_profile(player_id):
             db.session.rollback()
             flash('An error occurred while adding stats. Please try again.', 'danger')
             current_app.logger.error(f"Error adding stats for player {player_id}: {str(e)}")
+
     # Fetch audit logs
     audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id).order_by(PlayerStatAudit.timestamp.desc()).all()
 

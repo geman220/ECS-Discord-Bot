@@ -496,19 +496,18 @@ def get_discord_auth_url():
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
     code = request.json.get('code')
-    redirect_uri = request.json.get('redirect_uri')
     code_verifier = request.json.get('code_verifier')
-
-    if not code or not redirect_uri or not code_verifier:
-        return jsonify({'error': 'Missing code, redirect_uri, or code_verifier'}), 400
-
+    if not code or not code_verifier:
+        return jsonify({'error': 'Missing code or code_verifier'}), 400
+    
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
-
+    redirect_uri = 'ecs-fc-scheme://auth'  # Use the same redirect_uri as in get_discord_auth_url
+    
     data = {
         'client_id': discord_client_id,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': redirect_uri,
+        'redirect_uri': redirect_uri,  # Pass the redirect_uri directly
         'code_verifier': code_verifier,
     }
 

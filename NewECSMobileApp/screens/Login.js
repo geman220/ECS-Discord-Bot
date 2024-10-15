@@ -23,7 +23,7 @@ import globalConfig from '../config/globalConfig';
 
 const { width, height } = Dimensions.get('screen');
 
-const CLIENT_ID = '1196293716055445624';
+const CLIENT_ID = '1194067098658414632';
 const discovery = {
     authorizationEndpoint: 'https://discord.com/api/oauth2/authorize',
     tokenEndpoint: 'https://discord.com/api/oauth2/token',
@@ -78,24 +78,27 @@ const Login = ({ navigation }) => {
     // Handler for Discord Login
     const handleDiscordLogin = async () => {
         try {
+            // Use the custom URI scheme 'ecs-fc-scheme'
             const redirectUri = AuthSession.makeRedirectUri({
-                useProxy: true,
+                scheme: 'ecs-fc-scheme',  // Use your custom scheme from app.json
             });
+
             const scopes = ['identify', 'email'];
             const authRequest = new AuthSession.AuthRequest({
                 clientId: CLIENT_ID,
-                redirectUri,
+                redirectUri,  // Pass in the custom redirect URI
                 scopes,
                 usePKCE: true,
                 responseType: AuthSession.ResponseType.Code,
             });
 
-            const result = await authRequest.promptAsync(discovery, { useProxy: true });
+            // Remove { useProxy: true } for production builds
+            const result = await authRequest.promptAsync(discovery);
             if (result.type === 'success') {
                 const { code } = result.params;
                 const backendResponse = await axios.post(`${globalConfig.API_URL}/discord_callback`, {
                     code,
-                    redirect_uri: redirectUri,
+                    redirect_uri: redirectUri,  // Pass the custom URI to the backend as well
                     code_verifier: authRequest.codeVerifier,
                 });
 
