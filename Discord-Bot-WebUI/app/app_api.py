@@ -508,18 +508,25 @@ def get_discord_auth_url():
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
     current_app.logger.info("Received request at /discord_callback")
+    
     code = request.json.get('code')
     redirect_uri = request.json.get('redirect_uri')
     code_verifier = session.get('code_verifier')
-    current_app.logger.info(f"Code: {code}, Redirect URI: {redirect_uri}, Code Verifier: {code_verifier}")
+    
+    current_app.logger.info(f"Code: {code}")
+    current_app.logger.info(f"Redirect URI: {redirect_uri}")
+    current_app.logger.info(f"Code Verifier: {code_verifier}")
     
     if not code or not redirect_uri or not code_verifier:
         current_app.logger.error("Missing required parameters")
         return jsonify({'error': 'Missing required parameters'}), 400
-
+    
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     discord_client_secret = current_app.config['DISCORD_CLIENT_SECRET']
-
+    
+    current_app.logger.info(f"Discord Client ID: {discord_client_id}")
+    current_app.logger.info(f"Discord Client Secret: {discord_client_secret}")
+    
     data = {
         'client_id': discord_client_id,
         'client_secret': discord_client_secret,
@@ -529,21 +536,64 @@ def discord_callback():
         'code_verifier': code_verifier,
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-
+    
+    current_app.logger.info(f"Request data: {data}")
+    current_app.logger.info(f"Request headers: {headers}")
+    
     try:
         current_app.logger.info("Sending request to Discord API")
         response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+        
+        current_app.logger.info(f"Response status code: {response.status_code}")
+        current_app.logger.info(f"Response text: {response.text}")
+        
         response.raise_for_status()
-        current_app.logger.info("Received response from Discord API")
-
-        # Rest of the code...
-
+        
+        token_data = response.json()
+        access_token = token_data['access_token']
+        
+        current_app.logger.info(f"Access token: {access_token}")
+        
+        user_response = requests.get('https://discord.com/api/users/@me', headers={
+            'Authorization': f'Bearer {access_token}'
+        })
+        
+        current_app.logger.info(f"User response status code: {user_response.status_code}")
+        current_app.logger.info(f"User response text: {user_response.text}")
+        
+        user_response.raise_for_status()
+        
+        user_data = user_response.json()
+        user = User.query.filter_by(email=user_data['email']).first()
+        
+        current_app.logger.info(f"User data: {user_data}")
+        current_app.logger.info(f"User found: {user}")
+        
+        if not user:
+            user = User(email=user_data['email'], username=user_data['username'])
+            db.session.add(user)
+            db.session.commit()
+            current_app.logger.info("New user created")
+        
+        if user.is_2fa_enabled:
+            current_app.logger.info("2FA is enabled for the user")
+            return jsonify({"msg": "2FA required", "user_id": user.id}), 200
+        
+        app_access_token = create_access_token(identity=user.id)
+        
+        current_app.logger.info(f"App access token created: {app_access_token}")
+        
+        session.pop('code_verifier', None)
+        current_app.logger.info("Code verifier removed from the session")
+        
+        return jsonify(access_token=app_access_token), 200
+    
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Discord API error: {str(e)}")
         current_app.logger.error(f"Request data: {data}")
         current_app.logger.error(f"Response text: {e.response.text}")
         return jsonify({'error': 'Error communicating with Discord'}), 500
-
+    
     except Exception as e:
         current_app.logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
