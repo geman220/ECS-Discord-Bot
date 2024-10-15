@@ -1,6 +1,5 @@
 // DiscordAuth.js
 import * as WebBrowser from 'expo-web-browser';
-import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
@@ -8,30 +7,24 @@ import * as Linking from 'expo-linking';
 import globalConfig from '../config/globalConfig';
 
 const redirectUri = Linking.createURL('auth');
-
 WebBrowser.maybeCompleteAuthSession();
 
-// Endpoint
-const discovery = {
-    authorizationEndpoint: 'https://discord.com/api/oauth2/authorize',
-    tokenEndpoint: 'https://discord.com/api/oauth2/token',
-};
-
 export const useDiscordAuth = (navigation) => {
-    const [request, response, promptAsync] = useAuthRequest(
-        {
-            clientId: globalConfig.DISCORD_CLIENT_ID,
-            scopes: ['identify', 'email'],
-            redirectUri: redirectUri,
-        },
-        discovery
-    );
-
     const handleDiscordLogin = async () => {
         try {
-            const result = await promptAsync();
+            // Make a GET request to the /get_discord_auth_url endpoint
+            const response = await axios.get(`${globalConfig.API_URL}/get_discord_auth_url`, {
+                params: { redirect_uri: redirectUri },
+            });
+
+            const { auth_url } = response.data;
+
+            // Open the Discord authorization URL in the browser
+            const result = await WebBrowser.openAuthSessionAsync(auth_url, redirectUri);
+
             if (result.type === 'success') {
-                const { code } = result.params;
+                const { code } = Linking.parse(result.url).queryParams;
+
                 // Send the code to your backend
                 const backendResponse = await axios.post(`${globalConfig.API_URL}/discord_callback`, {
                     code,

@@ -349,20 +349,23 @@ def unlink_discord():
     return redirect(url_for('account.settings'))
 
 @account_bp.route('/webhook/incoming-sms', methods=['POST'])
-@csrf.exempt
 def incoming_sms_webhook():
     logger.info('Received SMS webhook request')
-    sender_number = request.form.get('sender').strip()
-    message_text = request.form.get('text').strip().lower()
-    if sender_number.startswith('1') and len(sender_number) == 11:
-        normalized_sender_number = sender_number[1:]
+
+    # Twilio sends the sender's number in the 'From' field, and the message in 'Body'
+    sender_number = request.form.get('From').strip()
+    message_text = request.form.get('Body').strip().lower()
+
+    if sender_number.startswith('+1'):
+        normalized_sender_number = sender_number[2:]  # Strip the country code for US numbers
     else:
         normalized_sender_number = sender_number
+
     logger.debug(f'Received message from {sender_number} (normalized to {normalized_sender_number}): "{message_text}"')
     player = Player.query.filter_by(phone=normalized_sender_number).first()
+
     if player:
         logger.info(f'Player found for phone number: {normalized_sender_number}')
-        
         if message_text == 'end':
             return handle_opt_out(player)
         elif message_text == 'start':
