@@ -1,16 +1,24 @@
 # app/app_api.py
 
 from app import csrf, db
-from flask import Blueprint, jsonify, request, current_app, url_for
+from flask import Blueprint, jsonify, request, current_app, url_for, session
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 from app.models import User, Player, Team, Match, League, Season, PlayerSeasonStats, PlayerCareerStats, Availability, Feedback, Standings, PlayerEvent, Notification, PlayerEventType
 from app.decorators import jwt_role_required, jwt_permission_required, jwt_admin_or_owner_required
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
 import requests
+import secrets
+import hashlib
+import base64
 
 mobile_api = Blueprint('mobile_api', __name__)
 csrf.exempt(mobile_api)
+
+def generate_pkce_codes():
+    code_verifier = secrets.token_urlsafe(32)
+    code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
+    return code_verifier, code_challenge
 
 @mobile_api.route('/login', methods=['POST'])
 def login():
@@ -484,20 +492,25 @@ def get_notifications():
 def get_discord_auth_url():
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = request.args.get('redirect_uri', 'ecs-fc-scheme://auth')
+    code_verifier, code_challenge = generate_pkce_codes()
     params = {
         'client_id': discord_client_id,
         'redirect_uri': redirect_uri,
         'response_type': 'code',
-        'scope': 'identify email'
+        'scope': 'identify email',
+        'code_challenge': code_challenge,
+        'code_challenge_method': 'S256',
     }
     discord_auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
+    session['code_verifier'] = code_verifier
     return jsonify({'auth_url': discord_auth_url})
 
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
     code = request.json.get('code')
     redirect_uri = request.json.get('redirect_uri')
-    if not code or not redirect_uri:
+    code_verifier = session.get('code_verifier')
+    if not code or not redirect_uri or not code_verifier:
         return jsonify({'error': 'Missing required parameters'}), 400
     
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
@@ -509,6 +522,7 @@ def discord_callback():
         'grant_type': 'authorization_code',
         'code': code,
         'redirect_uri': redirect_uri,
+        'code_verifier': code_verifier,
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
     
