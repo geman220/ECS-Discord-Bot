@@ -539,6 +539,8 @@ def discord_callback():
         
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Discord API error: {str(e)}")
+        current_app.logger.error(f"Request data: {data}")
+        current_app.logger.error(f"Response text: {e.response.text}")
         return jsonify({'error': 'Error communicating with Discord'}), 500
     
     except Exception as e:
