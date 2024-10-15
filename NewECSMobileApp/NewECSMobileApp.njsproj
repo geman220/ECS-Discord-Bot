@@ -88,7 +88,6 @@
     <Content Include="assets\nucleo icons\svg\ungroup.svg" />
     <Content Include="assets\splash.png" />
     <Content Include="babel.config.js" />
-    <Content Include="CHANGELOG.md" />
     <Content Include="components\Button.js" />
     <Content Include="components\Card.js" />
     <Content Include="components\Chip.js" />
@@ -115,7 +114,6 @@
     <Content Include="constants\Theme.js" />
     <Content Include="constants\utils.js" />
     <Content Include="index.js" />
-    <Content Include="ISSUE_TEMPLATE.md" />
     <Content Include="LICENSE.md" />
     <Content Include="navigation\Menu.js" />
     <Content Include="navigation\Screens.js" />
@@ -127,7 +125,7 @@
     <Content Include="screens\Cart.js" />
     <Content Include="screens\Category.js" />
     <Content Include="screens\Chat.js" />
-    <Content Include="screens\DiscordLogin.js" />
+    <Content Include="screens\DiscordAuth.js" />
     <Content Include="screens\Elements.js" />
     <Content Include="screens\Fashion.js" />
     <Content Include="screens\Gallery.js" />

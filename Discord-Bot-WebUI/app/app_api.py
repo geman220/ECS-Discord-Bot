@@ -496,51 +496,61 @@ def get_discord_auth_url():
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
     code = request.json.get('code')
+    redirect_uri = request.json.get('redirect_uri')
     code_verifier = request.json.get('code_verifier')
-    if not code or not code_verifier:
-        return jsonify({'error': 'Missing code or code_verifier'}), 400
+
+    if not code or not redirect_uri or not code_verifier:
+        return jsonify({'error': 'Missing required parameters'}), 400
     
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
-    redirect_uri = 'ecs-fc-scheme://auth'  # Use the same redirect_uri as in get_discord_auth_url
+    discord_client_secret = current_app.config['DISCORD_CLIENT_SECRET']
     
     data = {
         'client_id': discord_client_id,
+        'client_secret': discord_client_secret,
         'grant_type': 'authorization_code',
         'code': code,
-        'redirect_uri': redirect_uri,  # Pass the redirect_uri directly
-        'code_verifier': code_verifier,
+        'redirect_uri': redirect_uri,
+        'code_verifier': code_verifier
     }
-
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
-
-    if response.status_code == 200:
+    
+    try:
+        response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+        response.raise_for_status()  # This will raise an exception for HTTP errors
+        
         token_data = response.json()
         access_token = token_data['access_token']
-
+        
+        # Fetch user data from Discord
         user_response = requests.get('https://discord.com/api/users/@me', headers={
             'Authorization': f'Bearer {access_token}'
         })
-
-        if user_response.status_code == 200:
-            user_data = user_response.json()
-            # Check if user exists, create if not
-            user = User.query.filter_by(email=user_data['email']).first()
-            if not user:
-                user = User(email=user_data['email'], username=user_data['username'])
-                db.session.add(user)
-                db.session.commit()
-
-            if user.is_2fa_enabled:
-                return jsonify({"msg": "2FA required", "user_id": user.id}), 200
-
-            # Generate your own access token (e.g., JWT)
-            app_access_token = create_access_token(identity=user.id)
-            return jsonify(access_token=app_access_token), 200
-        else:
-            return jsonify({'error': 'Failed to fetch user data'}), 400
-    else:
-        return jsonify({'error': 'Failed to exchange code for token', 'details': response.json()}), 400
+        user_response.raise_for_status()
+        
+        user_data = user_response.json()
+        # Check if user exists, create if not
+        user = User.query.filter_by(email=user_data['email']).first()
+        if not user:
+            user = User(email=user_data['email'], username=user_data['username'])
+            db.session.add(user)
+            db.session.commit()
+        
+        if user.is_2fa_enabled:
+            return jsonify({"msg": "2FA required", "user_id": user.id}), 200
+        
+        # Generate your own access token (e.g., JWT)
+        app_access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=app_access_token), 200
+        
+    except requests.exceptions.RequestException as e:
+        current_app.logger.error(f"Discord API error: {str(e)}")
+        current_app.logger.error(f"Response content: {e.response.content if e.response else 'No response'}")
+        return jsonify({'error': 'Error communicating with Discord', 'details': str(e)}), 500
+    
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @mobile_api.route('/players', methods=['GET'])
 @jwt_required()
