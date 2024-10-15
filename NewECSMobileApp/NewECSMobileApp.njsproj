@@ -1,0 +1,244 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <Name>NewECSMobileApp</Name>
+    <RootNamespace>NewECSMobileApp</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>d84546da-b28c-4c27-974b-5438a2eac94c</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>server.js</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <ProjectTypeGuids>{3AF33F2E-1136-4D97-BBB7-1795711AC8B8};{349c5851-65df-11da-9384-00065b846f21};{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}</ProjectTypeGuids>
+    <NodejsPort>1337</NodejsPort>
+    <StartWebBrowser>true</StartWebBrowser>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include=".expo\devices.json" />
+    <Content Include=".expo\README.md" />
+    <Content Include="App.js" />
+    <Content Include="app.json" />
+    <Content Include="assets\config\argon.json" />
+    <Content Include="assets\fonts\SpaceMono-Regular.ttf" />
+    <Content Include="assets\font\argon.ttf" />
+    <Content Include="assets\font\OpenSans-Bold.ttf" />
+    <Content Include="assets\font\OpenSans-Light.ttf" />
+    <Content Include="assets\font\OpenSans-Regular.ttf" />
+    <Content Include="assets\icon.png" />
+    <Content Include="assets\images\adaptive-icon.png" />
+    <Content Include="assets\images\favicon.png" />
+    <Content Include="assets\images\icon.png" />
+    <Content Include="assets\images\partial-react-logo.png" />
+    <Content Include="assets\images\react-logo%402x.png" />
+    <Content Include="assets\images\react-logo%403x.png" />
+    <Content Include="assets\images\react-logo.png" />
+    <Content Include="assets\images\splash.png" />
+    <Content Include="assets\imgs\android.png" />
+    <Content Include="assets\imgs\argon-logo%402x.png" />
+    <Content Include="assets\imgs\argon-logo-onboarding%402x.png" />
+    <Content Include="assets\imgs\argon-logo-onboarding.png" />
+    <Content Include="assets\imgs\argon-logo.png" />
+    <Content Include="assets\imgs\argonlogo.png" />
+    <Content Include="assets\imgs\bg.png" />
+    <Content Include="assets\imgs\getPro-bg%402x.png" />
+    <Content Include="assets\imgs\getPro-bg.png" />
+    <Content Include="assets\imgs\icon.png" />
+    <Content Include="assets\imgs\ios.png" />
+    <Content Include="assets\imgs\profile-img.jpg" />
+    <Content Include="assets\imgs\profile-screen-bg.png" />
+    <Content Include="assets\imgs\register-bg.png" />
+    <Content Include="assets\imgs\splash.png" />
+    <Content Include="assets\nucleo icons\svg\bag-17.svg" />
+    <Content Include="assets\nucleo icons\svg\basket.svg" />
+    <Content Include="assets\nucleo icons\svg\bell.svg" />
+    <Content Include="assets\nucleo icons\svg\calendar-date.svg" />
+    <Content Include="assets\nucleo icons\svg\chart-pie-35.svg" />
+    <Content Include="assets\nucleo icons\svg\diamond.svg" />
+    <Content Include="assets\nucleo icons\svg\engine-start.svg" />
+    <Content Include="assets\nucleo icons\svg\g-check.svg" />
+    <Content Include="assets\nucleo icons\svg\hat-3.svg" />
+    <Content Include="assets\nucleo icons\svg\ic_grain_48px.svg" />
+    <Content Include="assets\nucleo icons\svg\ic_mail_24px.svg" />
+    <Content Include="assets\nucleo icons\svg\map-big.svg" />
+    <Content Include="assets\nucleo icons\svg\menu-8.svg" />
+    <Content Include="assets\nucleo icons\svg\nav-down.svg" />
+    <Content Include="assets\nucleo icons\svg\nav-left.svg" />
+    <Content Include="assets\nucleo icons\svg\nav-right.svg" />
+    <Content Include="assets\nucleo icons\svg\padlock-unlocked.svg" />
+    <Content Include="assets\nucleo icons\svg\palette.svg" />
+    <Content Include="assets\nucleo icons\svg\search-zoom-in.svg" />
+    <Content Include="assets\nucleo icons\svg\shop.svg" />
+    <Content Include="assets\nucleo icons\svg\spaceship.svg" />
+    <Content Include="assets\nucleo icons\svg\support.svg" />
+    <Content Include="assets\nucleo icons\svg\switches.svg" />
+    <Content Include="assets\nucleo icons\svg\ungroup.svg" />
+    <Content Include="assets\splash.png" />
+    <Content Include="babel.config.js" />
+    <Content Include="CHANGELOG.md" />
+    <Content Include="components\Button.js" />
+    <Content Include="components\Card.js" />
+    <Content Include="components\Chip.js" />
+    <Content Include="components\Collapsible.js" />
+    <Content Include="components\CustomDrawerContent.js" />
+    <Content Include="components\DrawerItem.js" />
+    <Content Include="components\Header.js" />
+    <Content Include="components\Icon.js" />
+    <Content Include="components\index.js" />
+    <Content Include="components\Input.js" />
+    <Content Include="components\Notification.js" />
+    <Content Include="components\Select.js" />
+    <Content Include="components\Switch.js" />
+    <Content Include="components\Tabs.js" />
+    <Content Include="components\__tests__\__snapshots__\ThemedText-test.tsx.snap" />
+    <Content Include="config\globalConfig.js" />
+    <Content Include="constants\articles.js" />
+    <Content Include="constants\cart.js" />
+    <Content Include="constants\categories.js" />
+    <Content Include="constants\deals.js" />
+    <Content Include="constants\Images.js" />
+    <Content Include="constants\index.js" />
+    <Content Include="constants\tabs.js" />
+    <Content Include="constants\Theme.js" />
+    <Content Include="constants\utils.js" />
+    <Content Include="index.js" />
+    <Content Include="ISSUE_TEMPLATE.md" />
+    <Content Include="LICENSE.md" />
+    <Content Include="navigation\Menu.js" />
+    <Content Include="navigation\Screens.js" />
+    <Content Include="package-lock.json" />
+    <Content Include="screens\About.js" />
+    <Content Include="screens\Agreement.js" />
+    <Content Include="screens\Articles.js" />
+    <Content Include="screens\Beauty.js" />
+    <Content Include="screens\Cart.js" />
+    <Content Include="screens\Category.js" />
+    <Content Include="screens\Chat.js" />
+    <Content Include="screens\DiscordLogin.js" />
+    <Content Include="screens\Elements.js" />
+    <Content Include="screens\Fashion.js" />
+    <Content Include="screens\Gallery.js" />
+    <Content Include="screens\Home.js" />
+    <Content Include="screens\Login.js" />
+    <Content Include="screens\MatchDetails.js" />
+    <Content Include="screens\Notifications.js" />
+    <Content Include="screens\Onboarding.js" />
+    <Content Include="screens\PersonalNotifications.js" />
+    <Content Include="screens\PlayerProfile.js" />
+    <Content Include="screens\Players.js" />
+    <Content Include="screens\PlayersList.js" />
+    <Content Include="screens\Privacy.js" />
+    <Content Include="screens\Pro.js" />
+    <Content Include="screens\Product.js" />
+    <Content Include="screens\Profile.js" />
+    <Content Include="screens\Register.js" />
+    <Content Include="screens\Search.js" />
+    <Content Include="screens\Settings.js" />
+    <Content Include="screens\SystemNotifications.js" />
+    <Content Include="screens\Teams.js" />
+    <Content Include="screens\Team.js" />
+    <Content Include="screens\TwoFA.js" />
+    <Content Include="scripts\reset-project.js" />
+    <Content Include="server.js" />
+    <Content Include="package.json" />
+    <Content Include="README.md" />
+    <Content Include="tsconfig.json" />
+    <Content Include="utils\eventHelpers.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".expo\" />
+    <Folder Include="app\" />
+    <Folder Include="app\%28tabs%29\" />
+    <Folder Include="assets\" />
+    <Folder Include="assets\config\" />
+    <Folder Include="assets\fonts\" />
+    <Folder Include="assets\font\" />
+    <Folder Include="assets\images\" />
+    <Folder Include="assets\imgs\" />
+    <Folder Include="assets\nucleo icons\" />
+    <Folder Include="assets\nucleo icons\svg\" />
+    <Folder Include="components\" />
+    <Folder Include="components\navigation\" />
+    <Folder Include="components\__tests__\" />
+    <Folder Include="components\__tests__\__snapshots__\" />
+    <Folder Include="constants\" />
+    <Folder Include="hooks\" />
+    <Folder Include="navigation\" />
+    <Folder Include="config\" />
+    <Folder Include="utils\" />
+    <Folder Include="screens\" />
+    <Folder Include="scripts\" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="app\%28tabs%29\explore.tsx" />
+    <TypeScriptCompile Include="app\%28tabs%29\index.tsx" />
+    <TypeScriptCompile Include="app\%28tabs%29\_layout.tsx" />
+    <TypeScriptCompile Include="app\+html.tsx" />
+    <TypeScriptCompile Include="app\+not-found.tsx" />
+    <TypeScriptCompile Include="app\_layout.tsx" />
+    <TypeScriptCompile Include="components\Collapsible.tsx" />
+    <TypeScriptCompile Include="components\ExternalLink.tsx" />
+    <TypeScriptCompile Include="components\HelloWave.tsx" />
+    <TypeScriptCompile Include="components\navigation\TabBarIcon.tsx" />
+    <TypeScriptCompile Include="components\ParallaxScrollView.tsx" />
+    <TypeScriptCompile Include="components\ThemedText.tsx" />
+    <TypeScriptCompile Include="components\ThemedView.tsx" />
+    <TypeScriptCompile Include="components\__tests__\ThemedText-test.tsx" />
+    <TypeScriptCompile Include="constants\Colors.ts" />
+    <TypeScriptCompile Include="hooks\useColorScheme.ts" />
+    <TypeScriptCompile Include="hooks\useColorScheme.web.ts" />
+    <TypeScriptCompile Include="hooks\useThemeColor.ts" />
+  </ItemGroup>
+  <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>0</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:48022/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>True</UseCustomServer>
+          <CustomServerUrl>http://localhost:1337</CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}" User="">
+        <WebProjectProperties>
+          <StartPageUrl>
+          </StartPageUrl>
+          <StartAction>CurrentPage</StartAction>
+          <AspNetDebugging>True</AspNetDebugging>
+          <SilverlightDebugging>False</SilverlightDebugging>
+          <NativeDebugging>False</NativeDebugging>
+          <SQLDebugging>False</SQLDebugging>
+          <ExternalProgram>
+          </ExternalProgram>
+          <StartExternalURL>
+          </StartExternalURL>
+          <StartCmdLineArguments>
+          </StartCmdLineArguments>
+          <StartWorkingDirectory>
+          </StartWorkingDirectory>
+          <EnableENC>False</EnableENC>
+          <AlwaysStartWebServerOnDebug>False</AlwaysStartWebServerOnDebug>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

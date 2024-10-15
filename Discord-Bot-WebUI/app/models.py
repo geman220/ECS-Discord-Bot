@@ -1,6 +1,7 @@
 from app import db, login_manager
 from datetime import datetime, timedelta
 from flask_login import UserMixin, current_user
+from flask import request
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
@@ -39,6 +40,13 @@ class League(db.Model):
     primary_players = db.relationship('Player', back_populates='primary_league', foreign_keys='Player.primary_league_id')
     other_players = db.relationship('Player', secondary='player_league', back_populates='other_leagues')
     users = db.relationship('User', back_populates='league')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'season_id': self.season_id,
+        }
     
     def __repr__(self):
         return f'<League {self.name}>'
@@ -114,6 +122,17 @@ class User(UserMixin, db.Model):
     def has_permission(self, permission_name):
         return any(permission.name == permission_name for role in self.roles for permission in role.permissions)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'is_approved': self.is_approved,
+            'roles': [role.name for role in self.roles],
+            'has_completed_onboarding': self.has_completed_onboarding,
+            'league_id': self.league_id
+        }
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -153,6 +172,14 @@ class Season(db.Model):
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='season', cascade='all, delete-orphan')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'league_type': self.league_type,
+            'is_current': self.is_current,
+        }
+
     def __repr__(self):
         return f'<Season {self.name} ({self.league_type})>'
 
@@ -168,6 +195,23 @@ class Team(db.Model):
     discord_player_role_id = db.Column(db.BigInteger, nullable=True)
     schedules = db.relationship('Schedule', foreign_keys='Schedule.team_id', back_populates='team', overlaps='matches')
     opponent_schedules = db.relationship('Schedule', foreign_keys='Schedule.opponent', back_populates='opponent_team')
+
+    def to_dict(self, include_players=False):
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'league_id': self.league_id,
+            'discord_channel_id': self.discord_channel_id,
+            'discord_coach_role_id': self.discord_coach_role_id,
+            'discord_player_role_id': self.discord_player_role_id,
+            'recent_form': self.recent_form,
+            'top_scorer': self.top_scorer,
+            'top_assist': self.top_assist,
+            'avg_goals_per_match': self.avg_goals_per_match,
+        }
+        if include_players:
+            data['players'] = [player.to_dict(public=True) for player in self.players]
+        return data
 
     @property
     def recent_form(self):
@@ -316,6 +360,41 @@ class Player(db.Model):
     discord_roles = db.Column(JSON)
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)
+
+    def to_dict(self, public=False):
+        base_url = request.host_url.rstrip('/')
+        default_image = f"{base_url}/static/img/default_player.png"
+        
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'team_id': self.team_id,
+            'is_coach': self.is_coach,
+            'is_ref': self.is_ref,
+            'jersey_number': self.jersey_number,
+            'favorite_position': self.favorite_position,
+            'profile_picture_url': f"{base_url}{self.profile_picture_url}" if self.profile_picture_url else default_image,
+        }
+        if not public:
+            data.update({
+                'phone': self.phone,
+                'is_phone_verified': self.is_phone_verified,
+                'jersey_size': self.jersey_size,
+                'discord_id': self.discord_id,
+                'pronouns': self.pronouns,
+                'expected_weeks_available': self.expected_weeks_available,
+                'unavailable_dates': self.unavailable_dates,
+                'willing_to_referee': self.willing_to_referee,
+                'other_positions': self.other_positions,
+                'positions_not_to_play': self.positions_not_to_play,
+                'frequency_play_goal': self.frequency_play_goal,
+                'additional_info': self.additional_info,
+                'league_id': self.league_id,
+                'primary_league_id': self.primary_league_id,
+                'user_id': self.user_id,
+                'is_current_player': self.is_current_player,
+            })
+        return data
 
     def __repr__(self):
         return f'<Player {self.name} ({self.user.email})>'
@@ -522,6 +601,28 @@ class Match(db.Model):
 
     scheduled_messages = db.relationship('ScheduledMessage', back_populates='match', lazy='dynamic')
 
+    def to_dict(self, include_teams=False, include_events=False):
+        data = {
+            'id': self.id,
+            'date': self.date.isoformat() if self.date else None,
+            'time': self.time.isoformat() if self.time else None,
+            'location': self.location,
+            'home_team_id': self.home_team_id,
+            'away_team_id': self.away_team_id,
+            'home_team_score': self.home_team_score,
+            'away_team_score': self.away_team_score,
+            'notes': self.notes,
+            'schedule_id': self.schedule_id,
+            'ref_id': self.ref_id,
+            'reported': self.reported,
+        }
+        if include_teams:
+            data['home_team'] = self.home_team.to_dict()
+            data['away_team'] = self.away_team.to_dict()
+        if include_events:
+            data['events'] = [event.to_dict() for event in self.events]
+        return data
+
     @property
     def reported(self):
         """
@@ -560,6 +661,17 @@ class PlayerSeasonStats(db.Model):
     player = db.relationship('Player', back_populates='season_stats')
     season = db.relationship('Season', back_populates='player_stats')
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'player_id': self.player_id,
+            'season_id': self.season_id,
+            'goals': self.goals,
+            'assists': self.assists,
+            'yellow_cards': self.yellow_cards,
+            'red_cards': self.red_cards,
+        }
+
 class PlayerCareerStats(db.Model):
     __tablename__ = 'player_career_stats'
 
@@ -571,6 +683,16 @@ class PlayerCareerStats(db.Model):
     red_cards = db.Column(db.Integer, default=0, nullable=False)
 
     player = db.relationship('Player', back_populates='career_stats')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'player_id': self.player_id,
+            'goals': self.goals,
+            'assists': self.assists,
+            'yellow_cards': self.yellow_cards,
+            'red_cards': self.red_cards,
+        }
 
 class Standings(db.Model):
     __tablename__ = 'standings'  # Ensure the table name is specified if not following naming conventions
@@ -596,6 +718,22 @@ class Standings(db.Model):
     def update_goal_difference(mapper, connection, target):
         target.goal_difference = target.goals_for - target.goals_against
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'team_id': self.team_id,
+            'team_name': self.team.name,
+            'season_id': self.season_id,
+            'played': self.played,
+            'wins': self.wins,
+            'draws': self.draws,
+            'losses': self.losses,
+            'goals_for': self.goals_for,
+            'goals_against': self.goals_against,
+            'goal_difference': self.goal_difference,
+            'points': self.points,
+        }
+
 # Set up an event listener to automatically update the goal difference
 event.listen(Standings, 'before_insert', Standings.update_goal_difference)
 event.listen(Standings, 'before_update', Standings.update_goal_difference)
@@ -609,6 +747,16 @@ class Availability(db.Model):
     responded_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field
     match = db.relationship('Match', back_populates='availability')
     player = db.relationship('Player', back_populates='availability')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'match_id': self.match_id,
+            'player_id': self.player_id,
+            'discord_id': self.discord_id,
+            'response': self.response,
+            'responded_at': self.responded_at.isoformat() if self.responded_at else None,
+        }
 
 class Notification(db.Model):
     __tablename__ = 'notifications'
@@ -663,6 +811,18 @@ class PlayerEvent(db.Model):
 
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
+
+    def to_dict(self, include_player=False):
+        data = {
+            'id': self.id,
+            'player_id': self.player_id,
+            'match_id': self.match_id,
+            'minute': self.minute,
+            'event_type': self.event_type.name if self.event_type else None,
+        }
+        if include_player:
+            data['player'] = self.player.to_dict(public=True)
+        return data
 
 class StatChangeType(enum.Enum):
     ADD = 'add'

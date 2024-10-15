@@ -21,6 +21,7 @@ def register_blueprints(app):
     from app.calendar import calendar_bp
     from app.sms_rsvp import sms_rsvp_bp
     from app.match_api import match_api
+    from app.app_api import mobile_api
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -39,3 +40,4 @@ def register_blueprints(app):
     app.register_blueprint(sms_rsvp_bp)
     app.register_blueprint(match_api, url_prefix='/api')
     app.register_blueprint(user_management_bp)
+    app.register_blueprint(mobile_api, url_prefix='/api/v1')

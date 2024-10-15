@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "ECS FC App",
+    "slug": "ecs-fc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ecsfc.app"
+    },
+    "android": {
+      "package": "com.ecsfc.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "ecs-fc-scheme",
+    "extra": {
+      "eas": {
+        "projectId": "99453acc-f967-417c-aaff-70ab9f35b5d1"
+      }
+    },
+    "owner": "geman220"
+  }
+}
