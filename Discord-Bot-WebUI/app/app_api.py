@@ -512,10 +512,10 @@ def discord_callback():
     code_verifier = session.get('code_verifier')
     if not code or not redirect_uri or not code_verifier:
         return jsonify({'error': 'Missing required parameters'}), 400
-    
+
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     discord_client_secret = current_app.config['DISCORD_CLIENT_SECRET']
-    
+
     data = {
         'client_id': discord_client_id,
         'client_secret': discord_client_secret,
@@ -525,38 +525,42 @@ def discord_callback():
         'code_verifier': code_verifier,
     }
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    
+
     try:
         response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
         response.raise_for_status()
-        
+
         token_data = response.json()
         access_token = token_data['access_token']
-        
+
         user_response = requests.get('https://discord.com/api/users/@me', headers={
             'Authorization': f'Bearer {access_token}'
         })
         user_response.raise_for_status()
-        
+
         user_data = user_response.json()
         user = User.query.filter_by(email=user_data['email']).first()
         if not user:
             user = User(email=user_data['email'], username=user_data['username'])
             db.session.add(user)
             db.session.commit()
-        
+
         if user.is_2fa_enabled:
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
-        
+
         app_access_token = create_access_token(identity=user.id)
+
+        # Remove the code_verifier from the session after using it
+        session.pop('code_verifier', None)
+
         return jsonify(access_token=app_access_token), 200
-        
+
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Discord API error: {str(e)}")
         current_app.logger.error(f"Request data: {data}")
         current_app.logger.error(f"Response text: {e.response.text}")
         return jsonify({'error': 'Error communicating with Discord'}), 500
-    
+
     except Exception as e:
         current_app.logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
