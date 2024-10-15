@@ -33,6 +33,7 @@
     "expo-modules-core": "~1.12.24",
     "expo-random": "~14.0.1",
     "expo-splash-screen": "~0.27.5",
+    "expo-web-browser": "~13.0.3",
     "galio-framework": "^0.8.0",
     "prop-types": "^15.7.2",
     "react": "18.2.0",

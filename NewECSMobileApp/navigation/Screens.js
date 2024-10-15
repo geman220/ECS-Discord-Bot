@@ -5,7 +5,6 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { TouchableOpacity } from "react-native";
 import Login from "../screens/Login";
-import DiscordLogin from "../screens/DiscordLogin";
 import TwoFA from "../screens/TwoFA";
 import Home from "../screens/Home";
 import Profile from "../screens/Profile";
@@ -31,7 +30,6 @@ function AuthStack() {
             }}
         >
             <Stack.Screen name="Login" component={Login} />
-            <Stack.Screen name="DiscordLogin" component={DiscordLogin} />
             <Stack.Screen name="TwoFA" component={TwoFA} />
         </Stack.Navigator>
     );

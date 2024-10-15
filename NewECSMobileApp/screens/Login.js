@@ -1,5 +1,4 @@
 // Login.js
-
 import React, { useState } from 'react';
 import {
     StyleSheet,
@@ -11,26 +10,18 @@ import {
     Alert,
     View,
     Image,
-    TouchableOpacity, // Import added here
+    TouchableOpacity,
 } from 'react-native';
 import { Block, Text, theme } from 'galio-framework';
 import { Button, Icon, Input } from '../components';
 import { Images, argonTheme } from '../constants';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as AuthSession from 'expo-auth-session';
 import globalConfig from '../config/globalConfig';
+import { useDiscordAuth } from './DiscordAuth';
 
 const { width, height } = Dimensions.get('screen');
 
-const CLIENT_ID = '1194067098658414632';
-const discovery = {
-    authorizationEndpoint: 'https://discord.com/api/oauth2/authorize',
-    tokenEndpoint: 'https://discord.com/api/oauth2/token',
-    revocationEndpoint: 'https://discord.com/api/oauth2/token/revoke',
-};
-
-// DismissKeyboard component to hide keyboard when tapping outside input fields
 const DismissKeyboard = ({ children }) => (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         {children}
@@ -43,7 +34,8 @@ const Login = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
     const [showEmailLogin, setShowEmailLogin] = useState(false);
 
-    // Handler for Email Login
+    const { handleDiscordLogin } = useDiscordAuth(navigation);
+
     const handleEmailLogin = async () => {
         if (!email || !password) {
             Alert.alert('Error', 'Please enter both email and password.');
@@ -61,60 +53,16 @@ const Login = ({ navigation }) => {
             const data = response.data;
 
             if (data.msg === '2FA required') {
-                setLoading(false);
                 navigation.navigate('TwoFA', { userId: data.user_id });
             } else if (data.access_token) {
                 await AsyncStorage.setItem('access_token', data.access_token);
-                setLoading(false);
                 navigation.replace('App');
             }
         } catch (error) {
-            setLoading(false);
             const errorMsg = error.response?.data?.msg || 'An error occurred during login.';
             Alert.alert('Login Failed', errorMsg);
-        }
-    };
-
-    // Handler for Discord Login
-    const handleDiscordLogin = async () => {
-        try {
-            // Use the custom URI scheme 'ecs-fc-scheme'
-            const redirectUri = AuthSession.makeRedirectUri({
-                scheme: 'ecs-fc-scheme',  // Use your custom scheme from app.json
-            });
-
-            const scopes = ['identify', 'email'];
-            const authRequest = new AuthSession.AuthRequest({
-                clientId: CLIENT_ID,
-                redirectUri,  // Pass in the custom redirect URI
-                scopes,
-                usePKCE: true,
-                responseType: AuthSession.ResponseType.Code,
-            });
-
-            // Remove { useProxy: true } for production builds
-            const result = await authRequest.promptAsync(discovery);
-            if (result.type === 'success') {
-                const { code } = result.params;
-                const backendResponse = await axios.post(`${globalConfig.API_URL}/discord_callback`, {
-                    code,
-                    redirect_uri: redirectUri,  // Pass the custom URI to the backend as well
-                    code_verifier: authRequest.codeVerifier,
-                });
-
-                const data = backendResponse.data;
-                if (data.msg === '2FA required') {
-                    navigation.navigate('TwoFA', { userId: data.user_id });
-                } else if (data.access_token) {
-                    await AsyncStorage.setItem('access_token', data.access_token);
-                    navigation.replace('App');
-                }
-            } else {
-                console.log('Discord authentication canceled or failed');
-            }
-        } catch (error) {
-            console.error('Error during Discord login:', error);
-            Alert.alert('Login Failed', 'An error occurred during Discord login.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -131,7 +79,7 @@ const Login = ({ navigation }) => {
                             {/* Logo and Welcome Message */}
                             <Block style={styles.logoContainer}>
                                 <Image
-                                    source={require('../assets/imgs/ecs_logo.png')} // Ensure the path is correct
+                                    source={require('../assets/imgs/ecs_logo.png')}
                                     style={styles.logo}
                                     resizeMode="contain"
                                 />
@@ -147,7 +95,7 @@ const Login = ({ navigation }) => {
                             <Block style={styles.optionsContainer}>
                                 {/* Discord Login Button */}
                                 <Button
-                                    color="discord" // Ensure 'discord' is defined in your theme
+                                    color="discord"
                                     style={styles.discordButton}
                                     onPress={handleDiscordLogin}
                                 >
