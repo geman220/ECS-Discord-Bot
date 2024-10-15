@@ -494,6 +494,7 @@ def get_discord_auth_url():
     redirect_uri = request.args.get('redirect_uri', 'ecs-fc-scheme://auth')
     code_verifier, code_challenge = generate_pkce_codes()
     current_app.logger.info(f"Generated code_verifier: {code_verifier}")
+    current_app.logger.info(f"Session before storing code_verifier: {session}")
     params = {
         'client_id': discord_client_id,
         'redirect_uri': redirect_uri,
@@ -504,12 +505,14 @@ def get_discord_auth_url():
     }
     discord_auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
     session['code_verifier'] = code_verifier
+    current_app.logger.info(f"Session after storing code_verifier: {session}")
     current_app.logger.info(f"Stored code_verifier in session: {session.get('code_verifier')}")
     return jsonify({'auth_url': discord_auth_url})
 
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
     current_app.logger.info("Received request at /discord_callback")
+    current_app.logger.info(f"Session contents: {session}")
     
     code = request.json.get('code')
     redirect_uri = request.json.get('redirect_uri')
