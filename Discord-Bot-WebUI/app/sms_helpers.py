@@ -2,6 +2,7 @@ from flask import current_app, jsonify
 from textmagic.rest import TextmagicRestClient
 from datetime import datetime
 from sqlalchemy import or_
+from twilio.rest import Client
 import random
 import string
 from app import db

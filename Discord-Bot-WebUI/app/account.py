@@ -348,11 +348,12 @@ def unlink_discord():
         flash('No Discord account is currently linked.', 'info')
     return redirect(url_for('account.settings'))
 
+@csrf.exempt
 @account_bp.route('/webhook/incoming-sms', methods=['POST'])
 def incoming_sms_webhook():
     logger.info('Received SMS webhook request')
-
-    # Twilio sends the sender's number in the 'From' field, and the message in 'Body'
+    
+    # Process the incoming SMS message from Twilio
     sender_number = request.form.get('From').strip()
     message_text = request.form.get('Body').strip().lower()
 
@@ -377,5 +378,5 @@ def incoming_sms_webhook():
             return send_help_message(normalized_sender_number)
     else:
         logger.warning(f'No player found for phone number: {normalized_sender_number}')
-    
+
     return jsonify({'status': 'success'})
