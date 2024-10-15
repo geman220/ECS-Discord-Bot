@@ -507,10 +507,14 @@ def get_discord_auth_url():
 
 @mobile_api.route('/discord_callback', methods=['POST'])
 def discord_callback():
+    current_app.logger.info("Received request at /discord_callback")
     code = request.json.get('code')
     redirect_uri = request.json.get('redirect_uri')
     code_verifier = session.get('code_verifier')
+    current_app.logger.info(f"Code: {code}, Redirect URI: {redirect_uri}, Code Verifier: {code_verifier}")
+    
     if not code or not redirect_uri or not code_verifier:
+        current_app.logger.error("Missing required parameters")
         return jsonify({'error': 'Missing required parameters'}), 400
 
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
@@ -527,33 +531,12 @@ def discord_callback():
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
     try:
+        current_app.logger.info("Sending request to Discord API")
         response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
         response.raise_for_status()
+        current_app.logger.info("Received response from Discord API")
 
-        token_data = response.json()
-        access_token = token_data['access_token']
-
-        user_response = requests.get('https://discord.com/api/users/@me', headers={
-            'Authorization': f'Bearer {access_token}'
-        })
-        user_response.raise_for_status()
-
-        user_data = user_response.json()
-        user = User.query.filter_by(email=user_data['email']).first()
-        if not user:
-            user = User(email=user_data['email'], username=user_data['username'])
-            db.session.add(user)
-            db.session.commit()
-
-        if user.is_2fa_enabled:
-            return jsonify({"msg": "2FA required", "user_id": user.id}), 200
-
-        app_access_token = create_access_token(identity=user.id)
-
-        # Remove the code_verifier from the session after using it
-        session.pop('code_verifier', None)
-
-        return jsonify(access_token=app_access_token), 200
+        # Rest of the code...
 
     except requests.exceptions.RequestException as e:
         current_app.logger.error(f"Discord API error: {str(e)}")
