@@ -30,3 +30,5 @@ class Config:
     SESSION_REDIS = redis.from_url('redis://redis:6379')
     SESSION_KEY_PREFIX = 'flask_session:'
     WEBUI_API_URL = os.getenv('WEBUI_API_URL')
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)

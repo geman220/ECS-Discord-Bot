@@ -25,6 +25,7 @@
     <Compile Include="app\account.py" />
     <Compile Include="app\admin_routes.py" />
     <Compile Include="app\api_utils.py" />
+    <Compile Include="app\app_api.py" />
     <Compile Include="app\auth.py" />
     <Compile Include="app\availability_api.py" />
     <Compile Include="app\blueprints.py" />

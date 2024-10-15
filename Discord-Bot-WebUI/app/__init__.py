@@ -1,5 +1,6 @@
 from datetime import datetime
 from flask import Flask
+from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -37,7 +38,8 @@ def create_app():
     csrf.init_app(app)
     socketio.init_app(app)
     sess.init_app(app)
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    jwt = JWTManager(app)
 
     # Set the login view
     login_manager.login_view = 'auth.login'

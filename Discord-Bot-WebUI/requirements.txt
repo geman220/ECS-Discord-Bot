@@ -34,6 +34,7 @@ executing==2.1.0
 fastjsonschema==2.20.0
 Flask==3.0.3
 Flask-Cors==5.0.0
+flask-jwt-extended==4.6.0
 Flask-Login==0.6.3
 Flask-Mail==0.10.0
 Flask-Migrate==4.0.7
