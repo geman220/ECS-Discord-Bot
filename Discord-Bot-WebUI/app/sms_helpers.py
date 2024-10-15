@@ -12,10 +12,14 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def send_sms(phone_number, message):
-    client = TextmagicRestClient(current_app.config['TEXTMAGIC_USERNAME'], current_app.config['TEXTMAGIC_API_KEY'])
+    client = Client(current_app.config['TWILIO_SID'], current_app.config['TWILIO_AUTH_TOKEN'])
     try:
-        message = client.messages.create(phones=phone_number, text=message)
-        return True, message.id
+        message = client.messages.create(
+            body=message,
+            from_=current_app.config['TWILIO_PHONE_NUMBER'],  # Twilio phone number
+            to=phone_number
+        )
+        return True, message.sid
     except Exception as e:
         current_app.logger.error(f"Failed to send SMS: {e}")
         return False, str(e)
