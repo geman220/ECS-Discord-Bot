@@ -1,59 +1,191 @@
 ﻿# ECS_Discord_Bot.py
 
 from datetime import datetime
+import aiohttp
 import discord
 import asyncio
 import os
 import logging
-import requests
 from discord import app_commands
 from discord.ext import commands
 from database import get_db_connection, PREDICTIONS_DB_PATH
 from common import bot_token, server_id
-import threading
 import uvicorn
-from bot_rest_api import app, bot_ready 
-from shared_states import bot_ready, bot_state
+from bot_rest_api import app, bot_ready, update_embed_for_message, get_team_id_for_message, poll_task_result, session
+from shared_states import bot_ready, bot_state, set_bot_instance, periodic_check
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
+# Configure logging
 if __name__ == "__main__":
     logging.basicConfig(
-        filename='bot.log',
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger(__name__)
 
-# Initialize bot instance
+# Initialize Discord bot with intents
 intents = discord.Intents.default()
 intents.presences = True
 intents.members = True
 intents.messages = True
 intents.guilds = True
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Shared FastAPI app setup
-from bot_rest_api import app, set_bot_instance  # Import the FastAPI app and setter function
+# Removed separate managed_message_ids set; using bot_state instead
 
-def get_match_id_from_message(message_id):
-    api_url = f"http://webui:5000/api/get_match_id_from_message/{message_id}"
-    response = requests.get(api_url)
+async def load_managed_message_ids():
+    global session  # Use the global session variable
 
-    if response.status_code == 200:
-        data = response.json()
-        return data.get('match_id')
-    return None
+    # Ensure the session is initialized
+    if session is None:
+        logger.warning("Session is not initialized. Initializing session now.")
+        session = aiohttp.ClientSession()
 
-def get_thread_id_for_match(match_id):
-    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT thread_id FROM match_threads WHERE match_id = ?", (match_id,))
-        result = c.fetchone()
-        return result[0] if result else None
+    try:
+        async with session.get(f"{WEBUI_API_URL}/get_scheduled_messages") as response:
+            if response.status == 200:
+                data = await response.json()
+                for msg in data:
+                    # Add both home and away message IDs
+                    if msg.get('home_message_id'):
+                        bot_state.add_managed_message_id(int(msg['home_message_id']))
+                    if msg.get('away_message_id'):
+                        bot_state.add_managed_message_id(int(msg['away_message_id']))
+                logger.info(f"Managed message IDs loaded: {bot_state.get_managed_message_ids()}")
+            else:
+                logger.error(f"Failed to fetch scheduled messages: {response.status}, {await response.text()}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Error fetching scheduled messages: {e}")
+
+async def periodic_sync():
+    """
+    Periodically synchronizes managed_message_ids with the web app.
+    """
+    while True:
+        await load_managed_message_ids()
+        await asyncio.sleep(300)  # Sync every 5 minutes
+
+async def sync_rsvp_with_web_ui(match_id, discord_id, response):
+    """
+    Syncs RSVP data with the web UI by sending a POST request.
+    """
+    logger.debug(f"Syncing RSVP with Web UI for match {match_id}, user {discord_id}, response {response}")
+    api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
+    data = {
+        "match_id": match_id,
+        "discord_id": discord_id,
+        "response": response,
+        "responded_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        async with session.post(api_url, json=data) as resp:
+            resp_text = await resp.text()
+            if resp.status == 200:
+                logger.info(f"RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
+            else:
+                logger.error(f"Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Failed to sync RSVP with Web UI: {str(e)}")
+
+async def get_match_and_team_id_from_message(message_id: int, channel_id: int):
+    """
+    Retrieves match_id and team_id for a given message_id and channel_id via the web app's API.
+    """
+    logger.debug(f"Fetching match and team ID for message_id: {message_id}, channel_id: {channel_id}")
+    api_url = f"{WEBUI_API_URL}/get_match_and_team_id_from_message"
+    params = {'message_id': str(message_id), 'channel_id': str(channel_id)}
+
+    try:
+        async with session.get(api_url, params=params) as response:
+            if response.status == 202:
+                # Task is in progress
+                response_data = await response.json()
+                task_id = response_data.get('task_id')
+                logger.info(f"Task is still processing. Task ID: {task_id}")
+                return "PROCESSING", task_id  # Return task_id to keep track
+
+            elif response.status == 200:
+                # Task completed and data is ready
+                data = await response.json()
+                logger.debug(f"Received match_id: {data.get('match_id')}, team_id: {data.get('team_id')}")
+                return data.get('match_id'), data.get('team_id')
+
+            else:
+                # Unexpected response
+                resp_text = await response.text()
+                logger.error(f"Failed to fetch match and team ID: {response.status}, {resp_text}")
+                return None, None
+
+    except aiohttp.ClientError as e:
+        logger.error(f"Failed to fetch match and team ID: {str(e)}")
+        return None, None
+
+async def is_user_on_team(discord_id: str, team_id: int) -> bool:
+    api_url = f"http://webui:5000/api/is_user_on_team"
+    payload = {'discord_id': str(discord_id), 'team_id': team_id}
+    try:
+        async with session.post(api_url, json=payload) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get('is_team_member', False)
+            else:
+                logger.error(f"Failed to verify team membership: {await response.text()}")
+                return False
+    except aiohttp.ClientError as e:
+        logger.error(f"Error verifying team membership: {str(e)}")
+        return False
+
+async def update_user_rsvp(match_id: int, discord_id: int, response: str):
+    """
+    Updates the user's RSVP in the web app via the API.
+    """
+    logger.debug(f"Updating RSVP for match {match_id}, user {discord_id}, response {response}")
+    api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
+    payload = {
+        "match_id": match_id,
+        "discord_id": str(discord_id),
+        "response": response,
+        "responded_at": datetime.utcnow().isoformat()
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(api_url, json=payload) as resp:
+                resp_text = await resp.text()
+                if resp.status == 200:
+                    logger.info(f"RSVP updated successfully for match {match_id}, user {discord_id}")
+                else:
+                    logger.error(f"Failed to update RSVP: {resp.status}, {resp_text}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Failed to update RSVP: {str(e)}")
+
+    # After updating the RSVP, update the Discord embed
+    await update_discord_embed(match_id)
+
+async def update_discord_embed(match_id: int):
+    """
+    Updates the Discord embed for a given match.
+    """
+    api_url = f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(api_url, timeout=10) as response:
+                if response.status != 200:
+                    logger.error(f"Failed to update Discord embed. Status: {response.status}, Response: {await response.text()}")
+                else:
+                    logger.info(f"Discord embed updated for match {match_id}")
+    except aiohttp.ClientError as e:
+        logger.error(f"Failed to update Discord embed. RequestException: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error while updating Discord embed: {str(e)}")
 
 async def load_cogs():
+    """
+    Loads all the bot's cogs/extensions.
+    """
     cog_extensions = [
         'general_commands',
         'woocommerce_commands',
@@ -71,58 +203,55 @@ async def load_cogs():
             logger.info(f"Loaded {extension} cog")
         except Exception as e:
             logger.error(f"Failed to load {extension} cog: {e}")
-
-    await bot.tree.sync(guild=discord.Object(id=server_id))
-    logger.info(f"Commands registered after syncing: {[cmd.name for cmd in bot.tree.walk_commands()]}")
+    
+    # Optionally sync commands with Discord
+    try:
+        await bot.tree.sync(guild=discord.Object(id=server_id))
+        logger.info(f"Commands registered after syncing: {[cmd.name for cmd in bot.tree.walk_commands()]}")
+    except Exception as e:
+        logger.error(f"Error syncing commands: {e}")
 
 @bot.event
 async def on_ready():
-    global bot_ready
-
-    from automations import periodic_check
-    from match_utils import post_live_updates
-    print(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
-
+    logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
     guild = bot.get_guild(server_id)
     if guild:
-        print(f"Connected to guild: {guild.name} (ID: {guild.id})")
+        logger.info(f"Connected to guild: {guild.name} (ID: {guild.id})")
     else:
-        print(f"Guild with ID {server_id} not found.")
-    
-    await load_cogs()
+        logger.error(f"Guild with ID {server_id} not found.")
 
-    await asyncio.sleep(5)
+    try:
+        logger.info("Loading managed message IDs from the web app...")
+        await load_managed_message_ids()
+        logger.info("Managed message IDs loaded successfully.")
 
-    with get_db_connection(PREDICTIONS_DB_PATH) as conn:
-        c = conn.cursor()
-        c.execute("SELECT match_id FROM match_schedule WHERE live_updates_active = 1")
-        active_matches = c.fetchall()
+        logger.info("Loading cogs/extensions...")
+        await load_cogs()
+        logger.info("Cogs/extensions loaded successfully.")
 
-    for match in active_matches:
-        match_id = match[0]
-        thread_id = get_thread_id_for_match(match_id)
-        thread = bot.get_channel(thread_id)
-        match_commands_cog = bot.get_cog("MatchCommands")
-        if thread and match_commands_cog:
-            asyncio.create_task(post_live_updates(match_id, thread, match_commands_cog))
+        logger.info("Starting periodic synchronization task...")
+        asyncio.create_task(periodic_sync())
 
-    if os.path.exists("/root/update_channel_id.txt"):
-        with open("/root/update_channel_id.txt", "r") as f:
-            channel_id = int(f.read())
-        channel = bot.get_channel(channel_id)
-        if channel:
-            await channel.send("Update complete. Bot restarted successfully.")
-        os.remove("/root/update_channel_id.txt")
+        logger.info("Setting bot instance in shared_states...")
+        set_bot_instance(bot)
 
-    # Perform additional setup if necessary
-    bot_ready.set()
-    set_bot_instance(bot)  # Pass the initialized bot instance to FastAPI
-    print("Bot is fully ready.")
+        logger.info("Setting bot_ready event...")
+        bot_ready.set()
 
-    asyncio.create_task(periodic_check(bot))
+        logger.info("Starting periodic check task...")
+        asyncio.create_task(periodic_check())
+
+        logger.info("Bot initialization completed successfully.")
+    except Exception as e:
+        logger.exception(f"Error during bot initialization: {e}")
+
+    logger.info("Bot is fully ready.")
 
 @bot.event
 async def on_message(message):
+    """
+    Event handler for when a message is sent in a guild.
+    """
     if message.author == bot.user:
         return
 
@@ -130,6 +259,9 @@ async def on_message(message):
 
 @bot.event
 async def on_app_command_error(interaction: discord.Interaction, error):
+    """
+    Event handler for errors in application commands.
+    """
     if isinstance(error, app_commands.MissingPermissions):
         await interaction.response.send_message(
             "You don't have permission to use this command.", ephemeral=True
@@ -145,109 +277,164 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             "An error occurred while processing the command.", ephemeral=True
         )
 
-# A set to store message IDs that require reaction management
-managed_message_ids = set()
-
 @bot.event
-async def on_reaction_add(reaction, user):
-    if user.bot:
+async def on_raw_reaction_add(payload):
+    if payload.user_id == bot.user.id:
         return
 
-    message_id = reaction.message.id
-    channel = reaction.message.channel
-    emoji = reaction.emoji
+    message_id = payload.message_id
+    emoji = str(payload.emoji)
+    user_id = payload.user_id
+    channel_id = payload.channel_id
 
-    print(f"Reaction received: {emoji} by user: {user.id} in channel: {channel.id}")
+    logger.debug(f"Raw reaction added: {emoji} by user: {user_id} for message_id: {message_id}")
 
-    # Check if this message is in the set of managed messages
-    if message_id in bot_state.get_managed_message_ids():
-        # Remove any other reactions by the user on the same message
-        for react in reaction.message.reactions:
-            if react.emoji != emoji:
-                try:
-                    await reaction.message.remove_reaction(react.emoji, user)
-                except discord.errors.HTTPException:
-                    pass  # Ignore if the reaction was already removed
+    if message_id not in bot_state.get_managed_message_ids():
+        logger.debug(f"Message ID {message_id} is not managed. Ignoring reaction.")
+        return
 
-        # Get the match ID associated with this message
-        match_id = get_match_id_from_message(message_id)
-        if not match_id:
-            print(f"No match found for message ID: {message_id}")
+    # Fetch match_id and team_id from the web app
+    match_id, team_id = await get_team_id_for_message(message_id, channel_id)
+    if match_id == "PROCESSING":
+        task_id = team_id  # In this case, team_id is actually task_id
+        logger.info(f"Task is still processing for message_id {message_id}. Task ID: {task_id}")
+
+        # Poll the task result asynchronously without creating a new session
+        result = await poll_task_result(session, task_id, max_retries=30, delay=3)
+        if not result or 'error' in result:
+            logger.error(f"Could not fetch match and team ID for message {message_id}. Error: {result.get('error', 'Unknown error')}")
             return
-
-        # Map the emoji to an availability status
-        status = None
-        if emoji == '\U0001F44D':
-            status = 'yes'
-        elif emoji == '\U0001F44E':
-            status = 'no'
-        elif emoji == '\U0001F937':
-            status = 'maybe'
-
-        if status:
-            # Send a POST request to your web UI's API to update availability
-            api_url = f"{WEBUI_API_URL}/update_availability"
-            payload = {
-                'match_id': match_id,
-                'discord_id': str(user.id),
-                'response': status,
-                'responded_at': datetime.utcnow().isoformat()
-            }
-            response = requests.post(api_url, json=payload)
-
-            if response.status_code == 200:
-                print(f"Availability updated successfully for user {user.id} with status {status}.")
-            else:
-                print(f"Failed to update availability: {response.text}")
-
-@bot.event
-async def on_reaction_remove(reaction, user):
-    if user.bot:
-        return
+        else:
+            match_id, team_id = result['match_id'], result['team_id']
     
-    message_id = reaction.message.id
-    print(f"Reaction removed by user: {user.id}")
+    if not match_id or not team_id:
+        logger.error(f"Could not find match or team for message {message_id}")
+        return
 
-    # Check if this message is in the set of managed messages
-    if message_id in bot_state.get_managed_message_ids():
-        # Get the match ID associated with this message
-        match_id = get_match_id_from_message(message_id)
-        if not match_id:
-            print(f"No match found for message ID: {message_id}")
+    # Fetch user object
+    user = bot.get_user(user_id)
+    if not user:
+        logger.error(f"User with ID {user_id} not found.")
+        return
+
+    # Check if user is on the team
+    is_team_member = await is_user_on_team(user_id, team_id)
+    if not is_team_member:
+        # Remove the reaction
+        channel = bot.get_channel(channel_id)
+        if channel:
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.remove_reaction(payload.emoji, user)
+                logger.info(f"Removed reaction {emoji} from user {user_id} on message {message_id}")
+            except Exception as e:
+                logger.error(f"Error removing reaction: {e}")
+
+        # Notify the user
+        try:
+            await user.send(f"You can only RSVP for your own team's matches.")
+            logger.info(f"Sent DM to user {user_id} regarding RSVP restriction for team {team_id}")
+        except discord.Forbidden:
+            logger.warning(f"Could not send DM to user {user_id}")
+        return
+
+    # Process the RSVP
+    emoji_to_response = {
+        "👍": "yes",
+        "👎": "no",
+        "🤷": "maybe"
+    }
+    response = emoji_to_response.get(emoji, None)
+    if response:
+        logger.debug(f"Processing RSVP for user {user_id} with response {response}")
+        
+        # Remove other reactions from the same user
+        channel = bot.get_channel(channel_id)
+        message = await channel.fetch_message(message_id)
+        for reaction in message.reactions:
+            if str(reaction.emoji) in emoji_to_response.keys() and str(reaction.emoji) != emoji:
+                await reaction.remove(user)
+        
+        # Update the RSVP in the web UI
+        await sync_rsvp_with_web_ui(match_id, user_id, response)
+        
+        # Update the Discord embed
+        await update_discord_embed(match_id)
+    else:
+        # Remove invalid reactions
+        channel = bot.get_channel(channel_id)
+        message = await channel.fetch_message(message_id)
+        await message.remove_reaction(payload.emoji, user)
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    if payload.user_id == bot.user.id:
+        return
+
+    message_id = payload.message_id
+    emoji = str(payload.emoji)
+    user_id = payload.user_id
+    channel_id = payload.channel_id
+    logger.debug(f"Raw reaction removed: {emoji} by user: {user_id} for message_id: {message_id}")
+
+    if message_id not in bot_state.get_managed_message_ids():
+        logger.debug(f"Message ID {message_id} is not managed. Ignoring reaction removal.")
+        return
+
+    match_id, team_id = await get_team_id_for_message(message_id, channel_id)
+    if match_id == "PROCESSING":
+        task_id = team_id  # In this case, team_id is actually task_id
+        logger.info(f"Task is still processing for message_id {message_id}. Task ID: {task_id}")
+
+        result = await poll_task_result(session, task_id, max_retries=30, delay=3)
+        if not result or 'error' in result:
+            logger.error(f"Could not fetch match and team ID for message {message_id}. Error: {result.get('error', 'Unknown error')}")
             return
+        else:
+            match_id, team_id = result['match_id'], result['team_id']
 
-        # Check if the user has any other reactions left on this message
-        has_other_reactions = False
-        for react in reaction.message.reactions:
-            async for reacting_user in react.users():
-                if reacting_user == user:
-                    has_other_reactions = True
-                    break
-            if has_other_reactions:
-                break
+    if match_id is None or team_id is None:
+        logger.error(f"Could not find match or team for message {message_id}")
+        return
 
-        # If the user has no other reactions, set their status to "no_response"
-        if not has_other_reactions:
-            api_url = f"{WEBUI_API_URL}/update_availability"
-            payload = {
-                'match_id': match_id,
-                'discord_id': str(user.id),
-                'response': 'no_response',
-                'responded_at': datetime.utcnow().isoformat()
-            }
-            response = requests.post(api_url, json=payload)
-            
-            if response.status_code == 200:
-                print(f"Availability updated successfully to no response for user {user.id}.")
-            else:
-                print(f"Failed to update availability: {response.text}")
+    user = bot.get_user(user_id)
+    if not user:
+        logger.error(f"User with ID {user_id} not found.")
+        return
+
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        logger.error(f"Channel with ID {channel_id} not found.")
+        return
+
+    message = await channel.fetch_message(message_id)
+    
+    # Check if the user has any other valid reactions
+    valid_emojis = ['👍', '👎', '🤷']
+    user_reactions = [reaction for reaction in message.reactions if str(reaction.emoji) in valid_emojis]
+    
+    for reaction in user_reactions:
+        users = [user async for user in reaction.users()]
+        if user in users and str(reaction.emoji) != emoji:
+            logger.debug(f"User {user_id} still has a valid reaction: {reaction.emoji}")
+            return  # User still has a valid reaction, so we don't need to update anything
+
+    # If we get here, the user has no valid reactions left
+    logger.debug(f"Updating RSVP to 'no_response' for user {user_id}")
+    await update_user_rsvp(match_id, user_id, "no_response")
 
 async def start_fastapi():
+    """
+    Starts the FastAPI server using Uvicorn.
+    """
     config = uvicorn.Config(app, host="0.0.0.0", port=5001, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
 
 async def main():
+    """
+    Main entry point to run both FastAPI and the Discord bot concurrently.
+    """
     await asyncio.gather(
         start_fastapi(),
         bot.start(bot_token)

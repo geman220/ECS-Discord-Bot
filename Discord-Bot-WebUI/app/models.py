@@ -599,7 +599,7 @@ class Match(db.Model):
     ref_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
     ref = db.relationship('Player', backref='assigned_matches')
 
-    scheduled_messages = db.relationship('ScheduledMessage', back_populates='match', lazy='dynamic')
+    scheduled_messages = db.relationship('ScheduledMessage', back_populates='match')
 
     def to_dict(self, include_teams=False, include_events=False):
         data = {
@@ -743,7 +743,7 @@ class Availability(db.Model):
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
     discord_id = db.Column(db.String(100), nullable=False)  # Link to Discord user
-    response = db.Column(db.String(10), nullable=False)  # yes, no, maybe
+    response = db.Column(db.String(20), nullable=False)  # yes, no, maybe
     responded_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field
     match = db.relationship('Match', back_populates='availability')
     player = db.relationship('Player', back_populates='availability')
@@ -911,10 +911,14 @@ class ScheduledMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.String(20), default='PENDING')  # PENDING, SENT, FAILED
-    discord_message_id = db.Column(db.String(20))  # To store the Discord message ID after sending
+    status = db.Column(db.String(20), default='PENDING')
+    home_channel_id = db.Column(db.String(20), nullable=True)
+    home_message_id = db.Column(db.String(20), nullable=True)
+    away_channel_id = db.Column(db.String(20), nullable=True)
+    away_message_id = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     match = db.relationship('Match', back_populates='scheduled_messages')
 
