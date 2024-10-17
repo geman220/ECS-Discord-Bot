@@ -199,8 +199,16 @@
 
                                 {% if is_classic_league_player %}
                                 <div class="col-md-6">
-                                    <label for="team_swap" class="form-label">{{ form.team_swap.label.text }}</label>
-                                    {{ form.team_swap(class_="form-select select2", id="team_swap") }}
+                                    <label for="{{ form.team_swap.id }}" class="form-label">{{ form.team_swap.label.text }}</label>
+                                    {{ form.team_swap(class_="form-select select2", id=form.team_swap.id) }}
+
+                                    {% if form.team_swap.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.team_swap.errors %}
+                                        <span>{{ error }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
 
