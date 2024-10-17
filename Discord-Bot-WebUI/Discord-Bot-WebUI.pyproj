@@ -42,6 +42,7 @@
     <Compile Include="app\match_api.py" />
     <Compile Include="app\match_pages.py" />
     <Compile Include="app\players.py" />
+    <Compile Include="app\profile_helpers.py" />
     <Compile Include="app\publeague.py" />
     <Compile Include="app\scheduler.py" />
     <Compile Include="app\schedule_routes.py" />

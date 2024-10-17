@@ -13,6 +13,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import select, func, or_, and_
 from PIL import Image
+from app.profile_helpers import handle_add_stat_manually, handle_career_stats_update, handle_season_stats_update, check_email_uniqueness, handle_profile_update, handle_ref_status_update, handle_coach_status_update
 from datetime import datetime
 import uuid
 import secrets
@@ -1072,275 +1073,122 @@ def create_player():
 @players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])
 @login_required
 def player_profile(player_id):
+    logger.info(f"Accessing profile for player_id: {player_id} by user_id: {current_user.id}")
+    
     player = Player.query.options(joinedload(Player.team)).get_or_404(player_id)
-    current_season_name, current_year = get_current_season_and_year()
-    season = Season.query.filter_by(name=current_season_name).first()
-
+    logger.debug(f"Fetched player: {player}")
+    
     user = player.user
-
-    # Query all matches that the player has participated in through PlayerEvent
-    matches = Match.query.join(PlayerEvent).filter(PlayerEvent.player_id == player_id).all()
-
+    logger.debug(f"Associated user: {user}")
+    
+    current_season_name, current_year = get_current_season_and_year()
+    logger.debug(f"Current season: {current_season_name}, Year: {current_year}")
+    
+    season = Season.query.filter_by(name=current_season_name).first()
     if not season:
+        logger.error(f"Current season '{current_season_name}' not found in the database.")
         flash('Current season not found.', 'danger')
         return redirect(url_for('home'))
-
-    # Query distinct jersey sizes from the Player table
+    logger.debug(f"Fetched season: {season}")
+    
+    matches = Match.query.join(PlayerEvent).filter(PlayerEvent.player_id == player_id).all()
+    logger.debug(f"Fetched {len(matches)} matches for player {player_id}")
+    
     distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
     jersey_sizes = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]
-
-    # Fetch the Classic League
+    logger.debug(f"Distinct jersey sizes: {jersey_sizes}")
+    
     classic_league = League.query.filter_by(name='Classic').first()
     if not classic_league:
+        logger.error("Classic league not found in the database.")
         flash('Classic league not found', 'danger')
         return redirect(url_for('players.player_profile', player_id=player.id))
-
-    # Ensure season stats exist
+    logger.debug(f"Fetched classic league: {classic_league}")
+    
     season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season.id).first()
     if not season_stats:
+        logger.debug(f"No season stats found for player {player_id} in season {season.id}. Creating new entry.")
         season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
         db.session.add(season_stats)
         db.session.commit()
-
-    # Ensure career stats exist
-    if not player.career_stats:  # Check if the career_stats collection is empty
+    
+    if not player.career_stats:
+        logger.debug(f"No career stats found for player {player.id}. Creating new entry.")
         new_career_stats = PlayerCareerStats(player_id=player.id)
-        player.career_stats.append(new_career_stats)  # Append the new object to the collection
+        player.career_stats.append(new_career_stats)
         db.session.add(new_career_stats)
         db.session.commit()
-
+    
     is_classic_league_player = player.league_id == classic_league.id
     is_player = player.user_id == current_user.id
     is_admin = current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin')
-
-    # Handle the coach status update (only if admin)
-    if is_admin and request.method == 'POST' and 'update_coach_status' in request.form:
-        try:
-            # Update the player's coach status
-            is_coach = 'is_coach' in request.form  # True if checkbox is checked
-            
-            # Update player.is_coach field
-            player.is_coach = is_coach
-            
-            # Fetch the 'Pub League Coach' role
-            coach_role = Role.query.filter_by(name='Pub League Coach').first()
-
-            if is_coach:
-                # Add 'Pub League Coach' role to the user's roles
-                if coach_role not in user.roles:
-                    user.roles.append(coach_role)
-            else:
-                # Remove 'Pub League Coach' role from the user's roles if unmarked
-                if coach_role in user.roles:
-                    user.roles.remove(coach_role)
-            
-            db.session.commit()
-            flash(f"{player.name}'s coach status updated successfully.", 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            flash('An error occurred while updating the coach status. Please try again.', 'danger')
-            current_app.logger.error(f"Error updating coach status for player {player_id}: {str(e)}")
-
-    # Handle referee status update (new logic)
-    if is_admin and request.method == 'POST' and 'update_ref_status' in request.form:
-        try:
-            is_ref = 'is_ref' in request.form  # True if checkbox is checked
-            player.is_ref = is_ref
-
-            # Fetch the 'Pub League Ref' role
-            ref_role = Role.query.filter_by(name='Pub League Ref').first()
-
-            if is_ref:
-                # Add 'Pub League Ref' role to the user's roles if marked as ref
-                if ref_role and ref_role not in user.roles:
-                    user.roles.append(ref_role)
-            else:
-                # Remove 'Pub League Ref' role from the user's roles if unmarked
-                if ref_role and ref_role in user.roles:
-                    user.roles.remove(ref_role)
-
-            db.session.commit()
-            flash(f"{player.name}'s referee status updated successfully.", 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            flash('An error occurred while updating the referee status. Please try again.', 'danger')
-            current_app.logger.error(f"Error updating referee status for player {player_id}: {str(e)}")
-
-    form = PlayerProfileForm(obj=player) if is_player or is_admin else None
+    
+    logger.debug(f"is_classic_league_player: {is_classic_league_player}, is_player: {is_player}, is_admin: {is_admin}")
+    
+    # Instantiate the form based on the request method
+    if request.method == 'POST':
+        form = PlayerProfileForm()
+        logger.debug("Instantiated form for POST request.")
+    else:
+        form = PlayerProfileForm(obj=player)
+        logger.debug("Instantiated form for GET request with obj=player.")
+    
     if form:
-        form.jersey_size.choices = jersey_sizes  # Populate jersey size choices
+        # Set jersey_size choices
+        form.jersey_size.choices = jersey_sizes
+        logger.debug(f"Set jersey_size choices to: {form.jersey_size.choices}")
+        
         if request.method == 'GET':
             form.email.data = user.email
-
-    season_stats_form = SeasonStatsForm(
-        season_goals=season_stats.goals,
-        season_assists=season_stats.assists,
-        season_yellow_cards=season_stats.yellow_cards,
-        season_red_cards=season_stats.red_cards
-    ) if is_admin else None
-
-    career_stats_form = CareerStatsForm(
-        career_goals=player.get_career_goals(),
-        career_assists=player.get_career_assists(),
-        career_yellow_cards=player.get_career_yellow_cards(),
-        career_red_cards=player.get_career_red_cards()
-    ) if is_admin else None
-
-    # Pre-populate the multi-select fields with data from the database
-    if form:
+            logger.debug(f"Pre-populated form.email with {user.email}")
+        
         form.other_positions.data = player.other_positions.split(',') if player.other_positions else []
         form.positions_not_to_play.data = player.positions_not_to_play.split(',') if player.positions_not_to_play else []
-        form.favorite_position.data = player.favorite_position
+        logger.debug(f"Set form.other_positions to {form.other_positions.data}")
+        logger.debug(f"Set form.positions_not_to_play to {form.positions_not_to_play.data}")
+        
         if is_classic_league_player and hasattr(form, 'team_swap'):
-            form.team_swap.data = player.team_swap
-
-    # Handle profile update (only if allowed)
-    if form and form.validate_on_submit() and 'update_profile' in request.form:
-        try:
-            email = form.email.data.lower()
-            current_app.logger.info(f"Profile update triggered for player {player_id}, User: {user.id}")
+            # No need to set choices dynamically as they are predefined
+            form.team_swap.data = player.team_swap if player.team_swap else ''
+            logger.debug(f"Pre-populated form.team_swap with {player.team_swap}")
     
-            # Log the form data
-            current_app.logger.debug(f"Form Data: {request.form}")
-            current_app.logger.debug(f"Email in form: {form.email.data}")
-        
-            # Log the current email before updating
-            current_app.logger.info(f"Current email for User {user.id}: {user.email}")
-
-            # Check for email uniqueness
-            if form.email.data:
-                existing_user = User.query.filter(
-                    User.email == form.email.data,
-                    User.id != user.id  # Exclude current user from the check
-                ).first()
-
-                if existing_user:
-                    current_app.logger.warning(f"Email {form.email.data} already in use by another user.")
-                    flash('Email is already in use by another account.', 'danger')
-                    return render_template(
-                        'player_profile.html',
-                        player=player,
-                        user=user,  # Ensure user is passed
-                        matches=matches,
-                        season=season,
-                        is_admin=is_admin,
-                        is_player=is_player,
-                        is_classic_league_player=is_classic_league_player,
-                        form=form,
-                        audit_logs=audit_logs
-                    )
-
-            # Log before updating the email
-            current_app.logger.info(f"Attempting to update email for User {user.id} from {user.email} to {form.email.data}")
-
-            # Update the email in the user table
-            user.email = form.email.data  # Update user email here
-
-            # Log the updated email after the assignment but before commit
-            current_app.logger.info(f"Updated email for User {user.id} is now {user.email}")
-        
-            # Log other player fields before updating
-            current_app.logger.debug(f"Before Update - Player: {player.id}, Favorite Position: {player.favorite_position}, Other Positions: {player.other_positions}, Positions Not To Play: {player.positions_not_to_play}")
-
-            # Update other player fields
-            form.favorite_position.data = request.form.get('favorite_position')
-            form.other_positions.data = request.form.getlist('other_positions')
-            form.positions_not_to_play.data = request.form.getlist('positions_not_to_play')
-
-            # Populate the player fields
-            form.populate_obj(player)
-
-            # Manually update fields that need special handling
-            player.favorite_position = form.favorite_position.data
-            player.other_positions = ','.join(form.other_positions.data)
-            player.positions_not_to_play = ','.join(form.positions_not_to_play.data)
-
-            # Log after updating player fields
-            current_app.logger.debug(f"After Update - Player: {player.id}, Favorite Position: {player.favorite_position}, Other Positions: {player.other_positions}, Positions Not To Play: {player.positions_not_to_play}")
-
-            if is_classic_league_player and hasattr(form, 'team_swap'):
-                player.team_swap = form.team_swap.data
-                current_app.logger.debug(f"Updated team_swap for player {player.id}: {player.team_swap}")
-
-            # Log before committing to the database
-            current_app.logger.info(f"Committing updates for User {user.id} and Player {player.id}")
-
-            # Add user to the session
-            db.session.add(user)
+    season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
+    if season_stats_form:
+        logger.debug("Initialized SeasonStatsForm")
+    career_stats_form = CareerStatsForm(obj=player.career_stats[0]) if is_admin and player.career_stats else None
+    if career_stats_form:
+        logger.debug("Initialized CareerStatsForm")
     
-            # Commit both the player and the user to the database
-            db.session.commit()
-
-            # Log successful commit
-            current_app.logger.info(f"Profile successfully updated for User {user.id} and Player {player.id}")
-
-            flash('Profile updated successfully.', 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            current_app.logger.error(f"Error updating profile for player {player_id}: {str(e)}")
-            flash('An error occurred while updating the profile. Please try again.', 'danger')
-
-    # Handle season stats update (only if admin)
-    if is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
-        try:
-            player.update_season_stats(season.id, {
-                'goals': season_stats_form.season_goals.data,
-                'assists': season_stats_form.season_assists.data,
-                'yellow_cards': season_stats_form.season_yellow_cards.data,
-                'red_cards': season_stats_form.season_red_cards.data,
-            }, user_id=current_user.id)
-
-            flash('Season stats updated successfully.', 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            flash('An error occurred while updating season stats. Please try again.', 'danger')
-            current_app.logger.error(f"Error updating season stats for player {player_id}: {str(e)}")
-
-    # Handle career stats update (only if admin and manually triggered)
-    if is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
-        try:
-            player.update_career_stats({
-                'goals': career_stats_form.career_goals.data,
-                'assists': career_stats_form.career_assists.data,
-                'yellow_cards': career_stats_form.career_yellow_cards.data,
-                'red_cards': career_stats_form.career_red_cards.data,
-            }, user_id=current_user.id)
-
-            flash('Career stats updated successfully.', 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            flash('An error occurred while updating career stats. Please try again.', 'danger')
-            current_app.logger.error(f"Error updating career stats for player {player_id}: {str(e)}")
-
-    # Handle adding new match-specific stats (for admin only)
-    if is_admin and request.method == 'POST' and 'add_stat_manually' in request.form:
-        try:
-            new_stat_data = {
-                'match_id': request.form.get('match_id'),
-                'goals': int(request.form.get('goals', 0)),
-                'assists': int(request.form.get('assists', 0)),
-                'yellow_cards': int(request.form.get('yellow_cards', 0)),
-                'red_cards': int(request.form.get('red_cards', 0)),
-            }
-            player.add_stat_manually(new_stat_data, user_id=current_user.id)
-            flash('Stat added successfully.', 'success')
-            return redirect(url_for('players.player_profile', player_id=player.id))
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            flash('An error occurred while adding stats. Please try again.', 'danger')
-            current_app.logger.error(f"Error adding stats for player {player_id}: {str(e)}")
-
-    # Fetch audit logs
+    if request.method == 'POST':
+        logger.info("Received POST request on player_profile")
+        if is_admin and 'update_coach_status' in request.form:
+            logger.debug("Detected 'update_coach_status' in form submission.")
+            handle_coach_status_update(player, user)
+        elif is_admin and 'update_ref_status' in request.form:
+            logger.debug("Detected 'update_ref_status' in form submission.")
+            handle_ref_status_update(player, user)
+        elif form and form.validate_on_submit() and 'update_profile' in request.form:
+            logger.debug("Form validated successfully for 'update_profile'.")
+            handle_profile_update(form, player, user)
+        elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
+            logger.debug("Form validated successfully for 'update_season_stats'.")
+            handle_season_stats_update(player, season_stats_form, season.id)
+        elif is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
+            logger.debug("Form validated successfully for 'update_career_stats'.")
+            handle_career_stats_update(player, career_stats_form)
+        elif is_admin and 'add_stat_manually' in request.form:
+            logger.debug("Detected 'add_stat_manually' in form submission.")
+            handle_add_stat_manually(player)
+        else:
+            logger.warning("POST request did not match any known form submissions.")
+            if form:
+                logger.debug(f"Form validation errors: {form.errors}")
+            else:
+                logger.debug("No form available for validation.")
+    
     audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id).order_by(PlayerStatAudit.timestamp.desc()).all()
-
+    logger.debug(f"Fetched {len(audit_logs)} audit logs for player {player_id}")
+    
     return render_template(
         'player_profile.html',
         player=player,

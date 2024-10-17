@@ -80,7 +80,7 @@ class OnboardingForm(FlaskForm):
     frequency_play_goal = SelectField('Goal Frequency', choices=goal_frequency_choices, validators=[Optional()])
     additional_info = TextAreaField('Additional Information', validators=[Optional()])
     player_notes = TextAreaField('Player Notes', validators=[Optional()])
-    team_swap = SelectField('Willing to Switch Teams for a Day if Needed?', choices=[('yes', 'Yes'), ('no', 'No'), ('maybe', 'Maybe')], validators=[Optional()])
+    team_swap = SelectField('Willing to Switch Teams for a Day if Needed?', choices=[('', 'Select an option'), ('yes', 'Yes'), ('no', 'No'), ('maybe', 'Maybe')], validators=[Optional()])
 
     # SettingsForm Fields
     email_notifications = BooleanField('Email Notifications')
@@ -167,7 +167,7 @@ class PlayerProfileForm(FlaskForm):
     frequency_play_goal = SelectField('Goal Frequency', choices=goal_frequency_choices, validators=[Optional()])
     additional_info = TextAreaField('Additional Information', validators=[Optional()])
     player_notes = TextAreaField('Player Notes', validators=[Optional()])
-    team_swap = SelectField('Willing to Switch Teams for a Day if Needed?', choices=[('yes', 'Yes'), ('no', 'No'), ('maybe', 'Maybe')], validators=[Optional()])
+    team_swap = SelectField('Willing to Switch Teams for a Day if Needed?', choices=[('', 'Select an option'), ('yes', 'Yes'), ('no', 'No'), ('maybe', 'Maybe')], validators=[Optional()])
 
     # Admin-only fields
     notes = TextAreaField('Admin Notes', validators=[Optional()])
