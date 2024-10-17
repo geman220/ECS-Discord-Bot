@@ -492,32 +492,30 @@ class Player(db.Model):
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
         """
         Logs changes to player statistics.
-
-        :param stat: The name of the statistic being changed.
-        :param old_value: The previous value of the statistic.
-        :param new_value: The new value of the statistic.
-        :param change_type: The type of change (ADD, DELETE, EDIT).
-        :param user_id: The ID of the user performing the change.
-        :param season_id: The ID of the season (optional).
         """
         if change_type not in [ct.value for ct in StatChangeType]:
             logging.warning(f"Invalid change type '{change_type}' for stat change logging.")
             return
 
-        log_entry = StatChangeLog(
-            player_id=self.id,
-            stat=stat,
-            old_value=old_value,
-            new_value=new_value,
-            change_type=change_type,
-            user_id=user_id,
-            season_id=season_id
-        )
-        db.session.add(log_entry)
-        db.session.commit()
-        logging.info(
-            f"Logged stat change for Player ID {self.id}: {stat} {change_type} from {old_value} to {new_value} by User ID {user_id}."
-        )
+        try:
+            log_entry = StatChangeLog(
+                player_id=self.id,
+                stat=stat,
+                old_value=old_value,
+                new_value=new_value,
+                change_type=change_type,
+                user_id=user_id,
+                season_id=season_id
+            )
+            db.session.add(log_entry)
+            db.session.commit()
+            logging.info(
+                f"Logged stat change for Player ID {self.id}: {stat} {change_type} from {old_value} to {new_value} by User ID {user_id}."
+            )
+        except Exception as e:
+            db.session.rollback()  # Ensure rollback on failure
+            logging.error(f"Error logging stat change for Player ID {self.id}: {str(e)}")
+
 
     def get_career_goals(self):
         if self.career_stats:  # Check if career_stats is not empty
@@ -870,11 +868,15 @@ class Feedback(db.Model):
 
     @classmethod
     def delete_old_closed_tickets(cls):
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
-        for ticket in old_closed_tickets:
-            db.session.delete(ticket)
-        db.session.commit()
+        try:
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
+            for ticket in old_closed_tickets:
+                db.session.delete(ticket)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()  # Rollback in case of error
+            logging.error(f"Error deleting old closed tickets: {str(e)}")
 
 class FeedbackReply(db.Model):
     __tablename__ = 'feedback_replies'
@@ -952,8 +954,12 @@ class Token(db.Model):
         return not self.is_expired and not self.used
 
     def invalidate(self):
-        self.used = True
-        db.session.commit()
+        try:
+            self.used = True
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()  # Ensure rollback on failure
+            logging.error(f"Error invalidating token {self.token} for player {self.player_id}: {str(e)}")
 
 class MLSMatch(db.Model):
     __tablename__ = 'mls_matches'

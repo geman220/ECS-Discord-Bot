@@ -54,8 +54,12 @@ def update_notifications():
         current_user.email_notifications = form.email_notifications.data
         current_user.discord_notifications = form.discord_notifications.data
         current_user.profile_visibility = form.profile_visibility.data
-        db.session.commit()
-        flash('Notification settings updated successfully.', 'success')
+        try:
+            db.session.commit()
+            flash('Notification settings updated successfully.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating notification settings: {str(e)}', 'danger')
     else:
         flash('Error updating notification settings.', 'danger')
     return redirect(url_for('account.settings'))
@@ -68,8 +72,12 @@ def change_password():
         if check_password_hash(current_user.password_hash, form.current_password.data):
             new_password_hash = generate_password_hash(form.new_password.data)
             current_user.password_hash = new_password_hash
-            db.session.commit()
-            flash('Your password has been updated successfully.', 'success')
+            try:
+                db.session.commit()
+                flash('Your password has been updated successfully.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error updating password: {str(e)}', 'danger')
         else:
             flash('Current password is incorrect.', 'danger')
     else:
@@ -86,8 +94,12 @@ def update_account_info():
     if current_user.player:
         current_user.player.name = form.get('name')
         current_user.player.phone = form.get('phone')
-    db.session.commit()
-    flash('Account information updated successfully', 'success')
+    try:
+        db.session.commit()
+        flash('Account information updated successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating account information: {str(e)}', 'danger')
     return redirect(url_for('account.settings'))
 
 @account_bp.route('/initiate-sms-opt-in', methods=['POST'])
@@ -114,18 +126,21 @@ def initiate_sms_opt_in():
     player.sms_opt_out_timestamp = None
     
     if user_is_blocked_in_textmagic(phone_number):
-        return jsonify(success=False, message="You previously un-subscribed.  Please text 'START' to (833) 600 - 7554 re-subscribe to SMS notifications."), 400
+        return jsonify(success=False, message="You previously un-subscribed. Please text 'START' to (833) 600 - 7554 re-subscribe to SMS notifications."), 400
 
     current_user.sms_notifications = True
-    db.session.commit()
     
-    success, message = send_confirmation_sms(current_user)
-    
-    if success:
-        return jsonify(success=True, message="Verification code sent. Please check your phone.")  
-    else:
-        current_app.logger.error(f'Failed to send SMS to user {current_user.id}. Error: {message}')
-        return jsonify(success=False, message="Failed to send verification code. Please try again."), 500
+    try:
+        db.session.commit()
+        success, message = send_confirmation_sms(current_user)
+        if success:
+            return jsonify(success=True, message="Verification code sent. Please check your phone.")  
+        else:
+            current_app.logger.error(f'Failed to send SMS to user {current_user.id}. Error: {message}')
+            return jsonify(success=False, message="Failed to send verification code. Please try again."), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, message=f"Error updating SMS settings: {str(e)}"), 500
 
 @account_bp.route('/confirm-sms-opt-in', methods=['POST'])
 @login_required  
@@ -138,8 +153,12 @@ def confirm_sms_opt_in():
     if verify_sms_confirmation(current_user, confirmation_code):
         current_user.sms_notifications = True
         current_user.player.is_phone_verified = True    
-        db.session.commit()
-        return jsonify(success=True, message="SMS notifications enabled successfully.")
+        try:
+            db.session.commit()
+            return jsonify(success=True, message="SMS notifications enabled successfully.")
+        except Exception as e:
+            db.session.rollback()
+            return jsonify(success=False, message=f"Error confirming SMS opt-in: {str(e)}"), 500
     else:
         return jsonify(success=False, message="Invalid verification code."), 400
 
@@ -148,8 +167,12 @@ def confirm_sms_opt_in():
 def opt_out_sms():
     current_user.sms_notifications = False
     current_user.player.sms_opt_out_timestamp = datetime.utcnow()
-    db.session.commit()
-    return jsonify(success=True, message="You have successfully opted-out of SMS notifications.")
+    try:
+        db.session.commit()
+        return jsonify(success=True, message="You have successfully opted-out of SMS notifications.")
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(success=False, message=f"Error opting out of SMS notifications: {str(e)}"), 500
 
 @account_bp.route('/sms-opt-in-status', methods=['GET'])
 @login_required
@@ -186,7 +209,11 @@ def enable_2fa():
     if request.method == 'GET':
         if not current_user.totp_secret:
             current_user.totp_secret = pyotp.random_base32()
-            db.session.commit()
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify(success=False, message=f"Error enabling 2FA: {str(e)}"), 500
 
         totp = pyotp.TOTP(current_user.totp_secret)
         otp_uri = totp.provisioning_uri(name=current_user.email, issuer_name="ECS Web")
@@ -205,8 +232,12 @@ def enable_2fa():
         
         if totp.verify(code):
             current_user.is_2fa_enabled = True
-            db.session.commit()
-            return jsonify({'success': True})
+            try:
+                db.session.commit()
+                return jsonify({'success': True})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify(success=False, message=f"Error confirming 2FA: {str(e)}"), 500
         else:
             return jsonify({'success': False, 'message': 'Invalid verification code'}), 400
 
@@ -218,8 +249,12 @@ def disable_2fa():
         if current_user.is_2fa_enabled:
             current_user.is_2fa_enabled = False
             current_user.totp_secret = None
-            db.session.commit()
-            flash('Two-Factor Authentication has been disabled.', 'success')
+            try:
+                db.session.commit()
+                flash('Two-Factor Authentication has been disabled.', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error disabling 2FA: {str(e)}", 'danger')
         else:
             flash('Two-Factor Authentication is not currently enabled.', 'warning')
     else:
@@ -264,8 +299,12 @@ def verify_2fa():
         totp = pyotp.TOTP(current_user.totp_secret)
         if totp.verify(form.totp_token.data):
             current_user.is_2fa_enabled = True
-            db.session.commit()
-            return jsonify({"success": True})
+            try:
+                db.session.commit()
+                return jsonify({"success": True})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"success": False, "errors": {"db_error": str(e)}}), 500
         else:
             return jsonify({"success": False, "errors": {"totp_token": "Invalid 2FA token."}}), 400
     return jsonify({"success": False, "errors": form.errors}), 400
@@ -330,8 +369,12 @@ def discord_callback():
     # Link the Discord ID to the current user
     if current_user.player:
         current_user.player.discord_id = discord_id
-        db.session.commit()
-        flash('Your Discord account has been successfully linked.', 'success')
+        try:
+            db.session.commit()
+            flash('Your Discord account has been successfully linked.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error linking Discord account: {str(e)}", 'danger')
     else:
         flash('Unable to link Discord account. Player profile not found.', 'danger')
 
@@ -342,8 +385,12 @@ def discord_callback():
 def unlink_discord():
     if current_user.player and current_user.player.discord_id:
         current_user.player.discord_id = None
-        db.session.commit()
-        flash('Your Discord account has been unlinked successfully.', 'success')
+        try:
+            db.session.commit()
+            flash('Your Discord account has been unlinked successfully.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error unlinking Discord account: {str(e)}", 'danger')
     else:
         flash('No Discord account is currently linked.', 'info')
     return redirect(url_for('account.settings'))

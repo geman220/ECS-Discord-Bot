@@ -122,22 +122,19 @@ def update_standings(match, old_home_score=None, old_away_score=None):
 
     try:
         # Fetch or create standings for home and away teams
-        home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first()
-        away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first()
+        home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first_or_create()
+        away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first_or_create()
 
-        # Revert old match result if provided (i.e., if editing a match)
+        # Revert old match result if provided
         if old_home_score is not None and old_away_score is not None:
             logger.info(f"Reverting old match result for Match ID: {match.id}")
             if old_home_score > old_away_score:
-                # Revert a previous win for the home team
                 home_team_standing.wins -= 1
                 away_team_standing.losses -= 1
             elif old_home_score < old_away_score:
-                # Revert a previous win for the away team
                 away_team_standing.wins -= 1
                 home_team_standing.losses -= 1
             else:
-                # Revert a previous draw
                 home_team_standing.draws -= 1
                 away_team_standing.draws -= 1
 
@@ -150,15 +147,13 @@ def update_standings(match, old_home_score=None, old_away_score=None):
             home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
             away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
 
-            # Revert points based on old result
             home_team_standing.points = (home_team_standing.wins * 3) + home_team_standing.draws
             away_team_standing.points = (away_team_standing.wins * 3) + away_team_standing.draws
 
-            # Decrement played matches
             home_team_standing.played -= 1
             away_team_standing.played -= 1
 
-        # Now apply the new match result
+        # Apply the new match result
         if match.home_team_score > match.away_team_score:
             home_team_standing.wins += 1
             away_team_standing.losses += 1
@@ -169,106 +164,100 @@ def update_standings(match, old_home_score=None, old_away_score=None):
             home_team_standing.draws += 1
             away_team_standing.draws += 1
 
-        # Update points for the new result
         home_team_standing.points = (home_team_standing.wins * 3) + home_team_standing.draws
         away_team_standing.points = (away_team_standing.wins * 3) + away_team_standing.draws
 
-        # Update goals for and against
         home_team_standing.goals_for += match.home_team_score
         home_team_standing.goals_against += match.away_team_score
         away_team_standing.goals_for += match.away_team_score
         away_team_standing.goals_against += match.home_team_score
 
-        # Update goal difference
         home_team_standing.goal_difference = home_team_standing.goals_for - home_team_standing.goals_against
         away_team_standing.goal_difference = away_team_standing.goals_for - away_team_standing.goals_against
 
-        # Increment played matches
         home_team_standing.played += 1
         away_team_standing.played += 1
 
-        # Commit the standings updates
         db.session.commit()
         logger.info(f"Standings updated for Match ID {match.id}")
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error updating standings: {str(e)}")
-        raise e
+        logger.error(f"Error updating standings for Match ID {match.id}: {str(e)}")
+        raise
 
 def process_events(match, data, event_type, add_key, remove_key):
-    logger.info(f"Processing events for {event_type.name}")
+    logger = logging.getLogger(__name__)
 
-    # Retrieve events to add and remove from the data
+    logger.info(f"Processing {event_type.name} events for Match ID {match.id}")
     events_to_add = data.get(add_key, [])
     events_to_remove = data.get(remove_key, [])
 
-    # Log the events for debugging purposes
-    logger.info(f"Events to add for {event_type.name}: {events_to_add}")
-    logger.info(f"Events to remove for {event_type.name}: {events_to_remove}")
+    # Log events being added/removed
+    logger.debug(f"Events to add: {events_to_add}")
+    logger.debug(f"Events to remove: {events_to_remove}")
 
-    event_type_value = event_type.value  # Convert event_type to its value for comparison if needed
+    try:
+        # Process events to remove
+        for event_data in events_to_remove:
+            stat_id = event_data.get('stat_id')
+            if stat_id:
+                event = PlayerEvent.query.get(stat_id)
+                if event:
+                    update_player_stats(event.player_id, event.event_type.value, increment=False)
+                    db.session.delete(event)
+                    db.session.flush()  # Ensure deletion is handled immediately
+                    logger.info(f"Removed {event_type.name}: Stat ID {stat_id}")
+                else:
+                    logger.warning(f"Event with Stat ID {stat_id} not found. Skipping removal.")
 
-    # Process events to remove
-    for event_data in events_to_remove:
-        stat_id = event_data.get('stat_id')
-        if stat_id:
-            event = PlayerEvent.query.get(stat_id)
-            if event:
-                # Decrement player stats before deleting the event
-                update_player_stats(event.player_id, event.event_type.value, increment=False)
-                logger.info(f"Removing {event_type.name}: Player ID {event.player_id}, Stat ID: {stat_id}")
-                db.session.delete(event)  # Delete the event here
-                db.session.flush()  # Ensure deletion is properly handled in the session
+        # Process events to add or update
+        for event_data in events_to_add:
+            player_id = event_data.get('player_id')
+            minute = event_data.get('minute')
+            stat_id = event_data.get('stat_id')
+
+            player_id = int(player_id)
+            if stat_id:
+                stat_id = int(stat_id)
+
+            player = Player.query.filter(
+                (Player.id == player_id) &
+                (Player.team_id.in_([match.home_team_id, match.away_team_id]))
+            ).first()
+
+            if not player:
+                raise ValueError(f"Player with ID {player_id} is not part of this match.")
+
+            if stat_id:
+                event = PlayerEvent.query.get(stat_id)
+                if event:
+                    if event.player_id != player_id:
+                        update_player_stats(event.player_id, event.event_type, increment=False)
+                        update_player_stats(player_id, event_type.value, increment=True)
+                        event.player_id = player_id
+                    event.minute = minute if minute else None
+                    logger.info(f"Updated {event_type.name}: Player ID {player_id}, Stat ID {stat_id}")
+                else:
+                    logger.warning(f"Event with Stat ID {stat_id} not found. Cannot update.")
             else:
-                logger.warning(f"Event with Stat ID {stat_id} not found. Skipping removal.")
+                new_event = PlayerEvent(
+                    player_id=player_id,
+                    match_id=match.id,
+                    minute=minute,
+                    event_type=event_type
+                )
+                db.session.add(new_event)
+                logger.info(f"Added {event_type.name}: Player ID {player_id}, Minute {minute}")
+                update_player_stats(player_id, event_type.value)
 
-    # Process events to add or update
-    for event_data in events_to_add:
-        player_id = event_data.get('player_id')
-        minute = event_data.get('minute')
-        stat_id = event_data.get('stat_id')
+        db.session.commit()
+        logger.info(f"Events processed for Match ID {match.id}")
 
-        player_id = int(player_id)
-        if stat_id:
-            stat_id = int(stat_id)
-
-        # Fetch player and ensure they belong to either the home or opponent team
-        player = Player.query.filter(
-            (Player.id == player_id) &
-            (Player.team_id.in_([match.home_team_id, match.away_team_id]))  # Allow either home or away team
-        ).first()
-
-        if not player:
-            logger.error(f"Player with ID {player_id} not found in either team for this match.")
-            raise ValueError(f"Player with ID {player_id} is not part of this match.")
-
-        if stat_id:
-            # Update existing event
-            event = PlayerEvent.query.get(stat_id)
-            if event:
-                if event.player_id != player_id:
-                    update_player_stats(event.player_id, event.event_type, increment=False)
-                    update_player_stats(player_id, event_type_value, increment=True)
-                    event.player_id = player_id
-                event.minute = minute if minute else None
-                logger.info(f"Updated {event_type.name}: Player ID {player_id}, Minute {event.minute}, Stat ID: {stat_id}")
-            else:
-                logger.warning(f"Event with Stat ID {stat_id} not found. Cannot update.")
-        else:
-            # Add new event
-            new_event = PlayerEvent(
-                player_id=player_id,
-                match_id=match.id,
-                minute=minute if minute else None,
-                event_type=event_type  # Use enum member directly
-            )
-            db.session.add(new_event)
-            logger.info(f"Added New {event_type.name}: Player ID {player_id}, Minute {minute}")
-            update_player_stats(player_id, event_type_value)
-
-    # Commit the changes to the database
-    db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error processing {event_type.name} events for Match ID {match.id}: {e}")
+        raise
 
 def update_player_stats(player_id, event_type, increment=True):
     logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}")

@@ -176,9 +176,15 @@ def assign_ref():
         # Assign the ref
         logger.info(f"Assigning Referee {ref.name} (ID: {ref_id}) to Match ID {match_id}")
         match.ref = ref
-        db.session.commit()
 
-        return jsonify({'message': 'Referee assigned successfully.'}), 200
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            return jsonify({'message': 'Referee assigned successfully.'}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error committing referee assignment: {str(e)}")
+            return jsonify({'error': 'An internal error occurred while assigning the referee.'}), 500
 
     except Exception as e:
         logger.exception("An error occurred while assigning the referee.")
@@ -248,9 +254,15 @@ def remove_ref():
         # Remove the referee
         logger.info(f"Removing referee {match.ref.name} from match ID {match_id}.")
         match.ref = None
-        db.session.commit()
 
-        return jsonify({'message': 'Referee removed successfully.'}), 200
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            return jsonify({'message': 'Referee removed successfully.'}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error committing referee removal: {str(e)}")
+            return jsonify({'error': 'An internal error occurred while removing the referee.'}), 500
 
     except Exception as e:
         logger.exception("An error occurred while removing the referee.")

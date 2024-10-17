@@ -208,6 +208,7 @@ def edit_user(user_id):
         flash('Invalid input.', 'warning')
 
     return redirect(url_for('user_management.manage_users'))
+
 # Remove User Route
 @user_management_bp.route('/remove_user/<int:user_id>', methods=['POST'])
 @login_required

@@ -105,12 +105,10 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
     return f"/static/img/uploads/profile_pictures/{filename}"
 
 def decrement_player_stats(player_id, event_type):
-    # Logging the player ID and event type
     current_app.logger.info(f"Decrementing stats for Player ID: {player_id}, Event Type: {event_type}")
     
     player = Player.query.get(player_id)
     
-    # Log if player is not found
     if not player:
         current_app.logger.error(f"Player not found for Player ID: {player_id}")
         return
@@ -126,10 +124,8 @@ def decrement_player_stats(player_id, event_type):
         current_app.logger.error(f"Career stats not found for Player ID: {player_id}")
         return
 
-    # Log current stats
     log_current_stats(season_stats, career_stats)
 
-    # Map event types to corresponding stats
     event_stats_map = {
         PlayerEventType.GOAL: ('goals', 'Decremented goals'),
         PlayerEventType.ASSIST: ('assists', 'Decremented assists'),
@@ -137,21 +133,18 @@ def decrement_player_stats(player_id, event_type):
         PlayerEventType.RED_CARD: ('red_cards', 'Decremented red cards')
     }
 
-    # Decrement the corresponding stat if the event type matches
     if event_type in event_stats_map:
         stat_attr, log_msg = event_stats_map[event_type]
         decrement_stat(season_stats, career_stats, stat_attr, player_id, log_msg)
     else:
         current_app.logger.error(f"Unknown event type: {event_type} for Player ID: {player_id}")
 
-    # Commit the changes and log it
     try:
         db.session.commit()
         current_app.logger.info(f"Successfully decremented stats for Player ID: {player_id}")
     except SQLAlchemyError as e:
         db.session.rollback()
         current_app.logger.error(f"Failed to commit decremented stats for Player ID: {player_id}. Error: {str(e)}")
-
 
 def decrement_stat(season_stats, career_stats, stat_attr, player_id, log_msg):
     """Helper function to decrement a stat safely"""
@@ -655,66 +648,50 @@ def create_player_profile(player_data, league, user):
     return player
 
 def create_user_and_player_profile(player_info, league):
-    """
-    Creates or updates user and player profile and marks players as current.
-
-    Args:
-        player_info (dict): Extracted player information.
-        league (League): League object.
-
-    Returns:
-        Player: The created or updated Player object, or None if failed.
-    """
     try:
-        # Check if the User with this email already exists, case-insensitive
         user = User.query.filter(func.lower(User.email) == func.lower(player_info['email'])).first()
 
         if not user:
-            # Create a new user
             random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
             user = User(
-                email=player_info['email'].lower(),  # Store email in lowercase
+                email=player_info['email'].lower(),
                 username=player_info['name'],
-                is_approved=True,  # Set is_approved to True for all unique users
+                is_approved=True
             )
             user.set_password(random_password)
             db.session.add(user)
-            db.session.flush()  # Ensure user is available for assigning user_id
+            db.session.flush()
             logger.info(f"Created new user '{user.email}' with username '{user.username}' and approved status.")
 
-        # Check if a Player with this user_id and league_id already exists
         existing_player = Player.query.filter_by(user_id=user.id, league_id=league.id).first()
 
         if existing_player:
-            # Mark existing player as current
             existing_player.is_current_player = True
-            db.session.commit()  # Commit the change for existing player
+            db.session.commit()
             logger.info(f"Marked existing player '{existing_player.name}' as CURRENT_PLAYER.")
             return existing_player
 
-        else:
-            # Create a new player profile if not existing
-            new_player = Player(
-                name=player_info['name'],
-                phone=player_info['phone'],
-                jersey_size=player_info['jersey_size'],
-                league_id=league.id,  # Assign ECS FC league or provided league
-                user_id=user.id,  # Link to the user
-                is_current_player=True  # Mark new player as current player
-            )
-            db.session.add(new_player)
-            db.session.flush()  # Ensure the player is available
-            logger.info(f"Created new player profile for '{new_player.name}' with email '{user.email}'.")
-            return new_player
+        new_player = Player(
+            name=player_info['name'],
+            phone=player_info['phone'],
+            jersey_size=player_info['jersey_size'],
+            league_id=league.id,
+            user_id=user.id,
+            is_current_player=True
+        )
+        db.session.add(new_player)
+        db.session.commit()  # Commit user and player creation
+        logger.info(f"Created new player profile for '{new_player.name}' with email '{user.email}'.")
+
+        return new_player
 
     except IntegrityError as ie:
+        db.session.rollback()
         logger.error(f"IntegrityError while creating player for '{user.email}': {ie}", exc_info=True)
-        db.session.rollback()
         return None
-
     except Exception as e:
-        logger.error(f"Error creating player for '{user.email}': {e}", exc_info=True)
         db.session.rollback()
+        logger.error(f"Error creating player for '{user.email}': {e}", exc_info=True)
         return None
 
 def send_password_setup_email(user):

@@ -151,8 +151,12 @@ def update_player_profile():
         if field in data:
             setattr(player, field, data[field])
 
-    db.session.commit()
-    return jsonify({"msg": "Profile updated successfully", "player": player.to_dict()}), 200
+    try:
+        db.session.commit()
+        return jsonify({"msg": "Profile updated successfully", "player": player.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": f"Error updating profile: {str(e)}"}), 500
 
 @mobile_api.route('/players/<int:player_id>', methods=['GET'])
 @jwt_required()
@@ -378,8 +382,12 @@ def update_availability():
         )
         db.session.add(availability)
 
-    db.session.commit()
-    return jsonify({"msg": "Availability updated successfully"}), 200
+    try:
+        db.session.commit()
+        return jsonify({"msg": "Availability updated successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": f"Error updating availability: {str(e)}"}), 500
 
 @mobile_api.route('/report_match/<int:match_id>', methods=['POST'])
 @jwt_required()
@@ -404,8 +412,12 @@ def report_match(match_id):
         )
         db.session.add(new_event)
 
-    db.session.commit()
-    return jsonify({"msg": "Match reported successfully", "match": match.to_dict()}), 200
+    try:
+        db.session.commit()
+        return jsonify({"msg": "Match reported successfully", "match": match.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
 
 @mobile_api.route('/draft_player', methods=['POST'])
 @jwt_required()
@@ -422,9 +434,13 @@ def draft_player():
         return jsonify({"msg": "Player or team not found"}), 404
 
     player.team_id = team_id
-    db.session.commit()
 
-    return jsonify({"msg": "Player drafted successfully", "player": player.to_dict()}), 200
+    try:
+        db.session.commit()
+        return jsonify({"msg": "Player drafted successfully", "player": player.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": f"Error drafting player: {str(e)}"}), 500
 
 @mobile_api.route('/standings', methods=['GET'])
 @jwt_required()
@@ -454,10 +470,13 @@ def submit_feedback():
         priority=data.get('priority', 'Low')
     )
 
-    db.session.add(new_feedback)
-    db.session.commit()
-
-    return jsonify({"msg": "Feedback submitted successfully", "feedback": new_feedback.to_dict()}), 201
+    try:
+        db.session.add(new_feedback)
+        db.session.commit()
+        return jsonify({"msg": "Feedback submitted successfully", "feedback": new_feedback.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": f"Error submitting feedback: {str(e)}"}), 500
 
 @mobile_api.route('/leagues', methods=['GET'])
 @jwt_required()
@@ -576,9 +595,13 @@ def discord_callback():
         
         if not user:
             user = User(email=user_data['email'], username=user_data['username'])
-            db.session.add(user)
-            db.session.commit()
-            current_app.logger.info("New user created")
+            try:
+                db.session.add(user)
+                db.session.commit()
+                current_app.logger.info("New user created")
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({"error": f"Error creating user: {str(e)}"}), 500
         
         if user.is_2fa_enabled:
             current_app.logger.info("2FA is enabled for the user")
