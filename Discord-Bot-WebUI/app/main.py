@@ -530,24 +530,47 @@ def notifications():
 @login_required
 def mark_as_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
+    
     if notification.user_id != current_user.id:
         abort(403)
-    notification.read = True
-    db.session.commit()
+
+    try:
+        notification.read = True
+        db.session.commit()
+        flash('Notification marked as read.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error marking notification {notification_id} as read: {str(e)}")
+        flash('An error occurred. Please try again.', 'danger')
+
     return redirect(url_for('main.notifications'))
 
 @main.route('/set_tour_skipped', methods=['POST'])
 @login_required
 def set_tour_skipped():
-    current_user.has_completed_tour = False
-    db.session.commit()
+    try:
+        current_user.has_completed_tour = False
+        db.session.commit()
+        logger.info(f"User {current_user.id} set tour as skipped.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error setting tour skipped for user {current_user.id}: {str(e)}")
+        return jsonify({'error': 'An error occurred while updating tour status'}), 500
+    
     return '', 204
 
 @main.route('/set_tour_complete', methods=['POST'])
 @login_required
 def set_tour_complete():
-    current_user.has_completed_tour = True
-    db.session.commit()
+    try:
+        current_user.has_completed_tour = True
+        db.session.commit()
+        logger.info(f"User {current_user.id} completed the tour.")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error setting tour complete for user {current_user.id}: {str(e)}")
+        return jsonify({'error': 'An error occurred while updating tour status'}), 500
+    
     return '', 204
 
 @main.route('/version', methods=['GET'])

@@ -168,16 +168,21 @@ def update_availability():
                 availability.response = response
                 app.logger.info("Updated existing availability entry")
 
-        db.session.commit()
-        app.logger.info("Availability updated successfully from Discord")
-
-        return jsonify({"message": "Availability updated successfully"}), 200
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            app.logger.info("Availability updated successfully from Discord")
+            return jsonify({"message": "Availability updated successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error updating availability from Discord: {str(e)}")
+            return jsonify({"error": "Internal Server Error"}), 500
 
     except Exception as e:
-        db.session.rollback()
-        app.logger.error(f"Error updating availability from Discord: {str(e)}")
+        app.logger.error(f"Error processing availability update: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+# Endpoint to store message IDs
 @availability_bp.route('/store_message_ids', methods=['POST'])
 def store_message_ids():
     data = request.json
@@ -203,13 +208,19 @@ def store_message_ids():
         scheduled_message.home_message_id = home_message_id
         scheduled_message.away_channel_id = away_channel_id
         scheduled_message.away_message_id = away_message_id
-        db.session.commit()
-        app.logger.info(f"Message IDs stored successfully for match_id: {match_id}")
+        
+        # Commit changes to the database
+        try:
+            db.session.commit()
+            app.logger.info(f"Message IDs stored successfully for match_id: {match_id}")
+            return jsonify({"message": "Message IDs stored successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error storing message IDs: {str(e)}")
+            return jsonify({"error": "Internal Server Error"}), 500
 
-        return jsonify({"message": "Message IDs stored successfully"}), 200
     except Exception as e:
-        db.session.rollback()
-        app.logger.exception(f"Error storing message IDs: {str(e)}")
+        app.logger.error(f"Error processing store message IDs: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 @availability_bp.route('/get_match_id_from_message/<string:message_id>', methods=['GET'])
@@ -293,6 +304,7 @@ def get_match_rsvps(match_id):
         app.logger.exception(f"Error fetching RSVPs: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
+# Endpoint to update availability from Discord
 @availability_bp.route('/update_availability_from_discord', methods=['POST'])
 def update_availability_from_discord():
     # Log request headers and body for debugging purposes
@@ -357,19 +369,22 @@ def update_availability_from_discord():
         app.logger.debug(f"Availability record state before commit: {availability}")
 
         # Commit changes to the database
-        db.session.commit()
-        app.logger.info(f"Database changes committed successfully for match {match_id}, player {player.id}")
+        try:
+            db.session.commit()
+            app.logger.info(f"Database changes committed successfully for match {match_id}, player {player.id}")
+            
+            # Notify Discord and frontend of the changes using Celery
+            notify_discord_of_rsvp_change_task.delay(match_id)
+            notify_frontend_of_rsvp_change_task.delay(match_id, player.id, response)
 
-        # Notify Discord and frontend of the changes using Celery
-        notify_discord_of_rsvp_change_task.delay(match_id)
-        notify_frontend_of_rsvp_change_task.delay(match_id, player.id, response)
-
-        return jsonify({'status': 'success'}), 200
+            return jsonify({'status': 'success'}), 200
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error committing availability update: {str(e)}")
+            return jsonify({'error': 'Internal Server Error'}), 500
 
     except Exception as e:
-        # Rollback the session in case of an exception and log the error
-        db.session.rollback()
-        app.logger.exception(f"Error updating availability from Discord for match_id={match_id}, discord_id={discord_id}: {str(e)}")
+        app.logger.error(f"Error processing availability update: {str(e)}")
         return jsonify({'error': 'Internal Server Error'}), 500
 
 @availability_bp.route('/get_message_ids/<int:match_id>', methods=['GET'])

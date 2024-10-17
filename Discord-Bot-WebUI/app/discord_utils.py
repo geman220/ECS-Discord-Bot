@@ -232,49 +232,28 @@ async def create_discord_channel(team_name, division, team_id):
 
             # Deny @everyone access, allow team roles and admin
             permission_overwrites = [
-                {
-                    "id": str(guild_id),  # Deny @everyone
-                    "type": 0,            # Role
-                    "deny": str(VIEW_CHANNEL),
-                    "allow": "0"
-                },
-                {
-                    "id": str(team.discord_player_role_id),
-                    "type": 0,            # Player role
-                    "allow": str(TEAM_ROLE_PERMISSIONS),
-                    "deny": "0"
-                },
-                {
-                    "id": str(team.discord_coach_role_id),
-                    "type": 0,            # Coach role
-                    "allow": str(TEAM_ROLE_PERMISSIONS),
-                    "deny": "0"
-                },
-                {
-                    "id": str(wg_ecs_fc_admin_role_id),
-                    "type": 0,            # Role
-                    "allow": str(TEAM_ROLE_PERMISSIONS),
-                    "deny": "0"
-                }
+                {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
+                {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"},
+                {"id": str(team.discord_coach_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"},
+                {"id": str(wg_ecs_fc_admin_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"}
             ]
 
             # Create the team channel with permission_overwrites
-            payload = {
-                "name": team_name,
-                "parent_id": category_id,
-                "type": 0,  # Text channel
-                "permission_overwrites": permission_overwrites
-            }
-
+            payload = {"name": team_name, "parent_id": category_id, "type": 0, "permission_overwrites": permission_overwrites}
             url = f"{Config.BOT_API_URL}/guilds/{guild_id}/channels"
+
             response = await make_discord_request('POST', url, session, json=payload)
             if response:
                 discord_channel_id = response['id']
                 logger.info(f"Created Discord channel: {team_name} under category {category_name} with ID {discord_channel_id}")
 
                 # Update the team with the discord_channel_id
-                team.discord_channel_id = discord_channel_id
-                db.session.commit()
+                try:
+                    team.discord_channel_id = discord_channel_id
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logger.error(f"Error committing channel ID for team {team_name}: {str(e)}")
             else:
                 logger.error(f"Failed to create channel for team {team_name}")
         else:
@@ -297,10 +276,14 @@ async def create_discord_roles(team_name, team_id):
 
         # Update the team with the role IDs
         team = Team.query.get(team_id)
-        team.discord_coach_role_id = coach_role_id
-        team.discord_player_role_id = player_role_id
-        db.session.commit()
-        logger.info(f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}")
+        try:
+            team.discord_coach_role_id = coach_role_id
+            team.discord_player_role_id = player_role_id
+            db.session.commit()
+            logger.info(f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error committing role IDs for team {team_name}: {str(e)}")
 
 async def wait_for_role_registration(team_id, max_attempts=20, delay=0.1):
     """Waits for the role IDs (coach and player) to be registered in the database for a given team."""
@@ -602,20 +585,34 @@ def get_expected_roles(player):
 def mark_player_for_update(player_id):
     from app import db
     from app.models import Player
-    Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
-    db.session.commit()
+    try:
+        Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error marking player {player_id} for update: {str(e)}")
+
 
 def mark_team_for_update(team_id):
     from app import db
     from app.models import Player
-    Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
-    db.session.commit()
+    try:
+        Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error marking team {team_id} for update: {str(e)}")
+
 
 def mark_league_for_update(league_id):
     from app import db
     from app.models import Player, Team
-    Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
-    db.session.commit()
+    try:
+        Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error marking league {league_id} for update: {str(e)}")
 
 async def update_player_roles(player, session, force_update=False):
     from app import db
@@ -626,7 +623,6 @@ async def update_player_roles(player, session, force_update=False):
     expected_roles = get_expected_roles(player)
 
     roles_to_add = set(expected_roles) - set(current_roles)
-
     guild_id = int(os.getenv('SERVER_ID'))
 
     try:
@@ -643,6 +639,7 @@ async def update_player_roles(player, session, force_update=False):
         db.session.commit()
         return True
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error updating roles for player {player.name}: {str(e)}")
         return False
 
@@ -733,9 +730,13 @@ async def get_discord_roles(user_id, session, force_check=False):
         if response and 'roles' in response:
             roles = [role['name'] for role in response['roles']]
             if player:
-                player.discord_roles = roles
-                player.discord_last_verified = datetime.utcnow()
-                db.session.commit()
+                try:
+                    player.discord_roles = roles
+                    player.discord_last_verified = datetime.utcnow()
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logger.error(f"Error committing Discord roles for player {player.name}: {str(e)}")
             return roles, "active"
         else:
             logger.warning(f"No roles found for user {user_id}")

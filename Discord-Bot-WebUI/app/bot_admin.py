@@ -101,13 +101,15 @@ def start_live_reporting_route(match_id):
         return jsonify({'success': False, 'message': 'Live reporting already started or scheduled'}), 400
     
     # Schedule the task
-    task = start_live_reporting.apply_async(args=[match_id])
-    
-    match.live_reporting_status = 'scheduled'
-    match.live_reporting_task_id = task.id
-    db.session.commit()
-    
-    return jsonify({'success': True, 'message': 'Live reporting scheduled'})
+    try:
+        task = start_live_reporting.apply_async(args=[match_id])
+        match.live_reporting_status = 'scheduled'
+        match.live_reporting_task_id = task.id
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Live reporting scheduled'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f"Error scheduling live reporting: {str(e)}"}), 500
 
 @bot_admin_bp.route('/stop_live_reporting/<match_id>', methods=['POST'])
 @login_required
@@ -118,15 +120,19 @@ def stop_live_reporting(match_id):
     
     if match.live_reporting_status not in ['running', 'scheduled']:
         return jsonify({'success': False, 'message': 'Live reporting is not running or scheduled for this match'}), 400
-    
-    match.live_reporting_status = 'stopped'
-    db.session.commit()
-    
-    # If there's a running task, revoke it
-    if match.live_reporting_task_id:
-        celery_app.control.revoke(match.live_reporting_task_id, terminate=True)
-    
-    return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
+
+    try:
+        match.live_reporting_status = 'stopped'
+        db.session.commit()
+
+        # If there's a running task, revoke it
+        if match.live_reporting_task_id:
+            celery_app.control.revoke(match.live_reporting_task_id, terminate=True)
+
+        return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f"Error stopping live reporting: {str(e)}"}), 500
 
 # Add New MLS Match
 @bot_admin_bp.route('/matches/add', methods=['POST'])
@@ -269,7 +275,6 @@ def remove_mls_match(match_id):
 def clear_all_mls_matches():
     try:
         # Logic to delete all matches
-        # Example: Match.query.delete() (Make sure to adjust based on your ORM and models)
         db.session.query(Match).delete()
         db.session.commit()
         return jsonify({'success': True})

@@ -79,7 +79,7 @@ def update_rsvp(match_id, player_id, new_response, discord_id=None):
         
         db.session.commit()
         
-        # Trigger Discord update
+        # Trigger Discord and frontend updates after successful commit
         if player.discord_id:
             update_discord_rsvp_task.delay({
                 "match_id": match_id,
@@ -88,25 +88,25 @@ def update_rsvp(match_id, player_id, new_response, discord_id=None):
                 "old_response": old_response
             })
         
-        # Notify frontend
         notify_frontend_of_rsvp_change_task.delay(match_id, player_id, new_response)
         
         return True, "RSVP updated successfully"
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Error updating RSVP for match {match_id}, player {player_id}: {e}")
         return False, str(e)
+    finally:
+        db.session.close()
 
 async def async_send_availability_message(scheduled_message_id):
     scheduled_message = ScheduledMessage.query.get(scheduled_message_id)
     if not scheduled_message:
         return f"Scheduled message {scheduled_message_id} not found"
+
     match = scheduled_message.match
-    # Verify the discord_channel_id values
     home_channel_id = match.home_team.discord_channel_id
     away_channel_id = match.away_team.discord_channel_id
-    # Log the channel IDs
-    logger.debug(f"Home Channel ID: {home_channel_id}")
-    logger.debug(f"Away Channel ID: {away_channel_id}")
+
     url = "http://discord-bot:5001/api/post_availability"
     payload = {
         "match_id": match.id,
@@ -119,7 +119,9 @@ async def async_send_availability_message(scheduled_message_id):
         "home_team_name": match.home_team.name,
         "away_team_name": match.away_team.name
     }
+
     logger.debug(f"Payload being sent: {payload}")
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json=payload) as response:
@@ -127,22 +129,23 @@ async def async_send_availability_message(scheduled_message_id):
                 result = await response.json()
                 home_message_id = result.get('home_message_id')
                 away_message_id = result.get('away_message_id')
-                
+
                 # Store both message IDs
                 scheduled_message.home_discord_message_id = home_message_id
                 scheduled_message.away_discord_message_id = away_message_id
                 scheduled_message.status = 'SENT'
                 db.session.commit()
-                
-                # Log the received message IDs
+
                 logger.info(f"Stored message IDs - Home: {home_message_id}, Away: {away_message_id}")
-        
+
         return "Availability request posted successfully"
     except aiohttp.ClientError as e:
-        logger.error(f"Failed to post availability for match {match.id}: {str(e)}")
+        logger.error(f"Failed to post availability for match {match.id}: {e}")
         scheduled_message.status = 'FAILED'
-        db.session.commit()
-        return f"Failed to post availability: {str(e)}"
+        db.session.rollback()
+        return f"Failed to post availability: {e}"
+    finally:
+        db.session.close()
 
 async def _notify_discord_of_rsvp_change(match_id):
     bot_api_url = f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
@@ -219,7 +222,7 @@ def create_scheduled_mls_match_threads():
             MLSMatch.thread_creation_time <= now,
             MLSMatch.thread_created == False
         ).all()
-        
+
         async def process_matches():
             tasks = [create_match_thread(match) for match in due_matches]
             results = await asyncio.gather(*tasks)
@@ -228,10 +231,16 @@ def create_scheduled_mls_match_threads():
                     match.thread_created = True
                     match.discord_thread_id = thread_id
             db.session.commit()
+
+        try:
+            asyncio.run(process_matches())
+            logger.info(f"Processed {len(due_matches)} MLS matches for thread creation.")
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error creating match threads: {e}")
+        finally:
+            db.session.close()
         
-        asyncio.run(process_matches())
-        
-        logger.info(f"Processed {len(due_matches)} MLS matches for thread creation.")
         return f"Processed {len(due_matches)} MLS matches for thread creation."
 
 @shared_task
@@ -343,34 +352,37 @@ async def start_live_reporting_coroutine(match_id):
 
 @shared_task
 def schedule_season_availability():
-    app, celery = create_app()
+    app, _ = create_app()
     with app.app_context():
-        # Get matches for the next week
-        start_date = datetime.utcnow().date()
-        end_date = start_date + timedelta(days=7)
-        matches = Match.query.filter(Match.date.between(start_date, end_date)).all()
-        
-        for match in matches:
-            match_date = match.date  # Directly use the date object
-            send_date = match_date - timedelta(days=match_date.weekday() + 1)  # Previous Monday
-            send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)  # 9 AM
-    
-            # Check if a message is already scheduled
-            existing_message = ScheduledMessage.query.filter_by(match_id=match.id).first()
-            if not existing_message:
-                scheduled_message = ScheduledMessage(
-                    match_id=match.id,
-                    scheduled_send_time=send_time,
-                    status='PENDING'
-                )
-                db.session.add(scheduled_message)
-        
-        db.session.commit()
-        return f"Scheduled {len(matches)} availability messages for the next week."
+        try:
+            start_date = datetime.utcnow().date()
+            end_date = start_date + timedelta(days=7)
+            matches = Match.query.filter(Match.date.between(start_date, end_date)).all()
+
+            for match in matches:
+                send_date = match.date - timedelta(days=match.date.weekday() + 1)
+                send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
+
+                existing_message = ScheduledMessage.query.filter_by(match_id=match.id).first()
+                if not existing_message:
+                    scheduled_message = ScheduledMessage(
+                        match_id=match.id,
+                        scheduled_send_time=send_time,
+                        status='PENDING'
+                    )
+                    db.session.add(scheduled_message)
+
+            db.session.commit()
+            return f"Scheduled {len(matches)} availability messages for the next week."
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error scheduling season availability: {e}")
+        finally:
+            db.session.close()
 
 @shared_task
 def send_scheduled_messages():
-    app, celery = create_app()
+    app, _ = create_app()
     with app.app_context():
         now = datetime.utcnow()
         messages_to_send = ScheduledMessage.query.filter(
@@ -387,9 +399,10 @@ def send_scheduled_messages():
                     scheduled_message.status = 'FAILED'
                 db.session.commit()
             except Exception as e:
-                logger.error(f"Error sending message {scheduled_message.id}: {str(e)}")
+                db.session.rollback()
+                logger.error(f"Error sending message {scheduled_message.id}: {e}")
                 scheduled_message.status = 'FAILED'
-                db.session.commit()
+                db.session.commit()  # Ensure message status is updated even on failure
 
         return f"Processed {len(messages_to_send)} scheduled messages."
 

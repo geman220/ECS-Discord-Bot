@@ -85,31 +85,35 @@ def discord_callback():
     user = User.query.filter(func.lower(User.email) == discord_email).first()
 
     if not user:
-        # No matching user found, redirect to verification page
         flash("We couldn't find an account matching your Discord email. Please verify your WooCommerce purchase.")
         return redirect(url_for('auth.verify_purchase', discord_email=discord_email, discord_id=discord_id))
 
     # If a user is found, check if Discord ID needs linking
     if user.player and not user.player.discord_id:
-        user.player.discord_id = discord_id
-        db.session.commit()
-        flash('Your Discord ID has been linked to your player profile.', 'success')
+        try:
+            user.player.discord_id = discord_id
+            db.session.commit()
+            flash('Your Discord ID has been linked to your player profile.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error linking Discord ID: {str(e)}", 'danger')
 
     # Check if 2FA is enabled
     if user.is_2fa_enabled:
-        # Store the user ID in session and redirect to 2FA verification
         session['pending_2fa_user_id'] = user.id
         session['remember_me'] = False
         return redirect(url_for('auth.verify_2fa_login'))
 
     # If 2FA is not enabled, log in the user
-    if not user.is_2fa_enabled:
-        # Update last_login before logging in
+    try:
         user.last_login = datetime.utcnow()
         db.session.commit()
-
         login_user(user)
         return redirect(url_for('main.index'))
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error during login: {str(e)}", 'danger')
+        return redirect(url_for('auth.login'))
 
 # Verify Purchase and Link Discord
 @auth.route('/verify_purchase', methods=['GET', 'POST'])
@@ -127,21 +131,20 @@ def verify_purchase():
         if order_info:
             woo_email = order_info['billing'].get('email')
 
-            # Try to find a user with the WooCommerce email
             user = User.query.filter_by(email=woo_email).first()
 
             if user:
-                # Link the Discord ID to the player's profile if it exists
                 if user.player and not user.player.discord_id:
-                    user.player.discord_id = discord_id
-
-                    # Update the user's email to the Discord email
-                    user.email = discord_email
-
-                    db.session.commit()
-                    flash('Your purchase has been verified, your email has been updated, and your Discord account is linked.', 'success')
-                    login_user(user)
-                    return redirect(url_for('main.index'))
+                    try:
+                        user.player.discord_id = discord_id
+                        user.email = discord_email
+                        db.session.commit()
+                        flash('Your purchase has been verified, your email has been updated, and your Discord account is linked.', 'success')
+                        login_user(user)
+                        return redirect(url_for('main.index'))
+                    except Exception as e:
+                        db.session.rollback()
+                        flash(f"Error linking Discord account: {str(e)}", 'danger')
                 else:
                     flash('No player profile found for your account, or Discord ID already linked.', 'danger')
             else:
@@ -189,13 +192,14 @@ def login():
             return redirect(url_for('auth.verify_2fa_login'))
 
         # Update last_login before logging in
-        user.last_login = datetime.utcnow()
-        db.session.commit()
-
-        login_user(user, remember=form.remember.data)
-        
-        if not user.has_completed_onboarding and not user.has_skipped_profile_creation:
-            return redirect(url_for('main.index'))  # Redirect to index for onboarding
+        try:
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            login_user(user, remember=form.remember.data)
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error during login: {str(e)}", 'danger')
+            return redirect(url_for('auth.login'))
 
         return redirect(url_for('main.index'))
 
@@ -289,14 +293,13 @@ def send_reset_email(to_email, token):
     # Call your custom send_email function
     send_email(to=to_email, subject=subject, body=body)
 
-# Reset Password Route
+# Verify Purchase and Link Discord
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password_token(token):
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
     try:
-        # Verify the reset token
         s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         user_id = s.loads(token, salt='password-reset-salt', max_age=1800)['user_id']
     except:
@@ -310,17 +313,15 @@ def reset_password_token(token):
 
     form = ResetPasswordForm()
     if form.validate_on_submit():
-        # Set new password
-        user.set_password(form.password.data)
-        db.session.commit()
-
-        # Send password reset confirmation email
-        send_reset_confirmation_email(user.email)
-
-        flash('Your password has been updated! Please log in.', 'success')
-
-        # Redirect the user to the login page
-        return redirect(url_for('auth.login'))
+        try:
+            user.set_password(form.password.data)
+            db.session.commit()
+            send_reset_confirmation_email(user.email)
+            flash('Your password has been updated! Please log in.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error resetting password: {str(e)}", 'danger')
 
     return render_template('reset_password.html', form=form, token=token)
 

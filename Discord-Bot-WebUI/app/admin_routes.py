@@ -132,28 +132,33 @@ def admin_dashboard():
                 flash('User not found.', 'danger')
                 return redirect(url_for('admin.admin_dashboard'))
 
-            if action == 'approve':
-                user.is_approved = True
-                db.session.commit()
-                flash(f'User {user.username} approved successfully.', 'success')
-            elif action == 'remove':
-                db.session.delete(user)
-                db.session.commit()
-                flash(f'User {user.username} removed successfully.', 'success')
-            elif action == 'reset_password':
-                # Implement password reset logic here
-                flash(f'Password reset for {user.username} is not yet implemented.', 'warning')
+            try:
+                if action == 'approve':
+                    user.is_approved = True
+                    db.session.commit()
+                    flash(f'User {user.username} approved successfully.', 'success')
+                elif action == 'remove':
+                    db.session.delete(user)
+                    db.session.commit()
+                    flash(f'User {user.username} removed successfully.', 'success')
+                elif action == 'reset_password':
+                    flash(f'Password reset for {user.username} is not yet implemented.', 'warning')
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error processing {action} for user: {str(e)}", 'danger')
 
-        elif action == 'create_announcement':  # Handle announcement creation
+        elif action == 'create_announcement':
             title = request.form.get('title')
             content = request.form.get('content')
-
-            # Assuming there's a model called Announcement with title and content fields
             new_announcement = Announcement(title=title, content=content)
-            db.session.add(new_announcement)
-            db.session.commit()
 
-            flash('Announcement created successfully!', 'success')
+            try:
+                db.session.add(new_announcement)
+                db.session.commit()
+                flash('Announcement created successfully!', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error creating announcement: {str(e)}", 'danger')
 
         elif action == 'update_permissions':
             role_id = request.form.get('role_id')
@@ -164,15 +169,17 @@ def admin_dashboard():
                 flash('Role not found.', 'danger')
                 return redirect(url_for('admin.admin_dashboard'))
 
-            # Update permissions for the selected role
-            role.permissions = Permission.query.filter(Permission.id.in_(selected_permissions)).all()
-            db.session.commit()
-            flash(f"Permissions updated for role '{role.name}'.", 'success')
+            try:
+                role.permissions = Permission.query.filter(Permission.id.in_(selected_permissions)).all()
+                db.session.commit()
+                flash(f"Permissions updated for role '{role.name}'.", 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f"Error updating permissions for role '{role.name}': {str(e)}", 'danger')
 
         else:
             flash('Invalid action.', 'danger')
 
-        # Redirect to the dashboard after POST to prevent form re-submission and reload with GET context
         return redirect(url_for('admin.admin_dashboard'))
 
     # --------------------
@@ -383,27 +390,23 @@ def get_role_permissions():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def manage_announcements():
-    """
-    Create and view announcements.
-    """
     form = AnnouncementForm()
     if form.validate_on_submit():
-        # Determine the next position
         max_position = db.session.query(db.func.max(Announcement.position)).scalar() or 0
-
-        # Create a new announcement with the next position
         new_announcement = Announcement(
             title=form.title.data,
             content=form.content.data,
             position=max_position + 1
         )
-        db.session.add(new_announcement)
-        db.session.commit()
-
-        flash('Announcement created successfully.', 'success')
+        try:
+            db.session.add(new_announcement)
+            db.session.commit()
+            flash('Announcement created successfully.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error creating announcement: {str(e)}", 'danger')
         return redirect(url_for('admin.manage_announcements'))
 
-    # Fetch all announcements ordered by position
     announcements = Announcement.query.order_by(Announcement.position).all()
     return render_template('admin_dashboard.html', announcements=announcements, announcement_form=form)
 
@@ -411,9 +414,6 @@ def manage_announcements():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def edit_announcement(announcement_id):
-    """
-    Edit an existing announcement.
-    """
     announcement = Announcement.query.get_or_404(announcement_id)
     data = request.get_json()
 
@@ -441,9 +441,6 @@ def edit_announcement(announcement_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def delete_announcement(announcement_id):
-    """
-    Delete an existing announcement.
-    """
     announcement = Announcement.query.get_or_404(announcement_id)
     try:
         db.session.delete(announcement)
@@ -459,9 +456,6 @@ def delete_announcement(announcement_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def reorder_announcements():
-    """
-    Reorder announcements based on the provided order.
-    """
     order = request.json.get('order', [])
 
     if not order:
@@ -645,48 +639,48 @@ def view_feedback(feedback_id):
     note_form = NoteForm()
 
     if request.method == 'POST':
-        if 'update_feedback' in request.form and form.validate():
-            form.populate_obj(feedback)
-            db.session.commit()
-            flash('Feedback has been updated successfully.', 'success')
-            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+        try:
+            if 'update_feedback' in request.form and form.validate():
+                form.populate_obj(feedback)
+                db.session.commit()
+                flash('Feedback has been updated successfully.', 'success')
 
-        elif 'submit_reply' in request.form and reply_form.validate():
-            reply = FeedbackReply(
-                feedback_id=feedback.id,
-                user_id=current_user.id,
-                content=reply_form.content.data,
-                is_admin_reply=True  # Set this to True for admin replies
-            )
-            db.session.add(reply)
-            db.session.commit()
-
-            # Send email notification to user
-            if feedback.user:
-                send_email(
-                    to=feedback.user.email,
-                    subject=f"New admin reply to your Feedback #{feedback.id}",
-                    body=render_template('emails/new_reply_admin.html', feedback=feedback, reply=reply)
+            elif 'submit_reply' in request.form and reply_form.validate():
+                reply = FeedbackReply(
+                    feedback_id=feedback.id,
+                    user_id=current_user.id,
+                    content=reply_form.content.data,
+                    is_admin_reply=True
                 )
+                db.session.add(reply)
+                db.session.commit()
 
-            flash('Your reply has been added successfully.', 'success')
-            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+                if feedback.user:
+                    send_email(
+                        to=feedback.user.email,
+                        subject=f"New admin reply to your Feedback #{feedback.id}",
+                        body=render_template('emails/new_reply_admin.html', feedback=feedback, reply=reply)
+                    )
+                flash('Your reply has been added successfully.', 'success')
 
-        elif 'add_note' in request.form and note_form.validate():
-            note = Note(
-                content=note_form.content.data,
-                feedback_id=feedback.id,
-                author_id=current_user.id
-            )
-            db.session.add(note)
-            db.session.commit()
-            flash('Note added successfully.', 'success')
-            return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
+            elif 'add_note' in request.form and note_form.validate():
+                note = Note(
+                    content=note_form.content.data,
+                    feedback_id=feedback.id,
+                    author_id=current_user.id
+                )
+                db.session.add(note)
+                db.session.commit()
+                flash('Note added successfully.', 'success')
 
-    return render_template('admin_report_detail.html', 
-                           feedback=feedback, 
-                           form=form, 
-                           reply_form=reply_form, 
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error processing feedback update: {str(e)}", 'danger')
+
+    return render_template('admin_report_detail.html',
+                           feedback=feedback,
+                           form=form,
+                           reply_form=reply_form,
                            note_form=note_form)
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>/close', methods=['POST'])
@@ -694,18 +688,21 @@ def view_feedback(feedback_id):
 @role_required('Global Admin')
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
-    feedback.status = 'Closed'
-    feedback.closed_at = datetime.utcnow()
-    db.session.commit()
+    try:
+        feedback.status = 'Closed'
+        feedback.closed_at = datetime.utcnow()
+        db.session.commit()
 
-    # Send email notification to user
-    send_email(
-        to=feedback.user.email,
-        subject=f"Your Feedback #{feedback.id} has been closed",
-        body=render_template('emails/feedback_closed.html', feedback=feedback)
-    )
+        send_email(
+            to=feedback.user.email,
+            subject=f"Your Feedback #{feedback.id} has been closed",
+            body=render_template('emails/feedback_closed.html', feedback=feedback)
+        )
+        flash('Feedback has been closed successfully.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error closing feedback: {str(e)}", 'danger')
 
-    flash('Feedback has been closed successfully.', 'success')
     return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>/delete', methods=['POST'])
@@ -713,9 +710,14 @@ def close_feedback(feedback_id):
 @role_required('Global Admin')
 def delete_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
-    db.session.delete(feedback)
-    db.session.commit()
-    flash('Feedback has been permanently deleted.', 'success')
+    try:
+        db.session.delete(feedback)
+        db.session.commit()
+        flash('Feedback has been permanently deleted.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting feedback: {str(e)}", 'danger')
+
     return redirect(url_for('admin.admin_reports'))
 
 # --------------------
@@ -797,11 +799,16 @@ def schedule_mls_match_thread(match_id):
     match = MLSMatch.query.get_or_404(match_id)
     hours_before = int(request.form.get('hours_before', 24))
     match.thread_creation_time = match.date_time - timedelta(hours=hours_before)
-    db.session.commit()
-    return jsonify({
-        'success': True,
-        'message': f'Match thread for {match.opponent} scheduled to be created on {match.thread_creation_time}'
-    })
+
+    try:
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Match thread for {match.opponent} scheduled to be created on {match.thread_creation_time}'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f"Error scheduling thread: {str(e)}"}), 500
 
 @admin_bp.route('/admin/force_create_mls_thread/<int:match_id>', methods=['POST'])
 @login_required
@@ -828,22 +835,22 @@ def force_create_mls_thread(match_id):
                 'message': 'Failed to create MLS match thread. Please check the logs for more information.'
             })
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error in force_create_mls_thread: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'An error occurred: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': f"An error occurred: {str(e)}"}), 500
 
 @admin_bp.route('/admin/schedule_all_mls_threads', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def schedule_all_mls_threads():
     matches = MLSMatch.query.filter(MLSMatch.thread_created == False).all()
-    for match in matches:
-        if not match.thread_creation_time:
-            match.thread_creation_time = match.date_time - timedelta(hours=24)
-    db.session.commit()
-    return jsonify({
-        'success': True,
-        'message': 'All unscheduled MLS match threads have been scheduled.'
-    })
+
+    try:
+        for match in matches:
+            if not match.thread_creation_time:
+                match.thread_creation_time = match.date_time - timedelta(hours=24)
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'All unscheduled MLS match threads have been scheduled.'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f"Error scheduling all threads: {str(e)}"}), 500

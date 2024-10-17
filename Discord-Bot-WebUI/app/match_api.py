@@ -293,69 +293,88 @@ def schedule_live_reporting_route():
     data = request.json
     match_id = data.get('match_id')
     
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
-    if not match:
-        logger.error(f"Match {match_id} not found")
-        return jsonify({'error': 'Match not found'}), 404
-    
-    if match.live_reporting_scheduled:
-        logger.warning(f"Live reporting already scheduled for match {match_id}")
-        return jsonify({'error': 'Live reporting already scheduled'}), 400
-    
-    match.live_reporting_scheduled = True
-    db.session.commit()
-    
-    # Schedule the task to start live reporting at match time
-    time_diff = match.date_time - datetime.utcnow()
-    celery.send_task('app.tasks.start_live_reporting', args=[match_id], countdown=time_diff.total_seconds())
-    
-    logger.info(f"Live reporting scheduled for match {match_id}")
-    return jsonify({'success': True, 'message': 'Live reporting scheduled'})
+    try:
+        match = MLSMatch.query.filter_by(match_id=match_id).first()
+        if not match:
+            logger.error(f"Match {match_id} not found")
+            return jsonify({'error': 'Match not found'}), 404
+
+        if match.live_reporting_scheduled:
+            logger.warning(f"Live reporting already scheduled for match {match_id}")
+            return jsonify({'error': 'Live reporting already scheduled'}), 400
+
+        match.live_reporting_scheduled = True
+        db.session.commit()
+
+        # Schedule the task to start live reporting at match time
+        time_diff = match.date_time - datetime.utcnow()
+        celery.send_task('app.tasks.start_live_reporting', args=[match_id], countdown=time_diff.total_seconds())
+
+        logger.info(f"Live reporting scheduled for match {match_id}")
+        return jsonify({'success': True, 'message': 'Live reporting scheduled'})
+
+    except Exception as e:
+        db.session.rollback()  # Rollback the transaction on error
+        logger.error(f"Error scheduling live reporting for match {match_id}: {str(e)}")
+        return jsonify({'error': 'An error occurred while scheduling live reporting.'}), 500
 
 @match_api.route('/start_live_reporting/<match_id>', methods=['POST'])
 @login_required
 def start_live_reporting_route(match_id):
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
-    if not match:
-        logger.error(f"Match {match_id} not found")
-        return jsonify({'success': False, 'error': 'Match not found'}), 404
-    
-    if match.live_reporting_status == 'running':
-        logger.warning(f"Live reporting already running for match {match_id}")
-        return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
-    
-    # Start the live reporting process
-    task = celery.send_task('app.tasks.start_live_reporting', args=[match_id])
-    
-    # Update the match status
-    match.live_reporting_status = 'running'
-    match.live_reporting_started = True
-    match.live_reporting_task_id = task.id
-    db.session.commit()
-    
-    logger.info(f"Live reporting started for match {match_id}")
-    return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
+    try:
+        match = MLSMatch.query.filter_by(match_id=match_id).first()
+        if not match:
+            logger.error(f"Match {match_id} not found")
+            return jsonify({'success': False, 'error': 'Match not found'}), 404
+
+        if match.live_reporting_status == 'running':
+            logger.warning(f"Live reporting already running for match {match_id}")
+            return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
+
+        # Start the live reporting process
+        task = celery.send_task('app.tasks.start_live_reporting', args=[match_id])
+
+        # Update the match status
+        match.live_reporting_status = 'running'
+        match.live_reporting_started = True
+        match.live_reporting_task_id = task.id
+        db.session.commit()
+
+        logger.info(f"Live reporting started for match {match_id}")
+        return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
+
+    except Exception as e:
+        db.session.rollback()  # Rollback the transaction on error
+        logger.error(f"Error starting live reporting for match {match_id}: {str(e)}")
+        return jsonify({'error': 'An error occurred while starting live reporting.'}), 500
 
 @match_api.route('/stop_live_reporting/<match_id>', methods=['POST'])
 @login_required
 def stop_live_reporting_route(match_id):
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
-    if not match:
-        logger.error(f"Match {match_id} not found")
-        return jsonify({'success': False, 'error': 'Match not found'}), 404
-    
-    if match.live_reporting_status != 'running':
-        logger.warning(f"Live reporting is not running for match {match_id}")
-        return jsonify({'success': False, 'error': 'Live reporting is not running for this match'}), 400
-    
-    match.live_reporting_status = 'stopped'
-    match.live_reporting_started = False
-    db.session.commit()
+    try:
+        match = MLSMatch.query.filter_by(match_id=match_id).first()
+        if not match:
+            logger.error(f"Match {match_id} not found")
+            return jsonify({'success': False, 'error': 'Match not found'}), 404
 
-    celery.control.revoke(match.live_reporting_task_id, terminate=True)
-    
-    logger.info(f"Live reporting stopped for match {match_id}")
-    return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
+        if match.live_reporting_status != 'running':
+            logger.warning(f"Live reporting is not running for match {match_id}")
+            return jsonify({'success': False, 'error': 'Live reporting is not running for this match'}), 400
+
+        # Stop live reporting and revoke the task
+        match.live_reporting_status = 'stopped'
+        match.live_reporting_started = False
+        db.session.commit()
+
+        celery.control.revoke(match.live_reporting_task_id, terminate=True)
+
+        logger.info(f"Live reporting stopped for match {match_id}")
+        return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
+
+    except Exception as e:
+        db.session.rollback()  # Rollback the transaction on error
+        logger.error(f"Error stopping live reporting for match {match_id}: {str(e)}")
+        return jsonify({'error': 'An error occurred while stopping live reporting.'}), 500
 
 @match_api.route('/get_match_status/<match_id>', methods=['GET'])
 def get_match_status(match_id):
