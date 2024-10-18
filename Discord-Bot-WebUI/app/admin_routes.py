@@ -730,21 +730,41 @@ def delete_feedback(feedback_id):
 def discord_role_status():
     players = Player.query.filter(Player.discord_id.isnot(None)).all()
     
-    player_data = [{
-        'id': player.id,
-        'name': player.name,
-        'discord_id': player.discord_id,
-        'team': player.team.name if player.team else 'No Team',
-        'league': player.team.league.name if player.team and player.team.league else 'No League',
-        'current_roles': player.discord_roles or [],
-        'expected_roles': get_expected_roles(player),
-        'last_verified': player.discord_last_verified,
-        'status_html': create_status_html({
-            'current_roles': player.discord_roles or [],
-            'expected_roles': get_expected_roles(player)
-        })
-    } for player in players]
-
+    player_data = []
+    for player in players:
+        logger.debug(f"Processing player: {player.name}, discord_roles: {player.discord_roles}")
+        
+        # Convert discord_roles to a flat list if it's stored as a nested list
+        current_roles = []
+        if player.discord_roles:
+            if isinstance(player.discord_roles, list):
+                # Flatten the list if it's nested
+                current_roles = [item for sublist in player.discord_roles if isinstance(sublist, list) for item in sublist]
+                # Add any string items that might be at the top level
+                current_roles.extend([item for item in player.discord_roles if isinstance(item, str)])
+            elif isinstance(player.discord_roles, str):
+                # If it's a string, split it (assuming it's comma-separated)
+                current_roles = [role.strip() for role in player.discord_roles.split(',')]
+        
+        expected_roles = get_expected_roles(player)
+        
+        player_info = {
+            'id': player.id,
+            'name': player.name,
+            'discord_id': player.discord_id,
+            'team': player.team.name if player.team else 'No Team',
+            'league': player.team.league.name if player.team and player.team.league else 'No League',
+            'current_roles': current_roles,
+            'expected_roles': expected_roles,
+            'last_verified': player.discord_last_verified,
+            'status_html': create_status_html({
+                'current_roles': current_roles,
+                'expected_roles': expected_roles
+            })
+        }
+        player_data.append(player_info)
+        logger.debug(f"Processed player data: {player_info}")
+    
     return render_template('discord_role_status.html', players=player_data)
 
 @admin_bp.route('/admin/update_player_roles/<int:player_id>', methods=['POST'])

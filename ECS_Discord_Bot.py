@@ -19,7 +19,7 @@ WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 # Configure logging
 if __name__ == "__main__":
     logging.basicConfig(
-        level=logging.LOGS,
+        level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     logger = logging.getLogger(__name__)
