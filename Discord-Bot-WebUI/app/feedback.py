@@ -20,66 +20,67 @@ def get_admin_emails():
 def submit_feedback():
     form = FeedbackForm()
     page = request.args.get('page', 1, type=int)
-    per_page = 10  # Number of feedbacks per page
+    per_page = 10
     search_query = request.args.get('q', '', type=str).strip()
-    
-    try:
-        if current_user.is_authenticated:
-            feedback_query = Feedback.query.filter_by(user_id=current_user.id)
-        else:
-            feedback_query = Feedback.query.filter_by(user_id=None)
+
+    if current_user.is_authenticated:
+        feedback_query = Feedback.query.filter_by(user_id=current_user.id)
+    else:
+        feedback_query = Feedback.query.filter_by(user_id=None)
         
-        if search_query:
-            feedback_query = feedback_query.filter(
-                Feedback.title.ilike(f'%{search_query}%') |
-                Feedback.category.ilike(f'%{search_query}%')
-            )
-        feedback_query = feedback_query.order_by(Feedback.created_at.desc())
-        user_feedbacks = feedback_query.paginate(page=page, per_page=per_page, error_out=False)
+    if search_query:
+        feedback_query = feedback_query.filter(
+            Feedback.title.ilike(f'%{search_query}%') |
+            Feedback.category.ilike(f'%{search_query}%')
+        )
+    
+    feedback_query = feedback_query.order_by(Feedback.created_at.desc())
+    user_feedbacks = feedback_query.paginate(page=page, per_page=per_page, error_out=False)
 
-        if form.validate_on_submit():
-            if current_user.is_authenticated:
-                user_id = current_user.id
-                name = current_user.username
-            else:
-                user_id = None
-                name = form.name.data
+    total_count = user_feedbacks.total
 
-            new_feedback = Feedback(
-                user_id=user_id,
-                name=name,
-                category=form.category.data,
-                title=form.title.data,
-                description=form.description.data
-            )
+    if form.validate_on_submit():
+        if current_user.is_authenticated:
+            user_id = current_user.id
+            name = current_user.username
+        else:
+            user_id = None
+            name = form.name.data
 
-            try:
-                db.session.add(new_feedback)
-                db.session.commit()
+        new_feedback = Feedback(
+            user_id=user_id,
+            name=name,
+            category=form.category.data,
+            title=form.title.data,
+            description=form.description.data
+        )
 
-                # Send email notification to admins
-                admin_emails = get_admin_emails()
-                if admin_emails:
-                    send_email(
-                        to=admin_emails,
-                        subject=f"New Feedback Submitted: {new_feedback.title}",
-                        body=render_template('emails/new_feedback_notification.html', feedback=new_feedback)
-                    )
+        try:
+            db.session.add(new_feedback)
+            db.session.commit()
 
-                flash('Your feedback has been submitted successfully!', 'success')
-                return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
+            admin_emails = get_admin_emails()
+            if admin_emails:
+                send_email(
+                    to=admin_emails,
+                    subject=f"New Feedback Submitted: {new_feedback.title}",
+                    body=render_template('emails/new_feedback_notification.html', feedback=new_feedback)
+                )
 
-            except Exception as e:
-                db.session.rollback()
-                flash(f"An error occurred while submitting feedback: {str(e)}", 'danger')
+            flash('Your feedback has been submitted successfully!', 'success')
+            return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
 
-    finally:
-        db.session.close()
+        except Exception as e:
+            db.session.rollback()
+            flash(f"An error occurred while submitting feedback: {str(e)}", 'danger')
 
     return render_template('feedback/submit_feedback.html', 
                            form=form, 
                            feedbacks=user_feedbacks, 
-                           search_query=search_query)
+                           search_query=search_query,
+                           total_count=total_count, 
+                           per_page=per_page,
+                           page=page)
 
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
