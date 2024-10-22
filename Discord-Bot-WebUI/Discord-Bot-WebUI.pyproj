@@ -49,6 +49,7 @@
     <Compile Include="app\season_routes.py" />
     <Compile Include="app\sms_helpers.py" />
     <Compile Include="app\sms_rsvp.py" />
+    <Compile Include="app\sql_log.py" />
     <Compile Include="app\tasks.py" />
     <Compile Include="app\teams.py" />
     <Compile Include="app\user_management.py" />
