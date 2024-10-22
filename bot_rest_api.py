@@ -873,20 +873,23 @@ async def create_channel(guild_id: int, request: ChannelRequest, bot: commands.B
             logger.error(f"Failed to create channel: {e}")
             raise HTTPException(status_code=500, detail="Failed to create channel")
 
-# Rename a channel in a guild
-@app.patch("/guilds/{guild_id}/channels/{channel_id}")
-async def update_channel(guild_id: int, channel_id: int, request: UpdateChannelRequest, bot: commands.Bot = Depends(get_bot)):
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        raise HTTPException(status_code=404, detail="Guild not found")
-
-    channel = guild.get_channel(channel_id)
-    if not channel:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
+# Rename a channel without specifying the guild in the route
+@app.patch("/channels/{channel_id}")
+async def update_channel(channel_id: int, request: UpdateChannelRequest, bot: commands.Bot = Depends(get_bot)):
     try:
-        await channel.edit(name=request.new_name)
+        # Fetch the channel directly from Discord API to avoid cache issues
+        channel = await bot.fetch_channel(channel_id)
+        if not channel:
+            raise HTTPException(status_code=404, detail="Channel not found")
+
+        # Debugging: Log the new name received
+        logger.debug(f"Received request to rename channel {channel_id} to: {request.new_name}")
+
+        # Edit the channel name
+        await channel.edit(name=request.new_name)  # Accessing the parsed new_name field
         return {"id": channel.id, "name": channel.name}
+    except discord.errors.NotFound:
+        raise HTTPException(status_code=404, detail="Channel not found")
     except Exception as e:
         logger.error(f"Failed to update channel: {e}")
         raise HTTPException(status_code=500, detail="Failed to update channel")
@@ -894,20 +897,22 @@ async def update_channel(guild_id: int, channel_id: int, request: UpdateChannelR
 # Delete a channel in a guild
 @app.delete("/guilds/{guild_id}/channels/{channel_id}")
 async def delete_channel(guild_id: int, channel_id: int, bot: commands.Bot = Depends(get_bot)):
+    logger.info(f"Received request to delete channel {channel_id} in guild {guild_id}")
     guild = bot.get_guild(guild_id)
     if not guild:
+        logger.error(f"Guild not found for ID: {guild_id}")
         raise HTTPException(status_code=404, detail="Guild not found")
 
-    channel = guild.get_channel(channel_id)
-    if not channel:
-        raise HTTPException(status_code=404, detail="Channel not found")
-
     try:
-        # Optionally, archive the channel before deleting if needed
+        channel = await bot.fetch_channel(channel_id)
+        if not channel:
+            logger.error(f"Channel not found for ID: {channel_id}")
+            raise HTTPException(status_code=404, detail="Channel not found")
         await channel.delete()
+        logger.info(f"Successfully deleted channel: {channel_id}")
         return {"status": "Channel deleted"}
     except Exception as e:
-        logger.error(f"Failed to delete channel: {e}")
+        logger.error(f"Error deleting channel: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete channel")
 
 # Create a new role in a guild
@@ -953,7 +958,7 @@ async def get_roles(guild_id: int, bot: commands.Bot = Depends(get_bot)):
     return roles
 
 # Rename a role in a guild
-@app.put("/guilds/{guild_id}/roles/{role_id}")
+@app.patch("/guilds/{guild_id}/roles/{role_id}")
 async def update_role(guild_id: int, role_id: int, request: UpdateRoleRequest, bot: commands.Bot = Depends(get_bot)):
     guild = bot.get_guild(guild_id)
     if not guild:

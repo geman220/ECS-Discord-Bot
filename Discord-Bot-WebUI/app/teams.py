@@ -122,8 +122,15 @@ def update_standings(match, old_home_score=None, old_away_score=None):
 
     try:
         # Fetch or create standings for home and away teams
-        home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first_or_create()
-        away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first_or_create()
+        home_team_standing = Standings.query.filter_by(team_id=home_team.id, season_id=season.id).first()
+        if home_team_standing is None:
+            home_team_standing = Standings(team_id=home_team.id, season_id=season.id)
+            db.session.add(home_team_standing)
+
+        away_team_standing = Standings.query.filter_by(team_id=away_team.id, season_id=season.id).first()
+        if away_team_standing is None:
+            away_team_standing = Standings(team_id=away_team.id, season_id=season.id)
+            db.session.add(away_team_standing)
 
         # Revert old match result if provided
         if old_home_score is not None and old_away_score is not None:
