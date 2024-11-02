@@ -5,7 +5,7 @@ from app.decorators import role_required, admin_or_owner_required
 from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
-from app.teams import current_season_id
+from app.teams_helpers import current_season_id
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash

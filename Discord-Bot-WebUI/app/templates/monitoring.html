@@ -1,0 +1,499 @@
+{% extends "base.html" %}
+{% block title %}Task Monitor{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">System /</span> Task Monitor
+    </h4>
+
+    <!-- Task Status Summary Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Task Status Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-label-primary">
+                        <div class="card-body">
+                            <h6>Total Scheduled Tasks</h6>
+                            <h2 id="totalTasks">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-label-warning">
+                        <div class="card-body">
+                            <h6>Pending Tasks</h6>
+                            <h2 id="pendingTasks">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-label-success">
+                        <div class="card-body">
+                            <h6>Successful Tasks</h6>
+                            <h2 id="successfulTasks">0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-label-danger">
+                        <div class="card-body">
+                            <h6>Failed Tasks</h6>
+                            <h2 id="failedTasks">0</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scheduled Tasks Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Scheduled Tasks</h5>
+            <div class="d-flex align-items-center">
+                <small class="text-muted me-2">Last Updated: <span id="lastUpdated"></span></small>
+                <button type="button" id="refreshButton" class="btn btn-icon btn-outline-primary btn-sm me-2">
+                    <i class="ti ti-refresh"></i>
+                </button>
+                <button type="button" id="revokeAllButton" class="btn btn-danger btn-sm">
+                    Revoke All Tasks
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Loading Spinner -->
+            <div id="loadingSpinner" class="d-flex justify-content-center align-items-center py-4" style="display: none !important;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Error Alert -->
+            <div id="errorAlert" class="alert alert-danger" style="display: none;">
+                <div class="d-flex">
+                    <i class="ti ti-alert-circle me-2"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Error</h6>
+                        <span id="errorMessage"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Accordion -->
+            <div id="tasksAccordion" class="accordion">
+                <!-- Tasks will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Redis Task Entries Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Redis Task Entries</h5>
+            <span id="redisConnectionStatus" class="badge bg-success">Connected</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        <th>Task ID</th>
+                        <th>Status</th>
+                        <th>TTL</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="redisKeysTable">
+                    <!-- Redis keys will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Task Action Modal -->
+<div class="modal fade" id="taskActionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="taskActionMessage"></p>
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    This action cannot be undone.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmTaskAction">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let taskActionCallback = null;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        // Initialize data refresh
+        updateData();
+        setInterval(updateData, 30000);
+
+        document.getElementById('refreshButton').addEventListener('click', updateData);
+        document.getElementById('revokeAllButton').addEventListener('click', revokeAllTasks);
+
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'flex' : 'none';
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        function updateData() {
+            showLoading(true);
+            Promise.all([
+                fetch('/monitoring/redis/keys').then(r => r.json()),
+                fetch('/monitoring/redis/test').then(r => r.json())
+            ]).then(([keysData, testData]) => {
+                showLoading(false);
+                document.getElementById('errorAlert').style.display = 'none';
+
+                if (keysData.success) {
+                    updateTasksDisplay(keysData.keys);
+                    updateRedisTable(keysData.keys);
+                    updateTaskCounters(keysData.keys);
+                }
+
+                updateRedisStatus(testData.success);
+                updateLastUpdated();
+            }).catch(error => {
+                showLoading(false);
+                console.error('Error updating data:', error);
+                showError('Failed to fetch latest data');
+            });
+        }
+
+        function updateTaskCounters(tasks) {
+            let counters = {
+                total: 0,
+                pending: 0,
+                successful: 0,
+                failed: 0
+            };
+
+            Object.values(tasks).forEach(task => {
+                counters.total++;
+                if (task.task_status) {
+                    switch (task.task_status.status.toLowerCase()) {
+                        case 'pending':
+                            counters.pending++;
+                            break;
+                        case 'success':
+                            counters.successful++;
+                            break;
+                        case 'failure':
+                            counters.failed++;
+                            break;
+                    }
+                }
+            });
+
+            document.getElementById('totalTasks').textContent = counters.total;
+            document.getElementById('pendingTasks').textContent = counters.pending;
+            document.getElementById('successfulTasks').textContent = counters.successful;
+            document.getElementById('failedTasks').textContent = counters.failed;
+        }
+
+        function updateTasksDisplay(tasks) {
+            const accordion = document.getElementById('tasksAccordion');
+            accordion.innerHTML = '';
+
+            // Group tasks by match ID
+            const matchGroups = {};
+            Object.entries(tasks).forEach(([key, data]) => {
+                const matchId = key.split(':')[1];
+                if (!matchGroups[matchId]) {
+                    matchGroups[matchId] = [];
+                }
+                matchGroups[matchId].push({ key, data });
+            });
+
+            if (Object.keys(matchGroups).length === 0) {
+                accordion.innerHTML = '<div class="text-center py-3">No scheduled tasks found</div>';
+                return;
+            }
+
+            // Create accordion items for each match
+            Object.entries(matchGroups).forEach(([matchId, tasks], index) => {
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+
+                const header = document.createElement('h2');
+                header.className = 'accordion-header';
+                header.innerHTML = `
+                <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#match${matchId}">
+                    Match ${matchId} Tasks
+                </button>
+            `;
+
+                const content = document.createElement('div');
+                content.id = `match${matchId}`;
+                content.className = `accordion-collapse collapse ${index === 0 ? 'show' : ''}`;
+
+                const body = document.createElement('div');
+                body.className = 'accordion-body';
+
+                // Add tasks for this match
+                tasks.forEach(({ key, data }) => {
+                    const taskType = key.includes('thread') ? 'Thread Creation' : 'Live Reporting';
+                    const status = data.task_status?.status || 'Unknown';
+                    const statusClass = getStatusClass(status);
+
+                    body.innerHTML += `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${taskType}</h6>
+                                    <small class="text-muted">Task ID: ${data.value}</small>
+                                </div>
+                                <span class="badge ${statusClass}">${status}</span>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">TTL: ${formatTTL(data.ttl)}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                content.appendChild(body);
+                accordionItem.appendChild(header);
+                accordionItem.appendChild(content);
+                accordion.appendChild(accordionItem);
+            });
+        }
+
+        function updateRedisTable(keys) {
+            const tbody = document.getElementById('redisKeysTable');
+            tbody.innerHTML = '';
+
+            if (Object.keys(keys).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No Redis keys found</td></tr>';
+                return;
+            }
+
+            Object.entries(keys).forEach(([key, data]) => {
+                const row = document.createElement('tr');
+                const status = data.task_status?.status || 'Unknown';
+                const statusClass = getStatusClass(status);
+
+                row.innerHTML = `
+                <td>${key}</td>
+                <td><small>${data.value}</small></td>
+                <td><span class="badge ${statusClass}">${status}</span></td>
+                <td>${formatTTL(data.ttl)}</td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-icon dropdown-toggle hide-arrow"
+                                data-bs-toggle="dropdown">
+                            <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="#"
+                               onclick="return revokeTasks('${key}', '${data.value}')">
+                                <i class="ti ti-x me-1"></i>
+                                Revoke Task
+                            </a>
+                            <a class="dropdown-item" href="#"
+                               onclick="return rescheduleTask('${key}', '${data.value}')">
+                                <i class="ti ti-refresh me-1"></i>
+                                Reschedule
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateRedisStatus(connected) {
+            const status = document.getElementById('redisConnectionStatus');
+            status.className = `badge ${connected ? 'bg-success' : 'bg-danger'}`;
+            status.textContent = connected ? 'Connected' : 'Disconnected';
+        }
+
+        function updateLastUpdated() {
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
+        }
+
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'success':
+                case 'successful':
+                    return 'bg-success';
+                case 'pending':
+                    return 'bg-warning';
+                case 'failure':
+                case 'failed':
+                    return 'bg-danger';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+
+        function formatTTL(ttl) {
+            if (ttl < 0) return 'Expired';
+            const hours = Math.floor(ttl / 3600);
+            const minutes = Math.floor((ttl % 3600) / 60);
+            const seconds = ttl % 60;
+            return `${hours}h ${minutes}m ${seconds}s`;
+        }
+
+        async function revokeAllTasks() {
+            showTaskActionModal(
+                'Are you sure you want to revoke ALL scheduled tasks? This cannot be undone.',
+                async () => {
+                    try {
+                        const response = await fetch('/monitoring/tasks/revoke-all', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken
+                            }
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Success', `Revoked ${data.revoked_count} tasks successfully`);
+                            updateData();
+                        } else {
+                            showToast('Error', data.error || 'Failed to revoke tasks');
+                        }
+                    } catch (error) {
+                        showToast('Error', error.message);
+                    }
+                }
+            );
+            return false;
+        }
+
+        window.revokeTasks = function (key, taskId) {
+            showTaskActionModal(
+                'Are you sure you want to revoke this task?',
+                async () => {
+                    try {
+                        const response = await fetch('/monitoring/tasks/revoke', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                key: key,
+                                task_id: taskId
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Success', 'Task revoked successfully');
+                            updateData();
+                        } else {
+                            showToast('Error', data.error || 'Failed to revoke task');
+                        }
+                    } catch (error) {
+                        showToast('Error', error.message);
+                    }
+                }
+            );
+        }
+
+        window.rescheduleTask = function (key, taskId) {
+            showTaskActionModal(
+                'Are you sure you want to reschedule this task?',
+                async () => {
+                    try {
+                        const response = await fetch('/monitoring/tasks/reschedule', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                key: key,
+                                task_id: taskId
+                            })
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Success', 'Task rescheduled successfully');
+                            updateData();
+                        } else {
+                            showToast('Error', data.error || 'Failed to reschedule task');
+                        }
+                    } catch (error) {
+                        showToast('Error', error.message);
+                    }
+                }
+            );
+        }
+
+        function showTaskActionModal(message, callback) {
+            const modal = new bootstrap.Modal(document.getElementById('taskActionModal'));
+            document.getElementById('taskActionMessage').textContent = message;
+            taskActionCallback = callback;
+            modal.show();
+        }
+
+        function showToast(title, message) {
+            const toastContainer = document.createElement('div');
+            toastContainer.style.position = 'fixed';
+            toastContainer.style.top = '20px';
+            toastContainer.style.right = '20px';
+            toastContainer.style.zIndex = '1050';
+
+            toastContainer.innerHTML = `
+            <div class="toast show" role="alert">
+                <div class="toast-header">
+                    <i class="ti ${title === 'Success' ? 'ti-check text-success' : 'ti-alert-circle text-danger'} me-2"></i>
+                    <strong class="me-auto">${title}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">${message}</div>
+            </div>
+        `;
+
+            document.body.appendChild(toastContainer);
+            setTimeout(() => {
+                toastContainer.remove();
+            }, 3000);
+        }
+
+        document.getElementById('confirmTaskAction').addEventListener('click', () => {
+            if (taskActionCallback) {
+                taskActionCallback();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('taskActionModal'));
+                modal.hide();
+                taskActionCallback = null;
+            }
+        });
+    });
+</script>
+{% endblock %}

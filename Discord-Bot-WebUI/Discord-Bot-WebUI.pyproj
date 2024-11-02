@@ -4,13 +4,14 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>e14a5851-a407-4fa9-b3c4-293020e4088b</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>app.py</StartupFile>
+    <StartupFile>wsgi.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>Discord-Bot-WebUI</Name>
     <RootNamespace>Discord-Bot-WebUI</RootNamespace>
+    <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,22 +22,45 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="app.py" />
+    <Compile Include="app\config\celery_config.py" />
+    <Compile Include="app\config\__init__.py" />
+    <Compile Include="app\match_scheduler.py" />
+    <Compile Include="app\monitoring.py" />
+    <Compile Include="app\utils\discord_request_handler.py" />
+    <Compile Include="app\utils\match_events_utils.py" />
+    <Compile Include="app\utils\redis_manager.py" />
+    <Compile Include="app\utils\task_monitor.py" />
+    <Compile Include="celery_beat.py" />
+    <Compile Include="app\loggers.py" />
+    <Compile Include="app\socket_handlers.py" />
+    <Compile Include="celery_discord_worker.py" />
+    <Compile Include="celery_live_reporting_worker.py" />
+    <Compile Include="healthcheck.py" />
+    <Compile Include="wsgi.py" />
     <Compile Include="app\account.py" />
+    <Compile Include="app\admin_helpers.py" />
     <Compile Include="app\admin_routes.py" />
     <Compile Include="app\api_utils.py" />
     <Compile Include="app\app_api.py" />
+    <Compile Include="app\app_api_helpers.py" />
     <Compile Include="app\auth.py" />
+    <Compile Include="app\auth_helpers.py" />
     <Compile Include="app\availability_api.py" />
+    <Compile Include="app\availability_api_helpers.py" />
     <Compile Include="app\blueprints.py" />
     <Compile Include="app\bot_admin.py" />
     <Compile Include="app\calendar.py" />
-    <Compile Include="app\celery.py" />
+    <Compile Include="app\celery_app.py" />
+    <Compile Include="app\celery_utils.py" />
+    <Compile Include="app\tasks\tasks_discord.py" />
+    <Compile Include="app\utils\discord_helpers.py" />
+    <Compile Include="celery_worker.py" />
     <Compile Include="app\db_utils.py" />
     <Compile Include="app\decorators.py" />
     <Compile Include="app\discord_utils.py" />
     <Compile Include="app\draft.py" />
     <Compile Include="app\email.py" />
+    <Compile Include="app\extensions.py" />
     <Compile Include="app\feedback.py" />
     <Compile Include="app\main.py" />
     <Compile Include="app\match_api.py" />
@@ -50,8 +74,13 @@
     <Compile Include="app\sms_helpers.py" />
     <Compile Include="app\sms_rsvp.py" />
     <Compile Include="app\sql_log.py" />
-    <Compile Include="app\tasks.py" />
+    <Compile Include="app\tasks\__init__.py" />
+    <Compile Include="app\tasks\tasks_core.py" />
+    <Compile Include="app\tasks\tasks_live_reporting.py" />
+    <Compile Include="app\tasks\tasks_match_updates.py" />
+    <Compile Include="app\tasks\tasks_rsvp.py" />
     <Compile Include="app\teams.py" />
+    <Compile Include="app\teams_helpers.py" />
     <Compile Include="app\user_management.py" />
     <Compile Include="app\woocommerce.py" />
     <Compile Include="web_config.py" />
@@ -62,6 +91,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="app\" />
+    <Folder Include="app\config\" />
+    <Folder Include="app\utils\" />
+    <Folder Include="app\tasks\" />
     <Folder Include="app\static\" />
     <Folder Include="app\static\css\" />
     <Folder Include="app\static\css\pages\" />
@@ -168,6 +200,7 @@
     <Content Include="app\templates\manage_users.html" />
     <Content Include="app\templates\manage_users_partial.html" />
     <Content Include="app\templates\matches.html" />
+    <Content Include="app\templates\monitoring.html" />
     <Content Include="app\templates\navbar.html" />
     <Content Include="app\templates\notifications.html" />
     <Content Include="app\templates\onboarding_modal_content.html" />

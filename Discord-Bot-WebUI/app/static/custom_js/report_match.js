@@ -115,37 +115,44 @@ $(document).on('click', '.edit-match-btn', function () {
         success: function (response) {
             console.log(`Received response for Match ID: ${matchId}`, response);
 
-            $('#home_team_score-' + matchId).val(response.home_team_score);
-            $('#away_team_score-' + matchId).val(response.away_team_score);
+            // Set default values if response fields are null/undefined
+            $('#home_team_score-' + matchId).val(response.home_team_score || '');
+            $('#away_team_score-' + matchId).val(response.away_team_score || '');
             $('#match_notes-' + matchId).val(response.notes || '');
             $('#submitBtn-' + matchId).prop('disabled', false);
 
-            // Update initialEvents per matchId
+            // Initialize arrays if they don't exist in the response
+            const goal_scorers = response.goal_scorers || [];
+            const assist_providers = response.assist_providers || [];
+            const yellow_cards = response.yellow_cards || [];
+            const red_cards = response.red_cards || [];
+
+            // Update initialEvents with default empty arrays if needed
             initialEvents[matchId] = {
-                goals: response.goal_scorers.map(goal => ({
-                    unique_id: String(goal.id), // Convert to string
+                goals: goal_scorers.map(goal => ({
+                    unique_id: String(goal.id),
                     stat_id: String(goal.id),
                     player_id: String(goal.player_id),
                     minute: goal.minute || null
-                })),
-                assists: response.assist_providers.map(assist => ({
+                })) || [],
+                assists: assist_providers.map(assist => ({
                     unique_id: String(assist.id),
                     stat_id: String(assist.id),
                     player_id: String(assist.player_id),
                     minute: assist.minute || null
-                })),
-                yellowCards: response.yellow_cards.map(card => ({
+                })) || [],
+                yellowCards: yellow_cards.map(card => ({
                     unique_id: String(card.id),
                     stat_id: String(card.id),
                     player_id: String(card.player_id),
                     minute: card.minute || null
-                })),
-                redCards: response.red_cards.map(card => ({
+                })) || [],
+                redCards: red_cards.map(card => ({
                     unique_id: String(card.id),
                     stat_id: String(card.id),
                     player_id: String(card.player_id),
                     minute: card.minute || null
-                }))
+                })) || []
             };
 
             // Clear existing entries
@@ -155,24 +162,20 @@ $(document).on('click', '.edit-match-btn', function () {
             $('#redCardsContainer-' + matchId).empty();
 
             // Populate the modal with existing events
-            response.goal_scorers.forEach(function (goal) {
+            goal_scorers.forEach(function (goal) {
                 addEvent(matchId, 'goalScorersContainer-' + matchId, goal.id, goal.player_id, goal.minute);
-                console.log(`Added goal scorer: Player ID ${goal.player_id}, Minute ${goal.minute}, Stat ID: ${goal.id}`);
             });
 
-            response.assist_providers.forEach(function (assist) {
+            assist_providers.forEach(function (assist) {
                 addEvent(matchId, 'assistProvidersContainer-' + matchId, assist.id, assist.player_id, assist.minute);
-                console.log(`Added assist provider: Player ID ${assist.player_id}, Minute ${assist.minute}, Stat ID: ${assist.id}`);
             });
 
-            response.yellow_cards.forEach(function (yellow) {
+            yellow_cards.forEach(function (yellow) {
                 addEvent(matchId, 'yellowCardsContainer-' + matchId, yellow.id, yellow.player_id, yellow.minute);
-                console.log(`Added yellow card: Player ID ${yellow.player_id}, Minute ${yellow.minute}, Stat ID: ${yellow.id}`);
             });
 
-            response.red_cards.forEach(function (red) {
+            red_cards.forEach(function (red) {
                 addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute);
-                console.log(`Added red card: Player ID ${red.player_id}, Minute ${red.minute}, Stat ID: ${red.id}`);
             });
 
             // Show the modal after populating it

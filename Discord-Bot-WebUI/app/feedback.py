@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import db, Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
+from app.decorators import with_session
 from functools import wraps
 from datetime import datetime
 
@@ -84,45 +85,27 @@ def submit_feedback():
 
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
+@with_session  # Add session management decorator
 def view_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     
     if feedback.user_id != current_user.id:
-        abort(403)  # Forbidden
+        abort(403)
     
     form = FeedbackReplyForm()
     
-    try:
-        if form.validate_on_submit():
-            reply = FeedbackReply(
-                feedback_id=feedback.id,
-                user_id=current_user.id,
-                content=form.content.data
-            )
-
-            try:
-                db.session.add(reply)
-                db.session.commit()
-
-                # Send email notification to admins
-                admin_emails = get_admin_emails()
-                if admin_emails:
-                    send_email(
-                        to=admin_emails,
-                        subject=f"New reply to Feedback #{feedback.id}",
-                        body=render_template('emails/new_reply_admin.html', feedback=feedback, reply=reply)
-                    )
-
-                flash('Your reply has been added successfully!', 'success')
-                return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
-
-            except Exception as e:
-                db.session.rollback()
-                flash(f"An error occurred while submitting the reply: {str(e)}", 'danger')
-
-    finally:
-        db.session.close()
-
+    if form.validate_on_submit():
+        reply = FeedbackReply(
+            feedback_id=feedback.id,
+            user_id=current_user.id, 
+            content=form.content.data
+        )
+        db.session.add(reply)
+        # No need to commit here - decorator handles it
+        
+        flash('Reply added successfully!', 'success')
+        return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
+        
     return render_template('view_feedback_user.html', feedback=feedback, form=form)
 
 @feedback_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])

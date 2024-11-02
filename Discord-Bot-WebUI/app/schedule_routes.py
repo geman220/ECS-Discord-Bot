@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required
 from app import db
 from app.models import Season, League, Team, Schedule, Match
-from app.decorators import role_required
+from app.decorators import role_required, db_operation, query_operation
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
 from sqlalchemy import cast, Integer
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 schedule_bp = Blueprint('schedule', __name__)
 
+@query_operation
 def get_season_and_league(season_id, league_name=None):
     """Helper function to get season and league."""
     season = Season.query.get_or_404(season_id)
@@ -64,9 +65,9 @@ def format_match_schedule(matches):
 
         schedule[match.week]['matches'].append({
             'team_a': match.team.name,
-            'team_a_id': match.team.id,  # Added team_a_id
+            'team_a_id': match.team.id,
             'team_b': opponent_team.name,
-            'team_b_id': opponent_team.id,  # Added team_b_id
+            'team_b_id': opponent_team.id,
             'time': formatted_time,
             'location': match.location,
             'match_id': match.id
@@ -75,6 +76,7 @@ def format_match_schedule(matches):
     return schedule
 
 # Helper function to handle match addition
+@db_operation
 def handle_add_match(season_id, league_name, week):
     try:
         league = League.query.filter_by(name=league_name, season_id=season_id).first()
@@ -92,24 +94,28 @@ def handle_add_match(season_id, league_name, week):
                     opponent=team_b.id
                 )
                 db.session.add(new_match)
-                db.session.commit()
+                # No need to call db.session.commit(); handled by decorator
                 flash(f'Match {team_a.name} vs {team_b.name} added successfully.', 'success')
             else:
                 flash('One or both teams not found.', 'danger')
         else:
             flash('League not found.', 'danger')
     except Exception as e:
-        db.session.rollback()  # Rollback in case of an error
         logger.error(f"Error adding match: {e}")
         flash('Error occurred while adding the match.', 'danger')
-    finally:
-        db.session.close()  # Ensure session is closed
+        raise  # Reraise exception for decorator to handle rollback
 
 # Helper function to handle week deletion
+@db_operation
 def handle_delete_week(season_id, week):
-    Schedule.query.filter_by(week=str(week)).delete()
-    db.session.commit()
-    flash(f'Week {week} and all its matches have been deleted.', 'success')
+    try:
+        Schedule.query.filter_by(week=str(week)).delete()
+        # No need to call db.session.commit(); handled by decorator
+        flash(f'Week {week} and all its matches have been deleted.', 'success')
+    except Exception as e:
+        logger.error(f"Error deleting week {week}: {e}")
+        flash(f'Failed to delete Week {week}.', 'danger')
+        raise  # Reraise exception for decorator to handle rollback
 
 # Manage Pub League Schedule
 @schedule_bp.route('/publeague/<int:season_id>/schedule', methods=['GET', 'POST'])
@@ -148,10 +154,10 @@ def manage_publeague_schedule(season_id):
         league_schedule = []
         for team in league.teams:
             # Fetch matches where the team is team_a (home team)
-            matches_a = Schedule.query.filter_by(team_id=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
+            matches_a = Schedule.query.filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches_a)
             # Fetch matches where the team is team_b (away team)
-            matches_b = Schedule.query.filter_by(opponent=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
+            matches_b = Schedule.query.filter_by(opponent=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches_b)
         # Format the schedule for the league
         schedule_data[league.name] = format_match_schedule(league_schedule)
@@ -180,7 +186,7 @@ def manage_ecsfc_schedule(season_id):
     for league in leagues:
         league_schedule = []
         for team in league.teams:
-            matches = Schedule.query.filter_by(team_id=team.id).order_by(Schedule.week.cast(Integer).asc(), Schedule.time.asc()).all()
+            matches = Schedule.query.filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches)
         schedule_data[league.name] = format_match_schedule(league_schedule)
 
@@ -190,6 +196,7 @@ def manage_ecsfc_schedule(season_id):
 @schedule_bp.route('/publeague/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def bulk_create_publeague_matches(season_id, league_name):
     try:
         season = Season.query.get_or_404(season_id)
@@ -238,74 +245,79 @@ def bulk_create_publeague_matches(season_id, league_name):
                         team_id=team_b_id
                     ))
 
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         flash(f'Bulk matches created for {league_name} league', 'success')
     except Exception as e:
-        db.session.rollback()  # Rollback on failure
         logger.error(f"Error creating bulk matches: {e}")
         flash('Error occurred while creating bulk matches.', 'danger')
-    finally:
-        db.session.close()  # Ensure session is closed
+        raise  # Reraise exception for decorator to handle rollback
     return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
 # Bulk Create Matches (ECS FC)
 @schedule_bp.route('/ecsfc/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def bulk_create_ecsfc_matches(season_id, league_name):
-    season = Season.query.get_or_404(season_id)
-    league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
+    try:
+        season = Season.query.get_or_404(season_id)
+        league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
 
-    total_weeks = int(request.form.get('total_weeks', 0))
-    matches_per_week = int(request.form.get('matches_per_week', 0))
+        total_weeks = int(request.form.get('total_weeks', 0))
+        matches_per_week = int(request.form.get('matches_per_week', 0))
 
-    if total_weeks == 0 or matches_per_week == 0:
-        flash("Total Weeks and Matches Per Week are required fields.", 'danger')
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
-
-    fun_week = request.form.get('fun_week')
-    tst_week = request.form.get('tst_week')
-
-    for week in range(1, total_weeks + 1):
-        if str(week) in [fun_week, tst_week]:
-            continue  # Skip fun and TST weeks
-
-        week_date = request.form.get(f'date_week{week}')
-        if not week_date:
-            flash(f"Date for Week {week} is missing.", 'danger')
+        if total_weeks == 0 or matches_per_week == 0:
+            flash("Total Weeks and Matches Per Week are required fields.", 'danger')
             return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
-        for match_num in range(1, matches_per_week + 1):
-            team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
-            team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
-            time = request.form.get(f'time_week{week}_match{match_num}')
-            location = request.form.get(f'location_week{week}_match{match_num}')
+        fun_week = request.form.get('fun_week')
+        tst_week = request.form.get('tst_week')
 
-            if team_a_id and team_b_id and time and location:
-                db.session.add(Schedule(
-                    week=str(week),
-                    date=week_date,
-                    time=time,
-                    opponent=team_b_id,
-                    location=location,
-                    team_id=team_a_id
-                ))
-                db.session.add(Schedule(
-                    week=str(week),
-                    date=week_date,
-                    time=time,
-                    opponent=team_a_id,
-                    location=location,
-                    team_id=team_b_id
-                ))
+        for week in range(1, total_weeks + 1):
+            if str(week) in [fun_week, tst_week]:
+                continue  # Skip fun and TST weeks
 
-    db.session.commit()
-    flash(f'Bulk matches created for {league_name} league', 'success')
+            week_date = request.form.get(f'date_week{week}')
+            if not week_date:
+                flash(f"Date for Week {week} is missing.", 'danger')
+                return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+            for match_num in range(1, matches_per_week + 1):
+                team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
+                team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
+                time = request.form.get(f'time_week{week}_match{match_num}')
+                location = request.form.get(f'location_week{week}_match{match_num}')
+
+                if team_a_id and team_b_id and time and location:
+                    db.session.add(Schedule(
+                        week=str(week),
+                        date=week_date,
+                        time=time,
+                        opponent=team_b_id,
+                        location=location,
+                        team_id=team_a_id
+                    ))
+                    db.session.add(Schedule(
+                        week=str(week),
+                        date=week_date,
+                        time=time,
+                        opponent=team_a_id,
+                        location=location,
+                        team_id=team_b_id
+                    ))
+
+        # No need to call db.session.commit(); handled by decorator
+        flash(f'Bulk matches created for {league_name} league', 'success')
+    except Exception as e:
+        logger.error(f"Error creating bulk matches: {e}")
+        flash('Error occurred while creating bulk matches.', 'danger')
+        raise  # Reraise exception for decorator to handle rollback
     return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
 # Edit Match
 @schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
 @login_required
+@db_operation
 def edit_match(match_id):
     try:
         match_schedule = Schedule.query.get_or_404(match_id)
@@ -347,18 +359,17 @@ def edit_match(match_id):
             paired_match_in_matches.home_team_id = paired_match_schedule.team_id
             paired_match_in_matches.away_team_id = paired_match_schedule.opponent
 
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         return jsonify({'message': 'Match and Schedule updated successfully!'}), 200
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error updating match: {e}")
         return jsonify({'error': 'Failed to update match'}), 400
-    finally:
-        db.session.close()
+        raise  # Reraise exception for decorator to handle rollback
 
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def delete_match(match_id):
     try:
         match = Schedule.query.get_or_404(match_id)
@@ -366,7 +377,7 @@ def delete_match(match_id):
 
         # Find the corresponding match pair
         paired_match = Schedule.query.filter(
-            Schedule.team_id == match.opponent, 
+            Schedule.team_id == match.opponent,
             cast(Schedule.opponent, Integer) == match.team_id,
             Schedule.week == match.week,
             Schedule.date == match.date,
@@ -377,34 +388,31 @@ def delete_match(match_id):
         db.session.delete(match)
         if paired_match:
             db.session.delete(paired_match)
-        
-        db.session.commit()
+
+        # No need to call db.session.commit(); handled by decorator
         flash('Both matches deleted successfully!', 'success')
     except Exception as e:
-        db.session.rollback()  # Rollback in case of failure
         logger.error(f"Error deleting match: {e}")
         flash('Failed to delete the match.', 'danger')
-    finally:
-        db.session.close()  # Ensure session is closed
-    
+        raise  # Reraise exception for decorator to handle rollback
+
     return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
 @schedule_bp.route('/<string:league_type>/<int:season_id>/delete_week/<int:week_number>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def delete_week(league_type, season_id, week_number):
     try:
         Schedule.query.filter_by(week=str(week_number), season_id=season_id).delete()
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         flash(f'Week {week_number} and all its matches have been deleted.', 'success')
     except Exception as e:
-        db.session.rollback()  # Rollback in case of failure
         logger.error(f"Error deleting week {week_number}: {e}")
         flash(f'Failed to delete Week {week_number}.', 'danger')
-    finally:
-        db.session.close()  # Ensure session is closed
+        raise  # Reraise exception for decorator to handle rollback
 
     if league_type == "publeague":
-        return redirect(url_for('publeague.schedule.manage_publeague_schedule', season_id=season_id))
+        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
     elif league_type == "ecsfc":
-        return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
+        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))

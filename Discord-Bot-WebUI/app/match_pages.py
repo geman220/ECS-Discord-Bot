@@ -1,11 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models import Match, Schedule, Availability, Player
+from app.models import Match, Schedule, Availability, Player, Team
 from app.availability_api import update_discord_rsvp
-from app.tasks import update_rsvp
+from app.tasks.tasks_rsvp import update_rsvp
 from app import db
-from app.tasks import update_discord_rsvp_task
 from datetime import datetime
+from sqlalchemy.orm import joinedload
 import asyncio
 import logging
 import requests
@@ -14,13 +14,19 @@ import threading
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
+from app.decorators import db_operation, query_operation  # Import decorators
+
 match_pages = Blueprint('match_pages', __name__)
 
 @match_pages.route('/matches/<int:match_id>')
 @login_required
 def view_match(match_id):
-    # Fetch the match details from the database
-    match = Match.query.get_or_404(match_id)
+    # Fetch the match details from the database with necessary relationships eagerly loaded
+    match = Match.query.options(
+        joinedload(Match.home_team).joinedload(Team.players).joinedload(Player.availability),
+        joinedload(Match.away_team).joinedload(Team.players).joinedload(Player.availability),
+        joinedload(Match.schedule)
+    ).get_or_404(match_id)
     schedule = match.schedule
     
     # Create RSVP dictionaries for home and away teams
@@ -59,6 +65,7 @@ def view_match(match_id):
 
 @match_pages.route('/rsvp/<int:match_id>', methods=['POST'])
 @login_required
+@db_operation
 def rsvp(match_id):
     data = request.get_json()
     new_response = data.get('response')
@@ -70,11 +77,12 @@ def rsvp(match_id):
     if success:
         return jsonify({'success': True, 'message': message})
     else:
-        app.logger.error(f"Error updating RSVP: {message}")
+        logger.error(f"Error updating RSVP: {message}")
         return jsonify({'success': False, 'message': 'An error occurred while updating RSVP'}), 500
 
 @match_pages.route('/rsvp/status/<int:match_id>', methods=['GET'])
 @login_required
+@query_operation
 def get_rsvp_status(match_id):
     player_id = current_user.player.id  # Assuming the user has a player profile
     availability = Availability.query.filter_by(match_id=match_id, player_id=player_id).first()

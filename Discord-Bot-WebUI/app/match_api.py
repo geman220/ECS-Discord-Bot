@@ -1,10 +1,12 @@
 ﻿# web match_api.py
 
-from app import db, csrf, celery
+from app import csrf
+from app.decorators import db_operation, query_operation 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
 from app.models import MLSMatch
 from datetime import datetime, timedelta
+from app.utils.match_events_utils import get_new_events
 import asyncio
 import aiohttp
 import hashlib
@@ -23,25 +25,14 @@ logger = logging.getLogger(__name__)
 match_api = Blueprint('match_api', __name__)
 csrf.exempt(match_api)
 
-last_events = {}
-last_status = None
-last_score = None
-is_first_update = True
-
-def event_key(event):
-    event_type = event.get('type', {}).get('text', 'Unknown')
-    clock = event.get('clock', {}).get('displayValue', 'Unknown')
-    team_id = event.get('team', {}).get('id', 'Unknown')
-    athlete_id = '0'
-    athletes_involved = event.get('athletesInvolved', [])
-    if athletes_involved:
-        athlete_id = athletes_involved[0].get('id', '0')
-    return f"{event_type}:{clock}:{team_id}:{athlete_id}"
-
-async def process_live_match_updates(match_id, thread_id, match_data, last_status, last_score, last_events):
+async def process_live_match_updates(match_id, thread_id, match_data, last_status=None, last_score=None, last_event_keys=None):
+    """Process live match updates while preserving existing functionality."""
     logger.info(f"Processing live match updates for match_id={match_id}")
-
     try:
+        # Initialize last_event_keys if None
+        last_event_keys = last_event_keys or []
+        
+        # Extract match data
         competition = match_data["competitions"][0]
         status_type = competition["status"]["type"]["name"]
         home_competitor = competition["competitors"][0]
@@ -52,48 +43,49 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
         away_score = away_competitor.get("score", "0")
         current_time = competition["status"].get("displayClock", "N/A")
         current_score = f"{home_score}-{away_score}"
-
+        
         logger.debug(f"Match status: {status_type}, Current score: {current_score}, Time: {current_time}")
 
         # Handle match status changes
         if status_type != last_status:
             logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
             await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score)
-            last_status = status_type
 
         # Handle score changes
         if current_score != last_score:
             logger.info(f"Score changed from {last_score} to {current_score} for match_id={match_id}")
             await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
-            last_score = current_score
 
-        # After fetching events
+        # Process events
         events = competition.get("details", [])
         logger.debug(f"Total events fetched: {len(events)}")
+
+        # Create team mapping
         team_map = {
             home_team['id']: home_team,
             away_team['id']: away_team
         }
 
-        # Log the number of events found
-        logger.debug(f"Total events fetched: {len(events)}")
+        # Find new events using the utility function
+        new_events, current_event_keys = get_new_events(events, last_event_keys)
 
-        # Identify new events that haven't been processed yet
-        new_events = [event for event in events if event_key(event) not in last_events]
         logger.debug(f"Found {len(new_events)} new events to process")
+        logger.debug(f"Total tracked event keys: {len(current_event_keys)}")
 
+        # Process new events
         for event in new_events:
             logger.debug(f"Processing event: {event}")
             await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
-            last_events[event_key(event)] = event
 
+        # Check if match has ended
         match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
         logger.info(f"Match ended: {match_ended} for match_id={match_id}")
-        return match_ended
+
+        return match_ended, current_event_keys
 
     except Exception as e:
         logger.error(f"Error processing live match updates for match_id={match_id}: {str(e)}", exc_info=True)
-        return False
+        return False, last_event_keys
 
 async def send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time):
     update_data = {
@@ -289,6 +281,7 @@ async def send_update_to_bot(thread_id, update_type, update_data):
 
 @match_api.route('/schedule_live_reporting', methods=['POST'])
 @login_required
+@db_operation
 def schedule_live_reporting_route():
     data = request.json
     match_id = data.get('match_id')
@@ -304,7 +297,7 @@ def schedule_live_reporting_route():
             return jsonify({'error': 'Live reporting already scheduled'}), 400
 
         match.live_reporting_scheduled = True
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         # Schedule the task to start live reporting at match time
         time_diff = match.date_time - datetime.utcnow()
@@ -314,12 +307,12 @@ def schedule_live_reporting_route():
         return jsonify({'success': True, 'message': 'Live reporting scheduled'})
 
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction on error
         logger.error(f"Error scheduling live reporting for match {match_id}: {str(e)}")
-        return jsonify({'error': 'An error occurred while scheduling live reporting.'}), 500
+        raise  # Reraise exception for decorator to handle rollback
 
 @match_api.route('/start_live_reporting/<match_id>', methods=['POST'])
 @login_required
+@db_operation
 def start_live_reporting_route(match_id):
     try:
         match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -338,18 +331,18 @@ def start_live_reporting_route(match_id):
         match.live_reporting_status = 'running'
         match.live_reporting_started = True
         match.live_reporting_task_id = task.id
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         logger.info(f"Live reporting started for match {match_id}")
         return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
 
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction on error
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}")
-        return jsonify({'error': 'An error occurred while starting live reporting.'}), 500
+        raise  # Reraise exception for decorator to handle rollback
 
 @match_api.route('/stop_live_reporting/<match_id>', methods=['POST'])
 @login_required
+@db_operation
 def stop_live_reporting_route(match_id):
     try:
         match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -364,7 +357,7 @@ def stop_live_reporting_route(match_id):
         # Stop live reporting and revoke the task
         match.live_reporting_status = 'stopped'
         match.live_reporting_started = False
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         celery.control.revoke(match.live_reporting_task_id, terminate=True)
 
@@ -372,11 +365,11 @@ def stop_live_reporting_route(match_id):
         return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
 
     except Exception as e:
-        db.session.rollback()  # Rollback the transaction on error
         logger.error(f"Error stopping live reporting for match {match_id}: {str(e)}")
-        return jsonify({'error': 'An error occurred while stopping live reporting.'}), 500
+        raise  # Reraise exception for decorator to handle rollback
 
 @match_api.route('/get_match_status/<match_id>', methods=['GET'])
+@query_operation
 def get_match_status(match_id):
     match = MLSMatch.query.filter_by(match_id=match_id).first()
     if not match:
@@ -392,6 +385,7 @@ def get_match_status(match_id):
     })
 
 @match_api.route('/match/<int:match_id>/channel', methods=['GET'])
+@query_operation
 def get_match_channel(match_id):
     logger.info(f"Fetching channel ID for match {match_id}")
     try:

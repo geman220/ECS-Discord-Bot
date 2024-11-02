@@ -1,20 +1,44 @@
-# Use the official Python image from the Docker Hub
+# Dockerfile.webui
+
 FROM python:3.11-slim
 
-# Set the working directory in the container
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements.txt file into the container at /app
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install dependencies first
 COPY requirements.txt .
 
-# Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir \
+    gunicorn==23.0.0 \
+    python-socketio==5.10.0 \
+    python-engineio==4.8.0 \
+    eventlet==0.36.1
 
-# Copy the rest of the application code into the container
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+ENV EVENTLET_NO_GREENDNS=yes
+
+# Create directories for logs and temp files
+RUN mkdir -p /var/log/gunicorn /tmp/celery /tmp/celerybeat
+
+# Copy application code
 COPY . .
 
-# Expose the port that the app runs on
-EXPOSE 5000
+# Add healthcheck
+COPY healthcheck.py .
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python healthcheck.py
 
-# Command to run the Flask application
-CMD ["python", "app.py"]
+# Expose port
+EXPOSE 5000
