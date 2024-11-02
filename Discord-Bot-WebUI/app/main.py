@@ -3,28 +3,25 @@ from flask import Blueprint, render_template, redirect, url_for, abort, request,
 from flask_login import login_required, current_user
 from collections import defaultdict
 from datetime import datetime, timedelta
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy import or_, func
 from app import db
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
-from collections import defaultdict
-from sqlalchemy.orm import joinedload
-from sqlalchemy import or_, func
-from app.decorators import role_required
+from app.decorators import role_required, db_operation, query_operation
 import logging
 import subprocess
 import requests
 import os
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 main = Blueprint('main', __name__)
-
 
 PROJECT_DIR = "/app"  # This will be inside the Docker container
 VERSION_FILE = os.path.join(PROJECT_DIR, "version.txt")
 LATEST_VERSION_URL = "https://raw.githubusercontent.com/geman220/ECS-Discord-Bot/master/Discord-Bot-WebUI/version.txt"
 
+@query_operation
 def fetch_announcements():
     """Fetch the latest 5 announcements."""
     return Announcement.query.order_by(Announcement.position.asc()).limit(5).all()
@@ -72,6 +69,7 @@ def get_onboarding_form(player=None, formdata=None):
 
     return onboarding_form
 
+@db_operation
 def create_player_profile(onboarding_form):
     """Create a new player profile for the current user using form data."""
     try:
@@ -130,14 +128,14 @@ def create_player_profile(onboarding_form):
             onboarding_form.profile_picture.data.save(upload_path)
             player.profile_picture_url = url_for('static', filename='uploads/' + filename)
 
-        # Add the new player to the session and commit to save it to the database
+        # Add the new player to the session
         db.session.add(player)
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         # Link the player profile to the current user in the session
         current_user.player = player
         current_user.has_completed_onboarding = True  # Mark onboarding as complete
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         # Flash a success message
         flash('Player profile created successfully.', 'success')
@@ -146,11 +144,10 @@ def create_player_profile(onboarding_form):
         return player  # Return the new player object if needed
 
     except Exception as e:
-        db.session.rollback()
-        flash('An error occurred while creating your profile. Please try again.', 'danger')
         logger.error(f"Error creating profile for user {current_user.id}: {e}")
-        return None
+        raise  # Reraise the exception for the decorator to handle rollback
 
+@db_operation
 def handle_profile_update(player, onboarding_form):
     """Handle the update of the player profile."""
     try:
@@ -199,16 +196,15 @@ def handle_profile_update(player, onboarding_form):
         # Mark onboarding as complete
         current_user.has_completed_onboarding = True
 
-        # Commit the changes to the database
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         # Optional: Flash a success message
         flash('Profile updated successfully.', 'success')
         logger.info(f"User {current_user.id} updated their profile successfully.")
     except Exception as e:
-        db.session.rollback()
-        flash('An error occurred while updating your profile. Please try again.', 'danger')
         logger.error(f"Error updating profile for user {current_user.id}: {e}")
+        flash('An error occurred while updating your profile. Please try again.', 'danger')
+        raise  # Reraise the exception for the decorator to handle rollback
 
 def fetch_upcoming_matches(
     team, 
@@ -220,22 +216,6 @@ def fetch_upcoming_matches(
     specific_day=None, 
     per_day_limit=None
 ):
-    """
-    Fetch and return matches for the specified team.
-    
-    Parameters:
-    - team: Team object.
-    - match_limit: int, maximum number of matches to fetch.
-    - include_past_matches: bool, whether to include past matches.
-    - start_date: datetime.date, start of the date range.
-    - end_date: datetime.date, end of the date range.
-    - order: 'asc' or 'desc', ordering of matches by date.
-    - specific_day: int (0=Sunday, 6=Saturday in PostgreSQL), filter matches on this day of the week.
-    - per_day_limit: int, maximum number of matches per specific day.
-    
-    Returns:
-    - grouped_matches: defaultdict(list), matches grouped by date.
-    """
     grouped_matches = defaultdict(list)
     today = datetime.now().date()
 
@@ -261,12 +241,12 @@ def fetch_upcoming_matches(
             order_by = [Match.date.asc(), Match.time.asc()]
         else:
             order_by = [Match.date.desc(), Match.time.desc()]
-        
-        # Base query
+
+        # Base query with eager loading
         query = (
             Match.query.options(
-                joinedload(Match.home_team),
-                joinedload(Match.away_team)
+                joinedload(Match.home_team).joinedload(Team.players),
+                joinedload(Match.away_team).joinedload(Team.players)
             )
             .filter(
                 or_(
@@ -335,6 +315,14 @@ def index():
     # Attempt to get the player profile associated with the current user
     player = getattr(current_user, 'player', None)
 
+    if player:
+        # Eagerly load team and league relationships
+        player = Player.query.options(
+            joinedload(Player.team).joinedload(Team.league)
+        ).filter_by(id=player.id).first()
+    else:
+        player = None
+
     # Initialize the combined onboarding form with formdata if POST
     onboarding_form = get_onboarding_form(player, formdata=request.form if request.method == 'POST' else None)
 
@@ -376,7 +364,7 @@ def index():
                 if player:
                     # Only proceed if player is successfully created or updated
                     current_user.has_completed_onboarding = True  # Mark onboarding as complete
-                    db.session.commit()
+                    # No need to call db.session.commit(); handled by decorator
 
                     logger.debug(f"Player profile {'created' if not player else 'updated'} and onboarding completed for user {current_user.id}")
                     flash('Player profile created or updated successfully!', 'success')
@@ -389,7 +377,7 @@ def index():
             # Handle skipping profile creation
             logger.debug(f"Handling 'skip_profile' action for user {current_user.id}")
             current_user.has_skipped_profile_creation = True
-            db.session.commit()
+            # No need to call db.session.commit(); handled by decorator
             show_onboarding = False  # Do not show onboarding anymore
             flash('You have chosen to skip profile creation for now.', 'info')
             return redirect(url_for('main.index'))
@@ -398,7 +386,7 @@ def index():
             # Handle resetting the skip flag to allow onboarding again
             logger.debug(f"Handling 'reset_skip_profile' action for user {current_user.id}")
             current_user.has_skipped_profile_creation = False
-            db.session.commit()
+            # No need to call db.session.commit(); handled by decorator
             show_onboarding = True  # Reopen the onboarding modal
             flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
             return redirect(url_for('main.index'))
@@ -514,7 +502,7 @@ def index():
         is_linked_to_discord=player.discord_id is not None if player else False,
         discord_server_link="https://discord.gg/weareecs",
         show_onboarding=show_onboarding,
-        show_tour=show_tour,  # Corrected to use the variable
+        show_tour=show_tour,
         announcements=announcements,
         player_choices=player_choices_per_match
     )
@@ -522,12 +510,14 @@ def index():
 # Notification Routes
 @main.route('/notifications', methods=['GET'])
 @login_required
+@query_operation
 def notifications():
     notifications = current_user.notifications.order_by(Notification.created_at.desc()).all()
     return render_template('notifications.html', notifications=notifications)
 
 @main.route('/notifications/mark_as_read/<int:notification_id>', methods=['POST'])
 @login_required
+@db_operation
 def mark_as_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     
@@ -536,40 +526,42 @@ def mark_as_read(notification_id):
 
     try:
         notification.read = True
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         flash('Notification marked as read.', 'success')
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error marking notification {notification_id} as read: {str(e)}")
         flash('An error occurred. Please try again.', 'danger')
+        raise  # Reraise exception for the decorator to handle
 
     return redirect(url_for('main.notifications'))
 
 @main.route('/set_tour_skipped', methods=['POST'])
 @login_required
+@db_operation
 def set_tour_skipped():
     try:
         current_user.has_completed_tour = False
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         logger.info(f"User {current_user.id} set tour as skipped.")
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error setting tour skipped for user {current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
+        raise  # Reraise exception for the decorator to handle
     
     return '', 204
 
 @main.route('/set_tour_complete', methods=['POST'])
 @login_required
+@db_operation
 def set_tour_complete():
     try:
         current_user.has_completed_tour = True
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         logger.info(f"User {current_user.id} completed the tour.")
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error setting tour complete for user {current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
+        raise  # Reraise exception for the decorator to handle
     
     return '', 204
 

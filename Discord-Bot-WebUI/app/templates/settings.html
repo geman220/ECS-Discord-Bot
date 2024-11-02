@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-
 {% block main_content %}
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <h4 class="fw-bold py-3 mb-4">
         <span class="text-muted fw-light">Account Settings</span>
@@ -8,95 +8,104 @@
 
     <div class="row">
         <div class="col-md-12">
-            <!-- Account Information Card -->
+            <!-- Account Information -->
             <div class="card mb-4">
                 <h5 class="card-header">Account Information</h5>
                 <div class="card-body">
-                    <form id="accountInfoForm" method="POST" action="{{ url_for('account.update_account_info') }}">
+                    <form id="accountInfoForm" action="{{ url_for('account.update_account_info') }}" method="POST">
                         {{ notification_form.hidden_tag() }}
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="name" class="form-label">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" value="{{ current_user.player.name if current_user.player else '' }}" required>
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" name="name"
+                                       value="{{ current_user.player.name if current_user.player else '' }}">
                             </div>
                         </div>
+
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email"
+                                       value="{{ current_user.email }}">
                             </div>
                             <div class="col-md-6">
-                                <label for="phone" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.player.phone if current_user.player else '' }}">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" name="phone"
+                                       value="{{ current_user.player.phone if current_user.player else '' }}">
                             </div>
                         </div>
+
                         <button type="submit" class="btn btn-primary">Update Account Information</button>
                     </form>
                 </div>
             </div>
 
-            <!-- Password Change Card -->
+            <!-- Change Password -->
             <div class="card mb-4">
                 <h5 class="card-header">Change Password</h5>
                 <div class="card-body">
-                    <form id="passwordChangeForm" method="POST" action="{{ url_for('account.change_password') }}">
-                        <input type="hidden" name="csrf_token" value="{{ password_csrf_token }}">
+                    <form id="passwordChangeForm" action="{{ url_for('account.change_password') }}" method="POST">
+                        {{ password_form.hidden_tag() }}
                         <div class="mb-3">
-                            <label for="{{ password_form.current_password.id }}" class="form-label">Current Password</label>
-                            {{ password_form.current_password(class="form-control") }}
+                            <label class="form-label">Current Password</label>
+                            {{ password_form.current_password(class="form-control", id="current_password") }}
                         </div>
                         <div class="mb-3">
-                            <label for="{{ password_form.new_password.id }}" class="form-label">New Password</label>
-                            {{ password_form.new_password(class="form-control") }}
+                            <label class="form-label">New Password</label>
+                            {{ password_form.new_password(class="form-control", id="new_password") }}
                         </div>
                         <div class="mb-3">
-                            <label for="{{ password_form.confirm_password.id }}" class="form-label">Confirm New Password</label>
-                            {{ password_form.confirm_password(class="form-control") }}
+                            <label class="form-label">Confirm New Password</label>
+                            {{ password_form.confirm_password(class="form-control", id="confirm_password") }}
                         </div>
                         {{ password_form.submit_password(class="btn btn-primary") }}
                     </form>
                 </div>
             </div>
 
-            <!-- SMS Opt-in Card -->
+            <!-- SMS Notifications -->
             <div class="card mb-4">
                 <h5 class="card-header">SMS Notifications</h5>
                 <div class="card-body">
                     {% if current_user.sms_notifications %}
-                    <p>You are currently opted in to SMS notifications.</p>
-                    <button id="smsOptOutBtn" class="btn btn-danger">Opt-out of SMS Notifications</button>
+                    <div class="alert alert-info">
+                        You are currently opted in to SMS notifications.
+                    </div>
+                    <button id="smsOptOutBtn" class="btn btn-warning">
+                        Opt-out of SMS Notifications
+                    </button>
                     {% else %}
-                    <p>You are currently opted out of SMS notifications.</p>
-                    {% if current_user.player.sms_opt_out_timestamp %}
-                    <p><small>Opted out on {{ current_user.player.sms_opt_out_timestamp.strftime('%Y-%m-%d %H:%M') }}</small></p>
-                    {% endif %}
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#smsOptInModal">
+                    <div class="alert alert-info">
+                        You are currently opted out of SMS notifications.
+                        {% if current_user.player and current_user.player.sms_opt_out_timestamp %}
+                        <small>
+                            Opted out on {{ current_user.player.sms_opt_out_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <button id="smsOptInBtn" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#smsOptInModal">
                         Re-enable SMS Notifications
                     </button>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Other Notification Settings Card -->
+            <!-- Other Notification Preferences -->
             <div class="card mb-4">
                 <h5 class="card-header">Other Notification Preferences</h5>
                 <div class="card-body">
-                    <form id="notificationForm" method="POST" action="{{ url_for('account.update_notifications') }}">
-                        <input type="hidden" name="csrf_token" value="{{ notification_csrf_token }}">
+                    <form id="notificationForm" action="{{ url_for('account.update_notifications') }}" method="POST">
+                        {{ notification_form.hidden_tag() }}
                         <div class="mb-3 form-check">
                             {{ notification_form.email_notifications(class="form-check-input") }}
-                            <label class="form-check-label" for="{{ notification_form.email_notifications.id }}">
-                                Receive Email Notifications
-                            </label>
+                            <label class="form-check-label">Receive Email Notifications</label>
                         </div>
                         <div class="mb-3 form-check">
                             {{ notification_form.discord_notifications(class="form-check-input") }}
-                            <label class="form-check-label" for="{{ notification_form.discord_notifications.id }}">
-                                Receive Discord Notifications
-                            </label>
+                            <label class="form-check-label">Receive Discord Notifications</label>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label" for="{{ notification_form.profile_visibility.id }}">Profile Visibility</label>
+                            <label class="form-label">Profile Visibility</label>
                             {{ notification_form.profile_visibility(class="form-select") }}
                         </div>
                         {{ notification_form.submit_notifications(class="btn btn-primary") }}
@@ -104,38 +113,47 @@
                 </div>
             </div>
 
-            <!-- Two-Factor Authentication Card -->
+            <!-- Two-Factor Authentication -->
             <div class="card mb-4">
                 <h5 class="card-header">Two-Factor Authentication (2FA)</h5>
                 <div class="card-body">
                     {% if current_user.is_2fa_enabled %}
-                    <p>Two-Factor Authentication is currently enabled for your account.</p>
-                    <form id="disable2FAForm" method="POST" action="{{ url_for('account.disable_2fa') }}">
+                    <div class="alert alert-success mb-3">
+                        Two-Factor Authentication is currently enabled for your account.
+                    </div>
+                    <form id="disable2FAForm" action="{{ url_for('account.disable_2fa') }}" method="POST">
                         {{ disable_2fa_form.hidden_tag() }}
                         {{ disable_2fa_form.submit_disable_2fa(class="btn btn-danger") }}
                     </form>
                     {% else %}
-                    <p>Enhance your account security by enabling Two-Factor Authentication.</p>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#enable2FAModal">
+                    <div class="alert alert-info mb-3">
+                        Enhance your account security by enabling Two-Factor Authentication.
+                    </div>
+                    <button id="enable2FABtn" type="button" class="btn btn-primary">
                         Enable 2FA
                     </button>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Discord Integration Card -->
+            <!-- Discord Integration -->
             <div class="card mb-4">
                 <h5 class="card-header">Discord Integration</h5>
                 <div class="card-body">
                     {% if current_user.player and current_user.player.discord_id %}
-                    <p>Your Discord account is linked. Discord ID: {{ current_user.player.discord_id }}</p>
-                    <form action="{{ url_for('account.unlink_discord') }}" method="post">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-danger">Unlink Discord Account</button>
+                    <div class="alert alert-success mb-3">
+                        Your Discord account is linked. Discord ID: {{ current_user.player.discord_id }}
+                    </div>
+                    <form id="unlinkDiscordForm" action="{{ url_for('account.unlink_discord') }}" method="POST">
+                        <button type="submit" class="btn btn-warning">Unlink Discord Account</button>
                     </form>
                     {% else %}
-                    <p>Link your Discord account to receive notifications and access additional features.</p>
-                    <a href="{{ url_for('account.link_discord') }}" class="btn btn-primary">Link Discord Account</a>
+                    <div class="alert alert-info mb-3">
+                        Link your Discord account to receive notifications and access additional features.
+                    </div>
+                    <a href="{{ url_for('account.link_discord') }}" class="btn btn-primary">
+                        Link Discord Account
+                    </a>
                     {% endif %}
                 </div>
             </div>
@@ -152,50 +170,71 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="step-container" id="stepContainer">
-                    <!-- Step 1: Scan QR Code -->
-                    <div class="step-item active" id="step1">
-                        <h5>Step 1: Scan QR Code</h5>
-                        <p>Scan this QR code with your authenticator app (like Google Authenticator).</p>
-                        <div class="d-flex justify-content-center">
-                            <img src="{{ url_for('account.show_2fa_qr') }}" alt="QR Code" class="img-fluid" />
-                        </div>
+                <div id="qrCodeContainer"></div>
+                <form id="verify2FAForm" class="mt-3">
+                    <div class="mb-3">
+                        <label for="twoFactorCode" class="form-label">Enter Verification Code</label>
+                        <input type="text" class="form-control" id="twoFactorCode" required>
                     </div>
-
-                    <!-- Step 2: Enter Verification Code -->
-                    <div class="step-item" id="step2" style="display:none;">
-                        <h5>Step 2: Enter 2FA Code</h5>
-                        <p>Enter the code from your authenticator app to verify.</p>
-                        <form id="verify2FAForm" method="POST" action="{{ url_for('account.verify_2fa') }}">
-                            {{ enable_2fa_form.hidden_tag() }}
-                            <div id="twoFaErrorMsg" class="alert alert-danger d-none"></div>
-                            <div class="mb-3">
-                                {{ enable_2fa_form.totp_token(class="form-control", placeholder="Enter 2FA Code") }}
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                {{ enable_2fa_form.submit_enable_2fa(class="btn btn-success") }}
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Step 3: Confirmation -->
-                    <div class="step-item" id="step3" style="display:none;">
-                        <h5>Step 3: Success!</h5>
-                        <p>2FA has been successfully enabled on your account.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary d-none" id="prevStep">&lt; Previous</button>
-                <button type="button" class="btn btn-primary" id="nextStep">Next &gt;</button>
+                    <button type="submit" class="btn btn-primary">Verify and Enable 2FA</button>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 <!-- SMS Opt-in Modal -->
-{% from 'macros.html' import render_sms_optin_modal %}
-{{ render_sms_optin_modal() }}
+<div class="modal fade" id="smsOptInModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enable SMS Notifications</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- SMS Consent Step -->
+                <div id="smsConsentStep">
+                    <form id="smsOptInForm">
+                        <div class="mb-3">
+                            <label for="phoneNumber" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phoneNumber" required>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="smsConsent" required>
+                            <label class="form-check-label" for="smsConsent">
+                                I consent to receive SMS notifications
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Continue</button>
+                    </form>
+                </div>
+
+                <!-- SMS Verification Step -->
+                <div id="smsVerificationStep" style="display: none;">
+                    <p>Verification code sent to <span id="sentPhoneNumber"></span></p>
+                    <form id="smsVerificationForm">
+                        <div class="mb-3">
+                            <label for="verificationCode" class="form-label">Enter Verification Code</label>
+                            <input type="text" class="form-control" id="verificationCode" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Verify</button>
+                        <button type="button" id="resendCodeBtn" class="btn btn-link" style="display: none;">
+                            Resend Code
+                        </button>
+                    </form>
+                </div>
+
+                <!-- SMS Confirmation Step -->
+                <div id="smsConfirmationStep" style="display: none;">
+                    <div class="alert alert-success">
+                        SMS notifications have been successfully enabled!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block custom_js %}

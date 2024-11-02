@@ -2,9 +2,9 @@ from app import db, login_manager
 from datetime import datetime
 from flask import Blueprint, jsonify, render_template, request
 from app.models import Match, Team, Season, League, Player
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload
 from flask_login import login_required
-from app.decorators import role_required
+from app.decorators import role_required, db_operation, query_operation  # Import your decorators
 import logging
 
 # Get the logger for this module
@@ -15,10 +15,11 @@ calendar_bp = Blueprint('calendar', __name__)
 @calendar_bp.route('/calendar/events', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@query_operation
 def get_schedule():
     try:
-        # Get all current seasons
-        seasons = Season.query.filter_by(is_current=True).all()
+        # Get all current seasons with necessary relationships eagerly loaded
+        seasons = Season.query.options(joinedload(Season.leagues)).filter_by(is_current=True).all()
         if not seasons:
             logger.warning("No current season found.")
             return jsonify({'error': 'No current season found.'}), 404
@@ -95,6 +96,7 @@ def get_schedule():
 @calendar_bp.route('/calendar/refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@query_operation
 def get_refs():
     try:
         match_id = request.args.get('match_id', type=int)
@@ -112,7 +114,7 @@ def get_refs():
         for ref in refs:
             # Check if ref is on either team in this match
             if ref.team_id not in [match.home_team_id, match.away_team_id]:
-                # Count the matches assigned to this referee in the current week
+                # Count the matches assigned to this referee on the same date
                 matches_assigned_in_week = Match.query.filter_by(ref_id=ref.id).filter(
                     Match.date == match.date
                 ).count()
@@ -136,6 +138,7 @@ def get_refs():
 @calendar_bp.route('/calendar/assign_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def assign_ref():
     try:
         data = request.get_json()
@@ -177,22 +180,17 @@ def assign_ref():
         logger.info(f"Assigning Referee {ref.name} (ID: {ref_id}) to Match ID {match_id}")
         match.ref = ref
 
-        # Commit changes to the database
-        try:
-            db.session.commit()
-            return jsonify({'message': 'Referee assigned successfully.'}), 200
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error committing referee assignment: {str(e)}")
-            return jsonify({'error': 'An internal error occurred while assigning the referee.'}), 500
+        # No need to commit; decorator handles it
+        return jsonify({'message': 'Referee assigned successfully.'}), 200
 
     except Exception as e:
         logger.exception("An error occurred while assigning the referee.")
-        return jsonify({'error': 'An internal error occurred.'}), 500
+        raise  # Reraise exception for decorator to handle rollback
 
 @calendar_bp.route('/calendar/available_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@query_operation
 def available_refs():
     try:
         # Parse start_date and end_date from the request parameters
@@ -233,6 +231,7 @@ def available_refs():
 @calendar_bp.route('/calendar/remove_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def remove_ref():
     try:
         data = request.get_json()
@@ -255,18 +254,12 @@ def remove_ref():
         logger.info(f"Removing referee {match.ref.name} from match ID {match_id}.")
         match.ref = None
 
-        # Commit changes to the database
-        try:
-            db.session.commit()
-            return jsonify({'message': 'Referee removed successfully.'}), 200
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error committing referee removal: {str(e)}")
-            return jsonify({'error': 'An internal error occurred while removing the referee.'}), 500
+        # No need to commit; decorator handles it
+        return jsonify({'message': 'Referee removed successfully.'}), 200
 
     except Exception as e:
         logger.exception("An error occurred while removing the referee.")
-        return jsonify({'error': 'An internal error occurred.'}), 500
+        raise  # Reraise exception for decorator to handle rollback
 
 @calendar_bp.route('/calendar', methods=['GET'])
 @login_required

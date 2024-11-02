@@ -1,10 +1,10 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app as app
 from flask_login import login_required
 from app.models import League, Player, Team, Season, PlayerSeasonStats
-from app.decorators import role_required
+from app.decorators import role_required, db_operation
 from app.routes import get_current_season_and_year
-from app import db, socketio
-from flask_socketio import SocketIO, emit
+from app.extensions import socketio
+from flask_socketio import emit
 from app.discord_utils import assign_role_to_player, remove_role_from_player
 import asyncio
 import logging
@@ -82,6 +82,7 @@ def draft_ecs_fc():
 
 # Handle Draft via WebSocket
 @socketio.on('draft_player')
+@db_operation
 def handle_draft_player(data):
     try:
         print("Draft player function called")
@@ -89,15 +90,14 @@ def handle_draft_player(data):
         team_id = data['team_id']
 
         # Fetch the player and team from the database
-        player = db.session.get(Player, player_id)
-        team = db.session.get(Team, team_id)
+        player = Player.query.get(player_id)
+        team = Team.query.get(team_id)
 
         if player and team:
             print(f"Assigning player {player.name} (ID: {player_id}) to team {team.name} (ID: {team_id})")
             player.team_id = team_id
 
-            # Commit the changes to the database
-            db.session.commit()
+            # No need to call db.session.commit(); handled by decorator
 
             # Assign the role in Discord asynchronously
             asyncio.run(assign_role_to_player(player))
@@ -126,20 +126,21 @@ def handle_draft_player(data):
             emit('error', {'message': 'Player or team not found'}, broadcast=False)
 
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error handling player draft: {str(e)}")
         emit('error', {'message': 'An error occurred while drafting the player'}, broadcast=False)
+        raise  # Reraise the exception for the decorator to handle rollback
 
 # Handle Player Removal via WebSocket
 @socketio.on('remove_player')
+@db_operation
 def handle_remove_player(data):
     try:
         player_id = data['player_id']
         team_id = data['team_id']
 
         # Fetch the player and team from the database
-        player = db.session.get(Player, player_id)
-        team = db.session.get(Team, team_id)
+        player = Player.query.get(player_id)
+        team = Team.query.get(team_id)
 
         if player and team:
             # Remove the role in Discord asynchronously
@@ -148,8 +149,7 @@ def handle_remove_player(data):
             # Remove the player from the team
             player.team_id = None
 
-            # Commit the changes to the database
-            db.session.commit()
+            # No need to call db.session.commit(); handled by decorator
 
             # Fetch the current season
             current_season = Season.query.order_by(Season.id.desc()).first()
@@ -175,6 +175,6 @@ def handle_remove_player(data):
             emit('error', {'message': 'Player or team not found'}, broadcast=False)
 
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error handling player removal: {str(e)}")
         emit('error', {'message': 'An error occurred while removing the player'}, broadcast=False)
+        raise  # Reraise the exception for the decorator to handle rollback

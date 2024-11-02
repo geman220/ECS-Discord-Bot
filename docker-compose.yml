@@ -4,6 +4,8 @@ services:
   redis:
     image: redis:alpine
     hostname: redis
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -16,11 +18,44 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
-    command: celery -A app.celery:celery worker --loglevel=info
+    command: python celery_worker.py
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0  # Add explicit Redis URL
     volumes:
       - ./Discord-Bot-WebUI:/app
+      - celery_data:/tmp/celery
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - web
+
+  celery-live-reporting-worker:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    command: python celery_live_reporting_worker.py
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - celery_live_data:/tmp/celery_live
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       redis:
         condition: service_healthy
@@ -31,16 +66,27 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
-    command: celery -A app.celery:celery beat --loglevel=info
+    command: python celery_beat.py
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+      - TZ=America/Los_Angeles
     volumes:
       - ./Discord-Bot-WebUI:/app
+      - celery_beat_data:/tmp/celerybeat
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       redis:
         condition: service_healthy
       celery-worker:
-        condition: service_started
+        condition: service_healthy
     networks:
       - web
 
@@ -48,6 +94,29 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
+    command: >
+      gunicorn
+      --worker-class eventlet
+      --workers 1
+      --bind 0.0.0.0:5000
+      --log-level debug
+      --access-logfile -
+      --error-logfile -
+      --timeout 300
+      --reload
+      --worker-connections 1000
+      --keep-alive 65
+      --preload
+      --name webui
+      wsgi:application
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - EVENTLET_NO_GREENDNS=yes
+      - PYTHONPATH=/app
+      - FLASK_DEBUG=1
+      - FLASK_ENV=development
+      - REDIS_URL=redis://redis:6379/0 
     env_file:
       - .env
     volumes:
@@ -63,6 +132,10 @@ services:
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
+      # WebSocket support
+      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=upgrade"
+      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
+      - "traefik.http.routers.webui-secure.middlewares=websocket"
     depends_on:
       redis:
         condition: service_healthy
@@ -78,6 +151,7 @@ services:
     command: celery --broker=redis://redis:6379/0 flower --port=5555
     environment:
       - FLOWER_UNAUTHENTICATED_API=true
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       redis:
         condition: service_healthy
@@ -100,6 +174,8 @@ services:
       dockerfile: Dockerfile.bot
     env_file:
       - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0 
     volumes:
       - .:/app
     depends_on:
@@ -112,3 +188,9 @@ services:
 networks:
   web:
     external: true
+
+volumes:
+  redis_data:
+  celery_data:
+  celery_live_data:
+  celery_beat_data:

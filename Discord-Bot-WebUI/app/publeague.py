@@ -1,13 +1,12 @@
-
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
 from flask_login import login_required, current_user
 from app import db
 from app.models import Season, League, Team, Player, Schedule
-from app.decorators import role_required
+from app.decorators import role_required, db_operation, query_operation
 from datetime import datetime, timedelta
 from sqlalchemy import cast, Integer
 from sqlalchemy.orm import joinedload
-from app.discord_utils import create_discord_channel, delete_discord_channel, rename_discord_channel,  rename_discord_roles, delete_discord_roles, assign_role_to_player, process_role_assignments
+from app.discord_utils import create_discord_channel, delete_discord_channel, rename_discord_channel, rename_discord_roles, delete_discord_roles, assign_role_to_player, process_role_assignments
 from .season_routes import season_bp
 from .schedule_routes import schedule_bp
 import asyncio
@@ -52,31 +51,39 @@ def get_matches_by_league(league_id):
 @publeague.route('/clear_players', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def clear_players():
     try:
         Player.query.delete()
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         flash('All players have been cleared.', 'success')
     except Exception as e:
-        db.session.rollback()
+        logger.error(f'Error clearing players: {str(e)}')
         flash(f'Error clearing players: {str(e)}', 'danger')
+        raise  # Reraise exception for decorator to handle rollback
     return redirect(url_for('publeague.view_players'))
 
 # Update Team Name
 @publeague.route('/seasons/<int:season_id>/teams/<string:league_name>/<string:team_name>/update', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def update_publeague_team_name(season_id, league_name, team_name):
-    league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
-    team = Team.query.filter_by(name=team_name, league_id=league.id).first_or_404()
+    try:
+        league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
+        team = Team.query.filter_by(name=team_name, league_id=league.id).first_or_404()
 
-    new_team_name = request.form.get('team_name')
-    if new_team_name:
-        team.name = new_team_name
-        db.session.commit()
-        flash(f'Team name updated to "{new_team_name}".', 'success')
-    else:
-        flash('Team name cannot be empty.', 'danger')
+        new_team_name = request.form.get('team_name')
+        if new_team_name:
+            team.name = new_team_name
+            # No need to call db.session.commit(); handled by decorator
+            flash(f'Team name updated to "{new_team_name}".', 'success')
+        else:
+            flash('Team name cannot be empty.', 'danger')
+    except Exception as e:
+        logger.error(f"Error updating team name: {e}")
+        flash('Error occurred while updating the team name.', 'danger')
+        raise  # Reraise exception for decorator to handle rollback
 
     return redirect(url_for('publeague.manage_teams', season_id=season_id))
 
@@ -101,9 +108,11 @@ def assign_discord_roles():
     
     return render_template('role_assignment_results.html', results=results)
 
+# Add Team
 @publeague.route('/add_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def add_team():
     team_name = request.form.get('team_name', '').strip()
     league_name = request.form.get('league_name', '').strip()
@@ -138,19 +147,18 @@ def add_team():
         loop.run_until_complete(create_discord_channel(team_name, division, new_team.id))
         loop.close()
 
-        # If everything went fine, commit the team to the database
-        db.session.commit()
-
         flash(f'Team "{team_name}" added to league "{league_name}".', 'success')
     except Exception as e:
-        db.session.rollback()
+        logger.error(f"Error creating team: {str(e)}")
         flash(f"Error creating team: {str(e)}", 'danger')
-    finally:
-        return redirect(url_for('publeague.manage_teams'))
+        raise  # Reraise exception for decorator to handle rollback
+    return redirect(url_for('publeague.manage_teams'))
 
+# Edit Team
 @publeague.route('/edit_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def edit_team():
     team_id = request.form.get('team_id')
     new_team_name = request.form.get('team_name', '').strip()
@@ -180,19 +188,20 @@ def edit_team():
         loop.run_until_complete(update_discord())
         loop.close()
 
-        # If all went well, commit to the database
-        db.session.commit()
         flash(f'Team "{old_team_name}" updated to "{new_team_name}" and Discord updated.', 'success')
 
     except Exception as e:
-        db.session.rollback()
+        logger.error(f"Error updating team: {str(e)}")
         flash(f"Error updating team: {str(e)}", 'danger')
+        raise  # Reraise exception for decorator to handle rollback
 
     return redirect(url_for('publeague.manage_teams'))
 
+# Delete Team
 @publeague.route('/delete_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def delete_team():
     team_id = request.form.get('team_id')
 
@@ -219,37 +228,35 @@ def delete_team():
         loop.run_until_complete(delete_discord_entities())
         loop.close()
 
-        # If all went well, delete the team from the database
+        # Delete the team from the database
         db.session.delete(team)
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         flash(f'Team "{team_name}" has been deleted.', 'success')
 
     except Exception as e:
-        db.session.rollback()
+        logger.error(f"Error deleting team: {str(e)}")
         flash(f"Error deleting team: {str(e)}", 'danger')
+        raise  # Reraise exception for decorator to handle rollback
 
     return redirect(url_for('publeague.manage_teams'))
 
-
+# Manage Teams
 @publeague.route('/manage_teams', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def manage_teams():
-    # Fetch all current seasons
-    seasons = Season.query.filter_by(is_current=True).all()
+    # Fetch all current seasons with leagues and teams eagerly loaded
+    seasons = Season.query.options(
+        joinedload(Season.leagues).joinedload(League.teams)
+    ).filter_by(is_current=True).all()
 
     # Define the desired league order
     league_order = {'Premier': 1, 'Classic': 2, 'ECS FC': 3}
 
-    # For each season, get its leagues and teams
+    # For each season, sort its leagues
     for season in seasons:
-        leagues = League.query.filter_by(season_id=season.id).all()
         # Sort the leagues based on the desired order
-        leagues.sort(key=lambda x: league_order.get(x.name, 99))
-        season.leagues = leagues
-        for league in leagues:
-            teams = Team.query.filter_by(league_id=league.id).all()
-            league.teams = teams
+        season.leagues.sort(key=lambda x: league_order.get(x.name, 99))
 
     return render_template('manage_teams.html', seasons=seasons)

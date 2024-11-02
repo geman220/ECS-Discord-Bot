@@ -1,29 +1,61 @@
-# app/app_api.py
+# app_api.py
 
-from app import csrf, db
 from flask import Blueprint, jsonify, request, current_app, url_for, session
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
-from app.models import User, Player, Team, Match, League, Season, PlayerSeasonStats, PlayerCareerStats, Availability, Feedback, Standings, PlayerEvent, Notification, PlayerEventType
-from app.decorators import jwt_role_required, jwt_permission_required, jwt_admin_or_owner_required
+from app import csrf, db
+from app.models import (
+    User, Player, Team, Match, League, Season,
+    PlayerSeasonStats, PlayerCareerStats, Availability,
+    Feedback, Standings, PlayerEvent, PlayerEventType, Notification
+)
+from app.decorators import (
+    jwt_role_required, jwt_permission_required,
+    jwt_admin_or_owner_required, db_operation, query_operation
+)
+from app.app_api_helpers import (
+    build_player_response, exchange_discord_code,
+    get_discord_user_data, process_discord_user,
+    build_match_response, get_team_players_availability,
+    get_match_events, get_player_availability,
+    build_matches_query, process_matches_data,
+    get_player_stats, generate_pkce_codes,
+    update_match_details, add_match_events,
+    update_player_availability, notify_availability_update,
+    update_player_match_availability, get_team_upcoming_matches
+)
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
-import requests
-import secrets
 import hashlib
 import base64
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 mobile_api = Blueprint('mobile_api', __name__)
 csrf.exempt(mobile_api)
 
-def generate_pkce_codes():
-    code_verifier = secrets.token_urlsafe(32)
-    code_challenge = base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest()).decode().rstrip('=')
-    return code_verifier, code_challenge
+@mobile_api.before_request
+def limit_remote_addr():
+    """Restrict API access to allowed hosts."""
+    allowed_hosts = ['127.0.0.1:5000', 'localhost:5000', 'webui:5000']
+    if request.host not in allowed_hosts:
+        return "Access Denied", 403
 
 @mobile_api.route('/login', methods=['POST'])
+@db_operation
 def login():
-    email = request.json.get('email', None)
-    password = request.json.get('password', None)
+    """
+    Handle user login and return JWT token.
+    
+    Returns:
+        tuple: JSON response and status code
+    """
+    email = request.json.get('email')
+    password = request.json.get('password')
+
+    if not email or not password:
+        return jsonify({"msg": "Missing username or password"}), 400
 
     user = User.query.filter_by(email=email.lower()).first()
 
@@ -34,16 +66,29 @@ def login():
         return jsonify({"msg": "Account not approved"}), 403
 
     if user.is_2fa_enabled:
-        return jsonify({"msg": "2FA required", "user_id": user.id}), 200
+        return jsonify({
+            "msg": "2FA required", 
+            "user_id": user.id
+        }), 200
 
     access_token = create_access_token(identity=user.id)
     return jsonify(access_token=access_token), 200
 
 @mobile_api.route('/verify_2fa', methods=['POST'])
+@db_operation
 def verify_2fa():
-    user_id = request.json.get('user_id', None)
-    token = request.json.get('token', None)
-    print(f"Received user_id: {user_id}, token: {token}")
+    """
+    Verify 2FA token and complete login process.
+    
+    Returns:
+        tuple: JSON response and status code
+    """
+    user_id = request.json.get('user_id')
+    token = request.json.get('token')
+    logger.debug(f"Received user_id: {user_id}, token: {token}")
+
+    if not user_id or not token:
+        return jsonify({"msg": "Missing user_id or token"}), 400
 
     user = User.query.get(user_id)
     if not user or not user.verify_totp(token):
@@ -54,16 +99,21 @@ def verify_2fa():
 
 @mobile_api.route('/user_profile', methods=['GET'])
 @jwt_required()
+@query_operation
 def get_user_profile():
+    """
+    Get current user's profile information.
+    
+    Returns:
+        tuple: JSON response and status code
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if not user:
-        current_app.logger.error(f"User not found for ID: {current_user_id}")
+        logger.error(f"User not found for ID: {current_user_id}")
         return jsonify({"error": "User not found"}), 404
 
     player = Player.query.filter_by(user_id=current_user_id).first()
-
-    # Get the base URL dynamically
     base_url = request.host_url.rstrip('/')
 
     response_data = {
@@ -87,16 +137,14 @@ def get_user_profile():
     if player:
         profile_picture_url = player.profile_picture_url
         if profile_picture_url:
-            # Check if the URL is already absolute
-            if profile_picture_url.startswith('http'):
-                full_profile_picture_url = profile_picture_url
-            else:
-                full_profile_picture_url = f"{base_url}{profile_picture_url}"
+            full_profile_picture_url = (
+                profile_picture_url if profile_picture_url.startswith('http')
+                else f"{base_url}{profile_picture_url}"
+            )
         else:
-            # Provide a default profile picture URL
             full_profile_picture_url = f"{base_url}/static/img/default_player.png"
 
-        response_data.update({
+        player_data = {
             "player_id": player.id,
             "player_name": player.name,
             "phone": player.phone,
@@ -120,47 +168,54 @@ def get_user_profile():
             "team_id": player.team_id,
             "team_name": player.team.name if player.team else None,
             "league_name": player.league.name if player.league else None,
-        })
+        }
+        response_data.update(player_data)
 
         include_stats = request.args.get('include_stats', 'false').lower() == 'true'
         if include_stats:
             current_season = Season.query.filter_by(is_current=True).first()
-            season_stats = PlayerSeasonStats.query.filter_by(player_id=player.id, season_id=current_season.id).first()
-            career_stats = PlayerCareerStats.query.filter_by(player_id=player.id).first()
+            response_data.update(get_player_stats(player, current_season))
 
-            response_data['season_stats'] = season_stats.to_dict() if season_stats else None
-            response_data['career_stats'] = career_stats.to_dict() if career_stats else None
-
-    current_app.logger.info(f"User profile fetched: {response_data}")
     return jsonify(response_data), 200
 
 @mobile_api.route('/player/update', methods=['PUT'])
 @jwt_required()
+@db_operation
 def update_player_profile():
+    """Update player profile information."""
     current_user_id = get_jwt_identity()
     player = Player.query.filter_by(user_id=current_user_id).first()
     if not player:
         return jsonify({"msg": "Player not found"}), 404
 
     data = request.json
-    allowed_fields = ['name', 'phone', 'jersey_size', 'jersey_number', 'pronouns',
-                      'favorite_position', 'other_positions', 'positions_not_to_play',
-                      'frequency_play_goal', 'expected_weeks_available', 'unavailable_dates',
-                      'willing_to_referee', 'additional_info']
-    for field in allowed_fields:
-        if field in data:
-            setattr(player, field, data[field])
+    allowed_fields = [
+        'name', 'phone', 'jersey_size', 'jersey_number', 'pronouns',
+        'favorite_position', 'other_positions', 'positions_not_to_play',
+        'frequency_play_goal', 'expected_weeks_available', 'unavailable_dates',
+        'willing_to_referee', 'additional_info'
+    ]
 
     try:
-        db.session.commit()
-        return jsonify({"msg": "Profile updated successfully", "player": player.to_dict()}), 200
+        for field in allowed_fields:
+            if field in data:
+                setattr(player, field, data[field])
+        
+        return jsonify({
+            "msg": "Profile updated successfully",
+            "player": player.to_dict()
+        }), 200
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"msg": f"Error updating profile: {str(e)}"}), 500
+        logger.error(f"Error updating player profile: {str(e)}")
+        return jsonify({
+            "msg": f"Error updating profile: {str(e)}"
+        }), 500
 
 @mobile_api.route('/players/<int:player_id>', methods=['GET'])
 @jwt_required()
-def get_player(player_id):
+@query_operation
+def get_player(player_id: int):
+    """Get player details with stats."""
     current_user_id = get_jwt_identity()
     current_user = User.query.get(current_user_id)
     player = Player.query.get(player_id)
@@ -168,63 +223,37 @@ def get_player(player_id):
     if not player:
         return jsonify({"msg": "Player not found"}), 404
 
-    # Get current season
-    current_season = Season.query.filter_by(is_current=True).first()
+    # Check viewing permissions
+    is_admin = any(role.name in ['Coach', 'Admin'] for role in current_user.roles)
+    is_owner = current_user_id == player.user_id
+    is_full_profile = is_admin or is_owner
 
-    # Fetch season stats for the current season
-    season_stats = PlayerSeasonStats.query.filter_by(player_id=player.id, season_id=current_season.id).first()
-    
-    # Fetch career stats
-    career_stats = PlayerCareerStats.query.filter_by(player_id=player.id).first()
-
-    # Determine if the current user has permission to view full profile
-    is_full_profile = current_user.has_role('Coach') or current_user.has_role('Admin') or current_user_id == player.user_id
-
-    player_data = player.to_dict()
-    player_data.update({
-        'team_name': player.team.name if player.team else None,
-        'league_name': player.league.name if player.league else None,
-        'season_stats': season_stats.to_dict() if season_stats else None,
-        'career_stats': career_stats.to_dict() if career_stats else None,
-    })
-
-    if is_full_profile:
-        # Include additional fields for full profile view
-        player_data.update({
-            'email': player.user.email,
-            'phone': player.phone,
-            'is_phone_verified': player.is_phone_verified,
-            'pronouns': player.pronouns,
-            'unavailable_dates': player.unavailable_dates,
-            'willing_to_referee': player.willing_to_referee,
-            'positions_not_to_play': player.positions_not_to_play,
-            'additional_info': player.additional_info,
-        })
-
-    return jsonify(player_data), 200
+    response_data = get_player_response_data(player, is_full_profile)
+    return jsonify(response_data), 200
 
 @mobile_api.route('/teams', methods=['GET'])
 @jwt_required()
+@query_operation
 def get_teams():
+    """Get all teams with league information."""
     teams = Team.query.all()
-    teams_data = []
-    
-    for team in teams:
-        team_data = team.to_dict()
-        
-        # Add the league_name to the team data
-        if team.league:
-            team_data['league_name'] = team.league.name
-        else:
-            team_data['league_name'] = "Unknown League"
-        
-        teams_data.append(team_data)
-    
-    return jsonify(teams_data), 200
+    return jsonify([
+        {
+            **team.to_dict(),
+            'league_name': team.league.name if team.league else "Unknown League"
+        } for team in teams
+    ]), 200
 
 @mobile_api.route('/teams/<int:team_id>', methods=['GET'])
 @jwt_required()
-def get_team_details(team_id):
+@query_operation
+def get_team_details(team_id: int):
+    """
+    Get detailed team information including players and matches.
+    
+    Args:
+        team_id: Team ID
+    """
     team = Team.query.get(team_id)
     if not team:
         return jsonify({"msg": "Team not found"}), 404
@@ -232,288 +261,215 @@ def get_team_details(team_id):
     include_players = request.args.get('include_players', 'false').lower() == 'true'
     team_data = team.to_dict(include_players=include_players)
 
-    # Get the base URL dynamically
+    # Update image URLs to be absolute
     base_url = request.host_url.rstrip('/')
-
-    # Update any image URLs in the team data to be absolute URLs
     if team_data.get('logo_url'):
         if not team_data['logo_url'].startswith('http'):
             team_data['logo_url'] = f"{base_url}{team_data['logo_url']}"
 
     # Include upcoming matches if requested
-    include_matches = request.args.get('include_matches', 'false').lower() == 'true'
-    if include_matches:
-        upcoming_matches = Match.query.filter(
-            ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)) &
-            (Match.date >= datetime.utcnow())
-        ).order_by(Match.date).limit(5).all()
-        team_data['upcoming_matches'] = [match.to_dict() for match in upcoming_matches]
+    if request.args.get('include_matches', 'false').lower() == 'true':
+        team_data['upcoming_matches'] = get_team_upcoming_matches(team_id)
 
     return jsonify(team_data), 200
 
 @mobile_api.route('/teams/my_team', methods=['GET'])
 @jwt_required()
+@query_operation
 def get_my_team():
+    """Get current user's team details."""
     current_user_id = get_jwt_identity()
     player = Player.query.filter_by(user_id=current_user_id).first()
+    
     if not player or not player.team:
         return jsonify({"msg": "Team not found"}), 404
+    
     return get_team_details(player.team.id)
 
 @mobile_api.route('/matches', methods=['GET'])
 @jwt_required()
+@query_operation
+def get_all_matches():
+    """Get all matches based on filters."""
+    current_user_id = get_jwt_identity()
+    player = Player.query.filter_by(user_id=current_user_id).first()
+
+    # Apply filters
+    query = build_matches_query(
+        team_id=request.args.get('team_id'),
+        player=player,
+        upcoming=request.args.get('upcoming', 'false').lower() == 'true'
+    )
+
+    matches = query.order_by(Match.date).all()
+    
+    # Process match data with optional includes
+    matches_data = process_matches_data(
+        matches=matches,
+        player=player,
+        include_events=request.args.get('include_events', 'false').lower() == 'true',
+        include_availability=request.args.get('include_availability', 'false').lower() == 'true'
+    )
+
+    return jsonify(matches_data), 200
+
+@mobile_api.route('/matches/<int:match_id>', methods=['GET'])
+@jwt_required()
+@query_operation
+def get_single_match_details(match_id: int):
+    """Get detailed match information for a specific match."""
+    match = Match.query.get(match_id)
+    if not match:
+        return jsonify({"msg": "Match not found"}), 404
+
+    current_user_id = get_jwt_identity()
+    player = Player.query.filter_by(user_id=current_user_id).first()
+
+    match_data = build_match_response(
+        match=match,
+        include_events=request.args.get('include_events', 'true').lower() == 'true',
+        include_teams=request.args.get('include_teams', 'true').lower() == 'true',
+        include_players=request.args.get('include_players', 'true').lower() == 'true',
+        current_player=player
+    )
+
+    return jsonify(match_data), 200
+
+@mobile_api.route('/update_availability', methods=['POST'])
+@jwt_required()
+@db_operation
+def update_availability():
+    """Update player's availability for a match."""
+    current_user_id = get_jwt_identity()
+    player = Player.query.filter_by(user_id=current_user_id).first()
+    if not player:
+        return jsonify({"msg": "Player not found"}), 404
+
+    data = request.json
+    match_id = data.get('match_id')
+    availability_status = data.get('availability')
+
+    if not match_id or not availability_status:
+        return jsonify({"msg": "Missing match_id or availability status"}), 400
+
+    if availability_status not in ['yes', 'no', 'maybe']:
+        return jsonify({"msg": "Invalid availability status"}), 400
+
+    match = Match.query.get(match_id)
+    if not match:
+        return jsonify({"msg": "Match not found"}), 404
+
+    try:
+        availability = update_player_availability(
+            match_id=match_id,
+            player_id=player.id,
+            discord_id=player.discord_id,
+            response=availability_status
+        )
+        return jsonify({"msg": "Availability updated successfully"}), 200
+    except Exception as e:
+        logger.error(f"Error updating availability: {str(e)}")
+        return jsonify({
+            "msg": "An error occurred while updating availability"
+        }), 500
+
+@mobile_api.route('/report_match/<int:match_id>', methods=['POST'])
+@jwt_required()
+@jwt_role_required('Coach')
+@db_operation
+def report_match(match_id: int):
+    """Report match results and events."""
+    match = Match.query.get(match_id)
+    if not match:
+        return jsonify({"msg": "Match not found"}), 404
+
+    try:
+        data = request.json
+        update_match_details(match, data)
+        add_match_events(match, data.get('events', []))
+        
+        return jsonify({
+            "msg": "Match reported successfully",
+            "match": match.to_dict()
+        }), 200
+    except Exception as e:
+        logger.error(f"Error reporting match: {str(e)}")
+        return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
+
+@mobile_api.route('/matches', methods=['GET'])
+@jwt_required()
+@query_operation
 def get_matches():
+    """Get filtered matches with optional includes."""
     current_user_id = get_jwt_identity()
     player = Player.query.filter_by(user_id=current_user_id).first()
 
     team_id = request.args.get('team_id')
     upcoming = request.args.get('upcoming', 'false').lower() == 'true'
 
-    query = Match.query
-    if team_id:
-        query = query.filter(
-            (Match.home_team_id == team_id) | (Match.away_team_id == team_id)
-        )
-    elif player and player.team_id:
-        query = query.filter(
-            (Match.home_team_id == player.team_id) | (Match.away_team_id == player.team_id)
-        )
-    if upcoming:
-        query = query.filter(Match.date >= datetime.utcnow())
+    matches_query = build_matches_query(team_id, player, upcoming)
+    matches = matches_query.order_by(Match.date).all()
 
-    matches = query.order_by(Match.date).all()
-
-    include_events = request.args.get('include_events', 'false').lower() == 'true'
-    include_availability = request.args.get('include_availability', 'false').lower() == 'true'
-
-    matches_data = []
-    for match in matches:
-        match_data = match.to_dict(include_teams=True)
-        if include_events:
-            match_data['events'] = [event.to_dict() for event in match.events]
-        if include_availability and player:
-            availability = Availability.query.filter_by(match_id=match.id, player_id=player.id).first()
-            match_data['availability'] = availability.to_dict() if availability else None
-        matches_data.append(match_data)
+    matches_data = process_matches_data(
+        matches=matches,
+        player=player,
+        include_events=request.args.get('include_events', 'false').lower() == 'true',
+        include_availability=request.args.get('include_availability', 'false').lower() == 'true'
+    )
 
     return jsonify(matches_data), 200
 
 @mobile_api.route('/matches/<int:match_id>', methods=['GET'])
 @jwt_required()
-def get_match_details(match_id):
-    match = Match.query.get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
-
+@query_operation
+def get_match_details(match_id: int):
+    """Get detailed match information."""
+    match = Match.query.get_or_404(match_id)
     current_user_id = get_jwt_identity()
     player = Player.query.filter_by(user_id=current_user_id).first()
 
-    include_events = request.args.get('include_events', 'true').lower() == 'true'
-    include_teams = request.args.get('include_teams', 'true').lower() == 'true'
-    include_players = request.args.get('include_players', 'true').lower() == 'true'
-
-    match_data = match.to_dict(include_teams=include_teams, include_events=include_events)
-    
-    if include_players:
-        match_data['home_team']['players'] = [
-            {
-                'id': p.id,
-                'name': p.name,
-                'availability': Availability.query.filter_by(match_id=match.id, player_id=p.id).first().response if Availability.query.filter_by(match_id=match.id, player_id=p.id).first() else 'Not responded'
-            } for p in match.home_team.players
-        ]
-        match_data['away_team']['players'] = [
-            {
-                'id': p.id,
-                'name': p.name,
-                'availability': Availability.query.filter_by(match_id=match.id, player_id=p.id).first().response if Availability.query.filter_by(match_id=match.id, player_id=p.id).first() else 'Not responded'
-            } for p in match.away_team.players
-        ]
-
-    # Add card statistics
-    home_yellow_cards = sum(1 for event in match.events if event.event_type == PlayerEventType.YELLOW_CARD and event.player.team_id == match.home_team_id)
-    away_yellow_cards = sum(1 for event in match.events if event.event_type == PlayerEventType.YELLOW_CARD and event.player.team_id == match.away_team_id)
-    home_red_cards = sum(1 for event in match.events if event.event_type == PlayerEventType.RED_CARD and event.player.team_id == match.home_team_id)
-    away_red_cards = sum(1 for event in match.events if event.event_type == PlayerEventType.RED_CARD and event.player.team_id == match.away_team_id)
-
-    match_data.update({
-        'home_team_yellow_cards': home_yellow_cards,
-        'away_team_yellow_cards': away_yellow_cards,
-        'home_team_red_cards': home_red_cards,
-        'away_team_red_cards': away_red_cards,
-    })
-
-    # Add current user's availability
-    if player:
-        availability = Availability.query.filter_by(match_id=match.id, player_id=player.id).first()
-        match_data['availability'] = availability.to_dict() if availability else None
+    match_data = build_match_response(
+        match=match,
+        include_events=True,
+        include_teams=True,
+        include_players=True,
+        current_player=player
+    )
 
     return jsonify(match_data), 200
 
-@mobile_api.route('/update_availability', methods=['POST'])
+@mobile_api.route('/update_availability_web', methods=['POST'])
 @jwt_required()
-def update_availability():
-    current_user_id = get_jwt_identity()
-    player = Player.query.filter_by(user_id=current_user_id).first()
-    if not player:
-        return jsonify({"msg": "Player not found"}), 404
-
-    match_id = request.json.get('match_id')
-    availability_status = request.json.get('availability')
-
-    if not match_id or not availability_status:
-        return jsonify({"msg": "Missing match_id or availability status"}), 400
-
-    match = Match.query.get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
-
-    availability = Availability.query.filter_by(match_id=match_id, player_id=player.id).first()
-    if availability:
-        availability.response = availability_status
-        availability.responded_at = datetime.utcnow()
-    else:
-        availability = Availability(
-            match_id=match_id,
-            player_id=player.id,
-            discord_id=player.discord_id,
-            response=availability_status,
-            responded_at=datetime.utcnow()
-        )
-        db.session.add(availability)
-
-    try:
-        db.session.commit()
-        return jsonify({"msg": "Availability updated successfully"}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"msg": f"Error updating availability: {str(e)}"}), 500
-
-@mobile_api.route('/report_match/<int:match_id>', methods=['POST'])
-@jwt_required()
-@jwt_role_required('Coach')
-def report_match(match_id):
-    match = Match.query.get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
-
+@db_operation
+def update_availability_web():
+    """Update match availability through web interface."""
     data = request.json
-    match.home_team_score = data.get('home_team_score')
-    match.away_team_score = data.get('away_team_score')
-    match.notes = data.get('notes')
-
-    # Add match events
-    for event in data.get('events', []):
-        new_event = PlayerEvent(
-            player_id=event['player_id'],
-            match_id=match_id,
-            event_type=event['event_type'],
-            minute=event.get('minute')
-        )
-        db.session.add(new_event)
-
-    try:
-        db.session.commit()
-        return jsonify({"msg": "Match reported successfully", "match": match.to_dict()}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
-
-@mobile_api.route('/draft_player', methods=['POST'])
-@jwt_required()
-@jwt_role_required('Coach')
-def draft_player():
-    data = request.json
+    logger.info(f"Received web update data: {data}")
+    
+    match_id = data.get('match_id')
     player_id = data.get('player_id')
-    team_id = data.get('team_id')
-
-    player = Player.query.get(player_id)
-    team = Team.query.get(team_id)
-
-    if not player or not team:
-        return jsonify({"msg": "Player or team not found"}), 404
-
-    player.team_id = team_id
-
-    try:
-        db.session.commit()
-        return jsonify({"msg": "Player drafted successfully", "player": player.to_dict()}), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"msg": f"Error drafting player: {str(e)}"}), 500
-
-@mobile_api.route('/standings', methods=['GET'])
-@jwt_required()
-def get_standings():
-    season_id = request.args.get('season_id')
-    if not season_id:
-        current_season = Season.query.filter_by(is_current=True).first()
-        if not current_season:
-            return jsonify({"msg": "No current season found"}), 404
-        season_id = current_season.id
-
-    standings = Standings.query.filter_by(season_id=season_id).order_by(Standings.points.desc()).all()
-    return jsonify([standing.to_dict() for standing in standings]), 200
-
-@mobile_api.route('/feedback', methods=['POST'])
-@jwt_required()
-def submit_feedback():
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-
-    data = request.json
-    new_feedback = Feedback(
-        user_id=user.id,
-        category=data.get('category'),
-        title=data.get('title'),
-        description=data.get('description'),
-        priority=data.get('priority', 'Low')
-    )
-
-    try:
-        db.session.add(new_feedback)
-        db.session.commit()
-        return jsonify({"msg": "Feedback submitted successfully", "feedback": new_feedback.to_dict()}), 201
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"msg": f"Error submitting feedback: {str(e)}"}), 500
-
-@mobile_api.route('/leagues', methods=['GET'])
-@jwt_required()
-def get_leagues():
-    leagues = League.query.all()
-    return jsonify([league.to_dict() for league in leagues]), 200
-
-@mobile_api.route('/leagues/<int:league_id>', methods=['GET'])
-@jwt_required()
-def get_league_details(league_id):
-    league = League.query.get(league_id)
-    if not league:
-        return jsonify({"msg": "League not found"}), 404
-    include_teams = request.args.get('include_teams', 'false').lower() == 'true'
-    league_data = league.to_dict(include_teams=include_teams)
-    return jsonify(league_data), 200
-
-@mobile_api.route('/seasons', methods=['GET'])
-@jwt_required()
-def get_seasons():
-    seasons = Season.query.all()
-    return jsonify([season.to_dict() for season in seasons]), 200
-
-@mobile_api.route('/notifications', methods=['GET'])
-@jwt_required()
-def get_notifications():
-    current_user_id = get_jwt_identity()
-    notifications = Notification.query.filter_by(user_id=current_user_id).order_by(Notification.created_at.desc()).limit(20).all()
-    return jsonify([notification.to_dict() for notification in notifications]), 200
+    new_response = data.get('response')
+    
+    if not all([match_id, player_id, new_response]):
+        logger.error("Invalid data received from web")
+        return jsonify({"error": "Invalid data"}), 400
+    
+    success = update_player_match_availability(match_id, player_id, new_response)
+    
+    if success:
+        notify_availability_update(match_id, player_id, new_response)
+        return jsonify({"message": "Availability updated successfully"}), 200
+    
+    return jsonify({"error": "Failed to update availability"}), 500
 
 @mobile_api.route('/get_discord_auth_url', methods=['GET'])
+@query_operation
 def get_discord_auth_url():
+    """Generate Discord OAuth URL with PKCE flow."""
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = request.args.get('redirect_uri', 'ecs-fc-scheme://auth')
     code_verifier, code_challenge = generate_pkce_codes()
-    current_app.logger.info(f"Generated code_verifier: {code_verifier}")
-    current_app.logger.info(f"Session before storing code_verifier: {session}")
+    
     params = {
         'client_id': discord_client_id,
         'redirect_uri': redirect_uri,
@@ -522,132 +478,58 @@ def get_discord_auth_url():
         'code_challenge': code_challenge,
         'code_challenge_method': 'S256',
     }
+    
     discord_auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
     session['code_verifier'] = code_verifier
-    current_app.logger.info(f"Session after storing code_verifier: {session}")
-    current_app.logger.info(f"Stored code_verifier in session: {session.get('code_verifier')}")
+    
+    logger.info(f"Generated Discord auth URL with PKCE for redirect_uri: {redirect_uri}")
     return jsonify({'auth_url': discord_auth_url})
 
 @mobile_api.route('/discord_callback', methods=['POST'])
+@db_operation
 def discord_callback():
-    current_app.logger.info("Received request at /discord_callback")
-    current_app.logger.info(f"Session contents: {session}")
-    
+    """Handle Discord OAuth callback and create/update user."""
     code = request.json.get('code')
     redirect_uri = request.json.get('redirect_uri')
     code_verifier = session.get('code_verifier')
     
-    current_app.logger.info(f"Code: {code}")
-    current_app.logger.info(f"Redirect URI: {redirect_uri}")
-    current_app.logger.info(f"Code Verifier: {code_verifier}")
-    
-    if not code or not redirect_uri or not code_verifier:
-        current_app.logger.error("Missing required parameters")
+    if not all([code, redirect_uri, code_verifier]):
+        logger.error("Missing required OAuth parameters")
         return jsonify({'error': 'Missing required parameters'}), 400
-    
-    discord_client_id = current_app.config['DISCORD_CLIENT_ID']
-    discord_client_secret = current_app.config['DISCORD_CLIENT_SECRET']
-    
-    current_app.logger.info(f"Discord Client ID: {discord_client_id}")
-    current_app.logger.info(f"Discord Client Secret: {discord_client_secret}")
-    
-    data = {
-        'client_id': discord_client_id,
-        'client_secret': discord_client_secret,
-        'grant_type': 'authorization_code',
-        'code': code,
-        'redirect_uri': redirect_uri,
-        'code_verifier': code_verifier,
-    }
-    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-    
-    current_app.logger.info(f"Request data: {data}")
-    current_app.logger.info(f"Request headers: {headers}")
-    
+
     try:
-        current_app.logger.info("Sending request to Discord API")
-        response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+        token_data = exchange_discord_code(
+            code=code,
+            redirect_uri=redirect_uri,
+            code_verifier=code_verifier
+        )
         
-        current_app.logger.info(f"Response status code: {response.status_code}")
-        current_app.logger.info(f"Response text: {response.text}")
-        
-        response.raise_for_status()
-        
-        token_data = response.json()
-        access_token = token_data['access_token']
-        
-        current_app.logger.info(f"Access token: {access_token}")
-        
-        user_response = requests.get('https://discord.com/api/users/@me', headers={
-            'Authorization': f'Bearer {access_token}'
-        })
-        
-        current_app.logger.info(f"User response status code: {user_response.status_code}")
-        current_app.logger.info(f"User response text: {user_response.text}")
-        
-        user_response.raise_for_status()
-        
-        user_data = user_response.json()
-        user = User.query.filter_by(email=user_data['email']).first()
-        
-        current_app.logger.info(f"User data: {user_data}")
-        current_app.logger.info(f"User found: {user}")
-        
-        if not user:
-            user = User(email=user_data['email'], username=user_data['username'])
-            try:
-                db.session.add(user)
-                db.session.commit()
-                current_app.logger.info("New user created")
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({"error": f"Error creating user: {str(e)}"}), 500
+        user_data = get_discord_user_data(token_data['access_token'])
+        user = process_discord_user(user_data)
         
         if user.is_2fa_enabled:
-            current_app.logger.info("2FA is enabled for the user")
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
         
-        app_access_token = create_access_token(identity=user.id)
-        
-        current_app.logger.info(f"App access token created: {app_access_token}")
-        
+        access_token = create_access_token(identity=user.id)
         session.pop('code_verifier', None)
-        current_app.logger.info("Code verifier removed from the session")
         
-        return jsonify(access_token=app_access_token), 200
-    
-    except requests.exceptions.RequestException as e:
-        current_app.logger.error(f"Discord API error: {str(e)}")
-        current_app.logger.error(f"Request data: {data}")
-        current_app.logger.error(f"Response text: {e.response.text}")
-        return jsonify({'error': 'Error communicating with Discord'}), 500
+        return jsonify(access_token=access_token), 200
     
     except Exception as e:
-        current_app.logger.error(f"Unexpected error: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
+        logger.error(f"Discord authentication error: {str(e)}")
+        return jsonify({'error': 'Error processing Discord authentication'}), 500
 
 @mobile_api.route('/players', methods=['GET'])
 @jwt_required()
+@query_operation
 def get_players():
+    """Get filtered list of players."""
     search_query = request.args.get('search', '').lower()
     
-    # Filter players based on search query (name or team)
     players_query = Player.query.filter(
         (Player.name.ilike(f"%{search_query}%")) |
         (Player.team.has(Team.name.ilike(f"%{search_query}%")))
     )
     
-    players = players_query.all()
-    players_data = []
-
-    for player in players:
-        player_data = {
-            'id': player.id,
-            'name': player.name,
-            'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
-            'team_name': player.team.name if player.team else None,
-            'league_name': player.league.name if player.league else None,
-        }
-        players_data.append(player_data)
-    
+    players_data = [build_player_response(player) for player in players_query.all()]
     return jsonify(players_data), 200

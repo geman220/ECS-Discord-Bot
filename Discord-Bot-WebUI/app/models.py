@@ -66,7 +66,7 @@ class User(UserMixin, db.Model):
     sms_confirmation_code = db.Column(db.String(6), nullable=True)
     discord_notifications = db.Column(db.Boolean, default=True)
     profile_visibility = db.Column(db.String(20), default='everyone')
-    notifications = db.relationship('Notification', back_populates='user', lazy='dynamic')
+    notifications = db.relationship('Notification', back_populates='user', lazy='select')
     has_completed_onboarding = db.Column(db.Boolean, default=False)
     has_completed_tour = db.Column(db.Boolean, default=False)
     has_skipped_profile_creation = db.Column(db.Boolean, default=False)
@@ -135,7 +135,10 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return User.query.options(
+        db.joinedload(User.roles),
+        db.joinedload(User.notifications)
+    ).get(int(user_id))
 
 class Role(db.Model):
     __tablename__ = 'roles'

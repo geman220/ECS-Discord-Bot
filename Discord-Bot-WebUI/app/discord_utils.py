@@ -6,9 +6,13 @@ from datetime import datetime, timedelta
 from web_config import Config
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON
 import logging
+import time
+from typing import Union, List, Dict, Any
+from app.utils.discord_request_handler import optimized_discord_request
+from app.decorators import db_operation, query_operation, with_appcontext
+from app.models import Team, Player, db
+from app import create_app
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Permission constants
@@ -31,24 +35,71 @@ class RateLimiter:
         self._max_calls = max_calls
         self._period = period
         self._calls = 0
-        self._lock = asyncio.Lock()
-        self._reset_time = asyncio.get_event_loop().time()
-
-    async def acquire(self):
+        self._reset_time = time.time()
+        self._lock = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
+    
+    def _should_reset(self, current_time):
+        """Check if we should reset the counter"""
+        return current_time >= self._reset_time + self._period
+    
+    def _reset_counter(self, current_time):
+        """Reset the counter and time"""
+        self._reset_time = current_time
+        self._calls = 0
+    
+    def acquire_sync(self):
+        """Synchronous acquire method"""
+        current_time = time.time()
+        
+        if self._should_reset(current_time):
+            self._reset_counter(current_time)
+            
+        if self._calls >= self._max_calls:
+            wait_time = self._reset_time + self._period - current_time
+            logger.warning(f"Rate limiter sleeping for {wait_time} seconds")
+            time.sleep(wait_time)
+            self._reset_counter(time.time())
+            
+        self._calls += 1
+    
+    async def acquire_async(self):
+        """Asynchronous acquire method"""
+        if not self._lock:
+            self._lock = asyncio.Lock()
+            
         async with self._lock:
-            current_time = asyncio.get_event_loop().time()
-            if current_time >= self._reset_time + self._period:
-                self._reset_time = current_time
-                self._calls = 0
+            current_time = time.time()
+            
+            if self._should_reset(current_time):
+                self._reset_counter(current_time)
+                
             if self._calls >= self._max_calls:
                 wait_time = self._reset_time + self._period - current_time
                 logger.warning(f"Rate limiter sleeping for {wait_time} seconds")
                 await asyncio.sleep(wait_time)
-                self._reset_time = asyncio.get_event_loop().time()
-                self._calls = 0
+                self._reset_counter(time.time())
+                
             self._calls += 1
+    
+    def __call__(self):
+        """Make the class callable for use as a decorator"""
+        def decorator(func):
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                self.acquire_sync()
+                return func(*args, **kwargs)
+            
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                await self.acquire_async()
+                return await func(*args, **kwargs)
+            
+            if asyncio.iscoroutinefunction(func):
+                return async_wrapper
+            return sync_wrapper
+        return decorator
 
-# Instantiate the global rate limiter
+# Create a global rate limiter instance
 rate_limiter = RateLimiter(max_calls=GLOBAL_RATE_LIMIT, period=1)
 
 # Cache for categories and roles to minimize API calls
@@ -56,35 +107,8 @@ category_cache = {}
 global_role_cache = {}
 
 async def make_discord_request(method, url, session, **kwargs):
-    backoff = 1
-    for attempt in range(MAX_RETRIES):
-        try:
-            await rate_limiter.acquire()
-            logger.debug(f"Making request {method} {url} with kwargs {kwargs}")
-            async with session.request(method, url, timeout=30, **kwargs) as response:
-                logger.debug(f"Received response with status {response.status} for {method} {url}")
-                if response.status in [200, 201, 204]:
-                    logger.debug(f"Request successful: {method} {url}")
-                    if response.content_length and response.content_length > 0:
-                        json_response = await response.json()
-                        logger.debug(f"Response JSON: {json_response}")
-                        return json_response
-                    else:
-                        return None
-                elif response.status == 429:
-                    retry_after = response.headers.get('Retry-After', 1)
-                    backoff = float(retry_after)
-                    logger.warning(f"Rate limited on {method} {url}. Retrying after {backoff} seconds.")
-                    await asyncio.sleep(backoff)
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed request {method} {url}: {response.status}, {error_text}")
-                    raise Exception(f"Discord API request failed: {response.status}, {error_text}")
-        except Exception as e:
-            logger.exception(f"Exception during {method} {url}: {e}")
-            raise
-    logger.error(f"Exceeded max retries for {method} {url}")
-    raise Exception(f"Exceeded max retries for {method} {url}")
+    """Wrapper around optimized discord request handler."""
+    return await optimized_discord_request(method, url, session, **kwargs)
 
 async def get_or_create_category(guild_id, category_name, session):
     """Gets the category by name or creates it if it doesn't exist, using caching to minimize API calls."""
@@ -207,10 +231,9 @@ async def create_discord_role(guild_id, role_name, session):
         logger.error(f"Failed to create role '{role_name}'")
         return None
 
+@db_operation
 async def create_discord_channel(team_name, division, team_id):
     """Creates a new channel in Discord under the specified division category for a given team name."""
-    from app.models import Team
-    from app import db
     guild_id = int(os.getenv('SERVER_ID'))
     category_name = f"ECS FC PL {division.capitalize()}"
 
@@ -248,21 +271,16 @@ async def create_discord_channel(team_name, division, team_id):
                 logger.info(f"Created Discord channel: {team_name} under category {category_name} with ID {discord_channel_id}")
 
                 # Update the team with the discord_channel_id
-                try:
-                    team.discord_channel_id = discord_channel_id
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    logger.error(f"Error committing channel ID for team {team_name}: {str(e)}")
+                team.discord_channel_id = discord_channel_id
+                # No need to call db.session.commit(); handled by decorator
             else:
                 logger.error(f"Failed to create channel for team {team_name}")
         else:
             logger.error(f"Failed to get or create category {category_name}")
 
+@db_operation
 async def create_discord_roles(team_name, team_id):
     """Creates two Discord roles (Coach and Player) for a team and stores their IDs."""
-    from app.models import Team
-    from app import db
     guild_id = int(os.getenv('SERVER_ID'))
     coach_role_name = f"ECS-FC-PL-{team_name}-Coach"
     player_role_name = f"ECS-FC-PL-{team_name}-Player"
@@ -276,19 +294,13 @@ async def create_discord_roles(team_name, team_id):
 
         # Update the team with the role IDs
         team = Team.query.get(team_id)
-        try:
-            team.discord_coach_role_id = coach_role_id
-            team.discord_player_role_id = player_role_id
-            db.session.commit()
-            logger.info(f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}")
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error committing role IDs for team {team_name}: {str(e)}")
+        team.discord_coach_role_id = coach_role_id
+        team.discord_player_role_id = player_role_id
+        logger.info(f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}")
+        # No need to call db.session.commit(); handled by decorator
 
 async def wait_for_role_registration(team_id, max_attempts=20, delay=0.1):
     """Waits for the role IDs (coach and player) to be registered in the database for a given team."""
-    from app.models import Team
-    team = None
     for attempt in range(max_attempts):
         team = Team.query.get(team_id)
         if team and team.discord_coach_role_id and team.discord_player_role_id:
@@ -298,53 +310,47 @@ async def wait_for_role_registration(team_id, max_attempts=20, delay=0.1):
     logger.error(f"Role IDs for team {team_id} not found after {max_attempts} attempts.")
     return None
 
-async def assign_role_to_player(player):
-    """Assigns both global and team-specific Discord roles to a player."""
-    from app.models import Team
+async def assign_role_to_player(player, role_name, session):
+    """Assigns a Discord role to a player."""
     if not player.discord_id:
         logger.warning(f"Player {player.name} does not have a linked Discord account.")
         return
 
-    team = Team.query.get(player.team_id)
-    if not team:
-        logger.error(f"Team with ID {player.team_id} not found.")
-        return
-
     guild_id = int(Config.SERVER_ID)
-    async with aiohttp.ClientSession() as session:
-        # Assign team role (coach or player)
-        role_id = team.discord_player_role_id
-        if player.is_coach:
-            role_id = team.discord_coach_role_id
-
+    
+    try:
+        # Get or create the role
+        role_id = await get_or_create_global_role(role_name, session)
         if not role_id:
-            logger.error(f"Role ID not found for the team {team.name} in the database.")
-            return
+            raise Exception(f"Could not get or create role {role_name}")
 
         url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles/{role_id}"
+        
         try:
             await make_discord_request('PUT', url, session)
-            logger.info(f"Assigned role ID {role_id} to user {player.discord_id} for team {team.name}.")
+            logger.info(f"Assigned role {role_name} to player {player.discord_id}.")
         except Exception as e:
-            logger.error(f"Failed to assign role to player {player.name}: {e}")
+            if '404' in str(e):
+                # Role doesn't exist - recreate it
+                logger.warning(f"Role {role_name} not found, attempting to recreate...")
+                # Clear cache for this role
+                if role_name in global_role_cache:
+                    del global_role_cache[role_name]
+                # Try to create role again
+                role_id = await get_or_create_global_role(role_name, session, force_create=True)
+                if role_id:
+                    # Try assigning again
+                    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles/{role_id}"
+                    await make_discord_request('PUT', url, session)
+                    logger.info(f"Successfully recreated and assigned role {role_name} to player {player.discord_id}.")
+                else:
+                    raise Exception(f"Failed to recreate role {role_name}")
+            else:
+                raise
 
-        # Log the league name
-        division_name = team.league.name.strip().lower()
-        logger.debug(f"Player {player.name} is on team {team.name} in league '{division_name}' (repr: {repr(division_name)})")
-
-        # Assign the global role based on the division
-        if division_name == "classic":
-            global_role_name = "ECS-FC-PL-CLASSIC"
-        elif division_name == "premier":
-            global_role_name = "ECS-FC-PL-PREMIER"
-        elif division_name == "ecs fc":
-            # Handle as needed
-            global_role_name = "ECS-FC-LEAGUE"  # Adjust as necessary
-        else:
-            logger.warning(f"Unknown division '{division_name}' for team {team.name}")
-            return
-        logger.debug(f"Assigning global role '{global_role_name}' to player '{player.name}'")
-        await assign_global_role(global_role_name, player, session)
+    except Exception as e:
+        logger.error(f"Failed to assign role {role_name} to player {player.name}: {e}")
+        raise
 
 async def assign_global_role(role_name, player, session):
     """Assigns a global role to a player for general access to global league channels."""
@@ -370,7 +376,6 @@ async def assign_global_role(role_name, player, session):
 
 async def remove_role_from_player(player):
     """Removes the player's role in Discord when they are removed from the team."""
-    from app.models import Team
     if not player.discord_id:
         logger.warning(f"Player {player.name} does not have a linked Discord account.")
         return
@@ -398,6 +403,7 @@ async def remove_role_from_player(player):
         except Exception as e:
             logger.error(f"Failed to remove role from player {player.name}: {e}")
 
+@db_operation
 async def rename_discord_roles(team, new_team_name):
     """Renames the Discord roles associated with a team."""
     guild_id = int(Config.SERVER_ID)
@@ -422,6 +428,7 @@ async def rename_discord_role(guild_id, role_id, new_role_name, session):
     except Exception as e:
         logger.error(f"Failed to rename role ID {role_id}: {e}")
 
+@db_operation
 async def rename_discord_channel(team, new_team_name):
     """Renames an existing channel in Discord for the specified team."""
     url = f"{Config.BOT_API_URL}/channels/{team.discord_channel_id}"
@@ -435,6 +442,7 @@ async def rename_discord_channel(team, new_team_name):
         except Exception as e:
             logger.error(f"Failed to rename channel {team.discord_channel_id}: {e}")
 
+@db_operation
 async def delete_discord_roles(team):
     """Deletes the Discord roles associated with a team."""
     guild_id = int(Config.SERVER_ID)
@@ -456,6 +464,7 @@ async def delete_discord_role(guild_id, role_id, session):
     except Exception as e:
         logger.error(f"Failed to delete role ID {role_id}: {e}")
 
+@db_operation
 async def delete_discord_channel(team):
     """Deletes an existing channel in Discord for the specified team."""
     url = f"{Config.BOT_API_URL}/channels/{team.discord_channel_id}"
@@ -547,7 +556,7 @@ async def get_player_role_data(players):
 async def fetch_player_data(player, session):
     try:
         current_roles, status = await get_discord_roles(player.discord_id, session)
-        expected_roles = get_expected_roles(player)
+        expected_roles = await get_expected_roles(discord_id, session)
         
         return {
             'id': player.id,
@@ -568,59 +577,40 @@ async def fetch_player_data(player, session):
             'team': player.team.name if player.team else 'No Team',
             'league': player.team.league.name if player.team and player.team.league else 'No League',
             'current_roles': [],
-            'expected_roles': get_expected_roles(player),
+            'expected_roles': get_expected_roles(player, session),
             'status': 'error'
         }
 
-def get_expected_roles(player):
-    roles = []
-    if player.team:
-        roles.append(f"ECS-FC-PL-{player.team.name}-{'Coach' if player.is_coach else 'Player'}")
-        if player.team.league:
-            roles.append(f"ECS-FC-PL-{player.team.league.name.upper()}")
-    if player.is_ref:
-        roles.append("Referee")
-    return roles
-
+@db_operation
 def mark_player_for_update(player_id):
-    from app import db
-    from app.models import Player
     try:
         Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error marking player {player_id} for update: {str(e)}")
 
-
+@db_operation
 def mark_team_for_update(team_id):
-    from app import db
-    from app.models import Player
     try:
         Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error marking team {team_id} for update: {str(e)}")
 
-
+@db_operation
 def mark_league_for_update(league_id):
-    from app import db
-    from app.models import Player, Team
     try:
         Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error marking league {league_id} for update: {str(e)}")
 
 async def update_player_roles(player, session, force_update=False):
-    from app import db
     if not player.discord_id:
         return False
 
     current_roles, status = await get_discord_roles(player.discord_id, session, force_check=force_update)
-    expected_roles = get_expected_roles(player)
+    expected_roles = get_expected_roles(player, session)
 
     roles_to_add = set(expected_roles) - set(current_roles)
     guild_id = int(os.getenv('SERVER_ID'))
@@ -636,29 +626,181 @@ async def update_player_roles(player, session, force_update=False):
         player.discord_roles = updated_roles
         player.discord_last_verified = datetime.utcnow()
         player.discord_needs_update = False
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         return True
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error updating roles for player {player.name}: {str(e)}")
         return False
 
 async def add_role_to_member(guild_id, user_id, role_id, session):
-    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
     try:
         await make_discord_request('PUT', url, session)
     except Exception as e:
         logger.error(f"Error adding role {role_id} to user {user_id}: {str(e)}")
 
 async def remove_role_from_member(guild_id, user_id, role_id, session):
-    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
     try:
         await make_discord_request('DELETE', url, session)
     except Exception as e:
         logger.error(f"Error removing role {role_id} from user {user_id}: {str(e)}")
 
 async def process_role_updates(force_update=False):
-    from app.models import Player
+    if force_update:
+        players_to_update = Player.query.filter(Player.discord_id.isnot(None)).all()
+    else:
+        players_to_update = Player.query.filter(
+            (Player.discord_needs_update == True) |
+            (Player.discord_last_verified == None) |
+            (Player.discord_last_verified < datetime.utcnow() - timedelta(days=90))
+        ).all()
+
+    async with aiohttp.ClientSession() as session:
+        tasks = [update_player_roles(player, session, force_update) for player in players_to_update]
+        results = await asyncio.gather(*tasks)
+
+    return all(results)
+
+async def get_role_id(guild_id, role_name, session):
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
+    try:
+        response = await make_discord_request('GET', url, session)
+        for role in response:
+            if role['name'] == role_name:
+                return role['id']
+    except Exception as e:
+        logger.error(f"Error fetching role ID for {role_name}: {str(e)}")
+    return None
+
+async def get_discord_roles(user_id, session, force_check=False):
+    player = Player.query.filter_by(discord_id=user_id).first()
+    if player and player.discord_roles and player.discord_last_verified and not force_check:
+        if datetime.utcnow() - player.discord_last_verified < timedelta(days=90):
+            return player.discord_roles, "cached"
+
+    guild_id = int(os.getenv('SERVER_ID'))
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles"
+
+    try:
+        response = await make_discord_request('GET', url, session)
+        if response and 'roles' in response:
+            roles = [role['name'] for role in response['roles']]
+            if player:
+                player.discord_roles = roles
+                player.discord_last_verified = datetime.utcnow()
+                player.discord_needs_update = False
+                # No need to call db.session.commit(); handled by decorator
+            return roles, "active"
+        else:
+            logger.warning(f"No roles found for user {user_id}")
+            return [], "no_roles"
+    except Exception as e:
+        logger.error(f"Error fetching roles for user {user_id}: {str(e)}")
+        return [], "error"
+
+async def get_expected_roles(player_or_id: Union[Player, str], session=None) -> list:
+    """
+    Get expected roles for a player. Can accept either a Player object or discord_id.
+    
+    Args:
+        player_or_id: Either a Player object or discord_id string
+        session: Optional aiohttp session for API calls if needed
+    """
+    # If we got a discord_id instead of a Player object
+    if isinstance(player_or_id, str):
+        if not session:
+            raise ValueError("Session required when passing discord_id")
+        player = await fetch_player_data(player_or_id, session)
+    else:
+        player = player_or_id
+
+    roles = []
+    if player and player.team:
+        # Add team-specific role
+        role_suffix = 'Coach' if player.is_coach else 'Player' 
+        roles.append(f"ECS-FC-PL-{player.team.name}-{role_suffix}")
+        
+        # Add league role
+        if player.team.league:
+            league_map = {
+                'Premier': 'ECS-FC-PL-PREMIER',
+                'Classic': 'ECS-FC-PL-CLASSIC',
+                'ECS FC': 'ECS-FC-LEAGUE'
+            }
+            league_role = league_map.get(player.team.league.name)
+            if league_role:
+                roles.append(league_role)
+
+    # Add referee role if applicable
+    if player and player.is_ref:
+        roles.append('Referee')
+    
+    logger.debug(f"Expected roles for player {player.id if player else 'Unknown'}: {roles}")
+    return roles
+
+@db_operation
+def mark_player_for_update(player_id):
+    Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
+    # No need to call db.session.commit(); handled by decorator
+    logger.info(f"Marked player {player_id} for Discord update.")
+
+@db_operation
+def mark_team_for_update(team_id):
+    Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
+    # No need to call db.session.commit(); handled by decorator
+    logger.info(f"Marked team {team_id} for Discord update.")
+
+@db_operation
+def mark_league_for_update(league_id):
+    Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
+    # No need to call db.session.commit(); handled by decorator
+    logger.info(f"Marked league {league_id} for Discord update.")
+
+@db_operation
+async def update_player_roles(player, session, force_update=False):
+    if not player.discord_id:
+        return False
+
+    current_roles, status = await get_discord_roles(player.discord_id, session, force_check=force_update)
+    expected_roles = get_expected_roles(player, session)
+
+    roles_to_add = set(expected_roles) - set(current_roles)
+    guild_id = int(os.getenv('SERVER_ID'))
+
+    try:
+        for role_name in roles_to_add:
+            role_id = await get_role_id(guild_id, role_name, session)
+            if role_id:
+                await add_role_to_member(guild_id, player.discord_id, role_id, session)
+
+        # Fetch roles again to confirm changes
+        updated_roles, _ = await get_discord_roles(player.discord_id, session, force_check=True)
+        player.discord_roles = updated_roles
+        player.discord_last_verified = datetime.utcnow()
+        player.discord_needs_update = False
+        # No need to call db.session.commit(); handled by decorator
+        return True
+    except Exception as e:
+        logger.error(f"Error updating roles for player {player.name}: {str(e)}")
+        return False
+
+async def add_role_to_member(guild_id, user_id, role_id, session):
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    try:
+        await make_discord_request('PUT', url, session)
+    except Exception as e:
+        logger.error(f"Error adding role {role_id} to user {user_id}: {str(e)}")
+
+async def remove_role_from_member(guild_id, user_id, role_id, session):
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    try:
+        await make_discord_request('DELETE', url, session)
+    except Exception as e:
+        logger.error(f"Error removing role {role_id} from user {user_id}: {str(e)}")
+
+@query_operation
+async def process_role_updates(force_update=False):
     if force_update:
         players_to_update = Player.query.filter(Player.discord_id.isnot(None)).all()
     else:
@@ -675,7 +817,7 @@ async def process_role_updates(force_update=False):
     return all(results)
 
 async def get_role_id(guild_id, role_name, session):
-    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/roles"
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
     try:
         response = await make_discord_request('GET', url, session)
         for role in response:
@@ -685,28 +827,91 @@ async def get_role_id(guild_id, role_name, session):
         logger.error(f"Error fetching role ID for {role_name}: {str(e)}")
     return None
 
-async def fetch_user_roles(discord_id, session):
+async def fetch_user_roles(discord_id, session, retries=3, delay=0.5):
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{discord_id}/roles"
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{discord_id}/roles"
     
-    try:
-        response = await make_discord_request('GET', url, session)
-        if response and 'roles' in response:
-            return [role['name'] for role in response['roles']]
-        else:
-            return []
-    except Exception as e:
-        print(f"Error fetching roles for user {discord_id}: {str(e)}")
-        return []
+    for attempt in range(retries):
+        try:
+            response = await make_discord_request('GET', url, session)
+            if response and 'roles' in response:
+                roles = [role['name'] for role in response['roles']]
+                
+                # Fetch expected roles dynamically
+                expected_roles = await get_expected_roles(discord_id, session)
+                
+                # Validate against dynamically fetched expected roles
+                if validate_roles(roles, expected_roles):
+                    logger.debug(f"Roles for user {discord_id} validated successfully: {roles}")
+                    return roles
+                else:
+                    logger.warning(f"Roles mismatch for user {discord_id}: {roles} vs. {expected_roles}")
+
+            await asyncio.sleep(delay)
+        
+        except Exception as e:
+            logger.error(f"Error fetching roles for user {discord_id} on attempt {attempt + 1}: {str(e)}")
+    
+    logger.error(f"Failed to fetch and validate roles for user {discord_id} after {retries} attempts")
+    return []
+
+def validate_roles(fetched_roles: List[str], expected_roles: List[str]) -> bool:
+    """
+    Validate that the fetched roles contain all expected roles.
+    Extra roles beyond the expected ones are allowed.
+    """
+    expected_set = set(expected_roles)
+    fetched_set = set(fetched_roles)
+    return expected_set.issubset(fetched_set)
 
 async def process_single_player_update(player):
-    async with aiohttp.ClientSession() as session:
-        try:
-            await assign_role_to_player(player)
-            return True
-        except Exception as e:
-            print(f"Error updating roles for player {player.name}: {str(e)}")
-            return False
+    """Process role updates for a single player."""
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Get current roles from Discord
+            current_roles = await fetch_user_roles(player.discord_id, session)
+            expected_roles = get_expected_roles(player, session)
+            
+            # Track successful and failed role assignments
+            results = {
+                'success': [],
+                'failed': []
+            }
+            
+            # Attempt to assign each role
+            for role_name in expected_roles:
+                try:
+                    await assign_role_to_player(player, role_name, session)
+                    results['success'].append(role_name)
+                except Exception as e:
+                    logger.warning(f"Failed to assign role {role_name} to player {player.name}: {str(e)}")
+                    results['failed'].append({
+                        'role': role_name,
+                        'error': str(e)
+                    })
+
+            # Update player's role information
+            player.discord_roles = current_roles
+            player.discord_last_verified = datetime.utcnow()
+            player.discord_needs_update = False
+            
+            # Return result with both successes and failures
+            return {
+                'success': True,
+                'player_data': {
+                    'id': player.id,
+                    'current_roles': current_roles,
+                    'expected_roles': expected_roles,
+                    'results': results
+                }
+            }
+
+    except Exception as e:
+        logger.error(f"Error processing player update for {player.name}: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 async def process_mass_update(players):
     async with aiohttp.ClientSession() as session:
@@ -714,29 +919,25 @@ async def process_mass_update(players):
         results = await asyncio.gather(*tasks)
         return all(results)
 
+@query_operation
 async def get_discord_roles(user_id, session, force_check=False):
-    from app import db
-    from app.models import Player
     player = Player.query.filter_by(discord_id=user_id).first()
     if player and player.discord_roles and player.discord_last_verified and not force_check:
         if datetime.utcnow() - player.discord_last_verified < timedelta(days=90):
             return player.discord_roles, "cached"
 
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{os.getenv('BOT_API_URL')}/guilds/{guild_id}/members/{user_id}/roles"
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles"
     
     try:
         response = await make_discord_request('GET', url, session)
         if response and 'roles' in response:
             roles = [role['name'] for role in response['roles']]
             if player:
-                try:
-                    player.discord_roles = roles
-                    player.discord_last_verified = datetime.utcnow()
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    logger.error(f"Error committing Discord roles for player {player.name}: {str(e)}")
+                player.discord_roles = roles
+                player.discord_last_verified = datetime.utcnow()
+                player.discord_needs_update = False
+                # No need to call db.session.commit(); handled by decorator
             return roles, "active"
         else:
             logger.warning(f"No roles found for user {user_id}")
@@ -768,6 +969,7 @@ async def get_role_names(guild_id, role_ids, session):
         logger.error(f"Error fetching role names for guild {guild_id}: {str(e)}")
         return []
 
+@db_operation
 async def create_match_thread(match):
     match_channel_id = Config.MATCH_CHANNEL_ID
     
@@ -814,16 +1016,16 @@ async def create_match_thread(match):
         url = f"{Config.BOT_API_URL}/channels/{match_channel_id}/threads"
         
         try:
-            async with session.post(url, json=payload) as response:
-                if response.status == 200:
-                    thread_data = await response.json()
-                    thread_id = thread_data['id']
-                    logger.info(f"Successfully created thread: {thread_id} for match against {match.opponent}")
-                    return thread_id
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to create thread. Status: {response.status}, Response: {error_text}")
-                    return None
+            response = await make_discord_request('POST', url, session, json=payload)
+            if response and 'id' in response:
+                thread_id = response['id']
+                match.discord_thread_id = thread_id
+                # No need to call db.session.commit(); handled by decorator
+                logger.info(f"Successfully created thread: {thread_id} for match against {match.opponent}")
+                return thread_id
+            else:
+                logger.error("Failed to create thread: No response or 'id' in response")
+                return None
         except Exception as e:
             logger.error(f"Error creating thread: {str(e)}")
             return None

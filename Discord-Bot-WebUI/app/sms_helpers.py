@@ -5,12 +5,24 @@ from sqlalchemy import or_
 from twilio.rest import Client
 import random
 import string
+import logging
 from app import db
 from app.models import User, Player, Match
-import logging
+from app.decorators import db_operation, query_operation
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+def send_welcome_message(phone_number):
+    welcome_message = (
+        "Welcome to ECS FC! You're now signed up for match notifications and reminders.\n\n"
+        "Available commands:\n"
+        "- 'next match': Get info about your next match\n"
+        "- 'schedule': View upcoming matches\n"
+        "- 'help': See all available commands\n"
+        "- 'end': Unsubscribe from notifications\n\n"
+        "Message and data rates may apply."
+    )
+    return send_sms(phone_number, welcome_message)
 
 def send_sms(phone_number, message):
     client = Client(current_app.config['TWILIO_SID'], current_app.config['TWILIO_AUTH_TOKEN'])
@@ -28,45 +40,44 @@ def send_sms(phone_number, message):
 def generate_confirmation_code():
     return ''.join(random.choices(string.digits, k=6))
 
+@db_operation
 def send_confirmation_sms(user):
-    try:
-        player = Player.query.filter_by(user_id=user.id).first()
-        if not player or not player.phone:
-            return False, "No phone number associated with this account."
-        
-        confirmation_code = generate_confirmation_code()
-        user.sms_confirmation_code = confirmation_code
-        user.sms_opt_in_timestamp = datetime.utcnow()  # Record opt-in timestamp
-        db.session.commit()
+    player = Player.query.filter_by(user_id=user.id).first()
+    if not player or not player.phone:
+        return False, "No phone number associated with this account."
+    
+    confirmation_code = generate_confirmation_code()
+    user.sms_confirmation_code = confirmation_code
+    user.sms_opt_in_timestamp = datetime.utcnow()
 
-        message = (
-            f"Your ECS FC SMS verification code is: {confirmation_code}\n\n"
-            "Reply END to opt-out at any time. Message and data rates may apply."
-        )
-        success, message_id = send_sms(player.phone, message)
-        return success, message_id
-    except Exception as e:
-        db.session.rollback()  # Rollback in case of an error
-        logger.error(f"Error sending confirmation SMS to user {user.id}: {e}")
-        return False, "An error occurred while sending the confirmation SMS."
-    finally:
-        db.session.close()  # Close the session after the operation
+    message = (
+        f"Your ECS FC SMS verification code is: {confirmation_code}\n\n"
+        "Reply END to opt-out at any time. Message and data rates may apply."
+    )
+    success, message_id = send_sms(player.phone, message)
+    return success, message_id
 
+@db_operation
 def verify_sms_confirmation(user, code):
     try:
         if user.sms_confirmation_code == code:
             user.sms_notifications = True
             user.sms_confirmation_code = None
-            db.session.commit()
+            
+            # Get the player's phone number to send welcome message
+            player = Player.query.filter_by(user_id=user.id).first()
+            if player and player.phone:
+                success, message_id = send_welcome_message(player.phone)
+                if not success:
+                    logger.error(f"Failed to send welcome message to user {user.id}")
+                    
             return True
         return False
     except Exception as e:
-        db.session.rollback()  # Rollback in case of error
         logger.error(f"Error verifying SMS confirmation for user {user.id}: {e}")
         return False
-    finally:
-        db.session.close()  # Close the session
 
+@db_operation
 def send_match_reminders(match):
     for player in match.players:
         if player.user.sms_notifications and player.phone:
@@ -75,19 +86,14 @@ def send_match_reminders(match):
             if not success:
                 current_app.logger.error(f"Failed to send reminder SMS to user {player.user.id}")
 
+@query_operation
 def user_is_blocked_in_textmagic(phone_number):
     client = TextmagicRestClient(current_app.config['TEXTMAGIC_USERNAME'], current_app.config['TEXTMAGIC_API_KEY'])
     try:
         # Get the list of unsubscribers matching the phone number
         response = client.unsubscribers.list(search=phone_number)
+        unsubscribers_list = response[0]  # Assuming the first element contains the data
 
-        # Log the full response to inspect its structure
-        current_app.logger.debug(f'Received unsubscribers response: {response}')
-
-        # Handle tuple response (since it's a tuple, use indexing to access the list of results)
-        unsubscribers_list = response[0]  # Assuming the first element of the tuple contains the data
-
-        # Check if there are any matching unsubscribers
         if unsubscribers_list and len(unsubscribers_list) > 0:
             current_app.logger.info(f'Phone number {phone_number} is unsubscribed in TextMagic.')
             return True
@@ -98,46 +104,32 @@ def user_is_blocked_in_textmagic(phone_number):
         current_app.logger.error(f"Error checking if phone {phone_number} is unsubscribed: {e}")
         return False
 
+@db_operation
 def handle_opt_out(player):
-    try:
-        logger.info(f'Opt-out request received for player: {player.user_id}')
-        player.sms_opt_out_timestamp = datetime.utcnow()
-        player.user.sms_notifications = False
-        db.session.commit()
-        logger.info(f'Player {player.user_id} successfully unsubscribed from SMS notifications')
-        return jsonify({'status': 'success', 'message': 'User unsubscribed from SMS notifications'})
-    except Exception as e:
-        db.session.rollback()  # Rollback in case of error
-        logger.error(f"Error handling opt-out for player {player.user_id}: {e}")
-        return jsonify({'status': 'error', 'message': 'Failed to process the opt-out request.'})
-    finally:
-        db.session.close()  # Close the session
+    logger.info(f'Opt-out request received for player: {player.user_id}')
+    player.sms_opt_out_timestamp = datetime.utcnow()
+    player.user.sms_notifications = False
+    logger.info(f'Player {player.user_id} successfully unsubscribed from SMS notifications')
+    return jsonify({'status': 'success', 'message': 'User unsubscribed from SMS notifications'})
 
+@db_operation
 def handle_re_subscribe(player, phone_number):
-    try:
-        logger.info(f'Re-subscription request received for player: {player.user_id}')
-        player.sms_consent_given = True
-        player.sms_consent_timestamp = datetime.utcnow()
-        player.sms_opt_out_timestamp = None
-        player.is_phone_verified = True
-        player.user.sms_notifications = True
-        db.session.commit()
-        
-        logger.info(f'Player {player.user_id} successfully re-subscribed to SMS notifications')
-        success, message_id = send_sms(phone_number, 'You are re-subscribed to ECS FC notifications. Reply END at any time to opt-out')
-        
-        if success:
-            logger.info(f'Successfully sent re-subscribe confirmation SMS to {player.user_id}')
-        else:
-            logger.error(f'Failed to send re-subscribe confirmation SMS to {player.user_id}')
-        
-        return jsonify({'status': 'success', 'message': 'User re-subscribed to SMS notifications'})
-    except Exception as e:
-        db.session.rollback()  # Rollback in case of error
-        logger.error(f"Error handling re-subscribe for player {player.user_id}: {e}")
-        return jsonify({'status': 'error', 'message': 'Failed to process the re-subscription request.'})
-    finally:
-        db.session.close()  # Close the session
+    logger.info(f'Re-subscription request received for player: {player.user_id}')
+    player.sms_consent_given = True
+    player.sms_consent_timestamp = datetime.utcnow()
+    player.sms_opt_out_timestamp = None
+    player.is_phone_verified = True
+    player.user.sms_notifications = True
+    
+    logger.info(f'Player {player.user_id} successfully re-subscribed to SMS notifications')
+    success, message_id = send_sms(phone_number, 'You are re-subscribed to ECS FC notifications. Reply END at any time to opt-out')
+    
+    if success:
+        logger.info(f'Successfully sent re-subscribe confirmation SMS to {player.user_id}')
+    else:
+        logger.error(f'Failed to send re-subscribe confirmation SMS to {player.user_id}')
+    
+    return jsonify({'status': 'success', 'message': 'User re-subscribed to SMS notifications'})
 
 def handle_next_match_request(player, phone_number):
     next_matches = get_next_match(phone_number)
@@ -157,7 +149,13 @@ def handle_next_match_request(player, phone_number):
     return jsonify({'status': 'success', 'message': 'Next match information sent'})
 
 def send_help_message(phone_number):
-    help_message = "Available commands:\n- 'next match': Get info about your next match\n- 'schedule': Same as 'next match'\n- 'end': Unsubscribe from notifications\n- 'start': Re-subscribe to notifications"
+    help_message = (
+        "Available commands:\n"
+        "- 'next match': Get info about your next match\n"
+        "- 'schedule': Same as 'next match'\n"
+        "- 'end': Unsubscribe from notifications\n"
+        "- 'start': Re-subscribe to notifications"
+    )
     success, message_id = send_sms(phone_number, help_message)
     if success:
         logger.info(f'Successfully sent help message to {phone_number}')
@@ -165,6 +163,7 @@ def send_help_message(phone_number):
         logger.error(f'Failed to send help message to {phone_number}')
     return jsonify({'status': 'success', 'message': 'Help message sent'})
 
+@query_operation
 def get_next_match(phone_number):
     # Find the player based on the phone number
     player = Player.query.filter_by(phone=phone_number).first()

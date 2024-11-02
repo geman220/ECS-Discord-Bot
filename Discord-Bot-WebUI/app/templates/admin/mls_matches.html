@@ -1,60 +1,95 @@
 {% extends "base.html" %}
 {% block title %}MLS Matches{% endblock %}
 {% block main_content %}
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <h4 class="fw-bold py-3 mb-4">
         <span class="text-muted fw-light">Discord /</span> MLS Matches
     </h4>
+
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">MLS Matches and Thread Scheduling</h5>
             <div>
-                <button id="scheduleAllThreads" class="btn btn-primary btn-sm">
-                    <i class="ti ti-calendar me-1"></i> Schedule All Threads
-                </button>
+                <button class="btn btn-primary" onclick="scheduleAllMatches()">Schedule All Matches</button>
             </div>
         </div>
+
         <div class="card-body">
             <div class="table-responsive">
-                <table id="mlsMatchesTable" class="table table-striped table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th>Match</th>
                             <th>Date & Time</th>
                             <th>Competition</th>
-                            <th>Thread Creation Time</th>
-                            <th>Status</th>
+                            <th>Thread Status</th>
+                            <th>Live Reporting</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for match in matches %}
                         <tr>
-                            <td>{% if match.is_home_game %}Sounders{% else %}{{ match.opponent }}{% endif %} vs {% if match.is_home_game %}{{ match.opponent }}{% else %}Sounders{% endif %}</td>
+                            <td>
+                                {% if match.is_home_game %}
+                                Sounders vs {{ match.opponent }}
+                                {% else %}
+                                {{ match.opponent }} vs Sounders
+                                {% endif %}
+                            </td>
                             <td>{{ match.date_time.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>{{ match.competition }}</td>
-                            <td>{{ match.thread_creation_time.strftime('%Y-%m-%d %H:%M') if match.thread_creation_time else 'Not Scheduled' }}</td>
                             <td>
-                                <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}">
-                                    {{ 'Thread Created' if match.thread_created else 'Pending' }}
-                                </span>
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}">
+                                        {{ 'Thread Created' if match.thread_created else 'Pending' }}
+                                    </span>
+                                    {% if not match.thread_created and match.thread_creation_time %}
+                                    <small class="text-muted">Scheduled: {{ match.thread_creation_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% endif %}
+                                </div>
                             </td>
                             <td>
-                                {% if not match.thread_created %}
-                                <div class="d-flex">
-                                    <input type="number" class="form-control form-control-sm me-2" style="width: 60px;" value="24" min="1" max="168">
-                                    <button class="btn btn-sm btn-primary me-2 schedule-thread" data-match-id="{{ match.id }}">
-                                        <i class="ti ti-clock me-1"></i> Schedule
-                                    </button>
-                                    <button class="btn btn-sm btn-warning create-now" data-match-id="{{ match.id }}">
-                                        <i class="ti ti-message-circle me-1"></i> Create Now
-                                    </button>
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-{{ 'success' if match.live_reporting_started else 'warning' }}">
+                                        {{ match.live_reporting_status|title }}
+                                    </span>
+                                    {% if match.live_reporting_scheduled and not match.live_reporting_started %}
+                                    <small class="text-muted">Starts: {{ (match.date_time - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% endif %}
                                 </div>
-                                {% else %}
-                                <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" target="_blank" class="btn btn-sm btn-info">
-                                    <i class="ti ti-external-link me-1"></i> View Thread
-                                </a>
-                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    {% if not match.thread_created %}
+                                    <button class="btn btn-sm btn-primary schedule-btn"
+                                            data-match-id="{{ match.id }}">
+                                        Schedule
+                                    </button>
+                                    <button class="btn btn-sm btn-success create-thread-btn"
+                                            data-match-id="{{ match.id }}">
+                                        Create Now
+                                    </button>
+                                    {% else %}
+                                    <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}"
+                                       class="btn btn-sm btn-info" target="_blank">View Thread</a>
+                                    {% endif %}
+
+                                    {% if not match.live_reporting_started %}
+                                    <button class="btn btn-sm btn-warning toggle-reporting-btn"
+                                            data-match-id="{{ match.id }}"
+                                            data-action="start">
+                                        Start Reporting
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-danger toggle-reporting-btn"
+                                            data-match-id="{{ match.id }}"
+                                            data-action="stop">
+                                        Stop Reporting
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -64,104 +99,197 @@
         </div>
     </div>
 </div>
+
+<!-- Status Modal -->
+<div class="modal fade" id="taskStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border text-primary me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span id="taskStatusMessage">Processing...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
 {% block custom_js %}
 <script>
-    $(document).ready(function () {
-        // Get the CSRF token from the meta tag
-        var csrfToken = $('meta[name=csrf-token]').attr('content');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-        // Set up AJAX to always send the CSRF token
-        $.ajaxSetup({
-            beforeSend: function (xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+    async function scheduleMatch(matchId) {
+        try {
+            const response = await fetch(`/bot/admin/match/schedule/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 }
+            });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to schedule match: ' + data.message);
             }
-        });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error scheduling match');
+        }
+    }
 
-        $('#mlsMatchesTable').DataTable({
-            responsive: true,
-            pageLength: 25,
-            order: [[1, 'asc']],
-            dom: 'Bfrtip',
-            buttons: ['copy', 'csv', 'excel', 'pdf', 'print']
-        });
-
-        $('.schedule-thread').on('click', function () {
-            var matchId = $(this).data('match-id');
-            var hoursBefore = $(this).siblings('input[type="number"]').val();
-            $.ajax({
-                url: `/admin/schedule_mls_match_thread/${matchId}`,
+    async function scheduleAllMatches() {
+        try {
+            const response = await fetch('/bot/admin/match/schedule-all', {
                 method: 'POST',
-                data: { hours_before: hoursBefore },
-                success: function (response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Something went wrong!'
-                        });
-                    }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 }
             });
-        });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to schedule matches: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error scheduling matches');
+        }
+    }
 
-        $('.create-now').on('click', function () {
-            var matchId = $(this).data('match-id');
-            $.ajax({
-                url: `/admin/force_create_mls_thread/${matchId}`,
+    async function createThreadNow(matchId) {
+        try {
+            const response = await fetch(`/bot/admin/match/${matchId}/create-thread`, {
                 method: 'POST',
-                success: function (response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Something went wrong!'
-                        });
-                    }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 }
             });
-        });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to create thread: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error creating thread');
+        }
+    }
 
-        $('#scheduleAllThreads').on('click', function () {
-            $.ajax({
-                url: '/admin/schedule_all_mls_threads',
+    async function startLiveReporting(matchId) {
+        try {
+            const response = await fetch(`/bot/admin/start_live_reporting/${matchId}`, {
                 method: 'POST',
-                success: function (response) {
-                    if (response.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: response.message
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Oops...',
-                            text: 'Something went wrong!'
-                        });
-                    }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 }
             });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to start reporting: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error starting reporting');
+        }
+    }
+
+    async function stopLiveReporting(matchId) {
+        try {
+            const response = await fetch(`/bot/admin/stop_live_reporting/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to stop reporting: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error stopping reporting');
+        }
+    }
+</script>
+<script>
+    // Add CSRF token to all jQuery AJAX requests
+    $.ajaxSetup({
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
+
+    $(document).ready(function () {
+        $('.schedule-btn').on('click', function () {
+            const matchId = $(this).data('match-id');
+            $.post(`/bot/admin/match/schedule/${matchId}`)
+                .done(function (response) {
+                    if (response.success) {
+                        showToast('Success', 'Match tasks scheduled successfully');
+                        location.reload();
+                    } else {
+                        showToast('Error', response.message);
+                    }
+                })
+                .fail(function (err) {
+                    showToast('Error', 'Failed to schedule match tasks');
+                });
+        });
+
+        $('.create-thread-btn').on('click', function () {
+            const matchId = $(this).data('match-id');
+            $.post(`/bot/admin/match/${matchId}/create-thread`)
+                .done(function (response) {
+                    if (response.success) {
+                        showToast('Success', 'Thread creation started');
+                        location.reload();
+                    } else {
+                        showToast('Error', response.message);
+                    }
+                })
+                .fail(function (err) {
+                    showToast('Error', 'Failed to create thread');
+                });
+        });
+
+        $('.toggle-reporting-btn').on('click', function () {
+            const matchId = $(this).data('match-id');
+            const action = $(this).data('action');
+            const url = action === 'start' ?
+                `/bot/admin/start_live_reporting/${matchId}` :
+                `/bot/admin/stop_live_reporting/${matchId}`;
+
+            $.post(url)
+                .done(function (response) {
+                    if (response.success) {
+                        showToast('Success', `Live reporting ${action}ed`);
+                        location.reload();
+                    } else {
+                        showToast('Error', response.message);
+                    }
+                })
+                .fail(function (err) {
+                    showToast('Error', `Failed to ${action} live reporting`);
+                });
         });
     });
 </script>

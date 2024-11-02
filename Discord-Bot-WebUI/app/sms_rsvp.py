@@ -1,18 +1,18 @@
 from flask import Blueprint, jsonify, request, render_template, abort, url_for
 from flask_wtf import FlaskForm
-from flask_login import login_required, current_user
 from app.models import Player, Match, Availability, Token
-from app import db
 from app.sms_helpers import send_sms
 from datetime import datetime, timedelta
 import secrets
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+from app.decorators import db_operation, query_operation
+
 logger = logging.getLogger(__name__)
 
 sms_rsvp_bp = Blueprint('sms_rsvp', __name__)
 
+@db_operation
 def update_rsvp(match_id, player_id, response, discord_id=None):
     if response not in ['yes', 'no', 'maybe']:
         return False
@@ -31,26 +31,24 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
                 responded_at=datetime.utcnow()
             )
             db.session.add(availability)
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         return True
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error updating RSVP for player {player_id}: {e}")
         return False
-    finally:
-        db.session.close()
 
+@query_operation
 def get_next_matches(team_id, limit=2):
     return Match.query.filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
         Match.date >= datetime.utcnow()
     ).order_by(Match.date, Match.time).limit(limit).all()
 
-
 def generate_token():
     return secrets.token_urlsafe(24)
 
 @sms_rsvp_bp.route('/generate_link/<phone_number>', methods=['POST'])
+@db_operation
 def generate_rsvp_link(phone_number):
     try:
         player = Player.query.filter_by(phone=phone_number).first()
@@ -60,18 +58,16 @@ def generate_rsvp_link(phone_number):
         token = generate_token()
         new_token = Token(player_id=player.id, token=token)
         db.session.add(new_token)
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
 
         rsvp_link = url_for('sms_rsvp.rsvp_page', token=token, _external=True)
         return jsonify({'rsvp_link': rsvp_link})
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error generating RSVP link for phone number {phone_number}: {e}")
         return jsonify({'error': 'Failed to generate RSVP link'}), 500
-    finally:
-        db.session.close()
 
 @sms_rsvp_bp.route('/rsvp/<token>', methods=['GET', 'POST'])
+@db_operation
 def rsvp_page(token):
     try:
         token_obj = Token.query.filter_by(token=token).first()
@@ -100,20 +96,18 @@ def rsvp_page(token):
 
             # Invalidate the token after successful RSVP
             token_obj.invalidate()
-            db.session.commit()
+            # No need to call db.session.commit(); handled by decorator
 
             return render_template('rsvp_success.html')
 
         form = FlaskForm()  # This creates a form with just the CSRF token
         return render_template('sms_rsvp_form.html', form=form, player=player, matches=matches, existing_rsvps=existing_rsvps)
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error processing RSVP for token {token}: {e}")
         abort(500)
-    finally:
-        db.session.close()
 
 @sms_rsvp_bp.route('/dev_test_send_rsvp_requests', methods=['GET'])
+@db_operation
 def dev_test_send_rsvp_requests():
     try:
         opted_in_players = Player.query.filter_by(sms_consent_given=True).all()
@@ -131,7 +125,7 @@ def dev_test_send_rsvp_requests():
 
             # If player has responded to both matches, skip sending text
             if len(existing_rsvps) == 2:
-                logging.info(f"Player {player.id} has already RSVP'd to both upcoming matches. Skipping SMS.")
+                logger.info(f"Player {player.id} has already RSVP'd to both upcoming matches. Skipping SMS.")
                 results.append({
                     'player_id': player.id,
                     'phone': player.phone,
@@ -162,11 +156,8 @@ def dev_test_send_rsvp_requests():
                 'message': 'SMS sent' if success else 'Failed to send SMS'
             })
 
-        db.session.commit()
+        # No need to call db.session.commit(); handled by decorator
         return jsonify({'message': 'Test RSVP requests processed', 'results': results})
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error sending RSVP requests: {e}")
         return jsonify({'error': 'Failed to process RSVP requests'}), 500
-    finally:
-        db.session.close()

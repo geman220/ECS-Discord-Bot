@@ -228,6 +228,16 @@
         </li>
         {% endif %}
 
+        <!-- System Monitor -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'monitoring.monitor_dashboard' }}">
+            <a class="menu-link" href="{{ url_for('monitoring.monitor_dashboard') }}">
+                <i class="ti ti-chart-dots menu-icon"></i>
+                <div>Task Monitor</div>
+            </a>
+        </li>
+        {% endif %}
+
         <!-- Dev Tools - Only Global Admins -->
         {% if 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' }}">

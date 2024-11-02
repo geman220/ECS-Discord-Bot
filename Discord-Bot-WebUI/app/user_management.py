@@ -3,7 +3,7 @@ from flask_login import login_required
 from app.models import User, Role, Player, db, League
 from app.forms import EditUserForm, CreateUserForm, ResetPasswordForm, FilterUsersForm
 from flask_paginate import Pagination, get_page_args
-from app.decorators import role_required
+from app.decorators import role_required, query_operation, db_operation
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 import logging
@@ -15,7 +15,8 @@ user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_ma
 
 @user_management_bp.route('/manage_users', methods=['GET'])
 @login_required
-@role_required('Global Admin')  # Assuming only admins can manage users
+@role_required('Global Admin')
+@query_operation
 def manage_users():
     form = FilterUsersForm(request.args)
 
@@ -102,10 +103,10 @@ def manage_users():
                            pagination=pagination,
                            pagination_args=pagination_args)
 
-# Create User Route
 @user_management_bp.route('/create_user', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def create_user():
     form = CreateUserForm()
     if form.validate_on_submit():
@@ -119,16 +120,15 @@ def create_user():
             db.session.add(player)
 
         db.session.add(user)
-        db.session.commit()
         flash(f'User {user.username} created successfully.', 'success')
         return redirect(url_for('user_management.manage_users'))
     
     return render_template('create_user.html', form=form)
 
-# Edit User Route
 @user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def edit_user(user_id):
     logger.debug(f"Initiating edit_user for user_id: {user_id}")
 
@@ -147,59 +147,21 @@ def edit_user(user_id):
 
     if form.validate_on_submit():
         logger.debug("Form validation passed.")
-        try:
-            # Update user details
-            logger.debug(f"Updating username from {user.username} to {form.username.data}")
-            user.username = form.username.data
-            logger.debug(f"Updating email from {user.email} to {form.email.data}")
-            user.email = form.email.data
+        # Update user details
+        user.username = form.username.data
+        user.email = form.email.data
 
-            # Update roles using set operations
-            new_roles = set(Role.query.filter(Role.id.in_(form.roles.data)).all())
-            current_roles = set(user.roles)
+        # Update roles
+        new_roles = set(Role.query.filter(Role.id.in_(form.roles.data)).all())
+        user.roles = list(new_roles)
 
-            logger.debug(f"New roles from form: {[role.id for role in new_roles]}")
-            logger.debug(f"Current roles in DB: {[role.id for role in current_roles]}")
+        # Update player info
+        if user.player:
+            league_id = form.league_id.data
+            user.player.league_id = league_id if league_id != 0 else None
+            user.player.is_current_player = form.is_current_player.data
 
-            roles_to_add = new_roles - current_roles
-            roles_to_remove = current_roles - new_roles
-
-            logger.debug(f"Roles to add: {[role.id for role in roles_to_add]}")
-            logger.debug(f"Roles to remove: {[role.id for role in roles_to_remove]}")
-
-            # Add new roles
-            for role in roles_to_add:
-                logger.debug(f"Adding role ID {role.id} to user ID {user.id}")
-                user.roles.append(role)
-
-            # Remove old roles
-            for role in roles_to_remove:
-                logger.debug(f"Removing role ID {role.id} from user ID {user.id}")
-                user.roles.remove(role)
-
-            # Update player info only if the user has a player profile
-            if user.player:
-                logger.debug(f"Updating player info for user ID {user.id}")
-                league_id = form.league_id.data
-                logger.debug(f"Setting league_id to {league_id if league_id != 0 else None}")
-                user.player.league_id = league_id if league_id != 0 else None
-                logger.debug(f"Setting is_current_player to {form.is_current_player.data}")
-                user.player.is_current_player = form.is_current_player.data
-            else:
-                logger.debug(f"User ID {user.id} has no player profile.")
-
-            logger.debug("Committing changes to the database.")
-            db.session.commit()
-            logger.info(f"User {user.username} (ID: {user.id}) updated successfully.")
-            flash(f'User {user.username} updated successfully.', 'success')
-        except IntegrityError as e:
-            db.session.rollback()
-            logger.error(f"Integrity Error updating user {user_id}: {e.orig}")
-            flash('Error updating user: Integrity issue.', 'danger')
-        except Exception as e:
-            db.session.rollback()
-            logger.exception(f"Unexpected error updating user {user_id}: {e}")
-            flash(f'Error updating user: {str(e)}', 'danger')
+        flash(f'User {user.username} updated successfully.', 'success')
     else:
         logger.warning(f"Form validation failed with errors: {form.errors}")
         for field, errors in form.errors.items():
@@ -209,52 +171,40 @@ def edit_user(user_id):
 
     return redirect(url_for('user_management.manage_users'))
 
-# Remove User Route
 @user_management_bp.route('/remove_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def remove_user(user_id):
     user = User.query.get_or_404(user_id)
 
-    try:
-        if user.player:
-            db.session.delete(user.player)
-        
-        db.session.delete(user)
-        db.session.commit()
-        flash(f'User {user.username} has been removed.', 'success')
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error removing user: {e}")
-        flash(f'Error removing user: {str(e)}', 'danger')
+    if user.player:
+        db.session.delete(user.player)
+    
+    db.session.delete(user)
+    flash(f'User {user.username} has been removed.', 'success')
 
     return redirect(url_for('user_management.manage_users'))
 
-# Approve User Route
 @user_management_bp.route('/approve_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def approve_user(user_id):
     user = User.query.get_or_404(user_id)
 
     if user.is_approved:
         flash(f'User {user.username} is already approved.', 'info')
     else:
-        try:
-            user.is_approved = True
-            db.session.commit()
-            flash(f'User {user.username} has been approved.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error approving user: {e}")
-            flash(f'Error approving user: {str(e)}', 'danger')
+        user.is_approved = True
+        flash(f'User {user.username} has been approved.', 'success')
 
     return redirect(url_for('user_management.manage_users'))
 
-# Get User Data Route
 @user_management_bp.route('/get_user_data')
 @login_required
 @role_required('Global Admin')
+@query_operation
 def get_user_data():
     user_id = request.args.get('user_id', type=int)
     if not user_id:

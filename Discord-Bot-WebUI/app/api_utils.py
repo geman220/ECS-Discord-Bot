@@ -1,142 +1,235 @@
-import aiohttp
-import asyncio
 from flask import current_app
 from datetime import datetime
 from dateutil import parser
 import pytz
 import logging
+import aiohttp
+import asyncio
+from typing import Optional, Dict, Any, Tuple
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
-def get_team_id():
+def get_team_id() -> str:
+    """
+    Get the team ID from the application config.
+    
+    Returns:
+        str: The configured team ID
+    """
     team_id = current_app.config['TEAM_ID']
-    logger.info(f"Team ID from config: {team_id}")  # Logs the message
+    logger.info(f"Team ID from config: {team_id}")
     return team_id
 
-def convert_to_pst(utc_datetime):
-    if not isinstance(utc_datetime, str):
-        utc_datetime = str(utc_datetime)
+def convert_to_pst(utc_datetime: str) -> datetime:
+    """
+    Convert UTC datetime to PST timezone.
+    
+    Args:
+        utc_datetime: UTC datetime string or datetime object
+        
+    Returns:
+        datetime: PST timezone datetime
+    """
+    try:
+        if not isinstance(utc_datetime, str):
+            utc_datetime = str(utc_datetime)
 
-    utc_datetime = parser.parse(utc_datetime)
+        parsed_datetime = parser.parse(utc_datetime)
 
-    if utc_datetime.tzinfo is None or utc_datetime.tzinfo.utcoffset(utc_datetime) is None:
-        utc_datetime = utc_datetime.replace(tzinfo=pytz.utc)
+        # Ensure timezone is set
+        if parsed_datetime.tzinfo is None or parsed_datetime.tzinfo.utcoffset(parsed_datetime) is None:
+            parsed_datetime = parsed_datetime.replace(tzinfo=pytz.utc)
 
-    pst_timezone = pytz.timezone("America/Los_Angeles")
-    return utc_datetime.astimezone(pst_timezone)
+        pst_timezone = pytz.timezone("America/Los_Angeles")
+        return parsed_datetime.astimezone(pst_timezone)
+    except Exception as e:
+        logger.error(f"Error converting datetime to PST: {e}")
+        raise
 
-def extract_links(event):
-    summary_link = next(
-        (link["href"] for link in event.get("links", []) if "summary" in link["rel"]),
-        "Unavailable",
-    )
-    stats_link = next(
-        (link["href"] for link in event.get("links", []) if "stats" in link["rel"]),
-        "Unavailable",
-    )
-    commentary_link = next(
-        (link["href"] for link in event.get("links", []) if "commentary" in link["rel"]),
-        "Unavailable",
-    )
-    return summary_link, stats_link, commentary_link
+def extract_links(event: Dict[str, Any]) -> Tuple[str, str, str]:
+    """
+    Extract various link types from an event.
+    
+    Args:
+        event: Event data dictionary
+        
+    Returns:
+        tuple: (summary_link, stats_link, commentary_link)
+    """
+    try:
+        links = event.get('links', [])
+        
+        summary_link = next(
+            (link["href"] for link in links if "summary" in link["rel"]),
+            "Unavailable",
+        )
+        stats_link = next(
+            (link["href"] for link in links if "stats" in link["rel"]),
+            "Unavailable",
+        )
+        commentary_link = next(
+            (link["href"] for link in links if "commentary" in link["rel"]),
+            "Unavailable",
+        )
+        
+        return summary_link, stats_link, commentary_link
+    except Exception as e:
+        logger.error(f"Error extracting links: {e}")
+        return "Unavailable", "Unavailable", "Unavailable"
 
-async def send_async_http_request(url, method="GET", headers=None, auth=None, data=None, params=None):
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.request(method, url, headers=headers, auth=auth, data=data, params=params) as response:
+async def send_async_http_request(
+    url: str,
+    method: str = "GET",
+    headers: Optional[Dict] = None,
+    auth: Optional[Tuple] = None,
+    data: Optional[Dict] = None,
+    params: Optional[Dict] = None,
+    timeout: int = 30
+) -> Optional[Dict]:
+    """
+    Send asynchronous HTTP request.
+    
+    Args:
+        url: Request URL
+        method: HTTP method
+        headers: Request headers
+        auth: Authentication tuple
+        data: Request data
+        params: Query parameters
+        timeout: Request timeout in seconds
+        
+    Returns:
+        dict: Response data or None on failure
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.request(
+                method, 
+                url, 
+                headers=headers, 
+                auth=auth, 
+                data=data, 
+                params=params,
+                timeout=timeout
+            ) as response:
                 if response.status == 200:
                     return await response.json()
-                else:
-                    print(f"Request failed with status code: {response.status}")
-                    return None
-        except aiohttp.ClientError as e:
-            print(f"Client error occurred: {e}")
-            return None
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return None
+                logger.error(f"Request failed with status code: {response.status}")
+                return None
+    except aiohttp.ClientError as e:
+        logger.error(f"Client error in async request: {e}")
+        return None
+    except asyncio.TimeoutError:
+        logger.error(f"Request timeout for URL: {url}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error in async request: {e}")
+        return None
 
-async def fetch_espn_data(endpoint=None, full_url=None):
+async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str] = None) -> Optional[Dict]:
+    """
+    Fetch data from ESPN API.
+    
+    Args:
+        endpoint: API endpoint path
+        full_url: Complete API URL
+        
+    Returns:
+        dict: API response data or None on failure
+    
+    Raises:
+        ValueError: If neither endpoint nor full_url is provided
+    """
     if full_url:
         url = full_url
     elif endpoint:
         url = f"https://site.api.espn.com/apis/site/v2/{endpoint}"
     else:
         raise ValueError("Either 'endpoint' or 'full_url' must be provided")
+
     logger.info(f"[API UTILS] Fetching data from ESPN API: {url}")
+    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
-                    logger.info(f"Successfully fetched data from ESPN API")
+                    logger.info("Successfully fetched data from ESPN API")
                     return data
-                else:
-                    logger.error(f"Failed to fetch data from ESPN API. Status: {response.status}")
-                    return None
+                logger.error(f"Failed to fetch data from ESPN API. Status: {response.status}")
+                return None
     except Exception as e:
         logger.error(f"[API UTILS] Error fetching data from ESPN API: {str(e)}", exc_info=True)
         return None
 
-def async_to_sync(coroutine):
+def async_to_sync(coroutine: Any) -> Any:
+    """
+    Convert async coroutine to sync function.
+    
+    Args:
+        coroutine: Async coroutine to convert
+        
+    Returns:
+        Any: Result of coroutine execution
+    """
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     return loop.run_until_complete(coroutine)
 
-def extract_match_details(event):
-    # Fetch the team ID from the app config
-    team_id = get_team_id()
-
-    match_id = event.get("id")
-    date_time_utc = event.get("date")
-    name = event.get("name")
-    venue = event.get("competitions", [{}])[0].get("venue", {}).get("fullName")
-
-    # Convert UTC to PST for uniformity in your database
-    date_time_pst = convert_to_pst(date_time_utc)
+def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Extract match details from event data.
     
-    # Extract competitors
-    competitors = event.get("competitions", [{}])[0].get("competitors", [])
-    team_data = next((comp for comp in competitors if comp["team"]["id"] == team_id), None)
-
-    if team_data:
-        # Identify the opponent
-        opponent = next(
-            (op["team"]["displayName"] for op in competitors if op["team"]["id"] != team_id),
-            "Unknown"
-        )
-
-        # Determine if it's a home game
-        is_home_game = team_data["homeAway"] == "home"
-
-        # Get the team logo
-        team_logo = team_data["team"].get("logos", [{}])[0].get("href")
-    else:
-        opponent = "Unknown"
-        is_home_game = False
-        team_logo = "Unknown"
-
-    # Check the venue to determine if it's a home game
-    if venue in ["Lumen Field", "Starfire Sports Stadium"]:
-        is_home_game = True
-    else:
-        is_home_game = False
-
-    # Extract match links using the existing extract_links function
-    summary_link, stats_link, commentary_link = extract_links(event)
-
-    match_details = {
-        "match_id": match_id,
-        "opponent": opponent,
-        "date_time": date_time_pst,
-        "venue": venue,
-        "name": name,
-        "team_logo": team_logo,
-        "is_home_game": is_home_game,
-        "match_summary_link": summary_link,
-        "match_stats_link": stats_link,
-        "match_commentary_link": commentary_link,
-    }
-
-    return match_details
+    Args:
+        event: Event data dictionary
+        
+    Returns:
+        dict: Extracted match details
+    """
+    try:
+        team_id = get_team_id()
+        
+        # Extract basic match info
+        match_id = event.get("id")
+        date_time_utc = event.get("date")
+        name = event.get("name")
+        venue = event.get("competitions", [{}])[0].get("venue", {}).get("fullName")
+        
+        # Convert UTC to PST
+        date_time_pst = convert_to_pst(date_time_utc)
+        
+        # Extract competitors info
+        competitors = event.get("competitions", [{}])[0].get("competitors", [])
+        team_data = next((comp for comp in competitors if comp["team"]["id"] == team_id), None)
+        
+        if team_data:
+            # Get opponent and home/away status
+            opponent = next(
+                (op["team"]["displayName"] for op in competitors if op["team"]["id"] != team_id),
+                "Unknown"
+            )
+            is_home_game = team_data["homeAway"] == "home"
+            team_logo = team_data["team"].get("logos", [{}])[0].get("href")
+        else:
+            opponent = "Unknown"
+            is_home_game = venue in ["Lumen Field", "Starfire Sports Stadium"]
+            team_logo = "Unknown"
+        
+        # Extract match links
+        summary_link, stats_link, commentary_link = extract_links(event)
+        
+        return {
+            "match_id": match_id,
+            "opponent": opponent,
+            "date_time": date_time_pst,
+            "venue": venue,
+            "name": name,
+            "team_logo": team_logo,
+            "is_home_game": is_home_game,
+            "match_summary_link": summary_link,
+            "match_stats_link": stats_link,
+            "match_commentary_link": commentary_link,
+        }
+    except Exception as e:
+        logger.error(f"Error extracting match details: {e}")
+        raise
