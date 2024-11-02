@@ -8,6 +8,13 @@ class Config:
     # Basic Flask/App Configuration
     SECRET_KEY = os.getenv('SECRET_KEY')
     MATCH_CHANNEL_ID = os.getenv('MATCH_CHANNEL_ID')
+
+    # Add secure cookie settings
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+
+    # Ensures that generated URLs use https
+    PREFERRED_URL_SCHEME = 'https'
     
     # Database Configuration
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')

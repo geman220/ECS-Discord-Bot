@@ -132,10 +132,15 @@ services:
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
+      
       # WebSocket support
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=upgrade"
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
       - "traefik.http.routers.webui-secure.middlewares=websocket"
+      
+      # Ensure HTTPS forwarding with X-Forwarded-Proto
+      - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.webui-secure.middlewares=secure-headers"
     depends_on:
       redis:
         condition: service_healthy
