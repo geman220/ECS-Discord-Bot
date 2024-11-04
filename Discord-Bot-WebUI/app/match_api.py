@@ -297,7 +297,6 @@ def schedule_live_reporting_route():
             return jsonify({'error': 'Live reporting already scheduled'}), 400
 
         match.live_reporting_scheduled = True
-        # No need to call db.session.commit(); handled by decorator
 
         # Schedule the task to start live reporting at match time
         time_diff = match.date_time - datetime.utcnow()
@@ -331,7 +330,6 @@ def start_live_reporting_route(match_id):
         match.live_reporting_status = 'running'
         match.live_reporting_started = True
         match.live_reporting_task_id = task.id
-        # No need to call db.session.commit(); handled by decorator
 
         logger.info(f"Live reporting started for match {match_id}")
         return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
@@ -357,7 +355,6 @@ def stop_live_reporting_route(match_id):
         # Stop live reporting and revoke the task
         match.live_reporting_status = 'stopped'
         match.live_reporting_started = False
-        # No need to call db.session.commit(); handled by decorator
 
         celery.control.revoke(match.live_reporting_task_id, terminate=True)
 

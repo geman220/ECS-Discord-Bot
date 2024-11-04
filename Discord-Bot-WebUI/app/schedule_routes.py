@@ -94,7 +94,6 @@ def handle_add_match(season_id, league_name, week):
                     opponent=team_b.id
                 )
                 db.session.add(new_match)
-                # No need to call db.session.commit(); handled by decorator
                 flash(f'Match {team_a.name} vs {team_b.name} added successfully.', 'success')
             else:
                 flash('One or both teams not found.', 'danger')
@@ -110,7 +109,6 @@ def handle_add_match(season_id, league_name, week):
 def handle_delete_week(season_id, week):
     try:
         Schedule.query.filter_by(week=str(week)).delete()
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Week {week} and all its matches have been deleted.', 'success')
     except Exception as e:
         logger.error(f"Error deleting week {week}: {e}")
@@ -245,7 +243,6 @@ def bulk_create_publeague_matches(season_id, league_name):
                         team_id=team_b_id
                     ))
 
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Bulk matches created for {league_name} league', 'success')
     except Exception as e:
         logger.error(f"Error creating bulk matches: {e}")
@@ -306,7 +303,6 @@ def bulk_create_ecsfc_matches(season_id, league_name):
                         team_id=team_b_id
                     ))
 
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Bulk matches created for {league_name} league', 'success')
     except Exception as e:
         logger.error(f"Error creating bulk matches: {e}")
@@ -359,7 +355,6 @@ def edit_match(match_id):
             paired_match_in_matches.home_team_id = paired_match_schedule.team_id
             paired_match_in_matches.away_team_id = paired_match_schedule.opponent
 
-        # No need to call db.session.commit(); handled by decorator
         return jsonify({'message': 'Match and Schedule updated successfully!'}), 200
     except Exception as e:
         logger.error(f"Error updating match: {e}")
@@ -389,7 +384,6 @@ def delete_match(match_id):
         if paired_match:
             db.session.delete(paired_match)
 
-        # No need to call db.session.commit(); handled by decorator
         flash('Both matches deleted successfully!', 'success')
     except Exception as e:
         logger.error(f"Error deleting match: {e}")
@@ -405,7 +399,6 @@ def delete_match(match_id):
 def delete_week(league_type, season_id, week_number):
     try:
         Schedule.query.filter_by(week=str(week_number), season_id=season_id).delete()
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Week {week_number} and all its matches have been deleted.', 'success')
     except Exception as e:
         logger.error(f"Error deleting week {week_number}: {e}")

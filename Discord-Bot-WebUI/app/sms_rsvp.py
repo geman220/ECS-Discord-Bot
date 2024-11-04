@@ -31,7 +31,6 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
                 responded_at=datetime.utcnow()
             )
             db.session.add(availability)
-        # No need to call db.session.commit(); handled by decorator
         return True
     except Exception as e:
         logger.error(f"Error updating RSVP for player {player_id}: {e}")
@@ -58,7 +57,6 @@ def generate_rsvp_link(phone_number):
         token = generate_token()
         new_token = Token(player_id=player.id, token=token)
         db.session.add(new_token)
-        # No need to call db.session.commit(); handled by decorator
 
         rsvp_link = url_for('sms_rsvp.rsvp_page', token=token, _external=True)
         return jsonify({'rsvp_link': rsvp_link})
@@ -96,7 +94,6 @@ def rsvp_page(token):
 
             # Invalidate the token after successful RSVP
             token_obj.invalidate()
-            # No need to call db.session.commit(); handled by decorator
 
             return render_template('rsvp_success.html')
 
@@ -156,7 +153,6 @@ def dev_test_send_rsvp_requests():
                 'message': 'SMS sent' if success else 'Failed to send SMS'
             })
 
-        # No need to call db.session.commit(); handled by decorator
         return jsonify({'message': 'Test RSVP requests processed', 'results': results})
     except Exception as e:
         logger.error(f"Error sending RSVP requests: {e}")

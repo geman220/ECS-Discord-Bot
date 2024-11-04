@@ -97,8 +97,6 @@ def handle_draft_player(data):
             print(f"Assigning player {player.name} (ID: {player_id}) to team {team.name} (ID: {team_id})")
             player.team_id = team_id
 
-            # No need to call db.session.commit(); handled by decorator
-
             # Assign the role in Discord asynchronously
             asyncio.run(assign_role_to_player(player))
 
@@ -148,8 +146,6 @@ def handle_remove_player(data):
 
             # Remove the player from the team
             player.team_id = None
-
-            # No need to call db.session.commit(); handled by decorator
 
             # Fetch the current season
             current_season = Season.query.order_by(Season.id.desc()).first()

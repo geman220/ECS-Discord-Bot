@@ -55,7 +55,6 @@ def get_matches_by_league(league_id):
 def clear_players():
     try:
         Player.query.delete()
-        # No need to call db.session.commit(); handled by decorator
         flash('All players have been cleared.', 'success')
     except Exception as e:
         logger.error(f'Error clearing players: {str(e)}')
@@ -76,7 +75,6 @@ def update_publeague_team_name(season_id, league_name, team_name):
         new_team_name = request.form.get('team_name')
         if new_team_name:
             team.name = new_team_name
-            # No need to call db.session.commit(); handled by decorator
             flash(f'Team name updated to "{new_team_name}".', 'success')
         else:
             flash('Team name cannot be empty.', 'danger')
@@ -230,7 +228,6 @@ def delete_team():
 
         # Delete the team from the database
         db.session.delete(team)
-        # No need to call db.session.commit(); handled by decorator
 
         flash(f'Team "{team_name}" has been deleted.', 'success')
 

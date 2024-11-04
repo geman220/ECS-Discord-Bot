@@ -1,9 +1,9 @@
 from functools import wraps
 from celery import shared_task
+from datetime import datetime
 from flask import flash, redirect, url_for, abort, jsonify
 from flask_login import current_user
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-from app.models import User, Player
 from app import db
 from contextlib import contextmanager
 from typing import Any, Callable
@@ -57,6 +57,7 @@ def permission_required(permission_name):
     return wrapper
 
 def admin_or_owner_required(func):
+    from app.models import Player
     """
     Decorator to ensure that the current user is either an admin or the owner of the profile.
     """
@@ -93,6 +94,7 @@ def admin_or_owner_required(func):
     return decorated_function
 
 def jwt_role_required(roles):
+    from app.models import User
     """
     Ensure the current user has one of the required roles for API access.
     :param roles: A list of roles (strings) or a single role (string).
@@ -115,6 +117,7 @@ def jwt_role_required(roles):
     return wrapper
 
 def jwt_permission_required(permission_name):
+    from app.models import User
     """
     Ensure the current user has the required permission for API access.
     :param permission_name: The name of the required permission (string).
@@ -134,6 +137,7 @@ def jwt_permission_required(permission_name):
     return wrapper
 
 def jwt_admin_or_owner_required(func):
+    from app.models import User, Player
     """
     Decorator to ensure that the current user is either an admin or the owner of the profile for API access.
     """
@@ -165,42 +169,18 @@ def jwt_admin_or_owner_required(func):
     
     return decorated_function
 
-def with_session(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        try:
-            result = f(*args, **kwargs)
-            db.session.commit()
-            return result
-        except Exception as e:
-            db.session.rollback()
-            raise
-        finally:
-            db.session.close()
-    return decorated
-
-def query_only(f):
-    @wraps(f) 
-    def decorated(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        finally:
-            db.session.close()
-    return decorated
-
 def db_operation(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         try:
             result = f(*args, **kwargs)
             db.session.commit()
-            logger.debug(f"Successfully committed transaction for {f.__name__}")
             return result
         except Exception as e:
             db.session.rollback()
-            logger.error(f"Error in {f.__name__}: {str(e)}", exc_info=True)
             raise
-        # Do not close the session here
+        finally:
+            db.session.remove()
     return decorated
 
 def query_operation(f: Callable) -> Callable:
@@ -208,114 +188,66 @@ def query_operation(f: Callable) -> Callable:
     def decorated(*args: Any, **kwargs: Any) -> Any:
         try:
             return f(*args, **kwargs)
-        except Exception as e:
-            logger.error(f"Error in query {f.__name__}: {str(e)}", exc_info=True)
-            raise
-        # Do not close the session here
+        finally:
+            db.session.remove()
     return decorated
 
 @contextmanager
 def session_context():
-    """Context manager for database sessions"""
     try:
         yield db.session
         db.session.commit()
-        logger.debug("Successfully committed transaction")
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error in transaction: {str(e)}", exc_info=True)
         raise
     finally:
-        db.session.close()
-
-def with_appcontext(f: Callable) -> Callable:
-    """
-    Decorator to handle both app context and database session.
-    Useful for background tasks and Celery jobs.
-    """
-    @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:
-        from flask import current_app
-        with current_app.app_context():
-            return db_operation(f)(*args, **kwargs)
-    return decorated
+        db.session.remove()
 
 def celery_task(bind_self=True, **celery_kwargs):
-    """
-    Combined decorator for Celery tasks that handles:
-    - Task registration
-    - App context
-    - Database sessions
-    - Error handling and logging
-
-    Parameters:
-    - bind_self (bool): If True, binds `self` as the first argument of the task function.
-                        Set to False to call the task without `self`.
-
-    Usage:
-    @celery_task(name='app.tasks.my_task', max_retries=3, bind_self=False)
-    def my_task():
-        # Task logic here - app context and db session handled automatically
-    """
     def decorator(f: Callable) -> Callable:
         task_name = celery_kwargs.get('name') or f'app.tasks.{f.__module__}.{f.__name__}'
-        
-        # Set some sensible defaults for Celery tasks
         default_kwargs = {
-            'bind': bind_self,  # Respect bind_self to include/exclude self
+            'bind': bind_self,
             'max_retries': 3,
             'default_retry_delay': 60,
             'autoretry_for': (Exception,),
             'retry_backoff': True,
             'name': task_name
         }
-        
-        # Update defaults with provided kwargs
         task_kwargs = {**default_kwargs, **celery_kwargs}
         
         @shared_task(**task_kwargs)
         @wraps(f)
         def wrapped_task(*args: Any, **kwargs: Any) -> Any:
             from app import create_app, db
+            session_id = f"{task_name}-{datetime.utcnow().timestamp()}"
             
             app = create_app()
             with app.app_context():
                 try:
-                    logger.info(f"Starting task {task_name}")
-                    # Call with self if bind_self is True, otherwise without self
+                    logger.info(f"Starting task {task_name} (session: {session_id})")
                     result = f(*args, **kwargs) if not bind_self else f(args[0], *args[1:], **kwargs)
                     try:
                         db.session.commit()
-                        logger.debug(f"Committed database changes for {task_name}")
+                        logger.debug(f"Committed database changes for {task_name} (session: {session_id})")
                     except Exception as e:
                         db.session.rollback()
-                        logger.error(f"Database error in {task_name}: {str(e)}")
+                        logger.error(f"Database error in {task_name} (session: {session_id}): {str(e)}")
                         raise
                     return result
                 except Exception as e:
-                    logger.error(f"Error in {task_name}: {str(e)}", exc_info=True)
+                    logger.error(f"Error in {task_name} (session: {session_id}): {str(e)}", exc_info=True)
                     if bind_self:
-                        raise args[0].retry(exc=e)  # Retry with self if bind_self is True
+                        raise args[0].retry(exc=e)
                     else:
                         raise e
                 finally:
                     db.session.remove()
-                    logger.debug(f"Cleaned up database session for {task_name}")
-        
+                    logger.debug(f"Cleaned up database session for {task_name} (session: {session_id})")
         return wrapped_task
-    
     return decorator
 
 def async_task(**celery_kwargs):
-    """
-    Special decorator for tasks that use asyncio.
-    Handles event loop creation and cleanup in addition to standard task management.
-    
-    Usage:
-    @async_task(name='app.tasks.my_async_task')
-    async def my_async_task():
-        # Async task logic here
-    """
     def decorator(f: Callable) -> Callable:
         task_name = celery_kwargs.get('name') or f'app.tasks.{f.__module__}.{f.__name__}'
         
@@ -323,22 +255,21 @@ def async_task(**celery_kwargs):
         @wraps(f)
         def wrapped_task(self, *args: Any, **kwargs: Any) -> Any:
             import asyncio
+            session_id = f"{task_name}-{datetime.utcnow().timestamp()}"
             
             try:
-                # Create and configure event loop
+                logger.debug(f"Creating event loop for {task_name} (session: {session_id})")
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 
-                # Run the async function
                 result = loop.run_until_complete(f(self, *args, **kwargs))
                 return result
             except Exception as e:
-                logger.error(f"Error in async task {task_name}: {str(e)}", exc_info=True)
+                logger.error(f"Error in async task {task_name} (session: {session_id}): {str(e)}", 
+                           exc_info=True)
                 raise
             finally:
                 loop.close()
-                logger.debug(f"Closed event loop for {task_name}")
-        
+                logger.debug(f"Closed event loop for {task_name} (session: {session_id})")
         return wrapped_task
-    
     return decorator

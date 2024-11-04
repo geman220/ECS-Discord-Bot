@@ -60,7 +60,6 @@ def create_pub_league_season(season_name):
         
         db.session.add(League(name="Premier", season_id=new_season.id))
         db.session.add(League(name="Classic", season_id=new_season.id))
-        # No need to call db.session.commit(); handled by decorator
     else:
         flash(f'Season "{season_name}" already exists.', 'warning')
 
@@ -79,7 +78,6 @@ def create_ecs_fc_season(season_name):
         db.session.add(new_season)
         
         db.session.add(League(name="ECS FC", season_id=new_season.id))
-        # No need to call db.session.commit(); handled by decorator
     else:
         flash(f'Season "{season_name}" already exists.', 'warning')
 
@@ -92,7 +90,6 @@ def set_current_season(season_id):
         season = Season.query.get_or_404(season_id)
         Season.query.filter_by(league_type=season.league_type).update({'is_current': False})
         season.is_current = True
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Season "{season.name}" is now the current season for {season.league_type}.', 'success')
     except Exception as e:
         logger.error(f"Error setting current season: {e}")
@@ -117,7 +114,6 @@ def delete_season(season_id):
             db.session.delete(league)
         
         db.session.delete(season)
-        # No need to call db.session.commit(); handled by decorator
         flash(f'Season "{season.name}" has been deleted along with its associated leagues.', 'success')
     except Exception as e:
         logger.error(f"Error deleting season: {e}")

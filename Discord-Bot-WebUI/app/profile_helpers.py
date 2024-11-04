@@ -39,7 +39,6 @@ def handle_coach_status_update(player, user):
         user.roles.remove(coach_role)
         logger.debug("Removed Pub League Coach role from user.")
 
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"{player.name}'s coach status updated successfully.")
     flash(f"{player.name}'s coach status updated successfully.", 'success')
 
@@ -67,7 +66,6 @@ def handle_ref_status_update(player, user):
         user.roles.remove(ref_role)
         logger.debug("Removed Pub League Ref role from user.")
 
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"{player.name}'s referee status updated successfully.")
     flash(f"{player.name}'s referee status updated successfully.", 'success')
 
@@ -104,7 +102,6 @@ def handle_profile_update(form, player, user):
         player.team_swap = team_swap_value if team_swap_value else None  # Set to None if not selected
         logger.debug(f"Set player.team_swap to {player.team_swap}")
 
-    # No need to call db.session.commit(); handled by decorator
     flash('Profile updated successfully.', 'success')
     logger.info(f"Profile for player {player.id} updated successfully.")
     return True
@@ -131,7 +128,6 @@ def handle_season_stats_update(player, form, season_id):
     }
     logger.debug(f"Updating season stats with: {stats} by user {current_user.id}")
     player.update_season_stats(season_id, stats, user_id=current_user.id)
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"Season stats updated successfully for player {player.id} in season {season_id}")
     flash('Season stats updated successfully.', 'success')
 
@@ -146,7 +142,6 @@ def handle_career_stats_update(player, form):
     }
     logger.debug(f"Updating career stats with: {stats} by user {current_user.id}")
     player.update_career_stats(stats, user_id=current_user.id)
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"Career stats updated successfully for player {player.id}")
     flash('Career stats updated successfully.', 'success')
 
@@ -170,7 +165,6 @@ def handle_add_stat_manually(player):
         logger.debug(f"Adding new stat manually with data: {new_stat_data} by user {current_user.id}")
         
         player.add_stat_manually(new_stat_data, user_id=current_user.id)
-        # No need to call db.session.commit(); handled by decorator
         logger.info(f"Stat added successfully for player {player.id} in match {match_id}")
         flash('Stat added successfully.', 'success')
     except ValueError as e:
