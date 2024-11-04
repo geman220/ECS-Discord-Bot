@@ -130,12 +130,10 @@ def create_player_profile(onboarding_form):
 
         # Add the new player to the session
         db.session.add(player)
-        # No need to call db.session.commit(); handled by decorator
 
         # Link the player profile to the current user in the session
         current_user.player = player
         current_user.has_completed_onboarding = True  # Mark onboarding as complete
-        # No need to call db.session.commit(); handled by decorator
 
         # Flash a success message
         flash('Player profile created successfully.', 'success')
@@ -195,8 +193,6 @@ def handle_profile_update(player, onboarding_form):
 
         # Mark onboarding as complete
         current_user.has_completed_onboarding = True
-
-        # No need to call db.session.commit(); handled by decorator
 
         # Optional: Flash a success message
         flash('Profile updated successfully.', 'success')
@@ -364,7 +360,6 @@ def index():
                 if player:
                     # Only proceed if player is successfully created or updated
                     current_user.has_completed_onboarding = True  # Mark onboarding as complete
-                    # No need to call db.session.commit(); handled by decorator
 
                     logger.debug(f"Player profile {'created' if not player else 'updated'} and onboarding completed for user {current_user.id}")
                     flash('Player profile created or updated successfully!', 'success')
@@ -377,7 +372,6 @@ def index():
             # Handle skipping profile creation
             logger.debug(f"Handling 'skip_profile' action for user {current_user.id}")
             current_user.has_skipped_profile_creation = True
-            # No need to call db.session.commit(); handled by decorator
             show_onboarding = False  # Do not show onboarding anymore
             flash('You have chosen to skip profile creation for now.', 'info')
             return redirect(url_for('main.index'))
@@ -386,7 +380,6 @@ def index():
             # Handle resetting the skip flag to allow onboarding again
             logger.debug(f"Handling 'reset_skip_profile' action for user {current_user.id}")
             current_user.has_skipped_profile_creation = False
-            # No need to call db.session.commit(); handled by decorator
             show_onboarding = True  # Reopen the onboarding modal
             flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
             return redirect(url_for('main.index'))
@@ -526,7 +519,6 @@ def mark_as_read(notification_id):
 
     try:
         notification.read = True
-        # No need to call db.session.commit(); handled by decorator
         flash('Notification marked as read.', 'success')
     except Exception as e:
         logger.error(f"Error marking notification {notification_id} as read: {str(e)}")
@@ -541,7 +533,6 @@ def mark_as_read(notification_id):
 def set_tour_skipped():
     try:
         current_user.has_completed_tour = False
-        # No need to call db.session.commit(); handled by decorator
         logger.info(f"User {current_user.id} set tour as skipped.")
     except Exception as e:
         logger.error(f"Error setting tour skipped for user {current_user.id}: {str(e)}")
@@ -556,7 +547,6 @@ def set_tour_skipped():
 def set_tour_complete():
     try:
         current_user.has_completed_tour = True
-        # No need to call db.session.commit(); handled by decorator
         logger.info(f"User {current_user.id} completed the tour.")
     except Exception as e:
         logger.error(f"Error setting tour complete for user {current_user.id}: {str(e)}")

@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import db, Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
-from app.decorators import with_session
+from app.decorators import db_operation
 from functools import wraps
 from datetime import datetime
 
@@ -85,7 +85,7 @@ def submit_feedback():
 
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
-@with_session  # Add session management decorator
+@db_operation
 def view_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     
@@ -101,7 +101,6 @@ def view_feedback(feedback_id):
             content=form.content.data
         )
         db.session.add(reply)
-        # No need to commit here - decorator handles it
         
         flash('Reply added successfully!', 'success')
         return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))

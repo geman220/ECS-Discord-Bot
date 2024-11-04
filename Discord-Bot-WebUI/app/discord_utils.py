@@ -9,7 +9,7 @@ import logging
 import time
 from typing import Union, List, Dict, Any
 from app.utils.discord_request_handler import optimized_discord_request
-from app.decorators import db_operation, query_operation, with_appcontext
+from app.decorators import db_operation, query_operation
 from app.models import Team, Player, db
 from app import create_app
 
@@ -272,7 +272,6 @@ async def create_discord_channel(team_name, division, team_id):
 
                 # Update the team with the discord_channel_id
                 team.discord_channel_id = discord_channel_id
-                # No need to call db.session.commit(); handled by decorator
             else:
                 logger.error(f"Failed to create channel for team {team_name}")
         else:
@@ -297,7 +296,6 @@ async def create_discord_roles(team_name, team_id):
         team.discord_coach_role_id = coach_role_id
         team.discord_player_role_id = player_role_id
         logger.info(f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}")
-        # No need to call db.session.commit(); handled by decorator
 
 async def wait_for_role_registration(team_id, max_attempts=20, delay=0.1):
     """Waits for the role IDs (coach and player) to be registered in the database for a given team."""
@@ -585,7 +583,6 @@ async def fetch_player_data(player, session):
 def mark_player_for_update(player_id):
     try:
         Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
-        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
         logger.error(f"Error marking player {player_id} for update: {str(e)}")
 
@@ -593,7 +590,6 @@ def mark_player_for_update(player_id):
 def mark_team_for_update(team_id):
     try:
         Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
-        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
         logger.error(f"Error marking team {team_id} for update: {str(e)}")
 
@@ -601,7 +597,6 @@ def mark_team_for_update(team_id):
 def mark_league_for_update(league_id):
     try:
         Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
-        # No need to call db.session.commit(); handled by decorator
     except Exception as e:
         logger.error(f"Error marking league {league_id} for update: {str(e)}")
 
@@ -626,7 +621,6 @@ async def update_player_roles(player, session, force_update=False):
         player.discord_roles = updated_roles
         player.discord_last_verified = datetime.utcnow()
         player.discord_needs_update = False
-        # No need to call db.session.commit(); handled by decorator
         return True
     except Exception as e:
         logger.error(f"Error updating roles for player {player.name}: {str(e)}")
@@ -690,7 +684,6 @@ async def get_discord_roles(user_id, session, force_check=False):
                 player.discord_roles = roles
                 player.discord_last_verified = datetime.utcnow()
                 player.discord_needs_update = False
-                # No need to call db.session.commit(); handled by decorator
             return roles, "active"
         else:
             logger.warning(f"No roles found for user {user_id}")
@@ -742,19 +735,16 @@ async def get_expected_roles(player_or_id: Union[Player, str], session=None) -> 
 @db_operation
 def mark_player_for_update(player_id):
     Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"Marked player {player_id} for Discord update.")
 
 @db_operation
 def mark_team_for_update(team_id):
     Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"Marked team {team_id} for Discord update.")
 
 @db_operation
 def mark_league_for_update(league_id):
     Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
-    # No need to call db.session.commit(); handled by decorator
     logger.info(f"Marked league {league_id} for Discord update.")
 
 @db_operation
@@ -779,7 +769,6 @@ async def update_player_roles(player, session, force_update=False):
         player.discord_roles = updated_roles
         player.discord_last_verified = datetime.utcnow()
         player.discord_needs_update = False
-        # No need to call db.session.commit(); handled by decorator
         return True
     except Exception as e:
         logger.error(f"Error updating roles for player {player.name}: {str(e)}")
@@ -937,7 +926,6 @@ async def get_discord_roles(user_id, session, force_check=False):
                 player.discord_roles = roles
                 player.discord_last_verified = datetime.utcnow()
                 player.discord_needs_update = False
-                # No need to call db.session.commit(); handled by decorator
             return roles, "active"
         else:
             logger.warning(f"No roles found for user {user_id}")
@@ -1020,7 +1008,6 @@ async def create_match_thread(match):
             if response and 'id' in response:
                 thread_id = response['id']
                 match.discord_thread_id = thread_id
-                # No need to call db.session.commit(); handled by decorator
                 logger.info(f"Successfully created thread: {thread_id} for match against {match.opponent}")
                 return thread_id
             else:

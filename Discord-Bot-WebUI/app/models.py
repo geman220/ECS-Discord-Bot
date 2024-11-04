@@ -1,4 +1,5 @@
 from app import db, login_manager
+from app.decorators import query_operation, db_operation
 from datetime import datetime, timedelta
 from flask_login import UserMixin, current_user
 from flask import request
@@ -41,6 +42,7 @@ class League(db.Model):
     other_players = db.relationship('Player', secondary='player_league', back_populates='other_leagues')
     users = db.relationship('User', back_populates='league')
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -100,6 +102,7 @@ class User(UserMixin, db.Model):
         return cls._email
 
     # Method to generate TOTP secret
+    @db_operation
     def generate_totp_secret(self):
         import pyotp
         self.totp_secret = pyotp.random_base32()
@@ -110,18 +113,26 @@ class User(UserMixin, db.Model):
         totp = pyotp.TOTP(self.totp_secret)
         return totp.verify(token)
 
+    @db_operation
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @query_operation
     def has_role(self, role_name):
         return any(role.name == role_name for role in self.roles)
 
+    @query_operation
     def has_permission(self, permission_name):
-        return any(permission.name == permission_name for role in self.roles for permission in role.permissions)
+        return any(
+            permission.name == permission_name 
+            for role in self.roles 
+            for permission in role.permissions
+        )
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -136,7 +147,7 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.options(
-        db.joinedload(User.roles),
+        db.joinedload(User.roles).joinedload(Role.permissions),
         db.joinedload(User.notifications)
     ).get(int(user_id))
 
@@ -175,6 +186,7 @@ class Season(db.Model):
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='season', cascade='all, delete-orphan')
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -402,7 +414,7 @@ class Player(db.Model):
     def __repr__(self):
         return f'<Player {self.name} ({self.user.email})>'
 
-    # Methods to retrieve season stats
+    @query_operation
     def get_season_stat(self, season_id, stat):
         season_stat = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
         return getattr(season_stat, stat, 0) if season_stat else 0
@@ -419,21 +431,17 @@ class Player(db.Model):
     def season_red_cards(self, season_id):
         return self.get_season_stat(season_id, 'red_cards')
 
+    @db_operation
     def update_season_stats(self, season_id, stats_changes, user_id):
-        """
-        Updates both seasonal and career statistics based on the provided changes.
-        """
         if not stats_changes:
             logging.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
             return
 
-        # Fetch or create PlayerSeasonStats for the season
         season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
         if not season_stats:
             season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
             db.session.add(season_stats)
 
-        # Update seasonal stats based on changes
         for stat, increment in stats_changes.items():
             if hasattr(season_stats, stat):
                 current_value = getattr(season_stats, stat)
@@ -442,36 +450,22 @@ class Player(db.Model):
                     f"Updated {stat} for Player ID {self.id} in Season ID {season_id}: "
                     f"{current_value} + {increment} = {current_value + increment}"
                 )
-                # Log the stat change
                 self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id, season_id)
-            else:
-                logging.warning(
-                    f"PlayerSeasonStats has no attribute '{stat}'. Skipping update for Player ID {self.id}."
-                )
 
-        # Update career stats based on changes
         self.update_career_stats(stats_changes, user_id)
-
-        # Optionally, log the user performing the update
         logging.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
 
-        # Removed db.session.commit()
-
+    @db_operation
     def update_career_stats(self, stats_changes, user_id):
-        """
-        Updates career statistics based on the provided changes.
-        """
         if not stats_changes:
             logging.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
             return
 
-        # Fetch or create PlayerCareerStats
         if not self.career_stats:
             self.career_stats = PlayerCareerStats(player_id=self.id)
             db.session.add(self.career_stats)
             db.session.flush()  # Ensure ID is generated if needed
 
-        # Update career stats based on changes
         for stat, increment in stats_changes.items():
             if hasattr(self.career_stats, stat):
                 current_value = getattr(self.career_stats, stat)
@@ -480,22 +474,12 @@ class Player(db.Model):
                     f"Updated {stat} for Player ID {self.id} in Career Stats: "
                     f"{current_value} + {increment} = {current_value + increment}"
                 )
-                # Log the stat change
                 self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id)
-            else:
-                logging.warning(
-                    f"PlayerCareerStats has no attribute '{stat}'. Skipping update for Player ID {self.id}."
-                )
 
-        # Optionally, log the user performing the update
         logging.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
 
-        # Removed db.session.commit()
-
+    @db_operation
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
-        """
-        Logs changes to player statistics.
-        """
         if change_type not in [ct.value for ct in StatChangeType]:
             logging.warning(f"Invalid change type '{change_type}' for stat change logging.")
             return
@@ -516,48 +500,42 @@ class Player(db.Model):
                 f"Logged stat change for Player ID {self.id}: {stat} {change_type} from {old_value} to {new_value} by User ID {user_id}."
             )
         except Exception as e:
-            db.session.rollback()  # Ensure rollback on failure
+            db.session.rollback()
             logging.error(f"Error logging stat change for Player ID {self.id}: {str(e)}")
 
 
+    @query_operation
     def get_career_goals(self):
-        if self.career_stats:  # Check if career_stats is not empty
-            # Sum the goals from all career stats records
+        if self.career_stats:
             return sum(stat.goals for stat in self.career_stats if stat.goals)
         return 0
 
+    @query_operation
     def get_career_assists(self):
-        if self.career_stats:  # Check if career_stats is not empty
-            # Sum the assists from all career stats records
+        if self.career_stats:
             return sum(stat.assists for stat in self.career_stats if stat.assists)
         return 0
 
+    @query_operation
     def get_career_yellow_cards(self):
-        if self.career_stats:  # Check if career_stats is not empty
-            # Sum the yellow cards from all career stats records
+        if self.career_stats:
             return sum(stat.yellow_cards for stat in self.career_stats if stat.yellow_cards)
         return 0
 
+    @query_operation
     def get_career_red_cards(self):
-        if self.career_stats:  # Check if career_stats is not empty
-            # Sum the red cards from all career stats records
+        if self.career_stats:
             return sum(stat.red_cards for stat in self.career_stats if stat.red_cards)
         return 0
 
+    @query_operation
     def get_all_matches(self):
-        """
-        Retrieves all matches in which the player's team participated.
-        Returns a list of Match objects where the player's team was either the home or away team.
-        """
         return Match.query.filter(
             (Match.home_team_id == self.team_id) | (Match.away_team_id == self.team_id)
         ).all()
 
+    @query_operation
     def get_all_match_stats(self):
-        """
-        Retrieves all events (stats) tied to the player, such as goals, assists, yellow cards, etc.
-        Returns a list of PlayerEvent objects related to this player.
-        """
         return PlayerEvent.query.filter_by(player_id=self.id).all()
 
 class Schedule(db.Model):
@@ -662,6 +640,7 @@ class PlayerSeasonStats(db.Model):
     player = db.relationship('Player', back_populates='season_stats')
     season = db.relationship('Season', back_populates='player_stats')
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -685,6 +664,7 @@ class PlayerCareerStats(db.Model):
 
     player = db.relationship('Player', back_populates='career_stats')
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -718,7 +698,8 @@ class Standings(db.Model):
     @staticmethod
     def update_goal_difference(mapper, connection, target):
         target.goal_difference = target.goals_for - target.goals_against
-
+    
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -749,6 +730,7 @@ class Availability(db.Model):
     match = db.relationship('Match', back_populates='availability')
     player = db.relationship('Player', back_populates='availability')
 
+    @query_operation
     def to_dict(self):
         return {
             'id': self.id,
@@ -870,6 +852,7 @@ class Feedback(db.Model):
         return f'<Feedback {self.id} - {self.title}>'
 
     @classmethod
+    @db_operation
     def delete_old_closed_tickets(cls):
         try:
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -878,7 +861,7 @@ class Feedback(db.Model):
                 db.session.delete(ticket)
             db.session.commit()
         except Exception as e:
-            db.session.rollback()  # Rollback in case of error
+            db.session.rollback()
             logging.error(f"Error deleting old closed tickets: {str(e)}")
 
 class FeedbackReply(db.Model):
@@ -956,12 +939,13 @@ class Token(db.Model):
     def is_valid(self):
         return not self.is_expired and not self.used
 
+    @db_operation
     def invalidate(self):
         try:
             self.used = True
             db.session.commit()
         except Exception as e:
-            db.session.rollback()  # Ensure rollback on failure
+            db.session.rollback()
             logging.error(f"Error invalidating token {self.token} for player {self.player_id}: {str(e)}")
 
 class MLSMatch(db.Model):

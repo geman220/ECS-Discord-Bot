@@ -2,15 +2,17 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple, List
 import asyncio
 from app.extensions import db, socketio
-from app.decorators import celery_task, async_task
+from app.decorators import celery_task, async_task, session_context, db_operation, query_operation
 from app.models import MLSMatch
+from app.match_scheduler import MatchScheduler
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
 from app.api_utils import fetch_espn_data
 from app.utils.match_events_utils import get_new_events
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +22,12 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
                         last_event_keys: list = None) -> Dict[str, Any]:
     """Process a single match update iteration."""
     try:
-        logger.info(f"Processing update for match {match_id}")
-        
-        match = MLSMatch.query.filter_by(match_id=match_id).first()
+        # Use query_operation for read-only operations
+        @query_operation
+        def get_match():
+            return MLSMatch.query.filter_by(match_id=match_id).first()
+
+        match = get_match()
         if not match:
             logger.error(f"Match {match_id} not found")
             return {
@@ -37,7 +42,6 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
                 'message': 'Match not in running state'
             }
 
-        # Initialize last_event_keys if None
         last_event_keys = last_event_keys or []
 
         # Create event loop for async operations
@@ -45,7 +49,6 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
         asyncio.set_event_loop(loop)
         
         try:
-            # Fetch match data
             full_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard/{match_id}"
             match_data = loop.run_until_complete(fetch_espn_data(full_url=full_url))
 
@@ -56,7 +59,6 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
                     'message': 'Failed to fetch match data'
                 }
 
-            # Process updates with event keys instead of full events
             match_ended, current_event_keys = loop.run_until_complete(process_live_match_updates(
                 match_id=str(match_id),
                 thread_id=thread_id,
@@ -71,16 +73,21 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
 
         if match_ended:
             logger.info(f"Match {match_id} has ended")
-            match.live_reporting_status = 'completed'
-            match.live_reporting_started = False
-            db.session.commit()
+            @db_operation
+            def update_match_status():
+                match = MLSMatch.query.filter_by(match_id=match_id).first()
+                if match:
+                    match.live_reporting_status = 'completed'
+                    match.live_reporting_started = False
+                return match
+
+            update_match_status()
             return {
                 'success': True,
                 'message': 'Match ended',
                 'status': 'completed'
             }
 
-        # Get new status and score for next update
         new_status = match_data["competitions"][0]["status"]["type"]["name"]
         home_score = match_data['competitions'][0]['competitors'][0]['score']
         away_score = match_data['competitions'][0]['competitors'][1]['score']
@@ -88,7 +95,6 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
 
         logger.info(f"Scheduling next update for match {match_id}")
         
-        # Schedule next update with current state and event keys
         self.apply_async(
             args=[match_id, thread_id, competition],
             kwargs={
@@ -119,11 +125,11 @@ def process_match_update(self, match_id: str, thread_id: str, competition: str,
 def start_live_reporting(self, match_id: str) -> Dict[str, Any]:
     """Start live match reporting."""
     try:
-        logger.info(f"Starting live reporting for match_id: {match_id}")
-        
-        # Get match with thread ID
-        match = MLSMatch.query.filter_by(match_id=match_id).first()
-        
+        @query_operation
+        def get_match():
+            return MLSMatch.query.filter_by(match_id=match_id).first()
+
+        match = get_match()
         if not match:
             logger.error(f"Match {match_id} not found")
             return {
@@ -141,40 +147,47 @@ def start_live_reporting(self, match_id: str) -> Dict[str, Any]:
                 'message': 'Live reporting already running'
             }
 
-        # Initialize reporting
-        match.live_reporting_started = True
-        match.live_reporting_status = 'running'
-        db.session.commit()
-        
+        @db_operation
+        def update_match_status():
+            match = MLSMatch.query.filter_by(match_id=match_id).first()
+            if match:
+                match.live_reporting_started = True
+                match.live_reporting_status = 'running'
+            return match
+
+        updated_match = update_match_status()
         logger.info(f"Updated match status to running")
 
-        # Schedule the first update with empty event keys list
         process_match_update.delay(
             match_id=str(match_id),
-            thread_id=str(match.discord_thread_id),
-            competition=match.competition,
+            thread_id=str(updated_match.discord_thread_id),
+            competition=updated_match.competition,
             last_status=None,
             last_score=None,
-            last_event_keys=[]  # Initialize with empty list
+            last_event_keys=[]
         )
         
         return {
             'success': True,
             'message': 'Live reporting started successfully',
-            'match_id': match.match_id,
-            'thread_id': match.discord_thread_id,
-            'status': match.live_reporting_status
+            'match_id': updated_match.match_id,
+            'thread_id': updated_match.discord_thread_id,
+            'status': updated_match.live_reporting_status
         }
 
     except Exception as e:
         logger.error(f"Error in start_live_reporting: {str(e)}", exc_info=True)
         
-        # Update match status on error
-        try:
+        @db_operation
+        def update_error_status():
+            match = MLSMatch.query.filter_by(match_id=match_id).first()
             if match:
                 match.live_reporting_status = 'failed'
                 match.live_reporting_started = False
-                db.session.commit()
+            return match
+
+        try:
+            update_error_status()
         except Exception as inner_e:
             logger.error(f"Error updating match status: {str(inner_e)}")
             
@@ -187,15 +200,28 @@ def start_live_reporting(self, match_id: str) -> Dict[str, Any]:
 def schedule_live_reporting(self) -> Dict[str, Any]:
     """Schedule live reporting for upcoming matches."""
     try:
-        now = datetime.utcnow()
-        upcoming_matches = MLSMatch.query.filter(
-            MLSMatch.date_time >= now,
-            MLSMatch.date_time <= now + timedelta(hours=24),
-            MLSMatch.live_reporting_started == False,
-            MLSMatch.live_reporting_scheduled == False
-        ).all()
+        @query_operation
+        def get_upcoming_matches():
+            now = datetime.utcnow()
+            return MLSMatch.query.filter(
+                MLSMatch.date_time >= now,
+                MLSMatch.date_time <= now + timedelta(hours=24),
+                MLSMatch.live_reporting_started == False,
+                MLSMatch.live_reporting_scheduled == False
+            ).all()
 
+        upcoming_matches = get_upcoming_matches()
+        now = datetime.utcnow()
         scheduled_count = 0
+
+        @db_operation
+        def mark_matches_scheduled(match_ids: List[str]):
+            matches = MLSMatch.query.filter(MLSMatch.match_id.in_(match_ids)).all()
+            for match in matches:
+                match.live_reporting_scheduled = True
+            return len(matches)
+
+        match_ids = []
         for match in upcoming_matches:
             time_diff = match.date_time - now
             start_live_reporting.apply_async(
@@ -203,10 +229,12 @@ def schedule_live_reporting(self) -> Dict[str, Any]:
                 countdown=max(0, int(time_diff.total_seconds())),
                 queue='live_reporting'
             )
-            match.live_reporting_scheduled = True
+            match_ids.append(match.match_id)
             scheduled_count += 1
 
-        db.session.commit()
+        if match_ids:
+            mark_matches_scheduled(match_ids)
+
         return {
             'success': True,
             'message': f'Scheduled {scheduled_count} matches for reporting',
@@ -221,7 +249,11 @@ def schedule_live_reporting(self) -> Dict[str, Any]:
 async def create_match_thread_task(self, match_id: str) -> Dict[str, Any]:
     """Create match thread with proper error handling and retries."""
     try:
-        match = MLSMatch.query.get(match_id)
+        @query_operation
+        def get_match():
+            return MLSMatch.query.get(match_id)
+
+        match = get_match()
         if not match:
             return {
                 'success': False,
@@ -236,9 +268,15 @@ async def create_match_thread_task(self, match_id: str) -> Dict[str, Any]:
 
         thread_id = await create_match_thread(match)
         if thread_id:
-            match.thread_created = True
-            match.discord_thread_id = thread_id
-            db.session.commit()
+            @db_operation
+            def update_thread_info():
+                match = MLSMatch.query.get(match_id)
+                if match:
+                    match.thread_created = True
+                    match.discord_thread_id = thread_id
+                return match
+
+            update_thread_info()
             
             socketio.emit('thread_created', {
                 'match_id': match_id,
@@ -265,12 +303,16 @@ async def create_match_thread_task(self, match_id: str) -> Dict[str, Any]:
 def check_and_create_scheduled_threads(self) -> Dict[str, Any]:
     """Check for and create scheduled match threads."""
     try:
-        now = datetime.utcnow()
-        due_matches = MLSMatch.query.filter(
-            MLSMatch.thread_creation_time <= now,
-            MLSMatch.thread_created == False
-        ).all()
+        @query_operation
+        def get_due_matches():
+            now = datetime.utcnow()
+            return MLSMatch.query.filter(
+                MLSMatch.thread_creation_time <= now,
+                MLSMatch.thread_created == False
+            ).all()
 
+        due_matches = get_due_matches()
+        
         for match in due_matches:
             create_match_thread_task.delay(match.match_id)
 
@@ -290,8 +332,11 @@ def force_create_mls_thread_task(match_id: str):
     try:
         logger.info(f"Starting thread creation for match {match_id}")
         
-        # Get match from database
-        match = MLSMatch.query.filter_by(match_id=match_id).first()
+        @query_operation
+        def get_match():
+            return MLSMatch.query.filter_by(match_id=match_id).first()
+
+        match = get_match()
         if not match:
             logger.error(f"Match {match_id} not found")
             return {
@@ -308,10 +353,15 @@ def force_create_mls_thread_task(match_id: str):
 
         thread_id = asyncio.run(create_match_thread(match))
         if thread_id:
-            match.thread_created = True
-            match.discord_thread_id = thread_id
-            db.session.commit()
-            
+            @db_operation
+            def update_thread_status():
+                match = MLSMatch.query.filter_by(match_id=match_id).first()
+                if match:
+                    match.thread_created = True
+                    match.discord_thread_id = thread_id
+                return match
+
+            update_thread_status()
             logger.info(f"Created thread {thread_id} for match {match_id}")
             
             return {
@@ -338,19 +388,23 @@ def force_create_mls_thread_task(match_id: str):
 def schedule_mls_thread_task(self, match_id: int, hours_before: int = 24) -> Dict[str, Any]:
     """Schedule creation of Discord thread for MLS match."""
     try:
-        match = MLSMatch.query.get(match_id)
-        if not match:
+        @db_operation
+        def update_thread_creation_time():
+            match = MLSMatch.query.get(match_id)
+            if match:
+                match.thread_creation_time = match.date_time - timedelta(hours=hours_before)
+            return match
+
+        updated_match = update_thread_creation_time()
+        if not updated_match:
             return {
                 'success': False,
                 'message': f'Match {match_id} not found'
             }
 
-        match.thread_creation_time = match.date_time - timedelta(hours=hours_before)
-        db.session.commit()
-
         return {
             'success': True,
-            'message': f'Match thread for {match.opponent} scheduled for {match.thread_creation_time}'
+            'message': f'Match thread for {updated_match.opponent} scheduled for {updated_match.thread_creation_time}'
         }
 
     except Exception as e:
@@ -362,10 +416,14 @@ def schedule_mls_thread_task(self, match_id: int, hours_before: int = 24) -> Dic
 def schedule_all_mls_threads_task(self, default_hours_before: int = 24) -> Dict[str, Any]:
     """Schedule thread creation for all unscheduled MLS matches."""
     try:
-        matches = MLSMatch.query.filter(
-            MLSMatch.thread_created == False,
-            MLSMatch.thread_creation_time.is_(None)
-        ).all()
+        @query_operation
+        def get_unscheduled_matches():
+            return MLSMatch.query.filter(
+                MLSMatch.thread_created == False,
+                MLSMatch.thread_creation_time.is_(None)
+            ).all()
+
+        matches = get_unscheduled_matches()
         
         for match in matches:
             schedule_mls_thread_task.delay(match.id, default_hours_before)
@@ -383,11 +441,16 @@ def schedule_all_mls_threads_task(self, default_hours_before: int = 24) -> Dict[
 async def end_match_reporting(match_id: str) -> None:
     """End match reporting and cleanup."""
     try:
-        match = MLSMatch.query.filter_by(match_id=match_id).first()
-        if match:
-            match.live_reporting_status = 'completed'
-            match.live_reporting_started = False
-            db.session.commit()
+        @db_operation
+        def update_match_end_status():
+            match = MLSMatch.query.filter_by(match_id=match_id).first()
+            if match:
+                match.live_reporting_status = 'completed'
+                match.live_reporting_started = False
+            return match
+
+        updated_match = update_match_end_status()
+        if updated_match:
             logger.info(f"Live reporting ended for match {match_id}")
     except Exception as e:
         logger.error(f"Error ending match reporting: {str(e)}")
@@ -398,22 +461,22 @@ def check_upcoming_matches(self) -> Dict[str, Any]:
     try:
         from flask import current_app
         
-        # Get Redis client from app context
         redis_client = current_app.extensions.get('redis')
         if not redis_client:
             redis_client = current_app.config['SESSION_REDIS']
         
-        # Get matches in the next 48 hours that aren't scheduled
-        future_time = datetime.utcnow() + timedelta(hours=48)
-        matches = MLSMatch.query.filter(
-            MLSMatch.date_time <= future_time,
-            MLSMatch.date_time >= datetime.utcnow(),
-            MLSMatch.live_reporting_scheduled.is_(False)
-        ).all()
-        
+        @query_operation
+        def get_future_matches():
+            future_time = datetime.utcnow() + timedelta(hours=48)
+            return MLSMatch.query.filter(
+                MLSMatch.date_time <= future_time,
+                MLSMatch.date_time >= datetime.utcnow(),
+                MLSMatch.live_reporting_scheduled.is_(False)
+            ).all()
+
+        matches = get_future_matches()
         scheduler = MatchScheduler(redis_client)
         
-        # First check existing scheduled tasks
         monitoring_status = scheduler.monitor_scheduled_tasks()
         if not monitoring_status['success']:
             logger.error(f"Failed to monitor tasks: {monitoring_status.get('message')}")
@@ -424,7 +487,6 @@ def check_upcoming_matches(self) -> Dict[str, Any]:
         
         scheduled_count = 0
         for match in matches:
-            # Check if match already has tasks scheduled
             match_tasks = scheduled_tasks.get(str(match.id), {})
             if 'thread' not in match_tasks and 'reporting' not in match_tasks:
                 logger.info(f"Scheduling new tasks for match {match.id}")
@@ -452,8 +514,11 @@ def check_upcoming_matches(self) -> Dict[str, Any]:
         }
 
 @celery_task(name='app.tasks.tasks_live_reporting.check_redis_connection', queue='live_reporting')
-def check_redis_connection(self):
+def check_redis_connection(self) -> Dict[str, Any]:
+    """Check Redis connection status."""
     try:
+        from flask import current_app
+
         redis_client = current_app.extensions.get('redis')
         if not redis_client:
             redis_client = current_app.config['SESSION_REDIS']
@@ -472,17 +537,36 @@ def check_redis_connection(self):
             'test_value': test_value.decode('utf-8') if test_value else None
         }
     except Exception as e:
+        logger.error(f"Redis connection check failed: {str(e)}", exc_info=True)
         return {
             'success': False,
             'message': f'Redis connection failed: {str(e)}'
         }
 
 @celery_task(name='app.tasks.tasks_live_reporting.verify_scheduled_tasks', queue='live_reporting')
-def verify_scheduled_tasks(self, match_id: str):
+def verify_scheduled_tasks(self, match_id: str) -> Dict[str, Any]:
+    """Verify scheduled tasks for a specific match."""
     try:
-        match = MLSMatch.query.get(match_id)
-        if not match:
+        from flask import current_app
+        
+        @query_operation
+        def get_match_details():
+            match = MLSMatch.query.get(match_id)
+            if not match:
+                return None
+            return {
+                'match': match,
+                'thread_time': match.date_time - timedelta(hours=24),
+                'reporting_time': match.date_time - timedelta(minutes=5)
+            }
+
+        match_info = get_match_details()
+        if not match_info:
             return {'success': False, 'message': 'Match not found'}
+
+        match = match_info['match']
+        thread_time = match_info['thread_time']
+        reporting_time = match_info['reporting_time']
             
         # Get Redis client
         redis_client = current_app.extensions.get('redis') or current_app.config['SESSION_REDIS']
@@ -494,10 +578,6 @@ def verify_scheduled_tasks(self, match_id: str):
         # Check reporting task
         reporting_key = f"match_scheduler:{match_id}:reporting"
         reporting_task_id = redis_client.get(reporting_key)
-        
-        # Check scheduled times
-        thread_time = match.date_time - timedelta(hours=24)
-        reporting_time = match.date_time - timedelta(minutes=5)
         
         return {
             'success': True,
@@ -517,6 +597,7 @@ def verify_scheduled_tasks(self, match_id: str):
             }
         }
     except Exception as e:
+        logger.error(f"Task verification failed: {str(e)}", exc_info=True)
         return {
             'success': False,
             'message': f'Verification failed: {str(e)}'
@@ -528,20 +609,41 @@ def monitor_all_matches(self) -> Dict[str, Any]:
     """Monitor and verify all scheduled match tasks."""
     try:
         from app.utils.task_monitor import task_monitor
-        result = task_monitor.monitor_all_matches()
         
+        @query_operation
+        def get_active_matches():
+            return MLSMatch.query.filter(
+                MLSMatch.live_reporting_scheduled == True,
+                MLSMatch.live_reporting_status.in_(['scheduled', 'running'])
+            ).all()
+
+        active_matches = get_active_matches()
+        
+        result = task_monitor.monitor_all_matches()
         if not result['success']:
             logger.error(f"Task monitoring failed: {result.get('message')}")
             return result
             
-        # Log monitoring results
         logger.info(f"Monitored {result['total_matches']} matches")
-        for match_id, status in result['matches'].items():
-            if not status['success']:
-                logger.error(f"Issues found with match {match_id}: {status.get('message')}")
-            else:
-                logger.info(f"Match {match_id} tasks verified successfully")
-                
+        
+        # Update match statuses based on monitoring results
+        @db_operation
+        def update_match_statuses():
+            for match_id, status in result['matches'].items():
+                if not status['success']:
+                    logger.error(f"Issues found with match {match_id}: {status.get('message')}")
+                    match = MLSMatch.query.get(match_id)
+                    if match:
+                        match.monitoring_status = 'error'
+                        match.last_monitoring_error = status.get('message')
+                else:
+                    logger.info(f"Match {match_id} tasks verified successfully")
+                    match = MLSMatch.query.get(match_id)
+                    if match:
+                        match.monitoring_status = 'ok'
+                        match.last_monitoring_error = None
+
+        update_match_statuses()
         return result
         
     except Exception as e:
@@ -556,6 +658,9 @@ def monitor_all_matches(self) -> Dict[str, Any]:
 def verify_redis_tasks(self) -> Dict[str, Any]:
     """Verify Redis task entries and clean up stale ones."""
     try:
+        from celery.result import AsyncResult
+        from app.utils.redis_manager import RedisManager
+        
         redis_client = RedisManager().client
         
         # Get all scheduler keys
@@ -574,12 +679,28 @@ def verify_redis_tasks(self) -> Dict[str, Any]:
                 
                 if task_id:
                     task_id = task_id.decode('utf-8')
+                    match_id = key_str.split(':')[1]
+                    
+                    # Get task status
                     status = AsyncResult(task_id, app=celery).status
                     
                     if status in ['FAILURE', 'REVOKED']:
                         # Clean up failed or revoked tasks
                         redis_client.delete(key)
                         results['cleaned'] += 1
+                        
+                        # Update match status if needed
+                        @db_operation
+                        def update_match_status():
+                            match = MLSMatch.query.get(match_id)
+                            if match:
+                                if 'thread' in key_str:
+                                    match.thread_created = False
+                                elif 'reporting' in key_str:
+                                    match.live_reporting_scheduled = False
+                            return match
+
+                        update_match_status()
                     else:
                         results['valid'] += 1
                 else:
@@ -588,7 +709,9 @@ def verify_redis_tasks(self) -> Dict[str, Any]:
                     results['cleaned'] += 1
                     
             except Exception as e:
-                results['errors'].append(f"Error processing key {key_str}: {str(e)}")
+                error_msg = f"Error processing key {key_str}: {str(e)}"
+                logger.error(error_msg)
+                results['errors'].append(error_msg)
                 
         return {
             'success': True,
@@ -597,6 +720,50 @@ def verify_redis_tasks(self) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error in verify_redis_tasks: {str(e)}", exc_info=True)
+        return {
+            'success': False,
+            'message': str(e)
+        }
+
+# Error recovery task for failed matches
+@celery_task(name='app.tasks.tasks_live_reporting.recover_failed_matches',
+             queue='live_reporting')
+def recover_failed_matches(self) -> Dict[str, Any]:
+    """Attempt to recover matches that failed during live reporting."""
+    try:
+        @query_operation
+        def get_failed_matches():
+            return MLSMatch.query.filter(
+                MLSMatch.live_reporting_status == 'failed'
+            ).all()
+
+        failed_matches = get_failed_matches()
+        recovered_count = 0
+
+        for match in failed_matches:
+            @db_operation
+            def reset_match_status():
+                match_update = MLSMatch.query.get(match.id)
+                if match_update:
+                    match_update.live_reporting_status = 'not_started'
+                    match_update.live_reporting_started = False
+                    match_update.live_reporting_scheduled = False
+                return match_update
+
+            reset_match = reset_match_status()
+            if reset_match:
+                # Attempt to reschedule the match
+                schedule_live_reporting.delay(reset_match.match_id)
+                recovered_count += 1
+
+        return {
+            'success': True,
+            'message': f'Recovered {recovered_count} failed matches',
+            'recovered_count': recovered_count
+        }
+
+    except Exception as e:
+        logger.error(f"Error recovering failed matches: {str(e)}", exc_info=True)
         return {
             'success': False,
             'message': str(e)
