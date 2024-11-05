@@ -23,7 +23,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379/0  # Add explicit Redis URL
+      - REDIS_URL=redis://redis:6379/0 
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_data:/tmp/celery
@@ -43,6 +43,30 @@ services:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
     command: python celery_live_reporting_worker.py
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - celery_live_data:/tmp/celery_live
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - web
+      
+  celery-discord-worker:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    command: python celery_discord_worker.py
     env_file:
       - .env
     environment:
