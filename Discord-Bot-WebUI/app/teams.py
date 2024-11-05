@@ -28,20 +28,32 @@ def team_details(team_id):
     players = Player.query.filter_by(team_id=team_id).all()
     report_form = ReportMatchForm()
 
-    # Fetch all matches for detailed schedule
+    # Fetch all matches for detailed schedule with eager loading
     all_matches = Match.query.options(
-        selectinload(Match.home_team),
-        selectinload(Match.away_team)
+        selectinload(Match.home_team).joinedload(Team.players),
+        selectinload(Match.away_team).joinedload(Team.players)
     ).filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
         (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
     ).order_by(Match.date.asc()).all()
 
-    # Group the schedule by date
+    # Group the schedule by date and prepare player choices
     schedule = defaultdict(list)
+    player_choices = {}  # Dictionary to store player choices for each match
+
     for match in all_matches:
         home_team_name = match.home_team.name
         away_team_name = match.away_team.name
+
+        # Get all players from both teams
+        home_team_players = {p.id: p.name for p in match.home_team.players}
+        away_team_players = {p.id: p.name for p in match.away_team.players}
+
+        # Store player choices for this match
+        player_choices[match.id] = {
+            home_team_name: home_team_players,
+            away_team_name: away_team_players
+        }
 
         if match.home_team_id == team_id:
             your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
@@ -96,9 +108,6 @@ def team_details(team_id):
         if not next_match_date:
             next_match_date = match_dates[-1]
 
-    # Define player_choices
-    player_choices = [{'id': player.id, 'name': player.name} for player in players]
-
     return render_template(
         'team_details.html',
         report_form=report_form,
@@ -109,7 +118,7 @@ def team_details(team_id):
         schedule=schedule,
         current_user=current_user,
         next_match_date=next_match_date,
-        player_choices=player_choices  # Pass it to the template
+        player_choices=player_choices
     )
 
 @teams_bp.route('/')
