@@ -102,7 +102,7 @@ def handle_add_match(season_id, league_name, week):
     except Exception as e:
         logger.error(f"Error adding match: {e}")
         flash('Error occurred while adding the match.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
 # Helper function to handle week deletion
 @db_operation
@@ -113,12 +113,12 @@ def handle_delete_week(season_id, week):
     except Exception as e:
         logger.error(f"Error deleting week {week}: {e}")
         flash(f'Failed to delete Week {week}.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
-# Manage Pub League Schedule
 @schedule_bp.route('/publeague/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def manage_publeague_schedule(season_id):
     season = Season.query.get_or_404(season_id)
     leagues = League.query.filter_by(season_id=season_id).all()
@@ -162,10 +162,10 @@ def manage_publeague_schedule(season_id):
 
     return render_template('manage_publeague_schedule.html', season=season, leagues=serialized_leagues, schedule=schedule_data)
 
-# Manage ECS FC Schedule
 @schedule_bp.route('/ecsfc/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def manage_ecsfc_schedule(season_id):
     season = Season.query.get_or_404(season_id)
     leagues = League.query.filter_by(season_id=season_id).all()
@@ -247,7 +247,7 @@ def bulk_create_publeague_matches(season_id, league_name):
     except Exception as e:
         logger.error(f"Error creating bulk matches: {e}")
         flash('Error occurred while creating bulk matches.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
     return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
 # Bulk Create Matches (ECS FC)
@@ -307,10 +307,9 @@ def bulk_create_ecsfc_matches(season_id, league_name):
     except Exception as e:
         logger.error(f"Error creating bulk matches: {e}")
         flash('Error occurred while creating bulk matches.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
     return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
-# Edit Match
 @schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
 @login_required
 @db_operation
@@ -359,7 +358,6 @@ def edit_match(match_id):
     except Exception as e:
         logger.error(f"Error updating match: {e}")
         return jsonify({'error': 'Failed to update match'}), 400
-        raise  # Reraise exception for decorator to handle rollback
 
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
 @login_required
@@ -388,7 +386,7 @@ def delete_match(match_id):
     except Exception as e:
         logger.error(f"Error deleting match: {e}")
         flash('Failed to delete the match.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
     return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
@@ -403,7 +401,7 @@ def delete_week(league_type, season_id, week_number):
     except Exception as e:
         logger.error(f"Error deleting week {week_number}: {e}")
         flash(f'Failed to delete Week {week_number}.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
     if league_type == "publeague":
         return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))

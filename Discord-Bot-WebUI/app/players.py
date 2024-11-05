@@ -1,19 +1,22 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
 from app.models import Player, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
-from app.decorators import role_required, admin_or_owner_required
+from app.decorators import role_required, admin_or_owner_required, db_operation, query_operation, session_context
 from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
-from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, SubmitForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices, pronoun_choices, willing_to_referee_choices
-from werkzeug.security import generate_password_hash
+from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, or_, and_
 from PIL import Image
 import logging
 
-
+from app.players_helpers import (
+    save_cropped_profile_picture,
+    create_user_for_player,
+    extract_player_info,
+)
 from app.player_management_helpers import (
     create_player_profile,
     reset_current_players,
@@ -35,8 +38,6 @@ from app.profile_helpers import (
     handle_add_stat_manually
 )
 
-
-
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ players_bp = Blueprint('players', __name__)
 @players_bp.route('/', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@query_operation
 def view_players():
     search_term = request.args.get('search', '').strip()
     page = request.args.get('page', 1, type=int)
@@ -61,8 +63,6 @@ def view_players():
         ))
 
     players = base_query.paginate(page=page, per_page=per_page, error_out=False)
-
-    # Fetch leagues and jersey sizes
     leagues = League.query.all()
     jersey_sizes = sorted(set(size[0] for size in db.session.query(Player.jersey_size).distinct().all() if size[0]))
 
@@ -77,6 +77,7 @@ def view_players():
 @players_bp.route('/update', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def update_players():
     try:
         # Step 1: Fetch current seasons
@@ -92,9 +93,9 @@ def update_players():
             max_pages=10
         )
 
-        detected_players = set()  # Track all detected player IDs
+        detected_players = set()
 
-        # Step 3: Reset current players (mark all as inactive initially)
+        # Step 3: Reset current players
         reset_current_players(current_seasons)
 
         # Step 4: Process each order individually
@@ -139,7 +140,6 @@ def update_players():
                 db.session.add(player)
 
             except IntegrityError as ie:
-                db.session.rollback()
                 logger.warning(f"Duplicate player-league association for player '{player_info['name']}' and league '{league.name}'. Skipping.")
                 continue
 
@@ -161,15 +161,10 @@ def update_players():
                 player.is_current_player = False
                 logger.info(f"Marked player '{player.name}' as NOT CURRENT_PLAYER (inactive).")
 
-        # Step 6: Commit all changes
-        db.session.commit()
-        logger.info("All players have been updated successfully.")
-
     except Exception as e:
-        db.session.rollback()
         logger.error(f"An error occurred while updating players: {e}", exc_info=True)
         flash(f"An error occurred: {str(e)}", "danger")
-        return redirect(url_for('players.view_players'))
+        raise  # Let the decorator handle the rollback
 
     flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
@@ -177,6 +172,7 @@ def update_players():
 @players_bp.route('/create_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def create_player():
     form = CreatePlayerForm()
     # Manually populate form data since we're not using Flask-WTF in the modal
@@ -212,13 +208,10 @@ def create_player():
             # Create or update player profile using composite matching
             player = create_player_profile(player_data, league, user)
 
-            db.session.commit()
-
             flash('Player created or updated successfully.', 'success')
             return redirect(url_for('players.view_players'))
 
         except SQLAlchemyError as e:
-            db.session.rollback()
             current_app.logger.error(f"Error creating or updating player: {str(e)}")
             flash('An error occurred while creating or updating the player. Please try again.', 'danger')
 
@@ -230,6 +223,7 @@ def create_player():
 
 @players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])
 @login_required
+@query_operation
 def player_profile(player_id):
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {current_user.id}")
     
@@ -264,18 +258,17 @@ def player_profile(player_id):
     logger.debug(f"Fetched classic league: {classic_league}")
     
     season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season.id).first()
+    # Create season stats if they don't exist
     if not season_stats:
-        logger.debug(f"No season stats found for player {player_id} in season {season.id}. Creating new entry.")
-        season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
-        db.session.add(season_stats)
-        db.session.commit()
+        with session_context() as session:
+            season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
+            session.add(season_stats)
     
     if not player.career_stats:
-        logger.debug(f"No career stats found for player {player.id}. Creating new entry.")
-        new_career_stats = PlayerCareerStats(player_id=player.id)
-        player.career_stats.append(new_career_stats)
-        db.session.add(new_career_stats)
-        db.session.commit()
+        with session_context() as session:
+            new_career_stats = PlayerCareerStats(player_id=player.id)
+            player.career_stats.append(new_career_stats)
+            session.add(new_career_stats)
     
     is_classic_league_player = player.league_id == classic_league.id
     is_player = player.user_id == current_user.id
@@ -364,15 +357,14 @@ def player_profile(player_id):
 
 @players_bp.route('/add_stat_manually/<int:player_id>', methods=['POST'])
 @login_required
+@db_operation
 def add_stat_manually(player_id):
     player = Player.query.get_or_404(player_id)
     
-    # Ensure the user is an admin
     if not current_user.has_role('Pub League Admin') and not current_user.has_role('Global Admin'):
         flash('You do not have permission to perform this action.', 'danger')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
-    # Collect stat data from the form
     try:
         new_stat_data = {
             'match_id': request.form.get('match_id'),
@@ -382,19 +374,17 @@ def add_stat_manually(player_id):
             'red_cards': int(request.form.get('red_cards', 0)),
         }
 
-        # Add stats manually to the player
         player.add_stat_manually(new_stat_data, user_id=current_user.id)
-
         flash('Stat added successfully.', 'success')
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        flash('An error occurred while adding stats. Please try again.', 'danger')
-        current_app.logger.error(f"Error adding stats for player {player_id}: {str(e)}")
-
+    except ValueError as e:
+        flash('Invalid input values provided.', 'danger')
+        raise
+    
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/api/player_profile/<int:player_id>', methods=['GET'])
 @login_required
+@query_operation
 def api_player_profile(player_id):
     player = Player.query.get_or_404(player_id)
     current_season_name, current_year = get_current_season_and_year()
@@ -435,32 +425,28 @@ def get_needs_review_count():
 @players_bp.route('/admin/review', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def admin_review():
-    # Fetch the players needing manual review
     players_needing_review = Player.query.filter_by(needs_manual_review=True).all()
-    
-    # Explicitly join User and Role tables using user_roles association table
     admins = User.query.join(user_roles).join(Role).filter(Role.name.in_(['Pub League Admin', 'Global Admin'])).all()
     
-    # Generate a notification for each admin
     for admin in admins:
         notification = Notification(
             user_id=admin.id,
             content=f"{len(players_needing_review)} player(s) need manual review.",
             notification_type='warning',
-            icon='ti-alert-triangle'  # Explicitly set the icon here
+            icon='ti-alert-triangle'
         )
         db.session.add(notification)
-    db.session.commit()
 
     return render_template('admin_review.html', players=players_needing_review)
 
 @players_bp.route('/create-profile', methods=['POST'])
 @login_required
+@db_operation
 def create_profile():
     form = PlayerProfileForm()
     if form.validate_on_submit():
-        # Handle profile creation logic
         player = Player(
             user_id=current_user.id,
             name=form.name.data,
@@ -483,11 +469,9 @@ def create_profile():
             league_id=form.league_id.data
         )
         db.session.add(player)
-        db.session.commit()
         flash('Player profile created successfully!', 'success')
         return redirect(url_for('main.index'))
 
-    # If the form doesn't validate, flash an error and redirect back to the index.
     flash('Error creating player profile. Please check your inputs.', 'danger')
     return redirect(url_for('main.index'))
 
@@ -497,7 +481,7 @@ def edit_match_stat(stat_id):
     match_stat = PlayerEvent.query.get_or_404(stat_id)
 
     if request.method == 'GET':
-        # Return stat data for the edit modal (AJAX response)
+        # Read-only operation, no need for transaction management
         return jsonify({
             'goals': match_stat.goals,
             'assists': match_stat.assists,
@@ -506,49 +490,48 @@ def edit_match_stat(stat_id):
         })
 
     if request.method == 'POST':
-        try:
-            match_stat.goals = request.form.get('goals', 0)  # Default to 0 if not provided
-            match_stat.assists = request.form.get('assists', 0)
-            match_stat.yellow_cards = request.form.get('yellow_cards', 0)
-            match_stat.red_cards = request.form.get('red_cards', 0)
-            db.session.commit()
-            return jsonify({'success': True})
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
-            return jsonify({'success': False}), 500
+        with session_context() as session:
+            try:
+                match_stat.goals = request.form.get('goals', 0)
+                match_stat.assists = request.form.get('assists', 0)
+                match_stat.yellow_cards = request.form.get('yellow_cards', 0)
+                match_stat.red_cards = request.form.get('red_cards', 0)
+                return jsonify({'success': True})
+            except (SQLAlchemyError, ValueError) as e:
+                current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
+                return jsonify({'success': False}), 500
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', methods=['POST'])
 @login_required
+@db_operation
 def remove_match_stat(stat_id):
-    match_stat = PlayerEvent.query.get_or_404(stat_id)
-    
     try:
-        # Capture the player ID and event type before deleting the event
+        match_stat = PlayerEvent.query.get_or_404(stat_id)
+        
+        # Capture info before deletion
         player_id = match_stat.player_id
         event_type = match_stat.event_type
 
-        # Log which stat is being removed
         current_app.logger.info(f"Removing stat for Player ID: {player_id}, Event Type: {event_type}, Stat ID: {stat_id}")
 
-        # Decrement the player's stats before removing the event
+        # Decrement stats and remove the event
         decrement_player_stats(player_id, event_type)
-
-        # Now, delete the match stat itself
         db.session.delete(match_stat)
-        db.session.commit()
 
         current_app.logger.info(f"Successfully removed stat for Player ID: {player_id}, Stat ID: {stat_id}")
         return jsonify({'success': True})
     
     except SQLAlchemyError as e:
-        db.session.rollback()
         current_app.logger.error(f"Error deleting match stat {stat_id}: {str(e)}")
+        raise  # Let the decorator handle the rollback
+    except Exception as e:
+        current_app.logger.error(f"Unexpected error deleting match stat {stat_id}: {str(e)}")
         return jsonify({'success': False}), 500
 
 @players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
 @login_required
 @admin_or_owner_required
+@db_operation
 def upload_profile_picture(player_id):
     player = Player.query.get_or_404(player_id)
 
@@ -560,58 +543,52 @@ def upload_profile_picture(player_id):
     try:
         image_url = save_cropped_profile_picture(cropped_image_data, player_id)
         player.profile_picture_url = image_url
-        db.session.commit()
         flash('Profile picture updated successfully!', 'success')
     except Exception as e:
-        db.session.rollback()
         flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
+        raise  # Let the decorator handle the rollback
 
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/delete_player/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def delete_player(player_id):
     try:
         player = Player.query.get_or_404(player_id)
         user = player.user
 
-        # Delete the player
         db.session.delete(player)
-
-        # Delete the user
         db.session.delete(user)
-
-        db.session.commit()
 
         flash('Player and user account deleted successfully.', 'success')
         return redirect(url_for('players.view_players'))
 
     except SQLAlchemyError as e:
-        db.session.rollback()
         current_app.logger.error(f"Error deleting player {player_id}: {str(e)}")
         flash('An error occurred while deleting the player. Please try again.', 'danger')
-        return redirect(url_for('players.view_players'))
+        raise  # Let the decorator handle the rollback
 
 @players_bp.route('/edit_player/<int:player_id>', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def edit_player(player_id):
     player = Player.query.get_or_404(player_id)
     form = EditPlayerForm(obj=player)
 
+    if request.method == 'GET':
+        return render_template('edit_player.html', form=form, player=player)
+
     if form.validate_on_submit():
         try:
-            # Update player fields
             form.populate_obj(player)
-            db.session.commit()
-
             flash('Player updated successfully.', 'success')
             return redirect(url_for('players.view_players'))
-
         except SQLAlchemyError as e:
-            db.session.rollback()
             current_app.logger.error(f"Error updating player {player_id}: {str(e)}")
             flash('An error occurred while updating the player. Please try again.', 'danger')
+            raise
 
     return render_template('edit_player.html', form=form, player=player)

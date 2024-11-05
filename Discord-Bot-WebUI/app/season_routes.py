@@ -13,6 +13,7 @@ season_bp = Blueprint('season', __name__)
 @season_bp.route('/', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+@db_operation
 def manage_seasons():
     pub_league_seasons = Season.query.filter_by(league_type='Pub League').all()
     ecs_fc_seasons = Season.query.filter_by(league_type='ECS FC').all()
@@ -28,6 +29,7 @@ def manage_seasons():
             except Exception as e:
                 logger.error(f"Error creating Pub League season: {e}")
                 flash('Error occurred while creating Pub League season.', 'danger')
+                raise
 
         elif ecs_fc_season_name:
             try:
@@ -36,6 +38,7 @@ def manage_seasons():
             except Exception as e:
                 logger.error(f"Error creating ECS FC season: {e}")
                 flash('Error occurred while creating ECS FC season.', 'danger')
+                raise
 
         else:
             flash('Season name cannot be empty.', 'danger')
@@ -94,7 +97,7 @@ def set_current_season(season_id):
     except Exception as e:
         logger.error(f"Error setting current season: {e}")
         flash('Failed to set the current season.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
     return redirect(url_for('season.manage_seasons'))
 
@@ -118,6 +121,6 @@ def delete_season(season_id):
     except Exception as e:
         logger.error(f"Error deleting season: {e}")
         flash('Failed to delete the season.', 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
     return redirect(url_for('season.manage_seasons'))
