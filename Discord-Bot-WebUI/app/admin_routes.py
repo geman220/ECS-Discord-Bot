@@ -36,7 +36,8 @@ from app.tasks.tasks_live_reporting import (
     start_live_reporting,
     process_match_update,
     schedule_live_reporting,
-    force_create_mls_thread_task
+    force_create_mls_thread_task,
+    schedule_mls_thread_task
 )
 from app.email import send_email
 from datetime import datetime, timedelta
@@ -50,6 +51,7 @@ admin_bp = Blueprint('admin', __name__)
 @admin_bp.route('/admin/dashboard', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def admin_dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
@@ -216,6 +218,7 @@ def reorder_announcements():
 @admin_bp.route('/admin/schedule_season', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def schedule_season():
     task = schedule_season_availability.delay()
     flash('Season scheduling task has been initiated.', 'success')
@@ -289,36 +292,36 @@ def view_feedback(feedback_id):
     note_form = NoteForm()
 
     if request.method == 'POST':
-        if 'update_feedback' in request.form and form.validate():
-            form.populate_obj(feedback)
-            flash('Feedback has been updated successfully.', 'success')
+        try:
+            if 'update_feedback' in request.form and form.validate():
+                form.populate_obj(feedback)
+                flash('Feedback has been updated successfully.', 'success')
 
-        elif 'submit_reply' in request.form and reply_form.validate():
-            reply = FeedbackReply(
-                feedback_id=feedback.id,
-                user_id=current_user.id,
-                content=reply_form.content.data,
-                is_admin_reply=True
-            )
-            db.session.add(reply)
-            
-            if feedback.user:
-                send_email(
-                    to=feedback.user.email,
-                    subject=f"New admin reply to your Feedback #{feedback.id}",
-                    body=render_template('emails/new_reply_admin.html', 
-                                      feedback=feedback, reply=reply)
+            elif 'submit_reply' in request.form and reply_form.validate():
+                reply = FeedbackReply(
+                    feedback_id=feedback.id,
+                    user_id=current_user.id,
+                    content=reply_form.content.data,
+                    is_admin_reply=True
                 )
-            flash('Your reply has been added successfully.', 'success')
+                db.session.add(reply)
+                
+                if feedback.user:
+                    send_email(...)
+                flash('Your reply has been added successfully.', 'success')
 
-        elif 'add_note' in request.form and note_form.validate():
-            note = Note(
-                content=note_form.content.data,
-                feedback_id=feedback.id,
-                author_id=current_user.id
-            )
-            db.session.add(note)
-            flash('Note added successfully.', 'success')
+            elif 'add_note' in request.form and note_form.validate():
+                note = Note(
+                    content=note_form.content.data,
+                    feedback_id=feedback.id,
+                    author_id=current_user.id
+                )
+                db.session.add(note)
+                flash('Note added successfully.', 'success')
+        except Exception as e:
+            logger.error(f"Error handling feedback: {str(e)}")
+            flash('An error occurred while processing your request.', 'danger')
+            raise
 
     return render_template('admin_report_detail.html',
                          feedback=feedback,
@@ -381,7 +384,6 @@ def check_role_status(task_id):
 def discord_role_status():
     """Get Discord role status for all players with Discord IDs."""
     try:
-        # Get initial player data with eager loading
         players = Player.query.filter(
             Player.discord_id.isnot(None)
         ).options(
@@ -473,13 +475,10 @@ def update_player_roles_route(player_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def mass_update_discord_roles():
-    """Trigger mass update of Discord roles."""
     try:
-        # Mark all players with Discord IDs for update
         Player.query.filter(Player.discord_id.isnot(None))\
             .update({Player.discord_needs_update: True}, synchronize_session=False)
         
-        # Queue the mass update task
         result = process_discord_role_updates.delay()
         
         return jsonify({
@@ -490,10 +489,7 @@ def mass_update_discord_roles():
         
     except Exception as e:
         logger.error(f"Error initiating mass role update: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raise
 
 # MLS Match Management Routes
 @admin_bp.route('/admin/mls_matches')
@@ -517,29 +513,6 @@ def schedule_mls_match_thread_route(match_id):
         'task_id': task.id,
         'message': 'Thread scheduling task started'
     })
-
-#@admin_bp.route('/admin/force_create_mls_thread/<int:match_id>', methods=['POST'])
-#@login_required
-#@role_required('Global Admin')
-#def force_create_mls_thread_route(match_id):
-#    """Force immediate creation of Discord thread for MLS match."""
-#    try:
-#        # Start the task asynchronously
-#        task = force_create_mls_thread_task.delay(match_id)
-#        
-#        # Return immediately with the task ID
-#        return jsonify({
-#            'success': True,
-#            'task_id': task.id,
-#            'message': 'Thread creation task started successfully'
-#        })
-#        
-#    except Exception as e:
-#        logger.error(f"Error initiating thread creation: {str(e)}")
-#        return jsonify({
-#            'success': False,
-#            'error': str(e)
-#        }), 500
 
 @admin_bp.route('/admin/check_thread_status/<task_id>', methods=['GET'])
 @login_required

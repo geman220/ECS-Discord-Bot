@@ -419,6 +419,7 @@ class Player(db.Model):
         season_stat = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
         return getattr(season_stat, stat, 0) if season_stat else 0
 
+    # Shorthand methods that use query_operation through get_season_stat
     def season_goals(self, season_id):
         return self.get_season_stat(season_id, 'goals')
 
@@ -437,23 +438,28 @@ class Player(db.Model):
             logging.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
             return
 
-        season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
-        if not season_stats:
-            season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
-            db.session.add(season_stats)
+        try:
+            season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
+            if not season_stats:
+                season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
+                db.session.add(season_stats)
 
-        for stat, increment in stats_changes.items():
-            if hasattr(season_stats, stat):
-                current_value = getattr(season_stats, stat)
-                setattr(season_stats, stat, current_value + increment)
-                logging.debug(
-                    f"Updated {stat} for Player ID {self.id} in Season ID {season_id}: "
-                    f"{current_value} + {increment} = {current_value + increment}"
-                )
-                self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id, season_id)
+            for stat, increment in stats_changes.items():
+                if hasattr(season_stats, stat):
+                    current_value = getattr(season_stats, stat)
+                    setattr(season_stats, stat, current_value + increment)
+                    logging.debug(
+                        f"Updated {stat} for Player ID {self.id} in Season ID {season_id}: "
+                        f"{current_value} + {increment} = {current_value + increment}"
+                    )
+                    self.log_stat_change(stat, current_value, current_value + increment, 
+                                       StatChangeType.EDIT.value, user_id, season_id)
 
-        self.update_career_stats(stats_changes, user_id)
-        logging.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
+            self.update_career_stats(stats_changes, user_id)
+            logging.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
+        except Exception as e:
+            logging.error(f"Error updating season stats: {str(e)}")
+            raise
 
     @db_operation
     def update_career_stats(self, stats_changes, user_id):
@@ -461,22 +467,28 @@ class Player(db.Model):
             logging.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
             return
 
-        if not self.career_stats:
-            self.career_stats = PlayerCareerStats(player_id=self.id)
-            db.session.add(self.career_stats)
-            db.session.flush()  # Ensure ID is generated if needed
+        try:
+            if not self.career_stats:
+                new_career_stats = PlayerCareerStats(player_id=self.id)
+                db.session.add(new_career_stats)
+                self.career_stats = [new_career_stats]
+                db.session.flush()
 
-        for stat, increment in stats_changes.items():
-            if hasattr(self.career_stats, stat):
-                current_value = getattr(self.career_stats, stat)
-                setattr(self.career_stats, stat, current_value + increment)
-                logging.debug(
-                    f"Updated {stat} for Player ID {self.id} in Career Stats: "
-                    f"{current_value} + {increment} = {current_value + increment}"
-                )
-                self.log_stat_change(stat, current_value, current_value + increment, StatChangeType.EDIT.value, user_id)
-
-        logging.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
+            for stat, increment in stats_changes.items():
+                if hasattr(self.career_stats[0], stat):
+                    current_value = getattr(self.career_stats[0], stat)
+                    setattr(self.career_stats[0], stat, current_value + increment)
+                    logging.debug(
+                        f"Updated {stat} for Player ID {self.id} in Career Stats: "
+                        f"{current_value} + {increment} = {current_value + increment}"
+                    )
+                    self.log_stat_change(stat, current_value, current_value + increment, 
+                                       StatChangeType.EDIT.value, user_id)
+            
+            logging.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
+        except Exception as e:
+            logging.error(f"Error updating career stats: {str(e)}")
+            raise
 
     @db_operation
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
@@ -495,15 +507,15 @@ class Player(db.Model):
                 season_id=season_id
             )
             db.session.add(log_entry)
-            db.session.commit()
             logging.info(
-                f"Logged stat change for Player ID {self.id}: {stat} {change_type} from {old_value} to {new_value} by User ID {user_id}."
+                f"Logged stat change for Player ID {self.id}: {stat} {change_type} "
+                f"from {old_value} to {new_value} by User ID {user_id}."
             )
         except Exception as e:
-            db.session.rollback()
             logging.error(f"Error logging stat change for Player ID {self.id}: {str(e)}")
+            raise
 
-
+    # Read-only methods with query_operation
     @query_operation
     def get_career_goals(self):
         if self.career_stats:
@@ -546,7 +558,7 @@ class Schedule(db.Model):
     opponent = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     location = db.Column(db.String(100), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
-    season_id = db.Column(db.Integer, db.ForeignKey('season.id'))  # Add this line
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'))
 
     team = db.relationship('Team', foreign_keys=[team_id], back_populates='schedules', overlaps='matches')
     opponent_team = db.relationship('Team', foreign_keys=[opponent], back_populates='opponent_schedules', post_update=True)
@@ -716,7 +728,6 @@ class Standings(db.Model):
             'points': self.points,
         }
 
-# Set up an event listener to automatically update the goal difference
 event.listen(Standings, 'before_insert', Standings.update_goal_difference)
 event.listen(Standings, 'before_update', Standings.update_goal_difference)
 
@@ -724,9 +735,9 @@ class Availability(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
-    discord_id = db.Column(db.String(100), nullable=False)  # Link to Discord user
-    response = db.Column(db.String(20), nullable=False)  # yes, no, maybe
-    responded_at = db.Column(db.DateTime, default=datetime.utcnow)  # New field
+    discord_id = db.Column(db.String(100), nullable=False)
+    response = db.Column(db.String(20), nullable=False)
+    responded_at = db.Column(db.DateTime, default=datetime.utcnow)
     match = db.relationship('Match', back_populates='availability')
     player = db.relationship('Player', back_populates='availability')
 
@@ -747,8 +758,8 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.String(255), nullable=False)
-    notification_type = db.Column(db.String(50), nullable=False, default='system')  # 'warning', 'error', 'info', etc.
-    icon = db.Column(db.String(50), nullable=True)  # Add this column
+    notification_type = db.Column(db.String(50), nullable=False, default='system') 
+    icon = db.Column(db.String(50), nullable=True)
     read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -775,7 +786,7 @@ class Announcement(db.Model):
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    position = db.Column(db.Integer, default=0)  # This field should exist
+    position = db.Column(db.Integer, default=0)
 
 class PlayerEventType(enum.Enum):
     GOAL = 'goal'
@@ -859,10 +870,10 @@ class Feedback(db.Model):
             old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
             for ticket in old_closed_tickets:
                 db.session.delete(ticket)
-            db.session.commit()
+            logging.info(f"Successfully deleted old closed tickets older than {thirty_days_ago}")
         except Exception as e:
-            db.session.rollback()
             logging.error(f"Error deleting old closed tickets: {str(e)}")
+            raise
 
 class FeedbackReply(db.Model):
     __tablename__ = 'feedback_replies'
@@ -943,10 +954,10 @@ class Token(db.Model):
     def invalidate(self):
         try:
             self.used = True
-            db.session.commit()
+            logging.info(f"Token {self.token} for player {self.player_id} invalidated")
         except Exception as e:
-            db.session.rollback()
             logging.error(f"Error invalidating token {self.token} for player {self.player_id}: {str(e)}")
+            raise
 
 class MLSMatch(db.Model):
     __tablename__ = 'mls_matches'

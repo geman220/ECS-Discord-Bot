@@ -165,7 +165,7 @@ def login():
     return render_template('login.html', form=form)
 
 @auth.route('/verify_2fa_login', methods=['GET', 'POST'])
-@query_operation 
+@db_operation
 def verify_2fa_login():
     if 'pending_2fa_user_id' not in session:
         flash('No 2FA login pending.', 'danger')
@@ -181,15 +181,14 @@ def verify_2fa_login():
         if user.verify_totp(form.token.data):
             try:
                 user.last_login = datetime.utcnow()
-                db.session.commit()
                 login_user(user, remember=session.get('remember_me', False))
                 session.pop('pending_2fa_user_id', None)
                 session.pop('remember_me', None)
                 return redirect(url_for('main.index'))
             except Exception as e:
-                db.session.rollback()
                 logger.error(f"Error during 2FA login: {str(e)}")
                 flash('Login failed. Please try again.', 'danger')
+                raise
         else:
             flash('Invalid 2FA token.', 'danger')
 

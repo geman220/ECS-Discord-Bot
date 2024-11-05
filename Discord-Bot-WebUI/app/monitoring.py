@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, jsonify, current_app, request
 from flask_login import login_required
-from app.decorators import role_required
+from app.decorators import role_required, db_operation
 from app.utils.redis_manager import RedisManager
 from celery.result import AsyncResult
 from app.extensions import celery, db
@@ -272,6 +272,7 @@ def test_redis():
 @monitoring_bp.route('/tasks/revoke', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def revoke_task():
     """Revoke a scheduled task and clean up Redis."""
     try:
@@ -294,13 +295,12 @@ def revoke_task():
         redis_client = RedisManager().client
         redis_client.delete(key)
         
-        # Update match status if needed
+        # Update match status if needed - db_operation decorator will handle commit
         if 'thread' in key:
             match_id = key.split(':')[1]
             match = MLSMatch.query.get(match_id)
             if match:
                 match.thread_creation_time = None
-                db.session.commit()
         elif 'reporting' in key:
             match_id = key.split(':')[1]
             match = MLSMatch.query.get(match_id)
@@ -308,7 +308,6 @@ def revoke_task():
                 match.live_reporting_scheduled = False
                 match.live_reporting_started = False
                 match.live_reporting_status = 'not_started'
-                db.session.commit()
         
         return jsonify({
             'success': True,
@@ -317,14 +316,12 @@ def revoke_task():
         
     except Exception as e:
         logger.error(f"Error revoking task: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raise
 
 @monitoring_bp.route('/tasks/revoke-all', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def revoke_all_tasks():
     """Revoke all scheduled tasks and clean up Redis."""
     try:
@@ -336,6 +333,7 @@ def revoke_all_tasks():
         
         logger.info(f"Attempting to revoke {len(keys)} tasks")
         
+        # First handle Redis and Celery tasks
         for key in keys:
             try:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
@@ -346,7 +344,6 @@ def revoke_all_tasks():
                     logger.info(f"Revoking task {task_id} for key {key_str}")
                     
                     try:
-                        # Use celery.control.revoke to terminate the task
                         celery.control.revoke(task_id, terminate=True)
                         logger.info(f"Successfully revoked task {task_id}")
                     except Exception as revoke_error:
@@ -356,7 +353,6 @@ def revoke_all_tasks():
                             'error': str(revoke_error)
                         })
                     
-                    # Remove the Redis key
                     redis_client.delete(key)
                     revoked_count += 1
                     
@@ -367,25 +363,13 @@ def revoke_all_tasks():
                     'error': str(key_error)
                 })
         
-        # Reset all match statuses
-        try:
-            matches = MLSMatch.query.all()
-            for match in matches:
-                match.thread_creation_time = None
-                match.live_reporting_scheduled = False
-                match.live_reporting_started = False
-                match.live_reporting_status = 'not_started'
-            
-            db.session.commit()
-            logger.info("Successfully reset all match statuses")
-        except Exception as db_error:
-            logger.error(f"Error resetting match statuses: {str(db_error)}")
-            return jsonify({
-                'success': False,
-                'error': f'Database error: {str(db_error)}',
-                'revoked_count': revoked_count,
-                'failed_tasks': failed_tasks
-            }), 500
+        # Then handle database updates - db_operation decorator will handle commit
+        matches = MLSMatch.query.all()
+        for match in matches:
+            match.thread_creation_time = None
+            match.live_reporting_scheduled = False
+            match.live_reporting_started = False
+            match.live_reporting_status = 'not_started'
         
         response_data = {
             'success': True,
@@ -401,14 +385,12 @@ def revoke_all_tasks():
         
     except Exception as e:
         logger.error(f"Error revoking all tasks: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raise
 
 @monitoring_bp.route('/tasks/reschedule', methods=['POST'])
 @login_required
 @role_required('Global Admin')
+@db_operation
 def reschedule_task():
     """Reschedule a task with a new ETA."""
     try:
@@ -437,13 +419,12 @@ def reschedule_task():
             }), 404
             
         # Revoke existing task
-        revoke(task_id, terminate=True)
+        celery.control.revoke(task_id, terminate=True)
         redis_client = RedisManager().client
         redis_client.delete(key)
         
         # Schedule new task
         if is_thread:
-            # Schedule thread creation
             thread_time = match.date_time - timedelta(hours=24)
             new_task = force_create_mls_thread_task.apply_async(
                 args=[match_id],
@@ -456,7 +437,6 @@ def reschedule_task():
                 new_task.id
             )
         else:
-            # Schedule live reporting
             reporting_time = match.date_time - timedelta(minutes=5)
             new_task = start_live_reporting.apply_async(
                 args=[str(match_id)],
@@ -469,8 +449,6 @@ def reschedule_task():
                 new_task.id
             )
         
-        db.session.commit()
-        
         return jsonify({
             'success': True,
             'message': f'Task rescheduled successfully. New task ID: {new_task.id}',
@@ -479,7 +457,4 @@ def reschedule_task():
         
     except Exception as e:
         logger.error(f"Error rescheduling task: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        raise

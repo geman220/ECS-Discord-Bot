@@ -299,17 +299,6 @@ def notify_availability_update(match_id: int, player_id: int,
 @db_operation
 def update_player_match_availability(match_id: int, player_id: int, 
                                    new_response: str) -> bool:
-    """
-    Update a player's match availability and handle notifications.
-    
-    Args:
-        match_id: Match ID
-        player_id: Player ID 
-        new_response: New availability response
-        
-    Returns:
-        bool: Success status
-    """
     try:
         player = Player.query.get(player_id)
         if not player:
@@ -328,8 +317,9 @@ def update_player_match_availability(match_id: int, player_id: int,
 
     except Exception as e:
         logger.error(f"Error updating availability: {str(e)}")
-        return False
+        raise
 
+@query_operation
 def get_team_upcoming_matches(team_id: int) -> List[Dict]:
     """Get upcoming matches for a team."""
     upcoming_matches = Match.query.filter(

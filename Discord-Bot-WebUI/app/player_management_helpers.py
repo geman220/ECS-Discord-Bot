@@ -12,6 +12,14 @@ import secrets
 import string
 import logging
 
+from app.players_helpers import (
+    generate_random_password,
+    generate_unique_username,
+    standardize_name,
+    standardize_phone,
+    match_player,
+)
+
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 

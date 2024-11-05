@@ -18,12 +18,12 @@ def get_admin_emails():
     return []
 
 @feedback_bp.route('/submit_feedback', methods=['GET', 'POST'])
+@db_operation
 def submit_feedback():
     form = FeedbackForm()
     page = request.args.get('page', 1, type=int)
     per_page = 10
     search_query = request.args.get('q', '', type=str).strip()
-
     if current_user.is_authenticated:
         feedback_query = Feedback.query.filter_by(user_id=current_user.id)
     else:
@@ -37,7 +37,6 @@ def submit_feedback():
     
     feedback_query = feedback_query.order_by(Feedback.created_at.desc())
     user_feedbacks = feedback_query.paginate(page=page, per_page=per_page, error_out=False)
-
     total_count = user_feedbacks.total
 
     if form.validate_on_submit():
@@ -55,11 +54,8 @@ def submit_feedback():
             title=form.title.data,
             description=form.description.data
         )
-
         try:
             db.session.add(new_feedback)
-            db.session.commit()
-
             admin_emails = get_admin_emails()
             if admin_emails:
                 send_email(
@@ -67,13 +63,11 @@ def submit_feedback():
                     subject=f"New Feedback Submitted: {new_feedback.title}",
                     body=render_template('emails/new_feedback_notification.html', feedback=new_feedback)
                 )
-
             flash('Your feedback has been submitted successfully!', 'success')
             return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
-
         except Exception as e:
-            db.session.rollback()
             flash(f"An error occurred while submitting feedback: {str(e)}", 'danger')
+            raise
 
     return render_template('feedback/submit_feedback.html', 
                            form=form, 
@@ -109,6 +103,7 @@ def view_feedback(feedback_id):
 
 @feedback_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
+@db_operation
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     
@@ -118,13 +113,9 @@ def close_feedback(feedback_id):
     try:
         feedback.status = 'Closed'
         feedback.closed_at = datetime.utcnow()
-        db.session.commit()
-
         flash('Your feedback has been closed successfully.', 'success')
     except Exception as e:
-        db.session.rollback()
         flash(f"An error occurred while closing the feedback: {str(e)}", 'danger')
-    finally:
-        db.session.close()
+        raise
 
     return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
