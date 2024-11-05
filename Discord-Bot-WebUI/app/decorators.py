@@ -187,6 +187,16 @@ def query_operation(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         try:
+            from flask import has_request_context, has_app_context
+            if has_request_context() and has_app_context():
+                from flask_login import current_user
+                if current_user and current_user.is_authenticated:
+                    try:
+                        if hasattr(current_user, 'player'):
+                            db.session.add(current_user._get_current_object())
+                    except Exception as e:
+                        logger.debug(f"Non-critical error refreshing current_user in query_operation: {e}")
+            
             return f(*args, **kwargs)
         finally:
             db.session.remove()

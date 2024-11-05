@@ -1,6 +1,6 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
-from app.models import Player, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
+from app.models import Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
 from app.decorators import role_required, admin_or_owner_required, db_operation, query_operation, session_context
 from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
@@ -227,133 +227,129 @@ def create_player():
 def player_profile(player_id):
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {current_user.id}")
     
-    player = Player.query.options(joinedload(Player.team)).get_or_404(player_id)
-    logger.debug(f"Fetched player: {player}")
-    
-    user = player.user
-    logger.debug(f"Associated user: {user}")
-    
-    current_season_name, current_year = get_current_season_and_year()
-    logger.debug(f"Current season: {current_season_name}, Year: {current_year}")
-    
-    season = Season.query.filter_by(name=current_season_name).first()
-    if not season:
-        logger.error(f"Current season '{current_season_name}' not found in the database.")
-        flash('Current season not found.', 'danger')
-        return redirect(url_for('home'))
-    logger.debug(f"Fetched season: {season}")
-    
-    matches = Match.query.join(PlayerEvent).filter(PlayerEvent.player_id == player_id).all()
-    logger.debug(f"Fetched {len(matches)} matches for player {player_id}")
-    
-    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
-    jersey_sizes = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]
-    logger.debug(f"Distinct jersey sizes: {jersey_sizes}")
-    
-    classic_league = League.query.filter_by(name='Classic').first()
-    if not classic_league:
-        logger.error("Classic league not found in the database.")
-        flash('Classic league not found', 'danger')
-        return redirect(url_for('players.player_profile', player_id=player.id))
-    logger.debug(f"Fetched classic league: {classic_league}")
-    
-    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season.id).first()
-    # Create season stats if they don't exist
-    if not season_stats:
-        with session_context() as session:
+    try:
+        # Load player with all necessary relationships
+        player = Player.query.options(
+            joinedload(Player.team).joinedload(Team.league).joinedload(League.season),
+            joinedload(Player.user).joinedload(User.roles),
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats),
+            joinedload(Player.events).joinedload(PlayerEvent.match),
+            joinedload(Player.events).joinedload(PlayerEvent.player)
+        ).get_or_404(player_id)
+        
+        events = list(player.events)
+        matches = list(set(event.match for event in events)) 
+        user = player.user
+        
+        # Get current season info
+        current_season_name, current_year = get_current_season_and_year()
+        season = Season.query.filter_by(name=current_season_name).first()
+        if not season:
+            flash('Current season not found.', 'danger')
+            return redirect(url_for('home'))
+            
+        # Load matches with proper relationship name (events, not player_events)
+        matches = Match.query.join(
+            PlayerEvent
+        ).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.events)  # Fixed relationship name
+        ).filter(
+            PlayerEvent.player_id == player_id
+        ).all()
+        
+        # Get jersey sizes
+        jersey_sizes = db.session.query(Player.jersey_size)\
+            .distinct()\
+            .filter(Player.jersey_size.isnot(None))\
+            .order_by(Player.jersey_size)\
+            .all()
+        jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
+        
+        # Get Classic league
+        classic_league = League.query.filter_by(name='Classic').first()
+        if not classic_league:
+            flash('Classic league not found', 'danger')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+        
+        # Load or create season stats
+        season_stats = PlayerSeasonStats.query.filter_by(
+            player_id=player_id, 
+            season_id=season.id
+        ).first()
+        
+        if not season_stats:
             season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
-            session.add(season_stats)
-    
-    if not player.career_stats:
-        with session_context() as session:
+            db.session.add(season_stats)
+        
+        # Load or create career stats
+        if not player.career_stats:
             new_career_stats = PlayerCareerStats(player_id=player.id)
-            player.career_stats.append(new_career_stats)
-            session.add(new_career_stats)
-    
-    is_classic_league_player = player.league_id == classic_league.id
-    is_player = player.user_id == current_user.id
-    is_admin = current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin')
-    
-    logger.debug(f"is_classic_league_player: {is_classic_league_player}, is_player: {is_player}, is_admin: {is_admin}")
-    
-    # Instantiate the form based on the request method
-    if request.method == 'POST':
-        form = PlayerProfileForm()
-        logger.debug("Instantiated form for POST request.")
-    else:
+            player.career_stats = [new_career_stats]
+            db.session.add(new_career_stats)
+        
+        # Setup access control flags
+        is_classic_league_player = player.league_id == classic_league.id
+        is_player = player.user_id == current_user.id
+        is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in current_user.roles)
+        
+        # Form handling
         form = PlayerProfileForm(obj=player)
-        logger.debug("Instantiated form for GET request with obj=player.")
-    
-    if form:
-        # Set jersey_size choices
-        form.jersey_size.choices = jersey_sizes
-        logger.debug(f"Set jersey_size choices to: {form.jersey_size.choices}")
+        form.jersey_size.choices = jersey_size_choices
         
         if request.method == 'GET':
             form.email.data = user.email
-            logger.debug(f"Pre-populated form.email with {user.email}")
+            form.other_positions.data = player.other_positions.split(',') if player.other_positions else []
+            form.positions_not_to_play.data = player.positions_not_to_play.split(',') if player.positions_not_to_play else []
+            
+            if is_classic_league_player and hasattr(form, 'team_swap'):
+                form.team_swap.data = player.team_swap
         
-        form.other_positions.data = player.other_positions.split(',') if player.other_positions else []
-        form.positions_not_to_play.data = player.positions_not_to_play.split(',') if player.positions_not_to_play else []
-        logger.debug(f"Set form.other_positions to {form.other_positions.data}")
-        logger.debug(f"Set form.positions_not_to_play to {form.positions_not_to_play.data}")
+        # Initialize stats forms for admins
+        season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
+        career_stats_form = CareerStatsForm(obj=player.career_stats[0]) if is_admin and player.career_stats else None
         
-        if is_classic_league_player and hasattr(form, 'team_swap'):
-            # No need to set choices dynamically as they are predefined
-            form.team_swap.data = player.team_swap if player.team_swap else ''
-            logger.debug(f"Pre-populated form.team_swap with {player.team_swap}")
-    
-    season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
-    if season_stats_form:
-        logger.debug("Initialized SeasonStatsForm")
-    career_stats_form = CareerStatsForm(obj=player.career_stats[0]) if is_admin and player.career_stats else None
-    if career_stats_form:
-        logger.debug("Initialized CareerStatsForm")
-    
-    if request.method == 'POST':
-        logger.info("Received POST request on player_profile")
-        if is_admin and 'update_coach_status' in request.form:
-            logger.debug("Detected 'update_coach_status' in form submission.")
-            handle_coach_status_update(player, user)
-        elif is_admin and 'update_ref_status' in request.form:
-            logger.debug("Detected 'update_ref_status' in form submission.")
-            handle_ref_status_update(player, user)
-        elif form and form.validate_on_submit() and 'update_profile' in request.form:
-            logger.debug("Form validated successfully for 'update_profile'.")
-            handle_profile_update(form, player, user)
-        elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
-            logger.debug("Form validated successfully for 'update_season_stats'.")
-            handle_season_stats_update(player, season_stats_form, season.id)
-        elif is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
-            logger.debug("Form validated successfully for 'update_career_stats'.")
-            handle_career_stats_update(player, career_stats_form)
-        elif is_admin and 'add_stat_manually' in request.form:
-            logger.debug("Detected 'add_stat_manually' in form submission.")
-            handle_add_stat_manually(player)
-        else:
-            logger.warning("POST request did not match any known form submissions.")
-            if form:
-                logger.debug(f"Form validation errors: {form.errors}")
-            else:
-                logger.debug("No form available for validation.")
-    
-    audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id).order_by(PlayerStatAudit.timestamp.desc()).all()
-    logger.debug(f"Fetched {len(audit_logs)} audit logs for player {player_id}")
-    
-    return render_template(
-        'player_profile.html',
-        player=player,
-        user=user,
-        matches=matches,
-        season=season,
-        is_admin=is_admin,
-        is_player=is_player,
-        is_classic_league_player=is_classic_league_player,
-        form=form,
-        season_stats_form=season_stats_form,
-        career_stats_form=career_stats_form,
-        audit_logs=audit_logs
-    )
+        # Handle POST requests
+        if request.method == 'POST':
+            if is_admin and 'update_coach_status' in request.form:
+                return handle_coach_status_update(player, user)
+            elif is_admin and 'update_ref_status' in request.form:
+                return handle_ref_status_update(player, user)
+            elif form.validate_on_submit() and 'update_profile' in request.form:
+                return handle_profile_update(form, player, user)
+            elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
+                return handle_season_stats_update(player, season_stats_form, season.id)
+            elif is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
+                return handle_career_stats_update(player, career_stats_form)
+            elif is_admin and 'add_stat_manually' in request.form:
+                return handle_add_stat_manually(player)
+        
+        audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id)\
+            .order_by(PlayerStatAudit.timestamp.desc())\
+            .all()
+        
+        return render_template(
+            'player_profile.html',
+            player=player,
+            user=user,
+            matches=matches,
+            events=events,
+            season=season,
+            is_admin=is_admin,
+            is_player=is_player,
+            is_classic_league_player=is_classic_league_player,
+            form=form,
+            season_stats_form=season_stats_form,
+            career_stats_form=career_stats_form,
+            audit_logs=audit_logs
+        )
+
+    except Exception as e:
+        logger.error(f"Error in player_profile: {str(e)}", exc_info=True)
+        flash('An error occurred while loading the profile.', 'danger')
+        return redirect(url_for('main.index'))
 
 @players_bp.route('/add_stat_manually/<int:player_id>', methods=['POST'])
 @login_required
