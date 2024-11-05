@@ -1,81 +1,72 @@
 <!-- templates/admin_report_detail.html -->
 {% extends 'base.html' %}
-
 {% block title %}Admin - Feedback #{{ feedback.id }}{% endblock %}
-
 {% block main_content %}
+
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-xl-10 col-lg-12 col-md-12">
             <div class="card">
-                <!-- Card Header -->
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h4 class="card-title">Feedback #{{ feedback.id }}</h4>
-                    <a href="{{ url_for('admin.admin_reports') }}" class="btn btn-light btn-sm">
-                        <i data-feather="arrow-left" class="me-1"></i> Back to Reports
-                    </a>
+                <!-- Header -->
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">Feedback #{{ feedback.id }}</h4>
+                    <a href="{{ url_for('admin.admin_reports') }}" class="btn btn-light btn-sm">Back to Reports</a>
                 </div>
 
-                <!-- Card Body -->
                 <div class="card-body">
-                    <!-- Feedback Title -->
+                    <!-- Title -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Title</h5>
-                        <p class="text-muted">{{ feedback.title }}</p>
+                        <div>{{ feedback.title }}</div>
                     </div>
 
-                    <!-- Feedback Description -->
+                    <!-- Description -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Description</h5>
-                        <p>{{ feedback.description }}</p>
+                        <div>{{ feedback.description }}</div>
                     </div>
 
-                    <!-- Status and Priority -->
+                    <!-- Status & Priority Form -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Status & Priority</h5>
                         <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
-                            {{ form.hidden_tag() }}  <!-- CSRF Token -->
+                            {{ form.hidden_tag() }}
+                            <input type="hidden" name="update_feedback" value="1">
                             <div class="row">
-                                <!-- Status Dropdown -->
                                 <div class="col-md-6 mb-3">
-                                    <label for="status" class="form-label">Status</label>
-                                    {{ form.status(class="form-select", id="status") }}
+                                    {{ form.status.label(class="form-label") }}
+                                    {{ form.status(class="form-select") }}
                                     {% for error in form.status.errors %}
                                     <div class="text-danger">{{ error }}</div>
                                     {% endfor %}
                                 </div>
-                                <!-- Priority Dropdown -->
                                 <div class="col-md-6 mb-3">
-                                    <label for="priority" class="form-label">Priority</label>
-                                    {{ form.priority(class="form-select", id="priority") }}
+                                    {{ form.priority.label(class="form-label") }}
+                                    {{ form.priority(class="form-select") }}
                                     {% for error in form.priority.errors %}
                                     <div class="text-danger">{{ error }}</div>
                                     {% endfor %}
                                 </div>
                             </div>
-                            <button type="submit" name="update_feedback" class="btn btn-success">
-                                <i data-feather="check-circle" class="me-1"></i> Update Feedback
-                            </button>
+                            {{ form.submit(class="btn btn-primary") }}
                         </form>
                     </div>
 
-                    <!-- Submitted By and Submitted At -->
+                    <!-- Submission Details -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Submission Details</h5>
                         <div class="row">
-                            <!-- Submitted By -->
                             <div class="col-md-6 mb-3">
                                 <strong>Submitted By:</strong>
                                 {% if feedback.user %}
-                                <p class="text-muted">{{ feedback.user.username }} ({{ feedback.user.email }})</p>
+                                {{ feedback.user.username }} ({{ feedback.user.email }})
                                 {% else %}
-                                <p class="text-muted">Anonymous ({{ feedback.name }})</p>
+                                Anonymous {% if feedback.name %}({{ feedback.name }}){% endif %}
                                 {% endif %}
                             </div>
-                            <!-- Submitted At -->
                             <div class="col-md-6 mb-3">
                                 <strong>Submitted At:</strong>
-                                <p class="text-muted">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
                             </div>
                         </div>
                     </div>
@@ -89,7 +80,11 @@
                             {% for reply in feedback.replies %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingReply{{ reply.id }}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReply{{ reply.id }}" aria-expanded="false" aria-controls="collapseReply{{ reply.id }}">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                                            type="button" data-bs-toggle="collapse"
+                                            data-bs-target="#collapseReply{{ reply.id }}"
+                                            aria-expanded="{{ 'true' if loop.first else 'false' }}"
+                                            aria-controls="collapseReply{{ reply.id }}">
                                         {% if reply.is_admin_reply %}
                                         Admin Reply - {{ reply.created_at.strftime('%Y-%m-%d %H:%M') }}
                                         {% else %}
@@ -97,7 +92,9 @@
                                         {% endif %}
                                     </button>
                                 </h2>
-                                <div id="collapseReply{{ reply.id }}" class="accordion-collapse collapse" aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion">
+                                <div id="collapseReply{{ reply.id }}"
+                                     class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+                                     aria-labelledby="headingReply{{ reply.id }}" data-bs-parent="#repliesAccordion">
                                     <div class="accordion-body">
                                         {{ reply.content }}
                                     </div>
@@ -106,16 +103,17 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted">No Replies Available.</p>
+                        <p>No replies available.</p>
                         {% endif %}
                     </div>
 
-                    <!-- Add Reply Form -->
+                    <!-- Reply Form -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Add a Reply</h5>
                         <hr>
                         <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
                             {{ reply_form.hidden_tag() }}
+                            <input type="hidden" name="submit_reply" value="1">
                             <div class="mb-3">
                                 {{ reply_form.content.label(class="form-label") }}
                                 {{ reply_form.content(class="form-control", rows="4", placeholder="Enter your reply here...") }}
@@ -123,13 +121,11 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <button type="submit" name="submit_reply" class="btn btn-primary">
-                                <i data-feather="send" class="me-1"></i> Send Reply
-                            </button>
+                            {{ reply_form.submit(class="btn btn-primary") }}
                         </form>
                     </div>
 
-                    <!-- Notes Section -->
+                    <!-- Admin Notes -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Admin Notes</h5>
                         <hr>
@@ -138,11 +134,14 @@
                             {% for note in feedback.notes %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header" id="headingNote{{ note.id }}">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNote{{ note.id }}" aria-expanded="false" aria-controls="collapseNote{{ note.id }}">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#collapseNote{{ note.id }}"
+                                            aria-expanded="false" aria-controls="collapseNote{{ note.id }}">
                                         Admin Note - {{ note.created_at.strftime('%Y-%m-%d %H:%M') }}
                                     </button>
                                 </h2>
-                                <div id="collapseNote{{ note.id }}" class="accordion-collapse collapse" aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#notesAccordion">
+                                <div id="collapseNote{{ note.id }}" class="accordion-collapse collapse"
+                                     aria-labelledby="headingNote{{ note.id }}" data-bs-parent="#notesAccordion">
                                     <div class="accordion-body">
                                         {{ note.content }}
                                     </div>
@@ -151,16 +150,17 @@
                             {% endfor %}
                         </div>
                         {% else %}
-                        <p class="text-muted">No Admin Notes Available.</p>
+                        <p>No admin notes available.</p>
                         {% endif %}
                     </div>
 
-                    <!-- Add Note Form -->
+                    <!-- Note Form -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Add a Note</h5>
                         <hr>
                         <form method="POST" action="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}">
                             {{ note_form.hidden_tag() }}
+                            <input type="hidden" name="add_note" value="1">
                             <div class="mb-3">
                                 {{ note_form.content.label(class="form-label") }}
                                 {{ note_form.content(class="form-control", rows="4", placeholder="Enter your note here...") }}
@@ -168,27 +168,27 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            <button type="submit" name="add_note" class="btn btn-secondary">
-                                <i data-feather="plus-circle" class="me-1"></i> Add Note
-                            </button>
+                            {{ note_form.submit(class="btn btn-primary") }}
                         </form>
                     </div>
 
                     <!-- Admin Actions -->
                     <div class="mb-4">
                         <h5 class="fw-bold">Admin Actions</h5>
-                        <div class="d-flex justify-content-start">
+                        <div class="d-flex gap-2">
                             {% if feedback.status != 'Closed' %}
-                            <form method="POST" action="{{ url_for('admin.close_feedback', feedback_id=feedback.id) }}" class="me-2">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                                <button type="submit" class="btn btn-warning">
-                                    <i data-feather="x-circle" class="me-1"></i> Close Ticket
-                                </button>
+                            <form method="POST" action="{{ url_for('admin.close_feedback', feedback_id=feedback.id) }}" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-warning">Close Ticket</button>
                             </form>
                             {% endif %}
-                            <button onclick="confirmDelete({{ feedback.id }})" class="btn btn-danger">
-                                <i data-feather="trash-2" class="me-1"></i> Delete Feedback
-                            </button>
+
+                            <form method="POST" action="{{ url_for('admin.delete_feedback', feedback_id=feedback.id) }}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('Are you sure you want to delete this feedback?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger">Delete Feedback</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -196,6 +196,7 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block custom_js %}

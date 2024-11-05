@@ -283,13 +283,18 @@ def admin_reports():
 @role_required('Global Admin')
 @db_operation
 def view_feedback(feedback_id):
-    feedback = Feedback.query.get_or_404(feedback_id)
-    form = AdminFeedbackForm(obj=feedback)
-    reply_form = FeedbackReplyForm()
-    note_form = NoteForm()
-    
-    if request.method == 'POST':
-        try:
+    """Handle viewing and updating admin feedback."""
+    try:
+        feedback = Feedback.query.options(
+            db.joinedload(Feedback.replies).joinedload(FeedbackReply.user),
+            db.joinedload(Feedback.user)
+        ).get_or_404(feedback_id)
+        
+        form = AdminFeedbackForm(obj=feedback)
+        reply_form = FeedbackReplyForm()
+        note_form = NoteForm()
+        
+        if request.method == 'POST':
             if 'update_feedback' in request.form and form.validate():
                 form.populate_obj(feedback)
                 flash('Feedback has been updated successfully.', 'success')
@@ -303,14 +308,22 @@ def view_feedback(feedback_id):
                 )
                 db.session.add(reply)
                 
-                if feedback.user:
-                    send_email(
-                        to=feedback.user.email,
-                        subject=f"New admin reply to your Feedback #{feedback.id}",
-                        body=render_template('emails/new_reply_admin.html', 
-                                          feedback=feedback, reply=reply)
-                    )
+                # Send email notification if user exists
+                if feedback.user and feedback.user.email:
+                    try:
+                        send_email(
+                            to=feedback.user.email,
+                            subject=f"New admin reply to your Feedback #{feedback.id}",
+                            body=render_template('emails/new_reply_admin.html', 
+                                              feedback=feedback, 
+                                              reply=reply)
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to send reply notification email: {str(e)}")
+                        # Continue even if email fails
+                
                 flash('Your reply has been added successfully.', 'success')
+                return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
                 
             elif 'add_note' in request.form and note_form.validate():
                 note = Note(
@@ -320,17 +333,20 @@ def view_feedback(feedback_id):
                 )
                 db.session.add(note)
                 flash('Note added successfully.', 'success')
+                return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
                 
-        except Exception as e:
-            logger.error(f"Error handling feedback: {str(e)}")
-            flash('An error occurred while processing your request.', 'danger')
-            raise
-            
-    return render_template('admin_report_detail.html',
-                         feedback=feedback,
-                         form=form,
-                         reply_form=reply_form,
-                         note_form=note_form)
+        return render_template(
+            'admin_report_detail.html',
+            feedback=feedback,
+            form=form,
+            reply_form=reply_form,
+            note_form=note_form
+        )
+        
+    except Exception as e:
+        logger.error(f"Error handling feedback {feedback_id}: {str(e)}", exc_info=True)
+        flash('An error occurred while processing the feedback.', 'danger')
+        return redirect(url_for('admin.admin_reports'))
 
 @admin_bp.route('/admin/schedule_next_week', methods=['POST'])
 @login_required
