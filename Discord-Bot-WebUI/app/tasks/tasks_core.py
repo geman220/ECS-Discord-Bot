@@ -91,17 +91,60 @@ def schedule_season_availability(self) -> Dict[str, Any]:
 def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str, Any]:
     """Celery task to send availability message."""
     try:
+        # Get all needed data in one session at the start
+        message_data = None
+        with session_context() as session:
+            message = session.query(ScheduledMessage).options(
+                joinedload(ScheduledMessage.match),
+                joinedload(ScheduledMessage.match).joinedload(Match.home_team),
+                joinedload(ScheduledMessage.match).joinedload(Match.away_team)
+            ).get(scheduled_message_id)
+
+            if not message or not message.match:
+                raise ValueError(f"Message or match not found for ID {scheduled_message_id}")
+
+            # Create detached data copy
+            message_data = {
+                "match_id": message.match.id,
+                "home_team_id": message.match.home_team_id,
+                "away_team_id": message.match.away_team_id,
+                "home_channel_id": str(message.match.home_team.discord_channel_id),
+                "away_channel_id": str(message.match.away_team.discord_channel_id),
+                "match_date": message.match.date.strftime('%Y-%m-%d'),
+                "match_time": message.match.time.strftime('%H:%M:%S'),
+                "home_team_name": message.match.home_team.name,
+                "away_team_name": message.match.away_team.name
+            }
+
+        # Now run the async operation with just the data
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(_send_availability_message(scheduled_message_id))
+            result = loop.run_until_complete(_send_availability_message(message_data))
+            
+            # Update status in a new session after successful send
+            with session_context() as session:
+                message = session.query(ScheduledMessage).get(scheduled_message_id)
+                if message:
+                    message.status = 'SENT'
+                    message.home_discord_message_id = result.get('home_message_id')
+                    message.away_discord_message_id = result.get('away_message_id')
+
             return {
                 "success": True,
                 "message": "Availability message sent successfully",
                 "data": result
             }
+        except Exception as e:
+            # Update status in a new session after failure
+            with session_context() as session:
+                message = session.query(ScheduledMessage).get(scheduled_message_id)
+                if message:
+                    message.status = 'FAILED'
+            raise
         finally:
             loop.close()
+
     except Exception as e:
         logger.error(f"Error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e)
@@ -189,82 +232,19 @@ def send_scheduled_messages(self) -> Dict[str, Any]:
             "message": str(e)
         }
 
-async def _send_availability_message(scheduled_message_id: int) -> Dict[str, Any]:
-    """Helper coroutine to send availability message."""
+async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Helper coroutine to send availability message - no DB operations."""
     bot_api_url = "http://discord-bot:5001/api/post_availability"
-    executor = ThreadPoolExecutor(max_workers=1)
 
     try:
-        def get_message_data_sync() -> Optional[Dict[str, Any]]:
-            from app import create_app
-            app = create_app()
-            
-            with app.app_context():
-                with session_context():
-                    message = db.session.query(ScheduledMessage).options(
-                        joinedload(ScheduledMessage.match),
-                        joinedload(ScheduledMessage.match).joinedload(Match.home_team),
-                        joinedload(ScheduledMessage.match).joinedload(Match.away_team)
-                    ).get(scheduled_message_id)
-
-                    if not message:
-                        raise ValueError(f"ScheduledMessage with ID {scheduled_message_id} not found")
-
-                    match = message.match
-                    if not match:
-                        raise ValueError(f"Match with ID {message.match_id} not found")
-
-                    return {
-                        "match_id": match.id,
-                        "home_team_id": match.home_team_id,
-                        "away_team_id": match.away_team_id,
-                        "home_channel_id": str(match.home_team.discord_channel_id),
-                        "away_channel_id": str(match.away_team.discord_channel_id),
-                        "match_date": match.date.strftime('%Y-%m-%d'),
-                        "match_time": match.time.strftime('%H:%M:%S'),
-                        "home_team_name": match.home_team.name,
-                        "away_team_name": match.away_team.name
-                    }
-
-        message_data = await asyncio.get_event_loop().run_in_executor(executor, get_message_data_sync)
-        if not message_data:
-            raise ValueError("Failed to get message data")
-
         async with aiohttp.ClientSession() as session:
             async with session.post(bot_api_url, json=message_data, timeout=30) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     logger.error(f"Failed to send availability message. Status: {response.status}, Error: {error_text}")
-
-                    def mark_failed_sync():
-                        from app import create_app
-                        app = create_app()
-                        
-                        with app.app_context():
-                            with session_context():
-                                message = db.session.query(ScheduledMessage).get(scheduled_message_id)
-                                if message:
-                                    message.status = 'FAILED'
-
-                    await asyncio.get_event_loop().run_in_executor(executor, mark_failed_sync)
                     raise Exception(f"Failed to send message: {error_text}")
 
                 result = await response.json()
-                
-                def mark_sent_sync():
-                    from app import create_app
-                    app = create_app()
-                    
-                    with app.app_context():
-                        with session_context():
-                            message = db.session.query(ScheduledMessage).get(scheduled_message_id)
-                            if message:
-                                message.status = 'SENT'
-                                message.home_discord_message_id = result.get('home_message_id')
-                                message.away_discord_message_id = result.get('away_message_id')
-
-                await asyncio.get_event_loop().run_in_executor(executor, mark_sent_sync)
-                
                 logger.info(f"Successfully sent availability message for match {message_data['match_id']}")
                 return {
                     "match_id": message_data["match_id"],
@@ -276,8 +256,6 @@ async def _send_availability_message(scheduled_message_id: int) -> Dict[str, Any
     except Exception as e:
         logger.error(f"Error in _send_availability_message: {str(e)}", exc_info=True)
         raise
-    finally:
-        executor.shutdown(wait=True)
 
 @celery_task(
     name='app.tasks.tasks_core.cleanup_old_messages',
