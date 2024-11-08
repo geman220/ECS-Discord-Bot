@@ -264,7 +264,7 @@ def session_context():
                 "Active session found, cleaning up"
             )
             db.session.remove()
-        
+            
         yield db.session
         
         if db.session.is_active:
@@ -287,6 +287,8 @@ def session_context():
         try:
             if db.session.is_active:
                 db.session.remove()
+                if hasattr(db.session, 'bind') and db.session.bind:
+                    db.session.bind.dispose()
                 logger.debug(f"[SESSION CLEANUP] ID: {session_id} Thread: {thread_id}")
         except Exception as e:
             logger.error(
@@ -336,14 +338,12 @@ def celery_task(**task_kwargs):
             try:
                 with app.app_context():
                     # Ensure any lingering sessions are cleaned up
-                    db.session.remove()
-                    
-                    result = base_task(*args, **kwargs)
-                    
-                    # Final cleanup
                     if db.session.is_active:
                         db.session.remove()
+                    if hasattr(db.session, 'bind') and db.session.bind:
+                        db.session.bind.dispose()
                     
+                    result = base_task(*args, **kwargs)
                     return result
                     
             except Exception as e:
@@ -351,6 +351,8 @@ def celery_task(**task_kwargs):
                 try:
                     if db.session.is_active:
                         db.session.remove()
+                    if hasattr(db.session, 'bind') and db.session.bind:
+                        db.session.bind.dispose()
                 except:
                     pass
                 raise
@@ -359,6 +361,8 @@ def celery_task(**task_kwargs):
                 try:
                     if db.session.is_active:
                         db.session.remove()
+                    if hasattr(db.session, 'bind') and db.session.bind:
+                        db.session.bind.dispose()
                 except:
                     pass
                 
