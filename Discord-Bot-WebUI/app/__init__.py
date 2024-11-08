@@ -44,13 +44,14 @@ def init_extensions(app):
         DB_MAX_CONNECTION_AGE=900,
         DB_MONITOR_ENABLED=True,
         SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 10,  # Maximum number of connections to keep persistently
-            'max_overflow': 20,  # Maximum number of connections that can be created beyond pool_size
-            'pool_timeout': 30,  # Seconds to wait before giving up on getting a connection from the pool
-            'pool_recycle': 900,  # Recycle connections after 15 minutes
-            'pool_pre_ping': True  # Enable connection health checks
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_timeout': 30,
+            'pool_recycle': 300,
+            'pool_pre_ping': True,
+            'pool_use_lifo': True,
+            'pool_reset_on_return': 'rollback'
         }
-    )
     
     # Initialize SocketIO with updated settings
     socketio.init_app(
