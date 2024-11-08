@@ -217,14 +217,14 @@ def update_player_profile():
 def get_player(player_id: int):
     """Get player details with stats."""
     current_user_id = get_jwt_identity()
-    current_user = User.query.get(current_user_id)
+    safe_current_user = User.query.get(current_user_id)
     player = Player.query.get(player_id)
 
     if not player:
         return jsonify({"msg": "Player not found"}), 404
 
     # Check viewing permissions
-    is_admin = any(role.name in ['Coach', 'Admin'] for role in current_user.roles)
+    is_admin = any(role.name in ['Coach', 'Admin'] for role in safe_current_user.roles)
     is_owner = current_user_id == player.user_id
     is_full_profile = is_admin or is_owner
 

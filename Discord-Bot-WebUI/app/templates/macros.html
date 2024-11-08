@@ -187,7 +187,7 @@
 </div>
 {% endmacro %}
 
-{% macro render_player_item(player, current_user, season) %}
+{% macro render_player_item(player, safe_current_user, season) %}
 <li class="list-group-item d-flex justify-content-between align-items-center">
     <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="d-flex align-items-center text-decoration-none">
         <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" alt="{{ player.name }}" class="rounded-circle border" style="width: 50px; height: 50px; margin-right: 15px;">
@@ -201,11 +201,11 @@
         {% endif %}
     </a>
     <div>
-        {% if current_user.has_permission('view_player_goals_assists') %}
+        {% if safe_current_user.has_permission('view_player_goals_assists') %}
         <span class="badge bg-light text-dark"><i class="bx bx-football"></i> {{ player.season_goals(season.id) }}</span>
         <span class="badge bg-light text-dark"><i class="bx bx-football"></i> <i class="bx bx-right-arrow-alt"></i> {{ player.season_assists(season.id) }}</span>
         {% endif %}
-        {% if current_user.has_permission('view_player_cards') %}
+        {% if safe_current_user.has_permission('view_player_cards') %}
         <span class="badge bg-light text-dark"><i class="bx bxs-square text-warning"></i> {{ player.season_yellow_cards(season.id) }}</span>
         <span class="badge bg-light text-dark"><i class="bx bxs-square text-danger"></i> {{ player.season_red_cards(season.id) }}</span>
         {% endif %}

@@ -219,7 +219,7 @@
                                         <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
                                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
 
-                                        {% if current_user.has_permission('view_match_reporting') %}
+                                        {% if safe_current_user.has_permission('view_match_reporting') %}
                                         <button class="btn btn-outline-primary w-100 mb-2 edit-match-btn"
                                                 data-match-id="{{ match.id }}"
                                                 data-bs-toggle="modal"
@@ -262,7 +262,7 @@
     {% endif %}
 
     <!-- Previous Matches Section -->
-    {% if previous_matches and current_user.has_permission('view_match_reporting') %}
+    {% if previous_matches and safe_current_user.has_permission('view_match_reporting') %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
@@ -296,7 +296,7 @@
                                         <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
                                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
 
-                                        {% if current_user.has_permission('view_match_reporting') %}
+                                        {% if safe_current_user.has_permission('view_match_reporting') %}
                                         <button class="btn btn-outline-primary w-100 edit-match-btn"
                                                 data-match-id="{{ match.id }}"
                                                 data-bs-toggle="modal"

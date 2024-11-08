@@ -7,13 +7,14 @@ from flask import send_file
 from app import csrf
 from app.extensions import db
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.forms import Verify2FAForm, NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
 from app.decorators import db_operation, query_operation, session_context
 from app.models import Player, Team, Match, User, Notification
 from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.utils.user_helpers import safe_current_user
 import aiohttp
 import logging
 import requests
@@ -86,7 +87,7 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
 @login_required
 @query_operation
 def settings():
-    notification_form = NotificationSettingsForm(prefix='notification', obj=current_user)
+    notification_form = NotificationSettingsForm(prefix='notification', obj=safe_current_user)
     password_form = PasswordChangeForm(prefix='password')
     enable_2fa_form = Enable2FAForm(prefix='enable2fa')
     disable_2fa_form = Disable2FAForm(prefix='disable2fa')
@@ -96,7 +97,7 @@ def settings():
                          password_form=password_form, 
                          enable_2fa_form=enable_2fa_form,
                          disable_2fa_form=disable_2fa_form,
-                         is_2fa_enabled=current_user.is_2fa_enabled)
+                         is_2fa_enabled=safe_current_user.is_2fa_enabled)
 
 @account_bp.route('/update_notifications', methods=['POST'])
 @login_required
@@ -104,9 +105,9 @@ def settings():
 def update_notifications():
     form = NotificationSettingsForm(prefix='notification')
     if form.validate_on_submit():
-        current_user.email_notifications = form.email_notifications.data
-        current_user.discord_notifications = form.discord_notifications.data
-        current_user.profile_visibility = form.profile_visibility.data
+        safe_current_user.email_notifications = form.email_notifications.data
+        safe_current_user.discord_notifications = form.discord_notifications.data
+        safe_current_user.profile_visibility = form.profile_visibility.data
         flash('Notification settings updated successfully.', 'success')
     else:
         flash('Error updating notification settings.', 'danger')
@@ -118,8 +119,8 @@ def update_notifications():
 def change_password():
     form = PasswordChangeForm(prefix='password')
     if form.validate_on_submit():
-        if check_password_hash(current_user.password_hash, form.current_password.data):
-            current_user.password_hash = generate_password_hash(form.new_password.data)
+        if check_password_hash(safe_current_user.password_hash, form.current_password.data):
+            safe_current_user.password_hash = generate_password_hash(form.new_password.data)
             flash('Your password has been updated successfully.', 'success')
         else:
             flash('Current password is incorrect.', 'danger')
@@ -134,10 +135,10 @@ def change_password():
 @db_operation
 def update_account_info():
     form = request.form
-    current_user.email = form.get('email')
-    if current_user.player:
-        current_user.player.name = form.get('name')
-        current_user.player.phone = form.get('phone')
+    safe_current_user.email = form.get('email')
+    if safe_current_user.player:
+        safe_current_user.player.name = form.get('name')
+        safe_current_user.player.phone = form.get('phone')
     flash('Account information updated successfully', 'success')
     return redirect(url_for('account.settings'))
 
@@ -151,18 +152,18 @@ def initiate_sms_opt_in():
     if not phone_number or not consent_given:
         return jsonify(success=False, message="Phone number and consent are required."), 400
 
-    player = create_or_update_player(current_user.id, phone_number)
+    player = create_or_update_player(safe_current_user.id, phone_number)
     
     if user_is_blocked_in_textmagic(phone_number):
         return jsonify(success=False, message="You previously un-subscribed. Please text 'START' to re-subscribe"), 400
 
-    current_user.sms_notifications = True
-    success, message = send_confirmation_sms(current_user)
+    safe_current_user.sms_notifications = True
+    success, message = send_confirmation_sms(safe_current_user)
     
     if success:
         return jsonify(success=True, message="Verification code sent. Please check your phone.")
     else:
-        logger.error(f'Failed to send SMS to user {current_user.id}. Error: {message}')
+        logger.error(f'Failed to send SMS to user {safe_current_user.id}. Error: {message}')
         return jsonify(success=False, message="Failed to send verification code. Please try again."), 500
 
 @account_bp.route('/confirm-sms-opt-in', methods=['POST'])
@@ -173,9 +174,9 @@ def confirm_sms_opt_in():
     if not confirmation_code:
         return jsonify(success=False, message="Verification code is required."), 400
     
-    if verify_sms_confirmation(current_user, confirmation_code):
-        current_user.sms_notifications = True
-        current_user.player.is_phone_verified = True
+    if verify_sms_confirmation(safe_current_user, confirmation_code):
+        safe_current_user.sms_notifications = True
+        safe_current_user.player.is_phone_verified = True
         flash('SMS notifications enabled successfully.', 'success')
         return jsonify(success=True, message="SMS notifications enabled successfully.")
     else:
@@ -185,9 +186,9 @@ def confirm_sms_opt_in():
 @login_required
 @db_operation
 def opt_out_sms():
-    current_user.sms_notifications = False
-    if current_user.player:
-        current_user.player.sms_opt_out_timestamp = datetime.utcnow()
+    safe_current_user.sms_notifications = False
+    if safe_current_user.player:
+        safe_current_user.player.sms_opt_out_timestamp = datetime.utcnow()
     flash('SMS notifications disabled successfully.', 'success')
     return jsonify(success=True, message="You have successfully opted-out of SMS notifications.")
 
@@ -197,9 +198,9 @@ def opt_out_sms():
 def sms_verification_status():
     is_verified = False
     phone_number = None
-    if current_user.player:
-        is_verified = current_user.player.is_phone_verified
-        phone_number = current_user.player.phone
+    if safe_current_user.player:
+        is_verified = safe_current_user.player.is_phone_verified
+        phone_number = safe_current_user.player.phone
     return jsonify({'is_verified': is_verified, 'phone_number': phone_number})
 
 @account_bp.route('/enable_2fa', methods=['GET', 'POST'])
@@ -207,22 +208,22 @@ def sms_verification_status():
 @db_operation
 def enable_2fa():
     if request.method == 'GET':
-        if not current_user.totp_secret:
-            current_user.generate_totp_secret()
-        totp = pyotp.TOTP(current_user.totp_secret)
-        otp_uri = totp.provisioning_uri(name=current_user.email, issuer_name="ECS Web")
+        if not safe_current_user.totp_secret:
+            safe_current_user.generate_totp_secret()
+        totp = pyotp.TOTP(safe_current_user.totp_secret)
+        otp_uri = totp.provisioning_uri(name=safe_current_user.email, issuer_name="ECS Web")
         img = qrcode.make(otp_uri)
         buffered = BytesIO()
         img.save(buffered)
         qr_code = base64.b64encode(buffered.getvalue()).decode()
-        return jsonify({'qr_code': qr_code, 'secret': current_user.totp_secret})
+        return jsonify({'qr_code': qr_code, 'secret': safe_current_user.totp_secret})
     
     elif request.method == 'POST':
         code = request.json.get('code')
-        totp = pyotp.TOTP(current_user.totp_secret)
+        totp = pyotp.TOTP(safe_current_user.totp_secret)
         
         if totp.verify(code):
-            current_user.is_2fa_enabled = True
+            safe_current_user.is_2fa_enabled = True
             flash('2FA enabled successfully.', 'success')
             return jsonify({'success': True})
         else:
@@ -234,9 +235,9 @@ def enable_2fa():
 def disable_2fa():
     form = Disable2FAForm(prefix='disable2fa')
     if form.validate_on_submit():
-        if current_user.is_2fa_enabled:
-            current_user.is_2fa_enabled = False
-            current_user.totp_secret = None
+        if safe_current_user.is_2fa_enabled:
+            safe_current_user.is_2fa_enabled = False
+            safe_current_user.totp_secret = None
             flash('Two-Factor Authentication has been disabled.', 'success')
         else:
             flash('Two-Factor Authentication is not currently enabled.', 'warning')
@@ -262,7 +263,7 @@ def discord_callback():
         flash('Discord linking failed. Please try again.', 'danger')
         return redirect(url_for('account.settings'))
 
-    if not current_user.player:
+    if not safe_current_user.player:
         flash('Unable to link Discord account. Player profile not found.', 'danger')
         return redirect(url_for('account.settings'))
 
@@ -271,7 +272,7 @@ def discord_callback():
         discord_client_id=current_app.config['DISCORD_CLIENT_ID'],
         discord_client_secret=current_app.config['DISCORD_CLIENT_SECRET'],
         redirect_uri=url_for('account.discord_callback', _external=True),
-        player=current_user.player
+        player=safe_current_user.player
     )
 
     if success:
@@ -285,8 +286,8 @@ def discord_callback():
 @login_required
 @db_operation
 def unlink_discord():
-    if current_user.player and current_user.player.discord_id:
-        current_user.player.discord_id = None
+    if safe_current_user.player and safe_current_user.player.discord_id:
+        safe_current_user.player.discord_id = None
         flash('Your Discord account has been unlinked successfully.', 'success')
     else:
         flash('No Discord account is currently linked.', 'info')
@@ -330,7 +331,7 @@ def show_2fa_qr():
 
         totp = pyotp.TOTP(totp_secret)
         otp_uri = totp.provisioning_uri(
-            name=current_user.email, 
+            name=safe_current_user.email, 
             issuer_name="ECS Web App"
         )
 

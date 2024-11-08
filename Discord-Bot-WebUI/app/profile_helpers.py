@@ -1,8 +1,8 @@
 from flask import current_app, flash, request, jsonify, redirect, url_for
-from flask_login import current_user
 from app.models import User, Role
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from app.utils.user_helpers import safe_current_user
 from io import BytesIO
 import os
 import base64
@@ -144,7 +144,7 @@ def handle_season_stats_update(player, form, season_id):
             'red_cards': form.season_red_cards.data - player.get_season_stat(season_id, 'red_cards'),
         }
         
-        player.update_season_stats(season_id, stats_changes, user_id=current_user.id)
+        player.update_season_stats(season_id, stats_changes, user_id=safe_current_user.id)
         logger.info(f"Season stats updated successfully for player {player.id} in season {season_id}")
         flash('Season stats updated successfully.', 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
@@ -192,7 +192,7 @@ def handle_add_stat_manually(player):
             'red_cards': int(request.form.get('red_cards', 0)),
         }
         
-        player.add_stat_manually(new_stat_data, user_id=current_user.id)
+        player.add_stat_manually(new_stat_data, user_id=safe_current_user.id)
         logger.info(f"Stat added successfully for player {player.id} in match {match_id}")
         flash('Stat added successfully.', 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))

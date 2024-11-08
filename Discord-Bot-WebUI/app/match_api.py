@@ -1,4 +1,4 @@
-﻿# web match_api.py
+# web match_api.py
 
 from app import csrf
 from app.decorators import db_operation, query_operation 
@@ -224,13 +224,13 @@ async def send_pre_match_info(thread_id, match_data):
     pre_match_info = f"""
 **Upcoming Match: {home_team['displayName']} vs {away_team['displayName']}**
 
-📅 Date: {match_date_formatted}
-🏟️ Venue: {venue}
+?? Date: {match_date_formatted}
+??? Venue: {venue}
 
 **Team Information:**
-🏠 Home: {home_team['displayName']} ({home_team['abbreviation']})
+?? Home: {home_team['displayName']} ({home_team['abbreviation']})
    Form: {home_form}
-🛫 Away: {away_team['displayName']} ({away_team['abbreviation']})
+?? Away: {away_team['displayName']} ({away_team['abbreviation']})
    Form: {away_form}
 
 **Odds:**

@@ -1,4 +1,4 @@
-﻿<!-- Navbar -->
+<!-- Navbar -->
 <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
     <!-- Menu Toggle (Visible on smaller screens) -->
     <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
@@ -141,9 +141,9 @@
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
                 <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
                     <div class="avatar avatar-online">
-                        {% if current_user.is_authenticated %}
-                        {% if current_user.player %}
-                        <img src="{{ current_user.player.profile_picture_url if current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ current_user.player.name }}" class="rounded-circle">
+                        {% if safe_current_user.is_authenticated %}
+                        {% if safe_current_user.player %}
+                        <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ safe_current_user.player.name }}" class="rounded-circle">
                         {% else %}
                         <!-- User does not have a player profile yet -->
                         <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" class="rounded-circle">
@@ -152,18 +152,18 @@
                     </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    {% if current_user.is_authenticated %}
-                    {% if current_user.player %}
+                    {% if safe_current_user.is_authenticated %}
+                    {% if safe_current_user.player %}
                     <li>
-                        <a class="dropdown-item mt-0 waves-effect" href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}">
+                        <a class="dropdown-item mt-0 waves-effect" href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}">
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0 me-2">
                                     <div class="avatar avatar-online">
-                                        <img src="{{ current_user.player.profile_picture_url if current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ current_user.player.name }}" class="rounded-circle">
+                                        <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ safe_current_user.player.name }}" class="rounded-circle">
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-0">{{ current_user.player.name }}</h6>
+                                    <h6 class="mb-0">{{ safe_current_user.player.name }}</h6>
                                 </div>
                             </div>
                         </a>
@@ -172,7 +172,7 @@
                         <div class="dropdown-divider my-1 mx-n2"></div>
                     </li>
                     <li>
-                        <a class="dropdown-item waves-effect" href="{{ url_for('players.player_profile', player_id=current_user.player.id) }}">
+                        <a class="dropdown-item waves-effect" href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}">
                             <i class="ti ti-user me-3 ti-md"></i><span class="align-middle">My Profile</span>
                         </a>
                     </li>

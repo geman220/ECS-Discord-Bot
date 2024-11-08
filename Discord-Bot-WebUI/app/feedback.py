@@ -1,10 +1,12 @@
 # feedback.py
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
 from app.decorators import db_operation, query_operation
+from app.extensions import db
+from app.utils.user_helpers import safe_current_user
 from functools import wraps
 from datetime import datetime
 import logging
@@ -26,7 +28,7 @@ def handle_feedback_reply(feedback, form):
     try:
         reply = FeedbackReply(
             feedback_id=feedback.id,
-            user_id=current_user.id, 
+            user_id=safe_current_user.id, 
             content=form.content.data,
             created_at=datetime.utcnow()
         )
@@ -87,8 +89,8 @@ def submit_feedback():
         search_query = request.args.get('q', '', type=str).strip()
         
         # Get the user's ID and username if authenticated
-        user_id = current_user.id if current_user.is_authenticated else None
-        username = current_user.username if current_user.is_authenticated else None
+        user_id = safe_current_user.id if safe_current_user.is_authenticated else None
+        username = safe_current_user.username if safe_current_user.is_authenticated else None
         
         # Get existing feedbacks
         user_feedbacks = get_user_feedbacks(user_id, page, per_page, search_query)
@@ -151,7 +153,7 @@ def view_feedback(feedback_id):
             db.joinedload(Feedback.user)
         ).get_or_404(feedback_id)
         
-        if feedback.user_id != current_user.id:
+        if feedback.user_id != safe_current_user.id:
             abort(403)
         
         form = FeedbackReplyForm()
@@ -160,7 +162,7 @@ def view_feedback(feedback_id):
             try:
                 reply = FeedbackReply(
                     feedback_id=feedback.id,
-                    user_id=current_user.id, 
+                    user_id=safe_current_user.id, 
                     content=form.content.data,
                     created_at=datetime.utcnow()
                 )
@@ -192,7 +194,7 @@ def view_feedback(feedback_id):
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     
-    if feedback.user_id != current_user.id:
+    if feedback.user_id != safe_current_user.id:
         abort(403)
     
     try:

@@ -5,12 +5,15 @@ from datetime import datetime
 from flask import Flask, request
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_cors import CORS
+from sqlalchemy.orm import joinedload
 from werkzeug.middleware.proxy_fix import ProxyFix
+from app.decorators import query_operation, session_context
+from app.models import User, Role
 import threading
 import logging
 
@@ -25,8 +28,19 @@ csrf = CSRFProtect()
 sess = Session()
 logger = logging.getLogger(__name__)
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.options(
+        db.joinedload(User.roles).joinedload(Role.permissions),
+        db.joinedload(User.notifications)
+    ).get(int(user_id))
+
 def init_extensions(app):
     """Initialize Flask extensions"""
+    from sqlalchemy.orm import scoped_session, sessionmaker
+    from flask.globals import request_ctx
+
+    # Initialize core extensions first
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -39,17 +53,6 @@ def init_extensions(app):
     # Initialize DB connection monitor
     from app.utils.db_connection_monitor import DBConnectionMonitor
     app.db_monitor = DBConnectionMonitor(app)
-
-    @app.teardown_request
-    def cleanup_session(exception=None):
-        try:
-            if db.session.is_active:
-                db.session.remove()
-            if hasattr(db.session, 'bind') and db.session.bind:
-                db.session.bind.dispose()
-            logger.debug(f"[REQUEST CLEANUP] Thread: {threading.get_ident()}")
-        except Exception as e:
-            logger.error(f"Error cleaning up session: {e}")
 
     app.config.update(
         DB_CONNECTION_TIMEOUT=30,
@@ -65,6 +68,44 @@ def init_extensions(app):
             'pool_reset_on_return': 'rollback'
         }
     )
+
+    # Configure scoped session within app context
+    with app.app_context():
+        engine = db.engine
+        session_factory = sessionmaker(
+            bind=engine,
+            autocommit=False,
+            autoflush=False,
+            expire_on_commit=False
+        )
+        db.session = scoped_session(
+            session_factory,
+            scopefunc=lambda: threading.get_ident()
+        )
+
+        @app.teardown_appcontext
+        def remove_session(exception=None):
+            db.session.remove()
+
+    @app.teardown_request
+    def cleanup_session(exception=None):
+        """Cleanup at the end of each request"""
+        try:
+            if db.session.is_active:
+                if exception:
+                    db.session.rollback()
+                else:
+                    try:
+                        db.session.commit()
+                    except:
+                        db.session.rollback()
+                        raise
+            db.session.remove()
+            if hasattr(db.session, 'bind') and db.session.bind:
+                db.session.bind.dispose()
+            logger.debug(f"[REQUEST CLEANUP] Thread: {threading.get_ident()}")
+        except Exception as e:
+            logger.error(f"Error cleaning up session: {e}")
     
     # Initialize SocketIO with updated settings
     socketio.init_app(
@@ -133,25 +174,34 @@ def init_blueprints(app):
     app.register_blueprint(monitoring_bp)
 
 def init_context_processors(app):
-    """Initialize context processors"""
+    """Initialize context processors with coordinated session handling"""
+
+    from app.utils.user_helpers import safe_current_user
+
     @app.context_processor
+    @query_operation
     def inject_roles():
         user_roles = []
-        if current_user.is_authenticated:
-            user_roles = [role.name for role in current_user.roles]
-        return dict(user_roles=user_roles)
+        user = safe_current_user  # Use safe_current_user here
+        if user:
+            user_roles = [role.name for role in user.roles]
+        return dict(user_roles=user_roles, safe_current_user=user)
 
     @app.context_processor
     def inject_notifications():
         notifications = []
-        if current_user.is_authenticated:
+        if safe_current_user.is_authenticated:
             from app.models import Notification
             notifications = Notification.query.filter_by(
-                user_id=current_user.id
+                user_id=safe_current_user.id
             ).order_by(
                 Notification.created_at.desc()
             ).limit(10).all()
         return dict(notifications=notifications)
+
+    @app.context_processor
+    def inject_safe_user():
+        return dict(safe_current_user=safe_current_user)
 
     @app.context_processor
     def inject_form():
@@ -161,28 +211,28 @@ def init_context_processors(app):
     @app.context_processor
     def inject_permissions():
         def has_permission(permission_name):
-            if not current_user.is_authenticated:
+            if not safe_current_user.is_authenticated:
                 return False
-            return current_user.has_permission(permission_name)
+            return safe_current_user.has_permission(permission_name)
         return dict(has_permission=has_permission)
 
     @app.context_processor
     def inject_auth_utilities():
         def has_role(role_name):
-            if not current_user.is_authenticated:
+            if not safe_current_user.is_authenticated:
                 return False
-            return current_user.has_role(role_name)
+            return safe_current_user.has_role(role_name)
 
         def is_admin():
-            if not current_user.is_authenticated:
+            if not safe_current_user.is_authenticated:
                 return False
             admin_roles = ['Global Admin', 'Pub League Admin']
-            return any(role.name in admin_roles for role in current_user.roles)
+            return any(role.name in admin_roles for role in safe_current_user.roles)
             
         def is_owner(user_id):
-            if not current_user.is_authenticated:
+            if not safe_current_user.is_authenticated:
                 return False
-            return current_user.id == user_id
+            return safe_current_user.id == user_id
 
         return dict(
             has_role=has_role,

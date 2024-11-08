@@ -59,24 +59,10 @@ class DBConnectionMonitor:
             FROM pg_stat_activity 
             WHERE pid != pg_backend_pid()
             AND (
-                -- Active queries running too long
-                (state = 'active' 
-                 AND query_start IS NOT NULL
-                 AND EXTRACT(EPOCH FROM (NOW() - query_start)) > :query_timeout)
-                
-                -- Idle in transaction too long
-                OR (state = 'idle in transaction'
-                    AND xact_start IS NOT NULL
-                    AND EXTRACT(EPOCH FROM (NOW() - xact_start)) > :idle_timeout)
-                
-                -- Connection too old
-                OR (backend_start IS NOT NULL
-                    AND EXTRACT(EPOCH FROM (NOW() - backend_start)) > :max_age)
-                    
-                -- Other non-idle states running too long
-                OR (state NOT IN ('idle', 'active')
-                    AND query_start IS NOT NULL
-                    AND EXTRACT(EPOCH FROM (NOW() - query_start)) > :threshold)
+                (state = 'active' AND query_start IS NOT NULL AND EXTRACT(EPOCH FROM (NOW() - query_start)) > :query_timeout)
+                OR (state = 'idle in transaction' AND xact_start IS NOT NULL AND EXTRACT(EPOCH FROM (NOW() - xact_start)) > :idle_timeout)
+                OR (backend_start IS NOT NULL AND EXTRACT(EPOCH FROM (NOW() - backend_start)) > :max_age)
+                OR (state NOT IN ('idle', 'active') AND query_start IS NOT NULL AND EXTRACT(EPOCH FROM (NOW() - query_start)) > :threshold)
             )
             ORDER BY 
                 CASE state
@@ -95,25 +81,24 @@ class DBConnectionMonitor:
                     "max_age": max_age,
                     "idle_timeout": idle_timeout
                 })
-                # Fix: Use the proper SQLAlchemy row mapping method
                 connections = [dict(zip(row._mapping.keys(), row._mapping.values())) for row in result]
-            
+        
                 if connections:
                     logger.warning(
                         f"Found {len(connections)} problematic connections:\n" + 
                         "\n".join([
-                            f"PID {c['pid']}: State={c['state']}, "
-                            f"Duration={c['duration']:.1f}s, "
-                            f"Age={c.get('connection_age', 0):.1f}s, "
-                            f"Transaction Age={c.get('transaction_age', 0):.1f}s - "
-                            f"App: {c['application_name'] or 'Unknown'} - "
-                            f"Query: {c['query'][:100]}..."
+                            f"PID {c.get('pid', 'Unknown')}: State={c.get('state', 'Unknown')}, "
+                            f"Duration={(c.get('duration', 0) if c.get('duration') is not None else 0):.1f}s, "
+                            f"Age={(c.get('connection_age', 0) if c.get('connection_age') is not None else 0):.1f}s, "
+                            f"Transaction Age={(c.get('transaction_age', 0) if c.get('transaction_age') is not None else 0):.1f}s - "
+                            f"App: {c.get('application_name', 'Unknown')} - "
+                            f"Query: {c.get('query', '')[:100]}..."
                             for c in connections
                         ])
                     )
                 return connections
         except Exception as e:
-            logger.error(f"Error checking connections: {e}", exc_info=True)  # Added exc_info for better debugging
+            logger.error(f"Error checking connections: {e}", exc_info=True)
             return []
 
     def terminate_stuck_connections(self, age_threshold_seconds: int = None) -> int:

@@ -1,5 +1,4 @@
 from flask_wtf import FlaskForm
-from flask_login import current_user
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField, EmailField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
 from app.models import User, Role, League

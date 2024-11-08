@@ -1,12 +1,13 @@
 # main.py
 from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required
 from collections import defaultdict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy import or_, func
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
 from app.decorators import role_required, db_operation, query_operation
+from app.utils.user_helpers import safe_current_user
 from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
 import logging
 import subprocess
@@ -106,7 +107,7 @@ def create_player_profile(onboarding_form):
 
         # Create player instance
         player = Player(
-            user_id=current_user.id,
+            user_id=safe_current_user.id,
             name=onboarding_form.name.data,
             email=onboarding_form.email.data,
             phone=onboarding_form.phone.data,
@@ -138,16 +139,16 @@ def create_player_profile(onboarding_form):
         db.session.add(player)
         
         # Update the user's onboarding status
-        current_user.has_completed_onboarding = True
-        current_user.player = player
+        safe_current_user.has_completed_onboarding = True
+        safe_current_user.player = player
 
-        logger.info(f"Created player profile for user {current_user.id}")
+        logger.info(f"Created player profile for user {safe_current_user.id}")
         flash('Player profile created successfully.', 'success')
         
         return player
 
     except Exception as e:
-        logger.error(f"Error creating profile for user {current_user.id}: {e}")
+        logger.error(f"Error creating profile for user {safe_current_user.id}: {e}")
         raise
 
 @db_operation
@@ -176,13 +177,13 @@ def handle_profile_update(player, onboarding_form):
         player.additional_info = onboarding_form.additional_info.data
 
         # Assign settings fields (notifications, visibility)
-        current_user.email_notifications = onboarding_form.email_notifications.data
-        current_user.sms_notifications = onboarding_form.sms_notifications.data
-        current_user.discord_notifications = onboarding_form.discord_notifications.data
-        current_user.profile_visibility = onboarding_form.profile_visibility.data
+        safe_current_user.email_notifications = onboarding_form.email_notifications.data
+        safe_current_user.sms_notifications = onboarding_form.sms_notifications.data
+        safe_current_user.discord_notifications = onboarding_form.discord_notifications.data
+        safe_current_user.profile_visibility = onboarding_form.profile_visibility.data
 
         # Update the email from the onboarding form to the User model
-        current_user.email = onboarding_form.email.data
+        safe_current_user.email = onboarding_form.email.data
 
         # Handle profile picture upload if necessary
         if onboarding_form.profile_picture.data:
@@ -197,13 +198,13 @@ def handle_profile_update(player, onboarding_form):
             player.profile_picture_url = url_for('static', filename='uploads/' + filename)
 
         # Mark onboarding as complete
-        current_user.has_completed_onboarding = True
+        safe_current_user.has_completed_onboarding = True
 
         # Optional: Flash a success message
         flash('Profile updated successfully.', 'success')
-        logger.info(f"User {current_user.id} updated their profile successfully.")
+        logger.info(f"User {safe_current_user.id} updated their profile successfully.")
     except Exception as e:
-        logger.error(f"Error updating profile for user {current_user.id}: {e}")
+        logger.error(f"Error updating profile for user {safe_current_user.id}: {e}")
         flash('An error occurred while updating your profile. Please try again.', 'danger')
         raise  # Reraise the exception for the decorator to handle rollback
 
@@ -314,7 +315,7 @@ def index():
     current_year = datetime.now().year
 
     # Attempt to get the player profile associated with the current user
-    player = getattr(current_user, 'player', None)
+    player = getattr(safe_current_user, 'player', None)
 
     if player:
         # Eagerly load team and league relationships
@@ -336,12 +337,12 @@ def index():
     # Determine if onboarding should be shown
     show_onboarding = False
     if player:
-        show_onboarding = not current_user.has_completed_onboarding
+        show_onboarding = not safe_current_user.has_completed_onboarding
     else:
-        show_onboarding = not current_user.has_skipped_profile_creation
+        show_onboarding = not safe_current_user.has_skipped_profile_creation
 
     # Determine if the tour should be shown
-    show_tour = current_user.has_completed_onboarding and not current_user.has_completed_tour
+    show_tour = safe_current_user.has_completed_onboarding and not safe_current_user.has_completed_tour
 
     if request.method == 'POST':
         form_action = request.form.get('form_action', '')
@@ -350,23 +351,23 @@ def index():
 
         if form_action in ['create_profile', 'update_profile']:
             # Handle profile creation or update
-            logger.debug(f"Attempting to {'create' if not player else 'update'} a player profile for user {current_user.id}")
+            logger.debug(f"Attempting to {'create' if not player else 'update'} a player profile for user {safe_current_user.id}")
 
             if onboarding_form.validate_on_submit():
                 if not player:
                     # Create a new player profile
                     player = create_player_profile(onboarding_form)
                     if player:
-                        current_user.has_skipped_profile_creation = False
+                        safe_current_user.has_skipped_profile_creation = False
                 else:
                     # Update the existing player profile
                     handle_profile_update(player, onboarding_form)
 
                 if player:
                     # Only proceed if player is successfully created or updated
-                    current_user.has_completed_onboarding = True  # Mark onboarding as complete
+                    safe_current_user.has_completed_onboarding = True  # Mark onboarding as complete
 
-                    logger.debug(f"Player profile {'created' if not player else 'updated'} and onboarding completed for user {current_user.id}")
+                    logger.debug(f"Player profile {'created' if not player else 'updated'} and onboarding completed for user {safe_current_user.id}")
                     flash('Player profile created or updated successfully!', 'success')
                     return redirect(url_for('main.index'))
             else:
@@ -375,16 +376,16 @@ def index():
 
         elif form_action == 'skip_profile':
             # Handle skipping profile creation
-            logger.debug(f"Handling 'skip_profile' action for user {current_user.id}")
-            current_user.has_skipped_profile_creation = True
+            logger.debug(f"Handling 'skip_profile' action for user {safe_current_user.id}")
+            safe_current_user.has_skipped_profile_creation = True
             show_onboarding = False  # Do not show onboarding anymore
             flash('You have chosen to skip profile creation for now.', 'info')
             return redirect(url_for('main.index'))
 
         elif form_action == 'reset_skip_profile':
             # Handle resetting the skip flag to allow onboarding again
-            logger.debug(f"Handling 'reset_skip_profile' action for user {current_user.id}")
-            current_user.has_skipped_profile_creation = False
+            logger.debug(f"Handling 'reset_skip_profile' action for user {safe_current_user.id}")
+            safe_current_user.has_skipped_profile_creation = False
             show_onboarding = True  # Reopen the onboarding modal
             flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
             return redirect(url_for('main.index'))
@@ -510,7 +511,7 @@ def index():
 @login_required
 @query_operation
 def notifications():
-    notifications = current_user.notifications.order_by(Notification.created_at.desc()).all()
+    notifications = safe_current_user.notifications.order_by(Notification.created_at.desc()).all()
     return render_template('notifications.html', notifications=notifications)
 
 @main.route('/notifications/mark_as_read/<int:notification_id>', methods=['POST'])
@@ -519,7 +520,7 @@ def notifications():
 def mark_as_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     
-    if notification.user_id != current_user.id:
+    if notification.user_id != safe_current_user.id:
         abort(403)
 
     try:
@@ -537,10 +538,10 @@ def mark_as_read(notification_id):
 @db_operation
 def set_tour_skipped():
     try:
-        current_user.has_completed_tour = False
-        logger.info(f"User {current_user.id} set tour as skipped.")
+        safe_current_user.has_completed_tour = False
+        logger.info(f"User {safe_current_user.id} set tour as skipped.")
     except Exception as e:
-        logger.error(f"Error setting tour skipped for user {current_user.id}: {str(e)}")
+        logger.error(f"Error setting tour skipped for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
         raise  # Reraise exception for the decorator to handle
     
@@ -551,10 +552,10 @@ def set_tour_skipped():
 @db_operation
 def set_tour_complete():
     try:
-        current_user.has_completed_tour = True
-        logger.info(f"User {current_user.id} completed the tour.")
+        safe_current_user.has_completed_tour = True
+        logger.info(f"User {safe_current_user.id} completed the tour.")
     except Exception as e:
-        logger.error(f"Error setting tour complete for user {current_user.id}: {str(e)}")
+        logger.error(f"Error setting tour complete for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
         raise  # Reraise exception for the decorator to handle
     

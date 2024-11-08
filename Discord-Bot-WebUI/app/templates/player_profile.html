@@ -44,7 +44,7 @@
                         {% if player.discord_id %}
                         <span class="badge bg-success"><i class="fab fa-discord me-1"></i> Linked to Discord</span>
                         {% else %}
-                        {% if current_user.is_authenticated and current_user.id == player.user.id %}
+                        {% if safe_current_user.is_authenticated and safe_current_user.id == player.user.id %}
                         <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-sm">
                             <i class="fab fa-discord me-1"></i> Link to Discord
                         </a>
@@ -99,22 +99,22 @@
                     <div class="d-flex justify-content-between mb-3">
                         <div>
                             <h6 class="mb-1">Season Stats ({{ season.name }})</h6>
-                            {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_goals_assists') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
                             <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
                             {% endif %}
-                            {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_cards') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
                             <p class="mb-0">Red Cards: {{ player.season_red_cards(season.id) }}</p>
                             {% endif %}
                         </div>
                         <div>
                             <h6 class="mb-1">Career Stats</h6>
-                            {% if current_user.has_permission('view_player_goals_assists') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_goals_assists') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
                             <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
                             {% endif %}
-                            {% if current_user.has_permission('view_player_cards') or (current_user.id == player.user_id and current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_cards') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
                             <p class="mb-0">Red Cards: {{ player.get_career_red_cards() }}</p>
                             {% endif %}
