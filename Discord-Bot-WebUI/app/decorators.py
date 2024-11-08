@@ -200,47 +200,46 @@ def jwt_admin_or_owner_required(func):
 
 def db_operation(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated_function(*args, **kwargs):
         thread_id = threading.get_ident()
         logger.debug(f"[DB OP START] Function: {f.__name__} Thread: {thread_id}")
-        try:
-            result = f(*args, **kwargs)
-            
-            # Handle tuple returns with objects to process
-            if isinstance(result, tuple) and len(result) >= 2:
-                objects, response = result[0], result[1]
-                if isinstance(objects, (list, tuple)):
-                    with db.session.no_autoflush:
-                        for obj in objects:
-                            if hasattr(obj, '_sa_instance_state'):
-                                if getattr(obj, 'deleted', False):
-                                    db.session.delete(obj)
-                                elif obj not in db.session:
-                                    db.session.add(obj)
-                    db.session.flush()
-                    return response
-            
-            # Handle normal returns
-            if db.session.is_active:
-                db.session.flush()
-            return result
-            
-        except Exception as e:
-            logger.error(f"Database operation error in {f.__name__}: {str(e)}")
-            db.session.rollback()
-            raise
-        finally:
-            logger.debug(f"[DB OP END] Function: {f.__name__} Thread: {thread_id}")
-            
-    return decorated
+        
+        with session_context():
+            try:
+                result = f(*args, **kwargs)
+                
+                # Process objects in the result if they're returned as tuples
+                if isinstance(result, tuple) and len(result) >= 2:
+                    objects, response = result[0], result[1]
+                    if isinstance(objects, (list, tuple)):
+                        with db.session.no_autoflush:
+                            for obj in objects:
+                                if hasattr(obj, '_sa_instance_state'):
+                                    if getattr(obj, 'deleted', False):
+                                        db.session.delete(obj)
+                                    elif obj not in db.session:
+                                        db.session.add(obj)
+                        db.session.flush()
+                        return response
 
-def query_operation(f: Callable) -> Callable:
-    """Enhanced query operation decorator with context processor awareness."""
+                # Normal result handling
+                db.session.flush()
+                return result
+            except Exception as e:
+                logger.error(f"Database operation error in {f.__name__}: {str(e)}")
+                db.session.rollback()
+                raise
+            finally:
+                logger.debug(f"[DB OP END] Function: {f.__name__} Thread: {thread_id}")
+                
+    return decorated_function
+
+def query_operation(f):
     @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:
+    def decorated_function(*args, **kwargs):
         thread_id = threading.get_ident()
         logger.debug(f"[QUERY START] Function: {f.__name__} Thread: {thread_id}")
-        
+
         def attach_to_session(obj):
             """Ensure object is attached to session."""
             if obj is None or not hasattr(obj, '_sa_instance_state'):
@@ -248,81 +247,65 @@ def query_operation(f: Callable) -> Callable:
             
             if obj not in db.session:
                 try:
-                    # Try to get a fresh instance from the database if possible
                     if hasattr(obj, 'id'):
                         fresh_obj = obj.__class__.query.get(obj.id)
                         if fresh_obj:
                             return fresh_obj
-                    # Fall back to session merge if necessary
                     return db.session.merge(obj)
                 except DetachedInstanceError as e:
                     logger.warning(f"Detached instance error: {e}")
             return obj
 
-        try:
-            # Process arguments to ensure they're attached to the session
-            processed_args = tuple(attach_to_session(arg) for arg in args)
-            processed_kwargs = {k: attach_to_session(v) for k, v in kwargs.items()}
-            result = f(*processed_args, **processed_kwargs)
-            
-            db.session.flush()
-            return result
-            
-        except Exception as e:
-            logger.error(f"Query operation error in {f.__name__}: {str(e)}")
-            db.session.rollback()
-            raise
-        finally:
-            logger.debug(f"[QUERY END] Function: {f.__name__} Thread: {thread_id}")
+        with session_context():
+            try:
+                # Attach arguments to session
+                processed_args = tuple(attach_to_session(arg) for arg in args)
+                processed_kwargs = {k: attach_to_session(v) for k, v in kwargs.items()}
+                
+                result = f(*processed_args, **processed_kwargs)
+                db.session.flush()  # Flush changes without committing in nested contexts
+                return result
+            except Exception as e:
+                logger.error(f"Query operation error in {f.__name__}: {str(e)}")
+                db.session.rollback()
+                raise
+            finally:
+                logger.debug(f"[QUERY END] Function: {f.__name__} Thread: {thread_id}")
 
-    return decorated
+    return decorated_function
 
-@contextmanager 
+@contextmanager
 def session_context():
-    """Enhanced session context manager with request context awareness"""
+    """Enhanced session context manager with request context awareness."""
     session_id = f"session-{datetime.utcnow().timestamp()}"
     thread_id = threading.get_ident()
     
-    # Only clean up if we're not already in a session context
+    # Check if a session is already active to avoid redundant commits
     session_active = getattr(g, 'session_context_active', False)
     
+    # Only initialize a session if none is active
     if not session_active:
-        if db.session.is_active:
-            db.session.remove()
-        if hasattr(db.session, 'bind') and db.session.bind:
-            db.session.bind.dispose()
-            
+        g.session_context_active = True
         db.session.expire_on_commit = False
     
     try:
         yield db.session
         
-        # Only commit if this is the outermost session context
+        # Commit only if this is the outermost session context
         if not session_active:
-            if db.session.is_active:
-                try:
-                    db.session.commit()
-                    logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
-                except:
-                    db.session.rollback()
-                    raise
+            db.session.commit()
+            logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
     except Exception as e:
-        logger.error(f"[SESSION ERROR] ID: {session_id}", exc_info=True)
-        if db.session.is_active:
-            db.session.rollback()
+        logger.error(f"[SESSION ERROR] ID: {session_id}: {e}", exc_info=True)
+        db.session.rollback()
         raise
     finally:
-        # Only clean up if this is the outermost session context
+        # Cleanup only if this is the outermost session context
         if not session_active:
-            try:
-                if db.session.is_active:
-                    db.session.expire_on_commit = True
-                    db.session.close()
-                if hasattr(db.session, 'bind') and db.session.bind:
-                    db.session.bind.dispose()
-                logger.debug(f"[SESSION CLEANUP] ID: {session_id}")
-            except Exception as e:
-                logger.error(f"[SESSION CLEANUP ERROR] ID: {session_id}: {e}")
+            db.session.expire_on_commit = True
+            db.session.remove()
+            g.session_context_active = False
+            logger.debug(f"[SESSION CLEANUP] ID: {session_id} Thread: {thread_id}")
 
 @contextmanager
 def session_timeout_context(timeout_seconds: int = 30):
