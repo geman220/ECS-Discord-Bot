@@ -69,9 +69,7 @@ class ScheduleManager {
         document.querySelectorAll('.delete-match-btn').forEach(button => {
             button.addEventListener('click', async (e) => {
                 e.preventDefault();
-                if (confirm('Are you sure you want to delete this match?')) {
-                    await this.deleteMatch(button.dataset.matchId);
-                }
+                await this.deleteMatch(button.dataset.matchId);
             });
         });
     }
@@ -189,31 +187,47 @@ class ScheduleManager {
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': this.csrfToken
+                    'X-CSRFToken': this.csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: formData
             });
 
+            // Check if response is JSON
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error(`Server returned an invalid response. Status: ${response.status}`);
+            }
+
             const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || `Server error: ${response.status}`);
+            }
 
             if (result.success) {
                 this.modal.hide();
                 await Swal.fire({
                     title: 'Success!',
-                    text: this.isAddOperation ? 'Match added successfully' : 'Match updated successfully',
+                    text: result.message || (this.isAddOperation ? 'Match added successfully' : 'Match updated successfully'),
                     icon: 'success',
                     timer: 1500
                 });
                 window.location.reload();
             } else {
-                throw new Error(result.error || 'Failed to process match');
+                throw new Error(result.message || 'Failed to process match');
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error processing match:', error);
             await Swal.fire({
                 title: 'Error!',
-                text: error.message || 'An error occurred while processing the match',
-                icon: 'error'
+                text: error.message || 'An unexpected error occurred',
+                icon: 'error',
+                showConfirmButton: true,
+                confirmButtonText: 'OK'
             });
         }
     }

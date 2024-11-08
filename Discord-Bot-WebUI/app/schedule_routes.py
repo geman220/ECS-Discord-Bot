@@ -382,17 +382,39 @@ def bulk_create_ecsfc_matches(season_id, league_name):
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def edit_match(match_id):
-    """Edit match with proper handling of scheduled messages."""
+    """Edit match and related records."""
     try:
-        date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-        time = datetime.strptime(request.form['time'], '%H:%M').time()
+        # Validate input data
+        required_fields = ['date', 'time', 'location', 'team_a', 'team_b', 'week']
+        if not all(field in request.form for field in required_fields):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+
+        try:
+            date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            time = datetime.strptime(request.form['time'], '%H:%M').time()
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Invalid date or time format: {str(e)}'
+            }), 400
+
         location = request.form['location']
         team_a_id = request.form['team_a']
         team_b_id = request.form['team_b']
         week = request.form['week']
 
+        # Get Schedule record
+        schedule = Schedule.query.get(match_id)
+        if not schedule:
+            return jsonify({
+                'success': False,
+                'message': 'Schedule not found'
+            }), 404
+
         # Update Schedule record
-        schedule = Schedule.query.get_or_404(match_id)
         schedule.date = date
         schedule.time = time
         schedule.location = location
@@ -402,26 +424,7 @@ def edit_match(match_id):
 
         # Update or create Match record
         match = Match.query.filter_by(schedule_id=match_id).first()
-        if match:
-            match.date = date
-            match.time = time
-            match.location = location
-            match.home_team_id = team_a_id
-            match.away_team_id = team_b_id
-
-            # Update associated scheduled messages
-            Match.query.session.execute(
-                text("""
-                    UPDATE scheduled_message 
-                    SET scheduled_send_time = :new_time
-                    WHERE match_id = :match_id
-                """),
-                {
-                    'new_time': datetime.combine(date, time),
-                    'match_id': match.id
-                }
-            )
-        else:
+        if not match:
             match = Match(
                 schedule_id=match_id,
                 date=date,
@@ -430,7 +433,13 @@ def edit_match(match_id):
                 home_team_id=team_a_id,
                 away_team_id=team_b_id
             )
-            match.safe_add()
+            db.session.add(match)
+        else:
+            match.date = date
+            match.time = time
+            match.location = location
+            match.home_team_id = team_a_id
+            match.away_team_id = team_b_id
 
         # Update paired schedule if it exists
         paired_schedule = Schedule.query.filter_by(
@@ -444,7 +453,6 @@ def edit_match(match_id):
             paired_schedule.time = time
             paired_schedule.location = location
 
-            # Update paired match if it exists
             paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
             if paired_match:
                 paired_match.date = date
@@ -453,81 +461,59 @@ def edit_match(match_id):
                 paired_match.home_team_id = team_b_id
                 paired_match.away_team_id = team_a_id
 
-                # Update scheduled messages for paired match
-                Match.query.session.execute(
-                    text("""
-                        UPDATE scheduled_message 
-                        SET scheduled_send_time = :new_time
-                        WHERE match_id = :match_id
-                    """),
-                    {
-                        'new_time': datetime.combine(date, time),
-                        'match_id': paired_match.id
-                    }
-                )
-
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True,
+            'message': 'Match updated successfully'
+        })
 
     except Exception as e:
-        logger.error(f"Error editing match: {str(e)}")
-        raise
+        logger.error(f"Error editing match {match_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': f'Error updating match: {str(e)}'
+        }), 500
 
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def delete_match(match_id):
+    """Delete match and related records."""
     try:
         logger.info(f"Attempting to delete match {match_id}")
+        
+        # Get all records to delete
         schedule = Schedule.query.get_or_404(match_id)
         
-        # Get all related match IDs (both original and paired)
-        match_ids = []
+        # Delete original match if exists
+        Match.query.filter_by(schedule_id=match_id).delete()
         
-        # Get the original match ID
-        match = Match.query.filter_by(schedule_id=match_id).first()
-        if match:
-            match_ids.append(match.id)
-            
-        # Get paired schedule
+        # Get and delete paired records
         paired_schedule = Schedule.query.filter_by(
             team_id=schedule.opponent,
             opponent=schedule.team_id,
             week=schedule.week
         ).first()
-
-        # Get paired match ID if it exists
+        
         if paired_schedule:
-            paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
-            if paired_match:
-                match_ids.append(paired_match.id)
-
-        # Delete all related scheduled messages first
-        if match_ids:
-            logger.info(f"Deleting scheduled messages for matches: {match_ids}")
-            Match.query.session.execute(
-                text("""
-                    DELETE FROM scheduled_message 
-                    WHERE match_id = ANY(:match_ids)
-                """),
-                {'match_ids': match_ids}
-            )
-
-        # Delete associated match records
-        if paired_schedule:
-            logger.info(f"Found paired schedule {paired_schedule.id}")
             Match.query.filter_by(schedule_id=paired_schedule.id).delete()
-            paired_schedule.safe_delete()
-
-        Match.query.filter_by(schedule_id=match_id).delete()
-        schedule.safe_delete()
+            Schedule.query.filter_by(id=paired_schedule.id).delete()
+            
+        # Delete the original schedule
+        Schedule.query.filter_by(id=match_id).delete()
         
         logger.info(f"Successfully deleted match {match_id} and related records")
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True,
+            'message': 'Match deleted successfully'
+        })
         
     except Exception as e:
         logger.error(f"Error deleting match {match_id}: {str(e)}")
-        raise
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting match: {str(e)}'
+        }), 500
 
 @schedule_bp.route('/<string:league_type>/<int:season_id>/delete_week/<int:week_number>', methods=['POST'])
 @login_required
@@ -570,16 +556,32 @@ def fetch_schedule():
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def add_match():
+    """Add a new match and its related records."""
     try:
-        week = request.form.get('week')
-        date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-        time = datetime.strptime(request.form['time'], '%H:%M').time()
+        # Validate required fields
+        required_fields = ['week', 'date', 'time', 'location', 'team_a', 'team_b']
+        if not all(field in request.form for field in required_fields):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+
+        # Parse date and time
+        try:
+            date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            time = datetime.strptime(request.form['time'], '%H:%M').time()
+        except ValueError as e:
+            return jsonify({
+                'success': False,
+                'message': f'Invalid date or time format: {str(e)}'
+            }), 400
+
+        week = request.form['week']
         location = request.form['location']
         team_a_id = request.form['team_a']
         team_b_id = request.form['team_b']
 
-        logger.debug(f"Creating schedule and match records for teams {team_a_id} and {team_b_id}")
-
+        # Create records - let decorator handle session management
         schedule_a = Schedule(
             week=week,
             date=date,
@@ -604,34 +606,18 @@ def add_match():
             location=location,
             home_team_id=team_a_id,
             away_team_id=team_b_id,
-            schedule=schedule_a 
+            schedule=schedule_a
         )
 
-        db_objects = (schedule_a, schedule_b, match)
-
-        result = db_objects  
-
-        response = {
+        # Return objects for decorator to handle
+        return [schedule_a, schedule_b, match], jsonify({
             'success': True,
-            'message': 'Match added successfully',
-            'data': {
-                'schedule_a_id': schedule_a.id,
-                'schedule_b_id': schedule_b.id,
-                'match_id': match.id,
-                'week': week,
-                'date': date.isoformat(),
-                'time': time.isoformat(),
-                'location': location,
-                'team_a_id': team_a_id,
-                'team_b_id': team_b_id
-            }
-        }
-
-        return result, response
+            'message': 'Match added successfully'
+        }), 201
 
     except Exception as e:
-        logger.error(f"Error adding match: {e}")
-        return None, jsonify({
+        logger.error(f"Error adding match: {str(e)}", exc_info=True)
+        return jsonify({
             'success': False,
-            'error': str(e)
+            'message': f'Error adding match: {str(e)}'
         }), 500
