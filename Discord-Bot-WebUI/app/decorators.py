@@ -30,6 +30,19 @@ def log_context_state(location: str):
         f"Thread ID: {threading.get_ident()}"
     )
 
+def register_template_context_processor(app):
+    """Register template context processor for safe DB access"""
+    @app.context_processor
+    def inject_db_handler():
+        def safe_db_load(callable_func):
+            try:
+                with session_context():
+                    return callable_func()
+            except Exception as e:
+                logger.error(f"Template DB access error: {e}")
+                return None
+        return dict(safe_db_load=safe_db_load)
+
 def role_required(roles):
     """
     Ensure the current user has one of the required roles.
@@ -230,15 +243,43 @@ def db_operation(f: Callable) -> Callable:
     return decorated
 
 def query_operation(f: Callable) -> Callable:
-    """Enhanced query operation decorator that ensures session cleanup"""
+    """Enhanced query operation decorator that ensures session cleanup after response"""
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         thread_id = threading.get_ident()
         logger.debug(f"[QUERY START] Function: {f.__name__} Thread: {thread_id}")
         
         try:
+            # Run the original function
             result = f(*args, **kwargs)
+            
+            # If this is a template render response, ensure data is fully loaded
+            if hasattr(result, '_render_template'):
+                template_context = result._template_context
+                # Eagerly load any SQLAlchemy relationships that might be accessed in template
+                for key, value in template_context.items():
+                    if hasattr(value, '__iter__') and not isinstance(value, (str, bytes)):
+                        try:
+                            # Force loading of SQLAlchemy collections
+                            list(value)
+                        except:
+                            pass
+            
+            # Register cleanup to happen after template is rendered
+            if hasattr(current_app, 'teardown_request'):
+                @current_app.teardown_request
+                def cleanup_session(exception=None):
+                    try:
+                        if db.session.is_active:
+                            db.session.remove()
+                        if hasattr(db.session, 'bind') and db.session.bind:
+                            db.session.bind.dispose()
+                        logger.debug(f"[QUERY CLEANUP] Function: {f.__name__} Thread: {thread_id}")
+                    except Exception as e:
+                        logger.error(f"Error cleaning up session: {e}")
+            
             return result
+            
         except Exception as e:
             if db.session.is_active:
                 db.session.rollback()
@@ -250,21 +291,26 @@ def query_operation(f: Callable) -> Callable:
 
 @contextmanager
 def session_context():
-    """Enhanced session context manager with session cleanup and reuse protection"""
+    """Enhanced session context manager with connection health check"""
     session_id = f"session-{datetime.utcnow().timestamp()}"
     thread_id = threading.get_ident()
     
-    logger.debug(f"[SESSION START] ID: {session_id} Thread: {thread_id}")
+    def check_connection():
+        try:
+            db.session.execute('SELECT 1')
+            return True
+        except Exception as e:
+            logger.error(f"Connection check failed: {e}")
+            return False
     
     try:
-        # Clean up any existing session in this thread
         if db.session.is_active:
-            logger.warning(
-                f"[SESSION WARNING] ID: {session_id} Thread: {thread_id} "
-                "Active session found, cleaning up"
-            )
-            db.session.remove()
-            
+            if not check_connection():
+                logger.warning("Detected stale connection, cleaning up")
+                db.session.remove()
+                if hasattr(db.session, 'bind') and db.session.bind:
+                    db.session.bind.dispose()
+        
         yield db.session
         
         if db.session.is_active:
@@ -295,6 +341,21 @@ def session_context():
                 f"[SESSION CLEANUP ERROR] ID: {session_id} Thread: {thread_id}\n"
                 f"Error: {str(e)}"
             )
+
+@contextmanager
+def session_timeout_context(timeout_seconds: int = 30):
+    """Context manager to enforce session timeout"""
+    start_time = datetime.utcnow()
+    
+    def check_timeout():
+        duration = (datetime.utcnow() - start_time).total_seconds()
+        if duration > timeout_seconds:
+            raise Exception(f"Session timeout after {duration}s")
+    
+    try:
+        yield check_timeout
+    finally:
+        check_timeout()
 
 @asynccontextmanager
 async def async_session_context():
