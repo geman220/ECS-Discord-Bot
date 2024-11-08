@@ -265,19 +265,6 @@ def query_operation(f: Callable) -> Callable:
                         except:
                             pass
             
-            # Register cleanup to happen after template is rendered
-            if hasattr(current_app, 'teardown_request'):
-                @current_app.teardown_request
-                def cleanup_session(exception=None):
-                    try:
-                        if db.session.is_active:
-                            db.session.remove()
-                        if hasattr(db.session, 'bind') and db.session.bind:
-                            db.session.bind.dispose()
-                        logger.debug(f"[QUERY CLEANUP] Function: {f.__name__} Thread: {thread_id}")
-                    except Exception as e:
-                        logger.error(f"Error cleaning up session: {e}")
-            
             return result
             
         except Exception as e:

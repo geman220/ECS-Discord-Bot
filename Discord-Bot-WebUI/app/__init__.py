@@ -11,6 +11,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
+import threading
 import logging
 
 # Import extensions
@@ -38,6 +39,17 @@ def init_extensions(app):
     # Initialize DB connection monitor
     from app.utils.db_connection_monitor import DBConnectionMonitor
     app.db_monitor = DBConnectionMonitor(app)
+
+    @app.teardown_request
+    def cleanup_session(exception=None):
+        try:
+            if db.session.is_active:
+                db.session.remove()
+            if hasattr(db.session, 'bind') and db.session.bind:
+                db.session.bind.dispose()
+            logger.debug(f"[REQUEST CLEANUP] Thread: {threading.get_ident()}")
+        except Exception as e:
+            logger.error(f"Error cleaning up session: {e}")
 
     app.config.update(
         DB_CONNECTION_TIMEOUT=30,
