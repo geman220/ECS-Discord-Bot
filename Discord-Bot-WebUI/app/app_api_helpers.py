@@ -1,5 +1,4 @@
 from flask import current_app, request
-from app import db
 from app.models import (
     User, Player, Team, Match, League, Season,
     PlayerSeasonStats, PlayerCareerStats, Availability,
@@ -79,8 +78,6 @@ def process_discord_user(user_data: Dict) -> User:
             username=user_data.get('username'),
             is_approved=False
         )
-        db.session.add(user)
-        db.session.flush()
     
     player = Player.query.filter_by(user_id=user.id).first()
     if player and not player.discord_id:
@@ -136,13 +133,12 @@ def add_match_events(match: Match, events: List[Dict]) -> None:
     """Add events to match."""
     logger.info(f"Adding {len(events)} events to match {match.id}")
     for event in events:
-        new_event = PlayerEvent(
+        PlayerEvent(
             player_id=event['player_id'],
             match_id=match.id,
             event_type=event['event_type'],
             minute=event.get('minute')
         )
-        db.session.add(new_event)
 
 @db_operation
 def update_player_availability(match_id: int, player_id: int, 
@@ -154,7 +150,6 @@ def update_player_availability(match_id: int, player_id: int,
         match_id=match_id,
         player_id=player_id
     ).first()
-
     if availability:
         availability.response = response
         availability.responded_at = datetime.utcnow()
@@ -166,8 +161,6 @@ def update_player_availability(match_id: int, player_id: int,
             response=response,
             responded_at=datetime.utcnow()
         )
-        db.session.add(availability)
-
     return availability
 
 @query_operation

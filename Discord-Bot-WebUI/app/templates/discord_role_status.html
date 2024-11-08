@@ -2,66 +2,42 @@
 {% block title %}Discord Role Status and Management{% endblock %}
 
 {% block custom_css %}
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
 <style>
-    .badge {
-        padding: 0.5em 0.8em;
-        font-size: 0.85em;
-        font-weight: 500;
-    }
-
-    .badge-status-synced {
-        background-color: #28c76f !important;
-        color: #fff;
-    }
-
-    .badge-status-missing {
-        background-color: #ff9f43 !important;
-        color: #fff;
-    }
-
-    .badge-status-not-found {
-        background-color: #6e6b7b !important;
-        color: #fff;
-    }
-
-    .role-list {
-        font-size: 0.9em;
-        margin-bottom: 0.5rem;
-    }
-
-        .role-list li {
-            padding: 0.2rem 0;
-        }
-
     .role-badge {
         display: inline-block;
-        padding: 0.25em 0.6em;
-        font-size: 0.85em;
-        font-weight: normal;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
         border-radius: 0.25rem;
-        margin-bottom: 0.2rem;
+        background-color: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
     }
 
-    .table-hover tbody tr:hover {
-        background-color: rgba(115, 103, 240, 0.05);
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 
-    .dataTables_filter input {
-        border: 1px solid #d8d6de;
-        padding: 0.438rem 1rem;
-        border-radius: 0.357rem;
-        margin-left: 0.5rem;
+    .loading-spinner {
+        animation: spin 1s linear infinite;
     }
 
-    .dataTables_length select {
-        border: 1px solid #d8d6de;
-        padding: 0.438rem 1rem;
-        border-radius: 0.357rem;
-        margin: 0 0.5rem;
+    .roles-container {
+        display: none;
+    }
+
+        .roles-container.show {
+            display: block;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+
+    .expanded-row {
+        background-color: #f8f9fa;
     }
 </style>
 {% endblock %}
@@ -72,351 +48,315 @@
         <span class="text-muted fw-light">Discord /</span> Role Status and Management
     </h4>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Discord Role Status</h5>
-            <button type="button" class="btn btn-primary" onclick="massUpdateRoles()">
-                <i class="fas fa-sync-alt me-1"></i> Mass Update Roles
-            </button>
-        </div>
-
-        <div class="card-body">
-            <div class="table-responsive">
-                <table id="roleStatusTable" class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>Player</th>
-                            <th>Team / League</th>
-                            <th>Roles</th>
-                            <th>Status</th>
-                            <th>Last Verified</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for player in players %}
-                        <tr>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <strong>{{ player.name }}</strong>
-                                    <small class="text-muted">{{ player.discord_id }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span>{{ player.team }}</span>
-                                    <small class="text-muted">{{ player.league }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        onclick="$('#roles-{{ player.id }}').collapse('toggle')">
-                                    <i class="fas fa-list-ul me-1"></i> Show Roles
-                                </button>
-                                <div id="roles-{{ player.id }}" class="collapse mt-2">
-                                    <div class="card card-body p-2 border-light">
-                                        <div class="role-list">
-                                            <strong class="text-primary">Current:</strong>
-                                            <div class="mt-1">
-                                                {% for role in player.current_roles %}
-                                                <span class="role-badge">{{ role }}</span>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                        <div class="role-list">
-                                            <strong class="text-primary">Expected:</strong>
-                                            <div class="mt-1">
-                                                {% for role in player.expected_roles %}
-                                                <span class="role-badge">{{ role }}</span>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                {% set has_all_roles = true %}
-                                {% for role in player.expected_roles %}
-                                {% if role not in player.current_roles %}
-                                {% set has_all_roles = false %}
-                                {% endif %}
-                                {% endfor %}
-
-                                <span id="status-{{ player.id }}" class="badge
-                                    {%- if not player.current_roles -%}
-                                        badge-status-not-found
-                                    {%- elif has_all_roles -%}
-                                        badge-status-synced
-                                    {%- else -%}
-                                        badge-status-missing
-                                    {%- endif -%}">
-                                    <i class="fas {% if not player.current_roles %}fa-user-slash
-                                               {% elif has_all_roles %}fa-check-circle
-                                               {% else %}fa-exclamation-circle{% endif %} me-1"></i>
-                                    {%- if not player.current_roles -%}
-                                    Not Found In Server
-                                    {%- elif has_all_roles -%}
-                                    Synced
-                                    {%- else -%}
-                                    Missing Expected Roles
-                                    {%- endif -%}
-                                </span>
-                            </td>
-                            <td data-order="{{ player.last_verified }}">
-                                {{ player.last_verified }}
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-primary"
-                                        onclick="updatePlayerRoles({{ player.id }})">
-                                    <i class="fas fa-sync-alt me-1"></i> Update
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    <div id="roleManagementRoot"></div>
 </div>
 {% endblock %}
 
 {% block custom_js %}
-<!-- Dependencies -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/dataTables.bootstrap5.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
+<script type="text/babel">
+// CSRF Token helper
+const getCSRFToken = () => {
+  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  if (!token) {
+    throw new Error('CSRF token not found');
+  }
+  return token;
+};
 
-<!-- Custom Script -->
-<script>
-    // Initialize Socket.IO
-    const socket = io();
+const { useState, useEffect, useRef } = React;
 
-    // Configure toastr notifications
-    toastr.options = {
-        closeButton: true,
-        progressBar: true,
-        positionClass: "toast-top-right",
-        timeOut: 3000,
-        extendedTimeOut: 1000,
-        preventDuplicates: true,
-        newestOnTop: true
+// Status Badge Component
+const StatusBadge = ({ status }) => {
+  const getStatusInfo = () => {
+    switch (status) {
+      case 'Synced':
+        return { color: 'bg-success text-white', icon: 'check-circle' };
+      case 'Out of Sync':
+        return { color: 'bg-warning text-dark', icon: 'exclamation-triangle' };
+      case 'Never Verified':
+        return { color: 'bg-info text-white', icon: 'info-circle' };
+      case 'Not in Discord':
+        return { color: 'bg-secondary text-white', icon: 'user-slash' };
+      default:
+        return { color: 'bg-secondary text-white', icon: 'question-circle' };
+    }
+  };
+
+  const { color, icon } = getStatusInfo();
+
+  return (
+    <span className={`badge ${color} d-inline-flex align-items-center gap-1`}>
+      <i className={`fas fa-${icon}`}></i>
+      {status}
+    </span>
+  );
+};
+
+// Update Button Component
+const UpdateButton = ({ playerId, onUpdate, isLoading }) => {
+  const handleClick = async () => {
+    if (!isLoading) {
+      onUpdate(playerId);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isLoading}
+      className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1"
+    >
+      <i className={`fas fa-sync-alt ${isLoading ? 'loading-spinner' : ''}`}></i>
+      {isLoading ? 'Updating...' : 'Update Roles'}
+    </button>
+  );
+};
+
+// Mass Update Button Component
+const MassUpdateButton = ({ onMassUpdate, isLoading }) => (
+  <button
+    onClick={onMassUpdate}
+    disabled={isLoading}
+    className="btn btn-primary d-inline-flex align-items-center gap-2"
+  >
+    <i className={`fas fa-sync-alt ${isLoading ? 'loading-spinner' : ''}`}></i>
+    {isLoading ? 'Updating All...' : 'Mass Update Roles'}
+  </button>
+);
+
+// Main Component
+const DiscordRoleManagement = () => {
+  const [players, setPlayers] = useState([]);
+  const [updatingPlayers, setUpdatingPlayers] = useState(new Set());
+  const [isMassUpdating, setIsMassUpdating] = useState(false);
+  const [isTableLoading, setIsTableLoading] = useState(true);
+  const [expandedRows, setExpandedRows] = useState(new Set());
+
+  const handleUpdate = async (playerId) => {
+    setUpdatingPlayers(prev => new Set([...prev, playerId]));
+    try {
+      const token = getCSRFToken();
+      const response = await fetch(`/admin/update_player_roles/${playerId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': token
+        },
+        credentials: 'same-origin'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server responded with ${response.status}`);
+      }
+
+      if (data.success && data.player_data) {
+        setPlayers(prevPlayers =>
+          prevPlayers.map(p => p.id === playerId
+            ? {
+                ...p,
+                current_roles: data.player_data.current_roles,
+                expected_roles: data.player_data.expected_roles,
+                status_text: data.player_data.status_text,
+                last_verified: data.player_data.last_verified,
+                discord_roles_synced: data.player_data.discord_roles_synced
+              }
+            : p
+          )
+        );
+        toastr.success('Roles updated successfully');
+      } else {
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch (error) {
+      console.error('Update failed:', error);
+      toastr.error(`Failed to update roles: ${error.message}`);
+    } finally {
+      setUpdatingPlayers(prev => {
+        const next = new Set(prev);
+        next.delete(playerId);
+        return next;
+      });
+    }
+  };
+
+  const handleMassUpdate = async () => {
+    setIsMassUpdating(true);
+    try {
+      const token = getCSRFToken();
+      const response = await fetch('/admin/update_discord_roles', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': token
+        },
+        credentials: 'same-origin'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        toastr.success('Mass update initiated');
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        throw new Error(data.error || 'Mass update failed');
+      }
+    } catch (error) {
+      console.error('Mass update failed:', error);
+      toastr.error(`Failed to initiate mass update: ${error.message}`);
+    } finally {
+      setIsMassUpdating(false);
+    }
+  };
+
+  const handleToggleRoles = (playerId) => {
+    setExpandedRows((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(playerId)) {
+        newSet.delete(playerId);
+      } else {
+        newSet.add(playerId);
+      }
+      return newSet;
+    });
+  };
+
+  useEffect(() => {
+    const checkTaskStatus = async () => {
+      try {
+        const response = await fetch(`/admin/check_role_status/{{ task_id }}`);
+        const data = await response.json();
+
+        if (data.state === 'COMPLETE') {
+          setPlayers(data.results);  // Update players with task result
+          setIsTableLoading(false);  // Loading complete
+        } else if (data.state === 'FAILED') {
+          toastr.error(`Error loading data: ${data.error}`);
+          setIsTableLoading(false);
+        } else if (data.state === 'PENDING') {
+          setTimeout(checkTaskStatus, 2000); // Retry after delay if still pending
+        }
+      } catch (error) {
+        console.error('Error checking task status:', error);
+        toastr.error('Failed to load data');
+        setIsTableLoading(false);
+      }
     };
 
-    // Initialize DataTable
-    $(document).ready(function () {
-        const table = $('#roleStatusTable').DataTable({
-            pageLength: 25,
-            order: [[3, 'desc']], // Sort by status by default
-            columns: [
-                { orderable: true }, // Player
-                { orderable: true }, // Team/League
-                { orderable: false }, // Roles
-                { orderable: true }, // Status
-                {
-                    orderable: true,
-                    render: function (data, type, row) {
-                        if (type === 'display') {
-                            const date = new Date(data);
-                            return date.toLocaleString();
-                        }
-                        return data;
-                    }
-                }, // Last Verified
-                { orderable: false } // Actions
-            ],
-            dom: '<"d-flex justify-content-between align-items-center mb-3"<"d-flex align-items-center"l><"d-flex align-items-center"f>>' +
-                '<"row"<"col-sm-12"tr>>' +
-                '<"d-flex justify-content-between align-items-center mt-3"<"d-flex align-items-center"i><"d-flex align-items-center"p>>',
-            language: {
-                search: "_INPUT_",
-                searchPlaceholder: "Search records...",
-                lengthMenu: "Show _MENU_ entries"
-            }
-        });
-    });
+    checkTaskStatus();  // Start polling on component load
+  }, []);
 
-    function updatePlayerRoles(playerId) {
-        const button = $(`button[onclick*="${playerId}"]`).filter((i, el) => el.textContent.trim() === 'Update');
-        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
+  return (
+    <div className="card">
+      <div className="card-header d-flex justify-content-between align-items-center">
+        <h5 className="mb-0">Discord Role Status</h5>
+        <MassUpdateButton onMassUpdate={handleMassUpdate} isLoading={isMassUpdating} />
+      </div>
 
-        fetch(`/discord/update_roles/${playerId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    toastr.success('Roles updated successfully');
-                } else {
-                    toastr.error(data.message || 'Error updating roles');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                toastr.error('Error updating roles');
-            })
-            .finally(() => {
-                button.prop('disabled', false).text('Update');
-            });
-    }
+      <div className="card-body">
+        {isTableLoading ? (
+          <div className="text-center py-4">
+            <i className="fas fa-spinner fa-spin me-2"></i> Loading table...
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table id="roleStatusTable" className="table table-striped">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Team / League</th>
+                  <th>Roles</th>
+                  <th>Status</th>
+                  <th>Last Verified</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {players.map(player => (
+                  <React.Fragment key={player.id}>
+                    <tr>
+                      <td>
+                        <div className="d-flex flex-column">
+                          <span className="fw-medium">{player.name}</span>
+                          <small className="text-muted">{player.discord_id}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="d-flex flex-column">
+                          <span>{player.team}</span>
+                          <small className="text-muted">{player.league}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleToggleRoles(player.id)}
+                          className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1"
+                        >
+                          <i className={`fas fa-${expandedRows.has(player.id) ? 'minus' : 'plus'}`}></i> Show Roles
+                        </button>
+                      </td>
+                      <td>
+                        <StatusBadge status={player.status_text} />
+                      </td>
+                      <td>{player.last_verified}</td>
+                      <td>
+                        <UpdateButton
+                          playerId={player.id}
+                          onUpdate={handleUpdate}
+                          isLoading={updatingPlayers.has(player.id)}
+                        />
+                      </td>
+                    </tr>
+                    {expandedRows.has(player.id) && (
+                      <tr className="expanded-row">
+                        <td colSpan="6">
+                          <div className="roles-container show">
+                            <div className="p-3">
+                              <div className="mb-3">
+                                <strong className="text-primary">Current Roles:</strong>
+                                <div className="mt-1">
+                                  {player.current_roles.map(role => (
+                                    <span key={role} className="role-badge">{role}</span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <strong className="text-primary">Expected Roles:</strong>
+                                <div className="mt-1">
+                                  {player.expected_roles.map(role => (
+                                    <span key={role} className="role-badge">{role}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-    function massUpdateRoles() {
-        const button = $('.card-header button');
-        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Updating...');
+// Initialize React application
+ReactDOM.createRoot(document.getElementById('roleManagementRoot')).render(<DiscordRoleManagement />);
 
-        fetch('/discord/mass_update_roles', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    toastr.success('Mass role update initiated');
-                } else {
-                    toastr.error(data.message || 'Error initiating mass role update');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                toastr.error('Error initiating mass role update');
-            })
-            .finally(() => {
-                button.prop('disabled', false).text('Mass Update Roles');
-            });
-    }
-
-    // Helper function to escape HTML special characters
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
-    // Socket.IO event handlers
-    socket.on('role_status_update', function (data) {
-        const table = $('#roleStatusTable').DataTable();
-
-        data.results.forEach(player => {
-            // Find the row for this player
-            const row = table.rows().nodes().toArray()
-                .find(row => {
-                    const button = row.querySelector(`button[onclick*="${player.id}"]`);
-                    return button && button.closest('tr');
-                });
-
-            if (row) {
-                // Update status badge
-                const statusBadge = row.querySelector(`#status-${player.id}`);
-                const hasAllRoles = player.expected_roles.every(role =>
-                    player.current_roles.includes(role));
-
-                if (statusBadge) {
-                    if (!player.current_roles.length) {
-                        statusBadge.className = 'badge bg-secondary';
-                        statusBadge.textContent = 'Not Found In Server';
-                    } else if (hasAllRoles) {
-                        statusBadge.className = 'badge bg-success';
-                        statusBadge.textContent = 'Synced';
-                    } else {
-                        statusBadge.className = 'badge bg-warning';
-                        statusBadge.textContent = 'Missing Expected Roles';
-                    }
-                }
-
-                // Update roles lists
-                const rolesDiv = row.querySelector(`#roles-${player.id}`);
-                if (rolesDiv) {
-                    const currentRolesList = rolesDiv.querySelector('.current-roles ul');
-                    const expectedRolesList = rolesDiv.querySelector('.expected-roles ul');
-
-                    if (currentRolesList) {
-                        currentRolesList.innerHTML = player.current_roles
-                            .map(role => `<li>${escapeHtml(role)}</li>`)
-                            .join('');
-                    }
-
-                    if (expectedRolesList) {
-                        expectedRolesList.innerHTML = player.expected_roles
-                            .map(role => `<li>${escapeHtml(role)}</li>`)
-                            .join('');
-                    }
-                }
-
-                // Update last verified timestamp
-                const lastVerifiedCell = row.querySelector('td:nth-child(5)');
-                if (lastVerifiedCell) {
-                    lastVerifiedCell.textContent = player.last_verified;
-                }
-            }
-        });
-
-        // Redraw table to ensure proper display
-        table.draw(false);
-    });
-
-    socket.on('role_update', function (player) {
-        const table = $('#roleStatusTable').DataTable();
-        const row = table.rows().nodes().toArray()
-            .find(row => {
-                const button = row.querySelector(`button[onclick*="${player.id}"]`);
-                return button && button.closest('tr');
-            });
-
-        if (row) {
-            // Update status badge
-            const statusBadge = row.querySelector(`#status-${player.id}`);
-            const hasAllRoles = player.expected_roles.every(role =>
-                player.current_roles.includes(role));
-
-            if (statusBadge) {
-                if (!player.current_roles.length) {
-                    statusBadge.className = 'badge bg-secondary';
-                    statusBadge.textContent = 'Not Found In Server';
-                } else if (hasAllRoles) {
-                    statusBadge.className = 'badge bg-success';
-                    statusBadge.textContent = 'Synced';
-                } else {
-                    statusBadge.className = 'badge bg-warning';
-                    statusBadge.textContent = 'Missing Expected Roles';
-                }
-            }
-
-            // Update roles lists
-            const rolesDiv = row.querySelector(`#roles-${player.id}`);
-            if (rolesDiv) {
-                const currentRolesList = rolesDiv.querySelector('.current-roles ul');
-                const expectedRolesList = rolesDiv.querySelector('.expected-roles ul');
-
-                if (currentRolesList) {
-                    currentRolesList.innerHTML = player.current_roles
-                        .map(role => `<li>${escapeHtml(role)}</li>`)
-                        .join('');
-                }
-
-                if (expectedRolesList) {
-                    expectedRolesList.innerHTML = player.expected_roles
-                        .map(role => `<li>${escapeHtml(role)}</li>`)
-                        .join('');
-                }
-            }
-
-            // Update last verified timestamp
-            const lastVerifiedCell = row.querySelector('td:nth-child(5)');
-            if (lastVerifiedCell) {
-                lastVerifiedCell.textContent = player.last_verified;
-            }
-
-            // Redraw table to ensure proper display
-            table.draw(false);
-        }
-    });
+// Configure toastr
+toastr.options = {
+  closeButton: true,
+  progressBar: true,
+  positionClass: "toast-top-right",
+  timeOut: 3000
+};
 </script>
 {% endblock %}

@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 from app.models import Match, Schedule, Availability, Player, Team
 from app.availability_api import update_discord_rsvp
 from app.tasks.tasks_rsvp import update_rsvp
-from app import db
 from datetime import datetime
 from sqlalchemy.orm import joinedload
 import asyncio

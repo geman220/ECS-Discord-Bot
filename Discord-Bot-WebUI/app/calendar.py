@@ -1,4 +1,3 @@
-from app import db, login_manager
 from datetime import datetime
 from flask import Blueprint, jsonify, render_template, request
 from app.models import Match, Team, Season, League, Player

@@ -1,7 +1,6 @@
 from flask import current_app, flash, request, jsonify, redirect, url_for
 from flask_login import current_user
 from app.models import User, Role
-from app import db
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from io import BytesIO

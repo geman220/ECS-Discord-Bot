@@ -2,7 +2,7 @@
 import eventlet
 eventlet.monkey_patch()
 from datetime import datetime
-from flask import Flask
+from flask import Flask, request
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -14,7 +14,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
 
 # Import extensions
-from app.extensions import db, socketio, celery
+from app.extensions import db, socketio, celery, create_celery
 
 # Initialize other extensions
 migrate = Migrate()
@@ -24,19 +24,8 @@ csrf = CSRFProtect()
 sess = Session()
 logger = logging.getLogger(__name__)
 
-def create_app(config_object='web_config.Config'):
-    """Create and configure Flask application instance"""
-    app = Flask(__name__)
-    app.config.from_object(config_object)
-    
-    # Configure logging
-    logging.basicConfig(level=logging.DEBUG)
-    app.logger.setLevel(logging.DEBUG)
-
-    # Add ProxyFix middleware
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-    # Initialize extensions
+def init_extensions(app):
+    """Initialize Flask extensions"""
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -57,11 +46,63 @@ def create_app(config_object='web_config.Config'):
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     JWTManager(app)
 
-    # Register blueprints
-    from app.blueprints import register_blueprints
-    register_blueprints(app)
+def init_tasks(app):
+    """Initialize Celery tasks"""
+    app.celery = create_celery(app)
+    # Import tasks to register them with Celery
+    with app.app_context():
+        import app.tasks.tasks_core
+        import app.tasks.tasks_live_reporting
+        import app.tasks.tasks_match_updates
+        import app.tasks.tasks_rsvp
+        import app.tasks.tasks_discord
 
-    # Add context processors
+def init_blueprints(app):
+    """Initialize blueprints"""
+    # Import blueprints here to avoid circular imports
+    from app.auth import auth as auth_bp
+    from app.publeague import publeague as publeague_bp
+    from app.draft import draft as draft_bp
+    from app.players import players_bp
+    from app.main import main as main_bp
+    from app.teams import teams_bp
+    from app.bot_admin import bot_admin_bp
+    from app.availability_api import availability_bp
+    from app.admin_routes import admin_bp
+    from app.match_pages import match_pages
+    from app.account import account_bp
+    from app.email import email_bp
+    from app.feedback import feedback_bp
+    from app.user_management import user_management_bp
+    from app.calendar import calendar_bp
+    from app.sms_rsvp import sms_rsvp_bp
+    from app.match_api import match_api
+    from app.app_api import mobile_api
+    from app.monitoring import monitoring_bp
+
+    # Register blueprints
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(publeague_bp, url_prefix='/publeague')
+    app.register_blueprint(draft_bp, url_prefix='/draft')
+    app.register_blueprint(players_bp, url_prefix='/players')
+    app.register_blueprint(teams_bp, url_prefix='/teams')
+    app.register_blueprint(availability_bp, url_prefix='/api')
+    app.register_blueprint(account_bp, url_prefix='/account')
+    app.register_blueprint(match_pages)
+    app.register_blueprint(bot_admin_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(feedback_bp)
+    app.register_blueprint(email_bp)
+    app.register_blueprint(calendar_bp)
+    app.register_blueprint(sms_rsvp_bp)
+    app.register_blueprint(match_api, url_prefix='/api')
+    app.register_blueprint(user_management_bp)
+    app.register_blueprint(mobile_api, url_prefix='/api/v1')
+    app.register_blueprint(monitoring_bp)
+
+def init_context_processors(app):
+    """Initialize context processors"""
     @app.context_processor
     def inject_roles():
         user_roles = []
@@ -74,7 +115,6 @@ def create_app(config_object='web_config.Config'):
         notifications = []
         if current_user.is_authenticated:
             from app.models import Notification
-            # Using filter instead of relationship access
             notifications = Notification.query.filter_by(
                 user_id=current_user.id
             ).order_by(
@@ -119,6 +159,30 @@ def create_app(config_object='web_config.Config'):
             is_owner=is_owner
         )
 
+def create_app(config_object='web_config.Config'):
+    """Create and configure Flask application instance"""
+    app = Flask(__name__)
+    app.config.from_object(config_object)
+    
+    # Configure logging
+    logging.basicConfig(level=logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)
+
+    # Add ProxyFix middleware
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # Initialize all components
+    init_extensions(app)
+    init_tasks(app)
+    init_blueprints(app)
+    init_context_processors(app)
+
+    @app.after_request
+    def add_header(response):
+        if '.js' in request.path:
+            response.headers['Content-Type'] = 'application/javascript'
+        return response
+
     # Register template filters
     @app.template_filter('datetimeformat')
     def datetimeformat(value, format='%B %d, %Y'):
@@ -137,34 +201,16 @@ def create_app(config_object='web_config.Config'):
     # Add teardown context
     @app.teardown_appcontext
     def shutdown_session(exception=None):
+        """Clean up the session at the end of the request or when the application context ends."""
         if exception:
             db.session.rollback()
-            logger.info(f"Exception occurred: {exception}. Rollback triggered.")
+            logger.info(f"Request completed with exception: {str(exception)}")
+        else:
+            db.session.commit()
+            logger.debug("Request completed successfully")
         db.session.remove()
-        logger.info("Session closed after request.")
 
     return app
 
-def init_celery(app=None):
-    """Initialize Celery with Flask app context"""
-    if app is None:
-        from flask import current_app
-        app = current_app
-
-    class ContextTask(celery.Task):
-        abstract = True
-        
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-
-    celery.Task = ContextTask
-
-    # Import tasks to register them with Celery
-    import app.tasks.tasks_core
-    import app.tasks.tasks_live_reporting
-    import app.tasks.tasks_match_updates
-    import app.tasks.tasks_rsvp
-    import app.tasks.tasks_discord
-
-    return celery
+# Create the application instance
+app = create_app()

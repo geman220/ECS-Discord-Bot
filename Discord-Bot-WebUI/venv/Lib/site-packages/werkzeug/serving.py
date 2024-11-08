@@ -37,6 +37,12 @@ from .urls import uri_to_iri
 
 try:
     import ssl
+
+    connection_dropped_errors: tuple[type[Exception], ...] = (
+        ConnectionError,
+        socket.timeout,
+        ssl.SSLEOFError,
+    )
 except ImportError:
 
     class _SslDummy:
@@ -47,6 +53,7 @@ except ImportError:
             )
 
     ssl = _SslDummy()  # type: ignore
+    connection_dropped_errors = (ConnectionError, socket.timeout)
 
 _log_add_style = True
 
@@ -74,7 +81,7 @@ except AttributeError:
 LISTEN_QUEUE = 128
 
 _TSSLContextArg = t.Optional[
-    t.Union["ssl.SSLContext", t.Tuple[str, t.Optional[str]], t.Literal["adhoc"]]
+    t.Union["ssl.SSLContext", tuple[str, t.Optional[str]], t.Literal["adhoc"]]
 ]
 
 if t.TYPE_CHECKING:
@@ -361,7 +368,7 @@ class WSGIRequestHandler(BaseHTTPRequestHandler):
 
         try:
             execute(self.server.app)
-        except (ConnectionError, socket.timeout) as e:
+        except connection_dropped_errors as e:
             self.connection_dropped(e, environ)
         except Exception as e:
             if self.server.passthrough_errors:
@@ -466,9 +473,11 @@ class WSGIRequestHandler(BaseHTTPRequestHandler):
         self.log("info", format, *args)
 
     def log(self, type: str, message: str, *args: t.Any) -> None:
+        # an IPv6 scoped address contains "%" which breaks logging
+        address_string = self.address_string().replace("%", "%%")
         _log(
             type,
-            f"{self.address_string()} - - [{self.log_date_time_string()}] {message}\n",
+            f"{address_string} - - [{self.log_date_time_string()}] {message}\n",
             *args,
         )
 

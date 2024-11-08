@@ -1,15 +1,34 @@
+# app/decorators.py
 from functools import wraps
-from celery import shared_task
 from datetime import datetime
-from flask import flash, redirect, url_for, abort, jsonify
+from flask import flash, redirect, url_for, abort, jsonify, Flask, current_app, has_app_context
 from flask_login import current_user
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-from app import db
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 from typing import Any, Callable
 import logging
+import inspect
+import threading
+from celery import shared_task
+
+# Import extensions but only db since we need it directly
+from app.extensions import db, celery
 
 logger = logging.getLogger(__name__)
+
+def log_context_state(location: str):
+    """Helper to log detailed context state"""
+    has_context = has_app_context()
+    frame = inspect.currentframe()
+    caller = inspect.getouterframes(frame, 2)
+    logger.debug(
+        f"[CONTEXT CHECK] Location: {location}\n"
+        f"Has App Context: {has_context}\n"
+        f"Current App: {current_app._get_current_object() if has_context else 'None'}\n"
+        f"Call Stack:\n"
+        f"{''.join(map(str, caller))}\n"
+        f"Thread ID: {threading.get_ident()}"
+    )
 
 def role_required(roles):
     """
@@ -172,114 +191,138 @@ def jwt_admin_or_owner_required(func):
 def db_operation(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
+        logger.debug(f"Executing function: {f.__name__} with args: {args} and kwargs: {kwargs}")
         try:
             result = f(*args, **kwargs)
+            db.session.flush()
             db.session.commit()
             return result
         except Exception as e:
             db.session.rollback()
+            logger.error(f"Database operation error in {f.__name__}: {str(e)}")
             raise
-        finally:
-            db.session.remove()
+        # Do not remove the session here; it will be removed by the context manager
     return decorated
 
 def query_operation(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
+        logger.debug(f"Executing query function: {f.__name__} with args: {args} and kwargs: {kwargs}")
         try:
-            from flask import has_request_context, has_app_context
-            if has_request_context() and has_app_context():
-                from flask_login import current_user
-                if current_user and current_user.is_authenticated:
-                    try:
-                        if hasattr(current_user, 'player'):
-                            db.session.add(current_user._get_current_object())
-                    except Exception as e:
-                        logger.debug(f"Non-critical error refreshing current_user in query_operation: {e}")
-            
-            return f(*args, **kwargs)
-        finally:
-            db.session.remove()
+            result = f(*args, **kwargs)
+            return result
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Query operation error in {f.__name__}: {str(e)}")
+            raise
+        # Do not remove the session here; it will be removed by the context manager
     return decorated
 
 @contextmanager
 def session_context():
+    """Enhanced session context manager with detailed logging"""
+    session_id = f"session-{datetime.utcnow().timestamp()}"
+    frame = inspect.currentframe()
+    caller = inspect.getouterframes(frame, 2)
+    
+    logger.debug(
+        f"[SESSION START] ID: {session_id}\n"
+        f"Called from: {caller[1].filename}:{caller[1].lineno}\n"
+        f"Has App Context: {has_app_context()}"
+    )
+    
     try:
         yield db.session
-        db.session.commit()
+        if db.session.is_active:
+            db.session.commit()
+            logger.debug(f"[SESSION COMMIT] ID: {session_id}")
     except Exception as e:
-        db.session.rollback()
+        logger.error(
+            f"[SESSION ERROR] ID: {session_id}\n"
+            f"Error: {str(e)}\n"
+            f"Has App Context: {has_app_context()}\n"
+            f"Stack Trace: {traceback.format_exc()}"
+        )
+        if db.session.is_active:
+            db.session.rollback()
+        raise
+    finally:
+        if db.session.is_active:
+            db.session.remove()
+            logger.debug(f"[SESSION END] ID: {session_id}")
+
+@asynccontextmanager
+async def async_session_context():
+    """Asynchronous session context manager for use in async functions."""
+    session_id = f"session-{datetime.utcnow().timestamp()}"
+    logger.debug(f"Starting new async session context: {session_id}")
+    try:
+        yield db.session
+        if db.session.is_active:
+            db.session.commit()
+            logger.debug(f"Committed session: {session_id}")
+    except Exception as e:
+        logger.error(f"Error in async session {session_id}: {str(e)}")
+        if db.session.is_active:
+            db.session.rollback()
+            logger.debug(f"Rolled back session: {session_id}")
         raise
     finally:
         db.session.remove()
+        logger.debug(f"Removed session: {session_id}")
 
-def celery_task(bind_self=True, **celery_kwargs):
-    def decorator(f: Callable) -> Callable:
-        task_name = celery_kwargs.get('name') or f'app.tasks.{f.__module__}.{f.__name__}'
-        default_kwargs = {
-            'bind': bind_self,
-            'max_retries': 3,
-            'default_retry_delay': 60,
-            'autoretry_for': (Exception,),
-            'retry_backoff': True,
-            'name': task_name
-        }
-        task_kwargs = {**default_kwargs, **celery_kwargs}
+def celery_task(**task_kwargs):
+    """Enhanced Celery task decorator that ensures proper app context"""
+    def decorator(f):
+        # Generate the task name if not provided
+        task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
         
-        @shared_task(**task_kwargs)
+        # Create base task
+        base_task = celery.task(
+            name=task_name,
+            **task_kwargs
+        )(f)
+        
         @wraps(f)
-        def wrapped_task(*args: Any, **kwargs: Any) -> Any:
-            from app import create_app, db
-            session_id = f"{task_name}-{datetime.utcnow().timestamp()}"
-            
-            app = create_app()
-            with app.app_context():
-                try:
-                    logger.info(f"Starting task {task_name} (session: {session_id})")
-                    result = f(*args, **kwargs) if not bind_self else f(args[0], *args[1:], **kwargs)
-                    try:
-                        db.session.commit()
-                        logger.debug(f"Committed database changes for {task_name} (session: {session_id})")
-                    except Exception as e:
-                        db.session.rollback()
-                        logger.error(f"Database error in {task_name} (session: {session_id}): {str(e)}")
-                        raise
-                    return result
-                except Exception as e:
-                    logger.error(f"Error in {task_name} (session: {session_id}): {str(e)}", exc_info=True)
-                    if bind_self:
-                        raise args[0].retry(exc=e)
-                    else:
-                        raise e
-                finally:
-                    db.session.remove()
-                    logger.debug(f"Cleaned up database session for {task_name} (session: {session_id})")
-        return wrapped_task
+        def wrapped(*args, **kwargs):
+            try:
+                from flask import current_app
+                with current_app.app_context():
+                    return base_task(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
+                raise
+                
+        # Copy celery task attributes
+        wrapped.delay = base_task.delay
+        wrapped.apply_async = base_task.apply_async
+        
+        return wrapped
     return decorator
 
-def async_task(**celery_kwargs):
-    def decorator(f: Callable) -> Callable:
-        task_name = celery_kwargs.get('name') or f'app.tasks.{f.__module__}.{f.__name__}'
+def async_task(**task_kwargs):
+    """Decorator for async Celery tasks"""
+    def decorator(f):
+        # Generate the task name if not provided
+        task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
         
-        @celery_task(**celery_kwargs)
+        # Create base task
+        base_task = celery.task(
+            name=task_name,
+            **task_kwargs
+        )(f)
+        
         @wraps(f)
-        def wrapped_task(self, *args: Any, **kwargs: Any) -> Any:
-            import asyncio
-            session_id = f"{task_name}-{datetime.utcnow().timestamp()}"
-            
+        async def wrapped(*args, **kwargs):
             try:
-                logger.debug(f"Creating event loop for {task_name} (session: {session_id})")
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                
-                result = loop.run_until_complete(f(self, *args, **kwargs))
-                return result
+                return await base_task(*args, **kwargs)
             except Exception as e:
-                logger.error(f"Error in async task {task_name} (session: {session_id}): {str(e)}", 
-                           exc_info=True)
+                logger.error(f"Async task {task_name} failed: {str(e)}", exc_info=True)
                 raise
-            finally:
-                loop.close()
-                logger.debug(f"Closed event loop for {task_name} (session: {session_id})")
-        return wrapped_task
+                
+        # Copy celery task attributes
+        wrapped.delay = base_task.delay
+        wrapped.apply_async = base_task.apply_async
+        
+        return wrapped
     return decorator

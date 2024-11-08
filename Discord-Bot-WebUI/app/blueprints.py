@@ -1,8 +1,5 @@
 # app/blueprints.py
 
-import email
-
-
 def register_blueprints(app):
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp

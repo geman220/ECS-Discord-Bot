@@ -375,6 +375,7 @@ class Player(db.Model):
     discord_roles = db.Column(JSON)
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)
+    discord_roles_synced = db.Column(db.Boolean, default=False)
 
     def to_dict(self, public=False):
         base_url = request.host_url.rstrip('/')

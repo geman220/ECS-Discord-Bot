@@ -1,635 +1,208 @@
 {% extends "base.html" %}
-
-{% block main_content %}
-<div class="container">
-    <!-- Header -->
-    <div class="content-header row">
-        <div class="col-12 mb-4">
-            <h2 class="text-primary">Pub League Management</h2>
-        </div>
-    </div>
-
-    <!-- Body -->
-    <div class="content-body">
-        <!-- Tabbed Interface for Leagues -->
-        <ul class="nav nav-tabs" id="leagueTabs" role="tablist">
-            {% for league in leagues %}
-            <li class="nav-item" role="presentation">
-                <button class="nav-link {% if loop.first %}active{% endif %}" id="{{ league.name }}-tab" data-bs-toggle="tab" data-bs-target="#{{ league.name }}" type="button" role="tab" aria-controls="{{ league.name }}" aria-selected="{{ 'true' if loop.first else 'false' }}">
-                    {{ league.name }}
-                </button>
-            </li>
-            {% endfor %}
-        </ul>
-
-        <div class="tab-content mt-4" id="leagueTabsContent">
-            {% for league in leagues %}
-            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="{{ league.name }}" role="tabpanel" aria-labelledby="{{ league.name }}-tab">
-                <!-- Bulk Match Creation Form -->
-                <div class="card card-bordered mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="card-title text-primary">Bulk Match Creation for {{ league.name }}</h6>
-                        <button class="btn btn-primary btn-sm" id="generateForm-{{ league.name }}">
-                            <i data-feather="plus"></i> Generate Input Form
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" id="bulkCreationForm-{{ league.name }}" action="{{ url_for('publeague.schedule.manage_publeague_schedule', season_id=season.id) }}" class="row g-3 needs-validation" novalidate>
-                            {{ form_hidden_fields() }}
-                            {{ form_input_group("Total Weeks", "number", "total_weeks", "11", league.name) }}
-                            {{ form_input_group("Matches per Week", "number", "matches_per_week", "8", league.name) }}
-                            {{ form_input_group("Start Time", "time", "start_time", "", league.name) }}
-                            {{ form_input_group("Fun Week (No Matches)", "number", "fun_week", "9", league.name) }}
-                            {{ form_input_group("TST Week (No Matches)", "number", "tst_week", "11", league.name) }}
-                            {{ form_select_group("Default Location", "location", ["North", "South"], league.name) }}
-                            <div class="mt-3">
-                                <button type="submit" class="btn btn-success">Submit</button>
-                            </div>
-                        </form>
-                        <button type="button" class="btn btn-secondary mt-2" data-bs-toggle="modal" data-bs-target="#addWeekModal" data-league-name="{{ league.name }}">
-                            <i data-feather="plus-circle"></i> Add Single Week
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Detailed Input Form for Bulk Matches -->
-                <div id="detailedInputForm-{{ league.name }}"></div>
-
-                <!-- Current Schedule Display -->
-                <div class="card card-bordered mt-4">
-                    <div class="card-header">
-                        <h6 class="card-title text-primary">Current Schedule for {{ league.name }}</h6>
-                    </div>
-                    <div class="card-body">
-                        {% if schedule and schedule[league.name] %}
-                        {% for week, data in schedule[league.name].items() %}
-                        {{ render_week_card(week, data, season.id, league.name, loop.first) }}
-                        {% endfor %}
-                        {% else %}
-                        <p class="text-muted">No matches scheduled yet.</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
-<!-- Add Week Modal -->
-{{ render_add_week_modal(leagues) }}
-
-<!-- Edit Match Modal -->
-{{ render_edit_match_modal() }}
-{% endblock %}
+{% block title %}Pub League Schedule Management{% endblock %}
 
 {% block custom_css %}
 <style>
-    /* Ensure SweetAlert2 overlays everything */
-    .swal2-container {
-        z-index: 9999 !important;
+    .table-responsive {
+        margin-bottom: 1rem;
     }
 
-    /* Utilize Vuexy's utility classes and remove unnecessary custom styles */
-    .accordion-item {
-        border: 1px solid #e3e6ef;
+    .accordion-button:not(.collapsed) {
+        background-color: var(--bs-primary-bg-subtle);
     }
 
-    .list-group-item {
-        border: none;
-        border-bottom: 1px solid #e3e6ef;
+    .edit-match-btn, .delete-match-btn, .add-match-btn {
+        margin-right: 0.5rem;
     }
 
-        .list-group-item:last-child {
-            border-bottom: none;
-        }
-
-    .dropdown-menu a {
+    .card-header[data-bs-toggle="collapse"] {
         cursor: pointer;
     }
-    /* Hover Effects */
-    .list-group-item:hover {
-        background-color: #f8f9fa;
-    }
+
+        .card-header[data-bs-toggle="collapse"]:hover {
+            background-color: var(--bs-gray-100);
+        }
 </style>
 {% endblock %}
 
-{% block custom_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Initialize Feather Icons
-        if (feather) {
-            feather.replace();
-        }
-
-        // Initialize Bootstrap tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
-        // Parse leagues data from JSON
-        const leagues = {{ leagues | tojson | safe }};
-
-        // Add event listeners for generating forms
-        leagues.forEach(league => {
-            const generateButton = document.getElementById(`generateForm-${league.name}`);
-            if (generateButton) {
-                generateButton.addEventListener('click', function () {
-                    handleGenerateForm(league.name);
-                });
-            }
-        });
-
-        // Initialize Form Validation
-        var forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-
-        // Handle Add Week Modal Show Event to Populate Teams
-        var addWeekModal = document.getElementById('addWeekModal');
-        addWeekModal.addEventListener('show.bs.modal', function (event) {
-            var button = event.relatedTarget;
-            var leagueName = button.getAttribute('data-league-name');
-
-            // Find the league data
-            var league = leagues.find(l => l.name === leagueName);
-
-            // Set the league name in the hidden input
-            var modalLeagueNameInput = addWeekModal.querySelector('#modal_league_name');
-            modalLeagueNameInput.value = leagueName;
-
-            // Populate Team A and Team B selects
-            var teamASelect = addWeekModal.querySelector('#teamA');
-            var teamBSelect = addWeekModal.querySelector('#teamB');
-
-            teamASelect.innerHTML = '<option value="" disabled selected>Select Team A</option>' +
-                league.teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('');
-
-            teamBSelect.innerHTML = '<option value="" disabled selected>Select Team B</option>' +
-                league.teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('');
-        });
-    });
-
-    // Handle Generate Detailed Form
-    function handleGenerateForm(leagueName) {
-        const totalWeeks = document.getElementById(`total_weeks-${leagueName}`).value;
-        const matchesPerWeek = document.getElementById(`matches_per_week-${leagueName}`).value;
-        const funWeek = document.getElementById(`fun_week-${leagueName}`).value;
-        const tstWeek = document.getElementById(`tst_week-${leagueName}`).value;
-        const startTimeStr = document.getElementById(`start_time-${leagueName}`).value;
-        const location = document.getElementById(`location-${leagueName}`).value;
-
-        if (!totalWeeks || !matchesPerWeek || !startTimeStr) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Missing Information',
-                text: 'Total Weeks, Matches Per Week, and Start Time are required!',
-            });
-            return;
-        }
-
-        const league = leagues.find(l => l.name === leagueName);
-        const detailedForm = generateDetailedInputForm(totalWeeks, matchesPerWeek, funWeek, tstWeek, startTimeStr, location, league.teams, leagueName);
-        document.getElementById(`detailedInputForm-${leagueName}`).innerHTML = detailedForm;
-
-        // Scroll to the generated form
-        document.getElementById(`detailedInputForm-${leagueName}`).scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Generate Detailed Input Form HTML
-    function generateDetailedInputForm(totalWeeks, matchesPerWeek, funWeek, tstWeek, startTimeStr, location, teams, leagueName) {
-        const csrfToken = "{{ csrf_token() }}";
-        let formHTML = `
-            <form method="POST" action="/publeague/bulk_create_matches/${season.id}/${leagueName}" class="needs-validation" novalidate>
-                <input type="hidden" name="csrf_token" value="${csrfToken}">
-                <div class="row g-4">`;
-
-        for (let week = 1; week <= totalWeeks; week++) {
-            let weekDetails = (week == funWeek) ? 'Fun Week' : (week == tstWeek) ? 'TST Week' : `Week ${week}`;
-            formHTML += `
-                <div class="col-12">
-                    <div class="card card-bordered">
-                        <div class="card-header">
-                            <h5 class="card-title">${weekDetails}</h5>
-                        </div>
-                        <div class="card-body">
-                            ${ (week == funWeek || week == tstWeek) ? `<p>No matches scheduled this week.</p>` : `
-                                <div class="mb-3">
-                                    <label class="form-label">Date</label>
-                                    <input type="date" class="form-control" name="date_week${week}" required>
-                                </div>
-                                ${ generateMatchesSection(week, matchesPerWeek, teams, startTimeStr, location) }
-                            `}
-                        </div>
-                    </div>
-                </div>`;
-        }
-
-        formHTML += `
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pub League Schedule Management</h5>
                 </div>
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-success">Save Matches</button>
-                </div>
-            </form>`;
-        return formHTML;
-    }
 
-    // Generate Matches Section HTML
-    function generateMatchesSection(week, matchesPerWeek, teams, startTimeStr, location) {
-        let matchesHTML = '';
-        for (let match = 1; match <= matchesPerWeek; match++) {
-            matchesHTML += `
-                <div class="card card-bordered mb-3">
-                    <div class="card-header">
-                        <h6 class="card-title">Match ${match}</h6>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" role="tablist">
+                        {% for league in leagues %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if loop.first %}active{% endif %}"
+                               data-bs-toggle="tab"
+                               href="#league-{{ league.id }}"
+                               role="tab">{{ league.name }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="tab-content">
+                        {% for league in leagues %}
+                        <div id="league-{{ league.id }}"
+                             class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                             role="tabpanel">
+                            {% if schedule[league.name] %}
+                            <div class="accordion" id="accordionWeek{{ league.id }}">
+                                {% for week, data in schedule[league.name].items() %}
+                                <div class="card mb-3">
+                                    <div class="card-header p-3">
+                                        <div class="d-flex justify-content-between align-items-center accordion-header" id="heading-{{ league.id }}-{{ week }}">
+                                            <div class="flex-grow-1 accordion-button {% if not loop.first %}collapsed{% endif %}"
+                                                 role="button"
+                                                 data-bs-toggle="collapse"
+                                                 data-bs-target="#week-{{ league.id }}-{{ week }}"
+                                                 aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
+                                                 aria-controls="week-{{ league.id }}-{{ week }}">
+                                                <h6 class="mb-0">Week {{ week }} - {{ data.date }}</h6>
+                                            </div>
+                                            <button class="btn btn-sm btn-success add-match-btn ms-2"
+                                                    data-week="{{ week }}"
+                                                    data-date="{{ data.date }}"
+                                                    data-league-id="{{ league.id }}"
+                                                    type="button"
+                                                    onclick="event.stopPropagation();">
+                                                <i class="ti ti-plus"></i> Add Match
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div id="week-{{ league.id }}-{{ week }}"
+                                         class="collapse {% if loop.first %}show{% endif %}"
+                                         data-bs-parent="#accordionWeek{{ league.id }}">
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Teams</th>
+                                                            <th>Time</th>
+                                                            <th>Location</th>
+                                                            <th>Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for match in data.matches %}
+                                                        <tr>
+                                                            <td>{{ match.team_a }} vs {{ match.team_b }}</td>
+                                                            <td>{{ match.time }}</td>
+                                                            <td>{{ match.location }}</td>
+                                                            <td>
+                                                                <button class="btn btn-sm btn-primary edit-match-btn"
+                                                                        data-match-id="{{ match.id }}"
+                                                                        data-date="{{ data.date }}"
+                                                                        data-time="{{ match.time }}"
+                                                                        data-team-a="{{ match.team_a }}"
+                                                                        data-team-b="{{ match.team_b }}"
+                                                                        data-team-a-id="{{ match.team_a_id }}"
+                                                                        data-team-b-id="{{ match.team_b_id }}"
+                                                                        data-location="{{ match.location }}"
+                                                                        data-week="{{ week }}">
+                                                                    <i class="ti ti-edit"></i> Edit
+                                                                </button>
+                                                                <button class="btn btn-sm btn-danger delete-match-btn"
+                                                                        data-match-id="{{ match.id }}">
+                                                                    <i class="ti ti-trash"></i> Delete
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info mt-3">
+                                No matches scheduled for this league.
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label class="form-label">Team A</label>
-                                <select class="form-select" name="teamA_week${week}_match${match}" required>
-                                    <option value="" disabled selected>Select Team A</option>
-                                    ${ teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('') }
-                                </select>
-                                <div class="invalid-feedback">
-                                    Please select Team A.
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Team B</label>
-                                <select class="form-select" name="teamB_week${week}_match${match}" required>
-                                    <option value="" disabled selected>Select Team B</option>
-                                    ${ teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('') }
-                                </select>
-                                <div class="invalid-feedback">
-                                    Please select Team B.
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Time</label>
-                                <input type="time" class="form-control" name="time_week${week}_match${match}" value="${startTimeStr}" required>
-                                <div class="invalid-feedback">
-                                    Please provide a valid time.
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Location</label>
-                                <select class="form-select" name="location_week${week}_match${match}" required>
-                                    <option value="North" ${location === 'North' ? 'selected' : ''}>North</option>
-                                    <option value="South" ${location === 'South' ? 'selected' : ''}>South</option>
-                                </select>
-                                <div class="invalid-feedback">
-                                    Please select a location.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-        }
-        return matchesHTML;
-    }
-
-    // Load Match Data into Edit Modal
-    function loadMatchData(matchId, teamA, teamB, time, location, date, leagueName) {
-        const formattedDate = new Date(date).toISOString().split('T')[0];
-        const teamASelect = document.getElementById('edit_team_a');
-        const teamBSelect = document.getElementById('edit_team_b');
-        const leaguesData = {{ leagues | tojson | safe }};
-        const league = leaguesData.find(l => l.name === leagueName);
-
-        // Populate Team A dropdown
-        teamASelect.innerHTML = '<option value="" disabled selected>Select Team A</option>' +
-            league.teams.map(team =>
-                `<option value="${team.id}" ${team.id === teamA ? 'selected' : ''}>${team.name}</option>`
-            ).join('');
-
-        // Populate Team B dropdown
-        teamBSelect.innerHTML = '<option value="" disabled selected>Select Team B</option>' +
-            league.teams.map(team =>
-                `<option value="${team.id}" ${team.id === teamB ? 'selected' : ''}>${team.name}</option>`
-            ).join('');
-
-        // Populate other fields
-        document.getElementById('edit_time').value = time;
-        document.getElementById('edit_location').value = location;
-        document.getElementById('edit_date').value = formattedDate;
-
-        // Set the match ID as a data attribute on the form
-        document.querySelector('#editMatchForm').setAttribute('data-match-id', matchId);
-    }
-
-    // Submit Edit Match Form
-    function submitEditForm() {
-        const form = document.getElementById('editMatchForm');
-        const matchId = form.getAttribute('data-match-id');
-
-        if (!matchId) {
-            console.error('Match ID is missing');
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Match ID is missing. Please try again.',
-            });
-            return;
-        }
-
-        const formData = new FormData(form);
-
-        fetch(`/publeague/schedules/edit_match/${matchId}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': formData.get('csrf_token'),
-                'Accept': 'application/json',
-            },
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) throw new Error('Failed to update match.');
-            return response.json();
-        })
-        .then(data => {
-            // Get the modal instance
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('editMatchModal'));
-            // Hide the modal
-            editModal.hide();
-
-            // Listen for the modal to be fully hidden
-            document.getElementById('editMatchModal').addEventListener('hidden.bs.modal', function () {
-                // Trigger SweetAlert2 after the modal is hidden
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: 'Match updated successfully!',
-                }).then(() => {
-                    location.reload();
-                });
-            }, { once: true }); // Ensures the event listener is removed after execution
-        })
-        .catch(error => {
-            console.error('Error updating match:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to update match. Please try again.',
-            });
-        });
-    }
-
-    // Confirm Delete Match
-    function confirmDeleteMatch(matchId, leagueName) {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "Do you really want to delete this match?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, delete it!',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create a temporary form to submit the deletion
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/publeague/schedules/delete_match/${matchId}`;
-
-                // Add CSRF token
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrf_token';
-                csrfInput.value = '{{ csrf_token() }}';
-                form.appendChild(csrfInput);
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-</script>
-{% endblock %}
-
-{% macro form_hidden_fields() %}
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-{% endmacro %}
-
-{% macro form_input_group(label, type, name, defaultValue, leagueName, required="required") %}
-<div class="col-md-4">
-    <label for="{{ name }}-{{ leagueName }}" class="form-label">{{ label }}</label>
-    <input type="{{ type }}" class="form-control" id="{{ name }}-{{ leagueName }}" name="{{ name }}" value="{{ defaultValue }}" {{ required }}>
-    <div class="invalid-feedback">
-        Please provide a valid {{ label.lower() }}.
-    </div>
-</div>
-{% endmacro %}
-
-{% macro form_select_group(label, name, options, leagueName) %}
-<div class="col-md-4">
-    <label for="{{ name }}-{{ leagueName }}" class="form-label">{{ label }}</label>
-    <select class="form-select" id="{{ name }}-{{ leagueName }}" name="{{ name }}" required>
-        <option value="" disabled selected>Select {{ label }}</option>
-        {% for option in options %}
-        <option value="{{ option }}">{{ option }}</option>
-        {% endfor %}
-    </select>
-    <div class="invalid-feedback">
-        Please select a {{ label.lower() }}.
-    </div>
-</div>
-{% endmacro %}
-
-{% macro render_week_card(week, data, season_id, league_name, is_first) %}
-<div class="accordion mb-3" id="accordion-{{ league_name }}-{{ week }}">
-    <div class="accordion-item">
-        <h2 class="accordion-header" id="heading-{{ league_name }}-{{ week }}">
-            <button class="accordion-button {% if not is_first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ league_name }}-{{ week }}" aria-expanded="{{ 'true' if is_first else 'false' }}" aria-controls="collapse-{{ league_name }}-{{ week }}">
-                <strong>Week {{ week }}</strong> - {{ data.date }}
-            </button>
-        </h2>
-        <div id="collapse-{{ league_name }}-{{ week }}" class="accordion-collapse collapse {% if is_first %}show{% endif %}" aria-labelledby="heading-{{ league_name }}-{{ week }}" data-bs-parent="#accordion-{{ league_name }}">
-            <div class="accordion-body">
-                {% if data.matches and data.matches | length > 0 %}
-                <ul class="list-group">
-                    {% for match in data.matches %}
-                    <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start">
-                        <div class="mb-2 mb-md-0">
-                            <strong>{{ match.team_a }}</strong> vs <strong>{{ match.team_b }}</strong>
-                            <br>
-                            <small>{{ match.time }} - {{ match.location }}</small>
-                        </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton-{{ match.match_id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i data-feather="more-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton-{{ match.match_id }}">
-                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editMatchModal" onclick="loadMatchData({{ match.match_id }}, {{ match.team_a_id }}, {{ match.team_b_id }}, '{{ match.time }}', '{{ match.location }}', '{{ data.date }}', '{{ league_name }}')">Edit</a></li>
-                                <li><a class="dropdown-item text-danger" href="#" onclick="confirmDeleteMatch({{ match.match_id }}, '{{ league_name }}')">Delete</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-muted">No matches scheduled for this week.</p>
-                {% endif %}
-                <div class="mt-3">
-                    <form method="POST" action="{{ url_for('publeague.schedule.delete_week', league_type='publeague', season_id=season_id, week_number=week) }}" style="display:inline;">
-                        {{ form_hidden_fields() }}
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete Week {{ week }}?');">Delete Week</button>
-                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endmacro %}
 
-{% macro render_add_week_modal(leagues) %}
-<div class="modal fade" id="addWeekModal" tabindex="-1" aria-labelledby="addWeekModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<!-- Match Modal -->
+<div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('publeague.schedule.manage_publeague_schedule', season_id=season.id) }}" class="needs-validation" novalidate>
-                {{ form_hidden_fields() }}
-                <input type="hidden" id="modal_league_name" name="league_name" value="">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Week</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMatchForm">
                 <div class="modal-body">
+                    <input type="hidden" id="editMatchId" name="match_id">
+                    <input type="hidden" id="editWeek" name="week">
+
                     <div class="mb-3">
-                        <label for="week" class="form-label">Week Number</label>
-                        <input type="number" class="form-control" id="week" name="week" required>
-                        <div class="invalid-feedback">
-                            Please provide a week number.
-                        </div>
+                        <label for="editDate" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="editDate" name="date" required>
                     </div>
+
                     <div class="mb-3">
-                        <label for="date" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date" name="date" required>
-                        <div class="invalid-feedback">
-                            Please provide a valid date.
-                        </div>
+                        <label for="editTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="editTime" name="time" required>
                     </div>
+
                     <div class="mb-3">
-                        <label for="teamA" class="form-label">Team A</label>
-                        <select class="form-select" id="teamA" name="teamA" required>
-                            <option value="" disabled selected>Select Team A</option>
-                            <!-- Options will be populated via JavaScript -->
+                        <label for="editTeamA" class="form-label">Team A</label>
+                        <select class="form-control" id="editTeamA" name="team_a" required>
+                            <option value="">Select Team A</option>
+                            {% for league in leagues %}
+                            {% for team in league.teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                            {% endfor %}
                         </select>
-                        <div class="invalid-feedback">
-                            Please select Team A.
-                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="teamB" class="form-label">Team B</label>
-                        <select class="form-select" id="teamB" name="teamB" required>
-                            <option value="" disabled selected>Select Team B</option>
-                            <!-- Options will be populated via JavaScript -->
+                        <label for="editTeamB" class="form-label">Team B</label>
+                        <select class="form-control" id="editTeamB" name="team_b" required>
+                            <option value="">Select Team B</option>
+                            {% for league in leagues %}
+                            {% for team in league.teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                            {% endfor %}
                         </select>
-                        <div class="invalid-feedback">
-                            Please select Team B.
-                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label for="time" class="form-label">Time</label>
-                        <input type="time" class="form-control" id="time" name="time" required>
-                        <div class="invalid-feedback">
-                            Please provide a valid time.
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="location" class="form-label">Location</label>
-                        <select class="form-select" id="location" name="location" required>
-                            <option value="" disabled selected>Select Location</option>
+                        <label for="editLocation" class="form-label">Location</label>
+                        <select class="form-control" id="editLocation" name="location" required>
                             <option value="North">North</option>
                             <option value="South">South</option>
                         </select>
-                        <div class="invalid-feedback">
-                            Please select a location.
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Add Week</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
-{% endmacro %}
+{% endblock %}
 
-{% macro render_edit_match_modal() %}
-<div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <form method="POST" id="editMatchForm" class="needs-validation" novalidate>
-                {{ form_hidden_fields() }}
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Match</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label for="edit_team_a" class="form-label">Team A</label>
-                            <select id="edit_team_a" name="teamA" class="form-select" required>
-                                <option value="" disabled selected>Select Team A</option>
-                                <!-- Options populated via JavaScript -->
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select Team A.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="edit_team_b" class="form-label">Team B</label>
-                            <select id="edit_team_b" name="teamB" class="form-select" required>
-                                <option value="" disabled selected>Select Team B</option>
-                                <!-- Options populated via JavaScript -->
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select Team B.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="edit_date" class="form-label">Date</label>
-                            <input type="date" id="edit_date" name="date" class="form-control" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid date.
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="edit_time" class="form-label">Time</label>
-                            <input type="time" id="edit_time" name="time" class="form-control" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid time.
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <label for="edit_location" class="form-label">Location</label>
-                            <select id="edit_location" name="location" class="form-select" required>
-                                <option value="" disabled selected>Select Location</option>
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                            </select>
-                            <div class="invalid-feedback">
-                                Please select a location.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitEditForm()">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-{% endmacro %}
+{% block custom_js %}
+<script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
+{% endblock %}

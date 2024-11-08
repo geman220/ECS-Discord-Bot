@@ -8,7 +8,6 @@ import os
 import logging
 from discord import app_commands
 from discord.ext import commands
-from database import get_db_connection, PREDICTIONS_DB_PATH
 from common import bot_token, server_id
 import uvicorn
 from bot_rest_api import app, bot_ready, update_embed_for_message, get_team_id_for_message, poll_task_result, session
@@ -152,13 +151,12 @@ async def update_user_rsvp(match_id: int, discord_id: int, response: str):
         "responded_at": datetime.utcnow().isoformat()
     }
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(api_url, json=payload) as resp:
-                resp_text = await resp.text()
-                if resp.status == 200:
-                    logger.info(f"RSVP updated successfully for match {match_id}, user {discord_id}")
-                else:
-                    logger.error(f"Failed to update RSVP: {resp.status}, {resp_text}")
+        async with session.post(api_url, json=payload) as resp:
+            resp_text = await resp.text()
+            if resp.status == 200:
+                logger.info(f"RSVP updated successfully for match {match_id}, user {discord_id}")
+            else:
+                logger.error(f"Failed to update RSVP: {resp.status}, {resp_text}")
     except aiohttp.ClientError as e:
         logger.error(f"Failed to update RSVP: {str(e)}")
 
@@ -169,7 +167,7 @@ async def update_discord_embed(match_id: int):
     """
     Updates the Discord embed for a given match.
     """
-    api_url = f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
+    api_url = f"http://localhost:5001/api/update_availability_embed/{match_id}"
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(api_url, timeout=10) as response:
@@ -240,6 +238,10 @@ async def on_ready():
 
         logger.info("Starting periodic check task...")
         asyncio.create_task(periodic_check())
+
+        # Start the REST API server as a task in the bot's event loop
+        logger.info("Starting REST API server...")
+        bot.loop.create_task(start_rest_api())
 
         logger.info("Bot initialization completed successfully.")
     except Exception as e:
@@ -423,22 +425,21 @@ async def on_raw_reaction_remove(payload):
     logger.debug(f"Updating RSVP to 'no_response' for user {user_id}")
     await update_user_rsvp(match_id, user_id, "no_response")
 
-async def start_fastapi():
+async def start_rest_api():
     """
     Starts the FastAPI server using Uvicorn.
     """
-    config = uvicorn.Config(app, host="0.0.0.0", port=5001, log_level="info")
+    config = uvicorn.Config(
+        app,
+        host="0.0.0.0",
+        port=5001,
+        log_level="info",
+        loop=bot.loop,          # Use the bot's event loop
+        lifespan="off",         # Disable lifespan events
+    )
     server = uvicorn.Server(config)
     await server.serve()
 
-async def main():
-    """
-    Main entry point to run both FastAPI and the Discord bot concurrently.
-    """
-    await asyncio.gather(
-        start_fastapi(),
-        bot.start(bot_token)
-    )
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Run the bot in the main thread
+    bot.run(bot_token)

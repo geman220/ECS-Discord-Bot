@@ -2,7 +2,6 @@ from flask import current_app, Blueprint, render_template, redirect, url_for, fl
 from flask_login import login_required, current_user
 from app.models import Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
 from app.decorators import role_required, admin_or_owner_required, db_operation, query_operation, session_context
-from app import db
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
@@ -10,6 +9,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, or_, and_
 from PIL import Image
+from app.extensions import db
 import logging
 
 from app.players_helpers import (

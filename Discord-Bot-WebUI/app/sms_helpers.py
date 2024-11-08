@@ -6,7 +6,6 @@ from twilio.rest import Client
 import random
 import string
 import logging
-from app import db
 from app.models import User, Player, Match
 from app.decorators import db_operation, query_operation
 

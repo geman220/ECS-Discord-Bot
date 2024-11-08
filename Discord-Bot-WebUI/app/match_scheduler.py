@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Dict, Any, Optional, List
 from redis import Redis
-from app.extensions import db, celery
+from app.extensions import celery
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
 from app.decorators import db_operation, query_operation

@@ -1,195 +1,182 @@
-﻿from datetime import datetime, timedelta
+﻿# app/tasks/tasks_match_updates.py
+
 import logging
-from typing import Dict, Any, Tuple, Optional, List
+import asyncio
+from datetime import datetime
+from typing import Dict, Any, Optional, List
+from app.decorators import celery_task, db_operation, query_operation, session_context
+from app.models import MLSMatch, ScheduledMessage, Match
+from sqlalchemy.orm import joinedload
 from app.extensions import db
-from app.decorators import celery_task, async_task, db_operation, query_operation, session_context
-from app.models import MLSMatch, ScheduledMessage
-from app.utils.discord_helpers import send_discord_update
-from app.api_utils import fetch_espn_data
+from app.tasks.tasks_match_updates_helpers import (
+    _process_match_updates_async,
+    _get_team_id_from_message
+)
 
 logger = logging.getLogger(__name__)
 
-@async_task(name='app.tasks.tasks_match_updates.process_match_updates')
-async def process_match_updates(self, match_id: str, match_data: Dict[str, Any]) -> str:
+@celery_task(
+    name='app.tasks.tasks_match_updates.process_match_updates',
+    bind=True,
+    queue='discord'
+)
+def process_match_updates(self, match_id: str, match_data: Dict[str, Any]) -> Dict[str, Any]:
     """Process match updates and send to Discord."""
     try:
-        @query_operation
-        def get_match() -> Optional[MLSMatch]:
-            return MLSMatch.query.get(match_id)
-
-        match = get_match()
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return f"No match found with ID {match_id}"
-
-        # Extract match data
-        competition = match_data['competitions'][0]
-        home_comp = competition['competitors'][0]
-        away_comp = competition['competitors'][1]
-
-        update_info = {
-            'home_team': home_comp['team']['displayName'],
-            'away_team': away_comp['team']['displayName'],
-            'home_score': home_comp['score'],
-            'away_score': away_comp['score'],
-            'match_status': match_data['status']['type']['name'],
-            'current_minute': match_data['status']['displayClock']
-        }
-
-        # Create update message
-        update_type, update_data = create_match_update(
-            status=update_info['match_status'],
-            home_team=update_info['home_team'],
-            away_team=update_info['away_team'],
-            home_score=update_info['home_score'],
-            away_score=update_info['away_score'],
-            current_minute=update_info['current_minute']
-        )
-
-        # Send update to Discord
-        await send_discord_update(
-            match.discord_thread_id,
-            update_type,
-            update_data
-        )
-
-        @db_operation
-        def update_match_status():
-            match = MLSMatch.query.get(match_id)
-            if match:
-                match.last_update_time = datetime.utcnow()
-                match.last_update_type = update_type
-                match.current_status = update_info['match_status']
-                match.current_score = f"{update_info['home_score']}-{update_info['away_score']}"
-            return match
-
-        updated_match = update_match_status()
-        
-        logger.info(f"Match update sent successfully for match {match_id}")
-        return "Match update sent successfully"
-
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(_process_match_updates_async(match_id, match_data))
+            return result
+        finally:
+            loop.close()
     except Exception as e:
         logger.error(f"Error processing match updates: {str(e)}", exc_info=True)
-        raise
+        raise self.retry(exc=e)
 
-@celery_task(name='app.tasks.tasks_match_updates.fetch_match_and_team_id_task')
+@celery_task(
+    name='app.tasks.tasks_match_updates.fetch_match_and_team_id_task',
+    bind=True,
+    queue='discord'
+)
 def fetch_match_and_team_id_task(self, message_id: str, channel_id: str) -> Dict[str, Any]:
     """Fetch match and team ID from message details."""
+    logger.info(f"Processing message_id: {message_id}, channel_id: {channel_id}")
+    
     try:
-        @query_operation
-        def get_scheduled_message() -> Optional[ScheduledMessage]:
-            return ScheduledMessage.query.filter(
-                ((ScheduledMessage.home_channel_id == channel_id) &
-                 (ScheduledMessage.home_message_id == message_id)) |
-                ((ScheduledMessage.away_channel_id == channel_id) &
-                 (ScheduledMessage.away_message_id == message_id))
-            ).first()
+        with session_context():
+            @query_operation
+            def get_message_data() -> Optional[Dict[str, Any]]:
+                message = ScheduledMessage.query.options(
+                    joinedload(ScheduledMessage.match),
+                    joinedload(ScheduledMessage.match).joinedload(Match.home_team),
+                    joinedload(ScheduledMessage.match).joinedload(Match.away_team)
+                ).filter(
+                    ((ScheduledMessage.home_channel_id == channel_id) &
+                     (ScheduledMessage.home_message_id == message_id)) |
+                    ((ScheduledMessage.away_channel_id == channel_id) &
+                     (ScheduledMessage.away_message_id == message_id))
+                ).first()
 
-        scheduled_message = get_scheduled_message()
-        if not scheduled_message:
-            logger.error(f"No scheduled message found for message_id: {message_id}")
-            return {'error': 'Message ID not found'}
+                if not message:
+                    logger.error(f"No message found for message_id: {message_id}, channel_id: {channel_id}")
+                    return None
 
-        # Determine team ID based on channel
-        team_id = get_team_id_from_message(scheduled_message, channel_id, message_id)
-        if not team_id:
-            logger.error(f"Team ID not found for message: {message_id}")
-            return {'error': 'Team ID not found'}
+                team_id = _get_team_id_from_message(message, channel_id, message_id)
+                if not team_id:
+                    logger.error(f"Could not determine team_id for message: {message_id}")
+                    return None
 
-        logger.info(f"Found match_id: {scheduled_message.match_id}, team_id: {team_id}")
-        return {
-            'match_id': scheduled_message.match_id,
-            'team_id': team_id
-        }
+                return {
+                    'match_id': message.match_id,
+                    'team_id': team_id,
+                    'match_date': message.match.date.isoformat() if message.match else None,
+                    'team_name': (message.match.home_team.name 
+                                if message.match and channel_id == message.home_channel_id 
+                                else message.match.away_team.name if message.match 
+                                else None)
+                }
+
+            message_data = get_message_data()
+            if not message_data:
+                return {
+                    'status': 'error',  # Changed from success: False to status: 'error'
+                    'message': 'Message or team ID not found'
+                }
+
+            logger.info(f"Found match_id: {message_data['match_id']}, team_id: {message_data['team_id']}")
+            return {
+                'status': 'success',  # Changed from success: True to status: 'success'
+                'message': 'Match and team data retrieved successfully',
+                'data': message_data
+            }
 
     except Exception as e:
         logger.error(f"Error fetching match and team ID: {str(e)}", exc_info=True)
-        raise
+        raise self.retry(exc=e)
 
-def get_team_id_from_message(message: ScheduledMessage, channel_id: str, message_id: str) -> Optional[int]:
-    """Helper function to determine team ID from message details."""
-    if message.home_channel_id == channel_id and message.home_message_id == message_id:
-        return message.match.home_team_id
-    elif message.away_channel_id == channel_id and message.away_message_id == message_id:
-        return message.match.away_team_id
-    return None
-
-def create_match_update(
-    status: str,
-    home_team: str,
-    away_team: str,
-    home_score: str,
-    away_score: str,
-    current_minute: str
-) -> Tuple[str, str]:
-    """Create appropriate update message based on match status."""
-    update_types = {
-        'STATUS_SCHEDULED': (
-            "pre_match_info",
-            f"🚨 Match Alert: {home_team} vs {away_team} is about to start!"
-        ),
-        'STATUS_IN_PROGRESS': (
-            "score_update",
-            f"⚽ {home_team} {home_score} - {away_score} {away_team} ({current_minute})"
-        ),
-        'STATUS_HALFTIME': (
-            "score_update",
-            f"⚽ {home_team} {home_score} - {away_score} {away_team} ({current_minute})"
-        ),
-        'STATUS_FINAL': (
-            "match_end",
-            f"🏁 Full Time: {home_team} {home_score} - {away_score} {away_team}"
-        )
-    }
-    
-    return update_types.get(status, ("status_update", f"Match Status: {status}"))
-
-# Additional utility functions for match status management
-@db_operation
-def update_match_details(match_id: str, update_info: Dict[str, Any]) -> Optional[MLSMatch]:
+@celery_task(
+    name='app.tasks.tasks_match_updates.update_match_details',
+    bind=True,
+    queue='discord'
+)
+def update_match_details_task(self, match_id: str, update_info: Dict[str, Any]) -> Dict[str, Any]:
     """Update match details with proper session management."""
-    match = MLSMatch.query.get(match_id)
-    if match:
-        match.current_status = update_info.get('match_status')
-        match.current_score = f"{update_info.get('home_score')}-{update_info.get('away_score')}"
-        match.last_update_time = datetime.utcnow()
-        match.current_minute = update_info.get('current_minute')
-    return match
-
-@query_operation
-def get_active_matches() -> List[MLSMatch]:
-    """Get all active matches that need updates."""
-    return MLSMatch.query.filter(
-        MLSMatch.current_status.in_(['STATUS_IN_PROGRESS', 'STATUS_HALFTIME'])
-    ).all()
-
-@celery_task(name='app.tasks.tasks_match_updates.cleanup_old_updates')
-def cleanup_old_updates(self, days_old: int = 7) -> Dict[str, Any]:
-    """Clean up old match updates."""
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=days_old)
-        
-        @db_operation
-        def cleanup_matches() -> int:
-            return MLSMatch.query.filter(
-                MLSMatch.current_status == 'STATUS_FINAL',
-                MLSMatch.last_update_time < cutoff_date
-            ).update({
-                'current_status': None,
-                'current_score': None,
-                'current_minute': None
-            }, synchronize_session=False)
+        with session_context():
+            @db_operation
+            def _update_match():
+                match = db.session.query(MLSMatch).get(match_id)
+                if match:
+                    match.current_status = update_info.get('match_status')
+                    match.current_score = f"{update_info.get('home_score')}-{update_info.get('away_score')}"
+                    match.last_update_time = datetime.utcnow()
+                    match.current_minute = update_info.get('current_minute')
+                    return {
+                        'id': match.id,
+                        'status': match.current_status,
+                        'score': match.current_score,
+                        'minute': match.current_minute
+                    }
+                return None
 
-        cleaned_count = cleanup_matches()
-        
-        return {
-            'success': True,
-            'message': f'Cleaned up {cleaned_count} old match updates',
-            'cleaned_count': cleaned_count
-        }
+            result = _update_match()
+            if not result:
+                return {
+                    'success': False,
+                    'message': f'Match {match_id} not found'
+                }
+
+            return {
+                'success': True,
+                'message': 'Match details updated successfully',
+                'data': result
+            }
+
     except Exception as e:
-        logger.error(f"Error cleaning up old updates: {str(e)}", exc_info=True)
-        return {
-            'success': False,
-            'message': str(e)
-        }
+        logger.error(f"Error updating match details: {str(e)}")
+        raise self.retry(exc=e)
+
+@celery_task(
+    name='app.tasks.tasks_match_updates.get_active_matches',
+    bind=True,
+    queue='discord'
+)
+def get_active_matches_task(self) -> Dict[str, Any]:
+    """Get all active matches that need updates."""
+    try:
+        with session_context():
+            @query_operation
+            def _get_matches():
+                matches = db.session.query(MLSMatch).options(
+                    joinedload(MLSMatch.home_team),
+                    joinedload(MLSMatch.away_team)
+                ).filter(
+                    MLSMatch.current_status.in_(['STATUS_IN_PROGRESS', 'STATUS_HALFTIME'])
+                ).all()
+
+                return [{
+                    'id': match.id,
+                    'match_id': match.match_id,
+                    'status': match.current_status,
+                    'score': match.current_score,
+                    'home_team': {
+                        'name': match.home_team.name,
+                        'id': match.home_team_id
+                    },
+                    'away_team': {
+                        'name': match.away_team.name,
+                        'id': match.away_team_id
+                    }
+                } for match in matches]
+
+            matches = _get_matches()
+            return {
+                'success': True,
+                'message': f'Found {len(matches)} active matches',
+                'data': matches
+            }
+
+    except Exception as e:
+        logger.error(f"Error getting active matches: {str(e)}")
+        raise self.retry(exc=e)

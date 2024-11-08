@@ -6,7 +6,9 @@ from app.decorators import role_required, db_operation, query_operation
 from app.routes import get_current_season_and_year
 from app.extensions import socketio
 from flask_socketio import emit
-from app.discord_utils import assign_role_to_player, remove_role_from_player
+from app.discord_utils import assign_roles_to_player
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
+from app.db_utils import mark_player_for_discord_update
 import asyncio
 import logging
 
@@ -243,26 +245,21 @@ def handle_draft_player(data):
         player_id = data['player_id']
         team_id = data['team_id']
 
-        # Use eager loading for the player query
+        # Query player with eager loading
         player = Player.query.options(
             joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season)
         ).get_or_404(player_id)
         
         team = Team.query.get_or_404(team_id)
-
-        # Update player's team
         player.team_id = team_id
 
-        # Assign Discord role
-        asyncio.run(assign_role_to_player(player))
+        # Mark player for Discord update
+        mark_player_for_discord_update(player_id)
+        
+        # Queue role assignment task
+        assign_roles_to_player_task.delay(player_id)
 
-        # Get current season and stats
-        current_season = Season.query.filter_by(is_current=True).first()
-        season_stats = next(
-            (stats for stats in player.season_stats if stats.season_id == current_season.id),
-            None
-        ) if player.season_stats else None
-
+        # Emit socket event
         emit('player_drafted', {
             'player_id': player.id,
             'player_name': player.name,
@@ -294,7 +291,7 @@ def handle_remove_player(data):
 
         if player and team:
             # Remove the role in Discord asynchronously
-            asyncio.run(remove_role_from_player(player))
+            remove_player_roles_task.delay(player.id)
 
             # Remove the player from the team
             player.team_id = None

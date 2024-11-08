@@ -1,6 +1,5 @@
 from app.models import Player, League, PlayerOrderHistory, User
 from app.decorators import db_operation, query_operation
-from app import db
 from app.routes import get_current_season_and_year
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
@@ -77,17 +76,13 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         email, phone = player_data['email'], player_data['phone']
 
     existing_user = User.query.filter_by(email=email).first()
-    if existing_user:
-        user = existing_user
-    else:
-        user = User(
+    if not existing_user:
+        existing_user = User(
             username=generate_unique_username(name),
             email=email,
             is_approved=False
         )
-        user.set_password(generate_random_password())
-        db.session.add(user)
-        db.session.flush()
+        existing_user.set_password(generate_random_password())
 
     new_player = Player(
         name=name,
@@ -99,10 +94,9 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         needs_manual_review=is_placeholder,
         linked_primary_player_id=original_player_id,
         order_id=player_data['order_id'],
-        user_id=user.id
+        user=existing_user  # Use relationship
     )
-
-    db.session.add(new_player)
+    
     return new_player
 
 @db_operation
@@ -157,11 +151,10 @@ def create_player_profile(player_data, league, user):
             phone=standardize_phone(player_data.get('phone', '')),
             jersey_size=player_data.get('jersey_size', ''),
             primary_league=league,
-            user_id=user.id,
+            user=user,  # Use relationship
             is_current_player=True
         )
         player.other_leagues.append(league)
-        db.session.add(player)
         logger.info(f"Created new player profile '{player.name}' for user '{user.email}'.")
 
     return player
@@ -178,6 +171,7 @@ def create_user_and_player_profile(player_info, league):
 
         user = get_existing_user()
         if not user:
+            # Create new user
             random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
             user = User(
                 email=player_info['email'].lower(),
@@ -186,7 +180,7 @@ def create_user_and_player_profile(player_info, league):
             )
             user.set_password(random_password)
             db.session.add(user)
-            db.session.flush()
+            db.session.flush()  # Get user.id for the player creation
             logger.info(f"Created new user '{user.email}' with username '{user.username}'")
 
         @query_operation
@@ -202,6 +196,7 @@ def create_user_and_player_profile(player_info, league):
             logger.info(f"Marked existing player '{existing_player.name}' as current")
             return existing_player
 
+        # Create new player
         new_player = Player(
             name=player_info['name'],
             phone=player_info['phone'],
@@ -227,25 +222,21 @@ def reset_current_players(current_seasons):
     try:
         season_ids = [season.id for season in current_seasons]
         logger.debug(f"Resetting players for seasons: {season_ids}")
-
-        subquery = db.session.query(Player.id).join(
+        
+        # Use a single update operation instead of querying first
+        updated_rows = Player.query.join(
             League, 
             Player.league_id == League.id
         ).filter(
             League.season_id.in_(season_ids),
             Player.is_current_player == True
-        ).subquery()
-
-        updated_rows = Player.query.filter(
-            Player.id.in_(subquery)
         ).update(
             {Player.is_current_player: False},
             synchronize_session=False
         )
-
+        
         logger.info(f"Reset {updated_rows} players")
         return updated_rows
-
     except Exception as e:
         logger.error(f"Error resetting players: {str(e)}", exc_info=True)
         raise
@@ -282,8 +273,8 @@ def record_order_history(order_id, player_id, league_id, season_id, profile_coun
     """Record order history with proper session management."""
     if not player_id:
         logger.error(f"Cannot record order history: player_id is None")
-        return
-
+        return None
+        
     try:
         order_history = PlayerOrderHistory(
             player_id=player_id,
@@ -293,10 +284,8 @@ def record_order_history(order_id, player_id, league_id, season_id, profile_coun
             profile_count=profile_count,
             created_at=datetime.utcnow()
         )
-        db.session.add(order_history)
-        logger.debug(f"Recorded order history for order_id '{order_id}'")
+        # Decorator handles session management
         return order_history
-
     except Exception as e:
         logger.error(f"Error recording order history: {str(e)}", exc_info=True)
         raise
