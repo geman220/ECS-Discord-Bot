@@ -95,8 +95,9 @@ class DBConnectionMonitor:
                     "max_age": max_age,
                     "idle_timeout": idle_timeout
                 })
-                connections = [dict(row) for row in result]
-                
+                # Fix: Use the proper SQLAlchemy row mapping method
+                connections = [dict(zip(row._mapping.keys(), row._mapping.values())) for row in result]
+            
                 if connections:
                     logger.warning(
                         f"Found {len(connections)} problematic connections:\n" + 
@@ -112,7 +113,7 @@ class DBConnectionMonitor:
                     )
                 return connections
         except Exception as e:
-            logger.error(f"Error checking connections: {e}")
+            logger.error(f"Error checking connections: {e}", exc_info=True)  # Added exc_info for better debugging
             return []
 
     def terminate_stuck_connections(self, age_threshold_seconds: int = None) -> int:

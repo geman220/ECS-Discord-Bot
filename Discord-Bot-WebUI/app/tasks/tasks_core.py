@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 
 @celery_task(
     name='app.tasks.tasks_core.schedule_season_availability',
-    retry_backoff=True
+    retry_backoff=True,
+    bind=True
 )
 def schedule_season_availability(self) -> Dict[str, Any]:
     """Schedule availability messages for matches in the next week."""
     try:
         start_date = datetime.utcnow().date()
         end_date = start_date + timedelta(days=7)
-
         with session_context():
             @query_operation
             def get_matches_data() -> List[Dict[str, Any]]:
@@ -72,12 +72,13 @@ def schedule_season_availability(self) -> Dict[str, Any]:
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat()
         }
-
         logger.info(f"Task completed: {result['message']}")
         return result
 
     except Exception as e:
         logger.error(f"Error in schedule_season_availability: {str(e)}", exc_info=True)
+        # Use the bound task's retry method if needed
+        self.retry(exc=e, countdown=60, max_retries=3)
         return {
             "success": False,
             "message": str(e)
