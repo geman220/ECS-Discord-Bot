@@ -191,7 +191,6 @@ def jwt_admin_or_owner_required(func):
 def db_operation(f: Callable) -> Callable:
     """
     Decorator for database operations that handles session management.
-    Can handle both traditional returns and tuple returns with objects to process.
     """
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
@@ -202,23 +201,32 @@ def db_operation(f: Callable) -> Callable:
             # Handle tuple returns where first element is list of objects to process
             if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], (list, tuple)):
                 objects_to_process = result[0]
-                response = result[1:]  # Keep the rest of the return values
+                response = result[1]  # Get the JSON response
                 
-                # Process objects (add new ones, deleted marked ones)
-                for obj in objects_to_process:
-                    if hasattr(obj, '_sa_instance_state'):
-                        if obj not in db.session:
-                            db.session.add(obj)
-                        elif getattr(obj, 'deleted', False):
-                            db.session.delete(obj)
-                
-                db.session.flush()
-                db.session.commit()
-                
-                # If only one response item, return it directly, otherwise return as tuple
-                return response[0] if len(response) == 1 else response
+                try:
+                    with db.session.no_autoflush:
+                        # Process objects (add new ones, delete marked ones)
+                        # For deletions, we go through list in order provided
+                        for obj in objects_to_process:
+                            if hasattr(obj, '_sa_instance_state'):
+                                if getattr(obj, 'deleted', False):
+                                    logger.debug(f"Deleting object: {obj}")
+                                    db.session.delete(obj)
+                                elif obj not in db.session:
+                                    logger.debug(f"Adding object: {obj}")
+                                    db.session.add(obj)
+                    
+                    db.session.flush()
+                    db.session.commit()
+                    
+                    return response
+                    
+                except Exception as e:
+                    db.session.rollback()
+                    logger.error(f"Error processing database objects: {str(e)}")
+                    raise
             
-            # Traditional return - just commit the session
+            # Traditional return - just commit and return
             db.session.flush()
             db.session.commit()
             return result

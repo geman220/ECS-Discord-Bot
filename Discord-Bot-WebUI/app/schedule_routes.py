@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
 from flask_login import login_required
-from app.models import Season, League, Team, Schedule, Match
+from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
 from app.decorators import role_required, db_operation, query_operation
 from datetime import datetime, date, time 
 from collections import defaultdict
@@ -422,6 +422,8 @@ def edit_match(match_id):
         schedule.opponent = team_b_id
         schedule.week = week
 
+        objects_to_process = [schedule]
+
         # Update or create Match record
         match = Match.query.filter_by(schedule_id=match_id).first()
         if not match:
@@ -433,13 +435,14 @@ def edit_match(match_id):
                 home_team_id=team_a_id,
                 away_team_id=team_b_id
             )
-            db.session.add(match)
+            objects_to_process.append(match)
         else:
             match.date = date
             match.time = time
             match.location = location
             match.home_team_id = team_a_id
             match.away_team_id = team_b_id
+            objects_to_process.append(match)
 
         # Update paired schedule if it exists
         paired_schedule = Schedule.query.filter_by(
@@ -452,6 +455,7 @@ def edit_match(match_id):
             paired_schedule.date = date
             paired_schedule.time = time
             paired_schedule.location = location
+            objects_to_process.append(paired_schedule)
 
             paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
             if paired_match:
@@ -460,8 +464,9 @@ def edit_match(match_id):
                 paired_match.location = location
                 paired_match.home_team_id = team_b_id
                 paired_match.away_team_id = team_a_id
+                objects_to_process.append(paired_match)
 
-        return jsonify({
+        return objects_to_process, jsonify({
             'success': True,
             'message': 'Match updated successfully'
         })
@@ -484,11 +489,21 @@ def delete_match(match_id):
         
         # Get all records to delete
         schedule = Schedule.query.get_or_404(match_id)
+        objects_to_delete = []  # We'll build this in correct order
         
-        # Delete original match if exists
-        Match.query.filter_by(schedule_id=match_id).delete()
+        # First get the matches and their scheduled messages
+        match = Match.query.filter_by(schedule_id=match_id).first()
+        if match:
+            # Get and mark scheduled messages for deletion first
+            scheduled_messages = ScheduledMessage.query.filter_by(match_id=match.id).all()
+            for msg in scheduled_messages:
+                msg.deleted = True
+                objects_to_delete.append(msg)
+            
+            match.deleted = True
+            objects_to_delete.append(match)
         
-        # Get and delete paired records
+        # Get paired records
         paired_schedule = Schedule.query.filter_by(
             team_id=schedule.opponent,
             opponent=schedule.team_id,
@@ -496,17 +511,34 @@ def delete_match(match_id):
         ).first()
         
         if paired_schedule:
-            Match.query.filter_by(schedule_id=paired_schedule.id).delete()
-            Schedule.query.filter_by(id=paired_schedule.id).delete()
+            paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
+            if paired_match:
+                # Get and mark paired match's scheduled messages
+                paired_messages = ScheduledMessage.query.filter_by(match_id=paired_match.id).all()
+                for msg in paired_messages:
+                    msg.deleted = True
+                    objects_to_delete.append(msg)
+                
+                paired_match.deleted = True
+                objects_to_delete.append(paired_match)
+                
+            # Mark paired schedule for deletion after its match
+            paired_schedule.deleted = True
+            objects_to_delete.append(paired_schedule)
             
-        # Delete the original schedule
-        Schedule.query.filter_by(id=match_id).delete()
+        # Mark original schedule for deletion last
+        schedule.deleted = True
+        objects_to_delete.append(schedule)
+            
+        logger.info(f"Successfully marked match {match_id} and related records for deletion")
         
-        logger.info(f"Successfully deleted match {match_id} and related records")
-        return jsonify({
+        # Return both the objects to delete and the response
+        response = jsonify({
             'success': True,
             'message': 'Match deleted successfully'
         })
+        
+        return objects_to_delete, response
         
     except Exception as e:
         logger.error(f"Error deleting match {match_id}: {str(e)}")
@@ -566,7 +598,6 @@ def add_match():
                 'message': 'Missing required fields'
             }), 400
 
-        # Parse date and time
         try:
             date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
             time = datetime.strptime(request.form['time'], '%H:%M').time()
@@ -609,7 +640,6 @@ def add_match():
             schedule=schedule_a
         )
 
-        # Return objects for decorator to handle
         return [schedule_a, schedule_b, match], jsonify({
             'success': True,
             'message': 'Match added successfully'

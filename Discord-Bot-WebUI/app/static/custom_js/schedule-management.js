@@ -256,23 +256,26 @@ class ScheduleManager {
                     }
                 });
 
+                let data;
                 const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
+                if (contentType && contentType.includes("application/json")) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text);
                     throw new Error('Non-JSON response received from server');
                 }
 
-                const data = await response.json();
-
-                if (data.success) {
+                if (response.ok && data.success) {
                     await Swal.fire({
                         title: 'Deleted!',
-                        text: 'Match has been deleted.',
+                        text: data.message || 'Match has been deleted.',
                         icon: 'success',
                         timer: 1500
                     });
                     window.location.reload();
                 } else {
-                    throw new Error(data.error || 'Failed to delete match');
+                    throw new Error(data.message || 'Failed to delete match');
                 }
             }
         } catch (error) {
