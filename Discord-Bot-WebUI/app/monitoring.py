@@ -13,6 +13,7 @@ from app.tasks.tasks_live_reporting import (
     create_match_thread_task,
     force_create_mls_thread_task
 )
+from sqlalchemy import text 
 import logging
 
 logger = logging.getLogger(__name__)
@@ -458,3 +459,123 @@ def reschedule_task():
     except Exception as e:
         logger.error(f"Error rescheduling task: {str(e)}", exc_info=True)
         raise
+
+@monitoring_bp.route('/db')
+@login_required
+@role_required(['Global Admin'])
+def db_monitoring():
+    """Render the database monitoring dashboard."""
+    return render_template('db_monitoring.html')
+
+@monitoring_bp.route('/db/connections')
+@role_required(['Global Admin'])
+def check_connections():
+    """Get all long-running database connections"""
+    try:
+        connections = current_app.db_monitor.get_long_running_connections()
+        return jsonify({
+            'success': True,
+            'connections': [
+                {
+                    'pid': conn['pid'],
+                    'duration': round(conn['duration'], 2),
+                    'query': conn['query'][:200] + '...' if len(conn['query']) > 200 else conn['query'],
+                    'state': conn['state'],
+                    'application': conn['application_name']
+                }
+                for conn in connections
+            ]
+        })
+    except Exception as e:
+        logger.error(f"Error checking connections: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/db/cleanup', methods=['POST'])
+@role_required(['Global Admin'])
+def cleanup_connections():
+    """Terminate stuck database connections"""
+    try:
+        terminated = current_app.db_monitor.terminate_stuck_connections()
+        return jsonify({
+            'success': True,
+            'terminated_count': terminated
+        })
+    except Exception as e:
+        logger.error(f"Error cleaning up connections: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/db/stats')
+@role_required(['Global Admin'])
+def connection_stats():
+    """Get database connection statistics"""
+    try:
+        with current_app.db_monitor.monitor_transaction('connection_stats'):
+            with db.engine.connect() as conn:
+                # Fetch basic stats with NULLIF to handle empty results
+                result = conn.execute(text("""
+                    SELECT 
+                        COALESCE(count(*), 0) as total_connections,
+                        COALESCE(count(*) filter (where state = 'active'), 0) as active_connections,
+                        COALESCE(count(*) filter (where state = 'idle'), 0) as idle_connections,
+                        COALESCE(
+                            NULLIF(
+                                extract(epoch from now() - min(backend_start))::integer,
+                                NULL
+                            ),
+                            0
+                        ) as oldest_connection_age
+                    FROM pg_stat_activity 
+                    WHERE pid != pg_backend_pid()
+                """))
+                row = result.first()
+                base_stats = {
+                    'total_connections': row[0],
+                    'active_connections': row[1],
+                    'idle_connections': row[2],
+                    'oldest_connection_age': row[3]
+                }
+
+                # Fetch state-specific stats with proper NULL handling
+                result = conn.execute(text("""
+                    SELECT 
+                        COALESCE(state, 'unknown') as state,
+                        count(*) as count,
+                        COALESCE(
+                            NULLIF(
+                                max(extract(epoch from now() - query_start))::integer,
+                                NULL
+                            ),
+                            0
+                        ) as longest_query_duration
+                    FROM pg_stat_activity 
+                    WHERE pid != pg_backend_pid()
+                    GROUP BY state
+                """))
+                
+                state_stats = {}
+                for row in result:
+                    state_stats[row[0]] = {
+                        'count': row[1],
+                        'longest_duration': row[2]
+                    }
+
+                return jsonify({
+                    'success': True,
+                    'stats': {
+                        **base_stats,
+                        'states': state_stats,
+                        'timestamp': datetime.now().isoformat()
+                    }
+                })
+    except Exception as e:
+        logger.error(f"Error getting connection stats: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

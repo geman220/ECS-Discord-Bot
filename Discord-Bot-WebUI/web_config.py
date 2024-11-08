@@ -21,6 +21,10 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_POOL_SIZE = 10
     SQLALCHEMY_POOL_TIMEOUT = 30
+
+    # Database monitoring settings
+    DB_CONNECTION_TIMEOUT = 30
+    DB_MONITOR_ENABLED = True
     
     # External Service Configuration
     WOO_CONSUMER_KEY = os.getenv('WC_KEY')
