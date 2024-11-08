@@ -189,19 +189,45 @@ def jwt_admin_or_owner_required(func):
     return decorated_function
 
 def db_operation(f: Callable) -> Callable:
+    """
+    Decorator for database operations that handles session management.
+    Can handle both traditional returns and tuple returns with objects to process.
+    """
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         logger.debug(f"Executing function: {f.__name__} with args: {args} and kwargs: {kwargs}")
         try:
             result = f(*args, **kwargs)
+            
+            # Handle tuple returns where first element is list of objects to process
+            if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], (list, tuple)):
+                objects_to_process = result[0]
+                response = result[1:]  # Keep the rest of the return values
+                
+                # Process objects (add new ones, deleted marked ones)
+                for obj in objects_to_process:
+                    if hasattr(obj, '_sa_instance_state'):
+                        if obj not in db.session:
+                            db.session.add(obj)
+                        elif getattr(obj, 'deleted', False):
+                            db.session.delete(obj)
+                
+                db.session.flush()
+                db.session.commit()
+                
+                # If only one response item, return it directly, otherwise return as tuple
+                return response[0] if len(response) == 1 else response
+            
+            # Traditional return - just commit the session
             db.session.flush()
             db.session.commit()
             return result
+            
         except Exception as e:
             db.session.rollback()
             logger.error(f"Database operation error in {f.__name__}: {str(e)}")
             raise
-        # Do not remove the session here; it will be removed by the context manager
+            
     return decorated
 
 def query_operation(f: Callable) -> Callable:
