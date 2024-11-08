@@ -52,6 +52,7 @@ def init_extensions(app):
             'pool_use_lifo': True,
             'pool_reset_on_return': 'rollback'
         }
+    )
     
     # Initialize SocketIO with updated settings
     socketio.init_app(
