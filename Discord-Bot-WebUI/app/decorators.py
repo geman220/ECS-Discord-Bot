@@ -189,105 +189,110 @@ def jwt_admin_or_owner_required(func):
     return decorated_function
 
 def db_operation(f: Callable) -> Callable:
-    """
-    Decorator for database operations that handles session management.
-    """
+    """Enhanced db operation decorator with better session handling"""
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
-        logger.debug(f"Executing function: {f.__name__} with args: {args} and kwargs: {kwargs}")
-        
-        # Get the monitor from current app
-        monitor = current_app.db_monitor if hasattr(current_app, 'db_monitor') else None
+        thread_id = threading.get_ident()
+        logger.debug(f"[DB OP START] Function: {f.__name__} Thread: {thread_id}")
         
         try:
-            if monitor:
-                with monitor.monitor_transaction(f.__name__):
-                    result = f(*args, **kwargs)
-            else:
-                result = f(*args, **kwargs)
+            result = f(*args, **kwargs)
             
             # Handle tuple returns where first element is list of objects to process
             if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], (list, tuple)):
-                objects_to_process = result[0]
-                response = result[1]
+                objects_to_process, response = result[0], result[1]
                 
-                try:
-                    with db.session.no_autoflush:
-                        for obj in objects_to_process:
-                            if hasattr(obj, '_sa_instance_state'):
-                                if getattr(obj, 'deleted', False):
-                                    logger.debug(f"Deleting object: {obj}")
-                                    db.session.delete(obj)
-                                elif obj not in db.session:
-                                    logger.debug(f"Adding object: {obj}")
-                                    db.session.add(obj)
-                    
-                    db.session.flush()
-                    db.session.commit()
-                    return response
-                    
-                except Exception as e:
-                    db.session.rollback()
-                    logger.error(f"Error processing database objects: {str(e)}")
-                    raise
+                with db.session.no_autoflush:
+                    for obj in objects_to_process:
+                        if hasattr(obj, '_sa_instance_state'):
+                            if getattr(obj, 'deleted', False):
+                                logger.debug(f"Deleting object: {obj}")
+                                db.session.delete(obj)
+                            elif obj not in db.session:
+                                logger.debug(f"Adding object: {obj}")
+                                db.session.add(obj)
+                
+                db.session.flush()
+                return response
             
-            db.session.flush()
-            db.session.commit()
+            if db.session.is_active:
+                db.session.flush()
+            
             return result
             
         except Exception as e:
-            db.session.rollback()
+            if db.session.is_active:
+                db.session.rollback()
             logger.error(f"Database operation error in {f.__name__}: {str(e)}")
             raise
-            
+        finally:
+            logger.debug(f"[DB OP END] Function: {f.__name__} Thread: {thread_id}")
     return decorated
 
 def query_operation(f: Callable) -> Callable:
+    """Enhanced query operation decorator that ensures session cleanup"""
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
-        logger.debug(f"Executing query function: {f.__name__} with args: {args} and kwargs: {kwargs}")
+        thread_id = threading.get_ident()
+        logger.debug(f"[QUERY START] Function: {f.__name__} Thread: {thread_id}")
+        
         try:
             result = f(*args, **kwargs)
             return result
         except Exception as e:
-            db.session.rollback()
+            if db.session.is_active:
+                db.session.rollback()
             logger.error(f"Query operation error in {f.__name__}: {str(e)}")
             raise
-        # Do not remove the session here; it will be removed by the context manager
+        finally:
+            logger.debug(f"[QUERY END] Function: {f.__name__} Thread: {thread_id}")
     return decorated
 
 @contextmanager
 def session_context():
-    """Enhanced session context manager with detailed logging"""
+    """Enhanced session context manager with session cleanup and reuse protection"""
     session_id = f"session-{datetime.utcnow().timestamp()}"
-    frame = inspect.currentframe()
-    caller = inspect.getouterframes(frame, 2)
+    thread_id = threading.get_ident()
     
-    logger.debug(
-        f"[SESSION START] ID: {session_id}\n"
-        f"Called from: {caller[1].filename}:{caller[1].lineno}\n"
-        f"Has App Context: {has_app_context()}"
-    )
+    logger.debug(f"[SESSION START] ID: {session_id} Thread: {thread_id}")
     
     try:
-        yield db.session
+        # Clean up any existing session in this thread
         if db.session.is_active:
-            db.session.commit()
-            logger.debug(f"[SESSION COMMIT] ID: {session_id}")
+            logger.warning(
+                f"[SESSION WARNING] ID: {session_id} Thread: {thread_id} "
+                "Active session found, cleaning up"
+            )
+            db.session.remove()
+        
+        yield db.session
+        
+        if db.session.is_active:
+            try:
+                db.session.commit()
+                logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
+            except:
+                db.session.rollback()
+                raise
+            
     except Exception as e:
         logger.error(
-            f"[SESSION ERROR] ID: {session_id}\n"
-            f"Error: {str(e)}\n"
-            f"Has App Context: {has_app_context()}\n"
-            f"Stack Trace: {traceback.format_exc()}"
+            f"[SESSION ERROR] ID: {session_id} Thread: {thread_id}\n"
+            f"Error: {str(e)}", exc_info=True
         )
         if db.session.is_active:
             db.session.rollback()
         raise
     finally:
-        if db.session.is_active:
-            db.session.remove()
-            logger.debug(f"[SESSION END] ID: {session_id}")
+        try:
+            if db.session.is_active:
+                db.session.remove()
+                logger.debug(f"[SESSION CLEANUP] ID: {session_id} Thread: {thread_id}")
+        except Exception as e:
+            logger.error(
+                f"[SESSION CLEANUP ERROR] ID: {session_id} Thread: {thread_id}\n"
+                f"Error: {str(e)}"
+            )
 
 @asynccontextmanager
 async def async_session_context():
@@ -310,7 +315,7 @@ async def async_session_context():
         logger.debug(f"Removed session: {session_id}")
 
 def celery_task(**task_kwargs):
-    """Enhanced Celery task decorator that ensures proper app context"""
+    """Enhanced Celery task decorator that ensures proper app context and session management"""
     def decorator(f):
         # Generate the task name if not provided
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
@@ -323,13 +328,39 @@ def celery_task(**task_kwargs):
         
         @wraps(f)
         def wrapped(*args, **kwargs):
+            from app import create_app
+            app = create_app()
+            
+            logger.debug(f"[CELERY TASK START] {task_name}")
+            
             try:
-                from flask import current_app
-                with current_app.app_context():
-                    return base_task(*args, **kwargs)
+                with app.app_context():
+                    # Ensure any lingering sessions are cleaned up
+                    db.session.remove()
+                    
+                    result = base_task(*args, **kwargs)
+                    
+                    # Final cleanup
+                    if db.session.is_active:
+                        db.session.remove()
+                    
+                    return result
+                    
             except Exception as e:
                 logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
+                try:
+                    if db.session.is_active:
+                        db.session.remove()
+                except:
+                    pass
                 raise
+            finally:
+                logger.debug(f"[CELERY TASK END] {task_name}")
+                try:
+                    if db.session.is_active:
+                        db.session.remove()
+                except:
+                    pass
                 
         # Copy celery task attributes
         wrapped.delay = base_task.delay
