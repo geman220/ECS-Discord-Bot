@@ -195,18 +195,24 @@ def db_operation(f: Callable) -> Callable:
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         logger.debug(f"Executing function: {f.__name__} with args: {args} and kwargs: {kwargs}")
+        
+        # Get the monitor from current app
+        monitor = current_app.db_monitor if hasattr(current_app, 'db_monitor') else None
+        
         try:
-            result = f(*args, **kwargs)
+            if monitor:
+                with monitor.monitor_transaction(f.__name__):
+                    result = f(*args, **kwargs)
+            else:
+                result = f(*args, **kwargs)
             
             # Handle tuple returns where first element is list of objects to process
             if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], (list, tuple)):
                 objects_to_process = result[0]
-                response = result[1]  # Get the JSON response
+                response = result[1]
                 
                 try:
                     with db.session.no_autoflush:
-                        # Process objects (add new ones, delete marked ones)
-                        # For deletions, we go through list in order provided
                         for obj in objects_to_process:
                             if hasattr(obj, '_sa_instance_state'):
                                 if getattr(obj, 'deleted', False):
@@ -218,7 +224,6 @@ def db_operation(f: Callable) -> Callable:
                     
                     db.session.flush()
                     db.session.commit()
-                    
                     return response
                     
                 except Exception as e:
@@ -226,7 +231,6 @@ def db_operation(f: Callable) -> Callable:
                     logger.error(f"Error processing database objects: {str(e)}")
                     raise
             
-            # Traditional return - just commit and return
             db.session.flush()
             db.session.commit()
             return result

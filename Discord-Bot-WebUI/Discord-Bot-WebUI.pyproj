@@ -32,6 +32,7 @@
     <Compile Include="app\stat_helpers.py" />
     <Compile Include="app\tasks\tasks_match_updates_helpers.py" />
     <Compile Include="app\tasks\tasks_rsvp_helpers.py" />
+    <Compile Include="app\utils\db_connection_monitor.py" />
     <Compile Include="app\utils\discord_request_handler.py" />
     <Compile Include="app\utils\match_events_utils.py" />
     <Compile Include="app\utils\redis_manager.py" />
@@ -217,6 +218,7 @@
     <Content Include="app\templates\manage_users_partial.html" />
     <Content Include="app\templates\matches.html" />
     <Content Include="app\templates\monitoring.html" />
+    <Content Include="app\templates\db_monitoring.html" />
     <Content Include="app\templates\navbar.html" />
     <Content Include="app\templates\notifications.html" />
     <Content Include="app\templates\onboarding_modal_content.html" />

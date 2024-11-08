@@ -34,6 +34,21 @@ def init_extensions(app):
     mail.init_app(app)
     csrf.init_app(app)
     sess.init_app(app)
+
+    # Initialize DB connection monitor
+    from app.utils.db_connection_monitor import DBConnectionMonitor
+    app.db_monitor = DBConnectionMonitor(app)
+
+    app.config.update(
+        DB_CONNECTION_TIMEOUT=30,
+        DB_MAX_CONNECTION_AGE=900,
+        DB_MONITOR_ENABLED=True,
+        SQLALCHEMY_ENGINE_OPTIONS={
+            'pool_timeout': 30,
+            'pool_recycle': 900,
+            'pool_pre_ping': True
+        }
+    )
     
     # Initialize SocketIO with updated settings
     socketio.init_app(
@@ -198,7 +213,6 @@ def create_app(config_object='web_config.Config'):
             app.logger.error(f"datetimeformat filter error: {e} for value: {value}")
             return value
 
-    # Add teardown context
     @app.teardown_appcontext
     def shutdown_session(exception=None):
         """Clean up the session at the end of the request or when the application context ends."""
@@ -206,8 +220,17 @@ def create_app(config_object='web_config.Config'):
             db.session.rollback()
             logger.info(f"Request completed with exception: {str(exception)}")
         else:
-            db.session.commit()
-            logger.debug("Request completed successfully")
+            try:
+                db.session.commit()
+                logger.debug("Request completed successfully")
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f"Error committing session: {e}")
+        
+        # Use the monitor instance from the app
+        if hasattr(app, 'db_monitor'):
+            app.db_monitor.cleanup_connections(exception)
+        
         db.session.remove()
 
     return app
