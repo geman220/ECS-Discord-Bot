@@ -1,7 +1,6 @@
 from flask import current_app, Blueprint, render_template, url_for
 from app.models import Player, PlayerOrderHistory, User
 from app.decorators import db_operation, query_operation
-from app import db
 from app.routes import get_current_season_and_year
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload
@@ -110,12 +109,12 @@ def create_user_for_player(player_data):
     @query_operation
     def find_existing_user():
         return match_user(player_data)
-
+        
     user = find_existing_user()
     if user:
         logger.info(f"User '{user.email}' matched using composite criteria.")
         return user
-
+        
     email = player_data.get('email', '').lower()
     name = standardize_name(player_data.get('name', ''))
     username = generate_unique_username(name)
@@ -126,7 +125,6 @@ def create_user_for_player(player_data):
         is_approved=False
     )
     user.set_password(generate_random_password())
-    db.session.add(user)
     logger.info(f"Created new user '{user.username}' with email '{user.email}'.")
     
     return user

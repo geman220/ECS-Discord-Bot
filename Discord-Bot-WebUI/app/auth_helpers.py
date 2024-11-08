@@ -1,7 +1,6 @@
 from datetime import datetime
 from flask import current_app, url_for
 from itsdangerous import URLSafeTimedSerializer
-from app import db
 from app.email import send_email
 from app.decorators import db_operation, query_operation
 import aiohttp

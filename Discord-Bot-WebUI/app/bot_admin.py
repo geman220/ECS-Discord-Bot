@@ -1,7 +1,7 @@
 # bot_admin.py
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, current_app, flash
 from flask_login import login_required
-from app.extensions import db, celery
+from app.extensions import celery
 from app.tasks.tasks_live_reporting import (
     start_live_reporting,
     create_match_thread_task,

@@ -19,7 +19,8 @@ from app.availability_api_helpers import (
     process_availability_update,
     get_message_data,
     get_match_request_data,
-    update_discord_rsvp
+    update_discord_rsvp,
+    verify_availability_data
 )
 import logging
 
@@ -95,23 +96,30 @@ def update_availability():
 @availability_bp.route('/store_message_ids', methods=['POST'])
 @db_operation
 def store_message_ids():
-   data = request.json
-   required_fields = [
-       'match_id', 'home_channel_id', 'home_message_id',
-       'away_channel_id', 'away_message_id'
-   ]
-   
-   if not all(data.get(field) for field in required_fields):
-       logger.error("Missing required data for message IDs")
-       return jsonify({"error": "Invalid data"}), 400
+    """Store message IDs with validation"""
+    try:
+        data = request.json
+        required_fields = [
+            'match_id', 'home_channel_id', 'home_message_id',
+            'away_channel_id', 'away_message_id'
+        ]
+        
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required data for message IDs")
+            return jsonify({"error": "Missing required fields"}), 400
 
-   scheduled_message = store_message_ids_for_match(**{
-       field: data[field] for field in required_fields
-   })
-   
-   return jsonify({
-       "message": "Message IDs stored successfully"
-   }), 200
+        message, status = store_message_ids_for_match(**{
+            field: data[field] for field in required_fields
+        })
+        
+        if not message:
+            return jsonify({"error": status}), 400
+            
+        return jsonify({"message": status}), 200
+        
+    except Exception as e:
+        logger.error(f"Error storing message IDs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @availability_bp.route('/get_match_id_from_message/<string:message_id>', methods=['GET'])
 @query_operation
@@ -179,61 +187,165 @@ def sync_match_rsvps(match_id):
 @availability_bp.route('/get_match_rsvps/<int:match_id>', methods=['GET'])
 @query_operation
 def get_match_rsvps(match_id):
-   team_id = request.args.get('team_id', type=int)
-   logger.debug(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}")
-   
-   rsvp_data = get_match_rsvp_data(match_id, team_id)
-   return jsonify(rsvp_data), 200
+    """Get match RSVPs with error handling"""
+    team_id = request.args.get('team_id', type=int)
+    logger.debug(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}")
+    
+    # First verify the data state
+    verify_availability_data(match_id, team_id)
+    
+    # Get the RSVP data
+    rsvp_data = get_match_rsvp_data(match_id, team_id)
+    
+    # Log the final response
+    logger.debug(f"Returning RSVP data: {rsvp_data}")
+    return jsonify(rsvp_data), 200
 
 @availability_bp.route('/update_availability_from_discord', methods=['POST'])
 @db_operation
 def update_availability_from_discord():
-   data = request.json
-   logger.info(f"Received data from Discord: {data}")
+    """Update availability from Discord webhook."""
+    try:
+        data = request.json
+        logger.info(f"Received data from Discord: {data}")
 
-   required_fields = ['match_id', 'discord_id', 'response']
-   if not all(data.get(field) for field in required_fields):
-       logger.error("Missing required fields")
-       return jsonify({'error': 'Missing required fields'}), 400
+        required_fields = ['match_id', 'discord_id', 'response']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields")
+            return jsonify({
+                'status': 'error',
+                'error': 'Missing required fields'
+            }), 400
 
-   player, message = process_availability_update(
-       match_id=data['match_id'],
-       discord_id=data['discord_id'],
-       response=data['response'],
-       responded_at=data.get('responded_at')
-   )
+        player_id, result = process_availability_update(
+            match_id=data['match_id'],
+            discord_id=str(data['discord_id']),  # Ensure discord_id is string
+            response=data['response'],
+            responded_at=data.get('responded_at')
+        )
 
-   if not player:
-       return jsonify({'error': message}), 404
+        if not player_id:
+            logger.error(f"No player found for discord_id {data['discord_id']}")
+            return jsonify({
+                'status': 'error',
+                'error': result.get('message', 'Player not found')
+            }), 404
 
-   notify_discord_of_rsvp_change_task.delay(data['match_id'])
-   notify_frontend_of_rsvp_change_task.delay(
-       data['match_id'], 
-       player.id,
-       data['response']
-   )
+        # Queue the notification tasks
+        if data['response'] != 'no_response':
+            notify_discord_of_rsvp_change_task.delay(data['match_id'])
+            notify_frontend_of_rsvp_change_task.delay(
+                data['match_id'],
+                player_id,
+                data['response']
+            )
 
-   return jsonify({'status': 'success'}), 200
+        return jsonify({
+            'status': 'success',
+            'message': result.get('message', 'Update successful')
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in update_availability_from_discord: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
 
 @availability_bp.route('/get_message_ids/<int:match_id>', methods=['GET'])
 @query_operation
 def get_message_ids(match_id):
-   message_data = get_message_data(match_id)
-   if not message_data:
-       return jsonify({'error': 'No scheduled message found'}), 404
-   return jsonify(message_data), 200
+    logger.info(f"Received request for message IDs for match_id {match_id}")
+    message_data = get_message_data(match_id)
+    if not message_data:
+        logger.warning(f"No scheduled message found for match_id {match_id}")
+        return jsonify({'error': 'No scheduled message found'}), 404
+    logger.info(f"Returning message data for match_id {match_id}: {message_data}")
+    return jsonify(message_data), 200
 
 @availability_bp.route('/get_match_and_team_id_from_message', methods=['GET'])
 @query_operation
 def get_match_and_team_id_from_message():
-   message_id = request.args.get('message_id')
-   channel_id = request.args.get('channel_id')
+    """Get match and team ID from message details."""
+    try:
+        # Retrieve message_id and channel_id from request
+        message_id = request.args.get('message_id')
+        channel_id = request.args.get('channel_id')
+        
+        logger.debug(f"Received request with message_id: {message_id}, channel_id: {channel_id}")
+        
+        # Check for missing parameters
+        if not message_id or not channel_id:
+            logger.error("Missing required parameters")
+            return jsonify({
+                'status': 'error',
+                'error': 'Missing required parameters'
+            }), 400
+            
+        # Call the Celery task asynchronously
+        task = fetch_match_and_team_id_task.apply_async(
+            kwargs={
+                'message_id': message_id,
+                'channel_id': channel_id
+            }
+        )
+        
+        try:
+            # Fetch result from the task with a timeout
+            result = task.get(timeout=10)
+            logger.debug(f"Task result received: {result}")
 
-   if not message_id or not channel_id:
-       return jsonify({'error': 'Missing message_id or channel_id'}), 400
+            # Ensure result is in expected format
+            if not isinstance(result, dict):
+                logger.error(f"Unexpected result format: {result}")
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Invalid result format'
+                }), 500
 
-   task = fetch_match_and_team_id_task.delay(message_id, channel_id)
-   return jsonify({'task_id': task.id}), 202
+            # Handle result based on the 'status' field
+            status = result.get('status')
+            if status == 'success':
+                data = result.get('data')
+                if not data:
+                    logger.error("No data in success response")
+                    return jsonify({
+                        'status': 'error',
+                        'error': 'No data in response'
+                    }), 500
+                    
+                # Return success response with data
+                return jsonify(result), 200
+                
+            elif status == 'error':
+                error_msg = result.get('message', 'Unknown error')
+                logger.error(f"Task returned error: {error_msg}")
+                # Return 404 if error message indicates not found, else 500
+                return jsonify(result), 404 if 'not found' in error_msg.lower() else 500
+                
+            else:
+                logger.error(f"Unknown status in result: {status}")
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Unknown response status'
+                }), 500
+
+        except TimeoutError:
+            # Handle task timeout
+            logger.error("Task timed out")
+            return jsonify({
+                'status': 'error',
+                'error': 'Task timed out'
+            }), 504
+            
+    except Exception as e:
+        # Handle unexpected exceptions
+        error_msg = f"Failed to process request for message_id: {message_id}, channel_id: {channel_id}. Error: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'error': error_msg
+        }), 500
 
 @availability_bp.route('/is_user_on_team', methods=['POST'])
 @query_operation

@@ -1,7 +1,7 @@
-from app import db
-from app.models import MLSMatch
+from app.models import MLSMatch, Player, Team
 from datetime import datetime, timedelta
 from contextlib import contextmanager
+from sqlalchemy.orm import joinedload
 from app.decorators import db_operation, query_operation, session_context
 import os
 import sqlite3
@@ -161,3 +161,77 @@ def bulk_update_matches(updates: List[Dict[str, Any]]) -> Dict[str, Any]:
 def get_match_by_id(match_id: str) -> Optional[MLSMatch]:
     """Get a single match by ID with proper session management."""
     return MLSMatch.query.filter_by(match_id=match_id).first()
+
+@db_operation
+def update_player_discord_info(player_id: int, current_roles: List[str], verified_time: datetime) -> bool:
+    """Update player's Discord role information."""
+    try:
+        player = Player.query.get(player_id)
+        if player:
+            player.discord_roles = current_roles
+            player.discord_last_verified = verified_time
+            player.discord_needs_update = False
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error updating Discord info for player {player_id}: {str(e)}")
+        return False
+
+@db_operation
+def mark_player_for_discord_update(player_id: int) -> bool:
+    """Mark a player for Discord role update."""
+    try:
+        player = Player.query.get(player_id)
+        if player:
+            player.discord_needs_update = True
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error marking player {player_id} for Discord update: {str(e)}")
+        return False
+
+@db_operation
+def update_discord_channel_id(team_id: int, channel_id: str) -> bool:
+    """Update team's Discord channel ID."""
+    try:
+        team = Team.query.get(team_id)
+        if team:
+            team.discord_channel_id = channel_id
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error updating Discord channel ID for team {team_id}: {str(e)}")
+        return False
+
+@db_operation
+def update_discord_role_ids(team_id: int, coach_role_id: str = None, player_role_id: str = None) -> bool:
+    """Update team's Discord role IDs."""
+    try:
+        team = Team.query.get(team_id)
+        if team:
+            if coach_role_id is not None:
+                team.discord_coach_role_id = coach_role_id
+            if player_role_id is not None:
+                team.discord_player_role_id = player_role_id
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error updating Discord role IDs for team {team_id}: {str(e)}")
+        return False
+
+@query_operation
+def get_players_needing_discord_update() -> List[Player]:
+    """Get all players that need Discord role updates."""
+    from datetime import datetime, timedelta
+    threshold_date = datetime.utcnow() - timedelta(days=90)
+    return Player.query.filter(
+        (Player.discord_id.isnot(None)) &
+        (
+            (Player.discord_needs_update == True) |
+            (Player.discord_last_verified.is_(None)) |
+            (Player.discord_last_verified < threshold_date)
+        )
+    ).options(
+        joinedload(Player.team),
+        joinedload(Player.team).joinedload(Team.league)
+    ).all()

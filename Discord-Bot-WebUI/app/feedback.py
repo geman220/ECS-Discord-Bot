@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from app.forms import FeedbackForm, FeedbackReplyForm
-from app.models import db, Feedback, User, FeedbackReply, User, Role
+from app.models import Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
 from app.decorators import db_operation, query_operation
 from functools import wraps

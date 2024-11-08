@@ -210,6 +210,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      webui:
+        condition: service_healthy
     command: python ECS_Discord_Bot.py
     networks:
       - web

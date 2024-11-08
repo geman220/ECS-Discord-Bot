@@ -4,7 +4,8 @@ import qrcode
 import base64
 from io import BytesIO
 from flask import send_file
-from app import csrf, db
+from app import csrf
+from app.extensions import db
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
 from flask_login import login_required, current_user
 from app.forms import Verify2FAForm, NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm

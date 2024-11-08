@@ -1,17 +1,24 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
-from flask_login import login_required, current_user
-from app import db
+from app.season_routes import season_bp
+from app.schedule_routes import schedule_bp
+from flask import Blueprint, render_template, redirect, url_for, flash, request, g
+from flask_login import login_required
 from app.models import Season, League, Team, Player, Schedule
 from app.decorators import role_required, db_operation, query_operation
 from datetime import datetime, timedelta
-from sqlalchemy import cast, Integer
 from sqlalchemy.orm import joinedload
-from app.discord_utils import create_discord_channel, delete_discord_channel, rename_discord_channel, rename_discord_roles, delete_discord_roles, assign_role_to_player, process_role_assignments
-from .season_routes import season_bp
-from .schedule_routes import schedule_bp
+from app.discord_utils import (
+    create_discord_channel,
+    delete_team_channel,
+    rename_team_roles, 
+    delete_team_roles,
+    assign_roles_to_player
+)
+from app.db_utils import (
+    update_discord_channel_id,
+    update_discord_role_ids
+)
 import asyncio
 import logging
-import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -101,142 +108,104 @@ def assign_discord_roles():
     players = Player.query.filter(Player.discord_id != None, Player.team_id != None).all()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    results = loop.run_until_complete(process_role_assignments(players))
+    loop.run_until_complete(assign_roles_to_player(players))
     loop.close()
     
-    return render_template('role_assignment_results.html', results=results)
+    flash('Discord roles have been assigned to all players.', 'success')
+    return redirect(url_for('publeague.manage_teams'))
 
-# Add Team
 @publeague.route('/add_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def add_team():
-    team_name = request.form.get('team_name', '').strip()
-    league_name = request.form.get('league_name', '').strip()
-    season_id = request.form.get('season_id', '').strip()
-
-    if not team_name or not league_name or not season_id:
-        flash('Team name, league name, and season ID are required.', 'danger')
-        return redirect(url_for('publeague.manage_teams'))
-
     try:
-        # Fetch the league
+        team_name = request.form.get('team_name', '').strip()
+        league_name = request.form.get('league_name', '').strip()
+        season_id = request.form.get('season_id', '').strip()
+
+        if not all([team_name, league_name, season_id]):
+            flash('Team name, league name, and season ID are required.', 'danger')
+            return redirect(url_for('publeague.manage_teams'))
+
         league = League.query.filter_by(name=league_name, season_id=season_id).first()
         if not league:
             flash('League not found.', 'danger')
             return redirect(url_for('publeague.manage_teams'))
 
-        # Check if team already exists
-        existing_team = Team.query.filter_by(name=team_name, league_id=league.id).first()
-        if existing_team:
-            flash(f'Team "{team_name}" already exists in league "{league_name}".', 'warning')
-            return redirect(url_for('publeague.manage_teams'))
-
-        # Create the team
-        new_team = Team(name=team_name, league_id=league.id)
-        db.session.add(new_team)
-        db.session.flush()  # Flush to get the new_team ID
-
-        # Handle Discord channel creation
-        division = "pl classic" if "classic" in league_name.lower() else "pl premier" if "premier" in league_name.lower() else "ecsfc"
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(create_discord_channel(team_name, division, new_team.id))
-        loop.close()
-
+        # Create team
+        new_team = Team(name=team_name, league=league)  # Use relationship
+        
+        # Create Discord channel and roles
+        asyncio.run(create_discord_channel(team_name, league.name, new_team.id))
+        
         flash(f'Team "{team_name}" added to league "{league_name}".', 'success')
+        return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error creating team: {str(e)}")
         flash(f"Error creating team: {str(e)}", 'danger')
-        raise  # Reraise exception for decorator to handle rollback
-    return redirect(url_for('publeague.manage_teams'))
+        raise
 
-# Edit Team
 @publeague.route('/edit_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def edit_team():
-    team_id = request.form.get('team_id')
-    new_team_name = request.form.get('team_name', '').strip()
-
-    if not team_id or not new_team_name:
-        flash('Team ID and new team name are required.', 'danger')
-        return redirect(url_for('publeague.manage_teams'))
-
     try:
-        # Fetch the team
+        team_id = request.form.get('team_id')
+        new_team_name = request.form.get('team_name', '').strip()
+        if not all([team_id, new_team_name]):
+            flash('Team ID and new team name are required.', 'danger')
+            return redirect(url_for('publeague.manage_teams'))
+        
         team = Team.query.get(team_id)
         if not team:
             flash('Team not found.', 'danger')
             return redirect(url_for('publeague.manage_teams'))
-
+            
         old_team_name = team.name
         team.name = new_team_name
-        db.session.flush()  # Flush to ensure team ID and changes are recognized
         
-        # Handle Discord updates
-        async def update_discord():
-            await rename_discord_channel(team, new_team_name)
-            await rename_discord_roles(team, new_team_name)
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(update_discord())
-        loop.close()
-
+        # Update Discord channel and roles
+        asyncio.run(rename_team_roles(team, new_team_name))
+        
         flash(f'Team "{old_team_name}" updated to "{new_team_name}" and Discord updated.', 'success')
-
+        return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error updating team: {str(e)}")
         flash(f"Error updating team: {str(e)}", 'danger')
-        raise  # Reraise exception for decorator to handle rollback
+        raise
 
-    return redirect(url_for('publeague.manage_teams'))
-
-# Delete Team
 @publeague.route('/delete_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @db_operation
 def delete_team():
-    team_id = request.form.get('team_id')
-
-    if not team_id:
-        flash('Team ID is required.', 'danger')
-        return redirect(url_for('publeague.manage_teams'))
-
     try:
-        # Fetch the team
+        team_id = request.form.get('team_id')
+        if not team_id:
+            flash('Team ID is required.', 'danger')
+            return redirect(url_for('publeague.manage_teams'))
+            
         team = Team.query.get(team_id)
         if not team:
             flash('Team not found.', 'danger')
             return redirect(url_for('publeague.manage_teams'))
-
+            
         team_name = team.name
-
-        # Handle Discord deletion
-        async def delete_discord_entities():
-            await delete_discord_channel(team)
-            await delete_discord_roles(team)
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(delete_discord_entities())
-        loop.close()
-
-        # Delete the team from the database
-        db.session.delete(team)
-
+        # Delete Discord entities
+        asyncio.run(delete_team_channel(team))
+        asyncio.run(delete_team_roles(team))
+        
+        # Mark for deletion (decorator handles the session)
+        team.delete()
+        
         flash(f'Team "{team_name}" has been deleted.', 'success')
-
+        return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error deleting team: {str(e)}")
         flash(f"Error deleting team: {str(e)}", 'danger')
-        raise  # Reraise exception for decorator to handle rollback
-
-    return redirect(url_for('publeague.manage_teams'))
+        raise
 
 # Manage Teams
 @publeague.route('/manage_teams', methods=['GET'])

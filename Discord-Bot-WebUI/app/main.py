@@ -5,9 +5,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy import or_, func
-from app import db
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
 from app.decorators import role_required, db_operation, query_operation
+from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
 import logging
 import subprocess
 import requests
@@ -26,14 +26,14 @@ def fetch_announcements():
     """Fetch the latest 5 announcements."""
     return Announcement.query.order_by(Announcement.position.asc()).limit(5).all()
 
+@query_operation
 def get_onboarding_form(player=None, formdata=None):
-    from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
 
     # Initialize the OnboardingForm with formdata and the player object
     onboarding_form = OnboardingForm(formdata=formdata, obj=player)
 
     # Fetch distinct jersey sizes from the database
-    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
+    distinct_jersey_sizes = Player.query.with_entities(Player.jersey_size).distinct().all()
     jersey_size_choices = [(size[0], size[0]) for size in distinct_jersey_sizes if size[0]]
 
     # Populate choices dynamically if necessary
@@ -73,20 +73,38 @@ def get_onboarding_form(player=None, formdata=None):
 def create_player_profile(onboarding_form):
     """Create a new player profile for the current user using form data."""
     try:
-        # Directly capture the multi-select values from the form submission
+        # Extract file handling to a separate function
+        @query_operation
+        def handle_profile_picture():
+            if not onboarding_form.profile_picture.data:
+                return None
+                
+            from werkzeug.utils import secure_filename
+            import os
+            
+            filename = secure_filename(onboarding_form.profile_picture.data.filename)
+            upload_folder = 'static/uploads'  # Adjust based on your configuration
+            
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+                
+            upload_path = os.path.join(upload_folder, filename)
+            onboarding_form.profile_picture.data.save(upload_path)
+            return url_for('static', filename='uploads/' + filename)
+
+        # Process multi-select values
         other_positions = request.form.getlist('other_positions')
         positions_not_to_play = request.form.getlist('positions_not_to_play')
+        
+        logger.debug(
+            f"Processing positions - Other: {other_positions}, "
+            f"Not to Play: {positions_not_to_play}"
+        )
 
-        # Log the captured values for debugging
-        logger.debug(f"Directly captured Other Positions: {other_positions}, Positions Not to Play: {positions_not_to_play}")
+        # Handle profile picture
+        profile_picture_url = handle_profile_picture()
 
-        # Ensure other_positions and positions_not_to_play are lists
-        if isinstance(other_positions, str):
-            other_positions = [other_positions]
-        if isinstance(positions_not_to_play, str):
-            positions_not_to_play = [positions_not_to_play]
-
-        # Create a new Player instance and populate it with form data
+        # Create player instance
         player = Player(
             user_id=current_user.id,
             name=onboarding_form.name.data,
@@ -94,7 +112,7 @@ def create_player_profile(onboarding_form):
             phone=onboarding_form.phone.data,
             jersey_size=onboarding_form.jersey_size.data,
             jersey_number=onboarding_form.jersey_number.data,
-            profile_picture_url=None,  # Handle file upload separately
+            profile_picture_url=profile_picture_url,
             pronouns=onboarding_form.pronouns.data,
             expected_weeks_available=onboarding_form.expected_weeks_available.data,
             unavailable_dates=onboarding_form.unavailable_dates.data,
@@ -106,8 +124,8 @@ def create_player_profile(onboarding_form):
             additional_info=onboarding_form.additional_info.data,
             player_notes=onboarding_form.player_notes.data,
             team_swap=onboarding_form.team_swap.data,
-            is_coach=False,  # Set based on your logic
-            discord_id=None,  # Handle Discord linking separately
+            is_coach=False,
+            discord_id=None,
             needs_manual_review=False,
             linked_primary_player_id=None,
             order_id=None,
@@ -116,34 +134,21 @@ def create_player_profile(onboarding_form):
             is_current_player=True
         )
 
-        # Handle file upload if necessary
-        if onboarding_form.profile_picture.data:
-            from werkzeug.utils import secure_filename
-            import os
-            filename = secure_filename(onboarding_form.profile_picture.data.filename)
-            upload_folder = 'static/uploads'  # Adjust based on your configuration
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            upload_path = os.path.join(upload_folder, filename)
-            onboarding_form.profile_picture.data.save(upload_path)
-            player.profile_picture_url = url_for('static', filename='uploads/' + filename)
-
-        # Add the new player to the session
+        # Add the new player and update user
         db.session.add(player)
-
-        # Link the player profile to the current user in the session
+        
+        # Update the user's onboarding status
+        current_user.has_completed_onboarding = True
         current_user.player = player
-        current_user.has_completed_onboarding = True  # Mark onboarding as complete
 
-        # Flash a success message
+        logger.info(f"Created player profile for user {current_user.id}")
         flash('Player profile created successfully.', 'success')
-        logger.info(f"New player profile created for user {current_user.id}")
-
-        return player  # Return the new player object if needed
+        
+        return player
 
     except Exception as e:
         logger.error(f"Error creating profile for user {current_user.id}: {e}")
-        raise  # Reraise the exception for the decorator to handle rollback
+        raise
 
 @db_operation
 def handle_profile_update(player, onboarding_form):

@@ -5,8 +5,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.models import Match, Team
-from app import db
-from tasks import post_discord_poll  # Import the Celery task
+from tasks import post_discord_poll
 
 from datetime import datetime, timedelta
 

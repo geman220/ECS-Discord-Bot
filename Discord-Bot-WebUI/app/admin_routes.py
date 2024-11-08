@@ -1,6 +1,5 @@
 # app/admin_routes.py
 
-from app import db
 from flask import (
     Blueprint,
     render_template,
@@ -8,13 +7,14 @@ from flask import (
     url_for,
     flash,
     request,
-    jsonify
+    jsonify,
+    current_app
 )
 from flask_login import login_required, current_user
 from app.decorators import role_required, db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
-    Announcement, Feedback, FeedbackReply, Note, Team, Match, 
+    Announcement, Feedback, FeedbackReply, Note, Team, Match,
     Availability, Player, League
 )
 from app.forms import (
@@ -26,21 +26,34 @@ from app.admin_helpers import (
     manage_docker_container, get_container_logs, send_sms_message,
     handle_announcement_update, get_role_permissions_data,
     get_rsvp_status_data, handle_permissions_update,
-    get_initial_expected_roles, get_stored_expected_roles
+    get_initial_role_status
 )
-from app.tasks.tasks_rsvp import process_discord_role_updates
-from app.tasks.tasks_discord import update_player_discord_roles, fetch_role_status
-from app.discord_utils import process_role_updates, get_player_role_data, get_expected_roles, create_match_thread
-from app.tasks.tasks_core import schedule_season_availability, async_send_availability_message_task
+from app.tasks.tasks_discord import (
+    update_player_discord_roles,
+    fetch_role_status,
+    process_discord_role_updates
+)
+from app.discord_utils import (
+    get_expected_roles,
+    process_role_updates
+)
+from app.tasks.tasks_core import (
+    schedule_season_availability,
+    send_availability_message_task
+)
 from app.tasks.tasks_live_reporting import (
     start_live_reporting,
     process_match_update,
     schedule_live_reporting,
-    force_create_mls_thread_task
+    force_create_mls_thread_task,
+    schedule_all_mls_threads_task,
+    schedule_mls_thread_task
 )
 from app.email import send_email
 from datetime import datetime, timedelta
+from app.extensions import celery
 from sqlalchemy.orm import joinedload
+import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,7 +66,7 @@ admin_bp = Blueprint('admin', __name__)
 def admin_dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
-        
+
         if action in ['approve', 'remove', 'reset_password']:
             user_id = request.form.get('user_id')
             success = handle_user_action(action, user_id)
@@ -139,11 +152,11 @@ def docker_status():
 def send_sms():
     to_phone = request.form.get('to_phone_number')
     message = request.form.get('message_body')
-    
+
     if not to_phone or not message:
         flash("Phone number and message body are required.", "danger")
         return redirect(url_for('admin.admin_dashboard'))
-        
+
     success = send_sms_message(to_phone, message)
     if not success:
         flash("Failed to send SMS.", "danger")
@@ -235,9 +248,19 @@ def view_scheduled_messages():
 @login_required
 @db_operation
 def force_send_message(message_id):
-    message = ScheduledMessage.query.get_or_404(message_id)
-    task = async_send_availability_message_task.delay(message.id)
-    flash('Message is being sent.', 'success')
+    try:
+        message = ScheduledMessage.query.get_or_404(message_id)
+        # Queue the task with proper parameter name
+        task = send_availability_message_task.delay(scheduled_message_id=message.id)
+        
+        # Update message status to indicate it's being processed
+        message.status = 'QUEUED'
+        flash('Message is being sent.', 'success')
+        
+    except Exception as e:
+        logger.error(f"Error queuing message {message_id}: {str(e)}")
+        flash('Error queuing message for sending.', 'danger')
+        
     return redirect(url_for('admin.view_scheduled_messages'))
 
 @admin_bp.route('/admin/rsvp_status/<int:match_id>')
@@ -262,19 +285,19 @@ def admin_reports():
         'sort_by': request.args.get('sort_by', 'created_at'),
         'order': request.args.get('order', 'desc')
     }
-    
+
     query = Feedback.query
-    
+
     if filters['status']:
         query = query.filter(Feedback.status == filters['status'])
     if filters['priority']:
         query = query.filter(Feedback.priority == filters['priority'])
-    
+
     if filters['order'] == 'asc':
         query = query.order_by(getattr(Feedback, filters['sort_by']).asc())
     else:
         query = query.order_by(getattr(Feedback, filters['sort_by']).desc())
-    
+
     feedbacks = query.paginate(page=page, per_page=20, error_out=False)
     return render_template('admin_reports.html', feedbacks=feedbacks)
 
@@ -289,16 +312,16 @@ def view_feedback(feedback_id):
             db.joinedload(Feedback.replies).joinedload(FeedbackReply.user),
             db.joinedload(Feedback.user)
         ).get_or_404(feedback_id)
-        
+
         form = AdminFeedbackForm(obj=feedback)
         reply_form = FeedbackReplyForm()
         note_form = NoteForm()
-        
+
         if request.method == 'POST':
             if 'update_feedback' in request.form and form.validate():
                 form.populate_obj(feedback)
                 flash('Feedback has been updated successfully.', 'success')
-                
+
             elif 'submit_reply' in request.form and reply_form.validate():
                 reply = FeedbackReply(
                     feedback_id=feedback.id,
@@ -307,24 +330,24 @@ def view_feedback(feedback_id):
                     is_admin_reply=True
                 )
                 db.session.add(reply)
-                
+
                 # Send email notification if user exists
                 if feedback.user and feedback.user.email:
                     try:
                         send_email(
                             to=feedback.user.email,
                             subject=f"New admin reply to your Feedback #{feedback.id}",
-                            body=render_template('emails/new_reply_admin.html', 
-                                              feedback=feedback, 
-                                              reply=reply)
+                            body=render_template('emails/new_reply_admin.html',
+                                                 feedback=feedback,
+                                                 reply=reply)
                         )
                     except Exception as e:
                         logger.error(f"Failed to send reply notification email: {str(e)}")
                         # Continue even if email fails
-                
+
                 flash('Your reply has been added successfully.', 'success')
                 return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
-                
+
             elif 'add_note' in request.form and note_form.validate():
                 note = Note(
                     content=note_form.content.data,
@@ -334,7 +357,7 @@ def view_feedback(feedback_id):
                 db.session.add(note)
                 flash('Note added successfully.', 'success')
                 return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
-                
+
         return render_template(
             'admin_report_detail.html',
             feedback=feedback,
@@ -342,7 +365,7 @@ def view_feedback(feedback_id):
             reply_form=reply_form,
             note_form=note_form
         )
-        
+
     except Exception as e:
         logger.error(f"Error handling feedback {feedback_id}: {str(e)}", exc_info=True)
         flash('An error occurred while processing the feedback.', 'danger')
@@ -364,7 +387,7 @@ def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     feedback.status = 'Closed'
     feedback.closed_at = datetime.utcnow()
-    
+
     send_email(
         to=feedback.user.email,
         subject=f"Your Feedback #{feedback.id} has been closed",
@@ -403,76 +426,62 @@ def check_role_status(task_id):
 def discord_role_status():
     """Get Discord role status for all players with Discord IDs."""
     try:
-        # Get initial player data with eager loading
-        players = Player.query.filter(
-            Player.discord_id.isnot(None)
-        ).options(
-            joinedload(Player.team),
-            joinedload(Player.team).joinedload(Team.league)
-        ).order_by(Player.name).all()
-        
-        player_data = []
-        for player in players:
-            current_roles = player.discord_roles or []
-            expected_roles = get_stored_expected_roles(player)
-            
-            # Determine status
-            if not player.discord_last_verified:
-                status_class = 'info'
-                status_text = 'Never Verified'
-            elif sorted(current_roles) == sorted(expected_roles):
-                status_class = 'success'
-                status_text = 'Synced'
-            else:
-                status_class = 'warning'
-                status_text = 'Out of Sync'
-                
-            player_data.append({
-                'id': player.id,
-                'name': player.name,
-                'discord_id': player.discord_id,
-                'team': player.team.name if player.team else 'No Team',
-                'league': player.team.league.name if player.team and player.team.league else 'No League',
-                'current_roles': current_roles,
-                'expected_roles': expected_roles,
-                'status_class': status_class,
-                'status_text': status_text,
-                'last_verified': player.discord_last_verified.strftime('%Y-%m-%d %H:%M:%S') if player.discord_last_verified else 'Never'
-            })
-        
-        # Start background task to update roles
+        # Start the Celery task to fetch role status asynchronously
         task = fetch_role_status.delay()
-        
-        return render_template(
-            'discord_role_status.html',
-            players=player_data,
-            task_id=task.id
-        )
-        
+
+        # Render the page immediately, passing the task ID and an empty players array
+        return render_template('discord_role_status.html', task_id=task.id, players=[])
+
     except Exception as e:
         logger.error(f"Error loading Discord role status page: {str(e)}", exc_info=True)
         flash('Error loading Discord role status.', 'danger')
-        return render_template('discord_role_status.html', players=[])
+        return render_template('discord_role_status.html', task_id=None, players=[])
+
+async def get_player_data(players):
+    """Asynchronously get player data including expected roles."""
+    player_data = []
+    for player in players:
+        # Use stored roles for initial display
+        current_roles = player.discord_roles or []
+        # Use async get_expected_roles when needed
+        expected_roles = await get_expected_roles(player)
+
+        # Determine status
+        if not player.discord_last_verified:
+            status_class = 'info'
+            status_text = 'Never Verified'
+        elif sorted(current_roles) == sorted(expected_roles):
+            status_class = 'success'
+            status_text = 'Synced'
+        else:
+            status_class = 'warning'
+            status_text = 'Out of Sync'
+
+        player_data.append({
+            'id': player.id,
+            'name': player.name,
+            'discord_id': player.discord_id,
+            'team': player.team.name if player.team else 'No Team',
+            'league': player.team.league.name if player.team and player.team.league else 'No League',
+            'current_roles': current_roles,
+            'expected_roles': expected_roles,
+            'status_class': status_class,
+            'status_text': status_text,
+            'last_verified': player.discord_last_verified.strftime('%Y-%m-%d %H:%M:%S') if player.discord_last_verified else 'Never'
+        })
+    return player_data
 
 @admin_bp.route('/admin/update_player_roles/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
 def update_player_roles_route(player_id):
     """Update Discord roles for a specific player."""
     try:
-        player = Player.query.get_or_404(player_id)
-        
-        # Mark player for update and get current roles
-        player.discord_needs_update = True
-        current_roles = player.discord_roles or []
-        expected_roles = get_expected_roles(player, session)
-        
-        # Queue the update task with the player_id
-        result = update_player_discord_roles.apply(args=[player_id])
-        
-        if result.successful():
-            task_result = result.get()
+        # Initiate the Celery task to update roles
+        task_result = update_player_discord_roles.delay(player_id).get(timeout=30)
+
+        # Parse task result
+        if task_result.get('success'):
             return jsonify({
                 'success': True,
                 'player_data': task_result['player_data']
@@ -480,9 +489,9 @@ def update_player_roles_route(player_id):
         else:
             return jsonify({
                 'success': False,
-                'error': 'Task failed to complete'
-            }), 500
-            
+                'error': task_result.get('message', 'Unknown error occurred')
+            }), 400
+
     except Exception as e:
         logger.error(f"Error updating roles for player {player_id}: {str(e)}")
         return jsonify({
@@ -497,19 +506,23 @@ def update_player_roles_route(player_id):
 def mass_update_discord_roles():
     """Trigger mass update of Discord roles."""
     try:
-        # Mark all players with Discord IDs for update
-        Player.query.filter(Player.discord_id.isnot(None))\
-            .update({Player.discord_needs_update: True}, synchronize_session=False)
-        
+        # Mark all players with Discord IDs that are out of sync for update
+        Player.query.filter(
+            Player.discord_id.isnot(None),
+            Player.discord_roles_synced == False
+        ).update({Player.discord_needs_update: True}, synchronize_session=False)
+
+        db.session.commit()
+
         # Queue the mass update task
         result = process_discord_role_updates.delay()
-        
+
         return jsonify({
             'success': True,
             'message': 'Mass role update initiated',
             'task_id': result.id
         })
-        
+
     except Exception as e:
         logger.error(f"Error initiating mass role update: {str(e)}")
         return jsonify({
@@ -524,9 +537,9 @@ def mass_update_discord_roles():
 @query_operation
 def view_mls_matches():
     matches = MLSMatch.query.all()
-    return render_template('admin/mls_matches.html', 
-                         matches=matches,
-                         timedelta=timedelta)
+    return render_template('admin/mls_matches.html',
+                           matches=matches,
+                           timedelta=timedelta)
 
 @admin_bp.route('/admin/schedule_mls_match_thread/<int:match_id>', methods=['POST'])
 @login_required
@@ -539,29 +552,6 @@ def schedule_mls_match_thread_route(match_id):
         'task_id': task.id,
         'message': 'Thread scheduling task started'
     })
-
-#@admin_bp.route('/admin/force_create_mls_thread/<int:match_id>', methods=['POST'])
-#@login_required
-#@role_required('Global Admin')
-#def force_create_mls_thread_route(match_id):
-#    """Force immediate creation of Discord thread for MLS match."""
-#    try:
-#        # Start the task asynchronously
-#        task = force_create_mls_thread_task.delay(match_id)
-#        
-#        # Return immediately with the task ID
-#        return jsonify({
-#            'success': True,
-#            'task_id': task.id,
-#            'message': 'Thread creation task started successfully'
-#        })
-#        
-#    except Exception as e:
-#        logger.error(f"Error initiating thread creation: {str(e)}")
-#        return jsonify({
-#            'success': False,
-#            'error': str(e)
-#        }), 500
 
 @admin_bp.route('/admin/check_thread_status/<task_id>', methods=['GET'])
 @login_required
@@ -593,26 +583,17 @@ def check_thread_status(task_id):
 @login_required
 @role_required('Global Admin')
 def check_task_status(task_id):
-    try:
-        task = current_app.celery.AsyncResult(task_id)
-        if task.ready():
-            if task.successful():
-                return jsonify({
-                    'state': 'COMPLETE',
-                    'result': task.get()
-                })
-            else:
-                return jsonify({
-                    'state': 'FAILED',
-                    'error': str(task.result)
-                })
-        return jsonify({'state': 'PENDING'})
-    except Exception as e:
-        logger.error(f"Error checking task status: {str(e)}")
-        return jsonify({
-            'state': 'ERROR',
-            'error': str(e)
-        }), 500
+    """Check the status of a task."""
+    task_result = AsyncResult(task_id)
+    result = {
+        'task_id': task_id,
+        'status': task_result.status,
+    }
+    
+    if task_result.ready():
+        result['result'] = task_result.get() if task_result.successful() else str(task_result.result)
+    
+    return jsonify(result)
 
 @admin_bp.route('/admin/schedule_all_mls_threads', methods=['POST'])
 @login_required

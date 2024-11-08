@@ -3,7 +3,6 @@ from flask_login import login_user, logout_user, current_user, login_required
 from itsdangerous import URLSafeTimedSerializer
 from datetime import datetime
 from sqlalchemy import func
-from app import db
 from app.models import User, Role, Player, League
 from app.forms import LoginForm, RegistrationForm, ResetPasswordForm, ForgotPasswordForm, TwoFactorForm
 from app.decorators import db_operation, query_operation
@@ -199,27 +198,26 @@ def verify_2fa_login():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
-
+        
     form = RegistrationForm()
     if form.validate_on_submit():
         try:
+            roles = Role.query.filter(Role.name.in_(form.roles.data)).all()
             user = User(
                 username=form.username.data, 
                 email=form.email.data, 
-                is_approved=False
+                is_approved=False,
+                roles=roles  # Use relationship
             )
             user.set_password(form.password.data)
-
-            roles = Role.query.filter(Role.name.in_(form.roles.data)).all()
-            user.roles.extend(roles)
-
-            db.session.add(user)
+            
+            # Return user - decorator handles session
             flash('Account created and pending approval.')
-            return redirect(url_for('auth.login'))
+            return user, redirect(url_for('auth.login'))
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
             flash('Registration failed. Please try again.', 'danger')
-
+            
     return render_template('register.html', form=form)
 
 @auth.route('/forgot_password', methods=['GET', 'POST'])
@@ -285,5 +283,4 @@ def not_found_error(error):
 @auth.errorhandler(500)
 def internal_error(error):
     logger.error(f"500 error: {error}")
-    db.session.rollback()
-    return render_template('500.html'), 500
+    return render_template('500.html'), 500 

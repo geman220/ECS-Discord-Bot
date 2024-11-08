@@ -1,20 +1,68 @@
-from app import db
 from app.decorators import db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Team, Match, Availability, Player,
     League, PlayerSeasonStats, Season
 )
+from app.discord_utils import (
+    get_expected_roles,
+)
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from twilio.rest import Client
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
 import docker
 import logging
 import requests
 
 logger = logging.getLogger(__name__)
+
+@query_operation
+async def get_initial_role_status(player: Player) -> Dict[str, Any]:
+    """
+    Get initial role status without making Discord API calls.
+    """
+    try:
+        current_roles = player.discord_roles or []
+        expected_roles = await get_expected_roles(player)  # Await here
+        
+        if not player.discord_last_verified:
+            status = {
+                'status_class': 'info',
+                'status_text': 'Never Verified',
+                'status_html': '<span class="badge bg-info">Never Verified</span>'
+            }
+        elif sorted(current_roles) == sorted(expected_roles):
+            status = {
+                'status_class': 'success',
+                'status_text': 'Synced',
+                'status_html': '<span class="badge bg-success">Synced</span>'
+            }
+        else:
+            status = {
+                'status_class': 'warning',
+                'status_text': 'Out of Sync',
+                'status_html': '<span class="badge bg-warning">Out of Sync</span>'
+            }
+            
+        return {
+            'current_roles': current_roles,
+            'expected_roles': expected_roles,
+            'last_verified': player.discord_last_verified.strftime('%Y-%m-%d %H:%M:%S') if player.discord_last_verified else 'Never',
+            **status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting initial role status for player {player.id}: {str(e)}")
+        return {
+            'current_roles': [],
+            'expected_roles': [],
+            'status_class': 'danger',
+            'status_text': 'Error',
+            'status_html': '<span class="badge bg-danger">Error</span>',
+            'last_verified': 'Never'
+        }
 
 @query_operation
 def get_filtered_users(filters):
@@ -432,28 +480,3 @@ def get_initial_expected_roles(player):
             
         return roles
     return []
-
-def get_stored_expected_roles(player):
-    """Get expected roles based on stored data without making API calls"""
-    expected_roles = []
-    
-    if player.team:
-        # Add team role
-        role_suffix = 'Coach' if player.is_coach else 'Player'
-        expected_roles.append(f"ECS-FC-PL-{player.team.name}-{role_suffix}")
-        
-        # Add league role if exists
-        if player.team.league:
-            league_map = {
-                'Premier': 'ECS-FC-PL-PREMIER',
-                'Classic': 'ECS-FC-PL-CLASSIC',
-                'ECS FC': 'ECS-FC-LEAGUE'
-            }
-            if player.team.league.name in league_map:
-                expected_roles.append(league_map[player.team.league.name])
-    
-    # Add referee role if applicable
-    if player.is_ref:
-        expected_roles.append('Referee')
-    
-    return expected_roles

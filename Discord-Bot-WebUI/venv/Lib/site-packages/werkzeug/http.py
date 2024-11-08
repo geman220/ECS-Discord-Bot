@@ -361,6 +361,10 @@ def parse_dict_header(value: str) -> dict[str, str | None]:
         key, has_value, value = item.partition("=")
         key = key.strip()
 
+        if not key:
+            # =value is not valid
+            continue
+
         if not has_value:
             result[key] = None
             continue
@@ -395,22 +399,8 @@ def parse_dict_header(value: str) -> dict[str, str | None]:
 
 
 # https://httpwg.org/specs/rfc9110.html#parameter
-_parameter_re = re.compile(
-    r"""
-    # don't match multiple empty parts, that causes backtracking
-    \s*;\s*  # find the part delimiter
-    (?:
-        ([\w!#$%&'*+\-.^`|~]+)  # key, one or more token chars
-        =  # equals, with no space on either side
-        (  # value, token or quoted string
-            [\w!#$%&'*+\-.^`|~]+  # one or more token chars
-        |
-            "(?:\\\\|\\"|.)*?"  # quoted string, consuming slash escapes
-        )
-    )?  # optionally match key=value, to account for empty parts
-    """,
-    re.ASCII | re.VERBOSE,
-)
+_parameter_key_re = re.compile(r"([\w!#$%&'*+\-.^`|~]+)=", flags=re.ASCII)
+_parameter_token_value_re = re.compile(r"[\w!#$%&'*+\-.^`|~]+", flags=re.ASCII)
 # https://www.rfc-editor.org/rfc/rfc2231#section-4
 _charset_value_re = re.compile(
     r"""
@@ -492,18 +482,49 @@ def parse_options_header(value: str | None) -> tuple[str, dict[str, str]]:
         # empty (invalid) value, or value without options
         return value, {}
 
-    rest = f";{rest}"
+    # Collect all valid key=value parts without processing the value.
+    parts: list[tuple[str, str]] = []
+
+    while True:
+        if (m := _parameter_key_re.match(rest)) is not None:
+            pk = m.group(1).lower()
+            rest = rest[m.end() :]
+
+            # Value may be a token.
+            if (m := _parameter_token_value_re.match(rest)) is not None:
+                parts.append((pk, m.group()))
+
+            # Value may be a quoted string, find the closing quote.
+            elif rest[:1] == '"':
+                pos = 1
+                length = len(rest)
+
+                while pos < length:
+                    if rest[pos : pos + 2] in {"\\\\", '\\"'}:
+                        # Consume escaped slashes and quotes.
+                        pos += 2
+                    elif rest[pos] == '"':
+                        # Stop at an unescaped quote.
+                        parts.append((pk, rest[: pos + 1]))
+                        rest = rest[pos + 1 :]
+                        break
+                    else:
+                        # Consume any other character.
+                        pos += 1
+
+        # Find the next section delimited by `;`, if any.
+        if (end := rest.find(";")) == -1:
+            break
+
+        rest = rest[end + 1 :].lstrip()
+
     options: dict[str, str] = {}
     encoding: str | None = None
     continued_encoding: str | None = None
 
-    for pk, pv in _parameter_re.findall(rest):
-        if not pk:
-            # empty or invalid part
-            continue
-
-        pk = pk.lower()
-
+    # For each collected part, process optional charset and continuation,
+    # unquote quoted values.
+    for pk, pv in parts:
         if pk[-1] == "*":
             # key*=charset''value becomes key=value, where value is percent encoded
             pk = pk[:-1]
@@ -578,7 +599,7 @@ def parse_accept_header(
         Parse according to RFC 9110. Items with invalid ``q`` values are skipped.
     """
     if cls is None:
-        cls = t.cast(t.Type[_TAnyAccept], ds.Accept)
+        cls = t.cast(type[_TAnyAccept], ds.Accept)
 
     if not value:
         return cls(None)
@@ -893,6 +914,10 @@ def quote_etag(etag: str, weak: bool = False) -> str:
     return etag
 
 
+@t.overload
+def unquote_etag(etag: str) -> tuple[str, bool]: ...
+@t.overload
+def unquote_etag(etag: None) -> tuple[None, None]: ...
 def unquote_etag(
     etag: str | None,
 ) -> tuple[str, bool] | tuple[None, None]:
@@ -1214,6 +1239,7 @@ def dump_cookie(
     sync_expires: bool = True,
     max_size: int = 4093,
     samesite: str | None = None,
+    partitioned: bool = False,
 ) -> str:
     """Create a Set-Cookie header without the ``Set-Cookie`` prefix.
 
@@ -1250,8 +1276,13 @@ def dump_cookie(
         <cookie_>`_. Set to 0 to disable this check.
     :param samesite: Limits the scope of the cookie such that it will
         only be attached to requests if those requests are same-site.
+    :param partitioned: Opts the cookie into partitioned storage. This
+        will also set secure to True
 
     .. _`cookie`: http://browsercookielimits.squawky.net/
+
+    .. versionchanged:: 3.1
+        The ``partitioned`` parameter was added.
 
     .. versionchanged:: 3.0
         Passing bytes, and the ``charset`` parameter, were removed.
@@ -1296,6 +1327,9 @@ def dump_cookie(
         if samesite not in {"Strict", "Lax", "None"}:
             raise ValueError("SameSite must be 'Strict', 'Lax', or 'None'.")
 
+    if partitioned:
+        secure = True
+
     # Quote value if it contains characters not allowed by RFC 6265. Slash-escape with
     # three octal digits, which matches http.cookies, although the RFC suggests base64.
     if not _cookie_no_quote_re.fullmatch(value):
@@ -1317,6 +1351,7 @@ def dump_cookie(
         ("HttpOnly", httponly),
         ("Path", path),
         ("SameSite", samesite),
+        ("Partitioned", partitioned),
     ):
         if v is None or v is False:
             continue
