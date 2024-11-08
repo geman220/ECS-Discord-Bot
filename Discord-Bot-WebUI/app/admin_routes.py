@@ -10,7 +10,7 @@ from flask import (
     jsonify,
     current_app
 )
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.decorators import role_required, db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
@@ -53,6 +53,8 @@ from app.email import send_email
 from datetime import datetime, timedelta
 from app.extensions import celery
 from sqlalchemy.orm import joinedload
+from app.extensions import db
+from app.utils.user_helpers import safe_current_user
 import asyncio
 import logging
 
@@ -325,7 +327,7 @@ def view_feedback(feedback_id):
             elif 'submit_reply' in request.form and reply_form.validate():
                 reply = FeedbackReply(
                     feedback_id=feedback.id,
-                    user_id=current_user.id,
+                    user_id=safe_current_user.id,
                     content=reply_form.content.data,
                     is_admin_reply=True
                 )
@@ -352,7 +354,7 @@ def view_feedback(feedback_id):
                 note = Note(
                     content=note_form.content.data,
                     feedback_id=feedback.id,
-                    author_id=current_user.id
+                    author_id=safe_current_user.id
                 )
                 db.session.add(note)
                 flash('Note added successfully.', 'success')

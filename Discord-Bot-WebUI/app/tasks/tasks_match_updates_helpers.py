@@ -1,4 +1,4 @@
-﻿# app/tasks/tasks_match_updates_helpers.py
+# app/tasks/tasks_match_updates_helpers.py
 
 import logging
 import aiohttp
@@ -111,19 +111,19 @@ def _create_match_update(
     update_types = {
         'STATUS_SCHEDULED': (
             "pre_match_info",
-            f"🚨 Match Alert: {home_team} vs {away_team} is about to start!"
+            f"?? Match Alert: {home_team} vs {away_team} is about to start!"
         ),
         'STATUS_IN_PROGRESS': (
             "score_update",
-            f"⚽ {home_team} {home_score} - {away_score} {away_team} ({current_minute})"
+            f"? {home_team} {home_score} - {away_score} {away_team} ({current_minute})"
         ),
         'STATUS_HALFTIME': (
             "halftime_update",
-            f"⏸ Halftime: {home_team} {home_score} - {away_score} {away_team}"
+            f"? Halftime: {home_team} {home_score} - {away_score} {away_team}"
         ),
         'STATUS_FINAL': (
             "match_end",
-            f"🏁 Full Time: {home_team} {home_score} - {away_score} {away_team}"
+            f"?? Full Time: {home_team} {home_score} - {away_score} {away_team}"
         )
     }
 

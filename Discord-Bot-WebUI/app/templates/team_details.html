@@ -17,7 +17,7 @@
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Team Members</h6>
-                    {% if current_user.has_permission('add_player') %}
+                    {% if safe_current_user.has_permission('add_player') %}
                     <a href="{{ url_for('teams.add_player', team_id=team.id) }}" class="btn btn-sm btn-primary" aria-label="Add Player">
                         <i class="bx bx-plus"></i> Add Player
                     </a>
@@ -26,7 +26,7 @@
                 <div class="card-body">
                     <ul class="list-group">
                         {% for player in players %}
-                        {{ macros.render_player_item(player, current_user, season) }}
+                        {{ macros.render_player_item(player, safe_current_user, season) }}
                         {% else %}
                         <li class="list-group-item text-center text-muted">No players have been assigned to this team yet.</li>
                         {% endfor %}
@@ -40,7 +40,7 @@
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-success">Team Schedule</h6>
-                    {% if current_user.has_permission('add_match') %}
+                    {% if safe_current_user.has_permission('add_match') %}
                     <a href="{{ url_for('matches.add_match', team_id=team.id) }}" class="btn btn-sm btn-success" aria-label="Add Match">
                         <i class="bx bx-plus"></i> Add Match
                     </a>
@@ -84,12 +84,12 @@
                                                 <span>{{ match.time.strftime('%I:%M %p') }} {{ display_home }} vs {{ display_away }} at {{ match.location }}</span>
                                             </a>
                                             <div class="d-flex align-items-center">
-                                                {% if current_user.has_permission('view_game_results') %}
+                                                {% if safe_current_user.has_permission('view_game_results') %}
                                                 <span class="badge bg-{{ result_class }} me-3">
                                                     {{ result_text }} ({{ match.display_score }})
                                                 </span>
                                                 {% endif %}
-                                                {% if current_user.has_permission('view_match_reporting') %}
+                                                {% if safe_current_user.has_permission('view_match_reporting') %}
                                                 <button class="btn btn-sm {% if match.reported %}btn-warning{% else %}btn-primary{% endif %} edit-match-btn"
                                                         data-match-id="{{ match.id }}"
                                                         data-bs-toggle="modal"

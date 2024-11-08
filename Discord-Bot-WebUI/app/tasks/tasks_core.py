@@ -1,4 +1,4 @@
-﻿# app/tasks/tasks_core.py
+# app/tasks/tasks_core.py
 
 import logging
 import asyncio

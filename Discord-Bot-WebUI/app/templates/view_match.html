@@ -20,7 +20,7 @@
                         <h6 class="m-0 font-weight-bold">
                             <a href="{{ url_for('teams.team_details', team_id=match.home_team.id) }}" class="text-white text-decoration-none">{{ match.home_team.name }}</a> (Home)
                         </h6>
-                        {% if current_user.has_permission('view_team_record') %}
+                        {% if safe_current_user.has_permission('view_team_record') %}
                         <small>Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}</small>
                         {% endif %}
                     </div>
@@ -65,7 +65,7 @@
                                     <h6 class="card-title">
                                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-decoration-none">{{ player.name }}</a>
                                     </h6>
-                                    {% if current_user.has_permission('view_rsvps') %}
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
                                     <div class="mt-2">
                                         {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
                                         {% if availability %}
@@ -117,7 +117,7 @@
                         <i class="fas fa-map-marker-alt text-info"></i>
                         <span class="ms-2"><strong>Location:</strong> {{ match.location }}</span>
                     </div>
-                    {% if current_user.has_permission('view_game_results') %}
+                    {% if safe_current_user.has_permission('view_game_results') %}
                     <div class="mb-3">
                         <i class="fas fa-futbol text-info"></i>
                         <span class="ms-2"><strong>Score:</strong> {{ match.home_team_score }} - {{ match.away_team_score }}</span>
@@ -139,7 +139,7 @@
                         <h6 class="m-0 font-weight-bold">
                             <a href="{{ url_for('teams.team_details', team_id=match.away_team.id) }}" class="text-white text-decoration-none">{{ match.away_team.name }}</a> (Away)
                         </h6>
-                        {% if current_user.has_permission('view_team_record') %}
+                        {% if safe_current_user.has_permission('view_team_record') %}
                         <small>Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}</small>
                         {% endif %}
                     </div>
@@ -184,7 +184,7 @@
                                     <h6 class="card-title">
                                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-decoration-none">{{ player.name }}</a>
                                     </h6>
-                                    {% if current_user.has_permission('view_rsvps') %}
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
                                     <div class="mt-2">
                                         {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
                                         {% if availability %}

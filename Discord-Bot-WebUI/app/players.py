@@ -1,5 +1,5 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.models import Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
 from app.decorators import role_required, admin_or_owner_required, db_operation, query_operation, session_context
 from app.woocommerce import fetch_orders_from_woocommerce
@@ -7,6 +7,7 @@ from app.routes import get_current_season_and_year
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from app.utils.user_helpers import safe_current_user
 from sqlalchemy import func, or_, and_
 from PIL import Image
 from app.extensions import db
@@ -225,7 +226,7 @@ def create_player():
 @login_required
 @query_operation
 def player_profile(player_id):
-    logger.info(f"Accessing profile for player_id: {player_id} by user_id: {current_user.id}")
+    logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
     
     try:
         # Load player with all necessary relationships
@@ -292,8 +293,8 @@ def player_profile(player_id):
         
         # Setup access control flags
         is_classic_league_player = player.league_id == classic_league.id
-        is_player = player.user_id == current_user.id
-        is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in current_user.roles)
+        is_player = player.user_id == safe_current_user.id
+        is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in safe_current_user.roles)
         
         # Form handling
         form = PlayerProfileForm(obj=player)
@@ -357,7 +358,7 @@ def player_profile(player_id):
 def add_stat_manually(player_id):
     player = Player.query.get_or_404(player_id)
     
-    if not current_user.has_role('Pub League Admin') and not current_user.has_role('Global Admin'):
+    if not safe_current_user.has_role('Pub League Admin') and not safe_current_user.has_role('Global Admin'):
         flash('You do not have permission to perform this action.', 'danger')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
@@ -370,7 +371,7 @@ def add_stat_manually(player_id):
             'red_cards': int(request.form.get('red_cards', 0)),
         }
 
-        player.add_stat_manually(new_stat_data, user_id=current_user.id)
+        player.add_stat_manually(new_stat_data, user_id=safe_current_user.id)
         flash('Stat added successfully.', 'success')
     except ValueError as e:
         flash('Invalid input values provided.', 'danger')
@@ -444,7 +445,7 @@ def create_profile():
     form = PlayerProfileForm()
     if form.validate_on_submit():
         player = Player(
-            user_id=current_user.id,
+            user_id=safe_current_user.id,
             name=form.name.data,
             email=form.email.data,
             phone=form.phone.data,

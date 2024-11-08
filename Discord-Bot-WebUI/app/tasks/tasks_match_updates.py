@@ -1,4 +1,4 @@
-﻿# app/tasks/tasks_match_updates.py
+# app/tasks/tasks_match_updates.py
 
 import logging
 import asyncio

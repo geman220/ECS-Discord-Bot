@@ -1,8 +1,9 @@
 from flask_socketio import emit
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.extensions import socketio
 from app.models import Player
 from app.tasks.tasks_discord import fetch_role_status, update_player_discord_roles
+from app.utils.user_helpers import safe_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -10,12 +11,12 @@ logger = logging.getLogger(__name__)
 @socketio.on('connect')
 @login_required
 def handle_connect():
-    logger.info(f"Client connected: {current_user.username}")
+    logger.info(f"Client connected: {safe_current_user.username}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    if current_user.is_authenticated:
-        logger.info(f"Client disconnected: {current_user.username}")
+    if safe_current_user.is_authenticated:
+        logger.info(f"Client disconnected: {safe_current_user.username}")
 
 @socketio.on('update_single_player')
 @login_required

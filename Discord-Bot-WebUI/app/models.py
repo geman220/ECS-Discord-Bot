@@ -1,7 +1,7 @@
-from app import db, login_manager
+from app.extensions import db
 from app.decorators import query_operation, db_operation
 from datetime import datetime, timedelta
-from flask_login import UserMixin, current_user
+from flask_login import UserMixin
 from flask import request
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean
@@ -143,13 +143,6 @@ class User(UserMixin, db.Model):
             'has_completed_onboarding': self.has_completed_onboarding,
             'league_id': self.league_id
         }
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.options(
-        db.joinedload(User.roles).joinedload(Role.permissions),
-        db.joinedload(User.notifications)
-    ).get(int(user_id))
 
 class Role(db.Model):
     __tablename__ = 'roles'

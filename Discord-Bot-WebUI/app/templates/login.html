@@ -1,4 +1,4 @@
-﻿{% extends "base_unauthenticated.html" %}
+{% extends "base_unauthenticated.html" %}
 
 {% block main_content %}
 <style>
@@ -55,7 +55,7 @@
         <!-- Login Form -->
         <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
             <div style="width: 100%; max-width: 320px; text-align: center;">
-                <h4 class="mb-1 text-primary">Welcome Back! ⚽</h4>
+                <h4 class="mb-1 text-primary">Welcome Back! ?</h4>
                 <p class="mb-4 text-muted">Your next steps await.</p>
 
                 <!-- Discord Login Button -->
@@ -64,7 +64,7 @@
                     Login with Discord
                 </a>
 
-                {% if current_user.is_anonymous %}
+                {% if safe_current_user.is_anonymous %}
                 <!-- Divider Line with More Options -->
                 <div class="divider my-4">
                     <span class="divider-text text-muted" id="toggle-more-options" style="cursor: pointer;">More Options</span>

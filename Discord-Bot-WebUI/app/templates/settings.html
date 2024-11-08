@@ -18,7 +18,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Name</label>
                                 <input type="text" class="form-control" name="name"
-                                       value="{{ current_user.player.name if current_user.player else '' }}">
+                                       value="{{ safe_current_user.player.name if safe_current_user.player else '' }}">
                             </div>
                         </div>
 
@@ -26,12 +26,12 @@
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-control" name="email"
-                                       value="{{ current_user.email }}">
+                                       value="{{ safe_current_user.email }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Phone Number</label>
                                 <input type="tel" class="form-control" name="phone"
-                                       value="{{ current_user.player.phone if current_user.player else '' }}">
+                                       value="{{ safe_current_user.player.phone if safe_current_user.player else '' }}">
                             </div>
                         </div>
 
@@ -67,7 +67,7 @@
             <div class="card mb-4">
                 <h5 class="card-header">SMS Notifications</h5>
                 <div class="card-body">
-                    {% if current_user.sms_notifications %}
+                    {% if safe_current_user.sms_notifications %}
                     <div class="alert alert-info">
                         You are currently opted in to SMS notifications.
                     </div>
@@ -77,9 +77,9 @@
                     {% else %}
                     <div class="alert alert-info">
                         You are currently opted out of SMS notifications.
-                        {% if current_user.player and current_user.player.sms_opt_out_timestamp %}
+                        {% if safe_current_user.player and safe_current_user.player.sms_opt_out_timestamp %}
                         <small>
-                            Opted out on {{ current_user.player.sms_opt_out_timestamp.strftime('%Y-%m-%d %H:%M') }}
+                            Opted out on {{ safe_current_user.player.sms_opt_out_timestamp.strftime('%Y-%m-%d %H:%M') }}
                         </small>
                         {% endif %}
                     </div>
@@ -117,7 +117,7 @@
             <div class="card mb-4">
                 <h5 class="card-header">Two-Factor Authentication (2FA)</h5>
                 <div class="card-body">
-                    {% if current_user.is_2fa_enabled %}
+                    {% if safe_current_user.is_2fa_enabled %}
                     <div class="alert alert-success mb-3">
                         Two-Factor Authentication is currently enabled for your account.
                     </div>
@@ -140,9 +140,9 @@
             <div class="card mb-4">
                 <h5 class="card-header">Discord Integration</h5>
                 <div class="card-body">
-                    {% if current_user.player and current_user.player.discord_id %}
+                    {% if safe_current_user.player and safe_current_user.player.discord_id %}
                     <div class="alert alert-success mb-3">
-                        Your Discord account is linked. Discord ID: {{ current_user.player.discord_id }}
+                        Your Discord account is linked. Discord ID: {{ safe_current_user.player.discord_id }}
                     </div>
                     <form id="unlinkDiscordForm" action="{{ url_for('account.unlink_discord') }}" method="POST">
                         <button type="submit" class="btn btn-warning">Unlink Discord Account</button>

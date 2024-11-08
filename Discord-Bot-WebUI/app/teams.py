@@ -3,7 +3,8 @@ from flask_wtf.csrf import validate_csrf, CSRFError
 from collections import defaultdict
 from datetime import datetime
 from sqlalchemy.orm import selectinload
-from flask_login import login_required, current_user
+from flask_login import login_required
+from app.utils.user_helpers import safe_current_user
 import logging
 
 from app.decorators import db_operation, query_operation
@@ -116,7 +117,7 @@ def team_details(team_id):
         season=season,
         players=players,
         schedule=schedule,
-        current_user=current_user,
+        safe_current_user=safe_current_user,
         next_match_date=next_match_date,
         player_choices=player_choices
     )

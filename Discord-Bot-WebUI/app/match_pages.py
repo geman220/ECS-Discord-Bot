@@ -1,10 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required, current_user
+from flask_login import login_required
 from app.models import Match, Schedule, Availability, Player, Team
 from app.availability_api import update_discord_rsvp
 from app.tasks.tasks_rsvp import update_rsvp
 from datetime import datetime
 from sqlalchemy.orm import joinedload
+from app.utils.user_helpers import safe_current_user
 import asyncio
 import logging
 import requests
@@ -83,7 +84,7 @@ def rsvp(match_id):
 @login_required
 @query_operation
 def get_rsvp_status(match_id):
-    player_id = current_user.player.id  # Assuming the user has a player profile
+    player_id = safe_current_user.player.id  # Assuming the user has a player profile
     availability = Availability.query.filter_by(match_id=match_id, player_id=player_id).first()
 
     if availability:

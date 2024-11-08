@@ -10,7 +10,7 @@
             <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
                 {{ form.hidden_tag() }}
 
-                {% if not current_user.is_authenticated %}
+                {% if not safe_current_user.is_authenticated %}
                 <div class="mb-3">
                     {{ form.name.label(class="form-label") }}
                     {{ form.name(class="form-control", placeholder="Your Name") }}

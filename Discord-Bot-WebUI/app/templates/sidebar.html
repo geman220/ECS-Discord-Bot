@@ -1,4 +1,4 @@
-﻿<!-- Sidebar Menu -->
+<!-- Sidebar Menu -->
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
     <div class="app-brand demo">
         <a href="{{ url_for('main.index') }}" class="app-brand-link">
@@ -25,7 +25,7 @@
         </li>
 
         <!-- Dashboard - Available for everyone logged in -->
-        {% if current_user.is_authenticated %}
+        {% if safe_current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'main.index' }}">
             <a class="menu-link" href="{{ url_for('main.index') }}">
                 <i data-feather="home" class="menu-icon"></i>
@@ -35,7 +35,7 @@
         {% endif %}
 
         <!-- Feedback - Anyone Authenticated -->
-        {% if current_user.is_authenticated %}
+        {% if safe_current_user.is_authenticated %}
         <li class="menu-item {{ 'active' if request.endpoint == 'feedback.submit_feedback' }}">
             <a class="menu-link feedback-link" href="{{ url_for('feedback.submit_feedback') }}">
                 <i data-feather="alert-circle" class="menu-icon"></i>

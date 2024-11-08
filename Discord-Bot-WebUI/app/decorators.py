@@ -1,10 +1,12 @@
 # app/decorators.py
 from functools import wraps
 from datetime import datetime
-from flask import flash, redirect, url_for, abort, jsonify, Flask, current_app, has_app_context
-from flask_login import current_user
+from flask import flash, redirect, url_for, abort, jsonify, Flask, current_app, has_app_context, g
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from contextlib import contextmanager, asynccontextmanager
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.exc import DetachedInstanceError
+from app.utils.user_helpers import safe_current_user
 from typing import Any, Callable
 import logging
 import inspect
@@ -44,22 +46,19 @@ def register_template_context_processor(app):
         return dict(safe_db_load=safe_db_load)
 
 def role_required(roles):
-    """
-    Ensure the current user has one of the required roles.
-    :param roles: A list of roles (strings) or a single role (string).
-    """
+    """Ensure the current user has one of the required roles."""
     if isinstance(roles, str):
         roles = [roles]
 
     def wrapper(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated:
+            user = safe_current_user  # Use safe_current_user
+            if not user or not user.is_authenticated:
                 flash('Please log in to access this page.', 'warning')
                 return redirect(url_for('auth.login'))
 
-            user_roles = [role.name for role in current_user.roles]
-
+            user_roles = [role.name for role in user.roles]
             if not any(role in user_roles for role in roles):
                 flash(f'Access denied: One of the following roles required: {", ".join(roles)}', 'danger')
                 return redirect(url_for('auth.login'))
@@ -69,18 +68,16 @@ def role_required(roles):
     return wrapper
 
 def permission_required(permission_name):
-    """
-    Ensure the current user has the required permission.
-    :param permission_name: The name of the required permission (string).
-    """
+    """Ensure the current user has the required permission."""
     def wrapper(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if not current_user.is_authenticated:
+            user = safe_current_user  # Use safe_current_user
+            if not user or not user.is_authenticated:
                 flash('Please log in to access this page.', 'warning')
                 return redirect(url_for('auth.login'))
 
-            if not current_user.has_permission(permission_name):
+            if not user.has_permission(permission_name):
                 flash(f'Access denied: {permission_name} permission required.', 'danger')
                 return redirect(url_for('auth.login'))
 
@@ -109,13 +106,13 @@ def admin_or_owner_required(func):
         admin_roles = ['Global Admin', 'Pub League Admin']
         
         # Extract user's role names
-        user_roles = [role.name for role in current_user.roles]
+        user_roles = [role.name for role in safe_current_user.roles]
         
         # Check if the user has any admin role
         is_admin = any(role in admin_roles for role in user_roles)
         
         # Check if the user is the owner of the profile
-        is_owner = current_user.id == player.user_id
+        is_owner = safe_current_user.id == player.user_id
         
         if not (is_admin or is_owner):
             flash('Access denied: You do not have permission to perform this action.', 'danger')
@@ -201,133 +198,131 @@ def jwt_admin_or_owner_required(func):
     
     return decorated_function
 
-def db_operation(f: Callable) -> Callable:
-    """Enhanced db operation decorator with better session handling"""
+def db_operation(f):
     @wraps(f)
-    def decorated(*args: Any, **kwargs: Any) -> Any:
+    def decorated(*args, **kwargs):
         thread_id = threading.get_ident()
         logger.debug(f"[DB OP START] Function: {f.__name__} Thread: {thread_id}")
-        
         try:
             result = f(*args, **kwargs)
             
-            # Handle tuple returns where first element is list of objects to process
-            if isinstance(result, tuple) and len(result) >= 2 and isinstance(result[0], (list, tuple)):
-                objects_to_process, response = result[0], result[1]
-                
-                with db.session.no_autoflush:
-                    for obj in objects_to_process:
-                        if hasattr(obj, '_sa_instance_state'):
-                            if getattr(obj, 'deleted', False):
-                                logger.debug(f"Deleting object: {obj}")
-                                db.session.delete(obj)
-                            elif obj not in db.session:
-                                logger.debug(f"Adding object: {obj}")
-                                db.session.add(obj)
-                
-                db.session.flush()
-                return response
+            # Handle tuple returns with objects to process
+            if isinstance(result, tuple) and len(result) >= 2:
+                objects, response = result[0], result[1]
+                if isinstance(objects, (list, tuple)):
+                    with db.session.no_autoflush:
+                        for obj in objects:
+                            if hasattr(obj, '_sa_instance_state'):
+                                if getattr(obj, 'deleted', False):
+                                    db.session.delete(obj)
+                                elif obj not in db.session:
+                                    db.session.add(obj)
+                    db.session.flush()
+                    return response
             
+            # Handle normal returns
             if db.session.is_active:
                 db.session.flush()
-            
             return result
             
         except Exception as e:
-            if db.session.is_active:
-                db.session.rollback()
             logger.error(f"Database operation error in {f.__name__}: {str(e)}")
+            db.session.rollback()
             raise
         finally:
             logger.debug(f"[DB OP END] Function: {f.__name__} Thread: {thread_id}")
+            
     return decorated
 
 def query_operation(f: Callable) -> Callable:
-    """Enhanced query operation decorator that ensures session cleanup after response"""
+    """Enhanced query operation decorator with context processor awareness."""
     @wraps(f)
     def decorated(*args: Any, **kwargs: Any) -> Any:
         thread_id = threading.get_ident()
         logger.debug(f"[QUERY START] Function: {f.__name__} Thread: {thread_id}")
         
+        def attach_to_session(obj):
+            """Ensure object is attached to session."""
+            if obj is None or not hasattr(obj, '_sa_instance_state'):
+                return obj
+            
+            if obj not in db.session:
+                try:
+                    # Try to get a fresh instance from the database if possible
+                    if hasattr(obj, 'id'):
+                        fresh_obj = obj.__class__.query.get(obj.id)
+                        if fresh_obj:
+                            return fresh_obj
+                    # Fall back to session merge if necessary
+                    return db.session.merge(obj)
+                except DetachedInstanceError as e:
+                    logger.warning(f"Detached instance error: {e}")
+            return obj
+
         try:
-            # Run the original function
-            result = f(*args, **kwargs)
+            # Process arguments to ensure they're attached to the session
+            processed_args = tuple(attach_to_session(arg) for arg in args)
+            processed_kwargs = {k: attach_to_session(v) for k, v in kwargs.items()}
+            result = f(*processed_args, **processed_kwargs)
             
-            # If this is a template render response, ensure data is fully loaded
-            if hasattr(result, '_render_template'):
-                template_context = result._template_context
-                # Eagerly load any SQLAlchemy relationships that might be accessed in template
-                for key, value in template_context.items():
-                    if hasattr(value, '__iter__') and not isinstance(value, (str, bytes)):
-                        try:
-                            # Force loading of SQLAlchemy collections
-                            list(value)
-                        except:
-                            pass
-            
+            db.session.flush()
             return result
             
         except Exception as e:
-            if db.session.is_active:
-                db.session.rollback()
             logger.error(f"Query operation error in {f.__name__}: {str(e)}")
+            db.session.rollback()
             raise
         finally:
             logger.debug(f"[QUERY END] Function: {f.__name__} Thread: {thread_id}")
+
     return decorated
 
-@contextmanager
+@contextmanager 
 def session_context():
-    """Enhanced session context manager with connection health check"""
+    """Enhanced session context manager with request context awareness"""
     session_id = f"session-{datetime.utcnow().timestamp()}"
     thread_id = threading.get_ident()
     
-    def check_connection():
-        try:
-            db.session.execute('SELECT 1')
-            return True
-        except Exception as e:
-            logger.error(f"Connection check failed: {e}")
-            return False
+    # Only clean up if we're not already in a session context
+    session_active = getattr(g, 'session_context_active', False)
+    
+    if not session_active:
+        if db.session.is_active:
+            db.session.remove()
+        if hasattr(db.session, 'bind') and db.session.bind:
+            db.session.bind.dispose()
+            
+        db.session.expire_on_commit = False
     
     try:
-        if db.session.is_active:
-            if not check_connection():
-                logger.warning("Detected stale connection, cleaning up")
-                db.session.remove()
-                if hasattr(db.session, 'bind') and db.session.bind:
-                    db.session.bind.dispose()
-        
         yield db.session
         
-        if db.session.is_active:
-            try:
-                db.session.commit()
-                logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
-            except:
-                db.session.rollback()
-                raise
-            
+        # Only commit if this is the outermost session context
+        if not session_active:
+            if db.session.is_active:
+                try:
+                    db.session.commit()
+                    logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
+                except:
+                    db.session.rollback()
+                    raise
     except Exception as e:
-        logger.error(
-            f"[SESSION ERROR] ID: {session_id} Thread: {thread_id}\n"
-            f"Error: {str(e)}", exc_info=True
-        )
+        logger.error(f"[SESSION ERROR] ID: {session_id}", exc_info=True)
         if db.session.is_active:
             db.session.rollback()
         raise
     finally:
-        try:
-            if db.session.is_active:
-                db.session.remove()
+        # Only clean up if this is the outermost session context
+        if not session_active:
+            try:
+                if db.session.is_active:
+                    db.session.expire_on_commit = True
+                    db.session.close()
                 if hasattr(db.session, 'bind') and db.session.bind:
                     db.session.bind.dispose()
-                logger.debug(f"[SESSION CLEANUP] ID: {session_id} Thread: {thread_id}")
-        except Exception as e:
-            logger.error(
-                f"[SESSION CLEANUP ERROR] ID: {session_id} Thread: {thread_id}\n"
-                f"Error: {str(e)}"
-            )
+                logger.debug(f"[SESSION CLEANUP] ID: {session_id}")
+            except Exception as e:
+                logger.error(f"[SESSION CLEANUP ERROR] ID: {session_id}: {e}")
 
 @contextmanager
 def session_timeout_context(timeout_seconds: int = 30):

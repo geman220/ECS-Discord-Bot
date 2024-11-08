@@ -1,11 +1,12 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
-from flask_login import login_user, logout_user, current_user, login_required
+from flask_login import login_user, logout_user, login_required
 from itsdangerous import URLSafeTimedSerializer
 from datetime import datetime
 from sqlalchemy import func
 from app.models import User, Role, Player, League
 from app.forms import LoginForm, RegistrationForm, ResetPasswordForm, ForgotPasswordForm, TwoFactorForm
 from app.decorators import db_operation, query_operation
+from app.utils.user_helpers import safe_current_user
 from app.woocommerce import fetch_order_by_id
 from app.auth_helpers import (
     generate_reset_token, 
@@ -116,7 +117,7 @@ def verify_purchase():
 @auth.route('/login', methods=['GET', 'POST'])
 @query_operation
 def login():
-    if current_user.is_authenticated:
+    if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
     
     form = LoginForm()
@@ -196,7 +197,7 @@ def verify_2fa_login():
 @auth.route('/register', methods=['GET', 'POST'])
 @db_operation
 def register():
-    if current_user.is_authenticated:
+    if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
         
     form = RegistrationForm()
@@ -223,7 +224,7 @@ def register():
 @auth.route('/forgot_password', methods=['GET', 'POST'])
 @query_operation
 def forgot_password():
-    if current_user.is_authenticated:
+    if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
     form = ForgotPasswordForm()
@@ -242,7 +243,7 @@ def forgot_password():
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
 @db_operation
 def reset_password_token(token):
-    if current_user.is_authenticated:
+    if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
     user_id = verify_reset_token(token)

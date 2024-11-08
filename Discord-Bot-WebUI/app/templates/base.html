@@ -166,14 +166,14 @@
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
             <!-- Sidebar Menu -->
-            {% if current_user.is_authenticated %}
+            {% if safe_current_user.is_authenticated %}
             {% include 'sidebar.html' %}
             {% endif %}
             <!-- / Sidebar Menu -->
             <!-- Layout container -->
             <div class="layout-page">
                 <!-- Navbar -->
-                {% if current_user.is_authenticated %}
+                {% if safe_current_user.is_authenticated %}
                 {% include 'navbar.html' %}
                 {% endif %}
                 <!-- / Navbar -->
@@ -417,7 +417,7 @@
             }
         });
     </script>
-    {% if current_user.is_authenticated and (current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin')) %}
+    {% if safe_current_user.is_authenticated and (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')) %}
     <script>
         function updateNeedsReviewCount() {
             fetch('/players/get_needs_review_count')
