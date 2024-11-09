@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, jsonify, current_app, request
 from flask_login import login_required
 from app.decorators import role_required, handle_db_operation
 from app.utils.redis_manager import RedisManager
+from app.db_management import db_manager
 from celery.result import AsyncResult
 from app.extensions import celery, db
 from app.models import MLSMatch
@@ -469,25 +470,54 @@ def db_monitoring():
 
 @monitoring_bp.route('/db/connections')
 @role_required(['Global Admin'])
+@handle_db_operation()
 def check_connections():
-    """Get all long-running database connections"""
+    """Get all database connections with enhanced monitoring"""
     try:
-        connections = current_app.db_monitor.get_long_running_connections()
+        # Get stats from our enhanced monitoring
+        stats = db_manager.get_pool_stats()
+        
+        # Get detailed connection info from postgres
+        with db_manager.session_scope() as session:
+            result = session.execute(text("""
+                SELECT 
+                    pid,
+                    usename,
+                    application_name,
+                    client_addr,
+                    backend_start,
+                    xact_start,
+                    query_start,
+                    state,
+                    COALESCE(EXTRACT(EPOCH FROM (NOW() - query_start)), 0) as duration,
+                    query
+                FROM pg_stat_activity 
+                WHERE pid != pg_backend_pid()
+                  AND state != 'idle'
+                ORDER BY 
+                    CASE state
+                        WHEN 'active' THEN 1
+                        WHEN 'idle in transaction' THEN 2
+                        ELSE 3
+                    END,
+                    duration DESC
+            """))
+            
+            connections = [{
+                'pid': row.pid,
+                'user': row.usename,
+                'application': row.application_name,
+                'state': row.state,
+                'duration': round(float(row.duration), 2),
+                'query': row.query[:200] + '...' if row.query and len(row.query) > 200 else row.query
+            } for row in result]
+
         return jsonify({
             'success': True,
-            'connections': [
-                {
-                    'pid': conn['pid'],
-                    'duration': round(conn['duration'], 2),
-                    'query': conn['query'][:200] + '...' if len(conn['query']) > 200 else conn['query'],
-                    'state': conn['state'],
-                    'application': conn['application_name']
-                }
-                for conn in connections
-            ]
+            'connections': connections
         })
     except Exception as e:
-        logger.error(f"Error checking connections: {e}")
+        logger.error(f"Error checking connections: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -496,15 +526,32 @@ def check_connections():
 @monitoring_bp.route('/db/cleanup', methods=['POST'])
 @role_required(['Global Admin'])
 def cleanup_connections():
-    """Terminate stuck database connections"""
+    """Force cleanup of database connections"""
     try:
-        terminated = current_app.db_monitor.terminate_stuck_connections()
+        # Run both our cleanup and postgres termination
+        db_manager.check_for_leaked_connections()
+        
+        with db_manager.session_scope() as session:
+            # Terminate long-running queries
+            result = session.execute(text("""
+                SELECT pg_terminate_backend(pid)
+                FROM pg_stat_activity
+                WHERE pid != pg_backend_pid()
+                  AND state != 'idle'
+                  AND (
+                    (state = 'active' AND query_start < NOW() - INTERVAL '5 minutes')
+                    OR (state = 'idle in transaction' AND xact_start < NOW() - INTERVAL '10 minutes')
+                    OR (backend_start < NOW() - INTERVAL '1 hour')
+                  )
+            """))
+            terminated = result.rowcount
+
         return jsonify({
             'success': True,
-            'terminated_count': terminated
+            'message': f'Cleaned up {terminated} connections'
         })
     except Exception as e:
-        logger.error(f"Error cleaning up connections: {e}")
+        logger.error(f"Error cleaning up connections: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -512,67 +559,64 @@ def cleanup_connections():
 
 @monitoring_bp.route('/db/stats')
 @role_required(['Global Admin'])
+@handle_db_operation()
 def connection_stats():
-    """Get database connection statistics"""
+    """Get comprehensive database statistics"""
     try:
-        with current_app.db_monitor.monitor_transaction('connection_stats'):
-            with db.engine.connect() as conn:
-                # Fetch basic stats with NULLIF to handle empty results
-                result = conn.execute(text("""
-                    SELECT 
-                        COALESCE(count(*), 0) as total_connections,
-                        COALESCE(count(*) filter (where state = 'active'), 0) as active_connections,
-                        COALESCE(count(*) filter (where state = 'idle'), 0) as idle_connections,
-                        COALESCE(
-                            NULLIF(
-                                extract(epoch from now() - min(backend_start))::integer,
-                                NULL
-                            ),
-                            0
-                        ) as oldest_connection_age
-                    FROM pg_stat_activity 
-                    WHERE pid != pg_backend_pid()
-                """))
-                row = result.first()
-                base_stats = {
-                    'total_connections': row[0],
-                    'active_connections': row[1],
-                    'idle_connections': row[2],
-                    'oldest_connection_age': row[3]
+        # Get stats from our enhanced monitoring
+        pool_stats = db_manager.get_pool_stats()
+        
+        with db_manager.session_scope() as session:
+            # Get basic stats
+            result = session.execute(text("""
+                SELECT 
+                    COALESCE(count(*), 0) as total_connections,
+                    COALESCE(count(*) filter (where state = 'active'), 0) as active_connections,
+                    COALESCE(count(*) filter (where state = 'idle'), 0) as idle_connections,
+                    COALESCE(
+                        EXTRACT(epoch FROM (now() - min(backend_start)))::integer,
+                        0
+                    ) as oldest_connection_age
+                FROM pg_stat_activity 
+                WHERE pid != pg_backend_pid()
+            """))
+            basic_stats = dict(result.mappings().first())
+
+            # Get state-specific stats
+            result = session.execute(text("""
+                SELECT 
+                    COALESCE(state, 'unknown') as state,
+                    count(*) as count,
+                    COALESCE(
+                        EXTRACT(epoch FROM (now() - min(query_start)))::integer,
+                        0
+                    ) as longest_duration
+                FROM pg_stat_activity 
+                WHERE pid != pg_backend_pid()
+                GROUP BY state
+            """))
+            
+            states = {
+                row.state: {
+                    'count': row.count,
+                    'longest_duration': row.longest_duration
                 }
+                for row in result
+            }
 
-                # Fetch state-specific stats with proper NULL handling
-                result = conn.execute(text("""
-                    SELECT 
-                        COALESCE(state, 'unknown') as state,
-                        count(*) as count,
-                        COALESCE(
-                            NULLIF(
-                                max(extract(epoch from now() - query_start))::integer,
-                                NULL
-                            ),
-                            0
-                        ) as longest_query_duration
-                    FROM pg_stat_activity 
-                    WHERE pid != pg_backend_pid()
-                    GROUP BY state
-                """))
-                
-                state_stats = {}
-                for row in result:
-                    state_stats[row[0]] = {
-                        'count': row[1],
-                        'longest_duration': row[2]
-                    }
-
-                return jsonify({
-                    'success': True,
-                    'stats': {
-                        **base_stats,
-                        'states': state_stats,
-                        'timestamp': datetime.now().isoformat()
-                    }
-                })
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_connections': basic_stats['total_connections'],
+                'active_connections': basic_stats['active_connections'],
+                'idle_connections': basic_stats['idle_connections'],
+                'oldest_connection_age': basic_stats['oldest_connection_age'],
+                'states': states,
+                'leaked_connections': pool_stats['leaked_connections'],
+                'checkouts': pool_stats['checkouts'],
+                'checkins': pool_stats['checkins']
+            }
+        })
     except Exception as e:
         logger.error(f"Error getting connection stats: {e}", exc_info=True)
         return jsonify({
