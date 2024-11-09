@@ -1,10 +1,9 @@
 # celery_beat.py
-
 import eventlet
 eventlet.monkey_patch()
 
 from app import create_app
-from app.extensions import celery
+from app.extensions import celery, db
 from app.utils.redis_manager import RedisManager
 from app.config.celery_config import CeleryConfig
 from celery.apps.beat import Beat
@@ -12,29 +11,43 @@ from celery.signals import beat_init
 import logging
 import os
 import pytz
+import sys
 
 # Configure logging
-logger = logging.getLogger(__name__)
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
 )
+logger = logging.getLogger(__name__)
 
 # Create Flask app instance globally
 flask_app = create_app()
-celery.flask_app = flask_app  # Store reference to app
+celery.flask_app = flask_app
 
 def initialize_celery(app):
     """Initialize Celery with app configuration"""
-    app.config.from_object(CeleryConfig)
-    celery.conf.update(app.config)
-    return celery
+    try:
+        app.config.from_object(CeleryConfig)
+        celery.conf.update(app.config)
+        return celery
+    except Exception as e:
+        logger.error(f"Failed to initialize Celery: {e}")
+        raise
 
 @beat_init.connect
 def beat_init_handler(**kwargs):
     """Initialize Flask context for beat scheduler."""
-    logger.info("Initializing beat scheduler with Flask context")
-    flask_app.app_context().push()
+    try:
+        logger.info("Initializing beat scheduler with Flask context")
+        flask_app.app_context().push()
+        
+        # Ensure clean database state
+        if hasattr(db, 'engine'):
+            db.engine.dispose()
+        db.session.remove()
+    except Exception as e:
+        logger.error(f"Beat initialization failed: {e}")
+        raise
 
 def verify_redis():
     """Verify Redis connection is working"""
@@ -104,27 +117,36 @@ def start_beat(app):
         raise
 
 if __name__ == '__main__':
-    logger.info("Initializing Celery beat scheduler")
-    
-    # Initialize Celery
-    celery = initialize_celery(flask_app)
-    
-    # Initialize app context for main process
-    flask_app.app_context().push()
-    
-    # Verify Redis connection
-    if not verify_redis():
-        logger.error("Redis verification failed. Exiting.")
-        exit(1)
-    
-    # Setup beat directory
-    if not setup_beat_directory():
-        logger.error("Beat directory setup failed. Exiting.")
-        exit(1)
-    
     try:
+        logger.info("Initializing Celery beat scheduler")
+        
+        # Initialize Celery
+        celery = initialize_celery(flask_app)
+        
+        # Initialize app context for main process
+        flask_app.app_context().push()
+        
+        # Verify Redis connection
+        if not verify_redis():
+            logger.error("Redis verification failed. Exiting.")
+            sys.exit(1)
+        
+        # Setup beat directory
+        if not setup_beat_directory():
+            logger.error("Beat directory setup failed. Exiting.")
+            sys.exit(1)
+        
         # Start beat scheduler
         start_beat(flask_app)
     except Exception as e:
         logger.error(f"Beat scheduler failed: {str(e)}")
-        exit(1)
+        sys.exit(1)
+        
+    finally:
+        # Cleanup on exit
+        try:
+            if hasattr(db, 'engine'):
+                db.engine.dispose()
+            db.session.remove()
+        except Exception as e:
+            logger.error(f"Cleanup failed: {e}")
