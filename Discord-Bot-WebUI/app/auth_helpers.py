@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import current_app, url_for
 from itsdangerous import URLSafeTimedSerializer
 from app.email import send_email
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 import aiohttp
 import requests
 import logging
@@ -13,7 +13,7 @@ DISCORD_OAUTH2_URL = 'https://discord.com/api/oauth2/authorize'
 DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 DISCORD_API_URL = 'https://discord.com/api/users/@me'
 
-@db_operation
+@handle_db_operation()
 def update_last_login(user):
     """Update user's last login timestamp."""
     try:

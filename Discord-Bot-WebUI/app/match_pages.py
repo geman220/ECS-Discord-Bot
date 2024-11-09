@@ -14,7 +14,7 @@ import threading
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-from app.decorators import db_operation, query_operation  # Import decorators
+from app.decorators import handle_db_operation, query_operation  # Import decorators
 
 match_pages = Blueprint('match_pages', __name__)
 
@@ -65,7 +65,7 @@ def view_match(match_id):
 
 @match_pages.route('/rsvp/<int:match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def rsvp(match_id):
     data = request.get_json()
     new_response = data.get('response')

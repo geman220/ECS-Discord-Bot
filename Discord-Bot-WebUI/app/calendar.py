@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, render_template, request
 from app.models import Match, Team, Season, League, Player
 from sqlalchemy.orm import aliased, joinedload
 from flask_login import login_required
-from app.decorators import role_required, db_operation, query_operation  # Import your decorators
+from app.decorators import role_required, handle_db_operation, query_operation
 import logging
 
 # Get the logger for this module
@@ -137,7 +137,7 @@ def get_refs():
 @calendar_bp.route('/calendar/assign_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def assign_ref():
     try:
         data = request.get_json()
@@ -230,7 +230,7 @@ def available_refs():
 @calendar_bp.route('/calendar/remove_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def remove_ref():
     try:
         data = request.get_json()

@@ -10,9 +10,11 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any, Union
 from app.extensions import db
 from app.celery_utils import async_task_with_context
-from app.decorators import celery_task, async_task, db_operation, query_operation, session_context
+from app.decorators import celery_task, async_task, handle_db_operation, query_operation
+from app.db_management import db_manager
 from app.models import Match, ScheduledMessage, User
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import SQLAlchemyError
 from flask import has_app_context, current_app
 from app.decorators import log_context_state
 
@@ -28,7 +30,8 @@ def schedule_season_availability(self) -> Dict[str, Any]:
     try:
         start_date = datetime.utcnow().date()
         end_date = start_date + timedelta(days=7)
-        with session_context():
+        
+        with db_manager.session_scope(transaction_name='schedule_season_availability') as session:
             @query_operation
             def get_matches_data() -> List[Dict[str, Any]]:
                 matches = Match.query.options(
@@ -45,7 +48,7 @@ def schedule_season_availability(self) -> Dict[str, Any]:
 
             matches_data = get_matches_data()
 
-            @db_operation
+            @handle_db_operation()
             def create_scheduled_messages() -> int:
                 count = 0
                 for match_data in matches_data:
@@ -58,7 +61,7 @@ def schedule_season_availability(self) -> Dict[str, Any]:
                             scheduled_send_time=send_time,
                             status='PENDING'
                         )
-                        db.session.add(scheduled_message)
+                        session.add(scheduled_message)
                         count += 1
                         logger.info(f"Scheduled availability message for match {match_data['id']} at {send_time}")
                 return count
@@ -77,7 +80,6 @@ def schedule_season_availability(self) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error in schedule_season_availability: {str(e)}", exc_info=True)
-        # Use the bound task's retry method if needed
         self.retry(exc=e, countdown=60, max_retries=3)
         return {
             "success": False,
@@ -93,7 +95,7 @@ def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str,
     try:
         # Get all needed data in one session at the start
         message_data = None
-        with session_context() as session:
+        with db_manager.session_scope(transaction_name='get_message_data') as session:
             message = session.query(ScheduledMessage).options(
                 joinedload(ScheduledMessage.match),
                 joinedload(ScheduledMessage.match).joinedload(Match.home_team),
@@ -103,7 +105,6 @@ def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str,
             if not message or not message.match:
                 raise ValueError(f"Message or match not found for ID {scheduled_message_id}")
 
-            # Create detached data copy
             message_data = {
                 "match_id": message.match.id,
                 "home_team_id": message.match.home_team_id,
@@ -116,14 +117,13 @@ def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str,
                 "away_team_name": message.match.away_team.name
             }
 
-        # Now run the async operation with just the data
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             result = loop.run_until_complete(_send_availability_message(message_data))
             
             # Update status in a new session after successful send
-            with session_context() as session:
+            with db_manager.session_scope(transaction_name='update_message_status') as session:
                 message = session.query(ScheduledMessage).get(scheduled_message_id)
                 if message:
                     message.status = 'SENT'
@@ -137,7 +137,7 @@ def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str,
             }
         except Exception as e:
             # Update status in a new session after failure
-            with session_context() as session:
+            with db_manager.session_scope(transaction_name='update_failed_status') as session:
                 message = session.query(ScheduledMessage).get(scheduled_message_id)
                 if message:
                     message.status = 'FAILED'
@@ -170,11 +170,12 @@ def retry_failed_task(self, task_name: str, *args, **kwargs) -> Any:
 def send_scheduled_messages(self) -> Dict[str, Any]:
     """Process and send all pending scheduled messages."""
     try:
-        with session_context():
+        # Single session for getting messages
+        with db_manager.session_scope(transaction_name='get_pending_messages') as session:
             @query_operation
             def get_pending_messages() -> List[Dict[str, Any]]:
                 now = datetime.utcnow()
-                messages = ScheduledMessage.query.filter(
+                messages = session.query(ScheduledMessage).filter(
                     ScheduledMessage.status == 'PENDING',
                     ScheduledMessage.scheduled_send_time <= now
                 ).options(
@@ -195,27 +196,21 @@ def send_scheduled_messages(self) -> Dict[str, Any]:
             try:
                 send_availability_message_task.delay(message_data['id'])
                 
-                with session_context():
-                    @db_operation
-                    def update_message_status():
-                        message = ScheduledMessage.query.get(message_data['id'])
-                        if message:
-                            message.status = 'QUEUED'
-                    
-                    update_message_status()
+                # Update message status in a new session
+                with db_manager.session_scope(transaction_name='update_message_status') as session:
+                    message = session.query(ScheduledMessage).get(message_data['id'])
+                    if message:
+                        message.status = 'QUEUED'
                 processed_count += 1
                 
             except Exception as e:
                 logger.error(f"Error queueing message {message_data['id']}: {str(e)}", exc_info=True)
                 
-                with session_context():
-                    @db_operation
-                    def mark_message_failed():
-                        message = ScheduledMessage.query.get(message_data['id'])
-                        if message:
-                            message.status = 'FAILED'
-                    
-                    mark_message_failed()
+                # Mark failed in a new session
+                with db_manager.session_scope(transaction_name='mark_message_failed') as session:
+                    message = session.query(ScheduledMessage).get(message_data['id'])
+                    if message:
+                        message.status = 'FAILED'
                 failed_count += 1
 
         return {
@@ -259,43 +254,118 @@ async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, 
 
 @celery_task(
     name='app.tasks.tasks_core.cleanup_old_messages',
-    bind=True
+    bind=True,
+    max_retries=3,
+    retry_backoff=True
 )
 def cleanup_old_messages(self, days_old: int = 30) -> Dict[str, Any]:
-    """Clean up old scheduled messages."""
+    """Clean up old scheduled messages with proper batch processing and error handling."""
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=days_old)
-
-        with session_context():
-            @db_operation
-            def delete_old_messages() -> int:
-                batch_size = 1000
-                total_deleted = 0
-
-                while True:
-                    deleted = ScheduledMessage.query.filter(
-                        ScheduledMessage.scheduled_send_time < cutoff_date,
-                        ScheduledMessage.status.in_(['SENT', 'FAILED'])
-                    ).limit(batch_size).delete(synchronize_session=False)
-
-                    if not deleted:
-                        break
-
-                    total_deleted += deleted
-                    db.session.commit()
-
-                return total_deleted
-
-            deleted_count = delete_old_messages()
-
-        return {
-            "success": True,
-            "message": f"Cleaned up {deleted_count} old messages",
-            "deleted_count": deleted_count
+        batch_size = 1000
+        cleanup_stats = {
+            'total_deleted': 0,
+            'batches_processed': 0,
+            'deletion_details': []
         }
+
+        with db_manager.session_scope(transaction_name='cleanup_old_messages') as session:
+            # First, get count of messages to be deleted for logging
+            total_messages = session.query(ScheduledMessage).filter(
+                ScheduledMessage.scheduled_send_time < cutoff_date,
+                ScheduledMessage.status.in_(['SENT', 'FAILED'])
+            ).count()
+
+            logger.info(
+                f"Starting message cleanup",
+                extra={
+                    'cutoff_date': cutoff_date.isoformat(),
+                    'total_messages': total_messages,
+                    'batch_size': batch_size
+                }
+            )
+
+            while True:
+                # Get batch of messages to delete
+                messages_to_delete = session.query(ScheduledMessage).filter(
+                    ScheduledMessage.scheduled_send_time < cutoff_date,
+                    ScheduledMessage.status.in_(['SENT', 'FAILED'])
+                ).limit(batch_size).all()
+
+                if not messages_to_delete:
+                    break
+
+                # Log details before deletion
+                batch_details = [{
+                    'id': msg.id,
+                    'status': msg.status,
+                    'scheduled_time': msg.scheduled_send_time.isoformat(),
+                    'match_id': msg.match_id
+                } for msg in messages_to_delete]
+                cleanup_stats['deletion_details'].extend(batch_details)
+
+                # Delete batch
+                deleted_count = session.query(ScheduledMessage).filter(
+                    ScheduledMessage.id.in_([msg.id for msg in messages_to_delete])
+                ).delete(synchronize_session=False)
+
+                cleanup_stats['total_deleted'] += deleted_count
+                cleanup_stats['batches_processed'] += 1
+
+                session.flush()
+
+                logger.info(
+                    f"Processed cleanup batch",
+                    extra={
+                        'batch_number': cleanup_stats['batches_processed'],
+                        'batch_size': len(messages_to_delete),
+                        'total_deleted': cleanup_stats['total_deleted']
+                    }
+                )
+
+        # Calculate cleanup statistics
+        result = {
+            'success': True,
+            'message': f"Cleaned up {cleanup_stats['total_deleted']} old messages",
+            'stats': {
+                'deleted_count': cleanup_stats['total_deleted'],
+                'batches_processed': cleanup_stats['batches_processed'],
+                'total_eligible': total_messages,
+                'cutoff_date': cutoff_date.isoformat()
+            },
+            'deletion_details': cleanup_stats['deletion_details'],
+            'cleanup_time': datetime.utcnow().isoformat()
+        }
+
+        logger.info(
+            "Message cleanup completed successfully",
+            extra={
+                'deleted_count': cleanup_stats['total_deleted'],
+                'batches_processed': cleanup_stats['batches_processed']
+            }
+        )
+
+        return result
+
+    except SQLAlchemyError as e:
+        error_msg = f"Database error cleaning up old messages: {str(e)}"
+        logger.error(
+            error_msg,
+            extra={
+                'cutoff_date': cutoff_date.isoformat(),
+                'days_old': days_old
+            },
+            exc_info=True
+        )
+        raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        logger.error(f"Error cleaning up old messages: {str(e)}", exc_info=True)
-        return {
-            "success": False,
-            "message": str(e)
-        }
+        error_msg = f"Error cleaning up old messages: {str(e)}"
+        logger.error(
+            error_msg,
+            extra={
+                'cutoff_date': cutoff_date.isoformat(),
+                'days_old': days_old
+            },
+            exc_info=True
+        )
+        raise self.retry(exc=e, countdown=30)

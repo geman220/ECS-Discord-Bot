@@ -5,7 +5,7 @@ from redis import Redis
 from app.extensions import celery
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class MatchScheduler:
         """Get match with proper session management."""
         return MLSMatch.query.get(match_id)
 
-    @db_operation
+    @handle_db_operation()
     def _update_match_schedule(self, match_id: int, thread_time: datetime) -> Optional[MLSMatch]:
         """Update match scheduling details with proper session management."""
         match = MLSMatch.query.get(match_id)

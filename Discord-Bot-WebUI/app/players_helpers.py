@@ -1,6 +1,6 @@
 from flask import current_app, Blueprint, render_template, url_for
 from app.models import Player, PlayerOrderHistory, User
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.routes import get_current_season_and_year
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import joinedload
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 players_bp = Blueprint('players', __name__)
 
-@db_operation
+@handle_db_operation()
 def save_cropped_profile_picture(cropped_image_data, player_id):
     """Save profile picture with proper session management."""
     try:
@@ -45,7 +45,7 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
         image.save(file_path, format='PNG')
         profile_path = f"/static/img/uploads/profile_pictures/{filename}"
 
-        @db_operation
+        @handle_db_operation()
         def update_player_profile():
             player = Player.query.get(player_id)
             if player:
@@ -103,7 +103,7 @@ def generate_random_password(length=16):
     
     return ''.join(password)
 
-@db_operation
+@handle_db_operation()
 def create_user_for_player(player_data):
     """Create user for player with proper session management."""
     @query_operation

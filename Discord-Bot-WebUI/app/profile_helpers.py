@@ -11,9 +11,9 @@ import logging
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-from app.decorators import db_operation, query_operation  # Import your decorators
+from app.decorators import handle_db_operation, query_operation  # Import your decorators
 
-@db_operation
+@handle_db_operation()
 def handle_coach_status_update(player, user):
     """Update player's coach status and role membership"""
     try:
@@ -45,7 +45,7 @@ def handle_coach_status_update(player, user):
         flash('Error updating coach status.', 'danger')
         raise
 
-@db_operation
+@handle_db_operation()
 def handle_ref_status_update(player, user):
     """Update player's referee status and role membership"""
     try:
@@ -77,7 +77,7 @@ def handle_ref_status_update(player, user):
         flash('Error updating referee status.', 'danger')
         raise
 
-@db_operation
+@handle_db_operation()
 def handle_profile_update(form, player, user):
     """Update player profile and associated user information"""
     try:
@@ -132,7 +132,7 @@ def check_email_uniqueness(email, user_id):
         flash('Error checking email availability.', 'danger')
         return True
 
-@db_operation
+@handle_db_operation()
 def handle_season_stats_update(player, form, season_id):
     """Update player's season statistics"""
     try:
@@ -154,7 +154,7 @@ def handle_season_stats_update(player, form, season_id):
         flash('Error updating season stats.', 'danger')
         raise
 
-@db_operation
+@handle_db_operation()
 def handle_career_stats_update(player, form):
     """Update player's career statistics"""
     try:
@@ -173,7 +173,7 @@ def handle_career_stats_update(player, form):
         flash('Error updating career stats.', 'danger')
         raise
 
-@db_operation
+@handle_db_operation()
 def handle_add_stat_manually(player):
     """Add manual statistics for a player"""
     try:

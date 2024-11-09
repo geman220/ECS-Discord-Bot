@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 from app.models import League, Player, Team, Season, PlayerSeasonStats
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from app.routes import get_current_season_and_year
 from app.extensions import socketio
 from flask_socketio import emit
@@ -239,7 +239,7 @@ def draft_ecs_fc():
         return redirect(url_for('main.index'))
 
 @socketio.on('draft_player')
-@db_operation
+@handle_db_operation()
 def handle_draft_player(data):
     try:
         player_id = data['player_id']
@@ -279,7 +279,7 @@ def handle_draft_player(data):
         raise
 
 @socketio.on('remove_player')
-@db_operation
+@handle_db_operation()
 def handle_remove_player(data):
     try:
         player_id = data['player_id']

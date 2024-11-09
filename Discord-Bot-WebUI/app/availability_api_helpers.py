@@ -1,7 +1,7 @@
 # availability_api_helpers.py
 from flask import jsonify, current_app
 from app.models import Match, Availability, Team, Player, ScheduledMessage
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.tasks.tasks_rsvp import update_discord_rsvp_task
 from datetime import datetime
 from typing import Optional
@@ -34,7 +34,7 @@ def get_availability_results(match_id):
         } for a in availability]
     }
 
-@db_operation
+@handle_db_operation()
 def store_message_ids_for_match(match_id, home_channel_id, home_message_id, 
                               away_channel_id, away_message_id):
     """
@@ -183,7 +183,7 @@ def get_match_rsvp_data(match_id, team_id=None):
                     exc_info=True)
         return {'yes': [], 'no': [], 'maybe': []}
 
-@db_operation
+@handle_db_operation()
 async def update_discord_rsvp(match, player, new_response, old_response):
     scheduled_message = ScheduledMessage.query.filter_by(match_id=match.id).first()
     if not scheduled_message:
@@ -211,7 +211,7 @@ async def update_discord_rsvp(match, player, new_response, old_response):
     update_discord_rsvp_task.delay(data)
     return {"status": "success", "message": "RSVP update task queued"}
 
-@db_operation
+@handle_db_operation()
 def process_availability_update(match_id, discord_id, response, responded_at=None):
     """
     Process an availability update for a player.

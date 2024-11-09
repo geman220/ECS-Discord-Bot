@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
 from flask_login import login_required
 from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from datetime import datetime, date, time 
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
@@ -22,7 +22,7 @@ def get_related_matches(schedule_id: int) -> List[Match]:
         (Match.schedule.has(Schedule.opponent == Schedule.query.get(schedule_id).team_id))
     ).all()
 
-@db_operation
+@handle_db_operation()
 def update_match_records(schedule: Schedule, date: date, time: time, 
                         location: str, team_a_id: int, team_b_id: int) -> None:
     """Update or create match records for a schedule."""
@@ -115,7 +115,7 @@ def format_match_schedule(matches):
 
     return schedule
 
-@db_operation
+@handle_db_operation()
 def handle_add_match(season_id, league_name, week):
     """Add a new match with proper session management."""
     try:
@@ -155,7 +155,7 @@ def handle_add_match(season_id, league_name, week):
         raise
 
 # Helper function to handle week deletion
-@db_operation
+@handle_db_operation()
 def handle_delete_week(season_id, week):
     try:
         Schedule.query.filter_by(week=str(week)).delete()
@@ -168,7 +168,7 @@ def handle_delete_week(season_id, week):
 @schedule_bp.route('/publeague/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def manage_publeague_schedule(season_id):
     season = Season.query.get_or_404(season_id)
     leagues = League.query.filter_by(season_id=season_id).all()
@@ -215,7 +215,7 @@ def manage_publeague_schedule(season_id):
 @schedule_bp.route('/ecsfc/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def manage_ecsfc_schedule(season_id):
     season = Season.query.get_or_404(season_id)
     leagues = League.query.filter_by(season_id=season_id).all()
@@ -243,7 +243,7 @@ def manage_ecsfc_schedule(season_id):
 @schedule_bp.route('/publeague/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def bulk_create_publeague_matches(season_id, league_name):
     try:
         season = Season.query.get_or_404(season_id)
@@ -326,7 +326,7 @@ def bulk_create_ecsfc_matches(season_id, league_name):
         fun_week = request.form.get('fun_week')
         tst_week = request.form.get('tst_week')
 
-        @db_operation
+        @handle_db_operation()
         def create_week_matches(week):
             week_date = request.form.get(f'date_week{week}')
             if not week_date:
@@ -380,7 +380,7 @@ def bulk_create_ecsfc_matches(season_id, league_name):
 
 @schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def edit_match(match_id):
     """Edit match and related records."""
     try:
@@ -481,7 +481,7 @@ def edit_match(match_id):
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_match(match_id):
     """Delete match and related records."""
     try:
@@ -550,7 +550,7 @@ def delete_match(match_id):
 @schedule_bp.route('/<string:league_type>/<int:season_id>/delete_week/<int:week_number>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_week(league_type, season_id, week_number):
     try:
         Schedule.query.filter_by(week=str(week_number), season_id=season_id).delete()
@@ -586,7 +586,7 @@ def fetch_schedule():
 
 @schedule_bp.route('/add_match', methods=['POST'])
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def add_match():
     """Add a new match and its related records."""
     try:

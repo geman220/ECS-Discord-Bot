@@ -7,7 +7,7 @@ from flask_login import login_required
 from app.utils.user_helpers import safe_current_user
 import logging
 
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.models import (
     Team, Player, League, Season, Match, Standings,
     PlayerEventType, PlayerEvent
@@ -131,7 +131,7 @@ def teams_overview():
 
 @teams_bp.route('/report_match/<int:match_id>', methods=['GET', 'POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def report_match(match_id):
     logger.info(f"Starting report_match for Match ID: {match_id}")
     match = Match.query.get_or_404(match_id)

@@ -3,7 +3,7 @@ from app.schedule_routes import schedule_bp
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g
 from flask_login import login_required
 from app.models import Season, League, Team, Player, Schedule
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from app.discord_utils import (
@@ -58,7 +58,7 @@ def get_matches_by_league(league_id):
 @publeague.route('/clear_players', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def clear_players():
     try:
         Player.query.delete()
@@ -73,7 +73,7 @@ def clear_players():
 @publeague.route('/seasons/<int:season_id>/teams/<string:league_name>/<string:team_name>/update', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def update_publeague_team_name(season_id, league_name, team_name):
     try:
         league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
@@ -117,7 +117,7 @@ def assign_discord_roles():
 @publeague.route('/add_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def add_team():
     try:
         team_name = request.form.get('team_name', '').strip()
@@ -149,7 +149,7 @@ def add_team():
 @publeague.route('/edit_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def edit_team():
     try:
         team_id = request.form.get('team_id')
@@ -179,7 +179,7 @@ def edit_team():
 @publeague.route('/delete_team', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_team():
     try:
         team_id = request.form.get('team_id')

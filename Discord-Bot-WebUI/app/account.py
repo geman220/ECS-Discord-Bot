@@ -9,7 +9,7 @@ from app.extensions import db
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
 from flask_login import login_required
 from app.forms import Verify2FAForm, NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
-from app.decorators import db_operation, query_operation, session_context
+from app.decorators import handle_db_operation, query_operation
 from app.models import Player, Team, Match, User, Notification
 from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic
 from datetime import datetime
@@ -42,7 +42,7 @@ def get_player_with_team(user_id):
         .filter_by(user_id=user_id)\
         .first()
 
-@db_operation
+@handle_db_operation()
 def create_or_update_player(user_id, phone_number):
     player = Player.query.filter_by(user_id=user_id).first()
     if not player:
@@ -55,7 +55,7 @@ def create_or_update_player(user_id, phone_number):
     player.sms_opt_out_timestamp = None
     return player
 
-@db_operation
+@handle_db_operation()
 def link_discord_account(code, discord_client_id, discord_client_secret, redirect_uri, player):
     token_data = {
         'client_id': discord_client_id,
@@ -101,7 +101,7 @@ def settings():
 
 @account_bp.route('/update_notifications', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def update_notifications():
     form = NotificationSettingsForm(prefix='notification')
     if form.validate_on_submit():
@@ -115,7 +115,7 @@ def update_notifications():
 
 @account_bp.route('/change_password', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def change_password():
     form = PasswordChangeForm(prefix='password')
     if form.validate_on_submit():
@@ -132,7 +132,7 @@ def change_password():
 
 @account_bp.route('/update_account_info', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def update_account_info():
     form = request.form
     safe_current_user.email = form.get('email')
@@ -144,7 +144,7 @@ def update_account_info():
 
 @account_bp.route('/initiate-sms-opt-in', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def initiate_sms_opt_in():
     phone_number = request.json.get('phone_number')
     consent_given = request.json.get('consent_given')
@@ -168,7 +168,7 @@ def initiate_sms_opt_in():
 
 @account_bp.route('/confirm-sms-opt-in', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def confirm_sms_opt_in():
     confirmation_code = request.json.get('confirmation_code')
     if not confirmation_code:
@@ -184,7 +184,7 @@ def confirm_sms_opt_in():
 
 @account_bp.route('/opt-out-sms', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def opt_out_sms():
     safe_current_user.sms_notifications = False
     if safe_current_user.player:
@@ -205,7 +205,7 @@ def sms_verification_status():
 
 @account_bp.route('/enable_2fa', methods=['GET', 'POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def enable_2fa():
     if request.method == 'GET':
         if not safe_current_user.totp_secret:
@@ -231,7 +231,7 @@ def enable_2fa():
 
 @account_bp.route('/disable_2fa', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def disable_2fa():
     form = Disable2FAForm(prefix='disable2fa')
     if form.validate_on_submit():
@@ -256,7 +256,7 @@ def link_discord():
 
 @account_bp.route('/discord-callback')
 @login_required
-@db_operation
+@handle_db_operation()
 def discord_callback():
     code = request.args.get('code')
     if not code:
@@ -284,7 +284,7 @@ def discord_callback():
 
 @account_bp.route('/unlink-discord', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def unlink_discord():
     if safe_current_user.player and safe_current_user.player.discord_id:
         safe_current_user.player.discord_id = None
@@ -295,7 +295,7 @@ def unlink_discord():
 
 @csrf.exempt
 @account_bp.route('/webhook/incoming-sms', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def incoming_sms_webhook():
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip().lower()

@@ -3,12 +3,12 @@ from app.models import Player, PlayerSeasonStats, PlayerEventType
 from app.teams_helpers import current_season_id
 import logging
 
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-@db_operation
+@handle_db_operation()
 def decrement_player_stats(player_id, event_type):
     """Decrement player stats with proper session management."""
     try:

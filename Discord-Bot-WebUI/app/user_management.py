@@ -3,7 +3,7 @@ from flask_login import login_required
 from app.models import User, Role, Player, db, League
 from app.forms import EditUserForm, CreateUserForm, ResetPasswordForm, FilterUsersForm
 from flask_paginate import Pagination, get_page_args
-from app.decorators import role_required, query_operation, db_operation
+from app.decorators import role_required, query_operation, handle_db_operation
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 import logging
@@ -106,7 +106,7 @@ def manage_users():
 @user_management_bp.route('/create_user', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def create_user():
     form = CreateUserForm()
     if form.validate_on_submit():
@@ -128,7 +128,7 @@ def create_user():
 @user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def edit_user(user_id):
     logger.debug(f"Initiating edit_user for user_id: {user_id}")
 
@@ -174,7 +174,7 @@ def edit_user(user_id):
 @user_management_bp.route('/remove_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def remove_user(user_id):
     user = User.query.get_or_404(user_id)
 
@@ -189,7 +189,7 @@ def remove_user(user_id):
 @user_management_bp.route('/approve_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def approve_user(user_id):
     user = User.query.get_or_404(user_id)
 

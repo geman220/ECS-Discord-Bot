@@ -1,13 +1,14 @@
 from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required
 from app.models import Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
-from app.decorators import role_required, admin_or_owner_required, db_operation, query_operation, session_context
+from app.decorators import role_required, admin_or_owner_required, handle_db_operation, query_operation
 from app.woocommerce import fetch_orders_from_woocommerce
 from app.routes import get_current_season_and_year
 from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.utils.user_helpers import safe_current_user
+from app.db_management import db_manager
 from sqlalchemy import func, or_, and_
 from PIL import Image
 from app.extensions import db
@@ -78,7 +79,7 @@ def view_players():
 @players_bp.route('/update', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def update_players():
     try:
         # Step 1: Fetch current seasons
@@ -173,7 +174,7 @@ def update_players():
 @players_bp.route('/create_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def create_player():
     form = CreatePlayerForm()
     # Manually populate form data since we're not using Flask-WTF in the modal
@@ -354,7 +355,7 @@ def player_profile(player_id):
 
 @players_bp.route('/add_stat_manually/<int:player_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def add_stat_manually(player_id):
     player = Player.query.get_or_404(player_id)
     
@@ -422,7 +423,7 @@ def get_needs_review_count():
 @players_bp.route('/admin/review', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def admin_review():
     players_needing_review = Player.query.filter_by(needs_manual_review=True).all()
     admins = User.query.join(user_roles).join(Role).filter(Role.name.in_(['Pub League Admin', 'Global Admin'])).all()
@@ -440,7 +441,7 @@ def admin_review():
 
 @players_bp.route('/create-profile', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def create_profile():
     form = PlayerProfileForm()
     if form.validate_on_submit():
@@ -475,20 +476,22 @@ def create_profile():
 @players_bp.route('/edit_match_stat/<int:stat_id>', methods=['GET', 'POST'])
 @login_required
 def edit_match_stat(stat_id):
-    match_stat = PlayerEvent.query.get_or_404(stat_id)
-
     if request.method == 'GET':
-        # Read-only operation, no need for transaction management
-        return jsonify({
-            'goals': match_stat.goals,
-            'assists': match_stat.assists,
-            'yellow_cards': match_stat.yellow_cards,
-            'red_cards': match_stat.red_cards,
-        })
-
+        # Use db_manager's session_scope for read operation
+        with db_manager.session_scope(transaction_name='read_match_stat'):
+            match_stat = PlayerEvent.query.get_or_404(stat_id)
+            return jsonify({
+                'goals': match_stat.goals,
+                'assists': match_stat.assists,
+                'yellow_cards': match_stat.yellow_cards,
+                'red_cards': match_stat.red_cards,
+            })
+            
     if request.method == 'POST':
-        with session_context() as session:
+        # Use db_manager's session_scope for write operation
+        with db_manager.session_scope(transaction_name='update_match_stat') as session:
             try:
+                match_stat = PlayerEvent.query.get_or_404(stat_id)
                 match_stat.goals = request.form.get('goals', 0)
                 match_stat.assists = request.form.get('assists', 0)
                 match_stat.yellow_cards = request.form.get('yellow_cards', 0)
@@ -500,7 +503,7 @@ def edit_match_stat(stat_id):
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def remove_match_stat(stat_id):
     try:
         match_stat = PlayerEvent.query.get_or_404(stat_id)
@@ -528,7 +531,7 @@ def remove_match_stat(stat_id):
 @players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
 @login_required
 @admin_or_owner_required
-@db_operation
+@handle_db_operation()
 def upload_profile_picture(player_id):
     player = Player.query.get_or_404(player_id)
 
@@ -550,7 +553,7 @@ def upload_profile_picture(player_id):
 @players_bp.route('/delete_player/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_player(player_id):
     try:
         player = Player.query.get_or_404(player_id)
@@ -570,7 +573,7 @@ def delete_player(player_id):
 @players_bp.route('/edit_player/<int:player_id>', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def edit_player(player_id):
     player = Player.query.get_or_404(player_id)
     form = EditPlayerForm(obj=player)

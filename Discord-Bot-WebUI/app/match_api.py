@@ -1,7 +1,7 @@
 # web match_api.py
 
 from app import csrf
-from app.decorators import db_operation, query_operation 
+from app.decorators import handle_db_operation, query_operation 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
 from app.models import MLSMatch
@@ -281,7 +281,7 @@ async def send_update_to_bot(thread_id, update_type, update_data):
 
 @match_api.route('/schedule_live_reporting', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def schedule_live_reporting_route():
     data = request.json
     match_id = data.get('match_id')
@@ -311,7 +311,7 @@ def schedule_live_reporting_route():
 
 @match_api.route('/start_live_reporting/<match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def start_live_reporting_route(match_id):
     try:
         match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -340,7 +340,7 @@ def start_live_reporting_route(match_id):
 
 @match_api.route('/stop_live_reporting/<match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def stop_live_reporting_route(match_id):
     try:
         match = MLSMatch.query.filter_by(match_id=match_id).first()
