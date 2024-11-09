@@ -6,13 +6,13 @@ from datetime import datetime, timedelta
 import secrets
 import logging
 
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 
 logger = logging.getLogger(__name__)
 
 sms_rsvp_bp = Blueprint('sms_rsvp', __name__)
 
-@db_operation
+@handle_db_operation()
 def update_rsvp(match_id, player_id, response, discord_id=None):
     if response not in ['yes', 'no', 'maybe']:
         return False
@@ -36,7 +36,7 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
         logger.error(f"Error updating RSVP for player {player_id}: {e}")
         return False
 
-@query_operation
+@handle_db_operation()
 def get_next_matches(team_id, limit=2):
     return Match.query.filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
@@ -47,7 +47,7 @@ def generate_token():
     return secrets.token_urlsafe(24)
 
 @sms_rsvp_bp.route('/generate_link/<phone_number>', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def generate_rsvp_link(phone_number):
     try:
         player = Player.query.filter_by(phone=phone_number).first()
@@ -65,7 +65,7 @@ def generate_rsvp_link(phone_number):
         return jsonify({'error': 'Failed to generate RSVP link'}), 500
 
 @sms_rsvp_bp.route('/rsvp/<token>', methods=['GET', 'POST'])
-@db_operation
+@handle_db_operation()
 def rsvp_page(token):
     try:
         token_obj = Token.query.filter_by(token=token).first()
@@ -104,7 +104,7 @@ def rsvp_page(token):
         abort(500)
 
 @sms_rsvp_bp.route('/dev_test_send_rsvp_requests', methods=['GET'])
-@db_operation
+@handle_db_operation()
 def dev_test_send_rsvp_requests():
     try:
         opted_in_players = Player.query.filter_by(sms_consent_given=True).all()

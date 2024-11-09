@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="app\config\celery_config.py" />
     <Compile Include="app\config\__init__.py" />
+    <Compile Include="app\db_management.py" />
     <Compile Include="app\match_scheduler.py" />
     <Compile Include="app\monitoring.py" />
     <Compile Include="app\order_helpers.py" />
@@ -33,6 +34,7 @@
     <Compile Include="app\tasks\tasks_match_updates_helpers.py" />
     <Compile Include="app\tasks\tasks_rsvp_helpers.py" />
     <Compile Include="app\utils\db_connection_monitor.py" />
+    <Compile Include="app\utils\db_monitoring.py" />
     <Compile Include="app\utils\discord_request_handler.py" />
     <Compile Include="app\utils\match_events_utils.py" />
     <Compile Include="app\utils\redis_manager.py" />
@@ -55,7 +57,6 @@
     <Compile Include="app\auth_helpers.py" />
     <Compile Include="app\availability_api.py" />
     <Compile Include="app\availability_api_helpers.py" />
-    <Compile Include="app\blueprints.py" />
     <Compile Include="app\bot_admin.py" />
     <Compile Include="app\calendar.py" />
     <Compile Include="app\celery_app.py" />

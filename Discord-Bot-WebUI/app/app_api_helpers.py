@@ -4,7 +4,7 @@ from app.models import (
     PlayerSeasonStats, PlayerCareerStats, Availability,
     PlayerEvent, PlayerEventType
 )
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from datetime import datetime
 from sqlalchemy import func, or_
 from typing import Optional, Dict, Any, List, Tuple, Union
@@ -65,7 +65,7 @@ def get_discord_user_data(access_token: str) -> Dict:
         logger.error(f"Failed to fetch Discord user data: {str(e)}")
         raise
 
-@db_operation
+@handle_db_operation()
 def process_discord_user(user_data: Dict) -> User:
     """Process Discord user data and create/update user."""
     email = user_data.get('email', '').lower()
@@ -120,7 +120,7 @@ def get_player_stats(player: Player, season: Season) -> Dict[str, Any]:
     }
 
 # Match Related Helpers
-@db_operation
+@handle_db_operation()
 def update_match_details(match: Match, data: Dict) -> None:
     """Update match scores and notes."""
     logger.info(f"Updating match {match.id} details")
@@ -128,7 +128,7 @@ def update_match_details(match: Match, data: Dict) -> None:
     match.away_team_score = data.get('away_team_score')
     match.notes = data.get('notes')
 
-@db_operation
+@handle_db_operation()
 def add_match_events(match: Match, events: List[Dict]) -> None:
     """Add events to match."""
     logger.info(f"Adding {len(events)} events to match {match.id}")
@@ -140,7 +140,7 @@ def add_match_events(match: Match, events: List[Dict]) -> None:
             minute=event.get('minute')
         )
 
-@db_operation
+@handle_db_operation()
 def update_player_availability(match_id: int, player_id: int, 
                              discord_id: Optional[str], response: str) -> Availability:
     """Update or create player availability record."""
@@ -276,7 +276,7 @@ def process_matches_data(matches: List[Match], player: Optional[Player],
     
     return matches_data
 
-@db_operation
+@handle_db_operation()
 def notify_availability_update(match_id: int, player_id: int, 
                              response: str) -> None:
     """Notify relevant systems of availability update."""
@@ -289,7 +289,7 @@ def notify_availability_update(match_id: int, player_id: int,
     notify_discord_of_rsvp_change_task.delay(match_id)
     notify_frontend_of_rsvp_change_task.delay(match_id, player_id, response)
 
-@db_operation
+@handle_db_operation()
 def update_player_match_availability(match_id: int, player_id: int, 
                                    new_response: str) -> bool:
     try:

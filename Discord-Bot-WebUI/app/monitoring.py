@@ -2,7 +2,7 @@
 
 from flask import Blueprint, render_template, jsonify, current_app, request
 from flask_login import login_required
-from app.decorators import role_required, db_operation
+from app.decorators import role_required, handle_db_operation
 from app.utils.redis_manager import RedisManager
 from celery.result import AsyncResult
 from app.extensions import celery, db
@@ -273,7 +273,7 @@ def test_redis():
 @monitoring_bp.route('/tasks/revoke', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def revoke_task():
     """Revoke a scheduled task and clean up Redis."""
     try:
@@ -322,7 +322,7 @@ def revoke_task():
 @monitoring_bp.route('/tasks/revoke-all', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def revoke_all_tasks():
     """Revoke all scheduled tasks and clean up Redis."""
     try:
@@ -391,7 +391,7 @@ def revoke_all_tasks():
 @monitoring_bp.route('/tasks/reschedule', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def reschedule_task():
     """Reschedule a task with a new ETA."""
     try:

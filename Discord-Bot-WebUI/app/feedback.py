@@ -4,7 +4,7 @@ from flask_login import login_required
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.extensions import db
 from app.utils.user_helpers import safe_current_user
 from functools import wraps
@@ -22,7 +22,7 @@ def get_admin_emails():
         return [user.email for user in admin_users]
     return []
 
-@db_operation
+@handle_db_operation()
 def handle_feedback_reply(feedback, form):
     """Handle the creation of a new feedback reply"""
     try:
@@ -42,7 +42,7 @@ def handle_feedback_reply(feedback, form):
         flash('Error adding reply. Please try again.', 'danger')
         raise
 
-@db_operation
+@handle_db_operation()
 def create_feedback_entry(form_data, user_id=None, username=None):
     """Creates a new feedback entry with proper session management"""
     try:
@@ -62,7 +62,7 @@ def create_feedback_entry(form_data, user_id=None, username=None):
         logger.error(f"Error creating feedback: {str(e)}")
         raise
 
-@query_operation
+@handle_db_operation()
 def get_user_feedbacks(user_id, page, per_page, search_query):
     """Retrieves paginated user feedbacks with proper session management"""
     try:
@@ -145,7 +145,7 @@ def submit_feedback():
 
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def view_feedback(feedback_id):
     try:
         feedback = Feedback.query.options(
@@ -190,7 +190,7 @@ def view_feedback(feedback_id):
 
 @feedback_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     

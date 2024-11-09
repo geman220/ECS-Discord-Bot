@@ -7,7 +7,7 @@ import random
 import string
 import logging
 from app.models import User, Player, Match
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def send_sms(phone_number, message):
 def generate_confirmation_code():
     return ''.join(random.choices(string.digits, k=6))
 
-@db_operation
+@handle_db_operation()
 def send_confirmation_sms(user):
     player = Player.query.filter_by(user_id=user.id).first()
     if not player or not player.phone:
@@ -56,7 +56,7 @@ def send_confirmation_sms(user):
     success, message_id = send_sms(player.phone, message)
     return success, message_id
 
-@db_operation
+@handle_db_operation()
 def verify_sms_confirmation(user, code):
     try:
         if user.sms_confirmation_code == code:
@@ -76,7 +76,7 @@ def verify_sms_confirmation(user, code):
         logger.error(f"Error verifying SMS confirmation for user {user.id}: {e}")
         return False
 
-@db_operation
+@handle_db_operation()
 def send_match_reminders(match):
     for player in match.players:
         if player.user.sms_notifications and player.phone:
@@ -103,7 +103,7 @@ def user_is_blocked_in_textmagic(phone_number):
         current_app.logger.error(f"Error checking if phone {phone_number} is unsubscribed: {e}")
         return False
 
-@db_operation
+@handle_db_operation()
 def handle_opt_out(player):
     logger.info(f'Opt-out request received for player: {player.user_id}')
     player.sms_opt_out_timestamp = datetime.utcnow()
@@ -111,7 +111,7 @@ def handle_opt_out(player):
     logger.info(f'Player {player.user_id} successfully unsubscribed from SMS notifications')
     return jsonify({'status': 'success', 'message': 'User unsubscribed from SMS notifications'})
 
-@db_operation
+@handle_db_operation()
 def handle_re_subscribe(player, phone_number):
     logger.info(f'Re-subscription request received for player: {player.user_id}')
     player.sms_consent_given = True

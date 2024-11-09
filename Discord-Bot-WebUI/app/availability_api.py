@@ -3,7 +3,7 @@ from flask_login import login_required
 from app import csrf
 from app.extensions import celery
 from app.models import Match, Availability, Team, Player, ScheduledMessage
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.tasks.tasks_rsvp import (
     notify_discord_of_rsvp_change_task,
     notify_frontend_of_rsvp_change_task,
@@ -35,7 +35,7 @@ def limit_remote_addr():
         return "Access Denied", 403
 
 @availability_bp.route('/schedule_availability_poll', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def schedule_availability_poll():
     logger.debug("Endpoint hit: /api/schedule_availability_poll")
     data = request.json
@@ -68,7 +68,7 @@ def get_match_availability(match_id):
     }), 200
 
 @availability_bp.route('/update_availability', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def update_availability():
     data = request.json
     logger.info(f"Received data from Discord: {data}")
@@ -94,7 +94,7 @@ def update_availability():
     return jsonify({"message": "Availability updated successfully"}), 200
 
 @availability_bp.route('/store_message_ids', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def store_message_ids():
     """Store message IDs with validation"""
     try:
@@ -138,7 +138,7 @@ def get_match_id_from_message(message_id):
 
 @availability_bp.route('/update_availability_web', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def update_availability_web():
    data = request.json
    logger.info(f"Received web update data: {data}")
@@ -160,7 +160,7 @@ def update_availability_web():
 
 @availability_bp.route('/sync_match_rsvps/<int:match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def sync_match_rsvps(match_id):
     try:
         match = Match.query.get_or_404(match_id)
@@ -202,7 +202,7 @@ def get_match_rsvps(match_id):
     return jsonify(rsvp_data), 200
 
 @availability_bp.route('/update_availability_from_discord', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def update_availability_from_discord():
     """Update availability from Discord webhook."""
     try:

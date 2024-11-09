@@ -7,6 +7,7 @@ from contextlib import contextmanager, asynccontextmanager
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import DetachedInstanceError
 from app.utils.user_helpers import safe_current_user
+from app.db_management import db_manager
 from typing import Any, Callable
 import logging
 import inspect
@@ -17,6 +18,24 @@ from celery import shared_task
 from app.extensions import db, celery
 
 logger = logging.getLogger(__name__)
+
+def is_flask_view_function(f):
+    """Helper to detect Flask view functions"""
+    return (hasattr(f, 'view_function') or 
+            hasattr(f, '_is_view') or 
+            hasattr(f, '__blueprinted__') or 
+            hasattr(f, '_blueprint_name') or
+            hasattr(f, 'endpoint'))
+
+def handle_db_operation(nested=False, transaction_name=None):
+    """Decorator for database operations with session handling."""
+    def db_operation_decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            with db_manager.session_scope(nested=nested, transaction_name=transaction_name):
+                return f(*args, **kwargs)
+        return wrapper
+    return db_operation_decorator
 
 def log_context_state(location: str):
     """Helper to log detailed context state"""
@@ -38,7 +57,7 @@ def register_template_context_processor(app):
     def inject_db_handler():
         def safe_db_load(callable_func):
             try:
-                with session_context():
+                with db_manager.session_scope():
                     return callable_func()
             except Exception as e:
                 logger.error(f"Template DB access error: {e}")
@@ -50,10 +69,14 @@ def role_required(roles):
     if isinstance(roles, str):
         roles = [roles]
 
-    def wrapper(f):
+    def role_required_decorator(f):
+        # Skip if already decorated
+        if hasattr(f, 'role_decorated'):
+            return f
+            
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user = safe_current_user  # Use safe_current_user
+            user = safe_current_user
             if not user or not user.is_authenticated:
                 flash('Please log in to access this page.', 'warning')
                 return redirect(url_for('auth.login'))
@@ -64,8 +87,10 @@ def role_required(roles):
                 return redirect(url_for('auth.login'))
 
             return f(*args, **kwargs)
+            
+        decorated_function.role_decorated = True  # Mark as decorated
         return decorated_function
-    return wrapper
+    return role_required_decorator
 
 def permission_required(permission_name):
     """Ensure the current user has the required permission."""
@@ -198,114 +223,19 @@ def jwt_admin_or_owner_required(func):
     
     return decorated_function
 
-def db_operation(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        thread_id = threading.get_ident()
-        logger.debug(f"[DB OP START] Function: {f.__name__} Thread: {thread_id}")
-        
-        with session_context():
-            try:
-                result = f(*args, **kwargs)
-                
-                # Process objects in the result if they're returned as tuples
-                if isinstance(result, tuple) and len(result) >= 2:
-                    objects, response = result[0], result[1]
-                    if isinstance(objects, (list, tuple)):
-                        with db.session.no_autoflush:
-                            for obj in objects:
-                                if hasattr(obj, '_sa_instance_state'):
-                                    if getattr(obj, 'deleted', False):
-                                        db.session.delete(obj)
-                                    elif obj not in db.session:
-                                        db.session.add(obj)
-                        db.session.flush()
-                        return response
-
-                # Normal result handling
-                db.session.flush()
-                return result
-            except Exception as e:
-                logger.error(f"Database operation error in {f.__name__}: {str(e)}")
-                db.session.rollback()
-                raise
-            finally:
-                logger.debug(f"[DB OP END] Function: {f.__name__} Thread: {thread_id}")
-                
-    return decorated_function
-
 def query_operation(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        thread_id = threading.get_ident()
-        logger.debug(f"[QUERY START] Function: {f.__name__} Thread: {thread_id}")
-
-        def attach_to_session(obj):
-            """Ensure object is attached to session."""
-            if obj is None or not hasattr(obj, '_sa_instance_state'):
-                return obj
-            
-            if obj not in db.session:
-                try:
-                    if hasattr(obj, 'id'):
-                        fresh_obj = obj.__class__.query.get(obj.id)
-                        if fresh_obj:
-                            return fresh_obj
-                    return db.session.merge(obj)
-                except DetachedInstanceError as e:
-                    logger.warning(f"Detached instance error: {e}")
-            return obj
-
-        with session_context():
-            try:
-                # Attach arguments to session
-                processed_args = tuple(attach_to_session(arg) for arg in args)
-                processed_kwargs = {k: attach_to_session(v) for k, v in kwargs.items()}
-                
-                result = f(*processed_args, **processed_kwargs)
-                db.session.flush()  # Flush changes without committing in nested contexts
-                return result
-            except Exception as e:
-                logger.error(f"Query operation error in {f.__name__}: {str(e)}")
-                db.session.rollback()
-                raise
-            finally:
-                logger.debug(f"[QUERY END] Function: {f.__name__} Thread: {thread_id}")
-
-    return decorated_function
-
-@contextmanager
-def session_context():
-    """Enhanced session context manager with request context awareness."""
-    session_id = f"session-{datetime.utcnow().timestamp()}"
-    thread_id = threading.get_ident()
-    
-    # Check if a session is already active to avoid redundant commits
-    session_active = getattr(g, 'session_context_active', False)
-    
-    # Only initialize a session if none is active
-    if not session_active:
-        g.session_context_active = True
-        db.session.expire_on_commit = False
-    
-    try:
-        yield db.session
+    """Query operation decorator with improved view function detection"""
+    # Skip if already decorated or is a view function
+    if hasattr(f, 'query_decorated') or is_flask_view_function(f):
+        return f
         
-        # Commit only if this is the outermost session context
-        if not session_active:
-            db.session.commit()
-            logger.debug(f"[SESSION COMMIT] ID: {session_id} Thread: {thread_id}")
-    except Exception as e:
-        logger.error(f"[SESSION ERROR] ID: {session_id}: {e}", exc_info=True)
-        db.session.rollback()
-        raise
-    finally:
-        # Cleanup only if this is the outermost session context
-        if not session_active:
-            db.session.expire_on_commit = True
-            db.session.remove()
-            g.session_context_active = False
-            logger.debug(f"[SESSION CLEANUP] ID: {session_id} Thread: {thread_id}")
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        with db_manager.session_scope(nested=True):
+            return f(*args, **kwargs)
+            
+    wrapper.query_decorated = True  # Mark as decorated
+    return wrapper
 
 @contextmanager
 def session_timeout_context(timeout_seconds: int = 30):
@@ -324,10 +254,11 @@ def session_timeout_context(timeout_seconds: int = 30):
 
 @asynccontextmanager
 async def async_session_context():
-    """Asynchronous session context manager for use in async functions."""
+    """Update async session context to use db_manager"""
     session_id = f"session-{datetime.utcnow().timestamp()}"
     logger.debug(f"Starting new async session context: {session_id}")
     try:
+        # Note: This still uses db.session directly as db_manager doesn't have async support yet
         yield db.session
         if db.session.is_active:
             db.session.commit()
@@ -343,16 +274,10 @@ async def async_session_context():
         logger.debug(f"Removed session: {session_id}")
 
 def celery_task(**task_kwargs):
-    """Enhanced Celery task decorator that ensures proper app context and session management"""
-    def decorator(f):
-        # Generate the task name if not provided
+    """Update celery task to use db_manager"""
+    def celery_task_decorator(f):
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
-        
-        # Create base task
-        base_task = celery.task(
-            name=task_name,
-            **task_kwargs
-        )(f)
+        base_task = celery.task(name=task_name, **task_kwargs)(f)
         
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -363,45 +288,22 @@ def celery_task(**task_kwargs):
             
             try:
                 with app.app_context():
-                    # Ensure any lingering sessions are cleaned up
-                    if db.session.is_active:
-                        db.session.remove()
-                    if hasattr(db.session, 'bind') and db.session.bind:
-                        db.session.bind.dispose()
-                    
-                    result = base_task(*args, **kwargs)
-                    return result
-                    
+                    with db_manager.session_scope(transaction_name=task_name):
+                        result = base_task(*args, **kwargs)
+                        return result
+                        
             except Exception as e:
                 logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
-                try:
-                    if db.session.is_active:
-                        db.session.remove()
-                    if hasattr(db.session, 'bind') and db.session.bind:
-                        db.session.bind.dispose()
-                except:
-                    pass
                 raise
-            finally:
-                logger.debug(f"[CELERY TASK END] {task_name}")
-                try:
-                    if db.session.is_active:
-                        db.session.remove()
-                    if hasattr(db.session, 'bind') and db.session.bind:
-                        db.session.bind.dispose()
-                except:
-                    pass
                 
-        # Copy celery task attributes
         wrapped.delay = base_task.delay
         wrapped.apply_async = base_task.apply_async
-        
         return wrapped
-    return decorator
+    return celery_task_decorator
 
 def async_task(**task_kwargs):
     """Decorator for async Celery tasks"""
-    def decorator(f):
+    def async_task_decorator(f):
         # Generate the task name if not provided
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
         
@@ -424,4 +326,4 @@ def async_task(**task_kwargs):
         wrapped.apply_async = base_task.apply_async
         
         return wrapped
-    return decorator
+    return async_task_decorator

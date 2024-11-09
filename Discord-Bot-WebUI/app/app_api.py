@@ -10,7 +10,7 @@ from app.models import (
 )
 from app.decorators import (
     jwt_role_required, jwt_permission_required,
-    jwt_admin_or_owner_required, db_operation, query_operation
+    jwt_admin_or_owner_required, handle_db_operation, query_operation
 )
 from app.app_api_helpers import (
     build_player_response, exchange_discord_code,
@@ -43,7 +43,7 @@ def limit_remote_addr():
         return "Access Denied", 403
 
 @mobile_api.route('/login', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def login():
     """
     Handle user login and return JWT token.
@@ -75,7 +75,7 @@ def login():
     return jsonify(access_token=access_token), 200
 
 @mobile_api.route('/verify_2fa', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def verify_2fa():
     """
     Verify 2FA token and complete login process.
@@ -180,7 +180,7 @@ def get_user_profile():
 
 @mobile_api.route('/player/update', methods=['PUT'])
 @jwt_required()
-@db_operation
+@handle_db_operation()
 def update_player_profile():
     """Update player profile information."""
     current_user_id = get_jwt_identity()
@@ -337,7 +337,7 @@ def get_single_match_details(match_id: int):
 
 @mobile_api.route('/update_availability', methods=['POST'])
 @jwt_required()
-@db_operation
+@handle_db_operation()
 def update_availability():
     """Update player's availability for a match."""
     current_user_id = get_jwt_identity()
@@ -376,7 +376,7 @@ def update_availability():
 @mobile_api.route('/report_match/<int:match_id>', methods=['POST'])
 @jwt_required()
 @jwt_role_required('Coach')
-@db_operation
+@handle_db_operation()
 def report_match(match_id: int):
     """Report match results and events."""
     match = Match.query.get(match_id)
@@ -440,7 +440,7 @@ def get_match_details(match_id: int):
 
 @mobile_api.route('/update_availability_web', methods=['POST'])
 @jwt_required()
-@db_operation
+@handle_db_operation()
 def update_availability_web():
     """Update match availability through web interface."""
     data = request.json
@@ -486,7 +486,7 @@ def get_discord_auth_url():
     return jsonify({'auth_url': discord_auth_url})
 
 @mobile_api.route('/discord_callback', methods=['POST'])
-@db_operation
+@handle_db_operation()
 def discord_callback():
     """Handle Discord OAuth callback and create/update user."""
     code = request.json.get('code')

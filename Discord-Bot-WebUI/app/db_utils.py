@@ -2,7 +2,10 @@ from app.models import MLSMatch, Player, Team
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 from sqlalchemy.orm import joinedload
-from app.decorators import db_operation, query_operation, session_context
+from sqlalchemy.exc import SQLAlchemyError
+from app.decorators import handle_db_operation, query_operation
+from app.extensions import db
+from app.db_management import db_manager
 import os
 import sqlite3
 import logging
@@ -21,7 +24,7 @@ def format_match_display_data(matches: List[Dict[str, Any]]) -> List[Dict[str, A
         formatted_matches.append(match_copy)
     return formatted_matches
 
-@db_operation
+@handle_db_operation()
 def insert_mls_match(
     match_id: str,
     opponent: str,
@@ -52,7 +55,7 @@ def insert_mls_match(
     db.session.add(new_match)
     return new_match
 
-@db_operation
+@handle_db_operation()
 def update_mls_match(match_id: str, **kwargs) -> bool:
     """Update MLS match with proper session management."""
     match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -64,7 +67,7 @@ def update_mls_match(match_id: str, **kwargs) -> bool:
         setattr(match, key, value)
     return True
 
-@db_operation
+@handle_db_operation()
 def delete_mls_match(match_id: str) -> bool:
     """Delete MLS match with proper session management."""
     match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -85,7 +88,7 @@ def get_upcoming_mls_matches(hours_ahead: int = 24) -> List[MLSMatch]:
         MLSMatch.thread_created == False
     ).all()
 
-@db_operation
+@handle_db_operation()
 def mark_mls_match_thread_created(match_id: str, thread_id: str) -> bool:
     """Mark MLS match thread as created with proper session management."""
     match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -118,14 +121,13 @@ def load_match_dates_from_db() -> List[Dict[str, Any]]:
 def safe_commit() -> bool:
     """Safely commit changes to the database with proper error handling."""
     try:
-        with session_context() as session:
-            session.commit()
+        with db_manager.session_scope(transaction_name='safe_commit') as session:
             return True
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.error(f"Error committing: {e}")
         return False
 
-@db_operation
+@handle_db_operation()
 def bulk_update_matches(updates: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Bulk update matches with proper session management."""
     try:
@@ -162,7 +164,7 @@ def get_match_by_id(match_id: str) -> Optional[MLSMatch]:
     """Get a single match by ID with proper session management."""
     return MLSMatch.query.filter_by(match_id=match_id).first()
 
-@db_operation
+@handle_db_operation()
 def update_player_discord_info(player_id: int, current_roles: List[str], verified_time: datetime) -> bool:
     """Update player's Discord role information."""
     try:
@@ -177,7 +179,7 @@ def update_player_discord_info(player_id: int, current_roles: List[str], verifie
         logger.error(f"Error updating Discord info for player {player_id}: {str(e)}")
         return False
 
-@db_operation
+@handle_db_operation()
 def mark_player_for_discord_update(player_id: int) -> bool:
     """Mark a player for Discord role update."""
     try:
@@ -190,7 +192,7 @@ def mark_player_for_discord_update(player_id: int) -> bool:
         logger.error(f"Error marking player {player_id} for Discord update: {str(e)}")
         return False
 
-@db_operation
+@handle_db_operation()
 def update_discord_channel_id(team_id: int, channel_id: str) -> bool:
     """Update team's Discord channel ID."""
     try:
@@ -203,7 +205,7 @@ def update_discord_channel_id(team_id: int, channel_id: str) -> bool:
         logger.error(f"Error updating Discord channel ID for team {team_id}: {str(e)}")
         return False
 
-@db_operation
+@handle_db_operation()
 def update_discord_role_ids(team_id: int, coach_role_id: str = None, player_role_id: str = None) -> bool:
     """Update team's Discord role IDs."""
     try:

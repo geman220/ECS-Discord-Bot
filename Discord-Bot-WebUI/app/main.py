@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy import or_, func
 from app.models import Schedule, Match, Notification, Team, Player, Announcement
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from app.utils.user_helpers import safe_current_user
 from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
 import logging
@@ -70,7 +70,7 @@ def get_onboarding_form(player=None, formdata=None):
 
     return onboarding_form
 
-@db_operation
+@handle_db_operation()
 def create_player_profile(onboarding_form):
     """Create a new player profile for the current user using form data."""
     try:
@@ -151,7 +151,7 @@ def create_player_profile(onboarding_form):
         logger.error(f"Error creating profile for user {safe_current_user.id}: {e}")
         raise
 
-@db_operation
+@handle_db_operation()
 def handle_profile_update(player, onboarding_form):
     """Handle the update of the player profile."""
     try:
@@ -516,7 +516,7 @@ def notifications():
 
 @main.route('/notifications/mark_as_read/<int:notification_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def mark_as_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     
@@ -535,7 +535,7 @@ def mark_as_read(notification_id):
 
 @main.route('/set_tour_skipped', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def set_tour_skipped():
     try:
         safe_current_user.has_completed_tour = False
@@ -549,7 +549,7 @@ def set_tour_skipped():
 
 @main.route('/set_tour_complete', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def set_tour_complete():
     try:
         safe_current_user.has_completed_tour = True

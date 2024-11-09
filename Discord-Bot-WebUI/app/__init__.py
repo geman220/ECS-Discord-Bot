@@ -12,8 +12,11 @@ from flask_session import Session
 from flask_cors import CORS
 from sqlalchemy.orm import joinedload
 from werkzeug.middleware.proxy_fix import ProxyFix
-from app.decorators import query_operation, session_context
+from app.decorators import query_operation
+from app.db_management import db_manager
 from app.models import User, Role
+from app.utils.user_helpers import safe_current_user
+from app.utils.db_monitoring import db_metrics
 import threading
 import logging
 
@@ -30,18 +33,36 @@ logger = logging.getLogger(__name__)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.options(
-        db.joinedload(User.roles).joinedload(Role.permissions),
-        db.joinedload(User.notifications)
-    ).get(int(user_id))
+    with db_manager.session_scope(nested=True):
+        return User.query.options(
+            db.joinedload(User.roles).joinedload(Role.permissions),
+            db.joinedload(User.notifications)
+        ).get(int(user_id))
 
 def init_extensions(app):
-    """Initialize Flask extensions"""
-    from sqlalchemy.orm import scoped_session, sessionmaker
-    from flask.globals import request_ctx
-
-    # Initialize core extensions first
-    db.init_app(app)
+    """Initialize Flask extensions with enhanced database monitoring"""
+    
+    # Configure database monitoring
+    app.config.setdefault('DB_SLOW_QUERY_THRESHOLD', 1.0)
+    app.config.setdefault('DB_MONITOR_ENABLED', True)
+    app.config.setdefault('DB_POOL_MONITORING_INTERVAL', 300)
+    
+    # Register database monitoring cleanup
+    @app.before_request
+    def cleanup_db_metrics():
+        db_metrics.cleanup_old_data()
+    
+    # Add database metrics endpoint
+    @app.route('/metrics/db')
+    def db_metrics_endpoint():
+        if not current_app.config['DB_MONITOR_ENABLED']:
+            return {'status': 'disabled'}, 404
+        return {
+            'metrics': db_metrics.get_metrics(),
+            'pool_stats': db_manager.get_pool_stats()
+        }
+    
+    # Initialize other extensions as before
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
@@ -50,71 +71,12 @@ def init_extensions(app):
     csrf.init_app(app)
     sess.init_app(app)
 
-    # Initialize DB connection monitor
-    from app.utils.db_connection_monitor import DBConnectionMonitor
-    app.db_monitor = DBConnectionMonitor(app)
-
-    app.config.update(
-        DB_CONNECTION_TIMEOUT=30,
-        DB_MAX_CONNECTION_AGE=900,
-        DB_MONITOR_ENABLED=True,
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_size': 5,
-            'max_overflow': 10,
-            'pool_timeout': 30,
-            'pool_recycle': 300,
-            'pool_pre_ping': True,
-            'pool_use_lifo': True,
-            'pool_reset_on_return': 'rollback'
-        }
-    )
-
-    # Configure scoped session within app context
-    with app.app_context():
-        engine = db.engine
-        session_factory = sessionmaker(
-            bind=engine,
-            autocommit=False,
-            autoflush=False,
-            expire_on_commit=False
-        )
-        db.session = scoped_session(
-            session_factory,
-            scopefunc=lambda: threading.get_ident()
-        )
-
-        @app.teardown_appcontext
-        def remove_session(exception=None):
-            db.session.remove()
-
-    @app.teardown_request
-    def cleanup_session(exception=None):
-        """Cleanup at the end of each request"""
-        try:
-            if db.session.is_active:
-                if exception:
-                    db.session.rollback()
-                else:
-                    try:
-                        db.session.commit()
-                    except:
-                        db.session.rollback()
-                        raise
-            db.session.remove()
-            if hasattr(db.session, 'bind') and db.session.bind:
-                db.session.bind.dispose()
-            logger.debug(f"[REQUEST CLEANUP] Thread: {threading.get_ident()}")
-        except Exception as e:
-            logger.error(f"Error cleaning up session: {e}")
-    
-    # Initialize SocketIO with updated settings
     socketio.init_app(
         app,
         message_queue='redis://redis:6379/0',
         manage_session=False
     )
     
-    # Initialize CORS and JWT after SocketIO
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     JWTManager(app)
 
@@ -130,8 +92,11 @@ def init_tasks(app):
         import app.tasks.tasks_discord
 
 def init_blueprints(app):
-    """Initialize blueprints"""
-    # Import blueprints here to avoid circular imports
+    """Initialize blueprints with endpoint logging for debugging."""
+    logger = logging.getLogger(__name__)
+    registered = set()  # Track registered blueprints
+
+    # Import blueprints to avoid circular imports
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp
     from app.draft import draft as draft_bp
@@ -152,32 +117,56 @@ def init_blueprints(app):
     from app.app_api import mobile_api
     from app.monitoring import monitoring_bp
 
-    # Register blueprints
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(publeague_bp, url_prefix='/publeague')
-    app.register_blueprint(draft_bp, url_prefix='/draft')
-    app.register_blueprint(players_bp, url_prefix='/players')
-    app.register_blueprint(teams_bp, url_prefix='/teams')
-    app.register_blueprint(availability_bp, url_prefix='/api')
-    app.register_blueprint(account_bp, url_prefix='/account')
-    app.register_blueprint(match_pages)
-    app.register_blueprint(bot_admin_bp)
-    app.register_blueprint(main_bp)
-    app.register_blueprint(admin_bp)
-    app.register_blueprint(feedback_bp)
-    app.register_blueprint(email_bp)
-    app.register_blueprint(calendar_bp)
-    app.register_blueprint(sms_rsvp_bp)
-    app.register_blueprint(match_api, url_prefix='/api')
-    app.register_blueprint(user_management_bp)
-    app.register_blueprint(mobile_api, url_prefix='/api/v1')
-    app.register_blueprint(monitoring_bp)
+    def register_blueprint(bp, url_prefix=None):
+        """Helper to safely register a blueprint with endpoint logging."""
+        bp_id = f"{bp.name}:{id(bp)}"
+        if bp_id in registered:
+            logger.warning(f"Blueprint {bp.name} already registered")
+            return
+        
+        try:
+            app.register_blueprint(bp, url_prefix=url_prefix)
+            registered.add(bp_id)
+            logger.debug(f"Registered blueprint: {bp.name} with URL prefix: {url_prefix}")
+            
+            # Log all endpoints in the blueprint to debug duplicates
+            for rule in app.url_map.iter_rules():
+                if rule.endpoint.startswith(bp.name):
+                    logger.debug(f"Blueprint '{bp.name}' - Registered endpoint: '{rule.endpoint}' with rule: '{rule}'")
+
+        except Exception as e:
+            logger.error(f"Failed to register blueprint {bp.name}: {str(e)}")
+            raise
+
+    # Define blueprints and their prefixes
+    blueprint_configs = [
+        (auth_bp, '/auth'),
+        (publeague_bp, '/publeague'),
+        (draft_bp, '/draft'),
+        (players_bp, '/players'),
+        (teams_bp, '/teams'),
+        (availability_bp, '/api'),
+        (account_bp, '/account'),
+        (match_pages, None),
+        (bot_admin_bp, None),
+        (main_bp, None),
+        (admin_bp, None),
+        (feedback_bp, None),
+        (email_bp, None),
+        (calendar_bp, None),
+        (sms_rsvp_bp, None),
+        (match_api, '/api'),
+        (user_management_bp, None),
+        (mobile_api, '/api/v1'),
+        (monitoring_bp, None)
+    ]
+
+    # Register each blueprint
+    for bp, url_prefix in blueprint_configs:
+        register_blueprint(bp, url_prefix)
 
 def init_context_processors(app):
     """Initialize context processors with coordinated session handling"""
-
-    from app.utils.user_helpers import safe_current_user
-
     @app.context_processor
     @query_operation
     def inject_roles():
@@ -245,61 +234,63 @@ def create_app(config_object='web_config.Config'):
     app = Flask(__name__)
     app.config.from_object(config_object)
     
-    # Configure logging
+    # Configure logging first
     logging.basicConfig(level=logging.DEBUG)
     app.logger.setLevel(logging.DEBUG)
 
     # Add ProxyFix middleware
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    # Initialize all components
-    init_extensions(app)
-    init_tasks(app)
-    init_blueprints(app)
-    init_context_processors(app)
+    # Initialize core services in correct order
+    db.init_app(app)  # Initialize db first
+    
+    # Initialize all other extensions that don't use db
+    mail.init_app(app)
+    csrf.init_app(app)
+    sess.init_app(app)
 
-    @app.after_request
-    def add_header(response):
-        if '.js' in request.path:
-            response.headers['Content-Type'] = 'application/javascript'
-        return response
-
-    # Register template filters
-    @app.template_filter('datetimeformat')
-    def datetimeformat(value, format='%B %d, %Y'):
-        if not value:
-            return value
-        try:
-            if isinstance(value, datetime):
-                date_obj = value
-            else:
-                date_obj = datetime.strptime(value, '%Y-%m-%d')
-            return date_obj.strftime(format)
-        except (ValueError, TypeError) as e:
-            app.logger.error(f"datetimeformat filter error: {e} for value: {value}")
-            return value
-
-    @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        """Clean up the session at the end of the request or when the application context ends."""
-        if exception:
-            db.session.rollback()
-            logger.info(f"Request completed with exception: {str(exception)}")
-        else:
-            try:
-                db.session.commit()
-                logger.debug("Request completed successfully")
-            except Exception as e:
-                db.session.rollback()
-                logger.error(f"Error committing session: {e}")
+    # Initialize database-dependent components within context
+    with app.app_context():
+        db_manager.init_app(app)  # Now db is ready
+        migrate.init_app(app, db)
         
-        # Use the monitor instance from the app
-        if hasattr(app, 'db_monitor'):
-            app.db_monitor.cleanup_connections(exception)
+        # Initialize login manager
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message_category = 'info'
         
-        db.session.remove()
-
+        # Initialize remaining components
+        init_blueprints(app)
+        init_tasks(app)
+        init_context_processors(app)
+    
+    # Initialize network-related extensions last
+    socketio.init_app(
+        app,
+        message_queue='redis://redis:6379/0',
+        manage_session=False
+    )
+    
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    JWTManager(app)
+        
     return app
 
-# Create the application instance
-app = create_app()
+def init_db_monitoring(app):
+    """Initialize database monitoring separately"""
+    app.config.setdefault('DB_SLOW_QUERY_THRESHOLD', 1.0)
+    app.config.setdefault('DB_MONITOR_ENABLED', True)
+    app.config.setdefault('DB_POOL_MONITORING_INTERVAL', 300)
+    
+    @app.before_request
+    def cleanup_db_metrics():
+        db_metrics.cleanup_old_data()
+    
+    @app.route('/metrics/db')
+    def db_metrics_endpoint():
+        if not current_app.config['DB_MONITOR_ENABLED']:
+            return {'status': 'disabled'}, 404
+        return {
+            'metrics': db_metrics.get_metrics(),
+            'pool_stats': db_manager.get_pool_stats()
+        }

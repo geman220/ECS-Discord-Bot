@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import func
 from app.models import User, Role, Player, League
 from app.forms import LoginForm, RegistrationForm, ResetPasswordForm, ForgotPasswordForm, TwoFactorForm
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.utils.user_helpers import safe_current_user
 from app.woocommerce import fetch_order_by_id
 from app.auth_helpers import (
@@ -33,7 +33,7 @@ def discord_login():
     return redirect(discord_login_url)
 
 @auth.route('/discord_callback')
-@db_operation
+@handle_db_operation()
 def discord_callback():
     code = request.args.get('code')
     if not code:
@@ -84,7 +84,7 @@ def discord_callback():
         return redirect(url_for('auth.login'))
 
 @auth.route('/verify_purchase', methods=['GET', 'POST']) 
-@db_operation
+@handle_db_operation()
 def verify_purchase():
     discord_email = request.args.get('discord_email')
     discord_id = request.args.get('discord_id')
@@ -165,7 +165,7 @@ def login():
     return render_template('login.html', form=form)
 
 @auth.route('/verify_2fa_login', methods=['GET', 'POST'])
-@db_operation
+@handle_db_operation()
 def verify_2fa_login():
     if 'pending_2fa_user_id' not in session:
         flash('No 2FA login pending.', 'danger')
@@ -195,7 +195,7 @@ def verify_2fa_login():
     return render_template('verify_2fa.html', form=form)
 
 @auth.route('/register', methods=['GET', 'POST'])
-@db_operation
+@handle_db_operation()
 def register():
     if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
@@ -241,7 +241,7 @@ def forgot_password():
     return render_template('forgot_password.html', form=form)
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
-@db_operation
+@handle_db_operation()
 def reset_password_token(token):
     if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))

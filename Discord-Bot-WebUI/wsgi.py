@@ -14,10 +14,13 @@ logger = logging.getLogger(__name__)
 # Create the Flask application instance
 flask_app = create_app()
 
+# Initialize app context for background tasks
+app_context = flask_app.app_context()
+app_context.push()
+
 # Import socket handlers to register them
 import app.socket_handlers
 
-# Create a WSGI application callable
 def application(environ, start_response):
     return flask_app.wsgi_app(environ, start_response)
 

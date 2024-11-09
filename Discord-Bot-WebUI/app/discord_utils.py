@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any, Union
 from functools import wraps
 from web_config import Config
 from app.utils.discord_request_handler import optimized_discord_request
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.models import Team, Player, MLSMatch
 
 logger = logging.getLogger(__name__)
@@ -78,9 +78,9 @@ class RateLimiter:
                 
             self._calls += 1
     
-    def __call__(self):
-        """Make the class callable for use as a decorator"""
-        def decorator(func):
+    def limit(self):
+        """Create a rate limiting decorator with explicit naming"""
+        def rate_limit_decorator(func):
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 self.acquire_sync()
@@ -94,7 +94,7 @@ class RateLimiter:
             if asyncio.iscoroutinefunction(func):
                 return async_wrapper
             return sync_wrapper
-        return decorator
+        return rate_limit_decorator
 
 # Create a global rate limiter instance
 rate_limiter = RateLimiter(max_calls=GLOBAL_RATE_LIMIT, period=1)
@@ -258,7 +258,7 @@ async def create_category(guild_id: int, category_name: str, session: aiohttp.Cl
 
 # Database Operations
 
-@db_operation
+@handle_db_operation()
 async def create_discord_roles(team_name: str, team_id: int) -> None:
     """Creates Discord roles for a team and updates the database."""
     guild_id = int(os.getenv('SERVER_ID'))
@@ -277,7 +277,7 @@ async def create_discord_roles(team_name: str, team_id: int) -> None:
             f"Created roles for team {team_name}: Coach Role ID {coach_role_id}, Player Role ID {player_role_id}"
         )
 
-@db_operation
+@handle_db_operation()
 async def create_discord_channel(team_name: str, division: str, team_id: int) -> None:
     """Creates a new channel in Discord under the specified division category for a team."""
     guild_id = int(os.getenv('SERVER_ID'))
@@ -319,7 +319,7 @@ async def create_discord_channel(team_name: str, division: str, team_id: int) ->
         else:
             logger.error(f"Failed to create channel for team '{team_name}'")
 
-@db_operation
+@handle_db_operation()
 async def assign_roles_to_player(player: Player) -> None:
     """Assigns appropriate roles to a player."""
     if not player.discord_id or not player.team:
@@ -359,7 +359,7 @@ def get_league_role_name(league_name: str) -> Union[str, None]:
     }
     return league_map.get(league_name.strip())
 
-@db_operation
+@handle_db_operation()
 async def remove_player_roles(player: Player) -> None:
     """Removes roles from a player when they leave a team."""
     if not player.discord_id or not player.team:
@@ -378,7 +378,7 @@ async def remove_player_roles(player: Player) -> None:
         else:
             logger.error(f"Team role '{team_role_name}' not found for player '{player.name}'")
 
-@db_operation
+@handle_db_operation()
 async def rename_team_roles(team: Team, new_team_name: str) -> None:
     """Renames the Discord roles associated with a team."""
     guild_id = int(os.getenv('SERVER_ID'))
@@ -402,7 +402,7 @@ async def rename_role(guild_id: int, role_id: str, new_name: str, session: aioht
     else:
         logger.error(f"Failed to rename role ID {role_id} to '{new_name}'")
 
-@db_operation
+@handle_db_operation()
 async def delete_team_roles(team: Team) -> None:
     """Deletes the Discord roles associated with a team."""
     guild_id = int(os.getenv('SERVER_ID'))
@@ -423,7 +423,7 @@ async def delete_role(guild_id: int, role_id: str, session: aiohttp.ClientSessio
     else:
         logger.error(f"Failed to delete role ID {role_id}")
 
-@db_operation
+@handle_db_operation()
 async def delete_team_channel(team: Team) -> None:
     """Deletes the Discord channel associated with a team."""
     if not team.discord_channel_id:
@@ -438,7 +438,7 @@ async def delete_team_channel(team: Team) -> None:
         else:
             logger.error(f"Failed to delete channel ID {team.discord_channel_id} for team '{team.name}'")
 
-@db_operation
+@handle_db_operation()
 async def update_player_roles(player: Player, force_update: bool = False) -> None:
     """Updates the roles of a player in Discord."""
     if not player.discord_id:
@@ -512,22 +512,22 @@ async def process_role_updates(force_update: bool = False) -> None:
 
 # Helper Functions to Mark Players/Teams/Leagues for Update
 
-@db_operation
+@handle_db_operation()
 def mark_player_for_update(player_id: int) -> None:
     Player.query.filter_by(id=player_id).update({Player.discord_needs_update: True})
     logger.info(f"Marked player ID {player_id} for Discord update.")
 
-@db_operation
+@handle_db_operation()
 def mark_team_for_update(team_id: int) -> None:
     Player.query.filter_by(team_id=team_id).update({Player.discord_needs_update: True})
     logger.info(f"Marked team ID {team_id} for Discord update.")
 
-@db_operation
+@handle_db_operation()
 def mark_league_for_update(league_id: int) -> None:
     Player.query.join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
     logger.info(f"Marked league ID {league_id} for Discord update.")
 
-@db_operation
+@handle_db_operation()
 async def process_single_player_update(player: Player) -> None:
     """Process role updates for a single player."""
     if not player.discord_id:
@@ -536,7 +536,7 @@ async def process_single_player_update(player: Player) -> None:
 
     await update_player_roles(player, force_update=True)
 
-@db_operation
+@handle_db_operation()
 async def create_match_thread(match: MLSMatch) -> Union[str, None]:
     """Creates a Discord thread for a match."""
     if not match:

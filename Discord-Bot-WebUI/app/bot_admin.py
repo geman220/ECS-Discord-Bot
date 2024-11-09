@@ -9,7 +9,7 @@ from app.tasks.tasks_live_reporting import (
 )
 from app.db_utils import load_match_dates_from_db, insert_mls_match, update_mls_match
 from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from app.models import Match, MLSMatch
 from app.match_scheduler import MatchScheduler
 from datetime import datetime
@@ -80,7 +80,7 @@ def matches():
 
 @bot_admin_bp.route('/start_live_reporting/<match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def start_live_reporting_route(match_id):
     """Start live reporting for a match."""
     try:
@@ -135,7 +135,7 @@ def start_live_reporting_route(match_id):
 
 @bot_admin_bp.route('/stop_live_reporting/<match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def stop_live_reporting_route(match_id):
     """Stop live reporting for a match."""
     try:
@@ -169,7 +169,7 @@ def stop_live_reporting_route(match_id):
 
 @bot_admin_bp.route('/matches/add', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def add_mls_match():
     try:
         date = request.form.get('date')
@@ -247,7 +247,7 @@ def add_mls_match():
 # Update MLS Match
 @bot_admin_bp.route('/update_match/<int:match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def update_mls_match_route(match_id):
     try:
         logger.debug(f"Received update request for match_id: {match_id}")
@@ -315,7 +315,7 @@ def update_mls_match_route(match_id):
 
 @bot_admin_bp.route('/matches/remove/<int:match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def remove_mls_match(match_id):
     try:
         match = MLSMatch.query.get(match_id)
@@ -351,7 +351,7 @@ def remove_mls_match(match_id):
 @bot_admin_bp.route('/clear_all_mls_matches', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def clear_all_mls_matches():
     try:
         # Logic to delete all matches
@@ -391,7 +391,7 @@ def get_all_match_statuses():
 
 @bot_admin_bp.route('/match/<int:match_id>/create-thread', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def create_match_thread(match_id):
     try:
         # First get the match by numeric ID
@@ -428,7 +428,7 @@ def create_match_thread(match_id):
 
 @bot_admin_bp.route('/match/schedule/<int:match_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def schedule_match(match_id):
     try:
         match = MLSMatch.query.get_or_404(match_id)

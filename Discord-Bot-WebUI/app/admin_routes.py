@@ -11,7 +11,7 @@ from flask import (
     current_app
 )
 from flask_login import login_required
-from app.decorators import role_required, db_operation, query_operation
+from app.decorators import role_required, handle_db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Feedback, FeedbackReply, Note, Team, Match,
@@ -192,7 +192,7 @@ def manage_announcements():
 @admin_bp.route('/admin/announcements/<int:announcement_id>/edit', methods=['PUT'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def edit_announcement(announcement_id):
     data = request.get_json()
     if not data or not data.get('title') or not data.get('content'):
@@ -206,7 +206,7 @@ def edit_announcement(announcement_id):
 @admin_bp.route('/admin/announcements/<int:announcement_id>/delete', methods=['DELETE'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_announcement(announcement_id):
     announcement = Announcement.query.get_or_404(announcement_id)
     db.session.delete(announcement)
@@ -215,7 +215,7 @@ def delete_announcement(announcement_id):
 @admin_bp.route('/admin/announcements/reorder', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def reorder_announcements():
     order = request.json.get('order', [])
     if not order:
@@ -248,7 +248,7 @@ def view_scheduled_messages():
 
 @admin_bp.route('/admin/force_send/<int:message_id>', methods=['POST'])
 @login_required
-@db_operation
+@handle_db_operation()
 def force_send_message(message_id):
     try:
         message = ScheduledMessage.query.get_or_404(message_id)
@@ -306,7 +306,7 @@ def admin_reports():
 @admin_bp.route('/admin/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def view_feedback(feedback_id):
     """Handle viewing and updating admin feedback."""
     try:
@@ -384,7 +384,7 @@ def schedule_next_week():
 @admin_bp.route('/admin/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     feedback.status = 'Closed'
@@ -504,7 +504,7 @@ def update_player_roles_route(player_id):
 @admin_bp.route('/admin/update_discord_roles', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def mass_update_discord_roles():
     """Trigger mass update of Discord roles."""
     try:
@@ -637,7 +637,7 @@ def get_task_status():
 @admin_bp.route('/admin/feedback/<int:feedback_id>/delete', methods=['POST'])
 @login_required
 @role_required('Global Admin')
-@db_operation
+@handle_db_operation()
 def delete_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     db.session.delete(feedback)

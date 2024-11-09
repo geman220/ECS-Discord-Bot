@@ -1,5 +1,5 @@
 from app.models import Player, League, PlayerOrderHistory, User
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.routes import get_current_season_and_year
 from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
@@ -22,7 +22,7 @@ from app.players_helpers import (
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-@db_operation
+@handle_db_operation()
 def create_or_update_player(player_data, league, current_seasons, existing_main_player, existing_placeholders, total_line_items):
     """Create or update player with proper session management."""
     player_data['name'] = standardize_name(player_data['name'])
@@ -63,7 +63,7 @@ def create_or_update_player(player_data, league, current_seasons, existing_main_
 
         return main_player
 
-@db_operation
+@handle_db_operation()
 def create_new_player(player_data, league, original_player_id=None, is_placeholder=False):
     """Create new player with proper session management."""
     if is_placeholder:
@@ -99,7 +99,7 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
     
     return new_player
 
-@db_operation
+@handle_db_operation()
 def update_player_details(player, player_data):
     """Update player details with proper session management."""
     if not player:
@@ -121,7 +121,7 @@ def update_player_details(player, player_data):
 
     return player
 
-@db_operation
+@handle_db_operation()
 def create_player_profile(player_data, league, user):
     """Create player profile with proper session management."""
     @query_operation
@@ -159,7 +159,7 @@ def create_player_profile(player_data, league, user):
 
     return player
 
-@db_operation
+@handle_db_operation()
 def create_user_and_player_profile(player_info, league):
     """Create user and player profile with proper session management."""
     try:
@@ -216,7 +216,7 @@ def create_user_and_player_profile(player_info, league):
         logger.error(f"Error creating player: {e}", exc_info=True)
         raise
 
-@db_operation
+@handle_db_operation()
 def reset_current_players(current_seasons):
     """Reset current players with proper session management."""
     try:
@@ -268,7 +268,7 @@ def check_if_order_processed(order_id, player_id, league_id, season_id):
         season_id=season_id
     ).first()
 
-@db_operation
+@handle_db_operation()
 def record_order_history(order_id, player_id, league_id, season_id, profile_count):
     """Record order history with proper session management."""
     if not player_id:

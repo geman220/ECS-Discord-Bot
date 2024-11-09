@@ -1,4 +1,4 @@
-from app.decorators import db_operation, query_operation
+from app.decorators import handle_db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Team, Match, Availability, Player,
@@ -112,7 +112,7 @@ def get_filtered_users(filters):
 
     return query.distinct()  # Use distinct to avoid duplicates from joins
 
-@db_operation
+@handle_db_operation()
 def handle_user_action(action, user_id):
     """Handle user-related actions (approve, remove, reset_password)."""
     user = User.query.get_or_404(user_id)
@@ -149,7 +149,7 @@ def get_container_data():
         logger.error(f"Error fetching container data: {e}")
         return None
 
-@db_operation
+@handle_db_operation()
 def manage_docker_container(container_id, action):
     """Manage Docker container actions (start, stop, restart)."""
     client = get_docker_client()
@@ -200,7 +200,7 @@ def send_sms_message(to_phone_number: str, message_body: str) -> bool:
         return False
 
 # Announcement Management Helpers
-@db_operation
+@handle_db_operation()
 def handle_announcement_update(title: str = None, content: str = None, 
                             announcement_id: int = None) -> bool:
     """
@@ -250,7 +250,7 @@ def get_role_permissions_data(role_id: int) -> list:
         return None
     return [perm.id for perm in role.permissions]
 
-@db_operation
+@handle_db_operation()
 def handle_permissions_update(role_id: int, permission_ids: list) -> bool:
     """
     Update role permissions.

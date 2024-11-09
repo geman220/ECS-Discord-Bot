@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required
 from sqlalchemy import func
 from app.models import Season, League, Team, Schedule
-from app.decorators import role_required, db_operation
+from app.decorators import role_required, handle_db_operation
 import logging
 
 # Get the logger for this module
@@ -13,7 +13,7 @@ season_bp = Blueprint('season', __name__)
 @season_bp.route('/', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def manage_seasons():
     pub_league_seasons = Season.query.filter_by(league_type='Pub League').all()
     ecs_fc_seasons = Season.query.filter_by(league_type='ECS FC').all()
@@ -47,7 +47,7 @@ def manage_seasons():
 
     return render_template('manage_seasons.html', pub_league_seasons=pub_league_seasons, ecs_fc_seasons=ecs_fc_seasons)
 
-@db_operation
+@handle_db_operation()
 def create_pub_league_season(season_name):
     """Create a new Pub League season with Premier and Classic leagues."""
     season_name = season_name.strip()
@@ -73,7 +73,7 @@ def create_pub_league_season(season_name):
         flash(f'Season "{season_name}" already exists.', 'warning')
         return None
 
-@db_operation
+@handle_db_operation()
 def create_ecs_fc_season(season_name):
     """Create a new ECS FC season."""
     season_name = season_name.strip()
@@ -96,7 +96,7 @@ def create_ecs_fc_season(season_name):
 @season_bp.route('/<int:season_id>/set_current', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def set_current_season(season_id):
     try:
         season = Season.query.get_or_404(season_id)
@@ -113,7 +113,7 @@ def set_current_season(season_id):
 @season_bp.route('/delete/<int:season_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@db_operation
+@handle_db_operation()
 def delete_season(season_id):
     try:
         season = Season.query.get_or_404(season_id)
