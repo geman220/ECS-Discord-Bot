@@ -2,8 +2,13 @@
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from celery import Celery
+from celery.signals import worker_process_init, worker_process_shutdown, task_prerun, task_postrun
 import eventlet
+import logging
+
 eventlet.monkey_patch()
+
+logger = logging.getLogger(__name__)
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -35,7 +40,9 @@ def create_celery(app=None):
         worker_prefetch_multiplier=1,
         task_track_started=True,
         task_time_limit=30 * 60,
-        task_soft_time_limit=15 * 60
+        task_soft_time_limit=15 * 60,
+        worker_max_tasks_per_child=100,  # Restart worker after 100 tasks
+        worker_max_memory_per_child=150000  # Restart if memory exceeds 150MB
     )
 
     class FlaskTask(_celery.Task):
@@ -56,9 +63,62 @@ def create_celery(app=None):
                 flask_app = app
                 
             with flask_app.app_context():
-                return self.run(*args, **kwargs)
+                try:
+                    return self.run(*args, **kwargs)
+                finally:
+                    # Ensure database connections are cleaned up
+                    try:
+                        db.session.remove()
+                        if hasattr(db, 'engine'):
+                            db.engine.dispose()
+                    except Exception as e:
+                        logger.error(f"Error cleaning up database connection: {e}")
 
     _celery.Task = FlaskTask
+
+    # Setup Celery signal handlers
+    @worker_process_init.connect
+    def init_worker(**kwargs):
+        """Initialize worker process with clean database connection."""
+        logger.info("Initializing Celery worker process")
+        try:
+            if hasattr(db, 'engine'):
+                db.engine.dispose()
+        except Exception as e:
+            logger.error(f"Error disposing engine on worker init: {e}")
+
+    @worker_process_shutdown.connect
+    def shutdown_worker(**kwargs):
+        """Cleanup database connections on worker shutdown."""
+        logger.info("Shutting down Celery worker process")
+        try:
+            db.session.remove()
+            if hasattr(db, 'engine'):
+                db.engine.dispose()
+        except Exception as e:
+            logger.error(f"Error cleaning up on worker shutdown: {e}")
+
+    @task_prerun.connect
+    def task_prerun_handler(task_id, task, *args, **kwargs):
+        """Setup fresh database connection before task."""
+        logger.debug(f"Setting up database connection for task {task_id}")
+        try:
+            db.session.remove()
+            if hasattr(db, 'engine'):
+                db.engine.dispose()
+        except Exception as e:
+            logger.error(f"Error in task prerun cleanup: {e}")
+
+    @task_postrun.connect
+    def task_postrun_handler(task_id, task, *args, retval, state, **kwargs):
+        """Cleanup database connections after task."""
+        logger.debug(f"Cleaning up database connection for task {task_id} (state: {state})")
+        try:
+            db.session.remove()
+            if hasattr(db, 'engine'):
+                db.engine.dispose()
+        except Exception as e:
+            logger.error(f"Error in task postrun cleanup: {e}")
     
     if app:
         # Update celery config from app

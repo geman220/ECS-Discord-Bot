@@ -165,9 +165,22 @@ class DatabaseManager:
                 logger.error(f"Error monitoring Celery connections: {e}")
 
     def terminate_idle_transactions(self):
-        """Forcibly terminate idle transactions"""
+        """Forcibly terminate idle transactions and stale Celery connections"""
         with self.session_scope() as session:
             try:
+                # Terminate very old Celery connections
+                session.execute(text("""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity 
+                    WHERE application_name LIKE '%celery%'
+                    AND (
+                        state = 'idle in transaction'
+                        OR (state = 'active' AND query_start < NOW() - INTERVAL '5 minutes')
+                        OR (backend_start < NOW() - INTERVAL '30 minutes')
+                    )
+                """))
+            
+                # Terminate any idle transactions
                 session.execute(text("""
                     SELECT pg_terminate_backend(pid)
                     FROM pg_stat_activity
@@ -175,8 +188,22 @@ class DatabaseManager:
                     AND pid != pg_backend_pid()
                     AND (now() - state_change) > interval '30 seconds'
                 """))
+            
+                # Log connection stats
+                result = session.execute(text("""
+                    SELECT state, count(*) as count, 
+                        MAX(EXTRACT(EPOCH FROM (now() - state_change))) as max_duration
+                    FROM pg_stat_activity 
+                    WHERE application_name LIKE '%app%'
+                    GROUP BY state
+                """))
+            
+                for row in result:
+                    logger.info(f"Connection state {row.state}: {row.count} connections, "
+                              f"max duration: {row.max_duration:.1f}s")
+                
             except Exception as e:
-                logger.error(f"Error terminating idle transactions: {e}")
+                logger.error(f"Error cleaning up connections: {e}")
 
     def check_for_leaked_connections(self):
         """Check for and cleanup leaked connections"""
@@ -280,15 +307,18 @@ class DatabaseManager:
         try:
             # Check for leaked connections
             self.check_for_leaked_connections()
-            
+        
+            # Terminate idle transactions
+            self.terminate_idle_transactions()
+        
             # Dispose of the engine
             if self._engine:
                 self._engine.dispose()
-                
+            
             # Clear tracking sets
             self._active_connections.clear()
             self._connection_times.clear()
-            
+        
         except Exception as e:
             logger.error(f"Error during pool cleanup: {e}")
 
