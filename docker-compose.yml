@@ -23,7 +23,12 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379/0 
+      - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=3
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_data:/tmp/celery
@@ -32,6 +37,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -48,6 +57,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=3
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -56,6 +70,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -72,6 +90,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=3
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -80,6 +103,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
@@ -97,6 +124,11 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - TZ=America/Los_Angeles
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=1
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_beat_data:/tmp/celerybeat
@@ -106,10 +138,12 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     depends_on:
       redis:
-        condition: service_healthy
-      celery-worker:
         condition: service_healthy
     networks:
       - web
@@ -140,7 +174,12 @@ services:
       - PYTHONPATH=/app
       - FLASK_DEBUG=1
       - FLASK_ENV=development
-      - REDIS_URL=redis://redis:6379/0 
+      - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_POOL_SIZE=5
+      - SQLALCHEMY_MAX_OVERFLOW=5
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     env_file:
       - .env
     volumes:
@@ -156,22 +195,18 @@ services:
       - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
-      
-      # WebSocket support
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=upgrade"
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
       - "traefik.http.routers.webui-secure.middlewares=websocket"
-      
-      # Ensure HTTPS forwarding with X-Forwarded-Proto
       - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.routers.webui-secure.middlewares=secure-headers"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     depends_on:
       redis:
         condition: service_healthy
-      celery-worker:
-        condition: service_started
-      celery-beat:
-        condition: service_started
     networks:
       - web
 
@@ -184,8 +219,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      celery-worker:
-        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.flower.rule=Host(`flower.ecsfc.com`)"
@@ -194,6 +227,10 @@ services:
       - "traefik.http.routers.flower-secure.rule=Host(`flower.ecsfc.com`)"
       - "traefik.http.routers.flower-secure.tls=true"
       - "traefik.http.routers.flower-secure.tls.certresolver=myresolver"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - web
 
@@ -204,7 +241,12 @@ services:
     env_file:
       - .env
     environment:
-      - REDIS_URL=redis://redis:6379/0 
+      - REDIS_URL=redis://redis:6379/0
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_TIMEOUT=30
+      - SQLALCHEMY_POOL_RECYCLE=300
+      - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
     volumes:
       - .:/app
     depends_on:
@@ -213,6 +255,10 @@ services:
       webui:
         condition: service_healthy
     command: python ECS_Discord_Bot.py
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - web
 
