@@ -474,9 +474,6 @@ def db_monitoring():
 def check_connections():
     """Get all database connections with enhanced monitoring"""
     try:
-        # Get stats from our enhanced monitoring
-        stats = db_manager.get_pool_stats()
-        
         # Get detailed connection info from postgres
         with db_manager.session_scope() as session:
             result = session.execute(text("""
@@ -488,8 +485,13 @@ def check_connections():
                     backend_start,
                     xact_start,
                     query_start,
+                    state_change,
                     state,
-                    COALESCE(EXTRACT(EPOCH FROM (NOW() - query_start)), 0) as duration,
+                    wait_event_type,
+                    wait_event,
+                    COALESCE(EXTRACT(EPOCH FROM (NOW() - backend_start)), 0) as age,
+                    COALESCE(EXTRACT(EPOCH FROM (NOW() - xact_start)), 0) as transaction_age,
+                    COALESCE(EXTRACT(EPOCH FROM (NOW() - query_start)), 0) as query_duration,
                     query
                 FROM pg_stat_activity 
                 WHERE pid != pg_backend_pid()
@@ -500,16 +502,20 @@ def check_connections():
                         WHEN 'idle in transaction' THEN 2
                         ELSE 3
                     END,
-                    duration DESC
+                    query_duration DESC
             """))
             
             connections = [{
                 'pid': row.pid,
                 'user': row.usename,
                 'application': row.application_name,
+                'source': f"{row.client_addr or 'local'}",
                 'state': row.state,
-                'duration': round(float(row.duration), 2),
-                'query': row.query[:200] + '...' if row.query and len(row.query) > 200 else row.query
+                'age': round(float(row.age), 2) if row.age is not None else 0,
+                'transaction_age': round(float(row.transaction_age), 2) if row.transaction_age is not None else 0,
+                'query_duration': round(float(row.query_duration), 2) if row.query_duration is not None else 0,
+                'wait_event': f"{row.wait_event_type}: {row.wait_event}" if row.wait_event else None,
+                'query': row.query
             } for row in result]
 
         return jsonify({
@@ -565,6 +571,7 @@ def connection_stats():
     try:
         # Get stats from our enhanced monitoring
         pool_stats = db_manager.get_pool_stats()
+        engine = db.get_engine()
         
         with db_manager.session_scope() as session:
             # Get basic stats
@@ -573,6 +580,7 @@ def connection_stats():
                     COALESCE(count(*), 0) as total_connections,
                     COALESCE(count(*) filter (where state = 'active'), 0) as active_connections,
                     COALESCE(count(*) filter (where state = 'idle'), 0) as idle_connections,
+                    COALESCE(count(*) filter (where state = 'idle in transaction'), 0) as idle_in_transaction,
                     COALESCE(
                         EXTRACT(epoch FROM (now() - min(backend_start)))::integer,
                         0
@@ -582,43 +590,55 @@ def connection_stats():
             """))
             basic_stats = dict(result.mappings().first())
 
-            # Get state-specific stats
-            result = session.execute(text("""
-                SELECT 
-                    COALESCE(state, 'unknown') as state,
-                    count(*) as count,
-                    COALESCE(
-                        EXTRACT(epoch FROM (now() - min(query_start)))::integer,
-                        0
-                    ) as longest_duration
-                FROM pg_stat_activity 
-                WHERE pid != pg_backend_pid()
-                GROUP BY state
-            """))
-            
-            states = {
-                row.state: {
-                    'count': row.count,
-                    'longest_duration': row.longest_duration
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total_connections': basic_stats['total_connections'],
+                    'active_connections': basic_stats['active_connections'],
+                    'idle_connections': basic_stats['idle_connections'],
+                    'idle_transactions': basic_stats['idle_in_transaction'],
+                    'oldest_connection_age': basic_stats['oldest_connection_age'],
+                    'current_pool_size': engine.pool.size(),
+                    'max_pool_size': engine.pool.size() + engine.pool._max_overflow,
+                    'checkins': pool_stats.get('checkins', 0),
+                    'checkouts': pool_stats.get('checkouts', 0),
+                    'leaked_connections': pool_stats.get('leaked_connections', 0)
                 }
-                for row in result
-            }
-
-        return jsonify({
-            'success': True,
-            'stats': {
-                'total_connections': basic_stats['total_connections'],
-                'active_connections': basic_stats['active_connections'],
-                'idle_connections': basic_stats['idle_connections'],
-                'oldest_connection_age': basic_stats['oldest_connection_age'],
-                'states': states,
-                'leaked_connections': pool_stats['leaked_connections'],
-                'checkouts': pool_stats['checkouts'],
-                'checkins': pool_stats['checkins']
-            }
-        })
+            })
     except Exception as e:
         logger.error(f"Error getting connection stats: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/db/terminate', methods=['POST'])
+@role_required(['Global Admin'])
+@handle_db_operation()
+def terminate_connection():
+    """Terminate a specific database connection"""
+    try:
+        data = request.get_json()
+        pid = data.get('pid')
+        
+        if not pid:
+            return jsonify({
+                'success': False,
+                'error': 'Missing pid'
+            }), 400
+            
+        with db_manager.session_scope() as session:
+            session.execute(
+                text("SELECT pg_terminate_backend(:pid)"),
+                {"pid": pid}
+            )
+            
+        return jsonify({
+            'success': True,
+            'message': f'Connection {pid} terminated'
+        })
+    except Exception as e:
+        logger.error(f"Error terminating connection: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

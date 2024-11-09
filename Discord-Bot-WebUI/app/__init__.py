@@ -10,8 +10,9 @@ from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_cors import CORS
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, sessionmaker , scoped_session
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy.pool import QueuePool
 from app.decorators import query_operation
 from app.db_management import db_manager
 from app.models import User, Role
@@ -31,6 +32,9 @@ csrf = CSRFProtect()
 sess = Session()
 logger = logging.getLogger(__name__)
 
+# Configure SQLAlchemy session factory outside create_app
+session_factory = None
+
 @login_manager.user_loader
 def load_user(user_id):
     with db_manager.session_scope(nested=True):
@@ -47,10 +51,14 @@ def init_extensions(app):
     app.config.setdefault('DB_MONITOR_ENABLED', True)
     app.config.setdefault('DB_POOL_MONITORING_INTERVAL', 300)
     
-    # Register database monitoring cleanup
+    # Register database monitoring and cleanup
     @app.before_request
-    def cleanup_db_metrics():
+    def cleanup_db_connections():
+        """Combined cleanup for metrics and connections"""
         db_metrics.cleanup_old_data()
+        db_manager.check_for_leaked_connections()
+        db_manager.terminate_idle_transactions()
+        db_manager.monitor_celery_connections()
     
     # Add database metrics endpoint
     @app.route('/metrics/db')
@@ -241,17 +249,48 @@ def create_app(config_object='web_config.Config'):
     # Add ProxyFix middleware
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    # Initialize core services in correct order
-    db.init_app(app)  # Initialize db first
+    # Configure SQLAlchemy engine options
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': app.config.get('SQLALCHEMY_POOL_SIZE', 5),
+        'max_overflow': app.config.get('SQLALCHEMY_MAX_OVERFLOW', 10),
+        'pool_timeout': app.config.get('SQLALCHEMY_POOL_TIMEOUT', 20),
+        'pool_recycle': app.config.get('SQLALCHEMY_POOL_RECYCLE', 300),
+        'pool_pre_ping': True,
+        'pool_use_lifo': True,
+        'pool_reset_on_return': 'rollback',
+        'echo_pool': app.config.get('SQLALCHEMY_ECHO_POOL', False),
+        'poolclass': QueuePool,
+        'connect_args': {
+            'connect_timeout': 10,
+            'application_name': f"{app.name}_app",
+            'options': '-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000'
+        }
+    }
+
+    # Initialize extensions
+    db.init_app(app)
     
-    # Initialize all other extensions that don't use db
+    # Initialize non-db extensions
     mail.init_app(app)
     csrf.init_app(app)
     sess.init_app(app)
 
-    # Initialize database-dependent components within context
     with app.app_context():
-        db_manager.init_app(app)  # Now db is ready
+        # Initialize the database manager
+        db_manager.init_app(app)
+        
+        # Create global session factory
+        global session_factory
+        session_factory = sessionmaker(
+            bind=db.engine,
+            autocommit=False,
+            autoflush=False
+        )
+        
+        # Configure scoped session
+        db.session = scoped_session(session_factory)
+        
+        # Initialize remaining database-dependent components
         migrate.init_app(app, db)
         
         # Initialize login manager
@@ -260,6 +299,7 @@ def create_app(config_object='web_config.Config'):
         login_manager.login_message_category = 'info'
         
         # Initialize remaining components
+        init_extensions(app)
         init_blueprints(app)
         init_tasks(app)
         init_context_processors(app)
@@ -275,22 +315,3 @@ def create_app(config_object='web_config.Config'):
     JWTManager(app)
         
     return app
-
-def init_db_monitoring(app):
-    """Initialize database monitoring separately"""
-    app.config.setdefault('DB_SLOW_QUERY_THRESHOLD', 1.0)
-    app.config.setdefault('DB_MONITOR_ENABLED', True)
-    app.config.setdefault('DB_POOL_MONITORING_INTERVAL', 300)
-    
-    @app.before_request
-    def cleanup_db_metrics():
-        db_metrics.cleanup_old_data()
-    
-    @app.route('/metrics/db')
-    def db_metrics_endpoint():
-        if not current_app.config['DB_MONITOR_ENABLED']:
-            return {'status': 'disabled'}, 404
-        return {
-            'metrics': db_metrics.get_metrics(),
-            'pool_stats': db_manager.get_pool_stats()
-        }

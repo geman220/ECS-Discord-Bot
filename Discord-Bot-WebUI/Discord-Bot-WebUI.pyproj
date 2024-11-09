@@ -37,6 +37,7 @@
     <Compile Include="app\utils\db_monitoring.py" />
     <Compile Include="app\utils\discord_request_handler.py" />
     <Compile Include="app\utils\match_events_utils.py" />
+    <Compile Include="app\utils\query_helpers.py" />
     <Compile Include="app\utils\redis_manager.py" />
     <Compile Include="app\utils\task_monitor.py" />
     <Compile Include="app\utils\user_helpers.py" />
