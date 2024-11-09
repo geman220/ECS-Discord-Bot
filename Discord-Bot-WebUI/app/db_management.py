@@ -165,45 +165,40 @@ class DatabaseManager:
                 logger.error(f"Error monitoring Celery connections: {e}")
 
     def terminate_idle_transactions(self):
-        """Forcibly terminate idle transactions and stale Celery connections"""
+        """Forcibly terminate idle transactions and stale connections"""
         with self.session_scope() as session:
             try:
-                # Terminate very old Celery connections
+                # First terminate idle transactions
                 session.execute(text("""
                     SELECT pg_terminate_backend(pid)
                     FROM pg_stat_activity 
-                    WHERE application_name LIKE '%celery%'
-                    AND (
-                        state = 'idle in transaction'
-                        OR (state = 'active' AND query_start < NOW() - INTERVAL '5 minutes')
-                        OR (backend_start < NOW() - INTERVAL '30 minutes')
-                    )
-                """))
-            
-                # Terminate any idle transactions
-                session.execute(text("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity
                     WHERE state = 'idle in transaction'
                     AND pid != pg_backend_pid()
-                    AND (now() - state_change) > interval '30 seconds'
+                    AND (now() - state_change) > interval '15 seconds'
                 """))
             
-                # Log connection stats
-                result = session.execute(text("""
-                    SELECT state, count(*) as count, 
-                        MAX(EXTRACT(EPOCH FROM (now() - state_change))) as max_duration
+                # Then terminate very old idle connections
+                session.execute(text("""
+                    SELECT pg_terminate_backend(pid)
                     FROM pg_stat_activity 
-                    WHERE application_name LIKE '%app%'
-                    GROUP BY state
+                    WHERE state = 'idle'
+                    AND pid != pg_backend_pid()
+                    AND (now() - state_change) > interval '60 seconds'
+                    AND application_name LIKE 'flask_app%'
                 """))
             
-                for row in result:
-                    logger.info(f"Connection state {row.state}: {row.count} connections, "
-                              f"max duration: {row.max_duration:.1f}s")
-                
+                # Finally terminate any hanging active queries
+                session.execute(text("""
+                    SELECT pg_terminate_backend(pid)
+                    FROM pg_stat_activity 
+                    WHERE state = 'active'
+                    AND pid != pg_backend_pid()
+                    AND (now() - query_start) > interval '30 seconds'
+                    AND application_name LIKE 'flask_app%'
+                """))
+            
             except Exception as e:
-                logger.error(f"Error cleaning up connections: {e}")
+                logger.error(f"Error terminating connections: {e}")
 
     def check_for_leaked_connections(self):
         """Check for and cleanup leaked connections"""
@@ -240,7 +235,7 @@ class DatabaseManager:
         is_nested = False
         app_ctx = None
         start_time = time.time()
-    
+
         try:
             if not has_app_context() and self.app:
                 app_ctx = self.app.app_context()
@@ -251,21 +246,24 @@ class DatabaseManager:
                     session = g.db_session
                     is_nested = True
                 else:
-                    session = self.db.session()  # Create new session
+                    session = self.db.session()
                     g.db_session = session
             else:
-                session = self.db.session()  # Create new session
+                session = self.db.session()
 
             if not is_nested:
-                self._set_session_timeouts(session)
+                try:
+                    session.execute(text("SET LOCAL statement_timeout = '15s'"))
+                    session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '15s'"))
+                except Exception as e:
+                    logger.error(f"Failed to set session timeouts: {e}")
             
             yield session
 
-            # Check transaction duration
             duration = time.time() - start_time
-            if duration > 10:  # Log long transactions
+            if duration > 10:
                 logger.warning(f"Long transaction detected: {duration:.2f}s {transaction_name or ''}")
-
+            
             if not nested and not is_nested and session.is_active:
                 try:
                     session.commit()
@@ -279,14 +277,15 @@ class DatabaseManager:
             if session and session.is_active:
                 session.rollback()
             raise
-        
+    
         finally:
             if not nested and not is_nested:
                 if session:
                     session.close()
                     if hasattr(session, 'registry'):
-                        session.registry.clear()  # Clear registry instead of remove()
-                self._statement_timeout_set.value = False
+                        session.registry.clear()
+                if hasattr(g, 'db_session'):
+                    delattr(g, 'db_session')
             if app_ctx is not None:
                 app_ctx.pop()
 
