@@ -6,6 +6,7 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from contextlib import contextmanager, asynccontextmanager
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy import text
 from app.utils.user_helpers import safe_current_user
 from app.db_management import db_manager
 from typing import Any, Callable
@@ -274,7 +275,7 @@ async def async_session_context():
         logger.debug(f"Removed session: {session_id}")
 
 def celery_task(**task_kwargs):
-    """Update celery task to use db_manager"""
+    """Update celery task to use db_manager with better connection handling"""
     def celery_task_decorator(f):
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
         base_task = celery.task(name=task_name, **task_kwargs)(f)
@@ -288,13 +289,23 @@ def celery_task(**task_kwargs):
             
             try:
                 with app.app_context():
-                    with db_manager.session_scope(transaction_name=task_name):
+                    # Use transaction name to track celery task connections
+                    with db_manager.session_scope(transaction_name=f"celery_{task_name}") as session:
+                        # Explicitly close any lingering transactions
+                        session.execute(text("ROLLBACK"))
+                        session.execute(text("SET idle_in_transaction_session_timeout = '30s'"))
+                        
                         result = base_task(*args, **kwargs)
                         return result
                         
             except Exception as e:
                 logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
                 raise
+            finally:
+                # Force cleanup after task completion
+                db_manager.cleanup_pool()
+                if hasattr(db, 'session'):
+                    db.session.remove()
                 
         wrapped.delay = base_task.delay
         wrapped.apply_async = base_task.apply_async
@@ -302,16 +313,10 @@ def celery_task(**task_kwargs):
     return celery_task_decorator
 
 def async_task(**task_kwargs):
-    """Decorator for async Celery tasks"""
+    """Decorator for async Celery tasks with better connection handling"""
     def async_task_decorator(f):
-        # Generate the task name if not provided
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
-        
-        # Create base task
-        base_task = celery.task(
-            name=task_name,
-            **task_kwargs
-        )(f)
+        base_task = celery.task(name=task_name, **task_kwargs)(f)
         
         @wraps(f)
         async def wrapped(*args, **kwargs):
@@ -320,10 +325,13 @@ def async_task(**task_kwargs):
             except Exception as e:
                 logger.error(f"Async task {task_name} failed: {str(e)}", exc_info=True)
                 raise
+            finally:
+                # Ensure connections are cleaned up
+                db_manager.cleanup_pool()
+                if hasattr(db, 'session'):
+                    db.session.remove()
                 
-        # Copy celery task attributes
         wrapped.delay = base_task.delay
         wrapped.apply_async = base_task.apply_async
-        
         return wrapped
     return async_task_decorator
