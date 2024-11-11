@@ -8,9 +8,8 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any, Union
-from app.extensions import db
-from app.celery_utils import async_task_with_context
-from app.decorators import celery_task, async_task, handle_db_operation, query_operation
+from app.decorators import async_task, handle_db_operation, query_operation
+from app.utils.db_utils import celery_transactional_task
 from app.db_management import db_manager
 from app.models import Match, ScheduledMessage, User
 from sqlalchemy.orm import joinedload
@@ -20,7 +19,7 @@ from app.decorators import log_context_state
 
 logger = logging.getLogger(__name__)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_core.schedule_season_availability',
     retry_backoff=True,
     bind=True
@@ -86,7 +85,7 @@ def schedule_season_availability(self) -> Dict[str, Any]:
             "message": str(e)
         }
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_core.send_availability_message_task',
     bind=True
 )
@@ -149,7 +148,7 @@ def send_availability_message_task(self, scheduled_message_id: int) -> Dict[str,
         logger.error(f"Error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_core.retry_failed_task',
     bind=True
 )
@@ -163,7 +162,7 @@ def retry_failed_task(self, task_name: str, *args, **kwargs) -> Any:
         logger.error(f"Error retrying task {task_name}: {str(e)}", exc_info=True)
         raise self.retry(exc=e)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_core.send_scheduled_messages',
     bind=True
 )
@@ -252,7 +251,7 @@ async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, 
         logger.error(f"Error in _send_availability_message: {str(e)}", exc_info=True)
         raise
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_core.cleanup_old_messages',
     bind=True,
     max_retries=3,

@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.decorators import handle_db_operation, query_operation
-from app.extensions import db
+from app.core import db
 from app.db_management import db_manager
 import os
 import sqlite3

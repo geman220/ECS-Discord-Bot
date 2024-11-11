@@ -6,12 +6,12 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple, Optional
-from app.celery_utils import async_task_with_context
-from app.decorators import celery_task, async_task
+from app.decorators import async_task
+from app.utils.db_utils import celery_transactional_task
 from app.models import Player, Team, League
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.extensions import db, socketio
+from app.core import socketio
 from app.db_management import db_manager
 from app.discord_utils import (
     get_expected_roles,
@@ -135,7 +135,7 @@ async def _update_player_discord_roles_async(task_self, player_id: int):
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.update_player_discord_roles',
     queue='discord',
     bind=True,
@@ -162,7 +162,7 @@ def update_player_discord_roles(self, player_id: int) -> Dict[str, Any]:
         logger.error(f"Error updating Discord roles for player {player_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=15)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.process_discord_role_updates',
     queue='discord',
     bind=True,
@@ -272,7 +272,7 @@ def process_discord_role_updates(self) -> Dict[str, Any]:
         logger.error(f"Error in process_discord_role_updates: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.assign_roles_to_player_task',
     queue='discord',
     bind=True,
@@ -407,7 +407,7 @@ async def _assign_roles_async(player_id: int) -> Dict[str, Any]:
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.bulk_assign_roles_task',
     queue='discord',
     bind=True,
@@ -545,7 +545,7 @@ def bulk_assign_roles_task(self, player_ids: List[int]) -> Dict[str, Any]:
         logger.error(f"Error in bulk_assign_roles_task: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.remove_player_roles_task',
     queue='discord',
     bind=True,
@@ -671,7 +671,7 @@ async def _remove_player_roles_async(player_id: int) -> Dict[str, Any]:
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_discord.fetch_role_status',
     queue='discord',
     bind=True,

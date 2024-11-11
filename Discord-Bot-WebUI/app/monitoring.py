@@ -6,7 +6,7 @@ from app.decorators import role_required, handle_db_operation
 from app.utils.redis_manager import RedisManager
 from app.db_management import db_manager
 from celery.result import AsyncResult
-from app.extensions import celery, db
+from app.core import celery, db
 from app.models import MLSMatch
 from datetime import datetime, timedelta
 from app.tasks.tasks_live_reporting import (
@@ -483,15 +483,12 @@ def check_connections():
                     application_name,
                     client_addr,
                     backend_start,
-                    xact_start,
-                    query_start,
-                    state_change,
                     state,
-                    wait_event_type,
-                    wait_event,
                     COALESCE(EXTRACT(EPOCH FROM (NOW() - backend_start)), 0) as age,
-                    COALESCE(EXTRACT(EPOCH FROM (NOW() - xact_start)), 0) as transaction_age,
-                    COALESCE(EXTRACT(EPOCH FROM (NOW() - query_start)), 0) as query_duration,
+                    CASE WHEN state = 'idle in transaction' 
+                         THEN COALESCE(EXTRACT(EPOCH FROM (NOW() - xact_start)), 0)
+                         ELSE 0 
+                    END as transaction_age,
                     query
                 FROM pg_stat_activity 
                 WHERE pid != pg_backend_pid()
@@ -502,7 +499,7 @@ def check_connections():
                         WHEN 'idle in transaction' THEN 2
                         ELSE 3
                     END,
-                    query_duration DESC
+                    age DESC
             """))
             
             connections = [{
@@ -511,23 +508,28 @@ def check_connections():
                 'application': row.application_name,
                 'source': f"{row.client_addr or 'local'}",
                 'state': row.state,
-                'age': round(float(row.age), 2) if row.age is not None else 0,
-                'transaction_age': round(float(row.transaction_age), 2) if row.transaction_age is not None else 0,
-                'query_duration': round(float(row.query_duration), 2) if row.query_duration is not None else 0,
-                'wait_event': f"{row.wait_event_type}: {row.wait_event}" if row.wait_event else None,
+                'age': round(float(row.age), 2),
+                'transaction_age': round(float(row.transaction_age), 2),
                 'query': row.query
             } for row in result]
 
-        return jsonify({
-            'success': True,
-            'connections': connections
-        })
+            # Explicitly close cursor and return formatted data
+            result.close()
+            return jsonify({
+                'success': True,
+                'connections': connections
+            })
+
     except Exception as e:
         logger.error(f"Error checking connections: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+    finally:
+        # Ensure session is cleaned up
+        if 'session' in locals():
+            session.close()
 
 @monitoring_bp.route('/db/cleanup', methods=['POST'])
 @role_required(['Global Admin'])

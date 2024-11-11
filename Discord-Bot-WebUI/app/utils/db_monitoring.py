@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 from flask import current_app
 from prometheus_client import Counter, Histogram, Gauge
-from app.extensions import db
 
 logger = logging.getLogger(__name__)
 

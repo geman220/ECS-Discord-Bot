@@ -51,9 +51,8 @@ from app.tasks.tasks_live_reporting import (
 )
 from app.email import send_email
 from datetime import datetime, timedelta
-from app.extensions import celery
 from sqlalchemy.orm import joinedload
-from app.extensions import db
+from app.core import db
 from app.utils.user_helpers import safe_current_user
 import asyncio
 import logging

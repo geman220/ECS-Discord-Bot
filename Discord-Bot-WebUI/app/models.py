@@ -1,4 +1,4 @@
-from app.extensions import db
+from app.core import db
 from app.decorators import query_operation, handle_db_operation
 from datetime import datetime, timedelta
 from flask_login import UserMixin
@@ -102,7 +102,7 @@ class User(UserMixin, db.Model):
         return cls._email
 
     # Method to generate TOTP secret
-    @handle_db_operation()
+    #@handle_db_operation()
     def generate_totp_secret(self):
         import pyotp
         self.totp_secret = pyotp.random_base32()
@@ -113,7 +113,7 @@ class User(UserMixin, db.Model):
         totp = pyotp.TOTP(self.totp_secret)
         return totp.verify(token)
 
-    @handle_db_operation()
+    #@handle_db_operation()
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -426,7 +426,7 @@ class Player(db.Model):
     def season_red_cards(self, season_id):
         return self.get_season_stat(season_id, 'red_cards')
 
-    @handle_db_operation()
+    #@handle_db_operation()
     def update_season_stats(self, season_id, stats_changes, user_id):
         if not stats_changes:
             logging.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
@@ -455,7 +455,7 @@ class Player(db.Model):
             logging.error(f"Error updating season stats: {str(e)}")
             raise
 
-    @handle_db_operation()
+    #@handle_db_operation()
     def update_career_stats(self, stats_changes, user_id):
         if not stats_changes:
             logging.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
@@ -484,7 +484,7 @@ class Player(db.Model):
             logging.error(f"Error updating career stats: {str(e)}")
             raise
 
-    @handle_db_operation()
+    #@handle_db_operation()
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
         if change_type not in [ct.value for ct in StatChangeType]:
             logging.warning(f"Invalid change type '{change_type}' for stat change logging.")
@@ -857,7 +857,7 @@ class Feedback(db.Model):
         return f'<Feedback {self.id} - {self.title}>'
 
     @classmethod
-    @handle_db_operation()
+    #@handle_db_operation()
     def delete_old_closed_tickets(cls):
         try:
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -944,7 +944,7 @@ class Token(db.Model):
     def is_valid(self):
         return not self.is_expired and not self.used
 
-    @handle_db_operation()
+    #@handle_db_operation()
     def invalidate(self):
         try:
             self.used = True

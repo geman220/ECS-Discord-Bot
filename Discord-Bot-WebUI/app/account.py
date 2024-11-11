@@ -5,16 +5,16 @@ import base64
 from io import BytesIO
 from flask import send_file
 from app import csrf
-from app.extensions import db
+from app.core import db
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session
 from flask_login import login_required
 from app.forms import Verify2FAForm, NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
-from app.decorators import handle_db_operation, query_operation
 from app.models import Player, Team, Match, User, Notification
 from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.user_helpers import safe_current_user
+from app.utils.db_utils import transactional  # Import transactional decorator
 import aiohttp
 import logging
 import requests
@@ -29,20 +29,17 @@ DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 DISCORD_API_URL = 'https://discord.com/api/users/@me'
 
 # Helper Functions
-@query_operation
 def get_player_notifications(user_id):
     return Notification.query.filter_by(user_id=user_id)\
         .order_by(Notification.created_at.desc())\
         .limit(10)\
         .all()
 
-@query_operation
 def get_player_with_team(user_id):
     return Player.query.options(db.joinedload(Player.team))\
         .filter_by(user_id=user_id)\
         .first()
 
-@handle_db_operation()
 def create_or_update_player(user_id, phone_number):
     player = Player.query.filter_by(user_id=user_id).first()
     if not player:
@@ -55,7 +52,6 @@ def create_or_update_player(user_id, phone_number):
     player.sms_opt_out_timestamp = None
     return player
 
-@handle_db_operation()
 def link_discord_account(code, discord_client_id, discord_client_secret, redirect_uri, player):
     token_data = {
         'client_id': discord_client_id,
@@ -85,7 +81,6 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
 # Routes
 @account_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
-@query_operation
 def settings():
     notification_form = NotificationSettingsForm(prefix='notification', obj=safe_current_user)
     password_form = PasswordChangeForm(prefix='password')
@@ -93,15 +88,15 @@ def settings():
     disable_2fa_form = Disable2FAForm(prefix='disable2fa')
 
     return render_template('settings.html', 
-                         notification_form=notification_form, 
-                         password_form=password_form, 
-                         enable_2fa_form=enable_2fa_form,
-                         disable_2fa_form=disable_2fa_form,
-                         is_2fa_enabled=safe_current_user.is_2fa_enabled)
+                           notification_form=notification_form, 
+                           password_form=password_form, 
+                           enable_2fa_form=enable_2fa_form,
+                           disable_2fa_form=disable_2fa_form,
+                           is_2fa_enabled=safe_current_user.is_2fa_enabled)
 
 @account_bp.route('/update_notifications', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def update_notifications():
     form = NotificationSettingsForm(prefix='notification')
     if form.validate_on_submit():
@@ -115,7 +110,7 @@ def update_notifications():
 
 @account_bp.route('/change_password', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def change_password():
     form = PasswordChangeForm(prefix='password')
     if form.validate_on_submit():
@@ -132,7 +127,7 @@ def change_password():
 
 @account_bp.route('/update_account_info', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def update_account_info():
     form = request.form
     safe_current_user.email = form.get('email')
@@ -144,7 +139,7 @@ def update_account_info():
 
 @account_bp.route('/initiate-sms-opt-in', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def initiate_sms_opt_in():
     phone_number = request.json.get('phone_number')
     consent_given = request.json.get('consent_given')
@@ -168,7 +163,7 @@ def initiate_sms_opt_in():
 
 @account_bp.route('/confirm-sms-opt-in', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def confirm_sms_opt_in():
     confirmation_code = request.json.get('confirmation_code')
     if not confirmation_code:
@@ -182,9 +177,9 @@ def confirm_sms_opt_in():
     else:
         return jsonify(success=False, message="Invalid verification code."), 400
 
-@account_bp.route('/opt-out-sms', methods=['POST'])
+@account_bp.route('/opt_out_sms', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def opt_out_sms():
     safe_current_user.sms_notifications = False
     if safe_current_user.player:
@@ -194,7 +189,6 @@ def opt_out_sms():
 
 @account_bp.route('/sms-verification-status', methods=['GET'])
 @login_required
-@query_operation
 def sms_verification_status():
     is_verified = False
     phone_number = None
@@ -205,7 +199,7 @@ def sms_verification_status():
 
 @account_bp.route('/enable_2fa', methods=['GET', 'POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def enable_2fa():
     if request.method == 'GET':
         if not safe_current_user.totp_secret:
@@ -231,7 +225,7 @@ def enable_2fa():
 
 @account_bp.route('/disable_2fa', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def disable_2fa():
     form = Disable2FAForm(prefix='disable2fa')
     if form.validate_on_submit():
@@ -245,7 +239,6 @@ def disable_2fa():
 
 @account_bp.route('/link-discord')
 @login_required
-@query_operation
 def link_discord():
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = url_for('account.discord_callback', _external=True)
@@ -256,7 +249,7 @@ def link_discord():
 
 @account_bp.route('/discord-callback')
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def discord_callback():
     code = request.args.get('code')
     if not code:
@@ -284,7 +277,7 @@ def discord_callback():
 
 @account_bp.route('/unlink-discord', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def unlink_discord():
     if safe_current_user.player and safe_current_user.player.discord_id:
         safe_current_user.player.discord_id = None
@@ -295,7 +288,7 @@ def unlink_discord():
 
 @csrf.exempt
 @account_bp.route('/webhook/incoming-sms', methods=['POST'])
-@handle_db_operation()
+@transactional  # Apply transactional decorator
 def incoming_sms_webhook():
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip().lower()
@@ -323,7 +316,6 @@ def incoming_sms_webhook():
 
 @account_bp.route('/show_2fa_qr', methods=['GET'])
 @login_required
-@query_operation
 def show_2fa_qr():
     try:
         totp_secret = pyotp.random_base32()

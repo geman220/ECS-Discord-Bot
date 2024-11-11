@@ -2,7 +2,6 @@ from datetime import datetime
 from flask import current_app, url_for
 from itsdangerous import URLSafeTimedSerializer
 from app.email import send_email
-from app.decorators import handle_db_operation, query_operation
 import aiohttp
 import requests
 import logging
@@ -13,86 +12,62 @@ DISCORD_OAUTH2_URL = 'https://discord.com/api/oauth2/authorize'
 DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 DISCORD_API_URL = 'https://discord.com/api/users/@me'
 
-@handle_db_operation()
 def update_last_login(user):
     """Update user's last login timestamp."""
-    try:
-        user.last_login = datetime.utcnow()
-        logger.info(f"Updated last login for user {user.id}")
-        return True
-    except Exception as e:
-        logger.error(f"Error updating last login for user {user.id}: {str(e)}")
-        return False
+    user.last_login = datetime.utcnow()
+    logger.info(f"Updated last login for user {user.id}")
 
 def generate_reset_token(user, expires_sec=1800):
     """Generate a secure token for password reset."""
-    try:
-        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        token = s.dumps({'user_id': user.id}, salt='password-reset-salt')
-        logger.info(f"Generated reset token for user {user.id}")
-        return token
-    except Exception as e:
-        logger.error(f"Error generating reset token: {str(e)}")
-        return None
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    token = s.dumps({'user_id': user.id}, salt='password-reset-salt')
+    logger.info(f"Generated reset token for user {user.id}")
+    return token
 
 def verify_reset_token(token, expires_sec=1800):
     """Verify a password reset token."""
-    try:
-        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-        user_id = s.loads(token, salt='password-reset-salt', max_age=expires_sec)['user_id']
-        logger.info(f"Verified reset token for user {user_id}")
-        return user_id
-    except Exception as e:
-        logger.error(f"Error verifying reset token: {str(e)}")
-        return None
+    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+    user_id = s.loads(token, salt='password-reset-salt', max_age=expires_sec)['user_id']
+    logger.info(f"Verified reset token for user {user_id}")
+    return user_id
 
 def send_reset_email(to_email, token):
     """Send password reset email with secure token."""
-    try:
-        reset_url = url_for('auth.reset_password_token', token=token, _external=True)
-        subject = "Password Reset Request"
-        body = f"""
-        <html>
-            <body>
-                <p>Hello!</p>
-                <p>We received a request to reset your password. Please click the button below to reset it:</p>
-                <p>
-                    <a href="{reset_url}" style="padding: 10px 20px; color: white; background-color: #00539F; text-decoration: none; border-radius: 5px;">
-                        Reset Your Password
-                    </a>
-                </p>
-                <p>If you didn't request this, you can safely ignore this email.</p>
-                <p>Thank you,<br>ECS Support Team</p>
-            </body>
-        </html>
-        """
-        send_email(to=to_email, subject=subject, body=body)
-        logger.info(f"Sent reset email to {to_email}")
-        return True
-    except Exception as e:
-        logger.error(f"Error sending reset email: {str(e)}")
-        return False
+    reset_url = url_for('auth.reset_password_token', token=token, _external=True)
+    subject = "Password Reset Request"
+    body = f"""
+    <html>
+        <body>
+            <p>Hello!</p>
+            <p>We received a request to reset your password. Please click the button below to reset it:</p>
+            <p>
+                <a href="{reset_url}" style="padding: 10px 20px; color: white; background-color: #00539F; text-decoration: none; border-radius: 5px;">
+                    Reset Your Password
+                </a>
+            </p>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>Thank you,<br>ECS Support Team</p>
+        </body>
+    </html>
+    """
+    send_email(to=to_email, subject=subject, body=body)
+    logger.info(f"Sent reset email to {to_email}")
 
 def send_reset_confirmation_email(to_email):
     """Send confirmation email after successful password reset."""
-    try:
-        subject = "Your Password Has Been Reset"
-        body = f"""
-        <html>
-            <body>
-                <p>Hello!</p>
-                <p>This is to confirm that your password was successfully reset.</p>
-                <p>If you did not perform this action, please contact our support team immediately.</p>
-                <p>Thank you,<br>ECS Support Team</p>
-            </body>
-        </html>
-        """
-        send_email(to=to_email, subject=subject, body=body)
-        logger.info(f"Sent reset confirmation email to {to_email}")
-        return True
-    except Exception as e:
-        logger.error(f"Error sending reset confirmation email: {str(e)}")
-        return False
+    subject = "Your Password Has Been Reset"
+    body = f"""
+    <html>
+        <body>
+            <p>Hello!</p>
+            <p>This is to confirm that your password was successfully reset.</p>
+            <p>If you did not perform this action, please contact our support team immediately.</p>
+            <p>Thank you,<br>ECS Support Team</p>
+        </body>
+    </html>
+    """
+    send_email(to=to_email, subject=subject, body=body)
+    logger.info(f"Sent reset confirmation email to {to_email}")
 
 def exchange_discord_code(code, redirect_uri):
     token_url = 'https://discord.com/api/oauth2/token'
@@ -112,13 +87,9 @@ def exchange_discord_code(code, redirect_uri):
 
 def get_discord_user_data(access_token):
     """Fetch user data from Discord API synchronously."""
-    try:
-        headers = {'Authorization': f'Bearer {access_token}'}
-        response = requests.get(DISCORD_API_URL, headers=headers)
-        response.raise_for_status()
-        user_data = response.json()
-        logger.info("Successfully fetched Discord user data")
-        return user_data
-    except Exception as e:
-        logger.error(f"Error fetching Discord user data: {str(e)}")
-        raise
+    headers = {'Authorization': f'Bearer {access_token}'}
+    response = requests.get(DISCORD_API_URL, headers=headers)
+    response.raise_for_status()
+    user_data = response.json()
+    logger.info("Successfully fetched Discord user data")
+    return user_data

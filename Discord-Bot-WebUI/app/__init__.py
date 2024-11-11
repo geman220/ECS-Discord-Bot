@@ -1,110 +1,252 @@
 # app/__init__.py
-import eventlet
-eventlet.monkey_patch()
-from datetime import datetime
-from flask import Flask, request
-from flask_jwt_extended import JWTManager
-from flask_migrate import Migrate
-from flask_login import LoginManager
+
+import os
+import logging
+import logging.config
+from datetime import datetime, timedelta
+
+from flask import Flask, request, session, redirect, url_for, render_template, flash
+from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_cors import CORS
-from sqlalchemy.orm import joinedload, sessionmaker , scoped_session
 from werkzeug.middleware.proxy_fix import ProxyFix
-from sqlalchemy.pool import QueuePool
-from app.decorators import query_operation
-from app.db_management import db_manager
-from app.models import User, Role
+
+import redis
+
+# Import configuration and logging
+from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
-from app.utils.db_monitoring import db_metrics
-import threading
-import logging
+from app.models import User, Role
+from app.utils.db_utils import transactional
 
-# Import extensions
-from app.extensions import db, socketio, celery, create_celery
+# Import Flask-Migrate
+from flask_migrate import Migrate
+from werkzeug.routing import BuildError
+from sqlalchemy.orm import joinedload
 
-# Initialize other extensions
-migrate = Migrate()
+# Initialize Flask extensions
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
-sess = Session()
+migrate = Migrate()  # Now Migrate is defined
+
 logger = logging.getLogger(__name__)
 
-# Configure SQLAlchemy session factory outside create_app
-session_factory = None
+# Import core extensions
+from app.core import db, socketio, configure_celery
 
-@login_manager.user_loader
-def load_user(user_id):
-    with db_manager.session_scope(nested=True):
-        return User.query.options(
-            db.joinedload(User.roles).joinedload(Role.permissions),
-            db.joinedload(User.notifications)
-        ).get(int(user_id))
+# Expose socketio at the package level
+__all__ = ['create_app', 'socketio']
 
-def init_extensions(app):
-    """Initialize Flask extensions with enhanced database monitoring"""
-    
-    # Configure database monitoring
-    app.config.setdefault('DB_SLOW_QUERY_THRESHOLD', 1.0)
-    app.config.setdefault('DB_MONITOR_ENABLED', True)
-    app.config.setdefault('DB_POOL_MONITORING_INTERVAL', 300)
-    
-    # Register database monitoring and cleanup
-    @app.before_request
-    def cleanup_db_connections():
-        """Combined cleanup for metrics and connections"""
-        db_metrics.cleanup_old_data()
-        db_manager.check_for_leaked_connections()
-        db_manager.terminate_idle_transactions()
-        db_manager.monitor_celery_connections()
-    
-    # Add database metrics endpoint
-    @app.route('/metrics/db')
-    def db_metrics_endpoint():
-        if not current_app.config['DB_MONITOR_ENABLED']:
-            return {'status': 'disabled'}, 404
-        return {
-            'metrics': db_metrics.get_metrics(),
-            'pool_stats': db_manager.get_pool_stats()
-        }
-    
-    # Initialize other extensions as before
-    migrate.init_app(app, db)
+def create_app(config_object='web_config.Config'):
+    app = Flask(__name__)
+    app.config.from_object(config_object)
+
+    # Configure logging
+    logging.config.dictConfig(LOGGING_CONFIG)
+    app.logger.setLevel(logging.DEBUG)
+    if app.debug:
+        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+    # Ensure SECRET_KEY is set
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError('SECRET_KEY must be set')
+
+    # Initialize Redis
+    redis_client = redis.from_url(
+        app.config['REDIS_URL'],
+        decode_responses=True,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        socket_keepalive=True,
+        health_check_interval=30,
+        retry_on_timeout=True,
+        max_connections=10
+    )
+
+    session_redis = redis.from_url(
+        app.config['REDIS_URL'],
+        decode_responses=False,
+        socket_timeout=5,
+        socket_connect_timeout=5,
+        socket_keepalive=True,
+        health_check_interval=30,
+        retry_on_timeout=True,
+        max_connections=10
+    )
+
+    try:
+        redis_client.ping()
+        session_redis.ping()
+        logger.info("Redis connection successful")
+    except redis.ConnectionError as e:
+        logger.error(f"Redis connection failed: {str(e)}")
+        raise
+
+    app.redis = redis_client
+
+    # Configure database settings
+    from app.database.config import configure_db_settings
+    configure_db_settings(app)
+
+    # Initialize core extensions
+    db.init_app(app)
+
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        if exception:
+            db.session.rollback()
+        db.session.remove()
+
+    # Initialize RequestLifecycle after db is initialized
+    #from app.lifecycle import RequestLifecycle
+    #request_lifecycle = RequestLifecycle()
+    #request_lifecycle.init_app(app, db)
+
+    # Initialize other extensions
     login_manager.init_app(app)
-    login_manager.login_view = 'auth.login'
-    login_manager.login_message_category = 'info'
-    mail.init_app(app)
     csrf.init_app(app)
-    sess.init_app(app)
+    mail.init_app(app)
+    migrate.init_app(app, db)
 
+    # Configure Celery
+    app.celery = configure_celery(app)
+
+    # Initialize SocketIO
     socketio.init_app(
         app,
-        message_queue='redis://redis:6379/0',
-        manage_session=False
+        message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
+        manage_session=False,
+        async_mode='eventlet',
+        cors_allowed_origins=app.config.get('CORS_ORIGINS', '*')
     )
-    
+
+    # Initialize blueprints
+    init_blueprints(app)
+
+    # Initialize context processors
+    init_context_processors(app)
+
+    # Install error handlers
+    install_error_handlers(app)
+
+    # Apply middlewares
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    if app.debug:
+        app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
+        logger.debug("Applied DebugMiddleware")
+
+    # Session configuration
+    app.config.update({
+        'SESSION_TYPE': 'redis',
+        'SESSION_REDIS': session_redis,
+        'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
+        'SESSION_KEY_PREFIX': 'session:',
+        'SESSION_USE_SIGNER': True
+    })
+
+    Session(app)
+
+    # Enable CORS
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # Initialize JWT
+    from flask_jwt_extended import JWTManager
     JWTManager(app)
 
-def init_tasks(app):
-    """Initialize Celery tasks"""
-    app.celery = create_celery(app)
-    # Import tasks to register them with Celery
-    with app.app_context():
-        import app.tasks.tasks_core
-        import app.tasks.tasks_live_reporting
-        import app.tasks.tasks_match_updates
-        import app.tasks.tasks_rsvp
-        import app.tasks.tasks_discord
+    # Error handlers
+    @app.errorhandler(401)
+    def unauthorized(error):
+        logger.debug("Unauthorized access attempt")
+        next_url = request.path
+        if next_url != '/':
+            session['next'] = next_url
+        flash('Please log in to access this page.', 'info')
+        return redirect(url_for('auth.login'))
+
+    @app.errorhandler(404)
+    def not_found(error):
+        logger.debug(f"404 error for URL: {request.url}")
+        return render_template('404.html'), 404
+
+    @app.errorhandler(BuildError)
+    def handle_url_build_error(error):
+        logger.error(f"URL build error: {str(error)}")
+        if 'main.index' in str(error):
+            try:
+                return redirect(url_for('main.index'))
+            except:
+                return redirect('/')
+        flash('An error occurred while redirecting. You have been returned to the home page.', 'error')
+        return redirect('/')
+
+    # Before request handler
+    @app.before_request
+    def before_request():
+        # Skip session handling for static files
+        if not request.path.startswith('/static/'):
+            # Set permanent session flags
+            session.permanent = True
+            if '_permanent' not in session:
+                session['_permanent'] = True
+                session['created_at'] = datetime.utcnow().isoformat()
+        
+            # Validate user session if it exists
+            if '_user_id' in session:
+                try:
+                    user_id = session['_user_id']
+                    if not current_user or not current_user.is_authenticated:
+                        user = load_user(user_id)
+                        if not user:
+                            # Clear invalid session
+                            session.clear()
+                            # Restore permanent session settings
+                            session.permanent = True
+                            session['_permanent'] = True
+                            session['created_at'] = datetime.utcnow().isoformat()
+                            flash('Your session has expired. Please log in again.', 'info')
+                            return redirect(url_for('auth.login'))
+                except Exception as e:
+                    logger.error(f"Session validation error: {str(e)}", exc_info=True)
+                    # Clear and reset session
+                    session.clear()
+                    session.permanent = True
+                    session['_permanent'] = True
+                    session['created_at'] = datetime.utcnow().isoformat()
+                    return redirect(url_for('auth.login'))
+
+    # After request handler
+    @app.after_request
+    def after_request(response):
+        if not response.headers.get('Cache-Control'):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '-1'
+        return response
+
+    # User loader
+    @login_manager.user_loader
+    @transactional
+    def load_user(user_id):
+        try:
+            return User.query.options(
+                joinedload(User.roles).joinedload(Role.permissions),
+                joinedload(User.notifications),
+                joinedload(User.player)
+            ).get(int(user_id))
+        except Exception as e:
+            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
+            return None
+
+    return app
 
 def init_blueprints(app):
-    """Initialize blueprints with endpoint logging for debugging."""
     logger = logging.getLogger(__name__)
-    registered = set()  # Track registered blueprints
 
-    # Import blueprints to avoid circular imports
+    # Import blueprints
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp
     from app.draft import draft as draft_bp
@@ -125,193 +267,92 @@ def init_blueprints(app):
     from app.app_api import mobile_api
     from app.monitoring import monitoring_bp
 
-    def register_blueprint(bp, url_prefix=None):
-        """Helper to safely register a blueprint with endpoint logging."""
-        bp_id = f"{bp.name}:{id(bp)}"
-        if bp_id in registered:
-            logger.warning(f"Blueprint {bp.name} already registered")
-            return
-        
-        try:
-            app.register_blueprint(bp, url_prefix=url_prefix)
-            registered.add(bp_id)
-            logger.debug(f"Registered blueprint: {bp.name} with URL prefix: {url_prefix}")
-            
-            # Log all endpoints in the blueprint to debug duplicates
-            for rule in app.url_map.iter_rules():
-                if rule.endpoint.startswith(bp.name):
-                    logger.debug(f"Blueprint '{bp.name}' - Registered endpoint: '{rule.endpoint}' with rule: '{rule}'")
-
-        except Exception as e:
-            logger.error(f"Failed to register blueprint {bp.name}: {str(e)}")
-            raise
-
-    # Define blueprints and their prefixes
-    blueprint_configs = [
-        (auth_bp, '/auth'),
-        (publeague_bp, '/publeague'),
-        (draft_bp, '/draft'),
-        (players_bp, '/players'),
-        (teams_bp, '/teams'),
-        (availability_bp, '/api'),
-        (account_bp, '/account'),
-        (match_pages, None),
-        (bot_admin_bp, None),
-        (main_bp, None),
-        (admin_bp, None),
-        (feedback_bp, None),
-        (email_bp, None),
-        (calendar_bp, None),
-        (sms_rsvp_bp, None),
-        (match_api, '/api'),
-        (user_management_bp, None),
-        (mobile_api, '/api/v1'),
-        (monitoring_bp, None)
-    ]
-
-    # Register each blueprint
-    for bp, url_prefix in blueprint_configs:
-        register_blueprint(bp, url_prefix)
+    # Register blueprints
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(publeague_bp, url_prefix='/publeague')
+    app.register_blueprint(draft_bp, url_prefix='/draft')
+    app.register_blueprint(players_bp, url_prefix='/players')
+    app.register_blueprint(teams_bp, url_prefix='/teams')
+    app.register_blueprint(availability_bp, url_prefix='/api')
+    app.register_blueprint(account_bp, url_prefix='/account')
+    app.register_blueprint(match_pages)
+    app.register_blueprint(bot_admin_bp)
+    app.register_blueprint(main_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(feedback_bp)
+    app.register_blueprint(email_bp)
+    app.register_blueprint(calendar_bp)
+    app.register_blueprint(sms_rsvp_bp)
+    app.register_blueprint(match_api, url_prefix='/api')
+    app.register_blueprint(user_management_bp)
+    app.register_blueprint(mobile_api, url_prefix='/api/v1')
+    app.register_blueprint(monitoring_bp)
 
 def init_context_processors(app):
-    """Initialize context processors with coordinated session handling"""
     @app.context_processor
-    @query_operation
-    def inject_roles():
+    def utility_processor():
         user_roles = []
-        user = safe_current_user  # Use safe_current_user here
-        if user:
-            user_roles = [role.name for role in user.roles]
-        return dict(user_roles=user_roles, safe_current_user=user)
+        user_permissions = []
+        
+        if hasattr(safe_current_user, 'roles'):
+            user_roles = [role.name for role in safe_current_user.roles]
+            # Collect all permissions from all roles
+            user_permissions = [
+                permission.name 
+                for role in safe_current_user.roles 
+                for permission in role.permissions
+            ]
 
-    @app.context_processor
-    def inject_notifications():
-        notifications = []
-        if safe_current_user.is_authenticated:
-            from app.models import Notification
-            notifications = Notification.query.filter_by(
-                user_id=safe_current_user.id
-            ).order_by(
-                Notification.created_at.desc()
-            ).limit(10).all()
-        return dict(notifications=notifications)
-
-    @app.context_processor
-    def inject_safe_user():
-        return dict(safe_current_user=safe_current_user)
-
-    @app.context_processor
-    def inject_form():
-        from app.forms import EmptyForm
-        return dict(empty_form=EmptyForm())
-
-    @app.context_processor
-    def inject_permissions():
         def has_permission(permission_name):
-            if not safe_current_user.is_authenticated:
-                return False
-            return safe_current_user.has_permission(permission_name)
-        return dict(has_permission=has_permission)
-
-    @app.context_processor
-    def inject_auth_utilities():
-        def has_role(role_name):
-            if not safe_current_user.is_authenticated:
-                return False
-            return safe_current_user.has_role(role_name)
-
-        def is_admin():
-            if not safe_current_user.is_authenticated:
-                return False
-            admin_roles = ['Global Admin', 'Pub League Admin']
-            return any(role.name in admin_roles for role in safe_current_user.roles)
+            return permission_name in user_permissions
             
-        def is_owner(user_id):
-            if not safe_current_user.is_authenticated:
-                return False
-            return safe_current_user.id == user_id
+        def is_admin():
+            return 'Global Admin' in user_roles or 'Pub League Admin' in user_roles
 
-        return dict(
-            has_role=has_role,
-            is_admin=is_admin,
-            is_owner=is_owner
-        )
-
-def create_app(config_object='web_config.Config'):
-    """Create and configure Flask application instance"""
-    app = Flask(__name__)
-    app.config.from_object(config_object)
-    
-    # Configure logging first
-    logging.basicConfig(level=logging.DEBUG)
-    app.logger.setLevel(logging.DEBUG)
-
-    # Add ProxyFix middleware
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-    # Configure SQLAlchemy engine options
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': app.config.get('SQLALCHEMY_POOL_SIZE', 5),
-        'max_overflow': app.config.get('SQLALCHEMY_MAX_OVERFLOW', 10),
-        'pool_timeout': app.config.get('SQLALCHEMY_POOL_TIMEOUT', 20),
-        'pool_recycle': app.config.get('SQLALCHEMY_POOL_RECYCLE', 300),
-        'pool_pre_ping': True,
-        'pool_use_lifo': True,
-        'pool_reset_on_return': 'rollback',
-        'echo_pool': app.config.get('SQLALCHEMY_ECHO_POOL', False),
-        'poolclass': QueuePool,
-        'connect_args': {
-            'connect_timeout': 10,
-            'application_name': f"{app.name}_app",
-            'options': '-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000'
+        return {
+            'safe_current_user': safe_current_user,
+            'user_roles': user_roles,
+            'has_permission': has_permission,
+            'is_admin': is_admin
         }
-    }
 
-    # Initialize extensions
-    db.init_app(app)
-    
-    # Initialize non-db extensions
-    mail.init_app(app)
-    csrf.init_app(app)
-    sess.init_app(app)
+def install_error_handlers(app):
+    # Define custom error handlers here
+    pass
 
-    with app.app_context():
-        # Initialize the database manager
-        db_manager.init_app(app)
-        
-        # Create global session factory
-        global session_factory
-        session_factory = sessionmaker(
-            bind=db.engine,
-            autocommit=False,
-            autoflush=False
-        )
-        
-        # Configure scoped session
-        db.session = scoped_session(session_factory)
-        
-        # Initialize remaining database-dependent components
-        migrate.init_app(app, db)
-        
-        # Initialize login manager
-        login_manager.init_app(app)
-        login_manager.login_view = 'auth.login'
-        login_manager.login_message_category = 'info'
-        
-        # Initialize remaining components
-        init_extensions(app)
-        init_blueprints(app)
-        init_tasks(app)
-        init_context_processors(app)
-    
-    # Initialize network-related extensions last
-    socketio.init_app(
-        app,
-        message_queue='redis://redis:6379/0',
-        manage_session=False
-    )
-    
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-    JWTManager(app)
-        
-    return app
+class DebugMiddleware:
+    def __init__(self, wsgi_app, app):
+        self.wsgi_app = wsgi_app
+        self.flask_app = app
+
+    def __call__(self, environ, start_response):
+        with self.flask_app.app_context():
+            with self.flask_app.request_context(environ):
+                logger.debug(f"Request Path: {environ.get('PATH_INFO')}")
+                logger.debug(f"Request Method: {environ.get('REQUEST_METHOD')}")
+                logger.debug(f"Request Headers: {dict(request.headers)}")
+
+                try:
+                    session_data = dict(session) if session else {}
+                    logger.debug(f"Session Data: {session_data}")
+                    logger.debug(f"Session ID: {session.sid if hasattr(session, 'sid') else 'No session ID'}")
+                except RuntimeError:
+                    logger.debug("Session: Not available in current context")
+
+                try:
+                    user_info = current_user.is_authenticated
+                    logger.debug(f"User authenticated: {user_info}")
+                except RuntimeError:
+                    logger.debug("User: Not available in current context")
+
+                def debug_start_response(status, headers, exc_info=None):
+                    logger.debug(f"Response Status: {status}")
+                    logger.debug(f"Response Headers: {headers}")
+                    return start_response(status, headers, exc_info)
+
+                try:
+                    response = self.wsgi_app(environ, debug_start_response)
+                    return response
+                except Exception as e:
+                    logger.error(f"Error in request: {str(e)}", exc_info=True)
+                    raise

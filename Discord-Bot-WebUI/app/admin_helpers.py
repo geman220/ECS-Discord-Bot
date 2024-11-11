@@ -1,12 +1,9 @@
-from app.decorators import handle_db_operation, query_operation
 from app.models import (
     User, Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Team, Match, Availability, Player,
     League, PlayerSeasonStats, Season
 )
-from app.discord_utils import (
-    get_expected_roles,
-)
+from app.discord_utils import get_expected_roles
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from twilio.rest import Client
@@ -18,7 +15,6 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-@query_operation
 async def get_initial_role_status(player: Player) -> Dict[str, Any]:
     """
     Get initial role status without making Discord API calls.
@@ -64,7 +60,6 @@ async def get_initial_role_status(player: Player) -> Dict[str, Any]:
             'last_verified': 'Never'
         }
 
-@query_operation
 def get_filtered_users(filters):
     """Get filtered user query based on provided filters."""
     # Start with base query and joins
@@ -112,7 +107,6 @@ def get_filtered_users(filters):
 
     return query.distinct()  # Use distinct to avoid duplicates from joins
 
-@handle_db_operation()
 def handle_user_action(action, user_id):
     """Handle user-related actions (approve, remove, reset_password)."""
     user = User.query.get_or_404(user_id)
@@ -131,7 +125,6 @@ def get_docker_client():
         logger.error(f"Error initializing Docker client: {e}")
         return None
 
-@query_operation
 def get_container_data():
     """Fetch and format Docker container data."""
     client = get_docker_client()
@@ -149,7 +142,6 @@ def get_container_data():
         logger.error(f"Error fetching container data: {e}")
         return None
 
-@handle_db_operation()
 def manage_docker_container(container_id, action):
     """Manage Docker container actions (start, stop, restart)."""
     client = get_docker_client()
@@ -200,7 +192,6 @@ def send_sms_message(to_phone_number: str, message_body: str) -> bool:
         return False
 
 # Announcement Management Helpers
-@handle_db_operation()
 def handle_announcement_update(title: str = None, content: str = None, 
                             announcement_id: int = None) -> bool:
     """
@@ -234,7 +225,6 @@ def handle_announcement_update(title: str = None, content: str = None,
         logger.error(f"Error handling announcement: {e}")
         return False
 
-@query_operation
 def get_role_permissions_data(role_id: int) -> list:
     """
     Get permissions for a specific role.
@@ -250,7 +240,6 @@ def get_role_permissions_data(role_id: int) -> list:
         return None
     return [perm.id for perm in role.permissions]
 
-@handle_db_operation()
 def handle_permissions_update(role_id: int, permission_ids: list) -> bool:
     """
     Update role permissions.
@@ -273,7 +262,6 @@ def handle_permissions_update(role_id: int, permission_ids: list) -> bool:
         return False
 
 # RSVP Management Helpers
-@query_operation
 def get_rsvp_status_data(match: Match) -> list:
     """
     Get RSVP status data for a match.
@@ -307,7 +295,6 @@ def get_rsvp_status_data(match: Match) -> list:
     return sorted(rsvp_data, key=lambda x: (x['team'].name, x['player'].name))
 
 # Match Statistics Helpers
-@query_operation
 def get_match_stats() -> dict:
     """
     Get comprehensive match statistics.
@@ -424,7 +411,6 @@ def check_task_status() -> dict:
             'tasks': []
         }
 
-@query_operation
 def get_container_logs(container_id: str) -> Optional[str]:
     """
     Retrieve logs from a specific Docker container.

@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from celery.result import AsyncResult
 from celery.schedules import crontab
-from app.extensions import celery, db
+from app.core import celery
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
 from app.tasks.tasks_live_reporting import force_create_mls_thread_task, start_live_reporting

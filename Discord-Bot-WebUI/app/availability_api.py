@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
 from app import csrf
-from app.extensions import celery
+from app.core import celery
 from app.models import Match, Availability, Team, Player, ScheduledMessage
 from app.decorators import handle_db_operation, query_operation
 from app.tasks.tasks_rsvp import (

@@ -1,6 +1,6 @@
 # main.py
-from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify
-from flask_login import login_required
+from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify, session
+from flask_login import login_required, current_user
 from collections import defaultdict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload

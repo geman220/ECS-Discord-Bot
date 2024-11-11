@@ -9,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor
 from flask import current_app
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.extensions import db
 from app.db_management import db_manager
 from app.models import Match, Availability, ScheduledMessage
 

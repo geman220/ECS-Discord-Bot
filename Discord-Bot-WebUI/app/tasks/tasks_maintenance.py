@@ -1,7 +1,7 @@
 # app/tasks/tasks_maintenance.py
 
 from celery.schedules import crontab
-from app.extensions import celery
+from app.core import celery
 from app.db_management import db_manager
 import logging
 

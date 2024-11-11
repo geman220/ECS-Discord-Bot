@@ -4,10 +4,10 @@ from flask_login import login_required
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
-from app.decorators import handle_db_operation, query_operation
-from app.extensions import db
+from app.utils.db_utils import transactional  # Change this import
+from app.core import db
 from app.utils.user_helpers import safe_current_user
-from functools import wraps
+from sqlalchemy.orm import joinedload
 from datetime import datetime
 import logging
 
@@ -16,35 +16,16 @@ logger = logging.getLogger(__name__)
 feedback_bp = Blueprint('feedback', __name__, template_folder='templates')
 
 def get_admin_emails():
+    """Get admin emails"""
     admin_role = Role.query.filter_by(name='Global Admin').first()
     if admin_role:
         admin_users = User.query.filter(User.roles.contains(admin_role)).all()
         return [user.email for user in admin_users]
     return []
 
-@handle_db_operation()
-def handle_feedback_reply(feedback, form):
-    """Handle the creation of a new feedback reply"""
-    try:
-        reply = FeedbackReply(
-            feedback_id=feedback.id,
-            user_id=safe_current_user.id, 
-            content=form.content.data,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(reply)
-        
-        flash('Reply added successfully!', 'success')
-        return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
-        
-    except Exception as e:
-        logger.error(f"Error adding reply to feedback {feedback.id}: {str(e)}", exc_info=True)
-        flash('Error adding reply. Please try again.', 'danger')
-        raise
-
-@handle_db_operation()
+@transactional
 def create_feedback_entry(form_data, user_id=None, username=None):
-    """Creates a new feedback entry with proper session management"""
+    """Creates a new feedback entry"""
     try:
         new_feedback = Feedback(
             user_id=user_id,
@@ -62,9 +43,8 @@ def create_feedback_entry(form_data, user_id=None, username=None):
         logger.error(f"Error creating feedback: {str(e)}")
         raise
 
-@handle_db_operation()
 def get_user_feedbacks(user_id, page, per_page, search_query):
-    """Retrieves paginated user feedbacks with proper session management"""
+    """Retrieves paginated user feedbacks"""
     try:
         feedback_query = Feedback.query.filter_by(user_id=user_id if user_id else None)
         
@@ -81,6 +61,7 @@ def get_user_feedbacks(user_id, page, per_page, search_query):
         raise
 
 @feedback_bp.route('/submit_feedback', methods=['GET', 'POST'])
+@transactional
 def submit_feedback():
     try:
         form = FeedbackForm()
@@ -88,16 +69,13 @@ def submit_feedback():
         per_page = 10
         search_query = request.args.get('q', '', type=str).strip()
         
-        # Get the user's ID and username if authenticated
         user_id = safe_current_user.id if safe_current_user.is_authenticated else None
         username = safe_current_user.username if safe_current_user.is_authenticated else None
         
-        # Get existing feedbacks
         user_feedbacks = get_user_feedbacks(user_id, page, per_page, search_query)
         
         if form.validate_on_submit():
             try:
-                # Create the feedback entry using the service function
                 form_data = {
                     'name': form.name.data,
                     'category': form.category.data,
@@ -107,7 +85,6 @@ def submit_feedback():
                 
                 new_feedback = create_feedback_entry(form_data, user_id, username)
                 
-                # Attempt to send email notification
                 try:
                     admin_emails = get_admin_emails()
                     if admin_emails:
@@ -118,7 +95,6 @@ def submit_feedback():
                         )
                 except Exception as email_error:
                     logger.error(f"Failed to send notification email: {str(email_error)}")
-                    # Continue with submission - email failure shouldn't stop feedback creation
                 
                 flash('Your feedback has been submitted successfully!', 'success')
                 return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
@@ -145,12 +121,12 @@ def submit_feedback():
 
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
-@handle_db_operation()
+@transactional
 def view_feedback(feedback_id):
     try:
         feedback = Feedback.query.options(
-            db.joinedload(Feedback.replies).joinedload(FeedbackReply.user),
-            db.joinedload(Feedback.user)
+            joinedload(Feedback.replies).joinedload(FeedbackReply.user),
+            joinedload(Feedback.user)
         ).get_or_404(feedback_id)
         
         if feedback.user_id != safe_current_user.id:
@@ -190,7 +166,7 @@ def view_feedback(feedback_id):
 
 @feedback_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
-@handle_db_operation()
+@transactional
 def close_feedback(feedback_id):
     feedback = Feedback.query.get_or_404(feedback_id)
     

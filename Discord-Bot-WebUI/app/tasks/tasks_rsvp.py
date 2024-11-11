@@ -4,8 +4,8 @@ import logging
 import asyncio
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
-from app.extensions import db, socketio
-from app.decorators import celery_task
+from app.core import socketio
+from app.utils.db_utils import celery_transactional_task
 from app.models import Match, Availability, Player, ScheduledMessage
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,7 +18,7 @@ from app.tasks.tasks_rsvp_helpers import (
 
 logger = logging.getLogger(__name__)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.update_rsvp',
     bind=True,
     max_retries=3,
@@ -173,7 +173,7 @@ def update_rsvp(self, match_id: int, player_id: int, new_response: str,
         logger.error(f"Error updating RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.send_availability_message',
     bind=True,
     max_retries=3,
@@ -212,7 +212,7 @@ def send_availability_message(self, scheduled_message_id: int) -> Dict[str, Any]
         logger.error(f"Error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.process_scheduled_messages',
     bind=True,
     queue='discord',
@@ -310,7 +310,7 @@ def process_scheduled_messages(self) -> Dict[str, Any]:
         logger.error(f"Error processing scheduled messages: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.notify_frontend_of_rsvp_change',
     bind=True,
     queue='discord',
@@ -353,7 +353,7 @@ def notify_frontend_of_rsvp_change_task(self, match_id: int, player_id: int,
             'error_type': 'socket_error'
         }
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.update_discord_rsvp',
     bind=True,
     max_retries=3,
@@ -410,7 +410,7 @@ def update_discord_rsvp_task(self, data: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Error updating Discord RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.notify_discord_of_rsvp_change',
     bind=True,
     queue='discord',
@@ -459,7 +459,7 @@ def notify_discord_of_rsvp_change_task(self, match_id: int) -> Dict[str, Any]:
         logger.error(f"Error notifying Discord of RSVP change: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.cleanup_stale_rsvps',
     bind=True,
     queue='discord',
@@ -527,7 +527,7 @@ def cleanup_stale_rsvps(self, days_old: int = 30) -> Dict[str, Any]:
         logger.error(f"Error cleaning up stale RSVPs: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_rsvp.monitor_rsvp_health',
     bind=True,
     queue='discord',

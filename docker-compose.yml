@@ -37,15 +37,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   celery-live-reporting-worker:
     build:
@@ -70,15 +68,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
       
   celery-discord-worker:
     build:
@@ -103,15 +99,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"      
 
   celery-beat:
     build:
@@ -138,15 +132,13 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 256M
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   webui:
     build:
@@ -204,16 +196,13 @@ services:
       - "traefik.http.routers.webui-secure.middlewares=websocket"
       - "traefik.http.middlewares.secure-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.routers.webui-secure.middlewares=secure-headers"
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   flower:
     image: mher/flower
@@ -232,10 +221,6 @@ services:
       - "traefik.http.routers.flower-secure.rule=Host(`flower.ecsfc.com`)"
       - "traefik.http.routers.flower-secure.tls=true"
       - "traefik.http.routers.flower-secure.tls.certresolver=myresolver"
-    deploy:
-      resources:
-        limits:
-          memory: 256M
     networks:
       - web
 
@@ -260,12 +245,10 @@ services:
       webui:
         condition: service_healthy
     command: python ECS_Discord_Bot.py
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     networks:
       - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 networks:
   web:

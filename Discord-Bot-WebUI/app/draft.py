@@ -4,7 +4,7 @@ from sqlalchemy.orm import joinedload
 from app.models import League, Player, Team, Season, PlayerSeasonStats
 from app.decorators import role_required, handle_db_operation, query_operation
 from app.routes import get_current_season_and_year
-from app.extensions import socketio
+from app.core import socketio
 from flask_socketio import emit
 from app.discord_utils import assign_roles_to_player
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task

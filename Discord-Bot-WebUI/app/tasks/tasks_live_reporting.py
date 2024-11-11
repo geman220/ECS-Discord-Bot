@@ -6,8 +6,8 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
-from app.extensions import socketio
-from app.decorators import celery_task
+from app.core import socketio
+from app.utils.db_utils import celery_transactional_task
 from app.models import MLSMatch
 from app.match_scheduler import MatchScheduler
 from app.match_api import process_live_match_updates
@@ -21,7 +21,7 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.process_match_update',
     bind=True,
     queue='live_reporting'
@@ -164,7 +164,7 @@ async def _process_match_update_async(match_id: str, thread_id: str,
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.start_live_reporting',
     bind=True,
     queue='live_reporting',
@@ -239,7 +239,7 @@ def start_live_reporting(self, match_id: str) -> Dict[str, Any]:
         logger.error(f"Error in start_live_reporting: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.create_match_thread_task',
     queue='live_reporting',
     bind=True,
@@ -358,7 +358,7 @@ async def _create_match_thread_async(match_id: str) -> Dict[str, Any]:
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
     queue='live_reporting',
     bind=True,
@@ -430,7 +430,7 @@ def check_and_create_scheduled_threads(self) -> Dict[str, Any]:
         logger.error(f"Error checking scheduled threads: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.monitor_all_matches',
     queue='live_reporting',
     bind=True,
@@ -517,7 +517,7 @@ def monitor_all_matches(self) -> Dict[str, Any]:
         logger.error(f"Error in monitor_all_matches: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.verify_scheduled_tasks',
     queue='live_reporting',
     bind=True,
@@ -663,7 +663,7 @@ async def end_match_reporting(match_id: str) -> Dict[str, Any]:
     finally:
         executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.check_upcoming_matches',
     queue='live_reporting',
     bind=True,
@@ -769,7 +769,7 @@ def check_upcoming_matches(self) -> Dict[str, Any]:
         if 'executor' in locals():
             executor.shutdown()
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.schedule_live_reporting',
     bind=True,
     queue='live_reporting',
@@ -875,7 +875,7 @@ def schedule_live_reporting(self) -> Dict[str, Any]:
         logger.error(f"Error scheduling live reporting: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.schedule_mls_thread_task',
     queue='live_reporting',
     bind=True,
@@ -927,7 +927,7 @@ def schedule_mls_thread_task(self, match_id: int, hours_before: int = 24) -> Dic
         logger.error(f"Error scheduling MLS thread: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_live_reporting.schedule_all_mls_threads_task',
     queue='live_reporting',
     bind=True,
