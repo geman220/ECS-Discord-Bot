@@ -55,7 +55,7 @@
         <!-- Login Form -->
         <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
             <div style="width: 100%; max-width: 320px; text-align: center;">
-                <h4 class="mb-1 text-primary">Welcome Back! ?</h4>
+                <h4 class="mb-1 text-primary">Welcome Back!</h4>
                 <p class="mb-4 text-muted">Your next steps await.</p>
 
                 <!-- Discord Login Button -->
@@ -72,7 +72,7 @@
 
                 <!-- Email Login Form -->
                 <form method="POST" action="{{ url_for('auth.login') }}" id="email-login-form" style="display: none;">
-                    {{ empty_form.hidden_tag() }}
+                    {{ form.hidden_tag() }}
                     <div class="mb-3">
                         {{ form.email(class="form-control form-control-lg", placeholder="Enter Email Address...") }}
                     </div>

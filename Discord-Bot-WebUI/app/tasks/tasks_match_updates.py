@@ -6,9 +6,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.decorators import celery_task
+from app.utils.db_utils import celery_transactional_task
 from app.models import MLSMatch, ScheduledMessage, Match
-from app.extensions import db
 from app.db_management import db_manager
 from app.tasks.tasks_match_updates_helpers import (
     _process_match_updates_async,
@@ -17,7 +16,7 @@ from app.tasks.tasks_match_updates_helpers import (
 
 logger = logging.getLogger(__name__)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_match_updates.process_match_updates',
     bind=True,
     queue='discord',
@@ -50,7 +49,7 @@ def process_match_updates(self, match_id: str, match_data: Dict[str, Any]) -> Di
         logger.error(f"Error processing match updates: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_match_updates.fetch_match_and_team_id_task',
     bind=True,
     queue='discord',
@@ -134,7 +133,7 @@ def fetch_match_and_team_id_task(self, message_id: str, channel_id: str) -> Dict
         logger.error(f"Error fetching match and team ID: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_match_updates.update_match_details',
     bind=True,
     queue='discord',
@@ -208,7 +207,7 @@ def update_match_details_task(self, match_id: str, update_info: Dict[str, Any]) 
         logger.error(f"Error updating match details: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
-@celery_task(
+@celery_transactional_task(
     name='app.tasks.tasks_match_updates.get_active_matches',
     bind=True,
     queue='discord',

@@ -11,7 +11,7 @@ from app.utils.user_helpers import safe_current_user
 from app.db_management import db_manager
 from sqlalchemy import func, or_, and_
 from PIL import Image
-from app.extensions import db
+from app.core import db
 import logging
 
 from app.players_helpers import (

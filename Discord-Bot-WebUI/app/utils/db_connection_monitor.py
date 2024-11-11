@@ -4,7 +4,7 @@ from typing import List, Dict, Optional
 from sqlalchemy import text
 from flask import current_app
 from contextlib import contextmanager
-from app.extensions import db
+from app.core import db
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,5 @@
+# app/publeague
+
 from app.season_routes import season_bp
 from app.schedule_routes import schedule_bp
 from flask import Blueprint, render_template, redirect, url_for, flash, request, g

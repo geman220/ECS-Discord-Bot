@@ -1,6 +1,6 @@
 from flask_socketio import emit
 from flask_login import login_required
-from app.extensions import socketio
+from app.core import socketio
 from app.models import Player
 from app.tasks.tasks_discord import fetch_role_status, update_player_discord_roles
 from app.utils.user_helpers import safe_current_user

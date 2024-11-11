@@ -16,7 +16,7 @@ import threading
 from celery import shared_task
 
 # Import extensions but only db since we need it directly
-from app.extensions import db, celery
+from app.core import db, celery
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,19 @@ def is_flask_view_function(f):
             hasattr(f, '_blueprint_name') or
             hasattr(f, 'endpoint'))
 
-def handle_db_operation(nested=False, transaction_name=None):
-    """Decorator for database operations with session handling."""
-    def db_operation_decorator(f):
-        @wraps(f)
+def handle_db_operation(f=None):
+    """Decorator to handle database operations, now supports optional arguments."""
+    def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
-            with db_manager.session_scope(nested=nested, transaction_name=transaction_name):
-                return f(*args, **kwargs)
+            # No-op: simply call the function
+            return func(*args, **kwargs)
         return wrapper
-    return db_operation_decorator
+
+    if f is None:
+        return decorator
+    else:
+        return decorator(f)
 
 def log_context_state(location: str):
     """Helper to log detailed context state"""
@@ -232,83 +236,72 @@ def query_operation(f):
         
     @wraps(f)
     def wrapper(*args, **kwargs):
-        with db_manager.session_scope(nested=True):
+        # Use existing session if in request context
+        if has_app_context() and hasattr(g, 'db_session'):
             return f(*args, **kwargs)
             
-    wrapper.query_decorated = True  # Mark as decorated
+        with db_manager.session_scope(nested=True, transaction_name=f.__name__):
+            return f(*args, **kwargs)
+            
+    wrapper.query_decorated = True
     return wrapper
 
-@contextmanager
+@contextmanager 
 def session_timeout_context(timeout_seconds: int = 30):
-    """Context manager to enforce session timeout"""
-    start_time = datetime.utcnow()
-    
-    def check_timeout():
-        duration = (datetime.utcnow() - start_time).total_seconds()
-        if duration > timeout_seconds:
-            raise Exception(f"Session timeout after {duration}s")
-    
-    try:
-        yield check_timeout
-    finally:
-        check_timeout()
-
+    """Session timeout context using db_manager"""
+    with db_manager.session_scope(
+        transaction_name=f"timeout_context_{timeout_seconds}"
+    ) as session:
+        start_time = datetime.utcnow()
+        
+        def check_timeout():
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            if duration > timeout_seconds:
+                session.rollback()
+                raise Exception(f"Session timeout after {duration}s")
+        
+        try:
+            yield check_timeout
+        finally:
+            check_timeout()
 @asynccontextmanager
 async def async_session_context():
-    """Update async session context to use db_manager"""
-    session_id = f"session-{datetime.utcnow().timestamp()}"
-    logger.debug(f"Starting new async session context: {session_id}")
+    """Async session context using db_manager"""
+    session_id = f"async-{datetime.utcnow().timestamp()}"
+    
     try:
-        # Note: This still uses db.session directly as db_manager doesn't have async support yet
-        yield db.session
-        if db.session.is_active:
-            db.session.commit()
-            logger.debug(f"Committed session: {session_id}")
+        # Create session through db_manager 
+        with db_manager.session_scope(
+            transaction_name=f"async_{session_id}"
+        ) as session:
+            yield session
     except Exception as e:
-        logger.error(f"Error in async session {session_id}: {str(e)}")
-        if db.session.is_active:
-            db.session.rollback()
-            logger.debug(f"Rolled back session: {session_id}")
+        logger.error(f"Async session error {session_id}: {str(e)}")
         raise
-    finally:
-        db.session.remove()
-        logger.debug(f"Removed session: {session_id}")
 
 def celery_task(**task_kwargs):
-    """Update celery task to use db_manager with better connection handling"""
+    """Decorator for Celery tasks using db_manager sessions"""
     def celery_task_decorator(f):
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
-        base_task = celery.task(name=task_name, **task_kwargs)(f)
+        task_kwargs.pop('bind', None)  # Remove bind if present
         
+        @celery.task(name=task_name, bind=True, **task_kwargs)
         @wraps(f)
-        def wrapped(*args, **kwargs):
-            from app import create_app
-            app = create_app()
-            
-            logger.debug(f"[CELERY TASK START] {task_name}")
-            
+        def wrapped(self, *args, **kwargs):
             try:
-                with app.app_context():
-                    # Use transaction name to track celery task connections
-                    with db_manager.session_scope(transaction_name=f"celery_{task_name}") as session:
-                        # Explicitly close any lingering transactions
-                        session.execute(text("ROLLBACK"))
-                        session.execute(text("SET idle_in_transaction_session_timeout = '30s'"))
-                        
-                        result = base_task(*args, **kwargs)
-                        return result
-                        
+                with db_manager.session_scope(
+                    transaction_name=f"celery_{task_name}"
+                ) as session:
+                    # Store session on task instance
+                    self.session = session
+                    return f(self, *args, **kwargs)
             except Exception as e:
                 logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
                 raise
             finally:
-                # Force cleanup after task completion
-                db_manager.cleanup_pool()
-                if hasattr(db, 'session'):
-                    db.session.remove()
+                if hasattr(self, 'session'):
+                    delattr(self, 'session')
                 
-        wrapped.delay = base_task.delay
-        wrapped.apply_async = base_task.apply_async
         return wrapped
     return celery_task_decorator
 

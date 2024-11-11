@@ -1,375 +1,499 @@
 # app/db_management.py
 
+# Import Eventlet's green modules
+from eventlet.green import threading, time
 import logging
-import threading
-import time
 import sys
-import weakref
-from datetime import datetime
+import uuid
+import collections
+from datetime import datetime, timedelta
 from contextlib import contextmanager
 from flask import g, has_app_context, current_app
 from sqlalchemy import event, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.pool import QueuePool
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
-from typing import Optional, Dict, Set
-from app.extensions import db
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, DisconnectionError
+from typing import Optional, Dict, Set, Any
+from app.core import db
+from app.lifecycle import request_lifecycle
+import eventlet
 
 logger = logging.getLogger(__name__)
 
+# Use Eventlet's Semaphore
+lock = eventlet.semaphore.Semaphore()
+
 class DatabaseManager:
     def __init__(self, db):
+        """Initialize database manager with enhanced monitoring"""
+        self._cleanup_lock = threading.RLock()
         self.db = db
         self._engine = None
         self.app = None
         self.initialized = False
-        self._statement_timeout_set = threading.local()
-        self._active_connections: Set[int] = set()
-        self._connection_times: Dict[int, float] = {}
+        self._active_connections = {}
+        self._connection_timeouts = {}
+        self._long_running_transactions = collections.defaultdict(float)
+        self.connection_history = collections.deque(maxlen=100)
         self.pool_stats = {
             'checkouts': 0,
             'checkins': 0,
             'connections_created': 0,
             'leaked_connections': 0,
-            'max_connection_age': 0
+            'failed_connections': 0,
+            'long_transactions': 0
         }
-        
+        self._transaction_times = collections.defaultdict(list)
+        self._session_monitor = collections.defaultdict(dict)
+
     def init_app(self, app):
-        """Initialize database manager with Flask app"""
+        """Initialize with Flask app and setup event handlers"""
         if self.initialized:
             return
 
-        self.app = app
-        
-        # Initialize engine immediately using db.engine
-        with app.app_context():
+        try:
+            self.app = app
+
             self._engine = self.db.engine
-            self._session = self.db.session
+
+            # Ensure app context for engine access
+            ctx = None
+            try:
+                if not has_app_context():
+                    ctx = app.app_context()
+                    ctx.push()
+
+                # Get existing engine from SQLAlchemy
+                self._engine = self.db.get_engine(app, bind=None)
+                if not self._engine:
+                    raise RuntimeError("Database engine not properly initialized")
+
+                logger.debug("Successfully acquired database engine")
+
+                # Setup engine events
+                self._setup_engine_events()
+
+                # Register lifecycle handlers
+                request_lifecycle.register_cleanup(self._cleanup_request)
+                request_lifecycle.register_before_request(self._check_connections)
+                app.teardown_appcontext(self._cleanup_app_context)
+
+                # Initialize monitoring structures
+                self._active_connections.clear()
+                self._long_running_transactions.clear()
+                self._session_monitor.clear()
+                self.connection_history.clear()
+
+                # Reset stats
+                self.pool_stats = {
+                    'checkouts': 0,
+                    'checkins': 0,
+                    'connections_created': 0,
+                    'leaked_connections': 0,
+                    'failed_connections': 0,
+                    'long_transactions': 0
+                }
+
+                self.initialized = True
+                logger.info("Database manager initialized successfully")
+
+            finally:
+                if ctx is not None:
+                    ctx.pop()
+
+        except Exception as e:
+            logger.error(f"Failed to initialize database manager: {e}", exc_info=True)
+            self.initialized = False
+            raise
+
+    def get_pool_stats(self):
+        """
+        Get comprehensive connection pool statistics
+    
+        Returns:
+            dict: Dictionary containing pool statistics and metrics
+        """
+        try:
+            if not self._engine:
+                logger.warning("Database engine not initialized")
+                return {}
             
-            # Setup pool listeners
-            self._setup_pool_listeners()
+            # Get current pool state
+            pool = self._engine.pool
+            current_connections = len(self._active_connections)
         
-        # Register teardown handlers
-        app.teardown_appcontext(self.teardown_session)
-        app.teardown_request(self.teardown_request)
-        app.teardown_appcontext(self.cleanup_pool)
+            # Calculate pool utilization metrics
+            pool_size = pool.size() if hasattr(pool, 'size') else 0
+            max_overflow = pool._max_overflow if hasattr(pool, '_max_overflow') else 0
+            total_capacity = pool_size + max_overflow
+            utilization = (current_connections / total_capacity * 100) if total_capacity > 0 else 0
         
-        self.initialized = True
-
-    def _set_session_timeouts(self, session):
-        """Set session timeouts only if not already set in this thread"""
-        if not hasattr(self._statement_timeout_set, 'value') or not self._statement_timeout_set.value:
-            try:
-                session.execute(text("SET LOCAL statement_timeout = '30s'"))
-                session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '60s'"))
-                self._statement_timeout_set.value = True
-            except Exception as e:
-                logger.error(f"Failed to set session timeouts: {e}")
-
-    def execute_with_retry(self, session, query, params=None, max_retries=3):
-        """Execute queries with retry logic and proper transaction handling"""
-        for attempt in range(max_retries):
-            try:
-                if not session.in_transaction():
-                    with session.begin():
-                        result = session.execute(query, params) if params else session.execute(query)
-                        return result
-                else:
-                    result = session.execute(query, params) if params else session.execute(query)
-                    return result
-            except OperationalError as e:
-                if attempt == max_retries - 1:
-                    raise
-                logger.warning(f"Query attempt {attempt + 1} failed, retrying: {e}")
-                time.sleep(0.1 * (attempt + 1))
-                session.rollback()
-
-    def _setup_engine(self):
-        """Setup database engine and listeners"""
-        if not self._engine:
-            self._engine = self.db.engine
-            self._setup_pool_listeners()
-
-    def _setup_pool_listeners(self):
-        """Setup connection pool monitoring"""
-        if not self._engine:
-            return
-
-        @event.listens_for(self._engine, 'checkout')
-        def receive_checkout(dbapi_conn, connection_record, connection_proxy):
-            """Track when connections are checked out"""
-            conn_id = id(connection_proxy)
-            self._active_connections.add(conn_id)
-            self._connection_times[conn_id] = time.time()
-            self.pool_stats['checkouts'] += 1
+            # Combine with tracked statistics
+            stats = {
+                # Current pool state
+                'current_size': pool_size,
+                'max_size': total_capacity, 
+                'active_connections': current_connections,
+                'available_connections': max(0, total_capacity - current_connections),
+                'utilization_percentage': round(utilization, 2),
             
-            # Log long-held connections
-            for old_conn_id, checkout_time in self._connection_times.items():
-                if old_conn_id != conn_id:
-                    age = time.time() - checkout_time
-                    if age > 300:  # 5 minutes
-                        logger.warning(f"Connection {old_conn_id} has been checked out for {age:.1f} seconds")
-
-        @event.listens_for(self._engine, 'checkin')
-        def receive_checkin(dbapi_conn, connection_record):
-            """Track when connections are checked in"""
-            conn_id = id(connection_record)
-            self._active_connections.discard(conn_id)
-            if conn_id in self._connection_times:
-                age = time.time() - self._connection_times.pop(conn_id)
-                self.pool_stats['max_connection_age'] = max(
-                    self.pool_stats['max_connection_age'], 
-                    age
-                )
-            self.pool_stats['checkins'] += 1
-
-        @event.listens_for(self._engine, 'connect')
-        def receive_connect(dbapi_conn, connection_record):
-            """Track new connections"""
-            self.pool_stats['connections_created'] += 1
-
-        @event.listens_for(self._engine, 'reset')
-        def receive_reset(dbapi_conn, connection_record):
-            """Handle connection resets"""
-            # Cancel any running queries
-            try:
-                dbapi_conn.cancel()
-            except:
-                pass
-
-    def monitor_celery_connections(self):
-        """Monitor and cleanup Celery-specific connections"""
-        with self.session_scope() as session:
-            try:
-                # Find and terminate very old Celery connections
-                session.execute(text("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity 
-                    WHERE application_name LIKE '%celery%'
-                    AND state = 'idle in transaction'
-                    AND (now() - state_change) > interval '30 seconds'
-                """))
+                # Lifetime statistics from self.pool_stats
+                'total_checkouts': self.pool_stats['checkouts'],
+                'total_checkins': self.pool_stats['checkins'],
+                'connections_created': self.pool_stats['connections_created'],
+                'leaked_connections': self.pool_stats['leaked_connections'],
+                'failed_connections': self.pool_stats['failed_connections'],
+                'long_transactions': self.pool_stats['long_transactions'],
             
-                # Log Celery connection stats
-                result = session.execute(text("""
-                    SELECT count(*), state 
-                    FROM pg_stat_activity 
-                    WHERE application_name LIKE '%celery%'
-                    GROUP BY state
-                """))
-            
-                for count, state in result:
-                    logger.info(f"Celery connections in {state}: {count}")
+                # Additional metrics
+                'checkout_pending': pool._overflow if hasattr(pool, '_overflow') else 0,
+                'checkedin': pool.checkedin() if hasattr(pool, 'checkedin') else 0
+            }
+        
+            # Add timing statistics if available
+            if hasattr(self, '_transaction_times') and self._transaction_times:
+                times = [t for sublist in self._transaction_times.values() for t in sublist]
+                if times:
+                    stats.update({
+                        'avg_transaction_time': sum(times) / len(times),
+                        'max_transaction_time': max(times),
+                        'min_transaction_time': min(times)
+                    })
                 
-            except Exception as e:
-                logger.error(f"Error monitoring Celery connections: {e}")
+            return stats
+        
+        except Exception as e:
+            logger.error(f"Error getting pool stats: {e}", exc_info=True)
+            return {
+                'error': str(e),
+                'checkouts': self.pool_stats['checkouts'],
+                'checkins': self.pool_stats['checkins']
+            }
+
+    def cleanup_connections(self, exception=None):
+        """Clean up database connections with proper error handling"""
+        try:
+            with self._cleanup_lock:
+                self.check_for_leaked_connections()
+                self.terminate_idle_transactions()
+                if self._engine:
+                    self._engine.dispose()
+        except Exception as e:
+            logger.error(f"Error during connection cleanup: {e}")
+        finally:
+            self._active_connections.clear()
+
+    def _cleanup_request(self, exception=None):
+        """Consolidated request cleanup"""
+        try:
+            if has_app_context() and hasattr(g, 'db_session'):
+                session = g.db_session
+                try:
+                    if exception is not None:
+                        session.rollback()
+                    elif session.is_active:
+                        session.commit()
+                finally:
+                    session.close()
+                    if hasattr(session, 'remove'):
+                        session.remove()
+                    delattr(g, 'db_session')
+        except Exception as e:
+            logger.error(f"Error during request cleanup: {e}")
+
+    def _cleanup_app_context(self, exception=None):
+        """App context cleanup"""
+        try:
+            self.check_for_leaked_connections()
+            self.terminate_idle_transactions()
+            if self._engine:
+                self._engine.dispose()
+        except Exception as e:
+            logger.error(f"App context cleanup error: {e}")
+        finally:
+            self._active_connections.clear()
+
+    def _check_connections(self):
+        """Combined connection check handler"""
+        if not self.app.debug:
+            self.check_for_leaked_connections()
+            self.terminate_idle_transactions()
 
     def terminate_idle_transactions(self):
-        """Forcibly terminate idle transactions and stale connections"""
-        with self.session_scope() as session:
+        """Aggressively terminate idle transactions"""
+        with self._cleanup_lock:
             try:
-                # First terminate idle transactions
-                session.execute(text("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity 
-                    WHERE state = 'idle in transaction'
-                    AND pid != pg_backend_pid()
-                    AND (now() - state_change) > interval '15 seconds'
-                """))
-            
-                # Then terminate very old idle connections
-                session.execute(text("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity 
-                    WHERE state = 'idle'
-                    AND pid != pg_backend_pid()
-                    AND (now() - state_change) > interval '60 seconds'
-                    AND application_name LIKE 'flask_app%'
-                """))
-            
-                # Finally terminate any hanging active queries
-                session.execute(text("""
-                    SELECT pg_terminate_backend(pid)
-                    FROM pg_stat_activity 
-                    WHERE state = 'active'
-                    AND pid != pg_backend_pid()
-                    AND (now() - query_start) > interval '30 seconds'
-                    AND application_name LIKE 'flask_app%'
-                """))
-            
+                with self.session_scope(transaction_name='terminate_idle') as session:
+                    # Kill idle transactions
+                    session.execute(text("""
+                        SELECT pg_terminate_backend(pid)
+                        FROM pg_stat_activity 
+                        WHERE state = 'idle in transaction'
+                        AND pid != pg_backend_pid()
+                        AND (now() - state_change) > interval '15 seconds'
+                    """))
+
+                    # Kill idle connections
+                    session.execute(text("""
+                        SELECT pg_terminate_backend(pid)
+                        FROM pg_stat_activity 
+                        WHERE state = 'idle'
+                        AND pid != pg_backend_pid()
+                        AND (now() - state_change) > interval '30 seconds'
+                        AND application_name LIKE 'app_app%'
+                    """))
             except Exception as e:
-                logger.error(f"Error terminating connections: {e}")
+                logger.error(f"Error terminating connections: {str(e)}")
 
     def check_for_leaked_connections(self):
-        """Check for and cleanup leaked connections"""
+        """Identify and cleanup leaked connections"""
         current_time = time.time()
         leaked = []
 
-        for conn_id, checkout_time in list(self._connection_times.items()):
+        for conn_id, checkout_time in list(self._active_connections.items()):
             age = current_time - checkout_time
-            if age > 300:  # Reduced from 600 to 300 seconds (5 minutes)
+            if age > 60:  # Consider leaked after 60 seconds
                 leaked.append(conn_id)
-                logger.error(f"Found leaked connection {conn_id}, age: {age:.1f}s")
+                logger.error(f"Leaked connection detected: {age:.1f}s old")
                 self.pool_stats['leaked_connections'] += 1
-            
-                # Try to terminate the connection
-                self.terminate_idle_transactions()
 
-        # Cleanup leaked connections
         for conn_id in leaked:
-            self._active_connections.discard(conn_id)
-            self._connection_times.pop(conn_id, None)
+            self._active_connections.pop(conn_id, None)
 
-        # Log pool status
-        if leaked or len(self._active_connections) > 5:  # Log if there are leaks or too many connections
-            logger.warning(
-                f"Pool status: Active={len(self._active_connections)}, "
-                f"Leaks={self.pool_stats['leaked_connections']}, "
-                f"Created={self.pool_stats['connections_created']}"
-            )
+        if leaked:
+            self.terminate_idle_transactions()
+
+    def _log_connection_event(self, event_type: str, connection_id: str,
+                              duration: Optional[float] = None,
+                              extra: Optional[Dict[str, Any]] = None):
+        """Enhanced connection event logging"""
+        event = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'event_type': event_type,
+            'connection_id': connection_id,
+            'thread_id': threading.get_ident(),
+            'duration': duration,
+            **(extra or {})
+        }
+        self.connection_history.append(event)
+
+        if duration and duration > 1.0:  # Log slow operations
+            logger.warning(f"Slow database operation: {event_type} took {duration:.2f}s")
+
+    def _monitor_session(self, session_id: str, action: str):
+        """Track session lifecycle"""
+        self._session_monitor[session_id].update({
+            'last_action': action,
+            'timestamp': time.time(),
+            'thread_id': threading.get_ident()
+        })
+
+    def _setup_engine_events(self):
+        """Enhanced engine event configuration"""
+        @event.listens_for(self._engine, 'checkout')
+        def on_checkout(dbapi_conn, connection_record, connection_proxy):
+            conn_id = str(uuid.uuid4())
+            self._active_connections[conn_id] = time.time()
+            self.pool_stats['checkouts'] += 1
+
+            try:
+                cursor = dbapi_conn.cursor()
+                # Set stricter timeouts
+                cursor.execute("""
+                    SET LOCAL statement_timeout = '10s';
+                    SET LOCAL idle_in_transaction_session_timeout = '10s';
+                    SET LOCAL lock_timeout = '5s';
+                """)
+                cursor.close()
+                self._log_connection_event('checkout', conn_id)
+            except Exception as e:
+                self.pool_stats['failed_connections'] += 1
+                logger.error(f"Connection checkout failed: {e}")
+                raise
+
+        @event.listens_for(self._engine, 'checkin')
+        def on_checkin(dbapi_conn, connection_record):
+            conn_id = id(connection_record)
+            if conn_id in self._active_connections:
+                checkout_time = self._active_connections.pop(conn_id)
+                duration = time.time() - checkout_time
+                self._log_connection_event('checkin', str(conn_id), duration)
+
+                if duration > 30:
+                    self.pool_stats['long_transactions'] += 1
+                    logger.warning(f"Long-lived connection detected: {duration:.1f}s")
+            self.pool_stats['checkins'] += 1
+
+        @event.listens_for(self._engine, 'connect')
+        def on_connect(dbapi_conn, connection_record):
+            self.pool_stats['connections_created'] += 1
+            conn_id = str(uuid.uuid4())
+            try:
+                cursor = dbapi_conn.cursor()
+                cursor.execute("""
+                    SET SESSION statement_timeout = '10s';
+                    SET SESSION idle_in_transaction_session_timeout = '10s';
+                    SET SESSION lock_timeout = '5s';
+                """)
+                cursor.close()
+                self._log_connection_event('connect', conn_id)
+            except Exception as e:
+                logger.error(f"Connection initialization failed: {e}")
+                raise
+
+        @event.listens_for(self._engine, 'reset')
+        def on_reset(dbapi_conn, connection_record):
+            conn_id = str(uuid.uuid4())
+            try:
+                cursor = dbapi_conn.cursor()
+                cursor.execute("ROLLBACK")
+                cursor.execute("""
+                    SET SESSION statement_timeout = '10s';
+                    SET SESSION idle_in_transaction_session_timeout = '10s';
+                    SET SESSION lock_timeout = '5s';
+                """)
+                cursor.close()
+                self._log_connection_event('reset', conn_id)
+            except Exception as e:
+                logger.error(f"Connection reset failed: {e}")
+                raise
+
+        @event.listens_for(self._engine, 'invalidate')
+        def on_invalidate(dbapi_conn, connection_record, exception):
+            conn_id = str(uuid.uuid4())
+            logger.error(f"Connection invalidated due to: {exception}")
+            self._log_connection_event('invalidate', conn_id, extra={'error': str(exception)})
 
     @contextmanager
     def session_scope(self, nested=False, transaction_name=None):
-        """Improved session scope with better transaction handling"""
+        """Enhanced session management with detailed logging"""
         session = None
-        is_nested = False
-        app_ctx = None
+        session_id = str(uuid.uuid4())
         start_time = time.time()
 
+        logger.info(f"Starting session {session_id} for {transaction_name}",
+                    extra={'session_id': session_id, 'transaction': transaction_name})
+
         try:
-            if not has_app_context() and self.app:
-                app_ctx = self.app.app_context()
-                app_ctx.push()
+            # Reuse existing session if available
+            if has_app_context() and hasattr(g, 'db_session'):
+                session = g.db_session
+                if nested:
+                    logger.debug(f"Starting nested transaction in session {session_id}")
+                    with session.begin_nested():
+                        yield session
+                    return
+                yield session
+                return
+
+            # Create new session
+            Session = sessionmaker(
+                bind=self.db.engine,
+                autocommit=False,
+                autoflush=False,
+                expire_on_commit=False
+            )
+            session = Session()
 
             if has_app_context():
-                if hasattr(g, 'db_session'):
-                    session = g.db_session
-                    is_nested = True
-                else:
-                    session = self.db.session()
-                    g.db_session = session
-            else:
-                session = self.db.session()
+                g.db_session = session
+                logger.debug(f"Created new session {session_id} in request context")
 
-            if not is_nested:
-                try:
-                    session.execute(text("SET LOCAL statement_timeout = '15s'"))
-                    session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '15s'"))
-                except Exception as e:
-                    logger.error(f"Failed to set session timeouts: {e}")
-            
+            # Configure session
+            try:
+                session.execute(text("""
+                    SET LOCAL statement_timeout = '30s';
+                    SET LOCAL idle_in_transaction_session_timeout = '30s';
+                    SET LOCAL lock_timeout = '10s';
+                """))
+            except Exception as e:
+                logger.warning(f"Failed to set session parameters: {e}")
+
             yield session
 
-            duration = time.time() - start_time
-            if duration > 10:
-                logger.warning(f"Long transaction detected: {duration:.2f}s {transaction_name or ''}")
-            
-            if not nested and not is_nested and session.is_active:
+            # Commit if active
+            if session.is_active:
                 try:
                     session.commit()
-                except SQLAlchemyError as e:
-                    logger.error(f"Error committing session: {e}")
+                    logger.debug(f"Committed session {session_id}")
+                except Exception as e:
+                    logger.error(f"Commit failed for session {session_id}: {e}")
                     session.rollback()
                     raise
-            
+
         except Exception as e:
-            logger.error(f"Session scope error: {e}")
+            logger.error(f"Session {session_id} failed: {e}",
+                         extra={'session_id': session_id, 'error': str(e)})
             if session and session.is_active:
-                session.rollback()
-            raise
-    
-        finally:
-            if not nested and not is_nested:
-                if session:
-                    session.close()
-                    if hasattr(session, 'registry'):
-                        session.registry.clear()
-                if hasattr(g, 'db_session'):
-                    delattr(g, 'db_session')
-            if app_ctx is not None:
-                app_ctx.pop()
-
-    def safe_count_query(self, model, filters=None):
-        """Safe method for performing count queries"""
-        with self.session_scope() as session:
-            try:
-                query = session.query(model)
-                if filters:
-                    query = query.filter(*filters)
-                return self.execute_with_retry(session, query.statement.with_only_columns([func.count()]).order_by(None))
-            except Exception as e:
-                logger.error(f"Count query failed for {model.__name__}: {e}")
-                raise
-
-    def cleanup_pool(self, exception=None):
-        """Enhanced cleanup of connection pool"""
-        try:
-            # Check for leaked connections
-            self.check_for_leaked_connections()
-        
-            # Terminate idle transactions
-            self.terminate_idle_transactions()
-        
-            # Dispose of the engine
-            if self._engine:
-                self._engine.dispose()
-            
-            # Clear tracking sets
-            self._active_connections.clear()
-            self._connection_times.clear()
-        
-        except Exception as e:
-            logger.error(f"Error during pool cleanup: {e}")
-
-    def teardown_session(self, exception=None):
-        """Clean up session at the end of app context"""
-        if has_app_context() and hasattr(g, 'db_session'):
-            try:
-                session = g.db_session
-                if exception is not None:
-                    session.rollback()
-                elif session.is_active:
-                    session.commit()
-            except Exception:
-                if session.is_active:
-                    session.rollback()
-                raise
-            finally:
-                session.close()
-                # Remove session from registry instead of calling remove()
-                if hasattr(session, 'registry'):
-                    session.registry.clear()  # For scoped_session
-                delattr(g, 'db_session')
-
-    def teardown_request(self, exception=None):
-        """Clean up at the end of each request"""
-        try:
-            if exception is not None:
-                self.db.session.rollback()
-            else:
                 try:
-                    if self.db.session.is_active:
-                        self.db.session.commit()
-                except Exception:
-                    self.db.session.rollback()
-                    raise
-        finally:
-            self.db.session.close()
-            # Clear the session registry instead of remove()
-            if hasattr(self.db.session, 'registry'):
-                self.db.session.registry.clear()
+                    session.rollback()
+                    logger.info(f"Rolled back session {session_id}")
+                except Exception as rollback_error:
+                    logger.error(f"Rollback failed for session {session_id}: {rollback_error}")
+            raise
 
-    def get_pool_stats(self):
-        """Get enhanced pool statistics"""
-        stats = self.pool_stats.copy()
-        stats.update({
-            'active_connections': len(self._active_connections),
-            'connection_ages': {
-                conn_id: time.time() - checkout_time
-                for conn_id, checkout_time in self._connection_times.items()
-            }
-        })
-        return stats
+        finally:
+            duration = time.time() - start_time
+
+            # Log operation timing
+            request_lifecycle.log_db_operation(
+                operation=transaction_name or 'unnamed_transaction',
+                duration=duration
+            )
+
+            # Cleanup
+            if session and not has_app_context():
+                try:
+                    session.close()
+                    logger.debug(f"Closed session {session_id}")
+                except Exception as e:
+                    logger.error(f"Error closing session {session_id}: {e}")
+
+            if has_app_context() and hasattr(g, 'db_session') and duration > 5:
+                logger.warning(f"Long running session detected: {duration:.2f}s",
+                               extra={
+                                   'session_id': session_id,
+                                   'duration': duration,
+                                   'transaction': transaction_name
+                               })
+
+            logger.info(f"Session {session_id} completed in {duration:.2f}s",
+                        extra={
+                            'session_id': session_id,
+                            'duration': duration,
+                            'transaction': transaction_name
+                        })
+
+    def get_long_running_queries(self):
+        """Get information about long-running queries"""
+        try:
+            with self.session_scope(transaction_name='get_long_running_queries') as session:
+                result = session.execute(text("""
+                    SELECT pid, now() - query_start as duration, query
+                    FROM pg_stat_activity
+                    WHERE state = 'active'
+                    AND now() - query_start > interval '5 seconds'
+                    AND pid != pg_backend_pid()
+                """))
+                return {row.pid: {'duration': row.duration, 'query': row.query}
+                        for row in result}
+        except Exception as e:
+            logger.error(f"Error getting long running queries: {e}")
+            return {}
+
+    def get_detailed_stats(self):
+        """Get detailed database statistics"""
+        return {
+            'pool_stats': self.pool_stats,
+            'active_connections': {
+                'count': len(self._active_connections),
+                'ages': {conn_id: time.time() - checkout_time
+                         for conn_id, checkout_time in self._active_connections.items()}
+            },
+            'long_running_transactions': dict(self._long_running_transactions),
+            'recent_events': list(self.connection_history),
+            'session_monitor': dict(self._session_monitor)
+        }
 
 # Create global instance
 db_manager = DatabaseManager(db)
