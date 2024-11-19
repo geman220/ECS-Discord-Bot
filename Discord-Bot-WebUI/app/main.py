@@ -27,7 +27,7 @@ def fetch_announcements():
     """Fetch the latest 5 announcements."""
     return Announcement.query.order_by(Announcement.position.asc()).limit(5).all()
 
-@query_operation
+#@query_operation
 def get_onboarding_form(player=None, formdata=None):
 
     # Initialize the OnboardingForm with formdata and the player object
@@ -308,7 +308,7 @@ def fetch_upcoming_matches(
     return grouped_matches
 
 # Home
-@main.route('/', methods=['GET', 'POST'])
+@main.route('/', endpoint='index', methods=['GET', 'POST'])
 @login_required
 def index():
     from app.forms import ReportMatchForm
@@ -507,14 +507,14 @@ def index():
     )
 
 # Notification Routes
-@main.route('/notifications', methods=['GET'])
+@main.route('/notifications', endpoint='notifications', methods=['GET'])
 @login_required
 @query_operation
 def notifications():
     notifications = safe_current_user.notifications.order_by(Notification.created_at.desc()).all()
     return render_template('notifications.html', notifications=notifications)
 
-@main.route('/notifications/mark_as_read/<int:notification_id>', methods=['POST'])
+@main.route('/notifications/mark_as_read/<int:notification_id>', endpoint='mark_as_read', methods=['POST'])
 @login_required
 @handle_db_operation()
 def mark_as_read(notification_id):
@@ -533,7 +533,7 @@ def mark_as_read(notification_id):
 
     return redirect(url_for('main.notifications'))
 
-@main.route('/set_tour_skipped', methods=['POST'])
+@main.route('/set_tour_skipped', endpoint='set_tour_skipped', methods=['POST'])
 @login_required
 @handle_db_operation()
 def set_tour_skipped():
@@ -547,7 +547,7 @@ def set_tour_skipped():
     
     return '', 204
 
-@main.route('/set_tour_complete', methods=['POST'])
+@main.route('/set_tour_complete', endpoint='set_tour_complete', methods=['POST'])
 @login_required
 @handle_db_operation()
 def set_tour_complete():
@@ -561,7 +561,7 @@ def set_tour_complete():
     
     return '', 204
 
-@main.route('/version', methods=['GET'])
+@main.route('/version', endpoint='get_version', methods=['GET'])
 def get_version():
     """Returns the current version of the application."""
     with open(VERSION_FILE, 'r') as f:
@@ -576,7 +576,7 @@ def get_latest_version():
     return None
 
 # Route to check if an update is available
-@main.route('/check-update', methods=['GET'])
+@main.route('/check-update', endpoint='check_for_update', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def check_for_update():
@@ -596,7 +596,7 @@ def check_for_update():
     })
 
 # Route to update the application
-@main.route('/update', methods=['POST'])
+@main.route('/update', endpoint='update_application', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def update_application():

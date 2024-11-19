@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 teams_bp = Blueprint('teams', __name__)
 
-@teams_bp.route('/<int:team_id>')
+@teams_bp.route('/<int:team_id>', endpoint='team_details')
 @login_required
 @query_operation
 def team_details(team_id):
@@ -122,14 +122,14 @@ def team_details(team_id):
         player_choices=player_choices
     )
 
-@teams_bp.route('/')
+@teams_bp.route('/', endpoint='teams_overview')
 @login_required
 @query_operation
 def teams_overview():
     teams = Team.query.order_by(Team.name).all()
     return render_template('teams_overview.html', teams=teams)
 
-@teams_bp.route('/report_match/<int:match_id>', methods=['GET', 'POST'])
+@teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
 @login_required
 @handle_db_operation()
 def report_match(match_id):
@@ -220,7 +220,7 @@ def report_match(match_id):
     else:
         return jsonify({'success': False, 'message': 'Method not allowed.'}), 405
 
-@teams_bp.route('/standings')
+@teams_bp.route('/standings', endpoint='view_standings')
 @login_required
 @query_operation
 def view_standings():

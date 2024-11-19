@@ -279,7 +279,7 @@ async def send_update_to_bot(thread_id, update_type, update_data):
         except Exception as e:
             logger.error(f"Exception occurred while sending update to bot: {str(e)}", exc_info=True)
 
-@match_api.route('/schedule_live_reporting', methods=['POST'])
+@match_api.route('/schedule_live_reporting', endpoint='schedule_live_reporting_route', methods=['POST'])
 @login_required
 @handle_db_operation()
 def schedule_live_reporting_route():
@@ -309,7 +309,7 @@ def schedule_live_reporting_route():
         logger.error(f"Error scheduling live reporting for match {match_id}: {str(e)}")
         raise  # Reraise exception for decorator to handle rollback
 
-@match_api.route('/start_live_reporting/<match_id>', methods=['POST'])
+@match_api.route('/start_live_reporting/<match_id>', endpoint='start_live_reporting_route', methods=['POST'])
 @login_required
 @handle_db_operation()
 def start_live_reporting_route(match_id):
@@ -338,7 +338,7 @@ def start_live_reporting_route(match_id):
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}")
         raise  # Reraise exception for decorator to handle rollback
 
-@match_api.route('/stop_live_reporting/<match_id>', methods=['POST'])
+@match_api.route('/stop_live_reporting/<match_id>', endpoint='stop_live_reporting_route', methods=['POST'])
 @login_required
 @handle_db_operation()
 def stop_live_reporting_route(match_id):
@@ -365,7 +365,7 @@ def stop_live_reporting_route(match_id):
         logger.error(f"Error stopping live reporting for match {match_id}: {str(e)}")
         raise  # Reraise exception for decorator to handle rollback
 
-@match_api.route('/get_match_status/<match_id>', methods=['GET'])
+@match_api.route('/get_match_status/<match_id>', endpoint='get_match_status', methods=['GET'])
 @query_operation
 def get_match_status(match_id):
     match = MLSMatch.query.filter_by(match_id=match_id).first()
@@ -381,7 +381,7 @@ def get_match_status(match_id):
         'discord_thread_id': match.discord_thread_id
     })
 
-@match_api.route('/match/<int:match_id>/channel', methods=['GET'])
+@match_api.route('/match/<int:match_id>/channel', endpoint='get_match_channel', methods=['GET'])
 @query_operation
 def get_match_channel(match_id):
     logger.info(f"Fetching channel ID for match {match_id}")

@@ -1,3 +1,4 @@
+<!-- templates/monitoring.html -->
 {% extends "base.html" %}
 {% block title %}Task Monitor{% endblock %}
 
@@ -14,32 +15,36 @@
         </div>
         <div class="card-body">
             <div class="row">
+                <!-- Total Scheduled Tasks -->
                 <div class="col-md-3">
-                    <div class="card bg-label-primary">
+                    <div class="card bg-label-primary text-center">
                         <div class="card-body">
                             <h6>Total Scheduled Tasks</h6>
                             <h2 id="totalTasks">0</h2>
                         </div>
                     </div>
                 </div>
+                <!-- Pending Tasks -->
                 <div class="col-md-3">
-                    <div class="card bg-label-warning">
+                    <div class="card bg-label-warning text-center">
                         <div class="card-body">
                             <h6>Pending Tasks</h6>
                             <h2 id="pendingTasks">0</h2>
                         </div>
                     </div>
                 </div>
+                <!-- Successful Tasks -->
                 <div class="col-md-3">
-                    <div class="card bg-label-success">
+                    <div class="card bg-label-success text-center">
                         <div class="card-body">
                             <h6>Successful Tasks</h6>
                             <h2 id="successfulTasks">0</h2>
                         </div>
                     </div>
                 </div>
+                <!-- Failed Tasks -->
                 <div class="col-md-3">
-                    <div class="card bg-label-danger">
+                    <div class="card bg-label-danger text-center">
                         <div class="card-body">
                             <h6>Failed Tasks</h6>
                             <h2 id="failedTasks">0</h2>
@@ -66,7 +71,7 @@
         </div>
         <div class="card-body">
             <!-- Loading Spinner -->
-            <div id="loadingSpinner" class="d-flex justify-content-center align-items-center py-4" style="display: none !important;">
+            <div id="loadingSpinner" class="d-flex justify-content-center align-items-center py-4" style="display: none;">
                 <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
@@ -91,48 +96,51 @@
     </div>
 
     <!-- Redis Task Entries Card -->
-    <div class="card">
+    <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Redis Task Entries</h5>
             <span id="redisConnectionStatus" class="badge bg-success">Connected</span>
         </div>
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Key</th>
-                        <th>Task ID</th>
-                        <th>Status</th>
-                        <th>TTL</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="redisKeysTable">
-                    <!-- Redis keys will be populated here -->
-                </tbody>
-            </table>
+        <div class="card-body">
+            <!-- Redis Keys Table -->
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Key</th>
+                            <th>Task ID</th>
+                            <th>Status</th>
+                            <th>TTL</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="redisKeysTable">
+                        <!-- Redis keys will be populated here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Task Action Modal -->
-<div class="modal fade" id="taskActionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Task Action</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p id="taskActionMessage"></p>
-                <div class="alert alert-warning">
-                    <i class="ti ti-alert-triangle me-2"></i>
-                    This action cannot be undone.
+    <!-- Task Action Modal -->
+    <div class="modal fade" id="taskActionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Task Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmTaskAction">Confirm</button>
+                <div class="modal-body">
+                    <p id="taskActionMessage"></p>
+                    <div class="alert alert-warning">
+                        <i class="ti ti-alert-triangle me-2"></i>
+                        This action cannot be undone.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmTaskAction">Confirm</button>
+                </div>
             </div>
         </div>
     </div>
@@ -156,6 +164,9 @@
     const errorMessage = document.getElementById('errorMessage');
     const tasksAccordion = document.getElementById('tasksAccordion');
     const redisConnectionStatus = document.getElementById('redisConnectionStatus');
+    const redisKeysTable = document.getElementById('redisKeysTable');
+    const refreshButton = document.getElementById('refreshButton');
+    const revokeAllButton = document.getElementById('revokeAllButton');
 
     // Fetch data from endpoints
     async function fetchData() {
@@ -164,8 +175,8 @@
             errorAlert.style.display = 'none';
 
             const [tasksResponse, redisResponse] = await Promise.all([
-                fetch('/monitoring/tasks/all'),
-                fetch('/monitoring/redis/keys')
+                fetch('{{ url_for("monitoring.get_all_tasks") }}'),
+                fetch('{{ url_for("monitoring.get_redis_keys") }}')
             ]);
 
             const tasksData = await tasksResponse.json();
@@ -199,6 +210,9 @@
         // Update tasks accordion
         updateTasksAccordion(tasks);
 
+        // Update Redis keys table
+        updateRedisKeysTable(redis);
+
         // Update Redis connection status
         updateRedisStatus(redis);
     }
@@ -209,14 +223,13 @@
 
         if (tasks.matches) {
             Object.values(tasks.matches).forEach(match => {
-                if (match.thread_task) {
-                    counts.total++;
-                    updateTaskCount(counts, match.thread_task.status);
-                }
-                if (match.reporting_task) {
-                    counts.total++;
-                    updateTaskCount(counts, match.reporting_task.status);
-                }
+                ['thread_task', 'reporting_task'].forEach(taskType => {
+                    const task = match[taskType];
+                    if (task && task.status) {
+                        counts.total++;
+                        updateTaskCount(counts, task.status);
+                    }
+                });
             });
         }
 
@@ -233,6 +246,8 @@
                 break;
             case 'FAILURE':
                 counts.failed++;
+                break;
+            default:
                 break;
         }
     }
@@ -279,13 +294,13 @@
     function getStatusBadges(matchData) {
         let badges = '';
 
-        if (matchData.thread_task) {
+        if (matchData.thread_task && matchData.thread_task.status) {
             badges += `<span class="badge bg-${getStatusColor(matchData.thread_task.status)} ms-2">
             Thread: ${matchData.thread_task.status}
         </span>`;
         }
 
-        if (matchData.reporting_task) {
+        if (matchData.reporting_task && matchData.reporting_task.status) {
             badges += `<span class="badge bg-${getStatusColor(matchData.reporting_task.status)} ms-2">
             Reporting: ${matchData.reporting_task.status}
         </span>`;
@@ -297,10 +312,14 @@
     // Get appropriate color for status
     function getStatusColor(status) {
         switch (status) {
-            case 'SUCCESS': return 'success';
-            case 'PENDING': return 'warning';
-            case 'FAILURE': return 'danger';
-            default: return 'secondary';
+            case 'SUCCESS':
+                return 'success';
+            case 'PENDING':
+                return 'warning';
+            case 'FAILURE':
+                return 'danger';
+            default:
+                return 'secondary';
         }
     }
 
@@ -309,18 +328,18 @@
         let html = '';
 
         if (matchData.thread_task) {
-            html += createTaskSection('Thread Creation Task', matchData.thread_task);
+            html += createTaskSection('Thread Creation Task', matchData.thread_task, matchData.thread_task.id);
         }
 
         if (matchData.reporting_task) {
-            html += createTaskSection('Live Reporting Task', matchData.reporting_task);
+            html += createTaskSection('Live Reporting Task', matchData.reporting_task, matchData.reporting_task.id);
         }
 
         return html;
     }
 
     // Create individual task section
-    function createTaskSection(title, task) {
+    function createTaskSection(title, task, taskId) {
         return `
         <div class="card mb-3">
             <div class="card-header">
@@ -329,7 +348,7 @@
             <div class="card-body">
                 <dl class="row">
                     <dt class="col-sm-3">Task ID</dt>
-                    <dd class="col-sm-9">${task.id}</dd>
+                    <dd class="col-sm-9">${task.id || 'N/A'}</dd>
 
                     <dt class="col-sm-3">Status</dt>
                     <dd class="col-sm-9">
@@ -345,15 +364,52 @@
                 </dl>
 
                 <div class="btn-group">
-                    <button class="btn btn-danger btn-sm" onclick="revokeTask('${task.id}')">
+                    <button class="btn btn-danger btn-sm" onclick="revokeTask('${taskId}', '${matchData.match_key}')">
                         Revoke Task
                     </button>
-                    <button class="btn btn-warning btn-sm" onclick="rescheduleTask('${task.id}')">
+                    <button class="btn btn-warning btn-sm" onclick="rescheduleTask('${taskId}', '${matchData.match_key}')">
                         Reschedule
                     </button>
                 </div>
             </div>
         </div>`;
+    }
+
+    // Update Redis keys table
+    function updateRedisKeysTable(redis) {
+        redisKeysTable.innerHTML = '';
+
+        if (!redis.keys || Object.keys(redis.keys).length === 0) {
+            redisKeysTable.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center">No Redis keys found.</td>
+            </tr>`;
+            return;
+        }
+
+        Object.entries(redis.keys).forEach(([key, value]) => {
+            const row = createRedisKeyRow(key, value);
+            redisKeysTable.appendChild(row);
+        });
+    }
+
+    // Create table row for Redis key
+    function createRedisKeyRow(key, data) {
+        const tr = document.createElement('tr');
+        const taskStatus = data.task_status ? data.task_status.status : 'N/A';
+        tr.innerHTML = `
+        <td>${key}</td>
+        <td>${data.value || 'N/A'}</td>
+        <td>
+            <span class="badge bg-${getStatusColor(taskStatus)}">${taskStatus}</span>
+        </td>
+        <td>${data.ttl !== null ? data.ttl + 's' : 'N/A'}</td>
+        <td>
+            <button class="btn btn-danger btn-sm" onclick="revokeTask('${data.value}', '${key}')">
+                Revoke Task
+            </button>
+        </td>`;
+        return tr;
     }
 
     // Update Redis status
@@ -371,45 +427,75 @@
     }
 
     // Task actions
-    async function revokeTask(taskId) {
+    async function revokeTask(taskId, key) {
         if (!confirm('Are you sure you want to revoke this task?')) return;
 
         try {
-            const response = await fetch('/monitoring/tasks/revoke', {
+            const response = await fetch('{{ url_for("monitoring.revoke_task") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task_id: taskId })
+                body: JSON.stringify({ task_id: taskId, key: key })
             });
 
-            if (response.ok) {
+            const result = await response.json();
+
+            if (response.ok && result.success) {
                 await fetchData();  // Refresh data
             } else {
-                throw new Error('Failed to revoke task');
+                throw new Error(result.error || 'Failed to revoke task');
             }
         } catch (err) {
             showError(err.message);
         }
     }
 
-    async function rescheduleTask(taskId) {
+    async function rescheduleTask(taskId, key) {
         if (!confirm('Are you sure you want to reschedule this task?')) return;
 
         try {
-            const response = await fetch('/monitoring/tasks/reschedule', {
+            const response = await fetch('{{ url_for("monitoring.reschedule_task") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task_id: taskId })
+                body: JSON.stringify({ task_id: taskId, key: key })
             });
 
-            if (response.ok) {
+            const result = await response.json();
+
+            if (response.ok && result.success) {
                 await fetchData();  // Refresh data
             } else {
-                throw new Error('Failed to reschedule task');
+                throw new Error(result.error || 'Failed to reschedule task');
             }
         } catch (err) {
             showError(err.message);
         }
     }
+
+    // Revoke All Tasks
+    revokeAllButton.addEventListener('click', async () => {
+        if (!confirm('Are you sure you want to revoke all tasks? This action cannot be undone.')) return;
+
+        try {
+            const response = await fetch('{{ url_for("monitoring.revoke_all_tasks") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                await fetchData();  // Refresh data
+                alert(result.message);
+            } else {
+                throw new Error(result.error || 'Failed to revoke all tasks');
+            }
+        } catch (err) {
+            showError(err.message);
+        }
+    });
+
+    // Refresh Button
+    refreshButton.addEventListener('click', fetchData);
 
     // Initial fetch and setup refresh interval
     document.addEventListener('DOMContentLoaded', () => {

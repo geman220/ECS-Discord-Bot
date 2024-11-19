@@ -42,7 +42,7 @@ def limit_remote_addr():
     if request.host not in allowed_hosts:
         return "Access Denied", 403
 
-@mobile_api.route('/login', methods=['POST'])
+@mobile_api.route('/login', endpoint='login', methods=['POST'])
 @handle_db_operation()
 def login():
     """
@@ -74,7 +74,7 @@ def login():
     access_token = create_access_token(identity=user.id)
     return jsonify(access_token=access_token), 200
 
-@mobile_api.route('/verify_2fa', methods=['POST'])
+@mobile_api.route('/verify_2fa', endpoint='verify_2fa', methods=['POST'])
 @handle_db_operation()
 def verify_2fa():
     """
@@ -97,7 +97,7 @@ def verify_2fa():
     access_token = create_access_token(identity=user.id)
     return jsonify(access_token=access_token), 200
 
-@mobile_api.route('/user_profile', methods=['GET'])
+@mobile_api.route('/user_profile', endpoint='get_user_profile', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_user_profile():
@@ -178,7 +178,7 @@ def get_user_profile():
 
     return jsonify(response_data), 200
 
-@mobile_api.route('/player/update', methods=['PUT'])
+@mobile_api.route('/player/update', endpoint='update_player_profile', methods=['PUT'])
 @jwt_required()
 @handle_db_operation()
 def update_player_profile():
@@ -211,7 +211,7 @@ def update_player_profile():
             "msg": f"Error updating profile: {str(e)}"
         }), 500
 
-@mobile_api.route('/players/<int:player_id>', methods=['GET'])
+@mobile_api.route('/players/<int:player_id>', endpoint='get_player', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_player(player_id: int):
@@ -231,7 +231,7 @@ def get_player(player_id: int):
     response_data = get_player_response_data(player, is_full_profile)
     return jsonify(response_data), 200
 
-@mobile_api.route('/teams', methods=['GET'])
+@mobile_api.route('/teams', endpoint='get_teams', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_teams():
@@ -244,7 +244,7 @@ def get_teams():
         } for team in teams
     ]), 200
 
-@mobile_api.route('/teams/<int:team_id>', methods=['GET'])
+@mobile_api.route('/teams/<int:team_id>', endpoint='get_team_details', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_team_details(team_id: int):
@@ -273,7 +273,7 @@ def get_team_details(team_id: int):
 
     return jsonify(team_data), 200
 
-@mobile_api.route('/teams/my_team', methods=['GET'])
+@mobile_api.route('/teams/my_team', endpoint='get_my_team', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_my_team():
@@ -286,7 +286,7 @@ def get_my_team():
     
     return get_team_details(player.team.id)
 
-@mobile_api.route('/matches', methods=['GET'])
+@mobile_api.route('/matches', endpoint='get_all_matches', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_all_matches():
@@ -313,7 +313,7 @@ def get_all_matches():
 
     return jsonify(matches_data), 200
 
-@mobile_api.route('/matches/<int:match_id>', methods=['GET'])
+@mobile_api.route('/matches/<int:match_id>', endpoint='get_single_match_details', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_single_match_details(match_id: int):
@@ -335,7 +335,7 @@ def get_single_match_details(match_id: int):
 
     return jsonify(match_data), 200
 
-@mobile_api.route('/update_availability', methods=['POST'])
+@mobile_api.route('/update_availability', endpoint='update_availability', methods=['POST'])
 @jwt_required()
 @handle_db_operation()
 def update_availability():
@@ -373,7 +373,7 @@ def update_availability():
             "msg": "An error occurred while updating availability"
         }), 500
 
-@mobile_api.route('/report_match/<int:match_id>', methods=['POST'])
+@mobile_api.route('/report_match/<int:match_id>', endpoint='report_match', methods=['POST'])
 @jwt_required()
 @jwt_role_required('Coach')
 @handle_db_operation()
@@ -396,7 +396,7 @@ def report_match(match_id: int):
         logger.error(f"Error reporting match: {str(e)}")
         return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
 
-@mobile_api.route('/matches', methods=['GET'])
+@mobile_api.route('/matches', endpoint='get_matches', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_matches():
@@ -419,7 +419,7 @@ def get_matches():
 
     return jsonify(matches_data), 200
 
-@mobile_api.route('/matches/<int:match_id>', methods=['GET'])
+@mobile_api.route('/matches/<int:match_id>', endpoint='get_match_details', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_match_details(match_id: int):
@@ -438,7 +438,7 @@ def get_match_details(match_id: int):
 
     return jsonify(match_data), 200
 
-@mobile_api.route('/update_availability_web', methods=['POST'])
+@mobile_api.route('/update_availability_web', endpoint='update_availability_web', methods=['POST'])
 @jwt_required()
 @handle_db_operation()
 def update_availability_web():
@@ -462,7 +462,7 @@ def update_availability_web():
     
     return jsonify({"error": "Failed to update availability"}), 500
 
-@mobile_api.route('/get_discord_auth_url', methods=['GET'])
+@mobile_api.route('/get_discord_auth_url', endpoint='get_discord_auth_url', methods=['GET'])
 @query_operation
 def get_discord_auth_url():
     """Generate Discord OAuth URL with PKCE flow."""
@@ -485,7 +485,7 @@ def get_discord_auth_url():
     logger.info(f"Generated Discord auth URL with PKCE for redirect_uri: {redirect_uri}")
     return jsonify({'auth_url': discord_auth_url})
 
-@mobile_api.route('/discord_callback', methods=['POST'])
+@mobile_api.route('/discord_callback', endpoint='discord_callback', methods=['POST'])
 @handle_db_operation()
 def discord_callback():
     """Handle Discord OAuth callback and create/update user."""
@@ -519,7 +519,7 @@ def discord_callback():
         logger.error(f"Discord authentication error: {str(e)}")
         return jsonify({'error': 'Error processing Discord authentication'}), 500
 
-@mobile_api.route('/players', methods=['GET'])
+@mobile_api.route('/players', endpoint='get_players', methods=['GET'])
 @jwt_required()
 @query_operation
 def get_players():

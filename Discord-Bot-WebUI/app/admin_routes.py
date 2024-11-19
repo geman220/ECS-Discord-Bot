@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 admin_bp = Blueprint('admin', __name__)
 
 # Main Dashboard Route
-@admin_bp.route('/admin/dashboard', methods=['GET', 'POST'])
+@admin_bp.route('/admin/dashboard', endpoint='admin_dashboard', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 def admin_dashboard():
@@ -119,7 +119,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', **template_data)
 
 # Docker Container Management Routes
-@admin_bp.route('/admin/container/<container_id>/<action>', methods=['POST'])
+@admin_bp.route('/admin/container/<container_id>/<action>', endpoint='manage_container', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def manage_container(container_id, action):
@@ -128,7 +128,7 @@ def manage_container(container_id, action):
         flash("Failed to manage container.", "danger")
     return redirect(url_for('admin.admin_dashboard'))
 
-@admin_bp.route('/admin/view_logs/<container_id>', methods=['GET'])
+@admin_bp.route('/admin/view_logs/<container_id>', endpoint='view_logs', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def view_logs(container_id):
@@ -137,7 +137,7 @@ def view_logs(container_id):
         return jsonify({"error": "Failed to retrieve logs"}), 500
     return jsonify({"logs": logs})
 
-@admin_bp.route('/admin/docker_status', methods=['GET'])
+@admin_bp.route('/admin/docker_status', endpoint='docker_status', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def docker_status():
@@ -147,7 +147,7 @@ def docker_status():
     return jsonify(containers)
 
 # SMS Management Route
-@admin_bp.route('/admin/send_sms', methods=['POST'])
+@admin_bp.route('/admin/send_sms', endpoint='send_sms', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def send_sms():
@@ -164,7 +164,7 @@ def send_sms():
     return redirect(url_for('admin.admin_dashboard'))
 
 # Role Management Routes
-@admin_bp.route('/admin/get_role_permissions', methods=['GET'])
+@admin_bp.route('/admin/get_role_permissions', endpoint='get_role_permissions', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def get_role_permissions():
@@ -175,7 +175,7 @@ def get_role_permissions():
     return jsonify({'permissions': permissions})
 
 # Announcement Management Routes
-@admin_bp.route('/admin/announcements', methods=['GET', 'POST'])
+@admin_bp.route('/admin/announcements', endpoint='manage_announcements', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @query_operation
@@ -188,7 +188,7 @@ def manage_announcements():
         announcement_form=form
     )
 
-@admin_bp.route('/admin/announcements/<int:announcement_id>/edit', methods=['PUT'])
+@admin_bp.route('/admin/announcements/<int:announcement_id>/edit', endpoint='edit_announcement', methods=['PUT'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -202,7 +202,7 @@ def edit_announcement(announcement_id):
     announcement.content = data['content']
     return jsonify({'success': True})
 
-@admin_bp.route('/admin/announcements/<int:announcement_id>/delete', methods=['DELETE'])
+@admin_bp.route('/admin/announcements/<int:announcement_id>/delete', endpoint='delete_announcement', methods=['DELETE'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -211,7 +211,7 @@ def delete_announcement(announcement_id):
     db.session.delete(announcement)
     return jsonify({'success': True})
 
-@admin_bp.route('/admin/announcements/reorder', methods=['POST'])
+@admin_bp.route('/admin/announcements/reorder', endpoint='reorder_announcements', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -227,7 +227,7 @@ def reorder_announcements():
     return jsonify({'success': True})
 
 # Schedule Management Routes
-@admin_bp.route('/admin/schedule_season', methods=['POST'])
+@admin_bp.route('/admin/schedule_season', endpoint='schedule_season', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def schedule_season():
@@ -235,7 +235,7 @@ def schedule_season():
     flash('Season scheduling task has been initiated.', 'success')
     return redirect(url_for('admin.view_scheduled_messages'))
 
-@admin_bp.route('/admin/scheduled_messages')
+@admin_bp.route('/admin/scheduled_messages', endpoint='view_scheduled_messages',)
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -245,7 +245,7 @@ def view_scheduled_messages():
     ).all()
     return render_template('admin/scheduled_messages.html', messages=messages)
 
-@admin_bp.route('/admin/force_send/<int:message_id>', methods=['POST'])
+@admin_bp.route('/admin/force_send/<int:message_id>', endpoint='force_send_message', methods=['POST'])
 @login_required
 @handle_db_operation()
 def force_send_message(message_id):
@@ -264,7 +264,7 @@ def force_send_message(message_id):
         
     return redirect(url_for('admin.view_scheduled_messages'))
 
-@admin_bp.route('/admin/rsvp_status/<int:match_id>')
+@admin_bp.route('/admin/rsvp_status/<int:match_id>', endpoint='rsvp_status',)
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -274,7 +274,7 @@ def rsvp_status(match_id):
     return render_template('admin/rsvp_status.html', match=match, rsvps=rsvp_data)
 
 # Feedback Management Routes
-@admin_bp.route('/admin/reports')
+@admin_bp.route('/admin/reports', endpoint='admin_reports',)
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -302,7 +302,7 @@ def admin_reports():
     feedbacks = query.paginate(page=page, per_page=20, error_out=False)
     return render_template('admin_reports.html', feedbacks=feedbacks)
 
-@admin_bp.route('/admin/feedback/<int:feedback_id>', methods=['GET', 'POST'])
+@admin_bp.route('/admin/feedback/<int:feedback_id>', endpoint='view_feedback', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -372,7 +372,7 @@ def view_feedback(feedback_id):
         flash('An error occurred while processing the feedback.', 'danger')
         return redirect(url_for('admin.admin_reports'))
 
-@admin_bp.route('/admin/schedule_next_week', methods=['POST'])
+@admin_bp.route('/admin/schedule_next_week', endpoint='schedule_next_week', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def schedule_next_week():
@@ -380,7 +380,7 @@ def schedule_next_week():
     flash('Next week scheduling task has been initiated.', 'success')
     return redirect(url_for('admin.view_scheduled_messages'))
 
-@admin_bp.route('/admin/feedback/<int:feedback_id>/close', methods=['POST'])
+@admin_bp.route('/admin/feedback/<int:feedback_id>/close', endpoint='close_feedback', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -397,7 +397,7 @@ def close_feedback(feedback_id):
     flash('Feedback has been closed successfully.', 'success')
     return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
-@admin_bp.route('/admin/check_role_status/<task_id>', methods=['GET'])
+@admin_bp.route('/admin/check_role_status/<task_id>', endpoint='check_role_status', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def check_role_status(task_id):
@@ -420,7 +420,7 @@ def check_role_status(task_id):
         logger.error(f"Error checking task status: {str(e)}")
         return jsonify({'state': 'ERROR', 'error': str(e)}), 500
 
-@admin_bp.route('/admin/discord_role_status', methods=['GET'])
+@admin_bp.route('/admin/discord_role_status', endpoint='discord_role_status', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @query_operation
@@ -472,7 +472,7 @@ async def get_player_data(players):
         })
     return player_data
 
-@admin_bp.route('/admin/update_player_roles/<int:player_id>', methods=['POST'])
+@admin_bp.route('/admin/update_player_roles/<int:player_id>', endpoint='update_player_roles_route', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def update_player_roles_route(player_id):
@@ -500,7 +500,7 @@ def update_player_roles_route(player_id):
             'error': str(e)
         }), 500
 
-@admin_bp.route('/admin/update_discord_roles', methods=['POST'])
+@admin_bp.route('/admin/update_discord_roles', endpoint='mass_update_discord_roles', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -532,7 +532,7 @@ def mass_update_discord_roles():
         }), 500
 
 # MLS Match Management Routes
-@admin_bp.route('/admin/mls_matches')
+@admin_bp.route('/admin/mls_matches', endpoint='view_mls_matches',)
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -542,7 +542,7 @@ def view_mls_matches():
                            matches=matches,
                            timedelta=timedelta)
 
-@admin_bp.route('/admin/schedule_mls_match_thread/<int:match_id>', methods=['POST'])
+@admin_bp.route('/admin/schedule_mls_match_thread/<int:match_id>', endpoint='schedule_mls_match_thread_route', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def schedule_mls_match_thread_route(match_id):
@@ -554,7 +554,7 @@ def schedule_mls_match_thread_route(match_id):
         'message': 'Thread scheduling task started'
     })
 
-@admin_bp.route('/admin/check_thread_status/<task_id>', methods=['GET'])
+@admin_bp.route('/admin/check_thread_status/<task_id>', endpoint='check_thread_status', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def check_thread_status(task_id):
@@ -580,7 +580,7 @@ def check_thread_status(task_id):
             'error': str(e)
         }), 500
 
-@admin_bp.route('/admin/task_status/<task_id>', methods=['GET'])
+@admin_bp.route('/admin/task_status/<task_id>', endpoint='check_task_status', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def check_task_status(task_id):
@@ -596,7 +596,7 @@ def check_task_status(task_id):
     
     return jsonify(result)
 
-@admin_bp.route('/admin/schedule_all_mls_threads', methods=['POST'])
+@admin_bp.route('/admin/schedule_all_mls_threads', endpoint='schedule_all_mls_threads_route', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def schedule_all_mls_threads_route():
@@ -607,7 +607,7 @@ def schedule_all_mls_threads_route():
         'message': 'Mass thread scheduling started'
     })
 
-@admin_bp.route('/admin/match_stats', methods=['GET'])
+@admin_bp.route('/admin/match_stats', endpoint='get_match_statistics', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -617,7 +617,7 @@ def get_match_statistics():
     return jsonify(stats)
 
 # Health Check Routes
-@admin_bp.route('/admin/health', methods=['GET'])
+@admin_bp.route('/admin/health', endpoint='health_check', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def health_check():
@@ -625,7 +625,7 @@ def health_check():
     health_status = check_system_health()
     return jsonify(health_status)
 
-@admin_bp.route('/admin/task_status', methods=['GET'])
+@admin_bp.route('/admin/task_status', endpoint='get_task_status', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def get_task_status():
@@ -633,7 +633,7 @@ def get_task_status():
     task_status = check_task_status()
     return jsonify(task_status)
 
-@admin_bp.route('/admin/feedback/<int:feedback_id>/delete', methods=['POST'])
+@admin_bp.route('/admin/feedback/<int:feedback_id>/delete', endpoint='delete_feedback', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()

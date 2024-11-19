@@ -5,7 +5,7 @@ import logging
 import logging.config
 from datetime import datetime, timedelta
 
-from flask import Flask, request, session, redirect, url_for, render_template, flash
+from flask import Flask, request, session, redirect, url_for, render_template, flash, g
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
@@ -14,12 +14,14 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 import redis
+import time
 
 # Import configuration and logging
 from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
 from app.models import User, Role
 from app.utils.db_utils import transactional
+from app.lifecycle import request_lifecycle
 
 # Import Flask-Migrate
 from flask_migrate import Migrate
@@ -94,16 +96,14 @@ def create_app(config_object='web_config.Config'):
     # Initialize core extensions
     db.init_app(app)
 
-    @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        if exception:
-            db.session.rollback()
-        db.session.remove()
+    # Delegate lifecycle management to lifecycle.py
+    request_lifecycle.init_app(app, db)
 
-    # Initialize RequestLifecycle after db is initialized
-    #from app.lifecycle import RequestLifecycle
-    #request_lifecycle = RequestLifecycle()
-    #request_lifecycle.init_app(app, db)
+    # Add any custom before-request handlers (if needed)
+    def custom_before_request():
+        logger.debug(f"Custom logic for request: {request.path}")
+
+    request_lifecycle.register_before_request(custom_before_request)
 
     # Initialize other extensions
     login_manager.init_app(app)
@@ -113,6 +113,20 @@ def create_app(config_object='web_config.Config'):
 
     # Configure Celery
     app.celery = configure_celery(app)
+
+    # Add Flask-Login user loader
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            # Fetch the user from the database
+            return User.query.options(
+                joinedload(User.roles).joinedload(Role.permissions),
+                joinedload(User.notifications),
+                joinedload(User.player)
+            ).get(int(user_id))
+        except Exception as e:
+            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
+            return None
 
     # Initialize SocketIO
     socketio.init_app(
@@ -162,15 +176,28 @@ def create_app(config_object='web_config.Config'):
     def unauthorized(error):
         logger.debug("Unauthorized access attempt")
         next_url = request.path
+
+        if not session.get('401_flash_shown'):
+            flash('Please log in to access this page.', 'info')
+            session['401_flash_shown'] = True
+
         if next_url != '/':
             session['next'] = next_url
-        flash('Please log in to access this page.', 'info')
+
         return redirect(url_for('auth.login'))
 
     @app.errorhandler(404)
     def not_found(error):
         logger.debug(f"404 error for URL: {request.url}")
-        return render_template('404.html'), 404
+        if 'redirect_count' not in session:
+            session['redirect_count'] = 0
+
+        if session['redirect_count'] > 3:  # Prevent loops
+            flash("Repeated redirects detected. Check your requested URL.", "error")
+            return render_template("404.html"), 404
+
+        session['redirect_count'] += 1
+        return redirect('/')
 
     @app.errorhandler(BuildError)
     def handle_url_build_error(error):
@@ -182,64 +209,6 @@ def create_app(config_object='web_config.Config'):
                 return redirect('/')
         flash('An error occurred while redirecting. You have been returned to the home page.', 'error')
         return redirect('/')
-
-    # Before request handler
-    @app.before_request
-    def before_request():
-        # Skip session handling for static files
-        if not request.path.startswith('/static/'):
-            # Set permanent session flags
-            session.permanent = True
-            if '_permanent' not in session:
-                session['_permanent'] = True
-                session['created_at'] = datetime.utcnow().isoformat()
-        
-            # Validate user session if it exists
-            if '_user_id' in session:
-                try:
-                    user_id = session['_user_id']
-                    if not current_user or not current_user.is_authenticated:
-                        user = load_user(user_id)
-                        if not user:
-                            # Clear invalid session
-                            session.clear()
-                            # Restore permanent session settings
-                            session.permanent = True
-                            session['_permanent'] = True
-                            session['created_at'] = datetime.utcnow().isoformat()
-                            flash('Your session has expired. Please log in again.', 'info')
-                            return redirect(url_for('auth.login'))
-                except Exception as e:
-                    logger.error(f"Session validation error: {str(e)}", exc_info=True)
-                    # Clear and reset session
-                    session.clear()
-                    session.permanent = True
-                    session['_permanent'] = True
-                    session['created_at'] = datetime.utcnow().isoformat()
-                    return redirect(url_for('auth.login'))
-
-    # After request handler
-    @app.after_request
-    def after_request(response):
-        if not response.headers.get('Cache-Control'):
-            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '-1'
-        return response
-
-    # User loader
-    @login_manager.user_loader
-    @transactional
-    def load_user(user_id):
-        try:
-            return User.query.options(
-                joinedload(User.roles).joinedload(Role.permissions),
-                joinedload(User.notifications),
-                joinedload(User.player)
-            ).get(int(user_id))
-        except Exception as e:
-            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
-            return None
 
     return app
 
@@ -293,15 +262,25 @@ def init_context_processors(app):
     def utility_processor():
         user_roles = []
         user_permissions = []
-        
-        if hasattr(safe_current_user, 'roles'):
-            user_roles = [role.name for role in safe_current_user.roles]
-            # Collect all permissions from all roles
-            user_permissions = [
-                permission.name 
-                for role in safe_current_user.roles 
-                for permission in role.permissions
-            ]
+
+        if safe_current_user.is_authenticated:
+            try:
+                # Ensure session-bound user object
+                user = db.session.query(User).options(
+                    joinedload(User.roles).joinedload(Role.permissions)
+                ).get(safe_current_user.id)
+
+                if user:
+                    user_roles = [role.name for role in user.roles]
+                    user_permissions = [
+                        permission.name
+                        for role in user.roles
+                        for permission in role.permissions
+                    ]
+            except Exception as e:
+                logger.error(f"Error loading safe_current_user: {e}")
+                user_roles = []
+                user_permissions = []
 
         def has_permission(permission_name):
             return permission_name in user_permissions

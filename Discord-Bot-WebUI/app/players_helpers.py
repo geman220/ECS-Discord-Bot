@@ -17,7 +17,7 @@ import logging
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-players_bp = Blueprint('players', __name__)
+#players_bp = Blueprint('players_helpers', __name__)
 
 @handle_db_operation()
 def save_cropped_profile_picture(cropped_image_data, player_id):
