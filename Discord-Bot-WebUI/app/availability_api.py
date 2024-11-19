@@ -34,7 +34,7 @@ def limit_remote_addr():
     if request.host not in allowed_hosts:
         return "Access Denied", 403
 
-@availability_bp.route('/schedule_availability_poll', methods=['POST'])
+@availability_bp.route('/schedule_availability_poll', endpoint='schedule_availability_poll', methods=['POST'])
 @handle_db_operation()
 def schedule_availability_poll():
     logger.debug("Endpoint hit: /api/schedule_availability_poll")
@@ -57,7 +57,7 @@ def schedule_availability_poll():
         "match_id": match.id
     }), 200
 
-@availability_bp.route('/match_availability/<int:match_id>', methods=['GET'])
+@availability_bp.route('/match_availability/<int:match_id>', endpoint='get_match_availability', methods=['GET'])
 @query_operation
 def get_match_availability(match_id):
     match = Match.query.get_or_404(match_id)
@@ -67,7 +67,7 @@ def get_match_availability(match_id):
         "availability": results
     }), 200
 
-@availability_bp.route('/update_availability', methods=['POST'])
+@availability_bp.route('/update_availability', endpoint='update_availability', methods=['POST'])
 @handle_db_operation()
 def update_availability():
     data = request.json
@@ -93,7 +93,7 @@ def update_availability():
 
     return jsonify({"message": "Availability updated successfully"}), 200
 
-@availability_bp.route('/store_message_ids', methods=['POST'])
+@availability_bp.route('/store_message_ids', endpoint='store_message_ids', methods=['POST'])
 @handle_db_operation()
 def store_message_ids():
     """Store message IDs with validation"""
@@ -121,7 +121,7 @@ def store_message_ids():
         logger.error(f"Error storing message IDs: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@availability_bp.route('/get_match_id_from_message/<string:message_id>', methods=['GET'])
+@availability_bp.route('/get_match_id_from_message/<string:message_id>', endpoint='get_match_id_from_message', methods=['GET'])
 @query_operation
 def get_match_id_from_message(message_id):
    scheduled_message = ScheduledMessage.query.filter(
@@ -136,7 +136,7 @@ def get_match_id_from_message(message_id):
        'match_id': scheduled_message.match_id
    }), 200
 
-@availability_bp.route('/update_availability_web', methods=['POST'])
+@availability_bp.route('/update_availability_web', endpoint='update_availability_web', methods=['POST'])
 @login_required
 @handle_db_operation()
 def update_availability_web():
@@ -158,7 +158,7 @@ def update_availability_web():
        return jsonify({"message": message}), 200
    return jsonify({"error": "Failed to update availability"}), 500
 
-@availability_bp.route('/sync_match_rsvps/<int:match_id>', methods=['POST'])
+@availability_bp.route('/sync_match_rsvps/<int:match_id>', endpoint='sync_match_rsvps', methods=['POST'])
 @login_required
 @handle_db_operation()
 def sync_match_rsvps(match_id):
@@ -184,7 +184,7 @@ def sync_match_rsvps(match_id):
         logger.error(f"Error syncing match RSVPs: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-@availability_bp.route('/get_match_rsvps/<int:match_id>', methods=['GET'])
+@availability_bp.route('/get_match_rsvps/<int:match_id>', endpoint='get_match_rsvps', methods=['GET'])
 @query_operation
 def get_match_rsvps(match_id):
     """Get match RSVPs with error handling"""
@@ -201,7 +201,7 @@ def get_match_rsvps(match_id):
     logger.debug(f"Returning RSVP data: {rsvp_data}")
     return jsonify(rsvp_data), 200
 
-@availability_bp.route('/update_availability_from_discord', methods=['POST'])
+@availability_bp.route('/update_availability_from_discord', endpoint='update_availability_from_discord', methods=['POST'])
 @handle_db_operation()
 def update_availability_from_discord():
     """Update availability from Discord webhook."""
@@ -252,7 +252,7 @@ def update_availability_from_discord():
             'error': str(e)
         }), 500
 
-@availability_bp.route('/get_message_ids/<int:match_id>', methods=['GET'])
+@availability_bp.route('/get_message_ids/<int:match_id>', endpoint='get_message_ids', methods=['GET'])
 @query_operation
 def get_message_ids(match_id):
     logger.info(f"Received request for message IDs for match_id {match_id}")
@@ -263,7 +263,7 @@ def get_message_ids(match_id):
     logger.info(f"Returning message data for match_id {match_id}: {message_data}")
     return jsonify(message_data), 200
 
-@availability_bp.route('/get_match_and_team_id_from_message', methods=['GET'])
+@availability_bp.route('/get_match_and_team_id_from_message', endpoint='get_match_and_team_id_from_message', methods=['GET'])
 @query_operation
 def get_match_and_team_id_from_message():
     """Get match and team ID from message details."""
@@ -347,7 +347,7 @@ def get_match_and_team_id_from_message():
             'error': error_msg
         }), 500
 
-@availability_bp.route('/is_user_on_team', methods=['POST'])
+@availability_bp.route('/is_user_on_team', endpoint='is_user_on_team', methods=['POST'])
 @query_operation
 def is_user_on_team():
    data = request.json
@@ -362,7 +362,7 @@ def is_user_on_team():
        'is_team_member': bool(player and player.team_id == team_id)
    }), 200
 
-@availability_bp.route('/get_scheduled_messages', methods=['GET'])
+@availability_bp.route('/get_scheduled_messages', endpoint='get_scheduled_messages', methods=['GET'])
 @query_operation
 def get_scheduled_messages():
    messages = (
@@ -392,7 +392,7 @@ def get_scheduled_messages():
 
    return jsonify(messages_data), 200
 
-@availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
+@availability_bp.route('/get_player_id_from_discord/<string:discord_id>', endpoint='get_player_id_from_discord', methods=['GET'])
 @query_operation
 def get_player_id_from_discord(discord_id):
    player = Player.query.filter_by(discord_id=discord_id).first()
@@ -403,7 +403,7 @@ def get_player_id_from_discord(discord_id):
        'team_id': player.team_id
    }), 200
 
-@availability_bp.route('/task_status/<task_id>', methods=['GET'])
+@availability_bp.route('/task_status/<task_id>', endpoint='task_status', methods=['GET'])
 def task_status(task_id):
    task = celery.AsyncResult(task_id)
    response = {
@@ -418,7 +418,7 @@ def task_status(task_id):
    
    return jsonify(response)
 
-@availability_bp.route('/get_match_request/<int:match_id>', methods=['GET'])
+@availability_bp.route('/get_match_request/<int:match_id>', endpoint='get_match_request', methods=['GET'])
 @query_operation
 def get_match_request(match_id):
    match_data = get_match_request_data(match_id)

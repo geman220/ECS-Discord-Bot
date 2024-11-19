@@ -9,12 +9,14 @@ from celery.result import AsyncResult
 from app.core import celery, db
 from app.models import MLSMatch
 from datetime import datetime, timedelta
+from app.database.db_models import DBMonitoringSnapshot
 from app.tasks.tasks_live_reporting import (
     start_live_reporting,
     create_match_thread_task,
     force_create_mls_thread_task
 )
-from sqlalchemy import text 
+from sqlalchemy import text
+import psutil
 import logging
 
 logger = logging.getLogger(__name__)
@@ -101,14 +103,14 @@ class TaskMonitor:
 # Initialize task monitor
 task_monitor = TaskMonitor()
 
-@monitoring_bp.route('/')
+@monitoring_bp.route('/', endpoint='monitor_dashboard')
 @login_required
 @role_required('Global Admin')
 def monitor_dashboard():
     """Render the monitoring dashboard."""
     return render_template('monitoring.html')
 
-@monitoring_bp.route('/tasks/all')
+@monitoring_bp.route('/tasks/all', endpoint='get_all_tasks')
 @login_required
 @role_required('Global Admin')
 def get_all_tasks():
@@ -120,7 +122,7 @@ def get_all_tasks():
         logger.error(f"Error getting tasks: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@monitoring_bp.route('/tasks/match/<match_id>')
+@monitoring_bp.route('/tasks/match/<match_id>', endpoint='get_match_tasks')
 @login_required
 def get_match_tasks(match_id):
     """Get status of specific match tasks."""
@@ -131,7 +133,7 @@ def get_match_tasks(match_id):
         logger.error(f"Error getting match tasks: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@monitoring_bp.route('/redis/keys')
+@monitoring_bp.route('/redis/keys', endpoint='get_redis_keys')
 @login_required
 @role_required('Global Admin')
 def get_redis_keys():
@@ -196,7 +198,7 @@ def get_redis_keys():
             'error': str(e)
         }), 500
 
-@monitoring_bp.route('/redis/test')
+@monitoring_bp.route('/redis/test', endpoint='test_redis')
 @login_required
 @role_required('Global Admin')
 def test_redis():
@@ -271,7 +273,7 @@ def test_redis():
             'error': str(e)
         }), 500
 
-@monitoring_bp.route('/tasks/revoke', methods=['POST'])
+@monitoring_bp.route('/tasks/revoke', endpoint='revoke_task', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -320,7 +322,7 @@ def revoke_task():
         logger.error(f"Error revoking task: {str(e)}", exc_info=True)
         raise
 
-@monitoring_bp.route('/tasks/revoke-all', methods=['POST'])
+@monitoring_bp.route('/tasks/revoke-all', endpoint='revoke_all_tasks', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -389,7 +391,7 @@ def revoke_all_tasks():
         logger.error(f"Error revoking all tasks: {str(e)}", exc_info=True)
         raise
 
-@monitoring_bp.route('/tasks/reschedule', methods=['POST'])
+@monitoring_bp.route('/tasks/reschedule', endpoint='reschedule_task', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -461,21 +463,22 @@ def reschedule_task():
         logger.error(f"Error rescheduling task: {str(e)}", exc_info=True)
         raise
 
-@monitoring_bp.route('/db')
+@monitoring_bp.route('/db', endpoint='db_monitoring')
 @login_required
 @role_required(['Global Admin'])
 def db_monitoring():
     """Render the database monitoring dashboard."""
     return render_template('db_monitoring.html')
 
-@monitoring_bp.route('/db/connections')
+@monitoring_bp.route('/db/connections', endpoint='check_connections')
 @role_required(['Global Admin'])
 @handle_db_operation()
 def check_connections():
-    """Get all database connections with enhanced monitoring"""
+    """
+    Retrieve active database connections and their metadata for monitoring.
+    """
     try:
-        # Get detailed connection info from postgres
-        with db_manager.session_scope() as session:
+        with db_manager.session_scope(transaction_name='check_connections') as session:
             result = session.execute(text("""
                 SELECT 
                     pid,
@@ -492,46 +495,31 @@ def check_connections():
                     query
                 FROM pg_stat_activity 
                 WHERE pid != pg_backend_pid()
-                  AND state != 'idle'
-                ORDER BY 
-                    CASE state
-                        WHEN 'active' THEN 1
-                        WHEN 'idle in transaction' THEN 2
-                        ELSE 3
-                    END,
-                    age DESC
+                ORDER BY age DESC
             """))
-            
-            connections = [{
-                'pid': row.pid,
-                'user': row.usename,
-                'application': row.application_name,
-                'source': f"{row.client_addr or 'local'}",
-                'state': row.state,
-                'age': round(float(row.age), 2),
-                'transaction_age': round(float(row.transaction_age), 2),
-                'query': row.query
-            } for row in result]
 
-            # Explicitly close cursor and return formatted data
-            result.close()
-            return jsonify({
-                'success': True,
-                'connections': connections
-            })
+            connections = []
+            for row in result:
+                row_data = dict(row._mapping)
+                pid = row_data['pid']
 
+                # Retrieve metadata for the PID
+                transaction_metadata = db_manager.transaction_metadata.get(pid, {})
+                transaction_name = transaction_metadata.get('transaction_name', 'Unknown')
+                stack_trace = transaction_metadata.get('stack_trace', 'No stack trace available')
+
+                connections.append({
+                    **row_data,
+                    'transaction_name': transaction_name,
+                    'stack_trace': stack_trace
+                })
+
+            return jsonify({'success': True, 'connections': connections})
     except Exception as e:
         logger.error(f"Error checking connections: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-    finally:
-        # Ensure session is cleaned up
-        if 'session' in locals():
-            session.close()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-@monitoring_bp.route('/db/cleanup', methods=['POST'])
+@monitoring_bp.route('/db/cleanup', endpoint='cleanup_connections', methods=['POST'])
 @role_required(['Global Admin'])
 def cleanup_connections():
     """Force cleanup of database connections"""
@@ -539,7 +527,7 @@ def cleanup_connections():
         # Run both our cleanup and postgres termination
         db_manager.check_for_leaked_connections()
         
-        with db_manager.session_scope() as session:
+        with db_manager.session_scope(transaction_name="cleanup_connection") as session:
             # Terminate long-running queries
             result = session.execute(text("""
                 SELECT pg_terminate_backend(pid)
@@ -565,7 +553,7 @@ def cleanup_connections():
             'error': str(e)
         }), 500
 
-@monitoring_bp.route('/db/stats')
+@monitoring_bp.route('/db/stats', endpoint='connection_stats')
 @role_required(['Global Admin'])
 @handle_db_operation()
 def connection_stats():
@@ -575,7 +563,7 @@ def connection_stats():
         pool_stats = db_manager.get_pool_stats()
         engine = db.get_engine()
         
-        with db_manager.session_scope() as session:
+        with db_manager.session_scope(transaction_name="connection_stats") as session:
             # Get basic stats
             result = session.execute(text("""
                 SELECT 
@@ -614,7 +602,7 @@ def connection_stats():
             'error': str(e)
         }), 500
 
-@monitoring_bp.route('/db/terminate', methods=['POST'])
+@monitoring_bp.route('/db/terminate', endpoint='terminate_connection', methods=['POST'])
 @role_required(['Global Admin'])
 @handle_db_operation()
 def terminate_connection():
@@ -629,7 +617,7 @@ def terminate_connection():
                 'error': 'Missing pid'
             }), 400
             
-        with db_manager.session_scope() as session:
+        with db_manager.session_scope(transaction_name="terminate_connection") as session:
             session.execute(
                 text("SELECT pg_terminate_backend(:pid)"),
                 {"pid": pid}
@@ -641,6 +629,198 @@ def terminate_connection():
         })
     except Exception as e:
         logger.error(f"Error terminating connection: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/db/monitoring_data', endpoint='get_db_monitoring_data')
+@login_required
+@role_required(['Global Admin'])
+def get_db_monitoring_data():
+    """Get database monitoring data over a time range."""
+    try:
+        # Parse query parameters for time range
+        hours = int(request.args.get('hours', 24))  # Default to past 24 hours
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+
+        snapshots = DBMonitoringSnapshot.query.filter(
+            DBMonitoringSnapshot.timestamp.between(start_time, end_time)
+        ).order_by(DBMonitoringSnapshot.timestamp.asc()).all()
+
+        data = []
+        for snapshot in snapshots:
+            data.append({
+                'timestamp': snapshot.timestamp.isoformat(),
+                'pool_stats': snapshot.pool_stats,
+                'active_connections': snapshot.active_connections,
+                'long_running_transactions': snapshot.long_running_transactions,
+                'recent_events': snapshot.recent_events,
+                'session_monitor': snapshot.session_monitor,
+            })
+
+        return jsonify({
+            'success': True,
+            'data': data
+        })
+    except Exception as e:
+        logger.error(f"Error fetching monitoring data: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@monitoring_bp.route('/debug/logs', endpoint='get_debug_logs')
+@login_required
+@role_required('Global Admin')
+def get_debug_logs():
+    """Get recent application logs."""
+    try:
+        # Create a list to store recent logs
+        logs = []
+        
+        # Get the root logger
+        logger = logging.getLogger()
+        
+        # Get all handlers that are MemoryHandlers
+        for handler in logger.handlers:
+            if isinstance(handler, logging.handlers.MemoryHandler):
+                # Get buffered records
+                for record in handler.buffer:
+                    logs.append({
+                        'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+                        'level': record.levelname,
+                        'message': record.getMessage(),
+                        'logger': record.name
+                    })
+        
+        return jsonify({
+            'success': True,
+            'logs': logs
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting debug logs: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/debug/queries', endpoint='get_debug_queries')
+@login_required
+@role_required('Global Admin')
+def get_debug_queries():
+    """Get recent SQL queries."""
+    try:
+        with db_manager.session_scope(transaction_name='debug_queries') as session:
+            result = session.execute(text("""
+                SELECT 
+                    query,
+                    calls,
+                    total_time,
+                    min_time,
+                    max_time,
+                    mean_time,
+                    rows
+                FROM pg_stat_statements 
+                ORDER BY total_time DESC 
+                LIMIT 100
+            """))
+            
+            queries = []
+            for row in result:
+                queries.append({
+                    'query': row.query,
+                    'calls': row.calls,
+                    'total_time': round(row.total_time, 2),
+                    'min_time': round(row.min_time, 2),
+                    'max_time': round(row.max_time, 2),
+                    'mean_time': round(row.mean_time, 2),
+                    'rows': row.rows
+                })
+                
+            return jsonify({
+                'success': True,
+                'queries': queries
+            })
+    except Exception as e:
+        current_app.logger.error(f"Error getting debug queries: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/debug/system', endpoint='get_system_stats')
+@login_required
+@role_required('Global Admin')
+def get_system_stats():
+    """Get system resource usage statistics."""
+    try:
+        process = psutil.Process()
+        stats = {
+            'memory': {
+                'used': round(process.memory_info().rss / 1024 / 1024, 2),  # MB
+                'percent': process.memory_percent()
+            },
+            'cpu': {
+                'percent': process.cpu_percent()
+            },
+            'threads': process.num_threads(),
+            'open_files': len(process.open_files()),
+            'connections': len(process.connections())
+        }
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting system stats: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@monitoring_bp.route('/db/connections/<int:pid>/stack', endpoint='get_stack_trace')
+@login_required
+@role_required('Global Admin')
+def get_stack_trace(pid):
+    """Get stack trace for a specific connection."""
+    try:
+        logger.debug(f"Looking up transaction details for PID: {pid}")
+        logger.debug(f"Current metadata keys: {list(db_manager.transaction_metadata.keys())}")
+        
+        details = db_manager.get_transaction_details(pid)
+        if not details:
+            # Try to get basic info from pg_stat_activity
+            with db_manager.session_scope(transaction_name="get_stack_basic") as session:
+                result = session.execute(text("""
+                    SELECT pid, query, state, xact_start, query_start
+                    FROM pg_stat_activity 
+                    WHERE pid = :pid
+                """), {"pid": pid}).first()
+                
+                if result:
+                    logger.debug(f"Found basic info for PID {pid}: {result}")
+                    return jsonify({
+                        'success': True,
+                        'pid': pid,
+                        'details': {
+                            'transaction_name': 'Active Query',
+                            'query': result.query,
+                            'state': result.state,
+                            'timing': {
+                                'transaction_start': result.xact_start.isoformat() if result.xact_start else None,
+                                'query_start': result.query_start.isoformat() if result.query_start else None
+                            }
+                        }
+                    })
+
+        return jsonify({
+            'success': True,
+            'pid': pid,
+            'details': details
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting transaction details for pid {pid}: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)

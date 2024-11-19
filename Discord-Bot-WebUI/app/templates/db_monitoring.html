@@ -7,10 +7,9 @@
         <span class="text-muted fw-light">System /</span> Database Monitor
     </h4>
 
-    <!-- Alert Messages -->
     <div id="alertContainer"></div>
 
-    <!-- Database Stats Card -->
+    <!-- Connection Pool Statistics -->
     <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Connection Pool Statistics</h5>
@@ -57,20 +56,17 @@
         </div>
     </div>
 
-    <!-- Active Connections Card -->
+    <!-- Active Connections -->
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Active Connections</h5>
-            <div class="d-flex align-items-center">
-                <button id="cleanupBtn" class="btn btn-danger btn-sm me-2">Force Cleanup</button>
-                <button id="refreshBtn" class="btn btn-primary btn-sm">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
-            </div>
+            <button id="forceCleanup" class="btn btn-primary btn-sm">
+                Force Cleanup
+            </button>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table">
                     <thead>
                         <tr>
                             <th>PID</th>
@@ -78,25 +74,66 @@
                             <th>State</th>
                             <th>Source</th>
                             <th>Transaction Age</th>
+                            <th>Transaction Name</th>
                             <th>Query</th>
+                            <th>Stack Trace</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="connectionsTable">
-                    </tbody>
+                    <tbody id="activeConnectionsTable"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- Connection History Card -->
+    <!-- Leaked Connections -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Connection History (Last Hour)</h5>
+            <h5 class="mb-0">Leaked Connections</h5>
         </div>
         <div class="card-body">
-            <div class="chart-container" style="height: 300px;">
-                <canvas id="connectionHistory"></canvas>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Transaction Name</th>
+                            <th>Stack Trace</th>
+                            <th>Leaked Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leakedConnectionsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stack Trace Modal -->
+<div class="modal fade" id="stackTraceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Stack Trace</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="stack-trace-content"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Query Modal -->
+<div class="modal fade" id="queryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">SQL Query</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="query-content"></pre>
             </div>
         </div>
     </div>
@@ -104,182 +141,225 @@
 {% endblock %}
 
 {% block custom_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    let connectionChart;
-    let lastUpdate = new Date();
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize dashboard
+        refreshDashboard();
 
-    function showAlert(message, type = 'danger') {
-        const alertHTML = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        document.getElementById('alertContainer').innerHTML = alertHTML;
+        // Set up auto-refresh every 5 seconds
+        setInterval(refreshDashboard, 5000);
+
+        // Set up force cleanup button
+        document.getElementById('forceCleanup').addEventListener('click', handleForceCleanup);
+    });
+
+    async function refreshDashboard() {
+        try {
+            // Fetch all data in parallel
+            const [statsResponse, connectionsResponse] = await Promise.all([
+                fetch('/monitoring/db/stats'),
+                fetch('/monitoring/db/connections')
+            ]);
+
+            const statsData = await statsResponse.json();
+            const connectionsData = await connectionsResponse.json();
+
+            if (statsData.success) {
+                updateStats(statsData.stats);
+            }
+
+            if (connectionsData.success) {
+                updateTables(connectionsData.connections);
+            }
+        } catch (error) {
+            showAlert('Error refreshing dashboard: ' + error.message, 'danger');
+        }
+    }
+
+    function updateStats(stats) {
+        document.getElementById('poolSize').textContent = stats.current_pool_size;
+        document.getElementById('maxPoolSize').textContent = stats.max_pool_size;
+        document.getElementById('activeConnections').textContent = stats.active_connections;
+        document.getElementById('totalCheckouts').textContent = stats.checkouts;
+        document.getElementById('leakedConnections').textContent = stats.leaked_connections;
+        document.getElementById('idleConnections').textContent = stats.idle_connections;
+        document.getElementById('idleTransactions').textContent = stats.idle_transactions;
+        document.getElementById('oldestConnectionAge').textContent = formatDuration(stats.oldest_connection_age);
+    }
+
+    function updateTables(connections) {
+        const activeConnections = connections.filter(conn => !conn.leaked);
+        const leakedConnections = connections.filter(conn => conn.leaked);
+
+        document.getElementById('activeConnectionsTable').innerHTML = activeConnections.map(conn => `
+        <tr>
+            <td>${conn.pid}</td>
+            <td>${formatDuration(conn.age)}</td>
+            <td><span class="badge bg-${getStateColor(conn.state)}">${conn.state}</span></td>
+            <td>${escapeHtml(conn.usename)}@${escapeHtml(conn.client_addr || 'local')}</td>
+            <td>${formatDuration(conn.transaction_age)}</td>
+            <td>${escapeHtml(conn.transaction_name || '-')}</td>
+            <td>
+                <button class="btn btn-sm btn-secondary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')">
+                    View Query
+                </button>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
+                    View
+                </button>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-danger" onclick="terminateConnection(${conn.pid})">
+                    Terminate
+                </button>
+            </td>
+        </tr>
+    `).join('');
+
+        document.getElementById('leakedConnectionsTable').innerHTML = leakedConnections.map(conn => `
+        <tr>
+            <td>${conn.pid}</td>
+            <td>${escapeHtml(conn.transaction_name || '-')}</td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
+                    View
+                </button>
+            </td>
+            <td>${formatDuration(conn.leaked_duration)}</td>
+        </tr>
+    `).join('');
+    }
+
+    async function handleForceCleanup() {
+        try {
+            const response = await fetch('/monitoring/db/cleanup', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, 'success');
+                refreshDashboard();
+            } else {
+                showAlert('Cleanup failed: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error during cleanup: ' + error.message, 'danger');
+        }
+    }
+
+    async function showStackTrace(pid) {
+        try {
+            const response = await fetch(`/monitoring/db/connections/${pid}/stack`);
+            const data = await response.json();
+
+            if (data.success) {
+                const modal = document.getElementById('stackTraceModal');
+                modal.querySelector('.stack-trace-content').textContent = data.stack_trace;
+                new bootstrap.Modal(modal).show();
+            } else {
+                showAlert('Failed to fetch stack trace: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error fetching stack trace: ' + error.message, 'danger');
+        }
+    }
+
+    function escapeJs(unsafe) {
+        if (typeof unsafe !== 'string') return '';
+        return unsafe
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+    }
+
+    function showQuery(pid, query) {
+        try {
+            const modal = document.getElementById('queryModal');
+            if (!modal) {
+                console.error('Query modal not found');
+                return;
+            }
+            const content = modal.querySelector('.query-content');
+            if (!content) {
+                console.error('Query content element not found');
+                return;
+            }
+            content.textContent = query || 'No query available';
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        } catch (error) {
+            console.error('Error showing query:', error);
+            showAlert('Error displaying query: ' + error.message, 'danger');
+        }
+    }
+
+    async function terminateConnection(pid) {
+        if (!confirm('Are you sure you want to terminate this connection?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/monitoring/db/terminate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ pid })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showAlert(`Connection ${pid} terminated successfully`, 'success');
+                refreshDashboard();
+            } else {
+                showAlert('Termination failed: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('Error terminating connection: ' + error.message, 'danger');
+        }
+    }
+
+    function showAlert(message, type = 'info') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+        alertContainer.appendChild(alert);
+
+        setTimeout(() => alert.remove(), 5000);
     }
 
     function formatDuration(seconds) {
-        if (!seconds && seconds !== 0) return '-';
-        if (seconds < 60) return `${Number(seconds).toFixed(1)}s`;
-        if (seconds < 3600) return `${(Number(seconds) / 60).toFixed(1)}m`;
-        return `${(Number(seconds) / 3600).toFixed(1)}h`;
+        if (!seconds) return '-';
+        return `${Math.floor(seconds)}s`;
     }
 
-    function createConnectionChart(data) {
-        const ctx = document.getElementById('connectionHistory').getContext('2d');
-        if (connectionChart) {
-            connectionChart.destroy();
-        }
-
-        connectionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.labels || [],
-                datasets: [{
-                    label: 'Total Connections',
-                    data: data.total || [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }, {
-                    label: 'Active Connections',
-                    data: data.active || [],
-                    borderColor: 'rgb(255, 99, 132)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
+    function getStateColor(state) {
+        const colors = {
+            'active': 'success',
+            'idle': 'info',
+            'idle in transaction': 'warning',
+            'idle in transaction (aborted)': 'danger'
+        };
+        return colors[state] || 'secondary';
     }
 
-    function updateStats() {
-        fetch('/monitoring/db/stats')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const stats = data.stats;
-
-                    document.getElementById('poolSize').textContent = stats.current_pool_size || '-';
-                    document.getElementById('maxPoolSize').textContent = stats.max_pool_size || '-';
-                    document.getElementById('activeConnections').textContent = stats.active_connections || '0';
-                    document.getElementById('totalCheckouts').textContent = stats.checkouts || '0';
-                    document.getElementById('leakedConnections').textContent = stats.leaked_connections || '0';
-                    document.getElementById('idleConnections').textContent = stats.idle_connections || '0';
-                    document.getElementById('idleTransactions').textContent = stats.idle_transactions || '0';
-                    document.getElementById('oldestConnectionAge').textContent =
-                        formatDuration(stats.oldest_connection_age);
-
-                    lastUpdate = new Date();
-                } else {
-                    showAlert('Failed to fetch database stats: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => showAlert('Error updating stats: ' + error.message));
+    function escapeHtml(unsafe) {
+        if (typeof unsafe !== 'string') return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
-
-    function updateConnections() {
-        fetch('/monitoring/db/connections')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const table = document.getElementById('connectionsTable');
-                    table.innerHTML = '';
-
-                    data.connections.forEach(conn => {
-                        const row = document.createElement('tr');
-                        const state = (conn.state || '').toLowerCase();
-                        const stateClass = state === 'active' ? 'success' :
-                            state === 'idle in transaction' ? 'warning' : 'info';
-
-                        row.innerHTML = `
-                            <td>${conn.pid || '-'}</td>
-                            <td>${formatDuration(conn.age)}</td>
-                            <td><span class="badge bg-${stateClass}">${conn.state || 'Unknown'}</span></td>
-                            <td>
-                                <span class="text-muted">${conn.application || 'Unknown'}</span><br>
-                                <small>${conn.source || '-'}</small>
-                            </td>
-                            <td>${formatDuration(conn.transaction_age)}</td>
-                            <td>
-                                <code class="text-wrap" style="white-space: pre-wrap;">${conn.query || '-'}</code>
-                            </td>
-                            <td>
-                                <button onclick="terminateConnection(${conn.pid})"
-                                        class="btn btn-danger btn-sm">
-                                    Terminate
-                                </button>
-                            </td>
-                        `;
-                        table.appendChild(row);
-                    });
-                } else {
-                    showAlert('Failed to fetch connections: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => showAlert('Error updating connections: ' + error.message));
-    }
-
-    function terminateConnection(pid) {
-        if (!pid || !confirm('Are you sure you want to terminate this connection?')) return;
-
-        fetch('/monitoring/db/terminate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pid })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('Connection terminated successfully', 'success');
-                    updateConnections();
-                    updateStats();
-                } else {
-                    showAlert('Failed to terminate connection: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => showAlert('Error terminating connection: ' + error.message));
-    }
-
-    function cleanup() {
-        fetch('/monitoring/db/cleanup', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    updateConnections();
-                    updateStats();
-                } else {
-                    showAlert('Cleanup failed: ' + (data.error || 'Unknown error'));
-                }
-            })
-            .catch(error => showAlert('Error during cleanup: ' + error.message));
-    }
-
-    // Initial load
-    updateStats();
-    updateConnections();
-
-    // Setup refresh button
-    document.getElementById('refreshBtn').addEventListener('click', () => {
-        updateStats();
-        updateConnections();
-    });
-
-    // Setup cleanup button
-    document.getElementById('cleanupBtn').addEventListener('click', cleanup);
-
-    // Auto refresh every 30 seconds
-    setInterval(() => {
-        updateStats();
-        updateConnections();
-    }, 30000);
 </script>
 {% endblock %}

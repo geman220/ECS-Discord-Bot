@@ -2,6 +2,7 @@
 
 from sqlalchemy import func
 from contextlib import contextmanager
+from app.models import Player
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,7 @@ class QueryHelper:
 
     def get_player_count(self, filters=None):
         """Safe method to get player count"""
-        with self.db_manager.session_scope() as session:
+        with self.db_manager.session_scope(transaction_name="get_player_count") as session:
             try:
                 query = session.query(Player)
                 if filters:
@@ -31,7 +32,7 @@ class QueryHelper:
 
     def get_connection_stats(self):
         """Safe method to get connection statistics"""
-        with self.db_manager.session_scope() as session:
+        with self.db_manager.session_scope(transaction_name="get_connection_stats") as session:
             try:
                 stats_query = text("""
                     SELECT 
@@ -56,7 +57,7 @@ class QueryHelper:
     @contextmanager
     def transaction_scope(self):
         """Scope for ensuring transactions are properly handled"""
-        with self.db_manager.session_scope() as session:
+        with self.db_manager.session_scope(transaction_name="transaction_scope") as session:
             try:
                 yield session
                 if session.in_transaction():

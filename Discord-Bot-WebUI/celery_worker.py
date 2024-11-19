@@ -16,8 +16,8 @@ if __name__ == '__main__':
         celery.worker_main([
             'worker',
             '--loglevel=INFO',
-            '-Q', 'celery,default',
-            '--pool=eventlet',
+            '-Q', 'celery',  # Removed 'default' queue
+            '--pool=prefork',  # Switched from eventlet to prefork
             '--concurrency=4',
             '--max-tasks-per-child=50',
             '--prefetch-multiplier=1',

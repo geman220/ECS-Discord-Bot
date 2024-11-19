@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 draft = Blueprint('draft', __name__)
 
-@draft.route('/classic')
+@draft.route('/classic', endpoint='draft_classic')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 @query_operation
@@ -91,7 +91,7 @@ def draft_classic():
         flash('An error occurred while loading the draft page.', 'danger')
         return redirect(url_for('main.index'))
 
-@draft.route('/premier')
+@draft.route('/premier', endpoint='draft_premier')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_premier():
@@ -164,7 +164,7 @@ def draft_premier():
         flash('An error occurred while loading the draft page.', 'danger')
         return redirect(url_for('main.index'))
 
-@draft.route('/ecs_fc')
+@draft.route('/ecs_fc', endpoint='draft_ecs_fc')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 @query_operation
@@ -238,8 +238,8 @@ def draft_ecs_fc():
         flash('An error occurred while loading the draft page.', 'danger')
         return redirect(url_for('main.index'))
 
-@socketio.on('draft_player')
-@handle_db_operation()
+@socketio.on('draft_player', namespace='/draft')
+@handle_db_operation(transaction_name="draft_player_transaction")
 def handle_draft_player(data):
     try:
         player_id = data['player_id']
@@ -278,8 +278,8 @@ def handle_draft_player(data):
         emit('error', {'message': 'An error occurred while drafting the player'}, broadcast=False)
         raise
 
-@socketio.on('remove_player')
-@handle_db_operation()
+@socketio.on('remove_player', namespace='/draft')
+@handle_db_operation(transaction_name="remove_player_transaction")
 def handle_remove_player(data):
     try:
         player_id = data['player_id']

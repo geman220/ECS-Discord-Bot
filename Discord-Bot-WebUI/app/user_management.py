@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Create the blueprint for user management
 user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_management')
 
-@user_management_bp.route('/manage_users', methods=['GET'])
+@user_management_bp.route('/manage_users', endpoint='manage_users', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 @query_operation
@@ -103,7 +103,7 @@ def manage_users():
                            pagination=pagination,
                            pagination_args=pagination_args)
 
-@user_management_bp.route('/create_user', methods=['GET', 'POST'])
+@user_management_bp.route('/create_user', endpoint='create_user', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -125,7 +125,7 @@ def create_user():
     
     return render_template('create_user.html', form=form)
 
-@user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
+@user_management_bp.route('/edit_user/<int:user_id>', endpoint='edit_user', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -171,7 +171,7 @@ def edit_user(user_id):
 
     return redirect(url_for('user_management.manage_users'))
 
-@user_management_bp.route('/remove_user/<int:user_id>', methods=['POST'])
+@user_management_bp.route('/remove_user/<int:user_id>', endpoint='remove_user', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -186,7 +186,7 @@ def remove_user(user_id):
 
     return redirect(url_for('user_management.manage_users'))
 
-@user_management_bp.route('/approve_user/<int:user_id>', methods=['POST'])
+@user_management_bp.route('/approve_user/<int:user_id>', endpoint='approve_user', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 @handle_db_operation()
@@ -201,7 +201,7 @@ def approve_user(user_id):
 
     return redirect(url_for('user_management.manage_users'))
 
-@user_management_bp.route('/get_user_data')
+@user_management_bp.route('/get_user_data', endpoint='get_user_data')
 @login_required
 @role_required('Global Admin')
 @query_operation

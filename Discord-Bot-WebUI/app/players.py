@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 players_bp = Blueprint('players', __name__)
 
-@players_bp.route('/', methods=['GET'])
+@players_bp.route('/', endpoint='view_players', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @query_operation
@@ -76,7 +76,7 @@ def view_players():
         jersey_sizes=jersey_sizes
     )
 
-@players_bp.route('/update', methods=['POST'])
+@players_bp.route('/update', endpoint='update_players', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -171,7 +171,7 @@ def update_players():
     flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
 
-@players_bp.route('/create_player', methods=['POST'])
+@players_bp.route('/create_player', endpoint='create_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -223,7 +223,7 @@ def create_player():
     # If form validation fails or an error occurs, redirect back to the player list
     return redirect(url_for('players.view_players'))
 
-@players_bp.route('/profile/<int:player_id>', methods=['GET', 'POST'])
+@players_bp.route('/profile/<int:player_id>', endpoint='player_profile', methods=['GET', 'POST'])
 @login_required
 @query_operation
 def player_profile(player_id):
@@ -353,7 +353,7 @@ def player_profile(player_id):
         flash('An error occurred while loading the profile.', 'danger')
         return redirect(url_for('main.index'))
 
-@players_bp.route('/add_stat_manually/<int:player_id>', methods=['POST'])
+@players_bp.route('/add_stat_manually/<int:player_id>', endpoint='add_stat_manually', methods=['POST'])
 @login_required
 @handle_db_operation()
 def add_stat_manually(player_id):
@@ -380,7 +380,7 @@ def add_stat_manually(player_id):
     
     return redirect(url_for('players.player_profile', player_id=player_id))
 
-@players_bp.route('/api/player_profile/<int:player_id>', methods=['GET'])
+@players_bp.route('/api/player_profile/<int:player_id>', endpoint='api_player_profile', methods=['GET'])
 @login_required
 @query_operation
 def api_player_profile(player_id):
@@ -413,14 +413,14 @@ def api_player_profile(player_id):
 
     return jsonify(profile_data)
 
-@players_bp.route('/get_needs_review_count', methods=['GET'])
+@players_bp.route('/get_needs_review_count', endpoint='get_needs_review_count', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def get_needs_review_count():
     count = Player.query.filter_by(needs_manual_review=True).count()
     return jsonify({'count': count})
 
-@players_bp.route('/admin/review', methods=['GET'])
+@players_bp.route('/admin/review', endpoint='admin_review', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -439,7 +439,7 @@ def admin_review():
 
     return render_template('admin_review.html', players=players_needing_review)
 
-@players_bp.route('/create-profile', methods=['POST'])
+@players_bp.route('/create-profile', endpoint='create_profile', methods=['POST'])
 @login_required
 @handle_db_operation()
 def create_profile():
@@ -473,7 +473,7 @@ def create_profile():
     flash('Error creating player profile. Please check your inputs.', 'danger')
     return redirect(url_for('main.index'))
 
-@players_bp.route('/edit_match_stat/<int:stat_id>', methods=['GET', 'POST'])
+@players_bp.route('/edit_match_stat/<int:stat_id>', endpoint='edit_match_stat', methods=['GET', 'POST'])
 @login_required
 def edit_match_stat(stat_id):
     if request.method == 'GET':
@@ -501,7 +501,7 @@ def edit_match_stat(stat_id):
                 current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
                 return jsonify({'success': False}), 500
 
-@players_bp.route('/remove_match_stat/<int:stat_id>', methods=['POST'])
+@players_bp.route('/remove_match_stat/<int:stat_id>', endpoint='remove_match_stat', methods=['POST'])
 @login_required
 @handle_db_operation()
 def remove_match_stat(stat_id):
@@ -528,7 +528,7 @@ def remove_match_stat(stat_id):
         current_app.logger.error(f"Unexpected error deleting match stat {stat_id}: {str(e)}")
         return jsonify({'success': False}), 500
 
-@players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
+@players_bp.route('/player/<int:player_id>/upload_profile_picture', endpoint='upload_profile_picture', methods=['POST'])
 @login_required
 @admin_or_owner_required
 @handle_db_operation()
@@ -550,7 +550,7 @@ def upload_profile_picture(player_id):
 
     return redirect(url_for('players.player_profile', player_id=player_id))
 
-@players_bp.route('/delete_player/<int:player_id>', methods=['POST'])
+@players_bp.route('/delete_player/<int:player_id>', endpoint='delete_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -570,7 +570,7 @@ def delete_player(player_id):
         flash('An error occurred while deleting the player. Please try again.', 'danger')
         raise  # Let the decorator handle the rollback
 
-@players_bp.route('/edit_player/<int:player_id>', methods=['GET', 'POST'])
+@players_bp.route('/edit_player/<int:player_id>', endpoint='edit_player', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()

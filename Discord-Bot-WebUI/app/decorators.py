@@ -7,12 +7,14 @@ from contextlib import contextmanager, asynccontextmanager
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import DetachedInstanceError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from app.utils.user_helpers import safe_current_user
 from app.db_management import db_manager
 from typing import Any, Callable
 import logging
 import inspect
 import threading
+import uuid
 from celery import shared_task
 
 # Import extensions but only db since we need it directly
@@ -28,19 +30,39 @@ def is_flask_view_function(f):
             hasattr(f, '_blueprint_name') or
             hasattr(f, 'endpoint'))
 
-def handle_db_operation(f=None):
-    """Decorator to handle database operations, now supports optional arguments."""
+def handle_db_operation(transaction_name=None):
+    """Decorator to handle database operations with session management."""
     def decorator(func):
+        unique_suffix = str(uuid.uuid4())[:8]  # Generate a unique suffix
+
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # No-op: simply call the function
-            return func(*args, **kwargs)
+            txn_name = transaction_name or func.__name__
+
+            try:
+                # Execute the wrapped function
+                result = func(*args, **kwargs)
+
+                # Commit transaction if successful
+                current_app.logger.debug(f"Committing transaction: {txn_name}")
+                db.session.commit()
+                return result
+            except SQLAlchemyError as e:
+                db.session.rollback()  # Rollback transaction on SQL errors
+                current_app.logger.error(f"Database error during '{txn_name}': {str(e)}", exc_info=True)
+                raise
+            except Exception as e:
+                current_app.logger.error(f"Unhandled error during '{txn_name}': {str(e)}", exc_info=True)
+                raise
+            finally:
+                # Ensure session cleanup
+                db.session.remove()
+
+        # Keep the original function name intact for Flask routing
+        wrapper._unique_suffix = unique_suffix  # Add custom attribute if needed for debugging
         return wrapper
 
-    if f is None:
-        return decorator
-    else:
-        return decorator(f)
+    return decorator
 
 def log_context_state(location: str):
     """Helper to log detailed context state"""
@@ -62,7 +84,7 @@ def register_template_context_processor(app):
     def inject_db_handler():
         def safe_db_load(callable_func):
             try:
-                with db_manager.session_scope():
+                with db_manager.session_scope(transaction_name="register_template_context_processor"):
                     return callable_func()
             except Exception as e:
                 logger.error(f"Template DB access error: {e}")
@@ -228,23 +250,26 @@ def jwt_admin_or_owner_required(func):
     
     return decorated_function
 
-def query_operation(f):
-    """Query operation decorator with improved view function detection"""
-    # Skip if already decorated or is a view function
-    if hasattr(f, 'query_decorated') or is_flask_view_function(f):
-        return f
-        
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        # Use existing session if in request context
-        if has_app_context() and hasattr(g, 'db_session'):
-            return f(*args, **kwargs)
-            
-        with db_manager.session_scope(nested=True, transaction_name=f.__name__):
-            return f(*args, **kwargs)
-            
-    wrapper.query_decorated = True
-    return wrapper
+def query_operation(transaction_name="query"):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                # Execute the query
+                return func(*args, **kwargs)
+            except SQLAlchemyError as e:
+                logger.error(f"Database query error during '{transaction_name}': {str(e)}", exc_info=True)
+                raise
+            finally:
+                # Ensure session cleanup
+                db.session.remove()
+
+        return wrapper
+
+    # Handle being used without parentheses
+    if callable(transaction_name):
+        return decorator(transaction_name)
+    return decorator
 
 @contextmanager 
 def session_timeout_context(timeout_seconds: int = 30):

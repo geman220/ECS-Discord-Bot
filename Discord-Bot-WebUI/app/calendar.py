@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 calendar_bp = Blueprint('calendar', __name__)
 
-@calendar_bp.route('/calendar/events', methods=['GET'])
+@calendar_bp.route('/calendar/events', endpoint='get_schedule', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 @query_operation
@@ -92,7 +92,7 @@ def get_schedule():
         logger.exception("An error occurred while fetching events.")
         return jsonify({'error': 'An internal error occurred.'}), 500
 
-@calendar_bp.route('/calendar/refs', methods=['GET'])
+@calendar_bp.route('/calendar/refs', endpoint='get_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 @query_operation
@@ -134,7 +134,7 @@ def get_refs():
         logger.exception("An error occurred while fetching referees.")
         return jsonify({'error': 'An internal error occurred.'}), 500
 
-@calendar_bp.route('/calendar/assign_ref', methods=['POST'])
+@calendar_bp.route('/calendar/assign_ref', endpoint='assign_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -186,7 +186,7 @@ def assign_ref():
         logger.exception("An error occurred while assigning the referee.")
         raise  # Reraise exception for decorator to handle rollback
 
-@calendar_bp.route('/calendar/available_refs', methods=['GET'])
+@calendar_bp.route('/calendar/available_refs', endpoint='available_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 @query_operation
@@ -227,7 +227,7 @@ def available_refs():
         logger.exception(f"Error fetching available referees: {str(e)}")
         return jsonify({'error': 'An error occurred fetching referees'}), 500
 
-@calendar_bp.route('/calendar/remove_ref', methods=['POST'])
+@calendar_bp.route('/calendar/remove_ref', endpoint='remove_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 @handle_db_operation()
@@ -260,7 +260,7 @@ def remove_ref():
         logger.exception("An error occurred while removing the referee.")
         raise  # Reraise exception for decorator to handle rollback
 
-@calendar_bp.route('/calendar', methods=['GET'])
+@calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def calendar_view():
