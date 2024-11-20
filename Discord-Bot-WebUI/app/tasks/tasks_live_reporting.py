@@ -6,7 +6,7 @@ import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
-from app.core import socketio
+from app.core import socketio, celery
 from app.utils.db_utils import celery_transactional_task
 from app.models import MLSMatch
 from app.match_scheduler import MatchScheduler
@@ -54,7 +54,7 @@ async def _process_match_update_async(match_id: str, thread_id: str,
     try:
         def get_match_data_sync() -> Optional[Dict[str, Any]]:
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_match_update_data') as session:
@@ -101,7 +101,7 @@ async def _process_match_update_async(match_id: str, thread_id: str,
         if match_ended:
             def update_match_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_match_end_status') as session:
@@ -132,7 +132,7 @@ async def _process_match_update_async(match_id: str, thread_id: str,
         # Update match status in database
         def update_match_info_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='update_match_info') as session:
@@ -269,7 +269,7 @@ async def _create_match_thread_async(match_id: str) -> Dict[str, Any]:
     try:
         def get_match_data_sync() -> Optional[Dict[str, Any]]:
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_match_thread_data') as session:
@@ -322,7 +322,7 @@ async def _create_match_thread_async(match_id: str) -> Dict[str, Any]:
 
         def update_thread_info_sync(thread_id: str):
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='update_thread_info') as session:
@@ -608,7 +608,7 @@ async def end_match_reporting(match_id: str) -> Dict[str, Any]:
     try:
         def update_match_status_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='end_match_reporting') as session:
@@ -714,7 +714,7 @@ def check_upcoming_matches(self) -> Dict[str, Any]:
                 
                 def schedule_match_sync(match_id):
                     from app import create_app
-                    app = create_app()
+                    app = celery.flask_app
                     
                     with app.app_context():
                         result = scheduler.schedule_match_tasks(match_id)
@@ -1041,7 +1041,7 @@ async def _force_create_mls_thread_async(match_id: str) -> Dict[str, Any]:
     try:
         def get_match_data_sync() -> Optional[Dict[str, Any]]:
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with session_context():
@@ -1095,7 +1095,7 @@ async def _force_create_mls_thread_async(match_id: str) -> Dict[str, Any]:
 
         def update_thread_status_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with session_context():

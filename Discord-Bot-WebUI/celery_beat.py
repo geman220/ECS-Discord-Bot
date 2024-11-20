@@ -1,4 +1,8 @@
 # celery_beat.py
+
+import eventlet
+eventlet.monkey_patch()
+
 from celery_worker_base import flask_app, celery_app as celery, logger
 from app.utils.redis_manager import RedisManager
 from app.config.celery_config import CeleryConfig

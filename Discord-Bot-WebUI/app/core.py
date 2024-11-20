@@ -26,11 +26,17 @@ def configure_celery(app):
         worker_max_tasks_per_child=50,
         worker_max_memory_per_child=150000
     )
-    
+
+    # Attach the Flask app to the Celery instance
+    celery.flask_app = app
+
+    # Define a custom Task base class that ensures the app context is available
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return self.run(*args, **kwargs)
-    
+
+    # Set the base Task class
     celery.Task = ContextTask
+
     return celery

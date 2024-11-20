@@ -39,27 +39,30 @@ def handle_db_operation(transaction_name=None):
         def wrapper(*args, **kwargs):
             txn_name = transaction_name or func.__name__
 
-            try:
-                # Execute the wrapped function
-                result = func(*args, **kwargs)
+            def execute_operation():
+                try:
+                    # Execute the wrapped function
+                    result = func(*args, **kwargs)
+                    logger.debug(f"Committing transaction: {txn_name}")
+                    return result
+                except SQLAlchemyError as e:
+                    logger.error(f"Database error during '{txn_name}': {str(e)}", exc_info=True)
+                    raise
+                except Exception as e:
+                    logger.error(f"Unhandled error during '{txn_name}': {str(e)}", exc_info=True)
+                    raise
 
-                # Commit transaction if successful
-                current_app.logger.debug(f"Committing transaction: {txn_name}")
-                db.session.commit()
-                return result
-            except SQLAlchemyError as e:
-                db.session.rollback()  # Rollback transaction on SQL errors
-                current_app.logger.error(f"Database error during '{txn_name}': {str(e)}", exc_info=True)
-                raise
-            except Exception as e:
-                current_app.logger.error(f"Unhandled error during '{txn_name}': {str(e)}", exc_info=True)
-                raise
-            finally:
-                # Ensure session cleanup
-                db.session.remove()
+            # Ensure application context
+            if not has_app_context():
+                app = celery.flask_app
+                with app.app_context():
+                    with db_manager.session_scope(transaction_name=txn_name):
+                        return execute_operation()
+            else:
+                with db_manager.session_scope(transaction_name=txn_name):
+                    return execute_operation()
 
-        # Keep the original function name intact for Flask routing
-        wrapper._unique_suffix = unique_suffix  # Add custom attribute if needed for debugging
+        wrapper._unique_suffix = unique_suffix
         return wrapper
 
     return decorator
