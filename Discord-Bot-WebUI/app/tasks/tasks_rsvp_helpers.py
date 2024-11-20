@@ -11,6 +11,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.db_management import db_manager
 from app.models import Match, Availability, ScheduledMessage
+from app.core import celery
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ async def _send_availability_message_async(scheduled_message_id: int) -> Dict[st
     try:
         def get_message_data_sync() -> Optional[Dict[str, Any]]:
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_availability_message_data') as session:
@@ -132,7 +133,7 @@ async def _send_availability_message_async(scheduled_message_id: int) -> Dict[st
         if not message_ids:
             def mark_failed_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='mark_message_failed') as session:
@@ -154,7 +155,7 @@ async def _send_availability_message_async(scheduled_message_id: int) -> Dict[st
 
         def mark_sent_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='mark_message_sent') as session:
@@ -229,7 +230,7 @@ async def _update_discord_rsvp_async(data: Dict[str, Any]) -> Dict[str, Any]:
         if result['success']:
             def update_rsvp_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_rsvp_sync_status') as session:
@@ -285,7 +286,7 @@ async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
         # Verify match exists
         def verify_match_exists():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='verify_match_exists') as session:
@@ -305,7 +306,7 @@ async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
         if result['success']:
             def update_match_notification_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_match_notification') as session:
@@ -449,7 +450,7 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
                 # Update database with success status
                 def update_discord_status():
                     from app import create_app
-                    app = create_app()
+                    app = celery.flask_app
                     
                     with app.app_context():
                         with db_manager.session_scope(transaction_name='update_discord_reaction_status') as session:
@@ -491,7 +492,7 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
         # Update database with error status
         def update_error_status():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='update_discord_reaction_error') as session:

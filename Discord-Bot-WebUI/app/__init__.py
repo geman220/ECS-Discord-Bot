@@ -171,6 +171,12 @@ def create_app(config_object='web_config.Config'):
     from flask_jwt_extended import JWTManager
     JWTManager(app)
 
+    # Global error handler
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(error):
+        app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
+        return render_template("500.html"), 500
+
     # Error handlers
     @app.errorhandler(401)
     def unauthorized(error):

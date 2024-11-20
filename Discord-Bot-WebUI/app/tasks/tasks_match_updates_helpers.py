@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.db_management import db_manager
 from app.models import MLSMatch, Match
+from app.core import celery
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
     try:
         def get_match_info_sync() -> Optional[Dict[str, Any]]:
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_match_update_info') as session:
@@ -95,7 +96,7 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
             # Update match status in database
             def update_match_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_match_status') as session:

@@ -11,7 +11,7 @@ from app.utils.db_utils import celery_transactional_task
 from app.models import Player, Team, League
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
-from app.core import socketio
+from app.core import socketio, celery
 from app.db_management import db_manager
 from app.discord_utils import (
     get_expected_roles,
@@ -31,7 +31,7 @@ async def _update_player_discord_roles_async(task_self, player_id: int):
     try:
         def get_player_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_player_discord_roles') as session:
@@ -66,7 +66,7 @@ async def _update_player_discord_roles_async(task_self, player_id: int):
 
             def update_player_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_player_discord_status') as session:
@@ -112,7 +112,7 @@ async def _update_player_discord_roles_async(task_self, player_id: int):
             
             def update_sync_error():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_sync_error') as session:
@@ -311,7 +311,7 @@ async def _assign_roles_async(player_id: int) -> Dict[str, Any]:
     try:
         def get_player_data_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_player_role_data') as session:
@@ -358,7 +358,7 @@ async def _assign_roles_async(player_id: int) -> Dict[str, Any]:
 
         def update_player_status_sync(success: bool, error: Optional[str] = None):
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='update_role_assignment_status') as session:
@@ -391,7 +391,7 @@ async def _assign_roles_async(player_id: int) -> Dict[str, Any]:
         
         def mark_sync_failed_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='mark_role_assignment_failed') as session:
@@ -584,7 +584,7 @@ async def _remove_player_roles_async(player_id: int) -> Dict[str, Any]:
     try:
         def get_player_roles_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_player_roles') as session:
@@ -624,7 +624,7 @@ async def _remove_player_roles_async(player_id: int) -> Dict[str, Any]:
             
             def update_player_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_role_removal_status') as session:
@@ -651,7 +651,7 @@ async def _remove_player_roles_async(player_id: int) -> Dict[str, Any]:
             
             def update_error_status_sync():
                 from app import create_app
-                app = create_app()
+                app = celery.flask_app
                 
                 with app.app_context():
                     with db_manager.session_scope(transaction_name='update_role_removal_error') as session:
@@ -709,7 +709,7 @@ async def _fetch_role_status_async() -> List[Dict[str, Any]]:
     try:
         def get_players_with_discord_sync():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='get_players_role_status') as session:
@@ -801,7 +801,7 @@ async def _fetch_role_status_async() -> List[Dict[str, Any]]:
         # Update database with status
         def update_status_batch():
             from app import create_app
-            app = create_app()
+            app = celery.flask_app
             
             with app.app_context():
                 with db_manager.session_scope(transaction_name='update_role_status_batch') as session:

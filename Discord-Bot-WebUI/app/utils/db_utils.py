@@ -2,6 +2,7 @@
 
 from functools import wraps
 from app.core import celery
+from flask import has_app_context
 from app.db_management import db_manager
 import logging
 
@@ -16,12 +17,14 @@ def transactional(f):
     return wrapped
 
 def celery_transactional_task(**task_kwargs):
-    """Decorator to manage database transactions in Celery tasks."""
+    """Decorator to manage database transactions in Celery tasks with app context."""
     def decorator(f):
         @celery.task(**task_kwargs)
         @wraps(f)
         def wrapped(*args, **kwargs):
-            with db_manager.session_scope(transaction_name="celery_transactional"):
-                return f(*args, **kwargs)
+            app = celery.flask_app
+            with app.app_context():
+                with db_manager.session_scope(transaction_name="celery_transactional"):
+                    return f(*args, **kwargs)
         return wrapped
     return decorator

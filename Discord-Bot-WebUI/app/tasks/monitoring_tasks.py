@@ -20,7 +20,7 @@ if not logger.handlers:
 @celery.task(name='app.tasks.monitoring_tasks.collect_db_stats')
 def collect_db_stats():
     logger.info("Starting collect_db_stats task")
-    app = create_app()
+    app = celery.flask_app
     logger.info("Created Flask app")
     with app.app_context():
         logger.info("Entered app context")
