@@ -141,17 +141,13 @@
                         </li>
                         {% endif %}
 
-                        {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
-                        {% if p %}
+                        {% for p in range(1, pagination.pages + 1) %}
                         {% if p == pagination.page %}
                         <li class="page-item active"><span class="page-link">{{ p }}</span></li>
                         {% else %}
                         <li class="page-item">
                             <a class="page-link" href="{{ url_for('user_management.manage_users', page=p, **pagination_args) }}">{{ p }}</a>
                         </li>
-                        {% endif %}
-                        {% else %}
-                        <li class="page-item disabled"><span class="page-link">…</span></li>
                         {% endif %}
                         {% endfor %}
 

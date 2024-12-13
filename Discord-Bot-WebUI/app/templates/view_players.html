@@ -51,7 +51,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for player in players.items %}
+                {% for player in players %}
                 <tr>
                     <td>{{ player.name }}</td>
                     <td>{{ player.user.email }}</td>
@@ -69,36 +69,35 @@
         </table>
     </div>
 
-    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
     <nav aria-label="Page navigation">
         <ul class="pagination">
-            {% if players.has_prev %}
+            {% if pagination.has_prev %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('players.view_players', page=players.prev_num, search=search_term) }}" aria-label="Previous">
+                <a class="page-link" href="{{ url_for('players.view_players', page=pagination.prev_num, search=search_term) }}" aria-label="Previous">
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
             {% endif %}
-            {% for page_num in players.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
-            {% if page_num %}
-            {% if players.page == page_num %}
+
+            {% for page_num in range(1, pagination.pages + 1) %}
+            {% if pagination.page == page_num %}
             <li class="page-item active"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
             {% else %}
             <li class="page-item"><a class="page-link" href="{{ url_for('players.view_players', page=page_num, search=search_term) }}">{{ page_num }}</a></li>
             {% endif %}
-            {% else %}
-            <li class="page-item disabled"><span class="page-link">...</span></li>
-            {% endif %}
             {% endfor %}
-            {% if players.has_next %}
+
+            {% if pagination.has_next %}
             <li class="page-item">
-                <a class="page-link" href="{{ url_for('players.view_players', page=players.next_num, search=search_term) }}" aria-label="Next">
+                <a class="page-link" href="{{ url_for('players.view_players', page=pagination.next_num, search=search_term) }}" aria-label="Next">
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
             {% endif %}
         </ul>
     </nav>
+    {% endif %}
 </div>
 
 <!-- Create Player Modal -->

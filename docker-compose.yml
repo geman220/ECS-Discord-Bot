@@ -124,6 +124,7 @@ services:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
     command: >
+      sh -c "python build_assets.py &&
       gunicorn
       --worker-class eventlet
       --workers 1
@@ -138,7 +139,7 @@ services:
       --max-requests 1000
       --max-requests-jitter 50
       --name webui
-      wsgi:application
+      wsgi:application"
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1

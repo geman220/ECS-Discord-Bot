@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from celery.result import AsyncResult
 from celery.schedules import crontab
+from flask import g
 from app.core import celery
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
@@ -44,10 +45,17 @@ class TaskMonitor:
                 'error': str(e)
             }
     
-    def verify_scheduled_tasks(self, match_id: str) -> Dict[str, Any]:
+    def verify_scheduled_tasks(self, match_id: str, session=None) -> Dict[str, Any]:
         """Verify and potentially repair scheduled tasks for a match."""
+        if session is None:
+            # Fall back to g.db_session if no session provided
+            session = getattr(g, 'db_session', None)
+            if session is None:
+                logger.error("No database session available in verify_scheduled_tasks.")
+                return {'success': False, 'message': 'No session available'}
+
         try:
-            match = MLSMatch.query.get(match_id)
+            match = session.query(MLSMatch).get(match_id)
             if not match:
                 return {'success': False, 'message': 'Match not found'}
             
@@ -118,18 +126,25 @@ class TaskMonitor:
                 'message': str(e)
             }
     
-    def monitor_all_matches(self) -> Dict[str, Any]:
+    def monitor_all_matches(self, session=None) -> Dict[str, Any]:
         """Monitor all scheduled matches and their tasks."""
+        if session is None:
+            # Fall back to g.db_session if no session provided
+            session = getattr(g, 'db_session', None)
+            if session is None:
+                logger.error("No database session available in monitor_all_matches.")
+                return {'success': False, 'message': 'No session available'}
+
         try:
             # Get all matches with scheduled tasks
-            matches = MLSMatch.query.filter(
+            matches = session.query(MLSMatch).filter(
                 (MLSMatch.live_reporting_scheduled == True) |
                 (MLSMatch.thread_creation_time.isnot(None))
             ).all()
             
             results = {}
             for match in matches:
-                match_status = self.verify_scheduled_tasks(str(match.id))
+                match_status = self.verify_scheduled_tasks(str(match.id), session=session)
                 results[str(match.id)] = match_status
             
             return {

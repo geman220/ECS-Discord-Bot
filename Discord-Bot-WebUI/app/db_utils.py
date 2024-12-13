@@ -1,15 +1,9 @@
-from app.models import MLSMatch, Player, Team
-from datetime import datetime, timedelta
-from contextlib import contextmanager
-from sqlalchemy.orm import joinedload
-from sqlalchemy.exc import SQLAlchemyError
-from app.decorators import handle_db_operation, query_operation
-from app.core import db
-from app.db_management import db_manager
-import os
-import sqlite3
 import logging
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
+from sqlalchemy.orm import joinedload, Session
+from sqlalchemy.exc import SQLAlchemyError
+from app.models import MLSMatch, Player, Team
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +18,8 @@ def format_match_display_data(matches: List[Dict[str, Any]]) -> List[Dict[str, A
         formatted_matches.append(match_copy)
     return formatted_matches
 
-@handle_db_operation()
 def insert_mls_match(
+    session: Session,
     match_id: str,
     opponent: str,
     date_time: datetime,
@@ -36,7 +30,7 @@ def insert_mls_match(
     venue: str,
     competition: str
 ) -> MLSMatch:
-    """Insert a new MLS match with proper session management."""
+    """Insert a new MLS match."""
     new_match = MLSMatch(
         match_id=match_id,
         opponent=opponent,
@@ -52,13 +46,12 @@ def insert_mls_match(
         live_reporting_started=False,
         thread_created=False
     )
-    db.session.add(new_match)
+    session.add(new_match)
     return new_match
 
-@handle_db_operation()
-def update_mls_match(match_id: str, **kwargs) -> bool:
-    """Update MLS match with proper session management."""
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
+def update_mls_match(session: Session, match_id: str, **kwargs) -> bool:
+    """Update MLS match."""
+    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for update.")
         return False
@@ -67,31 +60,28 @@ def update_mls_match(match_id: str, **kwargs) -> bool:
         setattr(match, key, value)
     return True
 
-@handle_db_operation()
-def delete_mls_match(match_id: str) -> bool:
-    """Delete MLS match with proper session management."""
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
+def delete_mls_match(session: Session, match_id: str) -> bool:
+    """Delete MLS match."""
+    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for deletion.")
         return False
-    db.session.delete(match)
+    session.delete(match)
     return True
 
-@query_operation
-def get_upcoming_mls_matches(hours_ahead: int = 24) -> List[MLSMatch]:
-    """Get upcoming MLS matches with proper session management."""
+def get_upcoming_mls_matches(session: Session, hours_ahead: int = 24) -> List[MLSMatch]:
+    """Get upcoming MLS matches."""
     now = datetime.utcnow()
     end_time = now + timedelta(hours=hours_ahead)
-    return MLSMatch.query.filter(
+    return session.query(MLSMatch).filter(
         MLSMatch.date_time > now,
         MLSMatch.date_time <= end_time,
         MLSMatch.thread_created == False
     ).all()
 
-@handle_db_operation()
-def mark_mls_match_thread_created(match_id: str, thread_id: str) -> bool:
-    """Mark MLS match thread as created with proper session management."""
-    match = MLSMatch.query.filter_by(match_id=match_id).first()
+def mark_mls_match_thread_created(session: Session, match_id: str, thread_id: str) -> bool:
+    """Mark MLS match thread as created."""
+    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for marking thread creation.")
         return False
@@ -99,10 +89,9 @@ def mark_mls_match_thread_created(match_id: str, thread_id: str) -> bool:
     match.discord_thread_id = thread_id
     return True
 
-@query_operation
-def load_match_dates_from_db() -> List[Dict[str, Any]]:
-    """Load match dates from database with proper session management."""
-    matches = MLSMatch.query.all()
+def load_match_dates_from_db(session: Session) -> List[Dict[str, Any]]:
+    """Load match dates from database."""
+    matches = session.query(MLSMatch).all()
     return [
         {
             'match_id': match.match_id,
@@ -118,18 +107,18 @@ def load_match_dates_from_db() -> List[Dict[str, Any]]:
         for match in matches
     ]
 
-def safe_commit() -> bool:
-    """Safely commit changes to the database with proper error handling."""
+def safe_commit(session: Session) -> bool:
+    """Safely commit changes to the database."""
     try:
-        with db_manager.session_scope(transaction_name='safe_commit') as session:
-            return True
+        session.commit()
+        return True
     except SQLAlchemyError as e:
+        session.rollback()
         logger.error(f"Error committing: {e}")
         return False
 
-@handle_db_operation()
-def bulk_update_matches(updates: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Bulk update matches with proper session management."""
+def bulk_update_matches(session: Session, updates: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Bulk update matches."""
     try:
         success_count = 0
         failed_ids = []
@@ -139,7 +128,7 @@ def bulk_update_matches(updates: List[Dict[str, Any]]) -> Dict[str, Any]:
             if not match_id:
                 continue
                 
-            match = MLSMatch.query.filter_by(match_id=match_id).first()
+            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
             if match:
                 for key, value in update.items():
                     setattr(match, key, value)
@@ -159,16 +148,14 @@ def bulk_update_matches(updates: List[Dict[str, Any]]) -> Dict[str, Any]:
             'error': str(e)
         }
 
-@query_operation
-def get_match_by_id(match_id: str) -> Optional[MLSMatch]:
-    """Get a single match by ID with proper session management."""
-    return MLSMatch.query.filter_by(match_id=match_id).first()
+def get_match_by_id(session: Session, match_id: str) -> Optional[MLSMatch]:
+    """Get a single match by ID."""
+    return session.query(MLSMatch).filter_by(match_id=match_id).first()
 
-@handle_db_operation()
-def update_player_discord_info(player_id: int, current_roles: List[str], verified_time: datetime) -> bool:
+def update_player_discord_info(session: Session, player_id: int, current_roles: List[str], verified_time: datetime) -> bool:
     """Update player's Discord role information."""
     try:
-        player = Player.query.get(player_id)
+        player = session.query(Player).get(player_id)
         if player:
             player.discord_roles = current_roles
             player.discord_last_verified = verified_time
@@ -179,11 +166,10 @@ def update_player_discord_info(player_id: int, current_roles: List[str], verifie
         logger.error(f"Error updating Discord info for player {player_id}: {str(e)}")
         return False
 
-@handle_db_operation()
-def mark_player_for_discord_update(player_id: int) -> bool:
+def mark_player_for_discord_update(session: Session, player_id: int) -> bool:
     """Mark a player for Discord role update."""
     try:
-        player = Player.query.get(player_id)
+        player = session.query(Player).get(player_id)
         if player:
             player.discord_needs_update = True
             return True
@@ -192,11 +178,10 @@ def mark_player_for_discord_update(player_id: int) -> bool:
         logger.error(f"Error marking player {player_id} for Discord update: {str(e)}")
         return False
 
-@handle_db_operation()
-def update_discord_channel_id(team_id: int, channel_id: str) -> bool:
+def update_discord_channel_id(session: Session, team_id: int, channel_id: str) -> bool:
     """Update team's Discord channel ID."""
     try:
-        team = Team.query.get(team_id)
+        team = session.query(Team).get(team_id)
         if team:
             team.discord_channel_id = channel_id
             return True
@@ -205,11 +190,10 @@ def update_discord_channel_id(team_id: int, channel_id: str) -> bool:
         logger.error(f"Error updating Discord channel ID for team {team_id}: {str(e)}")
         return False
 
-@handle_db_operation()
-def update_discord_role_ids(team_id: int, coach_role_id: str = None, player_role_id: str = None) -> bool:
+def update_discord_role_ids(session: Session, team_id: int, coach_role_id: str = None, player_role_id: str = None) -> bool:
     """Update team's Discord role IDs."""
     try:
-        team = Team.query.get(team_id)
+        team = session.query(Team).get(team_id)
         if team:
             if coach_role_id is not None:
                 team.discord_coach_role_id = coach_role_id
@@ -221,19 +205,20 @@ def update_discord_role_ids(team_id: int, coach_role_id: str = None, player_role
         logger.error(f"Error updating Discord role IDs for team {team_id}: {str(e)}")
         return False
 
-@query_operation
-def get_players_needing_discord_update() -> List[Player]:
+def get_players_needing_discord_update(session: Session) -> List[Player]:
     """Get all players that need Discord role updates."""
-    from datetime import datetime, timedelta
     threshold_date = datetime.utcnow() - timedelta(days=90)
-    return Player.query.filter(
-        (Player.discord_id.isnot(None)) &
-        (
-            (Player.discord_needs_update == True) |
-            (Player.discord_last_verified.is_(None)) |
-            (Player.discord_last_verified < threshold_date)
-        )
-    ).options(
-        joinedload(Player.team),
-        joinedload(Player.team).joinedload(Team.league)
-    ).all()
+    return (session.query(Player)
+            .filter(
+                (Player.discord_id.isnot(None)) &
+                (
+                    (Player.discord_needs_update == True) |
+                    (Player.discord_last_verified.is_(None)) |
+                    (Player.discord_last_verified < threshold_date)
+                )
+            )
+            .options(
+                joinedload(Player.team),
+                joinedload(Player.team).joinedload(Team.league)
+            )
+            .all())

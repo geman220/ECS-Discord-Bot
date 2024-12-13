@@ -32,6 +32,8 @@ ENV EVENTLET_NO_GREENDNS=yes
 # Create directories for logs and temp files
 RUN mkdir -p /var/log/gunicorn /tmp/celery /tmp/celerybeat
 
+RUN mkdir -p /app/static/dist && chmod 777 /app/static/dist
+
 # Copy application code
 COPY . .
 

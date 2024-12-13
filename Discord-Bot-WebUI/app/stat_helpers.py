@@ -1,34 +1,27 @@
-from flask import current_app, Blueprint
+from flask import current_app, g
 from app.models import Player, PlayerSeasonStats, PlayerEventType
 from app.teams_helpers import current_season_id
 import logging
 
-from app.decorators import handle_db_operation, query_operation
-
 # Get the logger for this module
 logger = logging.getLogger(__name__)
 
-@handle_db_operation()
 def decrement_player_stats(player_id, event_type):
     """Decrement player stats with proper session management."""
+    session = g.db_session
     try:
-        @query_operation
-        def get_player_and_stats():
-            player = Player.query.get(player_id)
-            if not player:
-                return None, None, None
-            
-            season_stats = PlayerSeasonStats.query.filter_by(
-                player_id=player_id,
-                season_id=current_season_id()
-            ).first()
-            
-            return player, season_stats, player.career_stats
-
-        player, season_stats, career_stats = get_player_and_stats()
+        player = session.query(Player).get(player_id)
         if not player:
             logger.error(f"Player {player_id} not found")
             return
+
+        season_id = current_season_id()
+        season_stats = session.query(PlayerSeasonStats).filter_by(
+            player_id=player_id,
+            season_id=season_id
+        ).first()
+
+        career_stats = player.career_stats[0] if player.career_stats else None
 
         if not season_stats or not career_stats:
             logger.error(f"Stats not found for Player {player_id}")
@@ -69,5 +62,11 @@ def decrement_stat(season_stats, career_stats, stat_attr, player_id, log_msg):
 
 def log_current_stats(season_stats, career_stats):
     """Log current stats before decrementing"""
-    current_app.logger.info(f"Current Season Stats: Goals: {season_stats.goals}, Assists: {season_stats.assists}, Yellow Cards: {season_stats.yellow_cards}, Red Cards: {season_stats.red_cards}")
-    current_app.logger.info(f"Current Career Stats: Goals: {career_stats.goals}, Assists: {career_stats.assists}, Yellow Cards: {career_stats.yellow_cards}, Red Cards: {career_stats.red_cards}")
+    current_app.logger.info(
+        f"Current Season Stats: Goals: {season_stats.goals}, Assists: {season_stats.assists}, "
+        f"Yellow Cards: {season_stats.yellow_cards}, Red Cards: {season_stats.red_cards}"
+    )
+    current_app.logger.info(
+        f"Current Career Stats: Goals: {career_stats.goals}, Assists: {career_stats.assists}, "
+        f"Yellow Cards: {career_stats.yellow_cards}, Red Cards: {career_stats.red_cards}"
+    )

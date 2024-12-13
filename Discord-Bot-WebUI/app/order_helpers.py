@@ -1,9 +1,8 @@
+from flask import g
 from app.models import League
-from app.decorators import query_operation
 import re
 import logging
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
 def is_order_in_current_season(order, season_map):
@@ -56,7 +55,6 @@ def extract_jersey_size(product_name):
     Returns:
         str: The extracted jersey size.
     """
-    # Adjust the delimiter based on your product name format
     if ' - ' in product_name:
         return product_name.split(' - ')[-1].strip()
     return ""
@@ -65,9 +63,6 @@ def extract_jersey_size_from_product_name(product_name):
     """
     Extracts the jersey size from the product name.
 
-    Assumes that the jersey size is the last token in the product name,
-    separated by ' - ', and is typically a code like 'WL', 'WM', 'S', 'M', 'L', etc.
-
     Args:
         product_name (str): The name of the product.
 
@@ -75,13 +70,10 @@ def extract_jersey_size_from_product_name(product_name):
         str: The extracted jersey size, or 'N/A' if not found.
     """
     try:
-        # Split the product name by ' - ' and get the last part
         tokens = product_name.split(' - ')
         if tokens:
             last_token = tokens[-1].strip()
-            # Check if the last token is a jersey size code
             if last_token.isupper() and len(last_token) <= 3:
-                # Additional validation can be added if necessary
                 return last_token
         return 'N/A'
     except Exception as e:
@@ -99,13 +91,18 @@ def determine_league(product_name, current_seasons):
     Returns:
         League: The corresponding League object, or None if not found.
     """
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
     product_name = product_name.upper().strip()
     logger.debug(f"Determining league for product name: '{product_name}'")
 
     # Handle ECS FC products
     if product_name.startswith("ECS FC"):
         league_id = 14
-        ecs_fc_league = League.query.get(league_id)
+        ecs_fc_league = session.query(League).get(league_id)
         if ecs_fc_league:
             logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={league_id}.")
             return ecs_fc_league
@@ -124,7 +121,7 @@ def determine_league(product_name, current_seasons):
             return None
 
         logger.debug(f"Product '{product_name}' identified as Division ID {league_id}, assigning league_id={league_id}.")
-        pub_league = League.query.get(league_id)
+        pub_league = session.query(League).get(league_id)
         if pub_league:
             logger.debug(f"Product '{product_name}' mapped to Pub League '{pub_league.name}' with id={league_id}.")
             return pub_league
@@ -132,17 +129,25 @@ def determine_league(product_name, current_seasons):
             logger.error(f"Pub League with id={league_id} not found in the database.")
             return None
 
-    # Add additional league determination logic here if needed
-    # Example for other leagues:
-    # elif product_name.startswith("OTHER LEAGUE PREFIX"):
-    #     return League.query.filter_by(name="Other League").first()
-
     logger.warning(f"Could not determine league type from product name: '{product_name}'")
     return None
 
-@query_operation
 def get_league_by_product_name(product_name, current_seasons):
-    """Get league with proper session management."""
+    """
+    Get league with proper session management.
+
+    Args:
+        product_name (str): The product name.
+        current_seasons (list): List of current Season objects.
+
+    Returns:
+        League: The League object if found, None otherwise.
+    """
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
     logger.debug(f"Parsing product name: '{product_name}'")
 
     pub_league_pattern = re.compile(r'ECS Pub League\s*-\s*(Premier|Classic)\s*Division', re.IGNORECASE)
@@ -152,12 +157,8 @@ def get_league_by_product_name(product_name, current_seasons):
     if pub_league_match:
         division = pub_league_match.group(1).capitalize()
         league_name = division
-
         for season in current_seasons:
-            league = League.query.filter_by(
-                name=league_name,
-                season_id=season.id
-            ).first()
+            league = session.query(League).filter_by(name=league_name, season_id=season.id).first()
             if league:
                 return league
         return None
@@ -166,10 +167,7 @@ def get_league_by_product_name(product_name, current_seasons):
     if ecs_fc_match:
         league_name = 'ECS FC'
         for season in current_seasons:
-            league = League.query.filter_by(
-                name=league_name,
-                season_id=season.id
-            ).first()
+            league = session.query(League).filter_by(name=league_name, season_id=season.id).first()
             if league:
                 return league
         return None

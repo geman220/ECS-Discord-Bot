@@ -1,19 +1,11 @@
-from flask import current_app, flash, request, jsonify, redirect, url_for
+from flask import current_app, flash, request, jsonify, redirect, url_for, g
 from app.models import User, Role
-from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.utils.user_helpers import safe_current_user
-from io import BytesIO
-import os
-import base64
 import logging
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
-from app.decorators import handle_db_operation, query_operation  # Import your decorators
-
-@handle_db_operation()
 def handle_coach_status_update(player, user):
     """Update player's coach status and role membership"""
     try:
@@ -22,8 +14,9 @@ def handle_coach_status_update(player, user):
         logger.debug(f"Received is_coach: {is_coach}")
 
         player.is_coach = is_coach
-        
-        coach_role = Role.query.filter_by(name='Pub League Coach').first()
+
+        session = g.db_session
+        coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
         if not coach_role:
             logger.warning("Pub League Coach role not found in the database.")
             flash('Coach role not found.', 'warning')
@@ -39,13 +32,12 @@ def handle_coach_status_update(player, user):
         logger.info(f"{player.name}'s coach status updated successfully.")
         flash(f"{player.name}'s coach status updated successfully.", 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating coach status: {str(e)}", exc_info=True)
         flash('Error updating coach status.', 'danger')
         raise
 
-@handle_db_operation()
 def handle_ref_status_update(player, user):
     """Update player's referee status and role membership"""
     try:
@@ -54,8 +46,9 @@ def handle_ref_status_update(player, user):
         logger.debug(f"Received is_ref: {is_ref}")
 
         player.is_ref = is_ref
-        
-        ref_role = Role.query.filter_by(name='Pub League Ref').first()
+
+        session = g.db_session
+        ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
         if not ref_role:
             logger.warning("Pub League Ref role not found in the database.")
             flash('Referee role not found.', 'warning')
@@ -71,18 +64,17 @@ def handle_ref_status_update(player, user):
         logger.info(f"{player.name}'s referee status updated successfully.")
         flash(f"{player.name}'s referee status updated successfully.", 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
         flash('Error updating referee status.', 'danger')
         raise
 
-@handle_db_operation()
 def handle_profile_update(form, player, user):
     """Update player profile and associated user information"""
     try:
         logger.debug("Entering handle_profile_update")
-        
+
         # Check email uniqueness
         if check_email_uniqueness(form.email.data, user.id):
             logger.debug("Email not unique. Aborting update.")
@@ -100,7 +92,7 @@ def handle_profile_update(form, player, user):
         # Handle array fields
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
-        
+
         # Handle team swap if present
         if hasattr(form, 'team_swap'):
             player.team_swap = form.team_swap.data if form.team_swap.data else None
@@ -109,18 +101,18 @@ def handle_profile_update(form, player, user):
         flash('Profile updated successfully.', 'success')
         logger.info(f"Profile for player {player.id} updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}", exc_info=True)
         flash('Error updating profile.', 'danger')
         raise
 
-@query_operation
 def check_email_uniqueness(email, user_id):
     """Check if email is unique among users, excluding current user"""
+    session = g.db_session
     try:
         logger.debug(f"Checking uniqueness for email: {email} and user_id: {user_id}")
-        existing_user = User.query.filter(User.email == email, User.id != user_id).first()
+        existing_user = session.query(User).filter(User.email == email, User.id != user_id).first()
         if existing_user:
             logger.warning(f"Email {email} already in use by user {existing_user.id}.")
             flash('Email is already in use by another account.', 'danger')
@@ -132,7 +124,6 @@ def check_email_uniqueness(email, user_id):
         flash('Error checking email availability.', 'danger')
         return True
 
-@handle_db_operation()
 def handle_season_stats_update(player, form, season_id):
     """Update player's season statistics"""
     try:
@@ -143,18 +134,17 @@ def handle_season_stats_update(player, form, season_id):
             'yellow_cards': form.season_yellow_cards.data - player.get_season_stat(season_id, 'yellow_cards'),
             'red_cards': form.season_red_cards.data - player.get_season_stat(season_id, 'red_cards'),
         }
-        
+
         player.update_season_stats(season_id, stats_changes, user_id=safe_current_user.id)
         logger.info(f"Season stats updated successfully for player {player.id} in season {season_id}")
         flash('Season stats updated successfully.', 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating season stats: {str(e)}", exc_info=True)
         flash('Error updating season stats.', 'danger')
         raise
 
-@handle_db_operation()
 def handle_career_stats_update(player, form):
     """Update player's career statistics"""
     try:
@@ -162,28 +152,27 @@ def handle_career_stats_update(player, form):
         if not player.career_stats:
             flash('No career stats found for this player.', 'danger')
             return redirect(url_for('players.player_profile', player_id=player.id))
-            
+
         form.populate_obj(player.career_stats[0])
         logger.info(f"Career stats updated successfully for player {player.id}")
         flash('Career stats updated successfully.', 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating career stats: {str(e)}", exc_info=True)
         flash('Error updating career stats.', 'danger')
         raise
 
-@handle_db_operation()
 def handle_add_stat_manually(player):
     """Add manual statistics for a player"""
     try:
         logger.debug(f"Entering handle_add_stat_manually for player {player.id}")
-        
+
         match_id = request.form.get('match_id')
         if not match_id:
             flash('Match ID is required.', 'danger')
             return redirect(url_for('players.player_profile', player_id=player.id))
-            
+
         new_stat_data = {
             'match_id': match_id,
             'goals': int(request.form.get('goals', 0)),
@@ -191,12 +180,12 @@ def handle_add_stat_manually(player):
             'yellow_cards': int(request.form.get('yellow_cards', 0)),
             'red_cards': int(request.form.get('red_cards', 0)),
         }
-        
+
         player.add_stat_manually(new_stat_data, user_id=safe_current_user.id)
         logger.info(f"Stat added successfully for player {player.id} in match {match_id}")
         flash('Stat added successfully.', 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except ValueError as e:
         logger.error(f"Invalid input for stats: {str(e)}", exc_info=True)
         flash('Invalid input for stats. Please enter valid numbers.', 'danger')

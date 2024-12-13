@@ -22,6 +22,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="app\assets.py" />
+    <Compile Include="app\cli.py" />
     <Compile Include="app\config\celery_config.py" />
     <Compile Include="app\config\__init__.py" />
     <Compile Include="app\core.py" />
@@ -40,6 +42,7 @@
     <Compile Include="app\players_helpers.py" />
     <Compile Include="app\player_management_helpers.py" />
     <Compile Include="app\lifecycle.py" />
+    <Compile Include="app\static.py" />
     <Compile Include="app\stat_helpers.py" />
     <Compile Include="app\tasks\monitoring_tasks.py" />
     <Compile Include="app\tasks\tasks_maintenance.py" />
@@ -55,6 +58,7 @@
     <Compile Include="app\utils\task_monitor.py" />
     <Compile Include="app\utils\user_helpers.py" />
     <Compile Include="app\utils\__init__.py" />
+    <Compile Include="build_assets.py" />
     <Compile Include="celery_beat.py" />
     <Compile Include="app\loggers.py" />
     <Compile Include="app\socket_handlers.py" />
