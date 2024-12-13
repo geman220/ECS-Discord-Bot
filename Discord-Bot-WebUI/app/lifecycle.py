@@ -1,89 +1,117 @@
-# app/lifecycle.py
-
 import logging
-from flask import g, has_app_context, request, current_app
-from contextlib import contextmanager
+from flask import g, has_app_context, request
 import time
-from functools import lru_cache
+import uuid
+from typing import List, Callable, Dict, Any, Optional
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 class RequestLifecycle:
-    """Enhanced request and database lifecycle management"""
-    
     def __init__(self):
-        self.cleanup_handlers = []
-        self.before_request_handlers = []
-        self.after_request_handlers = []
-        self._template_cache = {}
+        self.cleanup_handlers: List[Callable] = []
+        self.before_request_handlers: List[Callable] = []
+        self.after_request_handlers: List[Callable] = []
+        self._template_cache: dict = {}
+        self._static_cache: dict = {}
+        self._db_operation_log: List[dict] = []
+        self.db = None  # Will be set in init_app
 
     def init_app(self, app, db):
-        """Initialize request lifecycle handlers"""
+        """Initialize request lifecycle with app and database"""
+        self.db = db
+
         @app.before_request
         def setup_request():
-            """Initialize request-specific state."""
-            g._cleanups = []
-            if request.path.startswith('/static/'):  # Skip for static files
+            if request.path.startswith('/static/'):
                 g._bypass_db = True
+                g._static_request = True
                 return
-            g._bypass_db = False
-            g._db_operations = []
-            g._request_start_time = time.time()
 
-            # Run registered before-request handlers
+            g._bypass_db = False
+            g._static_request = False
+            g._request_start_time = time.time()
+            g._db_operations = []
+            g._session_id = str(uuid.uuid4())
+            g._cache_hits = 0
+            g._cache_misses = 0
+
+            # Batch execute handlers
             for handler in self.before_request_handlers:
                 try:
                     handler()
                 except Exception as e:
-                    logger.error(f"Error in before-request handler: {e}", exc_info=True)
-                    
+                    logger.error(f"Error in before-request handler: {e}")
+
         @app.after_request
-        def log_request_stats(response):
-            """Log request statistics and run after-request handlers."""
-            if not getattr(g, '_bypass_db', False):
-                duration = time.time() - g._request_start_time
-                logger.info(
-                    f"Request stats: path={request.path}, duration={duration:.3f}s, "
-                    f"db_ops={len(g._db_operations)}"
-                )
-
-            # Run registered after-request handlers
-            for handler in self.after_request_handlers:
-                try:
-                    handler(response)
-                except Exception as e:
-                    logger.error(f"Error in after-request handler: {e}", exc_info=True)
-
+        def add_cache_headers(response):
+            if getattr(g, '_static_request', False):
+                response.cache_control.max_age = 31536000
+                response.cache_control.public = True
+                response.add_etag()
+            
+            # Add performance logging
+            self.log_request_performance(response)
             return response
-                    
+
         @app.teardown_request
         def cleanup_request(exc):
-            from app.db_management import db_manager
-            """Clean up request resources."""
+            """Clean up request resources"""
             if getattr(g, '_bypass_db', False):
                 return
+            
             try:
-                db_manager.cleanup_request(exc)  # Delegate to DatabaseManager
+                # Run registered cleanup handlers
+                if hasattr(g, '_cleanups'):
+                    for cleanup_func in g._cleanups:
+                        try:
+                            cleanup_func()
+                        except Exception as e:
+                            logger.error(f"Cleanup handler error: {e}")
+                
+                # Clear request context
+                self._clear_request_context()
+                
             except Exception as e:
-                logger.error(f"Session cleanup error: {e}", exc_info=True)
-        
+                logger.error(f"Request cleanup error: {e}", exc_info=True)
+
         @app.teardown_appcontext
         def cleanup_app_context(exc):
-            from app.db_management import db_manager
-            """Final cleanup when app context ends."""
+            """Final cleanup when app context ends"""
             try:
-                db_manager.cleanup_connections(exc)  # Consolidate cleanup
+                if hasattr(g, 'db_session'):
+                    # db_session cleanup is handled in __init__.py teardown_request
+                    pass
+                self._template_cache.clear()
+                self._static_cache.clear()
             except Exception as e:
                 logger.error(f"App context cleanup error: {e}", exc_info=True)
 
         @app.context_processor
         def inject_template_vars():
-            """Inject cached template variables"""
+            """Inject template variables into all templates"""
             if getattr(g, '_bypass_db', False):
                 return {}
-            if not hasattr(g, '_template_vars'):
-                g._template_vars = self._get_template_vars()
-            return g._template_vars
+            
+            if request.endpoint not in self._template_cache:
+                self._template_cache[request.endpoint] = self._get_template_vars()
+            
+            return self._template_cache[request.endpoint]
+
+    def _get_template_vars(self) -> Dict[str, Any]:
+        """Get template variables with caching"""
+        from app.models import Season
+        
+        if not hasattr(g, 'db_session'):
+            return {'current_seasons': {}}
+
+        session = g.db_session
+        seasons = session.query(Season).filter_by(is_current=True).all()
+        return {
+            'current_seasons': {
+                s.league_type: s for s in seasons
+            }
+        }
 
     def _clear_request_context(self):
         """Clear all request-specific attributes"""
@@ -93,48 +121,84 @@ class RequestLifecycle:
             except (AttributeError, TypeError):
                 pass
 
-    @lru_cache(maxsize=32)
-    def _get_template_vars(self):
-        from app.db_management import db_manager
-        """Cache and return template variables."""
-        from app.models import Season
-        with db_manager.session_scope('get_template_vars') as session:
-            return {
-                'current_seasons': {
-                    league_type: session.query(Season).filter_by(
-                        league_type=league_type, 
-                        is_current=True
-                    ).first()
-                    for league_type in ['Pub League', 'ECS FC']
-                }
-            }
-
-    def register_cleanup(self, cleanup_func):
-        """Register a cleanup function to run at request end."""
+    def register_cleanup(self, cleanup_func: Callable):
+        """Register a cleanup function to run at request end"""
         if has_app_context() and not getattr(g, '_bypass_db', False):
             if not hasattr(g, '_cleanups'):
-                g._cleanups = []  # Initialize `g._cleanups` if missing
+                g._cleanups = []
             g._cleanups.append(cleanup_func)
 
-    def register_before_request(self, handler):
-        """Add a before-request handler."""
+    def register_before_request(self, handler: Callable):
+        """Add a before-request handler"""
         self.before_request_handlers.append(handler)
 
-    def register_after_request(self, handler):
-        """Add an after-request handler."""
+    def register_after_request(self, handler: Callable):
+        """Add an after-request handler"""
         self.after_request_handlers.append(handler)
 
-    def log_db_operation(self, operation, duration, sql_query=None):
-        """Log database operation timing with additional details."""
+    def log_db_operation(self, operation: str, duration: float, sql_query: Optional[str] = None):
+        """Log database operation timing with details"""
         if has_app_context() and not getattr(g, '_bypass_db', False):
             if not hasattr(g, '_db_operations'):
                 g._db_operations = []
-            g._db_operations.append({
+            
+            operation_data = {
                 'operation': operation,
                 'duration': duration,
                 'timestamp': time.time(),
-                'sql_query': sql_query  # Log query details if available
-            })
-        logger.debug(f"DB Operation: {operation}, Duration: {duration:.2f}s, Query: {sql_query}")
+                'sql_query': sql_query,
+                'session_id': getattr(g, '_session_id', None)
+            }
+            
+            g._db_operations.append(operation_data)
+            self._db_operation_log.append(operation_data)
+            
+            logger.debug(
+                f"DB Operation: {operation}, Duration: {duration:.2f}s, "
+                f"Query: {sql_query}, Session: {getattr(g, '_session_id', None)}"
+            )
+
+    def log_request_performance(self, response):
+        """Log detailed request performance metrics"""
+        if not getattr(g, '_bypass_db', False):
+            try:
+                duration = time.time() - g._request_start_time
+                db_ops = len(getattr(g, '_db_operations', []))
+                
+                metrics = {
+                    'path': request.path,
+                    'method': request.method,
+                    'duration': f"{duration:.3f}s",
+                    'db_operations': db_ops,
+                    'status_code': response.status_code,
+                    'session_id': getattr(g, '_session_id', None),
+                    'cache_hits': getattr(g, '_cache_hits', 0),
+                    'cache_misses': getattr(g, '_cache_misses', 0),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+                
+                if duration > 1.0:
+                    logger.warning(f"Slow request detected: {metrics}")
+                else:
+                    logger.info(f"Request performance: {metrics}")
+                
+                return metrics
+                
+            except Exception as e:
+                logger.error(f"Error logging request performance: {e}")
+                return None
+
+    def get_request_stats(self) -> Dict[str, Any]:
+        """Get current request statistics"""
+        return {
+            'db_operations': len(self._db_operation_log),
+            'cache_hits': getattr(g, '_cache_hits', 0),
+            'cache_misses': getattr(g, '_cache_misses', 0),
+            'active_handlers': {
+                'cleanup': len(self.cleanup_handlers),
+                'before_request': len(self.before_request_handlers),
+                'after_request': len(self.after_request_handlers)
+            }
+        }
 
 request_lifecycle = RequestLifecycle()

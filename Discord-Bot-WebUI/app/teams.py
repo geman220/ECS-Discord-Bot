@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, g
 from flask_wtf.csrf import validate_csrf, CSRFError
 from collections import defaultdict
 from datetime import datetime
@@ -6,8 +6,6 @@ from sqlalchemy.orm import selectinload
 from flask_login import login_required
 from app.utils.user_helpers import safe_current_user
 import logging
-
-from app.decorators import handle_db_operation, query_operation
 from app.models import (
     Team, Player, League, Season, Match, Standings,
     PlayerEventType, PlayerEvent
@@ -21,36 +19,37 @@ teams_bp = Blueprint('teams', __name__)
 
 @teams_bp.route('/<int:team_id>', endpoint='team_details')
 @login_required
-@query_operation
 def team_details(team_id):
-    team = Team.query.get_or_404(team_id)
-    league = League.query.get(team.league_id)
+    session = g.db_session
+    team = session.query(Team).get(team_id)
+    if not team:
+        flash('Team not found.', 'danger')
+        return redirect(url_for('teams.teams_overview'))
+
+    league = session.query(League).get(team.league_id)
     season = league.season if league else None
-    players = Player.query.filter_by(team_id=team_id).all()
+    players = session.query(Player).filter_by(team_id=team_id).all()
     report_form = ReportMatchForm()
 
-    # Fetch all matches for detailed schedule with eager loading
-    all_matches = Match.query.options(
+    # Fetch all matches with eager loading
+    all_matches = session.query(Match).options(
         selectinload(Match.home_team).joinedload(Team.players),
         selectinload(Match.away_team).joinedload(Team.players)
     ).filter(
-        (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
-        (Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id))
+        ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
+        ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
     ).order_by(Match.date.asc()).all()
 
-    # Group the schedule by date and prepare player choices
     schedule = defaultdict(list)
-    player_choices = {}  # Dictionary to store player choices for each match
+    player_choices = {}
 
     for match in all_matches:
-        home_team_name = match.home_team.name
-        away_team_name = match.away_team.name
+        home_team_name = match.home_team.name if match.home_team else 'Unknown'
+        away_team_name = match.away_team.name if match.away_team else 'Unknown'
 
-        # Get all players from both teams
-        home_team_players = {p.id: p.name for p in match.home_team.players}
-        away_team_players = {p.id: p.name for p in match.away_team.players}
+        home_team_players = {p.id: p.name for p in match.home_team.players} if match.home_team else {}
+        away_team_players = {p.id: p.name for p in match.away_team.players} if match.away_team else {}
 
-        # Store player choices for this match
         player_choices[match.id] = {
             home_team_name: home_team_players,
             away_team_name: away_team_players
@@ -63,7 +62,6 @@ def team_details(team_id):
             your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
             opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
 
-        # Determine match result
         if your_team_score != 'N/A' and opponent_score != 'N/A':
             if your_team_score > opponent_score:
                 result_text = 'W'
@@ -84,7 +82,7 @@ def team_details(team_id):
             'id': match.id,
             'time': match.time,
             'location': match.location,
-            'opponent_name': match.away_team.name if match.home_team_id == team_id else match.home_team.name,
+            'opponent_name': away_team_name if match.home_team_id == team_id else home_team_name,
             'home_team_name': home_team_name,
             'away_team_name': away_team_name,
             'home_team_id': match.home_team_id,
@@ -97,7 +95,6 @@ def team_details(team_id):
             'reported': match.reported,
         })
 
-    # Determine the next upcoming match date
     next_match_date = None
     if schedule:
         today = datetime.today().date()
@@ -124,58 +121,57 @@ def team_details(team_id):
 
 @teams_bp.route('/', endpoint='teams_overview')
 @login_required
-@query_operation
 def teams_overview():
-    teams = Team.query.order_by(Team.name).all()
+    session = g.db_session
+    teams = session.query(Team).order_by(Team.name).all()
     return render_template('teams_overview.html', teams=teams)
 
 @teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
 @login_required
-@handle_db_operation()
 def report_match(match_id):
+    session = g.db_session
     logger.info(f"Starting report_match for Match ID: {match_id}")
-    match = Match.query.get_or_404(match_id)
-    
+    match = session.query(Match).get(match_id)
+    if not match:
+        flash('Match not found.', 'danger')
+        return redirect(url_for('teams.teams_overview'))
+
     if request.method == 'GET':
         try:
-            # Map event types to the expected frontend field names
             event_mapping = {
                 PlayerEventType.GOAL: 'goal_scorers',
                 PlayerEventType.ASSIST: 'assist_providers',
                 PlayerEventType.YELLOW_CARD: 'yellow_cards',
                 PlayerEventType.RED_CARD: 'red_cards'
             }
-            
-            # Initialize with empty arrays for all event types
+
             data = {
                 'goal_scorers': [],
                 'assist_providers': [],
                 'yellow_cards': [],
                 'red_cards': [],
-                'home_team_score': match.home_team_score or 0,  # Default to 0 if None
-                'away_team_score': match.away_team_score or 0,  # Default to 0 if None
-                'notes': match.notes or ''  # Default to empty string if None
+                'home_team_score': match.home_team_score or 0,
+                'away_team_score': match.away_team_score or 0,
+                'notes': match.notes or ''
             }
-            
-            # Fetch and populate events
+
             for event_type, field_name in event_mapping.items():
-                events = PlayerEvent.query.filter_by(
+                events = session.query(PlayerEvent).filter_by(
                     match_id=match.id,
                     event_type=event_type
                 ).all()
-                
                 data[field_name] = [
                     {
                         'id': event.id,
                         'player_id': event.player_id,
-                        'minute': event.minute or ''  # Default to empty string if None
+                        'minute': event.minute or ''
                     }
                     for event in events
                 ]
-            
+
             logger.debug(f"Returning match data: {data}")
             return jsonify(data), 200
-            
+
         except Exception as e:
             logger.exception(f"Error fetching match data: {e}")
             return jsonify({'success': False, 'message': 'An error occurred.'}), 500
@@ -199,21 +195,21 @@ def report_match(match_id):
         old_away_score = match.away_team_score
 
         try:
-            match.home_team_score = int(data.get('home_team_score', match.home_team_score))
-            match.away_team_score = int(data.get('away_team_score', match.away_team_score))
+            match.home_team_score = int(data.get('home_team_score', match.home_team_score or 0))
+            match.away_team_score = int(data.get('away_team_score', match.away_team_score or 0))
         except ValueError:
             return jsonify({'success': False, 'message': 'Invalid score values.'}), 400
 
         match.notes = data.get('notes', match.notes)
 
         # Process events
-        process_events(match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove')
-        process_events(match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
-        process_events(match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
-        process_events(match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
+        process_events(g.db_session, match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove')
+        process_events(g.db_session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
+        process_events(g.db_session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
+        process_events(g.db_session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
 
         # Update standings
-        update_standings(match, old_home_score, old_away_score)
+        update_standings(g.db_session, match, old_home_score, old_away_score)
         logger.info(f"Match ID {match_id} reported successfully.")
 
         return jsonify({'success': True}), 200
@@ -222,15 +218,15 @@ def report_match(match_id):
 
 @teams_bp.route('/standings', endpoint='view_standings')
 @login_required
-@query_operation
 def view_standings():
-    season = Season.query.filter_by(is_current=True, league_type='Pub League').first()
+    session = g.db_session
+    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     if not season:
         flash('No current season found.', 'warning')
         return redirect(url_for('home.index'))
 
     def get_standings(league_name):
-        return Standings.query.join(Team).join(League).filter(
+        return session.query(Standings).join(Team).join(League).filter(
             Standings.season_id == season.id,
             Team.id == Standings.team_id,
             League.id == Team.league_id,

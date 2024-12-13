@@ -1,14 +1,13 @@
 # app/tasks/monitoring_tasks.py
 
 from app import create_app
-from app.core import celery, db
-from app.db_management import db_manager
+from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
 from datetime import datetime
 import logging
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
-# Configure logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()  # Or FileHandler('worker.log') to log to a file
@@ -22,13 +21,18 @@ def collect_db_stats():
     logger.info("Starting collect_db_stats task")
     app = celery.flask_app
     logger.info("Created Flask app")
+    
     with app.app_context():
         logger.info("Entered app context")
+        session = app.SessionLocal()
         try:
-            # Test database connection using text()
-            db.session.execute(text('SELECT 1'))
+            # Test database connection
+            session.execute(text('SELECT 1'))
             logger.info("Database connection successful")
 
+            # Retrieve in-memory detailed stats from db_manager
+            # Assuming `db_manager` is globally imported or accessible
+            from app.db_management import db_manager
             stats = db_manager.get_detailed_stats()
             logger.info("Collected database stats")
 
@@ -42,10 +46,17 @@ def collect_db_stats():
             )
             logger.info("Created DBMonitoringSnapshot instance")
 
-            db.session.add(snapshot)
-            db.session.commit()
+            session.add(snapshot)
+            session.commit()
             logger.info("Database stats collected and saved successfully")
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error collecting DB stats: {e}", exc_info=True)
+
+        except SQLAlchemyError as e:
+            logger.error(f"Database error collecting DB stats: {e}", exc_info=True)
+            session.rollback()
             raise
+        except Exception as e:
+            logger.error(f"Error collecting DB stats: {e}", exc_info=True)
+            session.rollback()
+            raise
+        finally:
+            session.close()

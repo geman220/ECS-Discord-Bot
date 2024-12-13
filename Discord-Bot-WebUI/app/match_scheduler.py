@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 import logging
 from typing import Dict, Any, Optional, List
+from flask import g
 from redis import Redis
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
-from app.decorators import handle_db_operation, query_operation
 
 logger = logging.getLogger(__name__)
 
@@ -18,22 +18,19 @@ class MatchScheduler:
     def __init__(self):
         self.redis = RedisManager().client
 
-    @query_operation
     def _get_match(self, match_id: int) -> Optional[MLSMatch]:
-        """Get match with proper session management."""
-        return MLSMatch.query.get(match_id)
+        session = g.db_session
+        return session.query(MLSMatch).get(match_id)
 
-    @handle_db_operation()
     def _update_match_schedule(self, match_id: int, thread_time: datetime) -> Optional[MLSMatch]:
-        """Update match scheduling details with proper session management."""
-        match = MLSMatch.query.get(match_id)
+        session = g.db_session
+        match = session.query(MLSMatch).get(match_id)
         if match:
             match.thread_creation_time = thread_time
             match.live_reporting_scheduled = True
         return match
         
     def schedule_match_tasks(self, match_id: int) -> Dict[str, Any]:
-        """Schedule both thread creation and live reporting for a match."""
         try:
             # Test Redis connection
             try:
@@ -75,7 +72,7 @@ class MatchScheduler:
             if reporting_task_info['scheduled']:
                 tasks_scheduled.append('live_reporting')
         
-            # Update match record with proper session management
+            # Update match record
             updated_match = self._update_match_schedule(match_id, thread_time)
             if not updated_match:
                 logger.error("Failed to update match record")
@@ -108,7 +105,6 @@ class MatchScheduler:
 
     def _schedule_thread_task(self, match_id: int, thread_time: datetime) -> Dict[str, Any]:
         from app.tasks.tasks_live_reporting import force_create_mls_thread_task
-        """Schedule thread creation task with proper error handling."""
         thread_key = self._get_redis_key(str(match_id), "thread")
         logger.info(f"Checking thread Redis key: {thread_key}")
         
@@ -141,7 +137,6 @@ class MatchScheduler:
 
     def _schedule_reporting_task(self, match_id: int, reporting_time: datetime) -> Dict[str, Any]:
         from app.tasks.tasks_live_reporting import start_live_reporting
-        """Schedule live reporting task with proper error handling."""
         reporting_key = self._get_redis_key(str(match_id), "reporting")
         logger.info(f"Checking reporting Redis key: {reporting_key}")
         
@@ -173,11 +168,9 @@ class MatchScheduler:
             }
     
     def _get_redis_key(self, match_id: str, task_type: str) -> str:
-        """Generate Redis key for scheduled task."""
         return f"{self.REDIS_KEY_PREFIX}{match_id}:{task_type}"
 
     def _verify_redis_keys(self, match_id: int) -> Dict[str, Any]:
-        """Verify Redis keys for a match's scheduled tasks."""
         thread_key = self._get_redis_key(str(match_id), "thread")
         reporting_key = self._get_redis_key(str(match_id), "reporting")
         
@@ -189,20 +182,15 @@ class MatchScheduler:
         }
 
     def monitor_scheduled_tasks(self) -> Dict[str, Any]:
-        """Monitor currently scheduled tasks in Redis."""
         try:
             all_keys = self.redis.keys(f"{self.REDIS_KEY_PREFIX}*")
             scheduled_tasks = self._process_redis_keys(all_keys)
-            
-            # Get associated matches with proper session management
-            @query_operation
-            def get_matches(match_ids: List[str]) -> List[MLSMatch]:
-                return MLSMatch.query.filter(MLSMatch.match_id.in_(match_ids)).all()
-            
-            match_ids = list(scheduled_tasks.keys())
-            matches = get_matches(match_ids)
         
-            # Add match details
+            match_ids = list(scheduled_tasks.keys())
+
+            session = g.db_session
+            matches = session.query(MLSMatch).filter(MLSMatch.match_id.in_(match_ids)).all()
+    
             for match in matches:
                 match_id = str(match.match_id)
                 if match_id in scheduled_tasks:
@@ -213,13 +201,13 @@ class MatchScheduler:
                         'live_reporting_scheduled': match.live_reporting_scheduled,
                         'live_reporting_status': match.live_reporting_status
                     }
-        
+    
             return {
                 'success': True,
                 'scheduled_tasks': scheduled_tasks,
                 'total_keys': len(all_keys)
             }
-        
+    
         except Exception as e:
             logger.error(f"Error monitoring scheduled tasks: {str(e)}", exc_info=True)
             return {
@@ -228,7 +216,6 @@ class MatchScheduler:
             }
 
     def _process_redis_keys(self, keys: List[bytes]) -> Dict[str, Dict]:
-        """Process Redis keys and return structured task information."""
         scheduled_tasks = {}
         for key in keys:
             key_str = key.decode('utf-8')

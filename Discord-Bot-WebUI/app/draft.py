@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app as app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app as app, g, abort
 from flask_login import login_required
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Session
 from app.models import League, Player, Team, Season, PlayerSeasonStats
-from app.decorators import role_required, handle_db_operation, query_operation
+from app.decorators import role_required
 from app.routes import get_current_season_and_year
 from app.core import socketio
 from flask_socketio import emit
@@ -12,7 +12,6 @@ from app.db_utils import mark_player_for_discord_update
 import asyncio
 import logging
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
 draft = Blueprint('draft', __name__)
@@ -20,13 +19,13 @@ draft = Blueprint('draft', __name__)
 @draft.route('/classic', endpoint='draft_classic')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
-@query_operation
 def draft_classic():
+    session: Session = g.db_session
     try:
-        # Fetch the Classic league with eager loading
-        classic_league = League.query.options(
-            joinedload(League.teams)
-        ).filter_by(name='Classic').first()
+        classic_league = (session.query(League)
+                          .options(joinedload(League.teams))
+                          .filter_by(name='Classic')
+                          .first())
         
         if not classic_league:
             flash('Classic league not found.', 'danger')
@@ -34,45 +33,44 @@ def draft_classic():
 
         teams = classic_league.teams
 
-        # Get current season
         current_season_name, current_year = get_current_season_and_year()
-        current_season = Season.query.filter_by(name=current_season_name).first()
+        current_season = session.query(Season).filter_by(name=current_season_name).first()
 
         if not current_season:
             flash('Current season not found.', 'danger')
             return redirect(url_for('main.index'))
 
-        # Use eager loading for available players
-        available_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter_by(
-            league_id=classic_league.id,
-            team_id=None
-        ).order_by(Player.name.asc()).all()
+        available_players = (session.query(Player)
+                             .options(
+                                 joinedload(Player.career_stats),
+                                 joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                                 joinedload(Player.team)
+                             )
+                             .filter_by(league_id=classic_league.id, team_id=None)
+                             .order_by(Player.name.asc())
+                             .all())
 
-        # Force load relationships
         for player in available_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Get drafted players with eager loading
-        drafted_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter(
-            Player.league_id == classic_league.id,
-            Player.team_id.isnot(None)
-        ).order_by(Player.name.asc()).all()
+        drafted_players = (session.query(Player)
+                           .options(
+                               joinedload(Player.career_stats),
+                               joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                               joinedload(Player.team)
+                           )
+                           .filter(
+                               Player.league_id == classic_league.id,
+                               Player.team_id.isnot(None)
+                           )
+                           .order_by(Player.name.asc())
+                           .all())
 
-        # Force load relationships
         for player in drafted_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Organize drafted players
         drafted_players_by_team = {team.id: [] for team in teams}
         for player in drafted_players:
             if player.team_id in drafted_players_by_team:
@@ -95,57 +93,56 @@ def draft_classic():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_premier():
+    session: Session = g.db_session
     try:
-        # Fetch the Premier league with eager loading of teams
-        premier_league = League.query.options(
-            joinedload(League.teams)
-        ).filter_by(name='Premier').first()
+        premier_league = (session.query(League)
+                          .options(joinedload(League.teams))
+                          .filter_by(name='Premier')
+                          .first())
         
         if not premier_league:
             flash('Premier league not found.', 'danger')
             return redirect(url_for('main.index'))
 
         teams = premier_league.teams
-
-        # Fetch the current season
         current_season_name, current_year = get_current_season_and_year()
-        season = Season.query.filter_by(name=current_season_name).first()
+        season = session.query(Season).filter_by(name=current_season_name).first()
         
         if not season:
             flash('Current season not found.', 'danger')
             return redirect(url_for('main.index'))
 
-        # Fetch available players with eager loading
-        available_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter_by(
-            league_id=premier_league.id, 
-            team_id=None
-        ).order_by(Player.name.asc()).all()
+        available_players = (session.query(Player)
+                             .options(
+                                 joinedload(Player.career_stats),
+                                 joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                                 joinedload(Player.team)
+                             )
+                             .filter_by(league_id=premier_league.id, team_id=None)
+                             .order_by(Player.name.asc())
+                             .all())
 
-        # Force load relationships
         for player in available_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Fetch drafted players with eager loading
-        drafted_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter(
-            Player.league_id == premier_league.id,
-            Player.team_id.isnot(None)
-        ).order_by(Player.name.asc()).all()
+        drafted_players = (session.query(Player)
+                           .options(
+                               joinedload(Player.career_stats),
+                               joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                               joinedload(Player.team)
+                           )
+                           .filter(
+                               Player.league_id == premier_league.id,
+                               Player.team_id.isnot(None)
+                           )
+                           .order_by(Player.name.asc())
+                           .all())
 
-        # Force load relationships
         for player in drafted_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Organize drafted players by team
         drafted_players_by_team = {team.id: [] for team in teams}
         for player in drafted_players:
             if player.team_id in drafted_players_by_team:
@@ -167,59 +164,60 @@ def draft_premier():
 @draft.route('/ecs_fc', endpoint='draft_ecs_fc')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
-@query_operation
 def draft_ecs_fc():
+    session: Session = g.db_session
     try:
-        # Fetch ECS FC league with eager loading
-        ecs_fc_league = League.query.options(
-            joinedload(League.teams)
-        ).filter_by(name='ECS FC').first()
+        ecs_fc_league = (session.query(League)
+                         .options(joinedload(League.teams))
+                         .filter_by(name='ECS FC')
+                         .first())
 
         if not ecs_fc_league:
             flash('ECS FC league not found.', 'danger')
             return redirect(url_for('main.index'))
 
         teams = ecs_fc_league.teams
-
-        # Get current season
         current_season_name, current_year = get_current_season_and_year()
-        current_season = Season.query.filter_by(name=current_season_name).first()
+        current_season = session.query(Season).filter_by(name=current_season_name).first()
 
         if not current_season:
             flash('Current season not found.', 'danger')
             return redirect(url_for('main.index'))
 
-        # Use eager loading for available players
-        available_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter_by(
-            league_id=ecs_fc_league.id,
-            team_id=None
-        ).order_by(Player.name.asc()).all()
+        available_players = (session.query(Player)
+                             .options(
+                                 joinedload(Player.career_stats),
+                                 joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                                 joinedload(Player.team)
+                             )
+                             .filter_by(
+                                 league_id=ecs_fc_league.id,
+                                 team_id=None
+                             )
+                             .order_by(Player.name.asc())
+                             .all())
 
-        # Force load relationships
         for player in available_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Get drafted players with eager loading
-        drafted_players = Player.query.options(
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-            joinedload(Player.team)
-        ).filter(
-            Player.league_id == ecs_fc_league.id,
-            Player.team_id.isnot(None)
-        ).order_by(Player.name.asc()).all()
+        drafted_players = (session.query(Player)
+                           .options(
+                               joinedload(Player.career_stats),
+                               joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+                               joinedload(Player.team)
+                           )
+                           .filter(
+                               Player.league_id == ecs_fc_league.id,
+                               Player.team_id.isnot(None)
+                           )
+                           .order_by(Player.name.asc())
+                           .all())
 
-        # Force load relationships
         for player in drafted_players:
             _ = list(player.career_stats) if player.career_stats else []
             _ = list(player.season_stats) if player.season_stats else []
 
-        # Organize drafted players
         drafted_players_by_team = {team.id: [] for team in teams}
         for player in drafted_players:
             if player.team_id in drafted_players_by_team:
@@ -239,27 +237,40 @@ def draft_ecs_fc():
         return redirect(url_for('main.index'))
 
 @socketio.on('draft_player', namespace='/draft')
-@handle_db_operation(transaction_name="draft_player_transaction")
 def handle_draft_player(data):
+    session = app.SessionLocal()  # Create a new session explicitly
     try:
         player_id = data['player_id']
         team_id = data['team_id']
 
-        # Query player with eager loading
-        player = Player.query.options(
-            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season)
-        ).get_or_404(player_id)
-        
-        team = Team.query.get_or_404(team_id)
+        player = (session.query(Player)
+                  .options(joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season))
+                  .filter(Player.id == player_id)
+                  .first())
+        if not player:
+            emit('error', {'message': 'Player not found'}, broadcast=False)
+            session.rollback()
+            return
+
+        team = session.query(Team).filter_by(id=team_id).first()
+        if not team:
+            emit('error', {'message': 'Team not found'}, broadcast=False)
+            session.rollback()
+            return
+
         player.team_id = team_id
 
-        # Mark player for Discord update
-        mark_player_for_discord_update(player_id)
-        
-        # Queue role assignment task
+        mark_player_for_discord_update(session, player_id)
         assign_roles_to_player_task.delay(player_id)
 
-        # Emit socket event
+        current_season = session.query(Season).order_by(Season.id.desc()).first()
+        season_stats = (session.query(PlayerSeasonStats)
+                        .filter_by(player_id=player.id, season_id=current_season.id)
+                        .first() if current_season else None)
+
+        # Commit changes
+        session.commit()
+
         emit('player_drafted', {
             'player_id': player.id,
             'player_name': player.name,
@@ -275,39 +286,41 @@ def handle_draft_player(data):
 
     except Exception as e:
         logger.error(f"Error handling player draft: {str(e)}", exc_info=True)
+        session.rollback()
         emit('error', {'message': 'An error occurred while drafting the player'}, broadcast=False)
-        raise
+    finally:
+        session.close()  # Close the session in a finally block
 
 @socketio.on('remove_player', namespace='/draft')
-@handle_db_operation(transaction_name="remove_player_transaction")
 def handle_remove_player(data):
+    # Create a new session from the application's SessionLocal
+    session = app.SessionLocal()  
     try:
         player_id = data['player_id']
         team_id = data['team_id']
 
-        # Fetch the player and team from the database
-        player = Player.query.get(player_id)
-        team = Team.query.get(team_id)
+        player = session.query(Player).filter_by(id=player_id).first()
+        team = session.query(Team).filter_by(id=team_id).first()
 
         if player and team:
-            # Remove the role in Discord asynchronously
+            # Update player's team assignment
+            player.team_id = None
+            # Commit these changes before triggering role removal tasks
+            session.commit()
+
+            # Schedule role removal task after commit
             remove_player_roles_task.delay(player.id)
 
-            # Remove the player from the team
-            player.team_id = None
+            current_season = session.query(Season).order_by(Season.id.desc()).first()
+            season_stats = (session.query(PlayerSeasonStats)
+                            .filter_by(player_id=player.id, season_id=current_season.id)
+                            .first() if current_season else None)
 
-            # Fetch the current season
-            current_season = Season.query.order_by(Season.id.desc()).first()
-
-            # Fetch season-specific stats from PlayerSeasonStats
-            season_stats = PlayerSeasonStats.query.filter_by(player_id=player.id, season_id=current_season.id).first()
-
-            # Emit the player_removed event with player and team data
             emit('player_removed', {
                 'player_id': player.id,
                 'player_name': player.name,
-                'team_id': team.id,  # Including team_id for consistency
-                'team_name': team.name,  # Including team_name for consistency
+                'team_id': team.id,
+                'team_name': team.name,
                 'goals': season_stats.goals if season_stats else 0,
                 'assists': season_stats.assists if season_stats else 0,
                 'yellow_cards': season_stats.yellow_cards if season_stats else 0,
@@ -316,10 +329,14 @@ def handle_remove_player(data):
                 'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png'
             }, broadcast=True)
         else:
-            print(f"Player or team not found: Player ID {player_id}, Team ID {team_id}")
             emit('error', {'message': 'Player or team not found'}, broadcast=False)
 
     except Exception as e:
-        logger.error(f"Error handling player removal: {str(e)}")
+        # If there's an error, rollback the session
+        session.rollback()
+        logger.error(f"Error handling player removal: {str(e)}", exc_info=True)
         emit('error', {'message': 'An error occurred while removing the player'}, broadcast=False)
-        raise  # Reraise the exception for the decorator to handle rollback
+        raise
+    finally:
+        # Always close the session
+        session.close()

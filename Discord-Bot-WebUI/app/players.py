@@ -1,46 +1,34 @@
-from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
+from flask import current_app, Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify, g
 from flask_login import login_required
-from app.models import Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, PlayerEvent, PlayerEventType, user_roles
-from app.decorators import role_required, admin_or_owner_required, handle_db_operation, query_operation
-from app.woocommerce import fetch_orders_from_woocommerce
-from app.routes import get_current_season_and_year
-from app.forms import PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from app.utils.user_helpers import safe_current_user
-from app.db_management import db_manager
 from sqlalchemy import func, or_, and_
 from PIL import Image
-from app.core import db
 import logging
 
-from app.players_helpers import (
-    save_cropped_profile_picture,
-    create_user_for_player,
-    extract_player_info,
+from app.models import (
+    Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, 
+    PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, 
+    PlayerEvent, PlayerEventType, user_roles
 )
-from app.player_management_helpers import (
-    create_player_profile,
-    reset_current_players,
-    record_order_history
+from app.decorators import role_required, admin_or_owner_required
+from app.woocommerce import fetch_orders_from_woocommerce
+from app.routes import get_current_season_and_year
+from app.forms import (
+    PlayerProfileForm, SeasonStatsForm, CareerStatsForm, CreatePlayerForm, 
+    EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 )
-from app.order_helpers import (
-    extract_jersey_size_from_product_name,
-    determine_league
-)
-from app.stat_helpers import (
-    decrement_player_stats,
-)
+from app.utils.user_helpers import safe_current_user
+from app.players_helpers import save_cropped_profile_picture, create_user_for_player, extract_player_info
+from app.player_management_helpers import create_player_profile, reset_current_players, record_order_history
+from app.order_helpers import extract_jersey_size_from_product_name, determine_league
+from app.stat_helpers import decrement_player_stats
 from app.profile_helpers import (
-    handle_coach_status_update,
-    handle_ref_status_update,
-    handle_profile_update,
-    handle_season_stats_update,
-    handle_career_stats_update,
-    handle_add_stat_manually
+    handle_coach_status_update, handle_ref_status_update, handle_profile_update, 
+    handle_season_stats_update, handle_career_stats_update, handle_add_stat_manually
 )
+from app.db_management import db_manager
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
 players_bp = Blueprint('players', __name__)
@@ -48,46 +36,62 @@ players_bp = Blueprint('players', __name__)
 @players_bp.route('/', endpoint='view_players', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@query_operation
 def view_players():
     search_term = request.args.get('search', '').strip()
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 10  # or any desired number
 
-    base_query = db.session.query(Player).join(User)
+    session = g.db_session
+    base_query = session.query(Player).join(User)
 
     if search_term:
-        base_query = base_query.filter(or_(
-            Player.name.ilike(f'%{search_term}%'),
-            func.lower(User.email).ilike(f'%{search_term.lower()}%'),
-            and_(Player.phone.isnot(None), Player.phone.ilike(f'%{search_term}%')),
-            and_(Player.jersey_size.isnot(None), Player.jersey_size.ilike(f'%{search_term}%'))
-        ))
+        base_query = base_query.filter(
+            (Player.name.ilike(f'%{search_term}%')) |
+            (User.email.ilike(f'%{search_term}%')) |
+            (Player.phone.ilike(f'%{search_term}%')) |
+            (Player.jersey_size.ilike(f'%{search_term}%'))
+        )
 
-    players = base_query.paginate(page=page, per_page=per_page, error_out=False)
-    leagues = League.query.all()
-    jersey_sizes = sorted(set(size[0] for size in db.session.query(Player.jersey_size).distinct().all() if size[0]))
+    total = base_query.count()
+    players = base_query.offset((page - 1) * per_page).limit(per_page).all()
+    total_pages = (total + per_page - 1) // per_page
+
+    # Prepare pagination dictionary
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total': total,
+        'pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages,
+        'prev_num': page - 1 if page > 1 else None,
+        'next_num': page + 1 if page < total_pages else None
+    }
+
+    # Fetch leagues or jersey sizes as needed
+    leagues = session.query(League).all()
+    distinct_jersey_sizes = session.query(Player.jersey_size).distinct().all()
+    jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))
 
     return render_template(
         'view_players.html',
         players=players,
         search_term=search_term,
         leagues=leagues,
-        jersey_sizes=jersey_sizes
+        jersey_sizes=jersey_sizes,
+        pagination=pagination
     )
 
 @players_bp.route('/update', endpoint='update_players', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def update_players():
+    session = g.db_session
     try:
-        # Step 1: Fetch current seasons
-        current_seasons = Season.query.filter_by(is_current=True).all()
+        current_seasons = session.query(Season).filter_by(is_current=True).all()
         if not current_seasons:
             raise Exception("No current seasons found in the database.")
 
-        # Step 2: Fetch orders from WooCommerce
         orders = fetch_orders_from_woocommerce(
             current_season_name='2024 Fall',
             filter_current_season=True,
@@ -97,56 +101,44 @@ def update_players():
 
         detected_players = set()
 
-        # Step 3: Reset current players
         reset_current_players(current_seasons)
 
-        # Step 4: Process each order individually
         for order in orders:
-            # Extract player info
             player_info = extract_player_info(order['billing'])
             if not player_info:
                 logger.warning(f"Could not extract player info for order ID {order['order_id']}. Skipping.")
                 continue
 
-            # Determine league
             product_name = order['product_name']
             league = determine_league(product_name, current_seasons)
             if not league:
                 logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
                 continue
 
-            # Extract jersey size from product name
             jersey_size = extract_jersey_size_from_product_name(product_name)
             player_info['jersey_size'] = jersey_size
 
-            # Create or update user
             user = create_user_for_player(player_info)
 
             try:
-                # Create or update player profile
                 player = create_player_profile(player_info, league, user)
                 detected_players.add(player.id)
 
-                # Update player's primary league and other leagues
                 if not player.primary_league:
                     player.primary_league = league
-                elif league.name in ['Classic', 'Premier', 'ECS FC']:
-                    if player.primary_league.name != league.name:
-                        if player.primary_league not in player.other_leagues:
-                            player.other_leagues.append(player.primary_league)
-                        player.primary_league = league
                 else:
-                    if league not in player.other_leagues:
-                        player.other_leagues.append(league)
+                    if league.name in ['Classic', 'Premier', 'ECS FC']:
+                        # Update primary league based on priority if needed
+                        current_priority = ['Classic', 'Premier', 'ECS FC']
+                        if current_priority.index(league.name) < current_priority.index(player.primary_league.name):
+                            if player.primary_league not in player.other_leagues:
+                                player.other_leagues.append(player.primary_league)
+                            player.primary_league = league
+                    else:
+                        if league not in player.other_leagues:
+                            player.other_leagues.append(league)
 
-                db.session.add(player)
-
-            except IntegrityError as ie:
-                logger.warning(f"Duplicate player-league association for player '{player_info['name']}' and league '{league.name}'. Skipping.")
-                continue
-
-            # Record order history
-            if player:
+                session.add(player)
                 record_order_history(
                     order_id=order['order_id'],
                     player_id=player.id,
@@ -155,9 +147,12 @@ def update_players():
                     profile_count=order['quantity']
                 )
 
-        # Step 5: Mark all non-detected players as inactive
+            except IntegrityError as ie:
+                logger.warning(f"Duplicate player-league association for player '{player_info['name']}' and league '{league.name}'. Skipping.")
+                continue
+
         current_league_ids = [league.id for season in current_seasons for league in season.leagues]
-        all_players = Player.query.filter(Player.league_id.in_(current_league_ids)).all()
+        all_players = session.query(Player).filter(Player.league_id.in_(current_league_ids)).all()
         for player in all_players:
             if player.id not in detected_players:
                 player.is_current_player = False
@@ -166,7 +161,7 @@ def update_players():
     except Exception as e:
         logger.error(f"An error occurred while updating players: {e}", exc_info=True)
         flash(f"An error occurred: {str(e)}", "danger")
-        raise  # Let the decorator handle the rollback
+        raise
 
     flash("Players updated successfully.", "success")
     return redirect(url_for('players.view_players'))
@@ -174,19 +169,17 @@ def update_players():
 @players_bp.route('/create_player', endpoint='create_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def create_player():
+    session = g.db_session
     form = CreatePlayerForm()
-    # Manually populate form data since we're not using Flask-WTF in the modal
     form.name.data = request.form.get('name')
     form.email.data = request.form.get('email')
     form.phone.data = request.form.get('phone')
     form.jersey_size.data = request.form.get('jersey_size')
     form.league_id.data = request.form.get('league_id')
 
-    # Set the choices for the SelectFields
-    leagues = League.query.all()
-    distinct_jersey_sizes = db.session.query(Player.jersey_size).distinct().all()
+    leagues = session.query(League).all()
+    distinct_jersey_sizes = session.query(Player.jersey_size).distinct().all()
     jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))
 
     form.jersey_size.choices = [(size, size) for size in jersey_sizes]
@@ -194,7 +187,6 @@ def create_player():
 
     if form.validate():
         try:
-            # Get form data
             player_data = {
                 'name': form.name.data,
                 'email': form.email.data.lower(),
@@ -202,12 +194,9 @@ def create_player():
                 'jersey_size': form.jersey_size.data
             }
             league_id = form.league_id.data
-            league = League.query.get(league_id)
+            league = session.query(League).get(league_id)
 
-            # Create or update user using composite matching
             user = create_user_for_player(player_data)
-
-            # Create or update player profile using composite matching
             player = create_player_profile(player_data, league, user)
 
             flash('Player created or updated successfully.', 'success')
@@ -220,100 +209,85 @@ def create_player():
     else:
         flash('Form validation failed. Please check your inputs.', 'danger')
 
-    # If form validation fails or an error occurs, redirect back to the player list
     return redirect(url_for('players.view_players'))
 
 @players_bp.route('/profile/<int:player_id>', endpoint='player_profile', methods=['GET', 'POST'])
 @login_required
-@query_operation
 def player_profile(player_id):
+    session = g.db_session
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
-    
+
+    # Use .get() instead of get_or_404 and handle the None case
+    player = session.query(Player).options(
+        joinedload(Player.team).joinedload(Team.league).joinedload(League.season),
+        joinedload(Player.user).joinedload(User.roles),
+        joinedload(Player.career_stats),
+        joinedload(Player.season_stats),
+        joinedload(Player.events).joinedload(PlayerEvent.match),
+        joinedload(Player.events).joinedload(PlayerEvent.player)
+    ).get(player_id)
+
+    if not player:
+        abort(404)  # Player not found
+
     try:
-        # Load player with all necessary relationships
-        player = Player.query.options(
-            joinedload(Player.team).joinedload(Team.league).joinedload(League.season),
-            joinedload(Player.user).joinedload(User.roles),
-            joinedload(Player.career_stats),
-            joinedload(Player.season_stats),
-            joinedload(Player.events).joinedload(PlayerEvent.match),
-            joinedload(Player.events).joinedload(PlayerEvent.player)
-        ).get_or_404(player_id)
-        
         events = list(player.events)
-        matches = list(set(event.match for event in events)) 
+        matches = list(set(event.match for event in events))
         user = player.user
-        
-        # Get current season info
+
         current_season_name, current_year = get_current_season_and_year()
-        season = Season.query.filter_by(name=current_season_name).first()
+        season = session.query(Season).filter_by(name=current_season_name).first()
         if not season:
             flash('Current season not found.', 'danger')
-            return redirect(url_for('home'))
-            
-        # Load matches with proper relationship name (events, not player_events)
-        matches = Match.query.join(
-            PlayerEvent
-        ).options(
+            return redirect(url_for('main.index'))
+
+        matches = session.query(Match).join(PlayerEvent).options(
             joinedload(Match.home_team),
             joinedload(Match.away_team),
-            joinedload(Match.events)  # Fixed relationship name
+            joinedload(Match.events)
         ).filter(
             PlayerEvent.player_id == player_id
         ).all()
-        
-        # Get jersey sizes
-        jersey_sizes = db.session.query(Player.jersey_size)\
-            .distinct()\
-            .filter(Player.jersey_size.isnot(None))\
-            .order_by(Player.jersey_size)\
-            .all()
+
+        jersey_sizes = session.query(Player.jersey_size).distinct().all()
         jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
-        
-        # Get Classic league
-        classic_league = League.query.filter_by(name='Classic').first()
+
+        classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
             flash('Classic league not found', 'danger')
             return redirect(url_for('players.player_profile', player_id=player.id))
-        
-        # Load or create season stats
-        season_stats = PlayerSeasonStats.query.filter_by(
-            player_id=player_id, 
+
+        season_stats = session.query(PlayerSeasonStats).filter_by(
+            player_id=player_id,
             season_id=season.id
         ).first()
-        
         if not season_stats:
             season_stats = PlayerSeasonStats(player_id=player_id, season_id=season.id)
-            db.session.add(season_stats)
-        
-        # Load or create career stats
+            session.add(season_stats)
+
         if not player.career_stats:
             new_career_stats = PlayerCareerStats(player_id=player.id)
             player.career_stats = [new_career_stats]
-            db.session.add(new_career_stats)
-        
-        # Setup access control flags
+            session.add(new_career_stats)
+
         is_classic_league_player = player.league_id == classic_league.id
         is_player = player.user_id == safe_current_user.id
         is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in safe_current_user.roles)
-        
-        # Form handling
+
         form = PlayerProfileForm(obj=player)
         form.jersey_size.choices = jersey_size_choices
-        
+
         if request.method == 'GET':
             form.email.data = user.email
-            form.other_positions.data = player.other_positions.split(',') if player.other_positions else []
-            form.positions_not_to_play.data = player.positions_not_to_play.split(',') if player.positions_not_to_play else []
-            
+            form.other_positions.data = player.other_positions.strip('{}').split(',') if player.other_positions else []
+            form.positions_not_to_play.data = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else []
+
             if is_classic_league_player and hasattr(form, 'team_swap'):
                 form.team_swap.data = player.team_swap
-        
-        # Initialize stats forms for admins
+
         season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
         career_stats_form = CareerStatsForm(obj=player.career_stats[0]) if is_admin and player.career_stats else None
-        
-        # Handle POST requests
+
         if request.method == 'POST':
             if is_admin and 'update_coach_status' in request.form:
                 return handle_coach_status_update(player, user)
@@ -327,11 +301,11 @@ def player_profile(player_id):
                 return handle_career_stats_update(player, career_stats_form)
             elif is_admin and 'add_stat_manually' in request.form:
                 return handle_add_stat_manually(player)
-        
-        audit_logs = PlayerStatAudit.query.filter_by(player_id=player_id)\
+
+        audit_logs = session.query(PlayerStatAudit).filter_by(player_id=player_id)\
             .order_by(PlayerStatAudit.timestamp.desc())\
             .all()
-        
+
         return render_template(
             'player_profile.html',
             player=player,
@@ -355,10 +329,10 @@ def player_profile(player_id):
 
 @players_bp.route('/add_stat_manually/<int:player_id>', endpoint='add_stat_manually', methods=['POST'])
 @login_required
-@handle_db_operation()
-def add_stat_manually(player_id):
-    player = Player.query.get_or_404(player_id)
-    
+def add_stat_manually_route(player_id):
+    session = g.db_session
+    player = session.query(Player).get_or_404(player_id)
+
     if not safe_current_user.has_role('Pub League Admin') and not safe_current_user.has_role('Global Admin'):
         flash('You do not have permission to perform this action.', 'danger')
         return redirect(url_for('players.player_profile', player_id=player_id))
@@ -377,25 +351,22 @@ def add_stat_manually(player_id):
     except ValueError as e:
         flash('Invalid input values provided.', 'danger')
         raise
-    
+
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/api/player_profile/<int:player_id>', endpoint='api_player_profile', methods=['GET'])
 @login_required
-@query_operation
 def api_player_profile(player_id):
-    player = Player.query.get_or_404(player_id)
+    session = g.db_session
+    player = session.query(Player).get_or_404(player_id)
     current_season_name, current_year = get_current_season_and_year()
-    season = Season.query.filter_by(name=current_season_name).first()
+    season = session.query(Season).filter_by(name=current_season_name).first()
 
-    # Fetch the season stats for the current season
-    season_stats = PlayerSeasonStats.query.filter_by(player_id=player_id, season_id=season.id).first()
+    season_stats = session.query(PlayerSeasonStats).filter_by(player_id=player_id, season_id=season.id).first()
 
-    # Helper function to get the friendly value from choices
     def get_friendly_value(value, choices):
         return dict(choices).get(value, value)
 
-    # Constructing the profile data with friendly values
     profile_data = {
         'profile_picture_url': player.profile_picture_url,
         'name': player.name,
@@ -417,17 +388,18 @@ def api_player_profile(player_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def get_needs_review_count():
-    count = Player.query.filter_by(needs_manual_review=True).count()
+    session = g.db_session
+    count = session.query(Player).filter_by(needs_manual_review=True).count()
     return jsonify({'count': count})
 
 @players_bp.route('/admin/review', endpoint='admin_review', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def admin_review():
-    players_needing_review = Player.query.filter_by(needs_manual_review=True).all()
-    admins = User.query.join(user_roles).join(Role).filter(Role.name.in_(['Pub League Admin', 'Global Admin'])).all()
-    
+    session = g.db_session
+    players_needing_review = session.query(Player).filter_by(needs_manual_review=True).all()
+    admins = session.query(User).join(user_roles).join(Role).filter(Role.name.in_(['Pub League Admin', 'Global Admin'])).all()
+
     for admin in admins:
         notification = Notification(
             user_id=admin.id,
@@ -435,14 +407,14 @@ def admin_review():
             notification_type='warning',
             icon='ti-alert-triangle'
         )
-        db.session.add(notification)
+        session.add(notification)
 
     return render_template('admin_review.html', players=players_needing_review)
 
 @players_bp.route('/create-profile', endpoint='create_profile', methods=['POST'])
 @login_required
-@handle_db_operation()
 def create_profile():
+    session = g.db_session
     form = PlayerProfileForm()
     if form.validate_on_submit():
         player = Player(
@@ -466,7 +438,7 @@ def create_profile():
             team_id=form.team_id.data,
             league_id=form.league_id.data
         )
-        db.session.add(player)
+        session.add(player)
         flash('Player profile created successfully!', 'success')
         return redirect(url_for('main.index'))
 
@@ -476,54 +448,48 @@ def create_profile():
 @players_bp.route('/edit_match_stat/<int:stat_id>', endpoint='edit_match_stat', methods=['GET', 'POST'])
 @login_required
 def edit_match_stat(stat_id):
+    session = g.db_session
     if request.method == 'GET':
-        # Use db_manager's session_scope for read operation
-        with db_manager.session_scope(transaction_name='read_match_stat'):
-            match_stat = PlayerEvent.query.get_or_404(stat_id)
-            return jsonify({
-                'goals': match_stat.goals,
-                'assists': match_stat.assists,
-                'yellow_cards': match_stat.yellow_cards,
-                'red_cards': match_stat.red_cards,
-            })
-            
+        match_stat = session.query(PlayerEvent).get_or_404(stat_id)
+        return jsonify({
+            'goals': match_stat.goals,
+            'assists': match_stat.assists,
+            'yellow_cards': match_stat.yellow_cards,
+            'red_cards': match_stat.red_cards,
+        })
+
     if request.method == 'POST':
-        # Use db_manager's session_scope for write operation
-        with db_manager.session_scope(transaction_name='update_match_stat') as session:
-            try:
-                match_stat = PlayerEvent.query.get_or_404(stat_id)
-                match_stat.goals = request.form.get('goals', 0)
-                match_stat.assists = request.form.get('assists', 0)
-                match_stat.yellow_cards = request.form.get('yellow_cards', 0)
-                match_stat.red_cards = request.form.get('red_cards', 0)
-                return jsonify({'success': True})
-            except (SQLAlchemyError, ValueError) as e:
-                current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
-                return jsonify({'success': False}), 500
+        try:
+            match_stat = session.query(PlayerEvent).get_or_404(stat_id)
+            match_stat.goals = request.form.get('goals', 0)
+            match_stat.assists = request.form.get('assists', 0)
+            match_stat.yellow_cards = request.form.get('yellow_cards', 0)
+            match_stat.red_cards = request.form.get('red_cards', 0)
+            return jsonify({'success': True})
+        except (SQLAlchemyError, ValueError) as e:
+            current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
+            return jsonify({'success': False}), 500
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', endpoint='remove_match_stat', methods=['POST'])
 @login_required
-@handle_db_operation()
 def remove_match_stat(stat_id):
+    session = g.db_session
     try:
-        match_stat = PlayerEvent.query.get_or_404(stat_id)
-        
-        # Capture info before deletion
+        match_stat = session.query(PlayerEvent).get_or_404(stat_id)
         player_id = match_stat.player_id
         event_type = match_stat.event_type
 
         current_app.logger.info(f"Removing stat for Player ID: {player_id}, Event Type: {event_type}, Stat ID: {stat_id}")
 
-        # Decrement stats and remove the event
         decrement_player_stats(player_id, event_type)
-        db.session.delete(match_stat)
+        session.delete(match_stat)
 
         current_app.logger.info(f"Successfully removed stat for Player ID: {player_id}, Stat ID: {stat_id}")
         return jsonify({'success': True})
     
     except SQLAlchemyError as e:
         current_app.logger.error(f"Error deleting match stat {stat_id}: {str(e)}")
-        raise  # Let the decorator handle the rollback
+        raise
     except Exception as e:
         current_app.logger.error(f"Unexpected error deleting match stat {stat_id}: {str(e)}")
         return jsonify({'success': False}), 500
@@ -531,9 +497,9 @@ def remove_match_stat(stat_id):
 @players_bp.route('/player/<int:player_id>/upload_profile_picture', endpoint='upload_profile_picture', methods=['POST'])
 @login_required
 @admin_or_owner_required
-@handle_db_operation()
 def upload_profile_picture(player_id):
-    player = Player.query.get_or_404(player_id)
+    session = g.db_session
+    player = session.query(Player).get_or_404(player_id)
 
     cropped_image_data = request.form.get('cropped_image_data')
     if not cropped_image_data:
@@ -546,21 +512,21 @@ def upload_profile_picture(player_id):
         flash('Profile picture updated successfully!', 'success')
     except Exception as e:
         flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
-        raise  # Let the decorator handle the rollback
+        raise
 
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/delete_player/<int:player_id>', endpoint='delete_player', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def delete_player(player_id):
+    session = g.db_session
     try:
-        player = Player.query.get_or_404(player_id)
+        player = session.query(Player).get_or_404(player_id)
         user = player.user
 
-        db.session.delete(player)
-        db.session.delete(user)
+        session.delete(player)
+        session.delete(user)
 
         flash('Player and user account deleted successfully.', 'success')
         return redirect(url_for('players.view_players'))
@@ -568,14 +534,14 @@ def delete_player(player_id):
     except SQLAlchemyError as e:
         current_app.logger.error(f"Error deleting player {player_id}: {str(e)}")
         flash('An error occurred while deleting the player. Please try again.', 'danger')
-        raise  # Let the decorator handle the rollback
+        raise
 
 @players_bp.route('/edit_player/<int:player_id>', endpoint='edit_player', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def edit_player(player_id):
-    player = Player.query.get_or_404(player_id)
+    session = g.db_session
+    player = session.query(Player).get_or_404(player_id)
     form = EditPlayerForm(obj=player)
 
     if request.method == 'GET':

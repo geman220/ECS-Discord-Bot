@@ -1,76 +1,84 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort
 from flask_login import login_required
-from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
-from app.decorators import role_required, handle_db_operation, query_operation
-from datetime import datetime, date, time 
+from datetime import datetime, date, time
 from collections import defaultdict
 from sqlalchemy.orm import joinedload
-from sqlalchemy import cast, Integer, text
+from sqlalchemy import cast, Integer
 from typing import List
 import logging
 
-# Get the logger for this module
+from app.decorators import role_required
+from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
+
 logger = logging.getLogger(__name__)
 
 schedule_bp = Blueprint('schedule', __name__)
 
-@query_operation
 def get_related_matches(schedule_id: int) -> List[Match]:
     """Get all matches related to a schedule."""
-    return Match.query.filter(
+    session = g.db_session
+    base_schedule = session.query(Schedule).get(schedule_id)
+    if not base_schedule:
+        return []
+    return session.query(Match).filter(
         (Match.schedule_id == schedule_id) |
-        (Match.schedule.has(Schedule.opponent == Schedule.query.get(schedule_id).team_id))
+        (Match.schedule.has(Schedule.opponent == base_schedule.team_id))
     ).all()
 
-@handle_db_operation()
-def update_match_records(schedule: Schedule, date: date, time: time, 
-                        location: str, team_a_id: int, team_b_id: int) -> None:
+def update_match_records(session, schedule: Schedule, match_date: date, match_time: time, 
+                         location: str, team_a_id: int, team_b_id: int) -> None:
     """Update or create match records for a schedule."""
     try:
-        matches = Match.query.filter_by(schedule_id=schedule.id).all()
-        
+        matches = session.query(Match).filter_by(schedule_id=schedule.id).all()
+
         if not matches:
             new_match = Match(
-                date=date,
-                time=time,
+                date=match_date,
+                time=match_time,
                 location=location,
                 home_team_id=team_a_id,
                 away_team_id=team_b_id,
                 schedule_id=schedule.id
             )
-            Match.query.session.add(new_match)
+            session.add(new_match)
         else:
             for match in matches:
-                match.date = date
-                match.time = time
+                match.date = match_date
+                match.time = match_time
                 match.location = location
                 match.home_team_id = team_a_id
                 match.away_team_id = team_b_id
-                
+
         logger.info(f"Successfully updated match records for schedule {schedule.id}")
-        
+
     except Exception as e:
         logger.error(f"Error updating match records for schedule {schedule.id}: {str(e)}")
         raise
 
-@query_operation
-def get_season_and_league(season_id, league_name=None):
+def get_season_and_league(session, season_id, league_name=None):
     """Helper function to get season and league."""
-    season = Season.query.get_or_404(season_id)
-    league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404() if league_name else None
+    season = session.query(Season).get(season_id)
+    if not season:
+        abort(404)
+
+    league = None
+    if league_name:
+        league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
+        if not league:
+            abort(404)
+
     return season, league
 
-def format_match_schedule(matches):
+def format_match_schedule(session, matches):
     """Helper function to format match schedules."""
     schedule = {}
     displayed_matches = set()
 
     for match in matches:
-        # Ensure the relationship is loaded correctly
         if not match.team:
             continue
 
-        opponent_team = Team.query.get(int(match.opponent))
+        opponent_team = session.query(Team).get(int(match.opponent))
         if not opponent_team:
             continue
 
@@ -104,7 +112,7 @@ def format_match_schedule(matches):
         formatted_time = match.time.strftime('%I:%M %p')
 
         schedule[match.week]['matches'].append({
-            'id': match.id,  # Added this line - include the actual match ID
+            'id': match.id,
             'team_a': match.team.name,
             'team_a_id': match.team.id,
             'team_b': opponent_team.name,
@@ -115,29 +123,21 @@ def format_match_schedule(matches):
 
     return schedule
 
-@handle_db_operation()
-def handle_add_match(season_id, league_name, week):
+def handle_add_match(session, season_id, league_name, week):
     """Add a new match with proper session management."""
     try:
-        @query_operation
-        def get_league_and_teams():
-            league = League.query.filter_by(name=league_name, season_id=season_id).first()
-            if not league:
-                return None, None, None
-            team_a = Team.query.filter_by(name=request.form.get('teamA'), league_id=league.id).first()
-            team_b = Team.query.filter_by(name=request.form.get('teamB'), league_id=league.id).first()
-            return league, team_a, team_b
-
-        league, team_a, team_b = get_league_and_teams()
-        
+        league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
         if not league:
             flash('League not found.', 'danger')
             return
-            
+
+        team_a = session.query(Team).filter_by(name=request.form.get('teamA'), league_id=league.id).first()
+        team_b = session.query(Team).filter_by(name=request.form.get('teamB'), league_id=league.id).first()
+
         if not (team_a and team_b):
             flash('One or both teams not found.', 'danger')
             return
-            
+
         new_match = Schedule(
             week=week,
             date=request.form.get('date'),
@@ -146,19 +146,17 @@ def handle_add_match(season_id, league_name, week):
             team_id=team_a.id,
             opponent=team_b.id
         )
-        db.session.add(new_match)
+        session.add(new_match)
         flash(f'Match {team_a.name} vs {team_b.name} added successfully.', 'success')
-        
+
     except Exception as e:
         logger.error(f"Error adding match: {e}")
         flash('Error occurred while adding the match.', 'danger')
         raise
 
-# Helper function to handle week deletion
-@handle_db_operation()
-def handle_delete_week(season_id, week):
+def handle_delete_week(session, season_id, week):
     try:
-        Schedule.query.filter_by(week=str(week)).delete()
+        session.query(Schedule).filter_by(week=str(week), season_id=season_id).delete()
         flash(f'Week {week} and all its matches have been deleted.', 'success')
     except Exception as e:
         logger.error(f"Error deleting week {week}: {e}")
@@ -168,10 +166,13 @@ def handle_delete_week(season_id, week):
 @schedule_bp.route('/publeague/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def manage_publeague_schedule(season_id):
-    season = Season.query.get_or_404(season_id)
-    leagues = League.query.filter_by(season_id=season_id).all()
+    session = g.db_session
+    season = session.query(Season).get(season_id)
+    if not season:
+        abort(404)
+
+    leagues = session.query(League).filter_by(season_id=season_id).all()
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -179,9 +180,9 @@ def manage_publeague_schedule(season_id):
         week = request.form.get('week')
 
         if action == 'add':
-            handle_add_match(season_id, league_name, week)
+            handle_add_match(session, season_id, league_name, week)
         elif action == 'delete':
-            handle_delete_week(season_id, week)
+            handle_delete_week(session, season_id, week)
 
         flash(f'Action "{action}" performed successfully.', 'success')
         return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
@@ -201,24 +202,24 @@ def manage_publeague_schedule(season_id):
     for league in leagues:
         league_schedule = []
         for team in league.teams:
-            # Fetch matches where the team is team_a (home team)
-            matches_a = Schedule.query.filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
+            matches_a = session.query(Schedule).filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches_a)
-            # Fetch matches where the team is team_b (away team)
-            matches_b = Schedule.query.filter_by(opponent=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
+            matches_b = session.query(Schedule).filter_by(opponent=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches_b)
-        # Format the schedule for the league
-        schedule_data[league.name] = format_match_schedule(league_schedule)
+        schedule_data[league.name] = format_match_schedule(session, league_schedule)
 
     return render_template('manage_publeague_schedule.html', season=season, leagues=serialized_leagues, schedule=schedule_data)
 
 @schedule_bp.route('/ecsfc/<int:season_id>/schedule', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def manage_ecsfc_schedule(season_id):
-    season = Season.query.get_or_404(season_id)
-    leagues = League.query.filter_by(season_id=season_id).all()
+    session = g.db_session
+    season = session.query(Season).get(season_id)
+    if not season:
+        abort(404)
+
+    leagues = session.query(League).filter_by(season_id=season_id).all()
 
     leagues_data = []
     for league in leagues:
@@ -229,41 +230,44 @@ def manage_ecsfc_schedule(season_id):
         }
         leagues_data.append(league_info)
 
-    # Additional logic for schedule data
     schedule_data = {}
     for league in leagues:
         league_schedule = []
         for team in league.teams:
-            matches = Schedule.query.filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
+            matches = session.query(Schedule).filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
             league_schedule.extend(matches)
-        schedule_data[league.name] = format_match_schedule(league_schedule)
+        schedule_data[league.name] = format_match_schedule(session, league_schedule)
 
     return render_template('manage_ecsfc_schedule.html', season=season, leagues=leagues_data, schedule=schedule_data)
 
 @schedule_bp.route('/publeague/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def bulk_create_publeague_matches(season_id, league_name):
+    session = g.db_session
+    season = session.query(Season).get(season_id)
+    if not season:
+        abort(404)
+
+    league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
+    if not league:
+        abort(404)
+
     try:
-        season = Season.query.get_or_404(season_id)
-        league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
-        
         total_weeks = int(request.form.get('total_weeks', 0))
         matches_per_week = int(request.form.get('matches_per_week', 0))
-        
+
         if total_weeks == 0 or matches_per_week == 0:
             flash("Total Weeks and Matches Per Week are required fields.", 'danger')
             return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
         fun_week = request.form.get('fun_week')
         tst_week = request.form.get('tst_week')
-        matches = []  # Collect all matches
 
         for week in range(1, total_weeks + 1):
             if str(week) in [fun_week, tst_week]:
                 continue
-                
+
             week_date = request.form.get(f'date_week{week}')
             if not week_date:
                 flash(f"Date for Week {week} is missing.", 'danger')
@@ -272,53 +276,55 @@ def bulk_create_publeague_matches(season_id, league_name):
             for match_num in range(1, matches_per_week + 1):
                 team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
                 team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
-                time = request.form.get(f'time_week{week}_match{match_num}')
+                t = request.form.get(f'time_week{week}_match{match_num}')
                 location = request.form.get(f'location_week{week}_match{match_num}')
 
-                if team_a_id and team_b_id and time and location:
-                    matches.extend([
-                        Schedule(
-                            week=str(week),
-                            date=week_date,
-                            time=time,
-                            opponent=team_b_id,
-                            location=location,
-                            team_id=team_a_id
-                        ),
-                        Schedule(
-                            week=str(week),
-                            date=week_date,
-                            time=time,
-                            opponent=team_a_id,
-                            location=location,
-                            team_id=team_b_id
-                        )
-                    ])
+                if team_a_id and team_b_id and t and location:
+                    schedule_a = Schedule(
+                        week=str(week),
+                        date=week_date,
+                        time=t,
+                        opponent=team_b_id,
+                        location=location,
+                        team_id=team_a_id
+                    )
+                    session.add(schedule_a)
 
-        # Return matches - decorator will handle session
-        return matches
+                    schedule_b = Schedule(
+                        week=str(week),
+                        date=week_date,
+                        time=t,
+                        opponent=team_a_id,
+                        location=location,
+                        team_id=team_b_id
+                    )
+                    session.add(schedule_b)
+
+        flash(f'Bulk matches created for {league_name} league', 'success')
+        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
     except Exception as e:
         logger.error(f"Error creating bulk matches: {e}")
         flash('Error occurred while creating bulk matches.', 'danger')
-        raise
+        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
 
 @schedule_bp.route('/ecsfc/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def bulk_create_ecsfc_matches(season_id, league_name):
-    """Bulk create matches with proper session management."""
-    @query_operation
-    def validate_season_and_league():
-        season = Season.query.get_or_404(season_id)
-        league = League.query.filter_by(name=league_name, season_id=season_id).first_or_404()
-        return season, league
+    session = g.db_session
+    season = session.query(Season).get(season_id)
+    if not season:
+        abort(404)
+
+    league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
+    if not league:
+        abort(404)
 
     try:
-        season, league = validate_season_and_league()
         total_weeks = int(request.form.get('total_weeks', 0))
         matches_per_week = int(request.form.get('matches_per_week', 0))
-        
+
         if total_weeks == 0 or matches_per_week == 0:
             flash("Total Weeks and Matches Per Week are required fields.", 'danger')
             return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
@@ -326,7 +332,6 @@ def bulk_create_ecsfc_matches(season_id, league_name):
         fun_week = request.form.get('fun_week')
         tst_week = request.form.get('tst_week')
 
-        @handle_db_operation()
         def create_week_matches(week):
             week_date = request.form.get(f'date_week{week}')
             if not week_date:
@@ -335,31 +340,29 @@ def bulk_create_ecsfc_matches(season_id, league_name):
             for match_num in range(1, matches_per_week + 1):
                 team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
                 team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
-                time = request.form.get(f'time_week{week}_match{match_num}')
+                t = request.form.get(f'time_week{week}_match{match_num}')
                 location = request.form.get(f'location_week{week}_match{match_num}')
-                
-                if all([team_a_id, team_b_id, time, location]):
-                    # Create match for team A
+
+                if all([team_a_id, team_b_id, t, location]):
                     schedule_a = Schedule(
                         week=str(week),
                         date=week_date,
-                        time=time,
+                        time=t,
                         opponent=team_b_id,
                         location=location,
                         team_id=team_a_id
                     )
-                    db.session.add(schedule_a)
+                    session.add(schedule_a)
 
-                    # Create match for team B
                     schedule_b = Schedule(
                         week=str(week),
                         date=week_date,
-                        time=time,
+                        time=t,
                         opponent=team_a_id,
                         location=location,
                         team_id=team_b_id
                     )
-                    db.session.add(schedule_b)
+                    session.add(schedule_b)
 
         for week in range(1, total_weeks + 1):
             if str(week) in [fun_week, tst_week]:
@@ -380,11 +383,10 @@ def bulk_create_ecsfc_matches(season_id, league_name):
 
 @schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def edit_match(match_id):
+    session = g.db_session
     """Edit match and related records."""
     try:
-        # Validate input data
         required_fields = ['date', 'time', 'location', 'team_a', 'team_b', 'week']
         if not all(field in request.form for field in required_fields):
             return jsonify({
@@ -393,8 +395,8 @@ def edit_match(match_id):
             }), 400
 
         try:
-            date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            time = datetime.strptime(request.form['time'], '%H:%M').time()
+            match_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            match_time = datetime.strptime(request.form['time'], '%H:%M').time()
         except ValueError as e:
             return jsonify({
                 'success': False,
@@ -406,8 +408,7 @@ def edit_match(match_id):
         team_b_id = request.form['team_b']
         week = request.form['week']
 
-        # Get Schedule record
-        schedule = Schedule.query.get(match_id)
+        schedule = session.query(Schedule).get(match_id)
         if not schedule:
             return jsonify({
                 'success': False,
@@ -415,8 +416,8 @@ def edit_match(match_id):
             }), 404
 
         # Update Schedule record
-        schedule.date = date
-        schedule.time = time
+        schedule.date = match_date
+        schedule.time = match_time
         schedule.location = location
         schedule.team_id = team_a_id
         schedule.opponent = team_b_id
@@ -425,42 +426,43 @@ def edit_match(match_id):
         objects_to_process = [schedule]
 
         # Update or create Match record
-        match = Match.query.filter_by(schedule_id=match_id).first()
+        match = session.query(Match).filter_by(schedule_id=match_id).first()
         if not match:
             match = Match(
                 schedule_id=match_id,
-                date=date,
-                time=time,
+                date=match_date,
+                time=match_time,
                 location=location,
                 home_team_id=team_a_id,
                 away_team_id=team_b_id
             )
-            objects_to_process.append(match)
+            session.add(match)
         else:
-            match.date = date
-            match.time = time
+            match.date = match_date
+            match.time = match_time
             match.location = location
             match.home_team_id = team_a_id
             match.away_team_id = team_b_id
-            objects_to_process.append(match)
+
+        objects_to_process.append(match)
 
         # Update paired schedule if it exists
-        paired_schedule = Schedule.query.filter_by(
+        paired_schedule = session.query(Schedule).filter_by(
             team_id=team_b_id,
             opponent=team_a_id,
             week=week
         ).first()
 
         if paired_schedule:
-            paired_schedule.date = date
-            paired_schedule.time = time
+            paired_schedule.date = match_date
+            paired_schedule.time = match_time
             paired_schedule.location = location
             objects_to_process.append(paired_schedule)
 
-            paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
+            paired_match = session.query(Match).filter_by(schedule_id=paired_schedule.id).first()
             if paired_match:
-                paired_match.date = date
-                paired_match.time = time
+                paired_match.date = match_date
+                paired_match.time = match_time
                 paired_match.location = location
                 paired_match.home_team_id = team_b_id
                 paired_match.away_team_id = team_a_id
@@ -481,65 +483,61 @@ def edit_match(match_id):
 @schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def delete_match(match_id):
+    session = g.db_session
     """Delete match and related records."""
     try:
         logger.info(f"Attempting to delete match {match_id}")
-        
-        # Get all records to delete
-        schedule = Schedule.query.get_or_404(match_id)
-        objects_to_delete = []  # We'll build this in correct order
-        
-        # First get the matches and their scheduled messages
-        match = Match.query.filter_by(schedule_id=match_id).first()
+
+        schedule = session.query(Schedule).get(match_id)
+        if not schedule:
+            abort(404)
+
+        objects_to_delete = []
+
+        match = session.query(Match).filter_by(schedule_id=match_id).first()
         if match:
-            # Get and mark scheduled messages for deletion first
-            scheduled_messages = ScheduledMessage.query.filter_by(match_id=match.id).all()
+            scheduled_messages = session.query(ScheduledMessage).filter_by(match_id=match.id).all()
             for msg in scheduled_messages:
                 msg.deleted = True
                 objects_to_delete.append(msg)
-            
+
             match.deleted = True
             objects_to_delete.append(match)
-        
+
         # Get paired records
-        paired_schedule = Schedule.query.filter_by(
+        paired_schedule = session.query(Schedule).filter_by(
             team_id=schedule.opponent,
             opponent=schedule.team_id,
             week=schedule.week
         ).first()
-        
+
         if paired_schedule:
-            paired_match = Match.query.filter_by(schedule_id=paired_schedule.id).first()
+            paired_match = session.query(Match).filter_by(schedule_id=paired_schedule.id).first()
             if paired_match:
-                # Get and mark paired match's scheduled messages
-                paired_messages = ScheduledMessage.query.filter_by(match_id=paired_match.id).all()
+                paired_messages = session.query(ScheduledMessage).filter_by(match_id=paired_match.id).all()
                 for msg in paired_messages:
                     msg.deleted = True
                     objects_to_delete.append(msg)
-                
+
                 paired_match.deleted = True
                 objects_to_delete.append(paired_match)
-                
-            # Mark paired schedule for deletion after its match
+
             paired_schedule.deleted = True
             objects_to_delete.append(paired_schedule)
-            
-        # Mark original schedule for deletion last
+
         schedule.deleted = True
         objects_to_delete.append(schedule)
-            
+
         logger.info(f"Successfully marked match {match_id} and related records for deletion")
-        
-        # Return both the objects to delete and the response
+
         response = jsonify({
             'success': True,
             'message': 'Match deleted successfully'
         })
-        
+
         return objects_to_delete, response
-        
+
     except Exception as e:
         logger.error(f"Error deleting match {match_id}: {str(e)}")
         return jsonify({
@@ -550,10 +548,10 @@ def delete_match(match_id):
 @schedule_bp.route('/<string:league_type>/<int:season_id>/delete_week/<int:week_number>', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def delete_week(league_type, season_id, week_number):
+    session = g.db_session
     try:
-        Schedule.query.filter_by(week=str(week_number), season_id=season_id).delete()
+        session.query(Schedule).filter_by(week=str(week_number), season_id=season_id).delete()
         flash(f'Week {week_number} and all its matches have been deleted.', 'success')
     except Exception as e:
         logger.error(f"Error deleting week {week_number}: {e}")
@@ -566,31 +564,28 @@ def delete_week(league_type, season_id, week_number):
         return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
 @schedule_bp.route('/fetch_schedule', methods=['GET'])
-@query_operation
 def fetch_schedule():
     """Fetch schedule with team filtering capability."""
+    session = g.db_session
     team_id = request.args.get('team_id')
     league_id = request.args.get('league_id')
-    
-    query = Schedule.query
+
+    query = session.query(Schedule)
 
     if team_id:
-        query = query.filter(
-            (Schedule.team_id == team_id) | (Schedule.opponent == team_id)
-        )
+        query = query.filter((Schedule.team_id == team_id) | (Schedule.opponent == team_id))
     if league_id:
         query = query.join(Team).filter(Team.league_id == league_id)
 
     schedules = query.all()
-    return jsonify([schedule.to_dict() for schedule in schedules])
+    return jsonify([s.to_dict() for s in schedules])
 
 @schedule_bp.route('/add_match', methods=['POST'])
 @role_required(['Pub League Admin', 'Global Admin'])
-@handle_db_operation()
 def add_match():
     """Add a new match and its related records."""
+    session = g.db_session
     try:
-        # Validate required fields
         required_fields = ['week', 'date', 'time', 'location', 'team_a', 'team_b']
         if not all(field in request.form for field in required_fields):
             return jsonify({
@@ -599,8 +594,8 @@ def add_match():
             }), 400
 
         try:
-            date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            time = datetime.strptime(request.form['time'], '%H:%M').time()
+            match_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            match_time = datetime.strptime(request.form['time'], '%H:%M').time()
         except ValueError as e:
             return jsonify({
                 'success': False,
@@ -612,11 +607,10 @@ def add_match():
         team_a_id = request.form['team_a']
         team_b_id = request.form['team_b']
 
-        # Create records - let decorator handle session management
         schedule_a = Schedule(
             week=week,
-            date=date,
-            time=time,
+            date=match_date,
+            time=match_time,
             location=location,
             team_id=team_a_id,
             opponent=team_b_id
@@ -624,16 +618,16 @@ def add_match():
 
         schedule_b = Schedule(
             week=week,
-            date=date,
-            time=time,
+            date=match_date,
+            time=match_time,
             location=location,
             team_id=team_b_id,
             opponent=team_a_id
         )
 
         match = Match(
-            date=date,
-            time=time,
+            date=match_date,
+            time=match_time,
             location=location,
             home_team_id=team_a_id,
             away_team_id=team_b_id,

@@ -2,6 +2,7 @@
 from flask_login import current_user
 from werkzeug.local import LocalProxy
 from sqlalchemy.orm.exc import DetachedInstanceError
+from sqlalchemy.orm import joinedload
 from flask import has_app_context, g
 from functools import wraps
 import logging
@@ -34,57 +35,49 @@ class UserWrapper:
             if name == 'has_role':
                 return lambda *args, **kwargs: False
             return None
-            
         return getattr(self._user, name)
 
 def get_user():
     """
     Get current user with coordinated session handling.
-    Uses existing session from blueprint if available.
+    Uses existing g.db_session if available.
     """
-    from app.core import db  # Import here to avoid circular dependency
-    
     if not has_app_context():
+        # No app context, return anonymous user
         return UserWrapper()
         
     try:
         # Use cached user if available
         if hasattr(g, '_safe_current_user'):
             return g._safe_current_user
-            
-        # Check if we're already in a session from blueprint
-        if hasattr(g, 'db_session') and g.db_session.is_active:
-            session = g.db_session
-        else:
-            # Create nested session if needed
-            session = db.session
-            
+
+        # If user is not authenticated, return anonymous wrapper
         if not current_user.is_authenticated:
             user = UserWrapper()
         else:
-            try:
-                if session.is_active:
+            # If current_user is authenticated, we need a session to merge or load the user
+            session = getattr(g, 'db_session', None)
+            if session is None:
+                # No database session available, fallback to anonymous
+                logger.error("No database session available to load authenticated user.")
+                user = UserWrapper()
+            else:
+                # Attempt to reattach current_user to the session
+                try:
                     user = UserWrapper(session.merge(current_user))
-                else:
+                except DetachedInstanceError:
+                    # If current_user is detached, reload from DB
                     from app.models import User, Role
-                    user = UserWrapper(
-                        User.query.options(
-                            db.joinedload(User.roles).joinedload(Role.permissions)
-                        ).get(current_user.id)
-                    )
-            except DetachedInstanceError:
-                from app.models import User, Role
-                user = UserWrapper(
-                    User.query.options(
-                        db.joinedload(User.roles).joinedload(Role.permissions)
+                    db_user = session.query(User).options(
+                        joinedload(User.roles).joinedload(Role.permissions)
                     ).get(current_user.id)
-                )
-        
+                    user = UserWrapper(db_user)
+
         g._safe_current_user = user
         return user
             
     except Exception as e:
-        logger.error(f"Error getting safe user: {e}")
+        logger.error(f"Error getting safe user: {e}", exc_info=True)
         return UserWrapper()
 
 # Create LocalProxy for lazy loading of user
@@ -96,7 +89,7 @@ def cleanup_user_data():
         if hasattr(g, '_safe_current_user'):
             delattr(g, '_safe_current_user')
     except Exception as e:
-        logger.error(f"Error cleaning up user data: {e}")
+        logger.error(f"Error cleaning up user data: {e}", exc_info=True)
 
 def with_safe_user():
     """Decorator to ensure safe user access in views"""

@@ -1,7 +1,6 @@
+from flask import g
 from app.models import Player, League, PlayerOrderHistory, User
-from app.decorators import handle_db_operation, query_operation
 from app.routes import get_current_season_and_year
-from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
@@ -19,12 +18,15 @@ from app.players_helpers import (
     match_player,
 )
 
-# Get the logger for this module
 logger = logging.getLogger(__name__)
 
-@handle_db_operation()
 def create_or_update_player(player_data, league, current_seasons, existing_main_player, existing_placeholders, total_line_items):
     """Create or update player with proper session management."""
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
     player_data['name'] = standardize_name(player_data['name'])
     player_data['email'] = player_data['email'].lower()
 
@@ -63,9 +65,9 @@ def create_or_update_player(player_data, league, current_seasons, existing_main_
 
         return main_player
 
-@handle_db_operation()
 def create_new_player(player_data, league, original_player_id=None, is_placeholder=False):
     """Create new player with proper session management."""
+    session = g.db_session
     if is_placeholder:
         placeholder_suffix = f"+{original_player_id}-{uuid.uuid4().hex[:6]}"
         name = f"{player_data['name']} {placeholder_suffix}"
@@ -75,7 +77,7 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         name = player_data['name']
         email, phone = player_data['email'], player_data['phone']
 
-    existing_user = User.query.filter_by(email=email).first()
+    existing_user = session.query(User).filter_by(email=email).first()
     if not existing_user:
         existing_user = User(
             username=generate_unique_username(name),
@@ -83,6 +85,8 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
             is_approved=False
         )
         existing_user.set_password(generate_random_password())
+        session.add(existing_user)
+        session.flush()  # To get the user.id
 
     new_player = Player(
         name=name,
@@ -94,21 +98,22 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         needs_manual_review=is_placeholder,
         linked_primary_player_id=original_player_id,
         order_id=player_data['order_id'],
-        user=existing_user  # Use relationship
+        user=existing_user
     )
-    
+    session.add(new_player)
+    session.flush()
     return new_player
 
-@handle_db_operation()
 def update_player_details(player, player_data):
     """Update player details with proper session management."""
     if not player:
         return None
 
+    session = g.db_session
     player.is_current_player = True
     player.phone = standardize_phone(player_data.get('phone', ''))
     player.jersey_size = player_data.get('jersey_size', '')
-    
+
     new_email = player_data.get('email', '').lower()
     if not player.user.email:
         player.user.email = new_email
@@ -121,10 +126,14 @@ def update_player_details(player, player_data):
 
     return player
 
-@handle_db_operation()
 def create_player_profile(player_data, league, user):
     """Create player profile with proper session management."""
-    @query_operation
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
+
     def find_existing_player():
         return match_player(player_data, league)
 
@@ -151,21 +160,27 @@ def create_player_profile(player_data, league, user):
             phone=standardize_phone(player_data.get('phone', '')),
             jersey_size=player_data.get('jersey_size', ''),
             primary_league=league,
-            user=user,  # Use relationship
+            user=user,
             is_current_player=True
         )
         player.other_leagues.append(league)
+        session.add(player)
+        session.flush()
         logger.info(f"Created new player profile '{player.name}' for user '{user.email}'.")
 
     return player
 
-@handle_db_operation()
 def create_user_and_player_profile(player_info, league):
     """Create user and player profile with proper session management."""
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
+
     try:
-        @query_operation
         def get_existing_user():
-            return User.query.filter(
+            return session.query(User).filter(
                 func.lower(User.email) == func.lower(player_info['email'])
             ).first()
 
@@ -179,13 +194,12 @@ def create_user_and_player_profile(player_info, league):
                 is_approved=True
             )
             user.set_password(random_password)
-            db.session.add(user)
-            db.session.flush()  # Get user.id for the player creation
+            session.add(user)
+            session.flush()
             logger.info(f"Created new user '{user.email}' with username '{user.username}'")
 
-        @query_operation
         def get_existing_player():
-            return Player.query.filter_by(
+            return session.query(Player).filter_by(
                 user_id=user.id, 
                 league_id=league.id
             ).first()
@@ -196,7 +210,6 @@ def create_user_and_player_profile(player_info, league):
             logger.info(f"Marked existing player '{existing_player.name}' as current")
             return existing_player
 
-        # Create new player
         new_player = Player(
             name=player_info['name'],
             phone=player_info['phone'],
@@ -205,7 +218,8 @@ def create_user_and_player_profile(player_info, league):
             user_id=user.id,
             is_current_player=True
         )
-        db.session.add(new_player)
+        session.add(new_player)
+        session.flush()
         logger.info(f"Created new player profile for '{new_player.name}'")
         return new_player
 
@@ -216,35 +230,36 @@ def create_user_and_player_profile(player_info, league):
         logger.error(f"Error creating player: {e}", exc_info=True)
         raise
 
-@handle_db_operation()
 def reset_current_players(current_seasons):
     """Reset current players with proper session management."""
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return 0
+
+    session = g.db_session
     try:
         season_ids = [season.id for season in current_seasons]
         logger.debug(f"Resetting players for seasons: {season_ids}")
-        
-        # Use a single update operation instead of querying first
-        updated_rows = Player.query.join(
-            League, 
-            Player.league_id == League.id
-        ).filter(
-            League.season_id.in_(season_ids),
-            Player.is_current_player == True
-        ).update(
-            {Player.is_current_player: False},
-            synchronize_session=False
-        )
-        
+
+        updated_rows = (session.query(Player)
+                        .join(League, Player.league_id == League.id)
+                        .filter(League.season_id.in_(season_ids), Player.is_current_player == True)
+                        .update({Player.is_current_player: False}, synchronize_session=False))
+
         logger.info(f"Reset {updated_rows} players")
         return updated_rows
     except Exception as e:
         logger.error(f"Error resetting players: {str(e)}", exc_info=True)
         raise
 
-@query_operation
 def fetch_existing_players(email):
     """Fetch players with proper session management."""
-    main_player = Player.query.filter_by(
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None, []
+
+    session = g.db_session
+    main_player = session.query(Player).filter_by(
         email=email.lower(), 
         linked_primary_player_id=None
     ).first()
@@ -252,29 +267,37 @@ def fetch_existing_players(email):
     if not main_player:
         return None, []
     
-    placeholders = Player.query.filter_by(
+    placeholders = session.query(Player).filter_by(
         linked_primary_player_id=main_player.id
     ).all()
     
     return main_player, placeholders
 
-@query_operation
 def check_if_order_processed(order_id, player_id, league_id, season_id):
     """Check order processing status with proper session management."""
-    return PlayerOrderHistory.query.filter_by(
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
+    return session.query(PlayerOrderHistory).filter_by(
         order_id=str(order_id),
         player_id=player_id,
         league_id=league_id,
         season_id=season_id
     ).first()
 
-@handle_db_operation()
 def record_order_history(order_id, player_id, league_id, season_id, profile_count):
     """Record order history with proper session management."""
     if not player_id:
-        logger.error(f"Cannot record order history: player_id is None")
+        logger.error("Cannot record order history: player_id is None")
         return None
-        
+
+    if not hasattr(g, 'db_session'):
+        logger.error("No db_session found in the request context.")
+        return None
+
+    session = g.db_session
     try:
         order_history = PlayerOrderHistory(
             player_id=player_id,
@@ -284,7 +307,8 @@ def record_order_history(order_id, player_id, league_id, season_id, profile_coun
             profile_count=profile_count,
             created_at=datetime.utcnow()
         )
-        # Decorator handles session management
+        session.add(order_history)
+        session.flush()
         return order_history
     except Exception as e:
         logger.error(f"Error recording order history: {str(e)}", exc_info=True)

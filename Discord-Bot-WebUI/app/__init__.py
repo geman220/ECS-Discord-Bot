@@ -6,6 +6,7 @@ import logging.config
 from datetime import datetime, timedelta
 
 from flask import Flask, request, session, redirect, url_for, render_template, flash, g
+from flask_assets import Environment
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
@@ -16,35 +17,32 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import redis
 import time
 
-# Import configuration and logging
 from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
 from app.models import User, Role
-from app.utils.db_utils import transactional
 from app.lifecycle import request_lifecycle
-
-# Import Flask-Migrate
+from app.assets import init_assets
 from flask_migrate import Migrate
 from werkzeug.routing import BuildError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, sessionmaker
 
 # Initialize Flask extensions
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
-migrate = Migrate()  # Now Migrate is defined
+migrate = Migrate()
 
 logger = logging.getLogger(__name__)
 
-# Import core extensions
 from app.core import db, socketio, configure_celery
-
-# Expose socketio at the package level
-__all__ = ['create_app', 'socketio']
 
 def create_app(config_object='web_config.Config'):
     app = Flask(__name__)
     app.config.from_object(config_object)
+    
+    assets = Environment(app)
+    app.config['FLASK_ASSETS_USE_CDN'] = False
+    init_assets(app)
 
     # Configure logging
     logging.config.dictConfig(LOGGING_CONFIG)
@@ -52,11 +50,9 @@ def create_app(config_object='web_config.Config'):
     if app.debug:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
-    # Ensure SECRET_KEY is set
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY must be set')
 
-    # Initialize Redis
     redis_client = redis.from_url(
         app.config['REDIS_URL'],
         decode_responses=True,
@@ -89,36 +85,34 @@ def create_app(config_object='web_config.Config'):
 
     app.redis = redis_client
 
-    # Configure database settings
     from app.database.config import configure_db_settings
     configure_db_settings(app)
 
-    # Initialize core extensions
     db.init_app(app)
 
-    # Delegate lifecycle management to lifecycle.py
+    # Only now do we create the engine and session factory inside the app context
+    with app.app_context():
+        # Use db.engine directly after init_app
+        engine = db.engine
+        SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+        app.SessionLocal = SessionLocal
+
     request_lifecycle.init_app(app, db)
 
-    # Add any custom before-request handlers (if needed)
     def custom_before_request():
         logger.debug(f"Custom logic for request: {request.path}")
 
     request_lifecycle.register_before_request(custom_before_request)
 
-    # Initialize other extensions
     login_manager.init_app(app)
     csrf.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
-
-    # Configure Celery
     app.celery = configure_celery(app)
 
-    # Add Flask-Login user loader
     @login_manager.user_loader
     def load_user(user_id):
         try:
-            # Fetch the user from the database
             return User.query.options(
                 joinedload(User.roles).joinedload(Role.permissions),
                 joinedload(User.notifications),
@@ -128,7 +122,6 @@ def create_app(config_object='web_config.Config'):
             logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None
 
-    # Initialize SocketIO
     socketio.init_app(
         app,
         message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
@@ -137,23 +130,16 @@ def create_app(config_object='web_config.Config'):
         cors_allowed_origins=app.config.get('CORS_ORIGINS', '*')
     )
 
-    # Initialize blueprints
     init_blueprints(app)
-
-    # Initialize context processors
     init_context_processors(app)
-
-    # Install error handlers
     install_error_handlers(app)
 
-    # Apply middlewares
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     if app.debug:
         app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
         logger.debug("Applied DebugMiddleware")
 
-    # Session configuration
     app.config.update({
         'SESSION_TYPE': 'redis',
         'SESSION_REDIS': session_redis,
@@ -163,33 +149,25 @@ def create_app(config_object='web_config.Config'):
     })
 
     Session(app)
-
-    # Enable CORS
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # Initialize JWT
     from flask_jwt_extended import JWTManager
     JWTManager(app)
 
-    # Global error handler
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
         return render_template("500.html"), 500
 
-    # Error handlers
     @app.errorhandler(401)
     def unauthorized(error):
         logger.debug("Unauthorized access attempt")
         next_url = request.path
-
         if not session.get('401_flash_shown'):
             flash('Please log in to access this page.', 'info')
             session['401_flash_shown'] = True
-
         if next_url != '/':
             session['next'] = next_url
-
         return redirect(url_for('auth.login'))
 
     @app.errorhandler(404)
@@ -197,11 +175,9 @@ def create_app(config_object='web_config.Config'):
         logger.debug(f"404 error for URL: {request.url}")
         if 'redirect_count' not in session:
             session['redirect_count'] = 0
-
-        if session['redirect_count'] > 3:  # Prevent loops
+        if session['redirect_count'] > 3:
             flash("Repeated redirects detected. Check your requested URL.", "error")
             return render_template("404.html"), 404
-
         session['redirect_count'] += 1
         return redirect('/')
 
@@ -216,12 +192,30 @@ def create_app(config_object='web_config.Config'):
         flash('An error occurred while redirecting. You have been returned to the home page.', 'error')
         return redirect('/')
 
+    @app.before_request
+    def before_request():
+        if not request.path.startswith('/static/'):
+            g.db_session = app.SessionLocal()
+
+    @app.teardown_request
+    def teardown_request(exception):
+        sess = getattr(g, 'db_session', None)
+        if sess is not None:
+            if exception is not None:
+                sess.rollback()
+            else:
+                try:
+                    sess.commit()
+                except:
+                    sess.rollback()
+                    raise
+            sess.close()
+            delattr(g, 'db_session')
+
     return app
 
 def init_blueprints(app):
     logger = logging.getLogger(__name__)
-
-    # Import blueprints
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp
     from app.draft import draft as draft_bp
@@ -242,7 +236,6 @@ def init_blueprints(app):
     from app.app_api import mobile_api
     from app.monitoring import monitoring_bp
 
-    # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
     app.register_blueprint(draft_bp, url_prefix='/draft')
@@ -269,10 +262,10 @@ def init_context_processors(app):
         user_roles = []
         user_permissions = []
 
-        if safe_current_user.is_authenticated:
+        if safe_current_user.is_authenticated and hasattr(g, 'db_session'):
             try:
-                # Ensure session-bound user object
-                user = db.session.query(User).options(
+                session = g.db_session
+                user = session.query(User).options(
                     joinedload(User.roles).joinedload(Role.permissions)
                 ).get(safe_current_user.id)
 
@@ -290,7 +283,7 @@ def init_context_processors(app):
 
         def has_permission(permission_name):
             return permission_name in user_permissions
-            
+
         def is_admin():
             return 'Global Admin' in user_roles or 'Pub League Admin' in user_roles
 
@@ -302,7 +295,7 @@ def init_context_processors(app):
         }
 
 def install_error_handlers(app):
-    # Define custom error handlers here
+    # Define custom error handlers here if needed
     pass
 
 class DebugMiddleware:

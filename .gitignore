@@ -19,6 +19,7 @@ env
 service-account-key.json
 Discord-Bot-WebUI/migrations/
 Discord-Bot-WebUI/app/static/img/uploads/
+Discord-Bot-WebUI/app/static/dist/*
 docker-compose.override.yml
 
 # Celery beat schedule
