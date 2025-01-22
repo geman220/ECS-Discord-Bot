@@ -8,7 +8,7 @@ from app.utils.user_helpers import safe_current_user
 import logging
 from app.models import (
     Team, Player, League, Season, Match, Standings,
-    PlayerEventType, PlayerEvent
+    PlayerEventType, PlayerEvent, PlayerTeamSeason
 )
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events
@@ -28,7 +28,26 @@ def team_details(team_id):
 
     league = session.query(League).get(team.league_id)
     season = league.season if league else None
-    players = session.query(Player).filter_by(team_id=team_id).all()
+    
+    # Get current players if this is the current season
+    current_players = session.query(Player).filter_by(team_id=team_id).all()
+    
+    # Get historical players for this team in this season
+    historical_players = []
+    if season:
+        historical_players = (
+            session.query(Player)
+            .join(PlayerTeamSeason, Player.id == PlayerTeamSeason.player_id)
+            .filter(
+                PlayerTeamSeason.team_id == team_id,
+                PlayerTeamSeason.season_id == season.id
+            )
+            .all()
+        )
+
+    # Use historical players if no current players and this isn't current season
+    players = current_players if current_players or (season and season.is_current) else historical_players
+    
     report_form = ReportMatchForm()
 
     # Fetch all matches with eager loading
@@ -47,8 +66,33 @@ def team_details(team_id):
         home_team_name = match.home_team.name if match.home_team else 'Unknown'
         away_team_name = match.away_team.name if match.away_team else 'Unknown'
 
-        home_team_players = {p.id: p.name for p in match.home_team.players} if match.home_team else {}
-        away_team_players = {p.id: p.name for p in match.away_team.players} if match.away_team else {}
+        # For historical matches, get players from PlayerTeamSeason
+        home_team_players = {}
+        away_team_players = {}
+        
+        if season and not season.is_current:
+            home_players = (
+                session.query(Player)
+                .join(PlayerTeamSeason)
+                .filter(
+                    PlayerTeamSeason.team_id == match.home_team_id,
+                    PlayerTeamSeason.season_id == season.id
+                )
+            ).all()
+            away_players = (
+                session.query(Player)
+                .join(PlayerTeamSeason)
+                .filter(
+                    PlayerTeamSeason.team_id == match.away_team_id,
+                    PlayerTeamSeason.season_id == season.id
+                )
+            ).all()
+            
+            home_team_players = {p.id: p.name for p in home_players}
+            away_team_players = {p.id: p.name for p in away_players}
+        else:
+            home_team_players = {p.id: p.name for p in match.home_team.players} if match.home_team else {}
+            away_team_players = {p.id: p.name for p in match.away_team.players} if match.away_team else {}
 
         player_choices[match.id] = {
             home_team_name: home_team_players,
@@ -123,7 +167,49 @@ def team_details(team_id):
 @login_required
 def teams_overview():
     session = g.db_session
-    teams = session.query(Team).order_by(Team.name).all()
+
+    # 1. Get current Pub League season
+    current_pub_season = (
+        session.query(Season)
+        .filter_by(is_current=True, league_type='Pub League')
+        .first()
+    )
+
+    # 2. Get current ECS FC season
+    current_ecs_season = (
+        session.query(Season)
+        .filter_by(is_current=True, league_type='ECS FC')
+        .first()
+    )
+
+    # If you only want to show teams for which the season is found:
+    if not current_pub_season and not current_ecs_season:
+        flash('No current season found for either Pub League or ECS FC.', 'warning')
+        return redirect(url_for('home.index'))
+
+    # We only want to show teams in either the current Pub League OR current ECS FC
+    from sqlalchemy import or_
+
+    conditions = []
+    if current_pub_season:
+        conditions.append(League.season_id == current_pub_season.id)
+    if current_ecs_season:
+        conditions.append(League.season_id == current_ecs_season.id)
+
+    # 3. Build the query using OR if both exist
+    teams_query = (
+        session.query(Team)
+        .join(League, Team.league_id == League.id)
+    )
+    if len(conditions) == 1:
+        # Only one season is current
+        teams_query = teams_query.filter(conditions[0])
+    elif len(conditions) == 2:
+        # Both Pub and ECS FC are current
+        teams_query = teams_query.filter(or_(*conditions))
+    
+    teams = teams_query.order_by(Team.name).all()
+
     return render_template('teams_overview.html', teams=teams)
 
 @teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])

@@ -2,69 +2,64 @@ from flask import current_app, flash, request, jsonify, redirect, url_for, g
 from app.models import User, Role
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.utils.user_helpers import safe_current_user
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
+from app.db_utils import mark_player_for_discord_update
 import logging
 
 logger = logging.getLogger(__name__)
 
 def handle_coach_status_update(player, user):
-    """Update player's coach status and role membership"""
     try:
         logger.debug("Entering handle_coach_status_update")
         is_coach = 'is_coach' in request.form
         logger.debug(f"Received is_coach: {is_coach}")
-
+        
         player.is_coach = is_coach
-
+        player.discord_needs_update = True
         session = g.db_session
-        coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
-        if not coach_role:
-            logger.warning("Pub League Coach role not found in the database.")
-            flash('Coach role not found.', 'warning')
-            return redirect(url_for('players.player_profile', player_id=player.id))
 
-        if is_coach and coach_role not in user.roles:
-            user.roles.append(coach_role)
-            logger.debug("Added Pub League Coach role to user.")
-        elif not is_coach and coach_role in user.roles:
-            user.roles.remove(coach_role)
-            logger.debug("Removed Pub League Coach role from user.")
+        # Force immediate Discord role update
+        if player.discord_id:
+            logger.debug(f"Queueing Discord role update for player {player.id}")
+            discord_task = assign_roles_to_player_task.delay(player.id)
+            if discord_task:
+                logger.info(f"Discord role update task queued for player {player.id}")
+            else:
+                logger.error(f"Failed to queue Discord role update for player {player.id}")
 
-        logger.info(f"{player.name}'s coach status updated successfully.")
+        session.commit()
+        logger.info(f"{player.name}'s coach status updated successfully to {is_coach}")
         flash(f"{player.name}'s coach status updated successfully.", 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-
+        
     except Exception as e:
         logger.error(f"Error updating coach status: {str(e)}", exc_info=True)
         flash('Error updating coach status.', 'danger')
         raise
 
 def handle_ref_status_update(player, user):
-    """Update player's referee status and role membership"""
     try:
         logger.debug("Entering handle_ref_status_update")
         is_ref = 'is_ref' in request.form
         logger.debug(f"Received is_ref: {is_ref}")
-
+        
         player.is_ref = is_ref
-
+        player.discord_needs_update = True
         session = g.db_session
-        ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
-        if not ref_role:
-            logger.warning("Pub League Ref role not found in the database.")
-            flash('Referee role not found.', 'warning')
-            return redirect(url_for('players.player_profile', player_id=player.id))
 
-        if is_ref and ref_role not in user.roles:
-            user.roles.append(ref_role)
-            logger.debug("Added Pub League Ref role to user.")
-        elif not is_ref and ref_role in user.roles:
-            user.roles.remove(ref_role)
-            logger.debug("Removed Pub League Ref role from user.")
+        if player.discord_id:
+            discord_task = assign_roles_to_player_task.delay(player.id)
+            if discord_task:
+                logger.info(f"Discord role update task queued for player {player.id}")
+            else:
+                logger.error(f"Failed to queue Discord role update for player {player.id}")
 
+        session.commit()
+        
         logger.info(f"{player.name}'s referee status updated successfully.")
         flash(f"{player.name}'s referee status updated successfully.", 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-
+        
     except Exception as e:
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
         flash('Error updating referee status.', 'danger')

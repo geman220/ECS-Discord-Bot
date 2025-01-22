@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 @celery_task(name='app.tasks.tasks_rsvp.update_rsvp', max_retries=3, queue='discord')
 def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 discord_id: Optional[str] = None) -> Dict[str, Any]:
-    """Update RSVP status with detailed logging."""
     try:
         logger.info("Starting RSVP update", extra={
             "match_id": match_id,
@@ -29,42 +28,31 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             "discord_id": discord_id
         })
 
-        # Fetch match and player
-        match = session.query(Match).get(match_id)
+        # Check if player exists
         player = session.query(Player).get(player_id)
-
-        if not match:
-            logger.warning("Match not found", extra={"match_id": match_id})
-            return {'success': False, 'message': "Match not found", 'error_type': 'match_not_found'}
-
         if not player:
             logger.warning("Player not found", extra={"player_id": player_id})
-            return {'success': False, 'message': "Player not found", 'error_type': 'player_not_found'}
+            return {'success': False, 'message': "Player not found"}
 
-        availability = session.query(Availability).filter_by(match_id=match_id, player_id=player_id).first()
+        # Update or create availability
+        availability = session.query(Availability).filter_by(
+            match_id=match_id,
+            player_id=player_id
+        ).first()
+        
         old_response = availability.response if availability else None
-        logger.info("Current state retrieved", extra={
-            "match_id": match_id,
-            "player_id": player_id,
-            "has_existing_rsvp": availability is not None,
-            "old_response": old_response
-        })
 
-        # Update or delete availability
         if availability:
             if new_response == 'no_response':
-                logger.info("Deleting existing RSVP", extra={"availability_id": availability.id})
                 session.delete(availability)
             else:
-                logger.info("Updating existing RSVP", extra={"availability_id": availability.id, "new_response": new_response})
                 availability.response = new_response
                 availability.responded_at = datetime.utcnow()
                 availability.last_update = datetime.utcnow()
                 availability.update_count = (availability.update_count or 0) + 1
         else:
             if new_response != 'no_response':
-                logger.info("Creating new RSVP entry", extra={"match_id": match_id, "player_id": player_id, "new_response": new_response})
-                new_availability = Availability(
+                availability = Availability(
                     match_id=match_id,
                     player_id=player_id,
                     response=new_response,
@@ -73,17 +61,10 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                     last_update=datetime.utcnow(),
                     update_count=1
                 )
-                session.add(new_availability)
+                session.add(availability)
 
-        # Update player's Discord ID if provided
-        if discord_id and player.discord_id != discord_id:
-            logger.info("Updating player discord_id", extra={"player_id": player_id, "old_discord_id": player.discord_id, "new_discord_id": discord_id})
-            player.discord_id = discord_id
-            player.discord_id_updated_at = datetime.utcnow()
-
-        # Outside of DB transaction logic: queue notifications
+        # Queue notifications
         if discord_id:
-            logger.info("Queueing Discord RSVP update", extra={"match_id": match_id, "discord_id": discord_id, "new_response": new_response, "old_response": old_response})
             update_discord_rsvp_task.apply_async(kwargs={
                 "match_id": match_id,
                 "discord_id": discord_id,
@@ -91,7 +72,6 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 "old_response": old_response
             }, countdown=5)
 
-        logger.info("Queueing frontend notification", extra={"match_id": match_id, "player_id": player_id, "new_response": new_response})
         notify_frontend_of_rsvp_change_task.apply_async(kwargs={
             "match_id": match_id,
             "player_id": player_id,
