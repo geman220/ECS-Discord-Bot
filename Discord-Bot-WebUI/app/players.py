@@ -9,7 +9,7 @@ import logging
 from app.models import (
     Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, 
     PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, 
-    PlayerEvent, PlayerEventType, user_roles
+    PlayerEvent, PlayerEventType, user_roles, PlayerTeamSeason
 )
 from app.decorators import role_required, admin_or_owner_required
 from app.woocommerce import fetch_orders_from_woocommerce
@@ -211,6 +211,32 @@ def create_player():
 
     return redirect(url_for('players.view_players'))
 
+@players_bp.route('/player/<int:player_id>/team_history')
+@login_required
+def get_player_team_history(player_id):
+    session = g.db_session
+    try:
+        history = session.query(
+            PlayerTeamSeason, Team, Season
+        ).join(
+            Team, PlayerTeamSeason.team_id == Team.id
+        ).join(
+            Season, PlayerTeamSeason.season_id == Season.id
+        ).filter(
+            PlayerTeamSeason.player_id == player_id
+        ).order_by(
+            Season.name.desc()
+        ).all()
+        
+        return render_template(
+            '_team_history.html',
+            team_history=history
+        )
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching team history: {str(e)}")
+        return "Error loading team history", 500
+
 @players_bp.route('/profile/<int:player_id>', endpoint='player_profile', methods=['GET', 'POST'])
 @login_required
 def player_profile(player_id):
@@ -224,7 +250,9 @@ def player_profile(player_id):
         joinedload(Player.career_stats),
         joinedload(Player.season_stats),
         joinedload(Player.events).joinedload(PlayerEvent.match),
-        joinedload(Player.events).joinedload(PlayerEvent.player)
+        joinedload(Player.events).joinedload(PlayerEvent.player),
+        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.team),  # Add this
+        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.season)  # Add this
     ).get(player_id)
 
     if not player:
@@ -319,7 +347,8 @@ def player_profile(player_id):
             form=form,
             season_stats_form=season_stats_form,
             career_stats_form=career_stats_form,
-            audit_logs=audit_logs
+            audit_logs=audit_logs,
+            team_history=player.season_assignments  # Add this
         )
 
     except Exception as e:
@@ -358,22 +387,20 @@ def add_stat_manually_route(player_id):
 @login_required
 def api_player_profile(player_id):
     session = g.db_session
-    player = session.query(Player).get_or_404(player_id)
-    current_season_name, current_year = get_current_season_and_year()
-    season = session.query(Season).filter_by(name=current_season_name).first()
-
-    season_stats = session.query(PlayerSeasonStats).filter_by(player_id=player_id, season_id=season.id).first()
-
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
+        
     def get_friendly_value(value, choices):
         return dict(choices).get(value, value)
 
     profile_data = {
         'profile_picture_url': player.profile_picture_url,
         'name': player.name,
-        'goals': season_stats.goals if season_stats else 0,
-        'assists': season_stats.assists if season_stats else 0,
-        'yellow_cards': season_stats.yellow_cards if season_stats else 0,
-        'red_cards': season_stats.red_cards if season_stats else 0,
+        'goals': player.get_career_goals(),
+        'assists': player.get_career_assists(),
+        'yellow_cards': player.get_career_yellow_cards(),
+        'red_cards': player.get_career_red_cards(),
         'player_notes': player.player_notes,
         'favorite_position': get_friendly_value(player.favorite_position, soccer_positions),
         'other_positions': player.other_positions.strip('{}').replace(',', ', ') if player.other_positions else None,

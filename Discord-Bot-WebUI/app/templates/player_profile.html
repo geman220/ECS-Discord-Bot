@@ -3,8 +3,9 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y mt-4">
     <div class="row">
-        <!-- User Sidebar -->
+        <!-- Left Column -->
         <div class="col-xl-4 col-lg-5 col-md-5 col-12">
+            <!-- Profile Card -->
             <div class="card mb-4 shadow-sm">
                 <div class="card-body text-center">
                     <!-- Profile Picture -->
@@ -26,6 +27,7 @@
                         <span class="badge bg-success ms-2">COACH</span>
                         {% endif %}
                     </h4>
+
                     {% if player.team %}
                     <span class="badge bg-primary mt-2">
                         <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white text-decoration-none">
@@ -33,6 +35,7 @@
                         </a>
                     </span>
                     {% endif %}
+
                     {% if is_admin or is_player %}
                     <p class="text-muted mt-2 mb-1">{{ user.email }}</p>
                     <p class="text-muted mb-1">{{ player.phone }}</p>
@@ -42,7 +45,9 @@
                     <!-- Discord Link -->
                     <div class="mb-3">
                         {% if player.discord_id %}
-                        <span class="badge bg-success"><i class="fab fa-discord me-1"></i> Linked to Discord</span>
+                        <span class="badge bg-success">
+                            <i class="fab fa-discord me-1"></i> Linked to Discord
+                        </span>
                         {% else %}
                         {% if safe_current_user.is_authenticated and safe_current_user.id == player.user.id %}
                         <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-sm">
@@ -66,13 +71,16 @@
                             <i class="ti ti-settings me-1"></i> Admin Actions
                         </button>
                         <ul class="dropdown-menu" aria-labelledby="adminActionsDropdown">
-                            <!-- Mark as Coach -->
                             <li>
                                 <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="px-3 py-2">
                                     {{ form.csrf_token }}
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_coach" id="isCoachToggleDropdown" {% if player.is_coach %}checked{% endif %} onchange="this.form.submit();">
-                                        <label class="form-check-label" for="isCoachToggleDropdown">Mark as Coach</label>
+                                        <input class="form-check-input" type="checkbox" name="is_coach" id="isCoachToggleDropdown"
+                                               {% if player.is_coach %}checked{% endif %}
+                                               onchange="this.form.submit();">
+                                        <label class="form-check-label" for="isCoachToggleDropdown">
+                                            Mark as Coach
+                                        </label>
                                     </div>
                                     <input type="hidden" name="update_coach_status" value="1">
                                 </form>
@@ -81,8 +89,12 @@
                                 <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="px-3 py-2">
                                     {{ form.csrf_token }}
                                     <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_ref" id="isRefToggleDropdown" {% if player.is_ref %}checked{% endif %} onchange="this.form.submit();">
-                                        <label class="form-check-label" for="isRefToggleDropdown">Mark as Referee</label>
+                                        <input class="form-check-input" type="checkbox" name="is_ref" id="isRefToggleDropdown"
+                                               {% if player.is_ref %}checked{% endif %}
+                                               onchange="this.form.submit();">
+                                        <label class="form-check-label" for="isRefToggleDropdown">
+                                            Mark as Referee
+                                        </label>
                                     </div>
                                     <input type="hidden" name="update_ref_status" value="1">
                                 </form>
@@ -93,38 +105,70 @@
                 </div>
             </div>
 
-            <!-- Player Stats -->
+            <!-- Stats Card -->
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-3">
+                        <!-- Season Stats -->
                         <div>
                             <h6 class="mb-1">Season Stats ({{ season.name }})</h6>
-                            {% if safe_current_user.has_permission('view_player_goals_assists') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_goals_assists')
+                            or (safe_current_user.id == player.user_id
+                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
                             <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
                             {% endif %}
-                            {% if safe_current_user.has_permission('view_player_cards') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_cards')
+                            or (safe_current_user.id == player.user_id
+                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
                             <p class="mb-0">Red Cards: {{ player.season_red_cards(season.id) }}</p>
                             {% endif %}
                         </div>
+                        <!-- Career Stats -->
                         <div>
                             <h6 class="mb-1">Career Stats</h6>
-                            {% if safe_current_user.has_permission('view_player_goals_assists') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_goals_assists')
+                            or (safe_current_user.id == player.user_id
+                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
                             <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
                             {% endif %}
-                            {% if safe_current_user.has_permission('view_player_cards') or (safe_current_user.id == player.user_id and safe_current_user.has_permission('view_own_stats')) %}
+                            {% if safe_current_user.has_permission('view_player_cards')
+                            or (safe_current_user.id == player.user_id
+                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
                             <p class="mb-0">Red Cards: {{ player.get_career_red_cards() }}</p>
                             {% endif %}
                         </div>
                     </div>
+                    <hr>
+                    <!-- Team History -->
+                    <div>
+                        <h6 class="mb-3">Team History</h6>
+                        {% if team_history %}
+                        {% for pts in team_history %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <a href="{{ url_for('teams.team_details', team_id=pts.team.id) }}" class="text-decoration-none">
+                                    {{ pts.team.name }}
+                                </a>
+                                <small class="text-muted d-block">{{ pts.season.name }}</small>
+                            </div>
+                            {% if pts.season.is_current %}
+                            <span class="badge bg-success">Current</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted mb-0">No team history available</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-
-        <!-- Profile Content -->
+        <!-- End Left Column -->
+        <!-- Right Column -->
         <div class="col-xl-8 col-lg-7 col-md-7 col-12">
             <div class="card shadow-sm">
                 <div class="card-body">
@@ -132,19 +176,19 @@
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            {% for category, message in messages %}
-                            Swal.fire({
-                                icon: '{{ category }}',
-                                title: '{{ message }}',
-                                toast: true,
-                                position: 'top-right',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                timerProgressBar: true,
-                            });
-                            {% endfor %}
-                        });
+                                document.addEventListener('DOMContentLoaded', function () {
+                                    {% for category, message in messages %}
+                                    Swal.fire({
+                                        icon: '{{ category }}',
+                                        title: '{{ message }}',
+                                        toast: true,
+                                        position: 'top-right',
+                                        showConfirmButton: false,
+                                        timer: 3000,
+                                        timerProgressBar: true,
+                                    });
+                                    {% endfor %}
+                                });
                     </script>
                     {% endif %}
                     {% endwith %}
@@ -152,13 +196,15 @@
                     <!-- Navigation Pills -->
                     <ul class="nav nav-pills mb-4">
                         <li class="nav-item">
-                            <a class="nav-link active" id="account-details-tab" data-bs-toggle="pill" href="#account-details" role="tab" aria-controls="account-details" aria-selected="true">
+                            <a class="nav-link active" id="account-details-tab" data-bs-toggle="pill" href="#account-details"
+                               role="tab" aria-controls="account-details" aria-selected="true">
                                 <i class="ti ti-user me-1"></i> Account Details
                             </a>
                         </li>
                         {% if is_admin %}
                         <li class="nav-item">
-                            <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings" role="tab" aria-controls="admin-settings" aria-selected="false">
+                            <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings"
+                               role="tab" aria-controls="admin-settings" aria-selected="false">
                                 <i class="ti ti-lock me-1"></i> Admin Settings
                             </a>
                         </li>
@@ -221,7 +267,6 @@
                                 <div class="col-md-6">
                                     <label for="{{ form.team_swap.id }}" class="form-label">{{ form.team_swap.label.text }}</label>
                                     {{ form.team_swap(class_="form-select select2", id=form.team_swap.id) }}
-
                                     {% if form.team_swap.errors %}
                                     <div class="text-danger">
                                         {% for error in form.team_swap.errors %}
@@ -293,7 +338,9 @@
                                         <select class="form-select" id="matchFilter">
                                             <option value="">All Matches</option>
                                             {% for match in matches %}
-                                            <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                            <option value="{{ match.id }}">
+                                                {{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}
+                                            </option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -302,17 +349,27 @@
                                     <div id="matchStatsContainer">
                                         {% for event in player.events %}
                                         <div class="card p-3 mb-3 shadow-sm" data-match-id="{{ event.match.id }}">
-                                            <h6 class="text-muted">Match Date: {{ event.match.date.strftime('%B %d, %Y') }}</h6>
-                                            <p class="mb-1">Opponent: {{ event.match.away_team.name if player.team_id == event.match.home_team_id else event.match.home_team.name }}</p>
+                                            <h6 class="text-muted">
+                                                Match Date: {{ event.match.date.strftime('%B %d, %Y') }}
+                                            </h6>
+                                            <p class="mb-1">
+                                                Opponent:
+                                                {{
+ event.match.away_team.name if player.team_id == event.match.home_team_id
+                                                           else event.match.home_team.name
+                                                }}
+                                            </p>
                                             <p class="mb-1">Event Type: {{ event.event_type }}</p>
                                             <p class="mb-1">Minute: {{ event.minute }}</p>
 
                                             <!-- Admin Controls -->
                                             <div class="d-flex justify-content-end">
-                                                <button class="btn btn-sm btn-primary me-2 edit-match-stat-btn" data-stat-id="{{ event.id }}">
+                                                <button class="btn btn-sm btn-primary me-2 edit-match-stat-btn"
+                                                        data-stat-id="{{ event.id }}">
                                                     <i class="ti ti-edit me-1"></i> Edit
                                                 </button>
-                                                <button class="btn btn-sm btn-danger remove-match-stat-btn" data-stat-id="{{ event.id }}">
+                                                <button class="btn btn-sm btn-danger remove-match-stat-btn"
+                                                        data-stat-id="{{ event.id }}">
                                                     <i class="ti ti-trash me-1"></i> Remove
                                                 </button>
                                             </div>
@@ -330,28 +387,36 @@
                                             <select class="form-select" name="match_id" id="match_id" required>
                                                 <option value="" selected disabled>Select Match</option>
                                                 {% for match in matches %}
-                                                <option value="{{ match.id }}">{{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}</option>
+                                                <option value="{{ match.id }}">
+                                                    {{ match.date.strftime('%B %d, %Y') }} - {{ match.opponent_name }}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="goals" class="form-label">Goals</label>
-                                            <input type="number" class="form-control" name="goals" id="goals" min="0" value="0" required>
+                                            <input type="number" class="form-control" name="goals" id="goals"
+                                                   min="0" value="0" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="assists" class="form-label">Assists</label>
-                                            <input type="number" class="form-control" name="assists" id="assists" min="0" value="0" required>
+                                            <input type="number" class="form-control" name="assists" id="assists"
+                                                   min="0" value="0" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="yellow_cards" class="form-label">Yellow Cards</label>
-                                            <input type="number" class="form-control" name="yellow_cards" id="yellow_cards" min="0" value="0" required>
+                                            <input type="number" class="form-control" name="yellow_cards"
+                                                   id="yellow_cards" min="0" value="0" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label for="red_cards" class="form-label">Red Cards</label>
-                                            <input type="number" class="form-control" name="red_cards" id="red_cards" min="0" value="0" required>
+                                            <input type="number" class="form-control" name="red_cards"
+                                                   id="red_cards" min="0" value="0" required>
                                         </div>
                                         <div class="col-12 text-end">
-                                            <button type="submit" name="add_stat_manually" class="btn btn-primary">Add Stat</button>
+                                            <button type="submit" name="add_stat_manually" class="btn btn-primary">
+                                                Add Stat
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
@@ -359,108 +424,112 @@
                         </div>
                         {% endif %}
                     </div>
+                    <!-- End Tab Content -->
                 </div>
+                <!-- End Card Body -->
             </div>
-
-            <!-- Cropper Modal -->
-            <div class="modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                    <!-- Changed to modal-xl -->
-                    <div class="modal-content">
-                        <form method="POST" action="{{ url_for('players.upload_profile_picture', player_id=player.id) }}" enctype="multipart/form-data">
-                            {{ form.csrf_token }}
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Image</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
-                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('image').click();">
-                                        <i class="ti ti-upload me-1"></i> Select Image
-                                    </button>
-                                </div>
-                                <div class="img-container d-none">
-                                    <img id="imagecan" style="max-width: 100%; height: auto;">
-                                </div>
-                                <input type="hidden" id="cropped_image_data" name="cropped_image_data">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" onclick="onClickUpload()">Upload</button>
-                            </div>
-                        </form>
+            <!-- End Card -->
+        </div>
+        <!-- End Right Column -->
+    </div>  <!-- Close .row -->
+</div>      <!-- Close .container-xxl -->
+<!-- Modals -->
+<div class="modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('players.upload_profile_picture', player_id=player.id) }}" enctype="multipart/form-data">
+                {{ form.csrf_token }}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('image').click();">
+                            <i class="ti ti-upload me-1"></i> Select Image
+                        </button>
                     </div>
-                </div>
-            </div>
-
-            <!-- Edit Match Stat Modal -->
-            <div class="modal fade" id="editMatchStatModal" tabindex="-1" aria-labelledby="editMatchStatModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="editMatchStatModalLabel">Edit Match Stat</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <form id="editMatchStatForm" method="POST">
-                            <div class="modal-body">
-                                <input type="hidden" id="editStatId" name="stat_id">
-                                <div class="mb-3">
-                                    <label for="editGoalsInput" class="form-label">Goals</label>
-                                    <input type="number" class="form-control" id="editGoalsInput" name="goals" min="0" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="editAssistsInput" class="form-label">Assists</label>
-                                    <input type="number" class="form-control" id="editAssistsInput" name="assists" min="0" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="editYellowCardsInput" class="form-label">Yellow Cards</label>
-                                    <input type="number" class="form-control" id="editYellowCardsInput" name="yellow_cards" min="0" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="editRedCardsInput" class="form-label">Red Cards</label>
-                                    <input type="number" class="form-control" id="editRedCardsInput" name="red_cards" min="0" required>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                            </div>
-                        </form>
+                    <div class="img-container d-none">
+                        <img id="imagecan" style="max-width: 100%; height: auto;">
                     </div>
+                    <input type="hidden" id="cropped_image_data" name="cropped_image_data">
                 </div>
-            </div>
-
-            <!-- Manual Review Modal -->
-            {% if player.needs_manual_review and is_admin %}
-            <div class="modal fade" id="manualReviewModal" tabindex="-1" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="manualReviewModalLabel">Manual Review Required</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>This profile needs manual review as it was purchased with another order. Please review the player's name, email, and phone number.</p>
-                            <p>You may need to reference the person who placed the original order.</p>
-                            {% if player.linked_primary_player_id %}
-                            <div class="text-center mt-3">
-                                <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}" class="btn btn-primary">
-                                    <i class="ti ti-user-check me-1"></i> View Original Order Profile
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="onClickUpload()">Upload</button>
                 </div>
-            </div>
-            {% endif %}
+            </form>
         </div>
     </div>
 </div>
+
+<!-- Edit Match Stat Modal -->
+<div class="modal fade" id="editMatchStatModal" tabindex="-1" aria-labelledby="editMatchStatModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchStatModalLabel">Edit Match Stat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMatchStatForm" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" id="editStatId" name="stat_id">
+                    <div class="mb-3">
+                        <label for="editGoalsInput" class="form-label">Goals</label>
+                        <input type="number" class="form-control" id="editGoalsInput" name="goals" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAssistsInput" class="form-label">Assists</label>
+                        <input type="number" class="form-control" id="editAssistsInput" name="assists" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editYellowCardsInput" class="form-label">Yellow Cards</label>
+                        <input type="number" class="form-control" id="editYellowCardsInput" name="yellow_cards" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRedCardsInput" class="form-label">Red Cards</label>
+                        <input type="number" class="form-control" id="editRedCardsInput" name="red_cards" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Review Modal -->
+{% if player.needs_manual_review and is_admin %}
+<div class="modal fade" id="manualReviewModal" tabindex="-1" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manualReviewModalLabel">Manual Review Required</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This profile needs manual review as it was purchased with another order. Please review the player's name, email, and phone number.</p>
+                <p>You may need to reference the person who placed the original order.</p>
+                {% if player.linked_primary_player_id %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('players.player_profile', player_id=player.linked_primary_player_id) }}"
+                       class="btn btn-primary">
+                        <i class="ti ti-user-check me-1"></i> View Original Order Profile
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block custom_js %}
@@ -473,34 +542,28 @@
 {% endblock %}
 
 {% block custom_css %}
-
 <!-- Cropper.css -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
 
 <style>
-    /* Existing Styles... */
-
-    /* Cropper Modal Styles */
     .img-container {
         width: 100%;
-        max-height: 600px; /* Increased max-height for larger modals */
+        max-height: 600px;
         overflow: hidden;
     }
 
         .img-container img {
             display: block;
             max-width: 100%;
-            height: auto; /* Ensure the image scales properly */
+            height: auto;
         }
 
-    /* Ensure the modal body has enough space for the image */
     .modal-body {
         display: flex;
         flex-direction: column;
         align-items: center;
     }
 
-    /* Optional: Adjust the button alignment */
     .modal-footer {
         justify-content: flex-end;
     }

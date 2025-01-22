@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 from flask_login import UserMixin
 from flask import request
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean
+from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 import enum
 import logging
@@ -172,6 +173,12 @@ class Season(db.Model):
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='season', cascade='all, delete-orphan')
 
+    player_assignments = relationship(
+        'PlayerTeamSeason',
+        back_populates='season',
+        cascade='all, delete-orphan'
+    )
+
     def to_dict(self, session=None):
         return {
             'id': self.id,
@@ -190,11 +197,20 @@ class Team(db.Model):
     league = db.relationship('League', back_populates='teams')
     players = db.relationship('Player', back_populates='team', lazy=True)
     matches = db.relationship('Schedule', foreign_keys='Schedule.team_id', lazy=True)
-    discord_channel_id = db.Column(db.BigInteger, nullable=True)
-    discord_coach_role_id = db.Column(db.BigInteger, nullable=True)
-    discord_player_role_id = db.Column(db.BigInteger, nullable=True)
+
+    # Change these to String:
+    discord_channel_id = db.Column(db.String(30), nullable=True)
+    discord_coach_role_id = db.Column(db.String(30), nullable=True)
+    discord_player_role_id = db.Column(db.String(30), nullable=True)
+
     schedules = db.relationship('Schedule', foreign_keys='Schedule.team_id', back_populates='team', overlaps='matches')
     opponent_schedules = db.relationship('Schedule', foreign_keys='Schedule.opponent', back_populates='opponent_team')
+
+    season_assignments = db.relationship(
+        'PlayerTeamSeason',
+        back_populates='team',
+        cascade='all, delete-orphan'
+    )
 
     def to_dict(self, include_players=False):
         data = {
@@ -215,7 +231,7 @@ class Team(db.Model):
 
     @property
     def recent_form(self):
-        # Fetch last 5 matches
+        # Example property returning a small HTML snippet
         last_five_matches = Match.query.filter(
             (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
         ).order_by(Match.date.desc()).limit(5).all()
@@ -223,8 +239,11 @@ class Team(db.Model):
         form = []
         for match in last_five_matches:
             if match.home_team_score is not None and match.away_team_score is not None:
-                if (match.home_team_id == self.id and match.home_team_score > match.away_team_score) or (
-                        match.away_team_id == self.id and match.away_team_score > match.home_team_score):
+                if (
+                    (match.home_team_id == self.id and match.home_team_score > match.away_team_score)
+                    or
+                    (match.away_team_id == self.id and match.away_team_score > match.home_team_score)
+                ):
                     form.append('<span style="color:green;">W</span>')
                 elif match.home_team_score == match.away_team_score:
                     form.append('<span style="color:yellow;">D</span>')
@@ -237,7 +256,7 @@ class Team(db.Model):
 
     @property
     def top_scorer(self):
-        # Use PlayerCareerStats to find top scorer
+        # Example property returning a small string
         top_scorer = db.session.query(Player, PlayerCareerStats.goals).join(PlayerCareerStats).filter(
             Player.team_id == self.id
         ).order_by(PlayerCareerStats.goals.desc()).first()
@@ -245,7 +264,6 @@ class Team(db.Model):
 
     @property
     def top_assist(self):
-        # Use PlayerCareerStats to find top assist
         top_assist = db.session.query(Player, PlayerCareerStats.assists).join(PlayerCareerStats).filter(
             Player.team_id == self.id
         ).order_by(PlayerCareerStats.assists.desc()).first()
@@ -253,11 +271,9 @@ class Team(db.Model):
 
     @property
     def avg_goals_per_match(self):
-        # Total goals from PlayerCareerStats
         total_goals = db.session.query(func.sum(PlayerCareerStats.goals)).join(Player).filter(
             Player.team_id == self.id
         ).scalar() or 0
-        # Number of matches played
         matches_played = db.session.query(func.count(Match.id)).filter(
             (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
         ).scalar() or 1
@@ -265,10 +281,12 @@ class Team(db.Model):
 
     @property
     def popover_content(self):
-        return f"<strong>Recent Form:</strong> {self.recent_form}<br>" \
-               f"<strong>Top Scorer:</strong> {self.top_scorer}<br>" \
-               f"<strong>Top Assist:</strong> {self.top_assist}<br>" \
-               f"<strong>Avg Goals/Match:</strong> {self.avg_goals_per_match}"
+        return (
+            f"<strong>Recent Form:</strong> {self.recent_form}<br>"
+            f"<strong>Top Scorer:</strong> {self.top_scorer}<br>"
+            f"<strong>Top Assist:</strong> {self.top_assist}<br>"
+            f"<strong>Avg Goals/Match:</strong> {self.avg_goals_per_match}"
+        )
 
 class PlayerOrderHistory(db.Model):
     __tablename__ = 'player_order_history'
@@ -361,6 +379,12 @@ class Player(db.Model):
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)
     discord_roles_synced = db.Column(db.Boolean, default=False)
+
+    season_assignments = relationship(
+        'PlayerTeamSeason',
+        back_populates='player',
+        cascade='all, delete-orphan'
+    )
 
     def to_dict(self, public=False):
         base_url = request.host_url.rstrip('/')
@@ -956,3 +980,19 @@ class MLSMatch(db.Model):
 
     def __repr__(self):
         return f'<MLSMatch {self.match_id}: {self.opponent} on {self.date_time}>'
+
+class PlayerTeamSeason(db.Model):
+    __tablename__ = 'player_team_season'
+
+    id = Column(Integer, primary_key=True)
+    player_id = Column(Integer, ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    team_id = Column(Integer, ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    season_id = Column(Integer, ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+
+    # Relationships
+    player = relationship('Player', back_populates='season_assignments')
+    team = relationship('Team', back_populates='season_assignments')
+    season = relationship('Season', back_populates='player_assignments')
+
+    def __repr__(self):
+        return f'<PlayerTeamSeason player={self.player_id} team={self.team_id} season={self.season_id}>'

@@ -66,6 +66,7 @@
     <Compile Include="celery_live_reporting_worker.py" />
     <Compile Include="celery_worker_base.py" />
     <Compile Include="healthcheck.py" />
+    <Compile Include="migrations_config.py" />
     <Compile Include="wsgi.py" />
     <Compile Include="app\account.py" />
     <Compile Include="app\admin_helpers.py" />
@@ -260,6 +261,7 @@
     <Content Include="app\templates\feedback\submit_feedback.html" />
     <Content Include="app\templates\teams_overview.html" />
     <Content Include="app\templates\team_details.html" />
+    <Content Include="app\templates\template _team_history.html" />
     <Content Include="app\templates\verify_2fa.html" />
     <Content Include="app\templates\verify_purchase.html" />
     <Content Include="app\templates\view_feedback_user.html" />

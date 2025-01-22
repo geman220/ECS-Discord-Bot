@@ -1,4 +1,5 @@
 # app/decorators.py
+import asyncio
 from functools import wraps
 from datetime import datetime
 from flask import flash, redirect, url_for, abort, jsonify, current_app, has_app_context, g
@@ -270,8 +271,8 @@ async def async_session_context():
 
 def celery_task(**task_kwargs):
     """
-    Decorator for Celery tasks.
-    Creates and manages its own database session.
+    Decorator for Celery tasks with proper session management.
+    Handles both sync and async functions, manages loops for Discord operations.
     """
     def celery_task_decorator(f):
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
@@ -284,13 +285,25 @@ def celery_task(**task_kwargs):
             with app.app_context():
                 session = app.SessionLocal()
                 try:
-                    # Now f must accept session as a parameter if it needs DB access
-                    result = f(self, session, *args, **kwargs)
+                    # Check if the function is async
+                    if asyncio.iscoroutinefunction(f):
+                        # Create and manage event loop for async functions
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            result = loop.run_until_complete(f(self, session, *args, **kwargs))
+                        finally:
+                            loop.close()
+                    else:
+                        # Regular sync function
+                        result = f(self, session, *args, **kwargs)
+                    
                     session.commit()
                     return result
                 except Exception as e:
                     session.rollback()
                     logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
+                    # Re-raise for retry handling
                     raise
                 finally:
                     session.close()
