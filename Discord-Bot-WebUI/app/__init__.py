@@ -173,13 +173,7 @@ def create_app(config_object='web_config.Config'):
     @app.errorhandler(404)
     def not_found(error):
         logger.debug(f"404 error for URL: {request.url}")
-        if 'redirect_count' not in session:
-            session['redirect_count'] = 0
-        if session['redirect_count'] > 3:
-            flash("Repeated redirects detected. Check your requested URL.", "error")
-            return render_template("404.html"), 404
-        session['redirect_count'] += 1
-        return redirect('/')
+        return render_template("404.html"), 404
 
     @app.errorhandler(BuildError)
     def handle_url_build_error(error):
@@ -199,18 +193,8 @@ def create_app(config_object='web_config.Config'):
 
     @app.teardown_request
     def teardown_request(exception):
-        sess = getattr(g, 'db_session', None)
-        if sess is not None:
-            if exception is not None:
-                sess.rollback()
-            else:
-                try:
-                    sess.commit()
-                except:
-                    sess.rollback()
-                    raise
-            sess.close()
-            delattr(g, 'db_session')
+        from app.core.session_manager import cleanup_request
+        cleanup_request(exception)
 
     return app
 

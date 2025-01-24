@@ -160,22 +160,3 @@ class DBConnectionMonitor:
                 logger.warning(f"Cleanup terminated {terminated} stuck connections")
         except Exception as e:
             logger.error(f"Error in connection cleanup: {e}")
-
-    @contextmanager
-    def monitor_transaction(self, name: str, timeout: int = None):
-        """Context manager to monitor transaction duration"""
-        start_time = datetime.now()
-        
-        if timeout is None:
-            timeout = self.app.config['DB_CONNECTION_TIMEOUT']
-
-        try:
-            yield
-        finally:
-            duration = datetime.now() - start_time
-            if duration > timedelta(seconds=timeout):
-                logger.warning(
-                    f"Long running transaction detected:\n"
-                    f"Name: {name}\n"
-                    f"Duration: {duration.total_seconds():.1f}s"
-                )

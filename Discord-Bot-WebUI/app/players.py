@@ -244,15 +244,16 @@ def player_profile(player_id):
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
 
     # Use .get() instead of get_or_404 and handle the None case
+    # CHANGED: Removed joinedload(Player.team). Instead load .teams
     player = session.query(Player).options(
-        joinedload(Player.team).joinedload(Team.league).joinedload(League.season),
+        joinedload(Player.teams).joinedload(Team.league),            # CHANGED
         joinedload(Player.user).joinedload(User.roles),
         joinedload(Player.career_stats),
         joinedload(Player.season_stats),
         joinedload(Player.events).joinedload(PlayerEvent.match),
         joinedload(Player.events).joinedload(PlayerEvent.player),
-        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.team),  # Add this
-        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.season)  # Add this
+        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.team),
+        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.season)
     ).get(player_id)
 
     if not player:
@@ -280,6 +281,7 @@ def player_profile(player_id):
         jersey_sizes = session.query(Player.jersey_size).distinct().all()
         jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
 
+        # Example: if you need to reference a league named 'Classic'
         classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
             flash('Classic league not found', 'danger')
@@ -299,7 +301,7 @@ def player_profile(player_id):
             session.add(new_career_stats)
 
         is_classic_league_player = player.league_id == classic_league.id
-        is_player = player.user_id == safe_current_user.id
+        is_player = (player.user_id == safe_current_user.id)
         is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in safe_current_user.roles)
 
         form = PlayerProfileForm(obj=player)
@@ -307,14 +309,21 @@ def player_profile(player_id):
 
         if request.method == 'GET':
             form.email.data = user.email
-            form.other_positions.data = player.other_positions.strip('{}').split(',') if player.other_positions else []
-            form.positions_not_to_play.data = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else []
+            form.other_positions.data = (
+                player.other_positions.strip('{}').split(',')
+                if player.other_positions else []
+            )
+            form.positions_not_to_play.data = (
+                player.positions_not_to_play.strip('{}').split(',')
+                if player.positions_not_to_play else []
+            )
 
             if is_classic_league_player and hasattr(form, 'team_swap'):
                 form.team_swap.data = player.team_swap
 
         season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
-        career_stats_form = CareerStatsForm(obj=player.career_stats[0]) if is_admin and player.career_stats else None
+        career_stats_form = (CareerStatsForm(obj=player.career_stats[0])
+                             if is_admin and player.career_stats else None)
 
         if request.method == 'POST':
             if is_admin and 'update_coach_status' in request.form:
@@ -330,9 +339,12 @@ def player_profile(player_id):
             elif is_admin and 'add_stat_manually' in request.form:
                 return handle_add_stat_manually(player)
 
-        audit_logs = session.query(PlayerStatAudit).filter_by(player_id=player_id)\
-            .order_by(PlayerStatAudit.timestamp.desc())\
+        audit_logs = (
+            session.query(PlayerStatAudit)
+            .filter_by(player_id=player_id)
+            .order_by(PlayerStatAudit.timestamp.desc())
             .all()
+        )
 
         return render_template(
             'player_profile.html',
@@ -348,7 +360,7 @@ def player_profile(player_id):
             season_stats_form=season_stats_form,
             career_stats_form=career_stats_form,
             audit_logs=audit_logs,
-            team_history=player.season_assignments  # Add this
+            team_history=player.season_assignments
         )
 
     except Exception as e:
@@ -415,9 +427,12 @@ def api_player_profile(player_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def get_needs_review_count():
-    session = g.db_session
-    count = session.query(Player).filter_by(needs_manual_review=True).count()
-    return jsonify({'count': count})
+    try:
+        session = g.db_session
+        count = session.query(Player).filter_by(needs_manual_review=True).count()
+        return jsonify({'count': count})
+    finally:
+        session.close()
 
 @players_bp.route('/admin/review', endpoint='admin_review', methods=['GET'])
 @login_required
@@ -477,7 +492,9 @@ def create_profile():
 def edit_match_stat(stat_id):
     session = g.db_session
     if request.method == 'GET':
-        match_stat = session.query(PlayerEvent).get_or_404(stat_id)
+        match_stat = session.query(PlayerEvent).get(stat_id)
+        if not match_stat:
+            abort(404)
         return jsonify({
             'goals': match_stat.goals,
             'assists': match_stat.assists,
@@ -502,7 +519,9 @@ def edit_match_stat(stat_id):
 def remove_match_stat(stat_id):
     session = g.db_session
     try:
-        match_stat = session.query(PlayerEvent).get_or_404(stat_id)
+        match_stat = session.query(PlayerEvent).get(stat_id)
+        if not match_stat:
+            abort(404)
         player_id = match_stat.player_id
         event_type = match_stat.event_type
 
@@ -526,7 +545,9 @@ def remove_match_stat(stat_id):
 @admin_or_owner_required
 def upload_profile_picture(player_id):
     session = g.db_session
-    player = session.query(Player).get_or_404(player_id)
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
 
     cropped_image_data = request.form.get('cropped_image_data')
     if not cropped_image_data:
@@ -549,7 +570,9 @@ def upload_profile_picture(player_id):
 def delete_player(player_id):
     session = g.db_session
     try:
-        player = session.query(Player).get_or_404(player_id)
+        player = session.query(Player).get(player_id)
+        if not player:
+            abort(404)
         user = player.user
 
         session.delete(player)
@@ -568,7 +591,9 @@ def delete_player(player_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def edit_player(player_id):
     session = g.db_session
-    player = session.query(Player).get_or_404(player_id)
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
     form = EditPlayerForm(obj=player)
 
     if request.method == 'GET':

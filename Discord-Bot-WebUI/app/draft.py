@@ -1,28 +1,30 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app as app, g, abort
+from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required
-from sqlalchemy.orm import joinedload, Session
-from app.models import League, Player, Team, Season, PlayerSeasonStats
-from app.decorators import role_required
-from app.routes import get_current_season_and_year
-from app.core import socketio
+from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import exists, and_
+from sqlalchemy import text
+from app.sockets.session import socket_session
+from contextlib import contextmanager
+from app.models import (
+   League, Player, Team, Season, PlayerSeasonStats,
+   player_teams
+)
+from app.decorators import role_required, cleanup_db_connection
+from app.core import socketio, db
+from app.core.session_manager import managed_session
 from flask_socketio import emit
-from app.discord_utils import assign_roles_to_player
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.db_utils import mark_player_for_discord_update
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)
-
 draft = Blueprint('draft', __name__)
 
 @draft.route('/classic', endpoint='draft_classic')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_classic():
-    session: Session = g.db_session
-    try:
-        # 1) Identify the current Pub League season
+    with managed_session() as session:
         current_season = (
             session.query(Season)
             .filter_by(league_type='Pub League', is_current=True)
@@ -32,7 +34,6 @@ def draft_classic():
             flash('No current Pub League season found.', 'danger')
             return redirect(url_for('main.index'))
 
-        # 2) Grab the "Classic" league row for that new season
         classic_league = (
             session.query(League)
             .options(joinedload(League.teams))
@@ -40,61 +41,61 @@ def draft_classic():
             .first()
         )
         if not classic_league:
-            flash('No Classic league found for the current Pub League season.', 'danger')
+            flash('No Classic league found.', 'danger')
             return redirect(url_for('main.index'))
 
         teams = classic_league.teams
+        team_ids = [t.id for t in teams]
 
-        # 3) AVAILABLE PLAYERS = only "Classic" players (new league row) who have not been drafted
+        not_in_classic_teams = ~exists().where(
+            and_(
+                player_teams.c.player_id == Player.id,
+                player_teams.c.team_id.in_(team_ids)
+            )
+        )
+
         available_players = (
             session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats)
-            )
-            .filter_by(league_id=classic_league.id, team_id=None)
+            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
+            .filter(not_in_classic_teams)
             .order_by(Player.name.asc())
             .all()
         )
 
-        # 4) DRAFTED PLAYERS = same league_id, but team_id != NULL
         drafted_players = (
             session.query(Player)
             .options(
                 joinedload(Player.career_stats),
                 joinedload(Player.season_stats),
-                joinedload(Player.team)
+                joinedload(Player.teams)
             )
-            .filter(Player.league_id == classic_league.id, Player.team_id.isnot(None))
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .filter(player_teams.c.team_id.in_(team_ids))
             .order_by(Player.name.asc())
             .all()
         )
 
-        drafted_players_by_team = {t.id: [] for t in teams}
+        drafted_by_team = {t.id: [] for t in teams}
         for p in drafted_players:
-            if p.team_id in drafted_players_by_team:
-                drafted_players_by_team[p.team_id].append(p)
+            for tm in p.teams:
+                if tm.id in drafted_by_team:
+                    drafted_by_team[tm.id].append(p)
+                    break
 
         return render_template(
             'draft_classic.html',
             teams=teams,
             available_players=available_players,
-            drafted_players_by_team=drafted_players_by_team,
+            drafted_players_by_team=drafted_by_team,
             season=current_season
         )
-
-    except Exception as e:
-        logger.error(f"Error in draft_classic: {str(e)}", exc_info=True)
-        flash('An error occurred while loading the draft page.', 'danger')
-        return redirect(url_for('main.index'))
-
 
 @draft.route('/premier', endpoint='draft_premier')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@cleanup_db_connection
 def draft_premier():
-    session: Session = g.db_session
-    try:
+    with managed_session() as session:
         current_season = (
             session.query(Season)
             .filter_by(league_type='Pub League', is_current=True)
@@ -111,18 +112,23 @@ def draft_premier():
             .first()
         )
         if not premier_league:
-            flash('No Premier league found for the current Pub League season.', 'danger')
+            flash('No Premier league found.', 'danger')
             return redirect(url_for('main.index'))
 
         teams = premier_league.teams
+        team_ids = [t.id for t in teams]
+
+        not_in_premier_teams = ~exists().where(
+            and_(
+                player_teams.c.player_id == Player.id,
+                player_teams.c.team_id.in_(team_ids)
+            )
+        )
 
         available_players = (
             session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season)
-            )
-            .filter_by(league_id=premier_league.id, team_id=None)
+            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
+            .filter(not_in_premier_teams)
             .order_by(Player.name.asc())
             .all()
         )
@@ -132,39 +138,35 @@ def draft_premier():
             .options(
                 joinedload(Player.career_stats),
                 joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-                joinedload(Player.team)
+                joinedload(Player.teams)
             )
-            .filter(Player.league_id == premier_league.id, Player.team_id.isnot(None))
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .filter(player_teams.c.team_id.in_(team_ids))
             .order_by(Player.name.asc())
             .all()
         )
 
-        drafted_players_by_team = {t.id: [] for t in teams}
+        drafted_by_team = {t.id: [] for t in teams}
         for p in drafted_players:
-            if p.team_id in drafted_players_by_team:
-                drafted_players_by_team[p.team_id].append(p)
+            for tm in p.teams:
+                if tm.id in drafted_by_team:
+                    drafted_by_team[tm.id].append(p)
+                    break
 
         return render_template(
             'draft_premier.html',
             teams=teams,
             available_players=available_players,
-            drafted_players_by_team=drafted_players_by_team,
+            drafted_players_by_team=drafted_by_team,
             season=current_season
         )
-
-    except Exception as e:
-        logger.error(f"Error in draft_premier: {str(e)}", exc_info=True)
-        flash('An error occurred while loading the draft page.', 'danger')
-        return redirect(url_for('main.index'))
-
 
 @draft.route('/ecs_fc', endpoint='draft_ecs_fc')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@cleanup_db_connection
 def draft_ecs_fc():
-    session: Session = g.db_session
-    try:
-        # 1) Identify the current ECS FC season
+    with managed_session() as session:
         current_season = (
             session.query(Season)
             .filter_by(league_type='ECS FC', is_current=True)
@@ -181,18 +183,23 @@ def draft_ecs_fc():
             .first()
         )
         if not ecs_fc_league:
-            flash('ECS FC league not found for current ECS FC season.', 'danger')
+            flash('No ECS FC league found.', 'danger')
             return redirect(url_for('main.index'))
 
         teams = ecs_fc_league.teams
+        team_ids = [t.id for t in teams]
+
+        not_in_ecs_teams = ~exists().where(
+            and_(
+                player_teams.c.player_id == Player.id,
+                player_teams.c.team_id.in_(team_ids)
+            )
+        )
 
         available_players = (
             session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season)
-            )
-            .filter_by(league_id=ecs_fc_league.id, team_id=None)
+            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
+            .filter(not_in_ecs_teams)
             .order_by(Player.name.asc())
             .all()
         )
@@ -202,127 +209,136 @@ def draft_ecs_fc():
             .options(
                 joinedload(Player.career_stats),
                 joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-                joinedload(Player.team)
+                joinedload(Player.teams)
             )
-            .filter(Player.league_id == ecs_fc_league.id, Player.team_id.isnot(None))
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .filter(player_teams.c.team_id.in_(team_ids))
             .order_by(Player.name.asc())
             .all()
         )
 
-        drafted_players_by_team = {t.id: [] for t in teams}
+        drafted_by_team = {t.id: [] for t in teams}
         for p in drafted_players:
-            if p.team_id in drafted_players_by_team:
-                drafted_players_by_team[p.team_id].append(p)
+            for tm in p.teams:
+                if tm.id in drafted_by_team:
+                    drafted_by_team[tm.id].append(p)
+                    break
 
         return render_template(
             'draft_ecs_fc.html',
             teams=teams,
             available_players=available_players,
-            drafted_players_by_team=drafted_players_by_team,
+            drafted_players_by_team=drafted_by_team,
             season=current_season
         )
 
-    except Exception as e:
-        logger.error(f"Error in draft_ecs_fc: {str(e)}", exc_info=True)
-        flash('An error occurred while loading the draft page.', 'danger')
-        return redirect(url_for('main.index'))
 
+#
+# Socket.IO Event Handlers
+#
 @socketio.on('draft_player', namespace='/draft')
 def handle_draft_player(data):
-    session = app.SessionLocal()
-    try:
-        player_id = data['player_id']
-        team_id = data['team_id']
+    """
+    Drafts a player to a team, sets them as primary if none is set,
+    dispatches tasks for Discord role updates, and emits 'player_drafted'.
+    """
 
-        player = session.query(Player).get(player_id)
-        team = session.query(Team).get(team_id)
-        if not player or not team:
-            emit('error', {'message': 'Player or team not found'}, broadcast=False)
-            session.rollback()
-            return
+    with socket_session(db.engine) as session:
+        try:
+            session.execute(text("SET LOCAL statement_timeout = '10s'"))
 
-        # Set the player's league_id to the team's league row (so they're recognized by that route)
-        player.league_id = team.league_id
-        player.team_id = team_id
+            player = session.query(Player).get(data['player_id'])
+            team = session.query(Team).get(data['team_id'])
 
-        mark_player_for_discord_update(session, player_id)
-        assign_roles_to_player_task.delay(player_id)
+            if not player or not team:
+                emit('error', {'message': 'Player or team not found'}, broadcast=False)
+                return
 
-        current_season = session.query(Season).order_by(Season.id.desc()).first()
-        season_stats = (
-            session.query(PlayerSeasonStats)
-            .filter_by(player_id=player.id, season_id=current_season.id)
-            .first() if current_season else None
-        )
+            # Add team if not already in player's teams
+            if team not in player.teams:
+                player.teams.append(team)
 
-        session.commit()
+            # If player has no primary team, set this one
+            if not player.primary_team_id:
+                player.primary_team_id = team.id
 
-        emit('player_drafted', {
-            'player_id': player.id,
-            'player_name': player.name,
-            'team_id': team.id,
-            'team_name': team.name,
-            'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
-            'goals': season_stats.goals if season_stats else 0,
-            'assists': season_stats.assists if season_stats else 0,
-            'yellow_cards': season_stats.yellow_cards if season_stats else 0,
-            'red_cards': season_stats.red_cards if season_stats else 0,
-            'player_notes': player.player_notes or 'No notes available'
-        }, broadcast=True)
+            # Mark for Discord sync / Trigger role assignment for exactly this team
+            mark_player_for_discord_update(session, player.id)
+            # Pass both player_id AND team_id
+            assign_roles_to_player_task.delay(player.id, team.id)
 
-    except Exception as e:
-        logger.error(f"Error handling player draft: {str(e)}", exc_info=True)
-        session.rollback()
-        emit('error', {'message': 'An error occurred while drafting the player'}, broadcast=False)
-    finally:
-        session.close()
+            # Prepare stats for the response
+            current_season = session.query(Season).get(team.league.season_id)
+            stats = {
+                'goals': player.season_goals(current_season.id) if current_season else 0,
+                'assists': player.season_assists(current_season.id) if current_season else 0,
+                'yellow_cards': player.season_yellow_cards(current_season.id) if current_season else 0,
+                'red_cards': player.season_red_cards(current_season.id) if current_season else 0
+            }
 
+            emit('player_drafted', {
+                'player_id': player.id,
+                'player_name': player.name,
+                'team_id': team.id,
+                'team_name': team.name,
+                'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+                **stats,
+                'player_notes': player.player_notes or 'No notes available'
+            }, broadcast=True)
+
+        except Exception as e:
+            logger.error(f"Error handling player draft: {e}", exc_info=True)
+            emit('error', {'message': 'Draft failed - please try again'}, broadcast=False)
+            raise
 
 @socketio.on('remove_player', namespace='/draft')
 def handle_remove_player(data):
-    session = app.SessionLocal()
-    try:
-        player_id = data['player_id']
-        team_id = data['team_id']
+    """
+    Removes a player from a team, unsets primary if applicable,
+    dispatches a task for Discord role updates, and emits 'player_removed'.
+    """
 
-        player = session.query(Player).get(player_id)
-        team = session.query(Team).get(team_id)
-        if not player or not team:
-            emit('error', {'message': 'Player or team not found'}, broadcast=False)
-            session.rollback()
-            return
+    with socket_session(db.engine) as session:
+        try:
+            session.execute(text("SET LOCAL statement_timeout = '10s'"))
 
-        player.team_id = None
-        # Optionally remove their league assignment, if you want them to show up in a different league's pool:
-        # player.league_id = None
+            player = session.query(Player).get(data['player_id'])
+            team = session.query(Team).get(data['team_id'])
 
-        session.commit()
+            if not player or not team:
+                emit('error', {'message': 'Player or team not found'}, broadcast=False)
+                return
 
-        remove_player_roles_task.delay(player.id)
+            # Remove the team if currently assigned
+            if team in player.teams:
+                player.teams.remove(team)
 
-        current_season = session.query(Season).order_by(Season.id.desc()).first()
-        season_stats = (
-            session.query(PlayerSeasonStats)
-            .filter_by(player_id=player.id, season_id=current_season.id)
-            .first() if current_season else None
-        )
+            # Reset primary if this was the player's current primary team
+            if player.primary_team_id == team.id:
+                player.primary_team_id = None
 
-        emit('player_removed', {
-            'player_id': player.id,
-            'player_name': player.name,
-            'team_id': team.id,
-            'team_name': team.name,
-            'goals': season_stats.goals if season_stats else 0,
-            'assists': season_stats.assists if season_stats else 0,
-            'yellow_cards': season_stats.yellow_cards if season_stats else 0,
-            'red_cards': season_stats.red_cards if season_stats else 0,
-            'player_notes': player.player_notes or 'No notes available',
-            'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png'
-        }, broadcast=True)
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Error handling player removal: {str(e)}", exc_info=True)
-        emit('error', {'message': 'An error occurred while removing the player'}, broadcast=False)
-        raise
-    finally:
-        session.close()
+            # Trigger removal for this exact team
+            remove_player_roles_task.delay(player.id, team.id)
+
+            current_season = session.query(Season).get(team.league.season_id)
+            stats = {
+                'goals': player.season_goals(current_season.id) if current_season else 0,
+                'assists': player.season_assists(current_season.id) if current_season else 0,
+                'yellow_cards': player.season_yellow_cards(current_season.id) if current_season else 0,
+                'red_cards': player.season_red_cards(current_season.id) if current_season else 0
+            }
+
+            emit('player_removed', {
+                'player_id': player.id,
+                'player_name': player.name,
+                'team_id': team.id,
+                'team_name': team.name,
+                'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+                **stats,
+                'player_notes': player.player_notes or 'No notes available'
+            }, broadcast=True)
+
+        except Exception as e:
+            logger.error(f"Error handling player removal: {e}", exc_info=True)
+            emit('error', {'message': 'Remove failed - please try again'}, broadcast=False)
+            raise

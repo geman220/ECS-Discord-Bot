@@ -28,12 +28,18 @@
                         {% endif %}
                     </h4>
 
-                    {% if player.team %}
-                    <span class="badge bg-primary mt-2">
-                        <a href="{{ url_for('teams.team_details', team_id=player.team.id) }}" class="text-white text-decoration-none">
-                            {{ player.team.name }}
+                    <!-- CHANGED: Instead of player.team, loop over player.teams -->
+                    {% if player.teams and player.teams|length > 0 %}
+                    {% for t in player.teams %}
+                    <span class="badge bg-primary mt-2 me-1">
+                        <a href="{{ url_for('teams.team_details', team_id=t.id) }}"
+                           class="text-white text-decoration-none">
+                            {{ t.name }}
                         </a>
                     </span>
+                    {% endfor %}
+                    {% else %}
+                    <span class="badge bg-secondary mt-2">No Team</span>
                     {% endif %}
 
                     {% if is_admin or is_player %}

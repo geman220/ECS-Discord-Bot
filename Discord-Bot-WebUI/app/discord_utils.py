@@ -8,8 +8,9 @@ from typing import Optional, List, Dict, Any, Union
 from functools import wraps
 from web_config import Config
 from app.utils.discord_request_handler import optimized_discord_request
-from app.models import Team, Player, MLSMatch, Match, League
+from app.models import Team, Player, MLSMatch, Match, League, player_teams
 from sqlalchemy.orm import Session
+from sqlalchemy import update
 from app.utils.discord_request_handler import make_discord_request
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ rate_limiter = RateLimiter(max_calls=GLOBAL_RATE_LIMIT, period=1)
 
 def normalize_name(name: str) -> str:
     """Normalize names to match Discord's role name format"""
-    return name.strip().upper().replace(' ', '-').replace('_', '-')  # Added .upper()
+    return name.strip().upper().replace(' ', '-').replace('_', '-')
 
 # -------------------------------------------
 # Utility Functions for Role Management
@@ -156,7 +157,6 @@ async def create_role(guild_id: int, role_name: str, session: aiohttp.ClientSess
 
 async def get_or_create_role(guild_id: int, role_name: str, session: aiohttp.ClientSession) -> Optional[str]:
     """Create roles using normalized uppercase format to match existing Discord conventions"""
-    # Get the properly cased version if exists
     existing_id = await get_role_id(guild_id, role_name, session)
     if existing_id:
         return existing_id
@@ -404,7 +404,7 @@ async def assign_roles_to_player(session: Session, player: Player) -> None:
     """
     Assign the correct roles to a player. 
     """
-    if not player.discord_id or not player.team:
+    if not player.discord_id or not player.teams:
         logger.warning(f"Player '{player.name}' has no Discord ID or team assigned.")
         return
 
@@ -413,7 +413,6 @@ async def assign_roles_to_player(session: Session, player: Player) -> None:
         expected_roles = await get_expected_roles(session, player)
         
         for role_name in expected_roles:
-            # get_or_create_role returns the string role ID
             role_id = await get_or_create_role(guild_id, role_name, http_session)
             if role_id:
                 await assign_role_to_member(guild_id, player.discord_id, role_id, http_session)
@@ -435,22 +434,25 @@ def get_league_role_name(league_name: str) -> Optional[str]:
 
 async def remove_player_roles(session: Session, player: Player) -> None:
     """
-    Removes the player's team role (and coach role if is_coach).
+    Remove the player's team role(s). If they're a coach, remove the coach role,
+    otherwise the player role. Does so for each team in player.teams.
     """
-    if not player.discord_id or not player.team:
-        logger.warning(f"Player '{player.name}' has no Discord ID or team assigned.")
+    if not player.discord_id or not player.teams:
+        logger.warning(f"Player '{player.name}' has no Discord ID or no teams assigned.")
         return
 
     guild_id = int(os.getenv('SERVER_ID'))
+    role_name_suffix = 'Coach' if player.is_coach else 'Player'
+    
     async with aiohttp.ClientSession() as http_session:
-        role_name_suffix = 'Coach' if player.is_coach else 'Player'
-        team_role_name = f"ECS-FC-PL-{player.team.name}-{role_name_suffix}"
-        team_role_id = await get_role_id(guild_id, team_role_name, http_session)
-        if team_role_id:
-            await remove_role_from_member(guild_id, player.discord_id, team_role_id, http_session)
-            logger.info(f"Removed role '{team_role_name}' from player '{player.name}'")
-        else:
-            logger.error(f"Team role '{team_role_name}' not found for player '{player.name}'")
+        for t in player.teams:
+            team_role_name = f"ECS-FC-PL-{t.name}-{role_name_suffix}"
+            team_role_id = await get_role_id(guild_id, team_role_name, http_session)
+            if team_role_id:
+                await remove_role_from_member(guild_id, player.discord_id, team_role_id, http_session)
+                logger.info(f"Removed role '{team_role_name}' from player '{player.name}'")
+            else:
+                logger.error(f"Team role '{team_role_name}' not found for player '{player.name}'")
 
 async def rename_team_roles(session: Session, team: Team, new_team_name: str) -> None:
     """
@@ -553,9 +555,11 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
             to_add = [r for r in expected_roles 
                      if normalize_name(r) not in current_normalized]
             
-            to_remove = [r for r in current_roles 
-                        if normalize_name(r) in managed_normalized
-                        and normalize_name(r) not in expected_normalized]
+            to_remove = [
+                r for r in current_roles
+                if normalize_name(r) in managed_normalized
+                and normalize_name(r) not in expected_normalized
+            ]
 
             # Apply role changes
             for role_name in to_add:
@@ -590,34 +594,42 @@ async def get_app_managed_roles(session: Session) -> List[str]:
     return static_roles + team_roles
 
 async def get_expected_roles(session: Session, player: Player) -> List[str]:
+    """
+    Build a list of roles for this player:
+      - Each team's "ECS-FC-PL-{team.name}-PLAYER"
+      - Possibly a league-wide role if each team's league is known
+      - Possibly 'Referee' if player.is_ref
+      - Possibly a '...-Coach' role if player.is_coach
+    """
     roles = []
     logger.debug(f"Getting roles for player {player.id} ({player.name})")
-    
-    # League and Coach roles - check via team first, then direct league assignment
-    league = None
-    if player.team and player.team.league:
-        league = player.team.league
-    elif player.league_id:
-        league = session.query(League).get(player.league_id)
-        
-    if league:
-        logger.debug(f"Processing league {league.name}")
-        if league.name.upper() == 'PREMIER':
+
+    # 1) Collect all league names from the teams
+    unique_league_names = set()
+    for t in player.teams:
+        if t.league and t.league.name:
+            unique_league_names.add(t.league.name.strip().upper())
+
+    # 2) For each league, add the league-wide roles
+    for league_name in unique_league_names:
+        logger.debug(f"Processing league {league_name}")
+        if league_name == 'PREMIER':
             roles.append("ECS-FC-PL-PREMIER")
             if player.is_coach:
                 roles.append("ECS-FC-PL-PREMIER-COACH")
-        elif league.name.upper() == 'CLASSIC':
+        elif league_name == 'CLASSIC':
             roles.append("ECS-FC-PL-CLASSIC")
             if player.is_coach:
                 roles.append("ECS-FC-PL-CLASSIC-COACH")
+        # etc. if you have more leagues
 
-    # Team Player Role (if they have one)
-    if player.team:
-        team_role = f"ECS-FC-PL-{player.team.name}-PLAYER"
+    # 3) Add a team-specific role for each team
+    for t in player.teams:
+        team_role = f"ECS-FC-PL-{t.name}-PLAYER"
         roles.append(team_role)
         logger.debug(f"Added team role: {team_role}")
 
-    # Referee Role
+    # If the player is a ref, add that too
     if player.is_ref:
         roles.append("Referee")
 
@@ -628,29 +640,63 @@ async def process_role_updates(session: Session, force_update: bool = False) -> 
     """
     Bulk process for multiple players (e.g. nightly job) to ensure roles are correct.
     """
+    from datetime import datetime, timedelta
     if force_update:
         players_to_update = session.query(Player).filter(Player.discord_id.isnot(None)).all()
     else:
         threshold_date = datetime.utcnow() - timedelta(days=90)
         players_to_update = session.query(Player).filter(
-            (Player.discord_needs_update == True) |
-            (Player.discord_last_verified == None) |
-            (Player.discord_last_verified < threshold_date)
+            (Player.discord_needs_update == True)
+            | (Player.discord_last_verified == None)
+            | (Player.discord_last_verified < threshold_date)
         ).all()
 
-    for player in players_to_update:
-        await update_player_roles(session, player, force_update=force_update)
+    for p in players_to_update:
+        await update_player_roles(session, p, force_update=force_update)
 
 def mark_player_for_update(session: Session, player_id: int) -> None:
+    """
+    Mark a single player for a Discord update. This is fine as is.
+    """
     session.query(Player).filter_by(id=player_id).update({Player.discord_needs_update: True})
     logger.info(f"Marked player ID {player_id} for Discord update.")
 
 def mark_team_for_update(session: Session, team_id: int) -> None:
-    session.query(Player).filter_by(team_id=team_id).update({Player.discord_needs_update: True})
-    logger.info(f"Marked team ID {team_id} for Discord update.")
+    """
+    For multi-team logic, we can't do Player.team_id = team_id.
+    Instead, we do a join on player_teams, filtering by team_id.
+    """
+    stmt = (
+        update(Player)
+        .where(
+            Player.id.in_(
+                # subquery of player IDs in this team
+                session.query(player_teams.c.player_id)
+                .filter(player_teams.c.team_id == team_id)
+            )
+        )
+        .values(discord_needs_update=True)
+    )
+    session.execute(stmt)
+    logger.info(f"Marked all players for team ID {team_id} for Discord update.")
 
 def mark_league_for_update(session: Session, league_id: int) -> None:
-    session.query(Player).join(Team).filter(Team.league_id == league_id).update({Player.discord_needs_update: True})
+    """
+    If a league is changed, we mark any players who are in Teams with that league_id.
+    We can keep this logic, because each Team has a single league.
+    """
+    stmt = (
+        update(Player)
+        .where(
+            Player.id.in_(
+                session.query(player_teams.c.player_id)
+                .join(Team, Team.id == player_teams.c.team_id)
+                .filter(Team.league_id == league_id)
+            )
+        )
+        .values(discord_needs_update=True)
+    )
+    session.execute(stmt)
     logger.info(f"Marked league ID {league_id} for Discord update.")
 
 async def process_single_player_update(session: Session, player: Player) -> dict:
@@ -773,8 +819,8 @@ async def fetch_user_roles(session: Session, discord_id: str, http_session: aioh
                 if isinstance(response['roles'], dict):
                     # e.g. {role_id: role_name, ...}
                     roles = list(response['roles'].values())
-                elif (isinstance(response['roles'], list) and 
-                      all(isinstance(r, dict) for r in response['roles'])):
+                elif (isinstance(response['roles'], list)
+                      and all(isinstance(r, dict) for r in response['roles'])):
                     roles = [r['name'] for r in response['roles']]
                 else:
                     logger.error(f"Unexpected roles format in response for user {discord_id}: {response['roles']}")

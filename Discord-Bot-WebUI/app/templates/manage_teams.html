@@ -2,47 +2,47 @@
 
 {% block main_content %}
 <div class="container">
-    <!-- Header -->
     <div class="content-header row">
         <div class="col-12 mb-4">
             <h2 class="text-primary">Manage Teams for Seasons</h2>
         </div>
     </div>
-
-    <!-- Body -->
     <div class="content-body">
-        <!-- Tabbed Interface for Leagues -->
-        {% set first_tab = True %}
-        <ul class="nav nav-tabs" id="leagueTabs" role="tablist">
-            {% for season in seasons %}
+        {% if seasons %}
+        {% for season in seasons %}
+        <h3>{{ season.name }}</h3>
+
+        {% if season.leagues %}
+        <!-- Tabs for this season's leagues -->
+        <ul class="nav nav-tabs" id="leagueTabsForSeason{{ season.id }}" role="tablist">
             {% for league in season.leagues %}
             <li class="nav-item" role="presentation">
-                <button class="nav-link {% if loop.first %}active{% endif %}"
-                        id="{{ league.name | replace(' ', '_') }}-{{ season.id }}-tab"
+                <button class="nav-link {% if league.is_first %}active{% endif %}"
+                        id="tab-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}"
                         data-bs-toggle="tab"
-                        data-bs-target="#{{ league.name | replace(' ', '_') }}-{{ season.id }}"
-                        type="button" role="tab"
-                        aria-controls="{{ league.name | replace(' ', '_') }}-{{ season.id }}"
-                        aria-selected="{{ 'true' if loop.first else 'false' }}">
-                    {{ league.name }} ({{ season.name }})
+                        data-bs-target="#pane-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}"
+                        type="button"
+                        role="tab"
+                        aria-controls="pane-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}"
+                        aria-selected="{{ 'true' if league.is_first else 'false' }}">
+                    {{ league.name }}
                 </button>
             </li>
             {% endfor %}
-            {% endfor %}
         </ul>
 
-        {% set first_tab_content = True %}
-        <div class="tab-content mt-4" id="leagueTabsContent">
-            {% for season in seasons %}
+        <!-- Tab content for this season's leagues -->
+        <div class="tab-content mt-4" id="leagueTabsContentForSeason{{ season.id }}">
             {% for league in season.leagues %}
-            <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
-                 id="{{ league.name | replace(' ', '_') }}-{{ season.id }}"
+            <div class="tab-pane fade {% if league.is_first %}show active{% endif %}"
+                 id="pane-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}"
                  role="tabpanel"
-                 aria-labelledby="{{ league.name | replace(' ', '_') }}-{{ season.id }}-tab">
-                <!-- Teams Management -->
+                 aria-labelledby="tab-{{ league.name|replace(' ', '_') }}-season-{{ season.id }}">
                 <div class="card card-bordered mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="card-title text-primary">{{ league.name }} Teams ({{ season.name }})</h6>
+                        <h6 class="card-title text-primary">
+                            {{ league.name }} Teams ({{ season.name }})
+                        </h6>
                         <button class="btn btn-success btn-sm"
                                 data-bs-toggle="modal"
                                 data-bs-target="#addTeamModal"
@@ -58,8 +58,15 @@
                 </div>
             </div>
             {% endfor %}
-            {% endfor %}
         </div>
+        {% else %}
+        <p class="text-muted">No leagues for this season yet.</p>
+        {% endif %}
+        <hr>
+        {% endfor %}
+        {% else %}
+        <div class="alert alert-info">No active leagues found.</div>
+        {% endif %}
     </div>
 </div>
 
@@ -176,11 +183,10 @@
 
 {% macro render_team_list(teams, league_name, season_id) %}
 <ul class="list-group">
+    {% if teams and teams|length > 0 %}
     {% for team in teams %}
     <li class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-center">
-        <div class="mb-2 mb-md-0">
-            {{ team.name }}
-        </div>
+        <div class="mb-2 mb-md-0">{{ team.name }}</div>
         <div class="dropdown">
             <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton-{{ team.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                 <i data-feather="more-vertical"></i>
@@ -192,6 +198,9 @@
         </div>
     </li>
     {% endfor %}
+    {% else %}
+    <li class="list-group-item text-center text-muted">No teams yet. Click 'Add Team' to create one.</li>
+    {% endif %}
 </ul>
 {% endmacro %}
 
