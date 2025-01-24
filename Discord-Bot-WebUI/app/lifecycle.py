@@ -56,22 +56,22 @@ class RequestLifecycle:
 
         @app.teardown_request
         def cleanup_request(exc):
-            """Clean up request resources"""
             if getattr(g, '_bypass_db', False):
                 return
-            
+    
             try:
-                # Run registered cleanup handlers
+                from app.core.session_manager import cleanup_request
+                cleanup_request(exc)
+        
                 if hasattr(g, '_cleanups'):
                     for cleanup_func in g._cleanups:
                         try:
                             cleanup_func()
                         except Exception as e:
                             logger.error(f"Cleanup handler error: {e}")
-                
-                # Clear request context
+        
                 self._clear_request_context()
-                
+        
             except Exception as e:
                 logger.error(f"Request cleanup error: {e}", exc_info=True)
 

@@ -58,22 +58,3 @@ class QueryHelper:
         except Exception as e:
             logger.error(f"Error getting connection stats: {e}", exc_info=True)
             raise
-
-    @contextmanager
-    def transaction_scope(self):
-        """
-        Scope for ensuring transactions are properly handled.
-        Uses g.db_session directly.
-        """
-        session = getattr(g, 'db_session', None)
-        if session is None:
-            raise RuntimeError("No database session available for transaction_scope.")
-
-        try:
-            yield session
-            if session.in_transaction():
-                session.commit()
-        except Exception:
-            if session.in_transaction():
-                session.rollback()
-            raise

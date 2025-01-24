@@ -193,26 +193,36 @@ def delete_team():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def manage_teams():
-    """Display and manage teams across all leagues."""
     session = g.db_session
     try:
-        # Fetch all current seasons with leagues and teams eagerly loaded
-        seasons = session.query(Season).options(
-            joinedload(Season.leagues).joinedload(League.teams)
-        ).filter_by(is_current=True).all()
+        seasons = (
+            session.query(Season)
+            .filter_by(is_current=True)
+            .all()
+        )
 
-        # Define league order
-        league_order = {'Premier': 1, 'Classic': 2, 'ECS FC': 3}
-
-        # Sort leagues within each season
+        # Manually get leagues for each season
         for season in seasons:
-            season.leagues.sort(key=lambda x: league_order.get(x.name, 99))
+            leagues = session.query(League).filter_by(season_id=season.id).all()
+            print(f"DEBUG: Season {season.id} => leagues: {leagues}")
+            season.leagues = leagues
 
+        # Sort and mark first league
+        first_league = True
+        for season in seasons:
+            season.leagues.sort(key=lambda x: {'Premier': 1, 'Classic': 2, 'ECS FC': 3}.get(x.name, 99))
+            first_league = True  # <-- reset here for every season
+            for league in season.leagues:
+                league.is_first = first_league
+                first_league = False
+
+        session.commit()
         return render_template('manage_teams.html', seasons=seasons)
     except Exception as e:
+        session.rollback()
         logger.error(f"Error in manage_teams: {str(e)}")
         flash('Error loading teams.', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
 @publeague.route('/assign_discord_roles', methods=['GET'])
 @login_required

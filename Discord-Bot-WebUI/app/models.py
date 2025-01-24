@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask_login import UserMixin
 from flask import request
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey
+from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey, and_, or_, desc, exists, case
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 import enum
@@ -31,13 +31,31 @@ role_permissions = db.Table('role_permissions',
     db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'))
 )
 
+player_teams = db.Table('player_teams',
+    db.Column('player_id', db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('team_id', db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('is_coach', db.Boolean, default=False)
+)
+
 class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     season = db.relationship('Season', back_populates='leagues')
-    teams = db.relationship('Team', back_populates='league', lazy=True)
-    players = db.relationship('Player', back_populates='league', foreign_keys='Player.league_id')
+    teams = db.relationship(
+        'Team',
+        back_populates='league',
+        lazy='joined'
+    )
+    players = db.relationship(
+        'Player',
+        secondary=player_teams,
+        primaryjoin='League.id==Team.league_id',
+        secondaryjoin='and_(Team.id==player_teams.c.team_id, Player.id==player_teams.c.player_id)',
+        overlaps="teams,players",
+        viewonly=True,
+        backref=db.backref('associated_leagues', viewonly=True)
+    )
     primary_players = db.relationship('Player', back_populates='primary_league', foreign_keys='Player.primary_league_id')
     other_players = db.relationship('Player', secondary='player_league', back_populates='other_leagues')
     users = db.relationship('User', back_populates='league')
@@ -195,7 +213,11 @@ class Team(db.Model):
     name = db.Column(db.String(100), nullable=False)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     league = db.relationship('League', back_populates='teams')
-    players = db.relationship('Player', back_populates='team', lazy=True)
+    players = db.relationship(
+        'Player',
+        secondary=player_teams,
+        back_populates='teams'
+    )
     matches = db.relationship('Schedule', foreign_keys='Schedule.team_id', lazy=True)
 
     # Change these to String:
@@ -230,6 +252,15 @@ class Team(db.Model):
         return data
 
     @property
+    def coaches(self):
+        """Get all coaches for this team"""
+        return [player for player, is_coach 
+                in db.session.query(Player, player_teams.c.is_coach)
+                .join(player_teams)
+                .filter(player_teams.c.team_id == self.id,
+                       player_teams.c.is_coach == True)]
+
+    @property
     def recent_form(self):
         # Example property returning a small HTML snippet
         last_five_matches = Match.query.filter(
@@ -256,27 +287,52 @@ class Team(db.Model):
 
     @property
     def top_scorer(self):
-        # Example property returning a small string
-        top_scorer = db.session.query(Player, PlayerCareerStats.goals).join(PlayerCareerStats).filter(
-            Player.team_id == self.id
-        ).order_by(PlayerCareerStats.goals.desc()).first()
+        top_scorer = db.session.query(
+            Player, func.sum(PlayerSeasonStats.goals).label('total_goals')
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).join(
+            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+        ).filter(
+            player_teams.c.team_id == self.id
+        ).group_by(Player.id).order_by(
+            desc('total_goals')
+        ).first()
+        
         return f"{top_scorer[0].name} ({top_scorer[1]} goals)" if top_scorer and top_scorer[1] > 0 else "No data"
 
     @property
     def top_assist(self):
-        top_assist = db.session.query(Player, PlayerCareerStats.assists).join(PlayerCareerStats).filter(
-            Player.team_id == self.id
-        ).order_by(PlayerCareerStats.assists.desc()).first()
+        top_assist = db.session.query(
+            Player, func.sum(PlayerSeasonStats.assists).label('total_assists')
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).join(
+            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+        ).filter(
+            player_teams.c.team_id == self.id
+        ).group_by(Player.id).order_by(
+            desc('total_assists')
+        ).first()
+        
         return f"{top_assist[0].name} ({top_assist[1]} assists)" if top_assist and top_assist[1] > 0 else "No data"
 
     @property
     def avg_goals_per_match(self):
-        total_goals = db.session.query(func.sum(PlayerCareerStats.goals)).join(Player).filter(
-            Player.team_id == self.id
+        total_goals = db.session.query(
+            func.sum(PlayerSeasonStats.goals)
+        ).join(
+            Player, Player.id == PlayerSeasonStats.player_id
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).filter(
+            player_teams.c.team_id == self.id
         ).scalar() or 0
+
         matches_played = db.session.query(func.count(Match.id)).filter(
-            (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
+            or_(Match.home_team_id == self.id, Match.away_team_id == self.id)
         ).scalar() or 1
+
         return round(total_goals / matches_played, 2)
 
     @property
@@ -352,14 +408,26 @@ class Player(db.Model):
     additional_info = db.Column(db.Text, nullable=True)
     player_notes = db.Column(db.Text, nullable=True)
     team_swap = db.Column(db.String(10), nullable=True) 
-    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
-    team = db.relationship('Team', back_populates='players')
+    #team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
+    #team = db.relationship('Team', back_populates='players')
+    teams = db.relationship(
+        'Team',
+        secondary=player_teams,
+        back_populates='players'
+    )
+    # Primary (single) team
+    primary_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
+    primary_team = db.relationship('Team', foreign_keys=[primary_team_id])
+
+    # Single league
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     league = db.relationship('League', back_populates='players', foreign_keys=[league_id])
 
+    # Primary league
     primary_league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     primary_league = db.relationship('League', back_populates='primary_players', foreign_keys=[primary_league_id])
 
+    # (Potentially) many other leagues
     other_leagues = db.relationship('League', secondary='player_league', back_populates='other_players')
 
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -385,6 +453,35 @@ class Player(db.Model):
         back_populates='player',
         cascade='all, delete-orphan'
     )
+
+    #@property
+    #def team(self):
+    #    """Compatibility property that returns primary team"""
+    #    return self.primary_team
+
+    @property 
+    def current_teams(self):
+        """Get all current teams with coach status"""
+        return [(team, assoc.is_coach) for team, assoc 
+                in db.session.query(Team, player_teams.c.is_coach)
+                .join(player_teams)
+                .filter(player_teams.c.player_id == self.id)]
+
+    def get_all_teams(self, session=None):
+        teams = []
+        if self.team:
+            teams.append(self.team)
+    
+        # Get teams where player is coaching
+        if self.is_coach:
+            coached_team = session.query(Team).filter(
+                Team.coach_id == self.id,
+                Team.id != self.team_id if self.team_id else True
+            ).first()
+            if coached_team:
+                teams.append(coached_team)
+    
+        return teams
 
     def to_dict(self, public=False):
         base_url = request.host_url.rstrip('/')
@@ -541,9 +638,18 @@ class Player(db.Model):
         return 0
 
     def get_all_matches(self, session=None):
+        team_ids = [team.id for team in self.teams]
         return Match.query.filter(
-            (Match.home_team_id == self.team_id) | (Match.away_team_id == self.team_id)
+            or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids))
         ).all()
+
+    def get_current_teams(self, with_coach_status=False):
+        if with_coach_status:
+            return [(team, is_coach) for team, is_coach 
+                    in db.session.query(Team, player_teams.c.is_coach)
+                    .join(player_teams)
+                    .filter(player_teams.c.player_id == self.id)]
+        return self.teams
 
     def get_all_match_stats(self, session=None):
         return PlayerEvent.query.filter_by(player_id=self.id).all()
@@ -624,15 +730,12 @@ class Match(db.Model):
         )
 
     def get_opponent_name(self, player):
-        """
-        Returns the name of the opponent team based on the player's team.
-        """
-        if player.team_id == self.home_team_id:
+        player_team_ids = [team.id for team in player.teams]
+        if self.home_team_id in player_team_ids:
             return self.away_team.name
-        elif player.team_id == self.away_team_id:
+        elif self.away_team_id in player_team_ids:
             return self.home_team.name
-        else:
-            return None  # The player isn't part of either team in this match
+        return None
 
 class PlayerSeasonStats(db.Model):
     __tablename__ = 'player_season_stats'
@@ -644,11 +747,16 @@ class PlayerSeasonStats(db.Model):
     assists = db.Column(db.Integer, default=0, nullable=False)
     yellow_cards = db.Column(db.Integer, default=0, nullable=False)
     red_cards = db.Column(db.Integer, default=0, nullable=False)
-    # Additional fields as necessary
 
-    # Use back_populates instead of backref
     player = db.relationship('Player', back_populates='season_stats')
     season = db.relationship('Season', back_populates='player_stats')
+    teams = db.relationship(
+        'Team',
+        secondary=player_teams,
+        primaryjoin="PlayerSeasonStats.player_id==player_teams.c.player_id",
+        secondaryjoin="Team.id==player_teams.c.team_id",
+        viewonly=True
+    )
 
     def to_dict(self, session=None):
         return {
@@ -672,6 +780,18 @@ class PlayerCareerStats(db.Model):
     red_cards = db.Column(db.Integer, default=0, nullable=False)
 
     player = db.relationship('Player', back_populates='career_stats')
+
+    @classmethod 
+    def get_stats_by_team(cls, team_id):
+        return db.session.query(
+            cls
+        ).join(
+            Player
+        ).join(
+            player_teams
+        ).filter(
+            player_teams.c.team_id == team_id
+        ).all()
 
     def to_dict(self, session=None):
         return {
@@ -706,6 +826,18 @@ class Standings(db.Model):
     @staticmethod
     def update_goal_difference(mapper, connection, target):
         target.goal_difference = target.goals_for - target.goals_against
+
+    @property
+    def team_goals(self):
+        return db.session.query(
+            func.sum(PlayerSeasonStats.goals)
+        ).join(
+            Player
+        ).join(
+            player_teams
+        ).filter(
+            player_teams.c.team_id == self.team_id
+        ).scalar() or 0
 
     def to_dict(self, session=None):
         return {
@@ -996,3 +1128,16 @@ class PlayerTeamSeason(db.Model):
 
     def __repr__(self):
         return f'<PlayerTeamSeason player={self.player_id} team={self.team_id} season={self.season_id}>'
+
+class PlayerTeamHistory(db.Model):
+    __tablename__ = 'player_team_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
+    joined_date = db.Column(db.DateTime, default=datetime.utcnow)
+    left_date = db.Column(db.DateTime, nullable=True)
+    is_coach = db.Column(db.Boolean, default=False)
+    
+    player = db.relationship('Player', backref='team_history')
+    team = db.relationship('Team', backref='player_history')

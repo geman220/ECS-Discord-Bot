@@ -1,12 +1,13 @@
-# main.py
-
 from flask import Blueprint, render_template, redirect, url_for, abort, request, flash, jsonify, session as flask_session, g
 from flask_login import login_required, current_user
 from collections import defaultdict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload
 from sqlalchemy import or_, func
-from app.models import Schedule, Match, Notification, Team, Player, Announcement, Season, PlayerSeasonStats
+from app.models import (
+    Schedule, Match, Notification, Team, Player, Announcement, Season,
+    PlayerSeasonStats, player_teams
+)
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
 from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
@@ -46,12 +47,16 @@ def get_onboarding_form(player=None, formdata=None):
 
     if player and not formdata:
         if player.other_positions:
-            onboarding_form.other_positions.data = [pos.strip() for pos in player.other_positions.strip('{}').split(',')]
+            onboarding_form.other_positions.data = [
+                pos.strip() for pos in player.other_positions.strip('{}').split(',')
+            ]
         else:
             onboarding_form.other_positions.data = []
 
         if player.positions_not_to_play:
-            onboarding_form.positions_not_to_play.data = [pos.strip() for pos in player.positions_not_to_play.strip('{}').split(',')]
+            onboarding_form.positions_not_to_play.data = [
+                pos.strip() for pos in player.positions_not_to_play.strip('{}').split(',')
+            ]
         else:
             onboarding_form.positions_not_to_play.data = []
 
@@ -107,8 +112,7 @@ def create_player_profile(onboarding_form):
             needs_manual_review=False,
             linked_primary_player_id=None,
             order_id=None,
-            team_id=None,
-            league_id=None,
+            # We do NOT set team_id or league_id for multi-team logic
             is_current_player=True
         )
 
@@ -137,8 +141,16 @@ def handle_profile_update(player, onboarding_form):
         player.expected_weeks_available = onboarding_form.expected_weeks_available.data
         player.unavailable_dates = onboarding_form.unavailable_dates.data
 
-        player.other_positions = "{" + ",".join(onboarding_form.other_positions.data) + "}" if onboarding_form.other_positions.data else None
-        player.positions_not_to_play = "{" + ",".join(onboarding_form.positions_not_to_play.data) + "}" if onboarding_form.positions_not_to_play.data else None
+        player.other_positions = (
+            "{" + ",".join(onboarding_form.other_positions.data) + "}"
+            if onboarding_form.other_positions.data
+            else None
+        )
+        player.positions_not_to_play = (
+            "{" + ",".join(onboarding_form.positions_not_to_play.data) + "}"
+            if onboarding_form.positions_not_to_play.data
+            else None
+        )
 
         player.willing_to_referee = onboarding_form.willing_to_referee.data
         player.frequency_play_goal = onboarding_form.frequency_play_goal.data
@@ -173,7 +185,7 @@ def handle_profile_update(player, onboarding_form):
         raise
 
 def fetch_upcoming_matches(
-    team,
+    teams,
     match_limit=4,
     include_past_matches=False,
     start_date=None,
@@ -182,12 +194,20 @@ def fetch_upcoming_matches(
     specific_day=None,
     per_day_limit=None
 ):
+    """
+    Fetch upcoming (or previous) matches for a list of Team objects.
+    Returns a dict grouped by match date.
+    """
     session = g.db_session
     grouped_matches = defaultdict(list)
     today = datetime.now().date()
 
-    if not team:
+    # If we get None or an empty list, return empty grouped_matches
+    if not teams:
         return grouped_matches
+
+    # Collect all the team IDs
+    team_ids = [t.id for t in teams]
 
     if not start_date:
         if include_past_matches:
@@ -200,6 +220,7 @@ def fetch_upcoming_matches(
         else:
             end_date = today + timedelta(weeks=4)
 
+    # Asc or Desc ordering
     order_by = [Match.date.asc(), Match.time.asc()] if order == 'asc' else [Match.date.desc(), Match.time.desc()]
 
     query = (
@@ -210,8 +231,8 @@ def fetch_upcoming_matches(
         )
         .filter(
             or_(
-                Match.home_team_id == team.id,
-                Match.away_team_id == team.id
+                Match.home_team_id.in_(team_ids),
+                Match.away_team_id.in_(team_ids)
             ),
             Match.date >= start_date,
             Match.date <= end_date
@@ -225,36 +246,32 @@ def fetch_upcoming_matches(
     matches = query.all()
 
     if specific_day is not None and per_day_limit is not None:
+        # If we only want a limited number of matches per day
         day_count = defaultdict(int)
         for match in matches:
             match_date = match.date
             if day_count[match_date] < per_day_limit:
-                grouped_matches[match_date].append({
-                    'match': match,
-                    'home_team_name': match.home_team.name,
-                    'opponent_name': match.away_team.name,
-                    'home_team_id': match.home_team_id,
-                    'opponent_team_id': match.away_team_id,
-                    'home_players': [{'id': p.id, 'name': p.name} for p in match.home_team.players],
-                    'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players]
-                })
+                grouped_matches[match_date].append(_build_match_dict(match))
                 day_count[match_date] += 1
     else:
         if match_limit:
             matches = matches[:match_limit]
 
         for match in matches:
-            grouped_matches[match.date].append({
-                'match': match,
-                'home_team_name': match.home_team.name,
-                'opponent_name': match.away_team.name,
-                'home_team_id': match.home_team_id,
-                'opponent_team_id': match.away_team_id,
-                'home_players': [{'id': p.id, 'name': p.name} for p in match.home_team.players],
-                'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players]
-            })
+            grouped_matches[match.date].append(_build_match_dict(match))
 
     return grouped_matches
+
+def _build_match_dict(match):
+    return {
+        'match': match,
+        'home_team_name': match.home_team.name,
+        'opponent_name': match.away_team.name,
+        'home_team_id': match.home_team_id,
+        'opponent_team_id': match.away_team_id,
+        'home_players': [{'id': p.id, 'name': p.name} for p in match.home_team.players],
+        'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players]
+    }
 
 @main.route('/', endpoint='index', methods=['GET', 'POST'])
 @login_required
@@ -263,30 +280,41 @@ def index():
     session = g.db_session
     current_year = datetime.now().year
 
+    # Load the player's full data, including all teams
     player = getattr(safe_current_user, 'player', None)
     if player:
-        player = (session.query(Player)
-                  .options(joinedload(Player.team).joinedload(Team.league))
-                  .filter_by(id=player.id)
-                  .first())
+        player = (
+            session.query(Player)
+            .options(joinedload(Player.teams).joinedload(Team.league))
+            .filter_by(id=player.id)
+            .first()
+        )
     else:
         player = None
 
-    onboarding_form = get_onboarding_form(player, formdata=request.form if request.method == 'POST' else None)
+    onboarding_form = get_onboarding_form(
+        player, formdata=request.form if request.method == 'POST' else None
+    )
     report_form = ReportMatchForm()
-    matches = session.query(Match).options(
-        joinedload(Match.home_team),
-        joinedload(Match.away_team)
-    ).all()
 
-    show_onboarding = False
+    # We'll use matches array for debugging or additional UI
+    matches = (
+        session.query(Match)
+        .options(joinedload(Match.home_team), joinedload(Match.away_team))
+        .all()
+    )
+
     if player:
         show_onboarding = not safe_current_user.has_completed_onboarding
     else:
         show_onboarding = not safe_current_user.has_skipped_profile_creation
 
-    show_tour = safe_current_user.has_completed_onboarding and not safe_current_user.has_completed_tour
+    show_tour = (
+        safe_current_user.has_completed_onboarding
+        and not safe_current_user.has_completed_tour
+    )
 
+    # Handle POST forms
     if request.method == 'POST':
         form_action = request.form.get('form_action', '')
         logger.debug(f"Form Action: {form_action}")
@@ -295,10 +323,12 @@ def index():
         if form_action in ['create_profile', 'update_profile']:
             if onboarding_form.validate_on_submit():
                 if not player:
+                    # Creating a new Player
                     player = create_player_profile(onboarding_form)
                     if player:
                         safe_current_user.has_skipped_profile_creation = False
                 else:
+                    # Updating an existing Player
                     handle_profile_update(player, onboarding_form)
 
                 if player:
@@ -321,7 +351,9 @@ def index():
             flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
             return redirect(url_for('main.index'))
 
-    user_team = player.team if player else None
+    # For the template, we often used to pass "team" or "user_team".
+    # Now we store them as a list of teams: user_teams
+    user_teams = player.teams if player else []
 
     today = datetime.now().date()
     two_weeks_later = today + timedelta(weeks=2)
@@ -330,8 +362,9 @@ def index():
 
     sunday_dow = 0
 
+    # Next Matches
     next_matches = fetch_upcoming_matches(
-        team=user_team,
+        teams=user_teams,
         start_date=today,
         end_date=two_weeks_later,
         specific_day=sunday_dow,
@@ -339,8 +372,9 @@ def index():
         order='asc'
     )
 
+    # Previous Matches
     previous_matches = fetch_upcoming_matches(
-        team=user_team,
+        teams=user_teams,
         start_date=one_week_ago,
         end_date=yesterday,
         match_limit=2,
@@ -352,30 +386,49 @@ def index():
 
     player_choices_per_match = {}
 
+    # Build dictionary of players for each match
+    # previously used Player.team_id, but we must do a join to player_teams
     for date_key, matches_list in next_matches.items():
         for match_data in matches_list:
             match = match_data['match']
             home_team_id = match_data['home_team_id']
-            opponent_team_id = match_data['opponent_team_id']
+            opp_team_id = match_data['opponent_team_id']
 
-            players = session.query(Player).filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
+            # Query players for either home_team_id or opp_team_id
+            players = (
+                session.query(Player)
+                .join(player_teams, player_teams.c.player_id == Player.id)
+                .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
+                .all()
+            )
+
+            home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
+            away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
 
             player_choices_per_match[match.id] = {
-                match_data['home_team_name']: {p.id: p.name for p in players if p.team_id == home_team_id},
-                match_data['opponent_name']: {p.id: p.name for p in players if p.team_id == opponent_team_id}
+                match_data['home_team_name']: {p.id: p.name for p in home_players},
+                match_data['opponent_name']: {p.id: p.name for p in away_players}
             }
 
     for date_key, matches_list in previous_matches.items():
         for match_data in matches_list:
             match = match_data['match']
             home_team_id = match_data['home_team_id']
-            opponent_team_id = match_data['opponent_team_id']
+            opp_team_id = match_data['opponent_team_id']
 
-            players = session.query(Player).filter(Player.team_id.in_([home_team_id, opponent_team_id])).all()
+            players = (
+                session.query(Player)
+                .join(player_teams, player_teams.c.player_id == Player.id)
+                .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
+                .all()
+            )
+
+            home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
+            away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
 
             player_choices_per_match[match.id] = {
-                match_data['home_team_name']: {p.id: p.name for p in players if p.team_id == home_team_id},
-                match_data['opponent_name']: {p.id: p.name for p in players if p.team_id == opponent_team_id}
+                match_data['home_team_name']: {p.id: p.name for p in home_players},
+                match_data['opponent_name']: {p.id: p.name for p in away_players}
             }
 
     return render_template(
@@ -383,11 +436,11 @@ def index():
         report_form=report_form,
         matches=matches,
         onboarding_form=onboarding_form,
-        user_team=user_team,
+        user_team=user_teams,   # pass the entire list to the template
         next_matches=next_matches,
         previous_matches=previous_matches,
         current_year=current_year,
-        team=user_team,
+        team=user_teams,        # might rename in the template if needed
         player=player,
         is_linked_to_discord=(player.discord_id is not None if player else False),
         discord_server_link="https://discord.gg/weareecs",
@@ -401,7 +454,12 @@ def index():
 @login_required
 def notifications():
     session = g.db_session
-    notifications = session.query(Notification).filter_by(user_id=safe_current_user.id).order_by(Notification.created_at.desc()).all()
+    notifications = (
+        session.query(Notification)
+        .filter_by(user_id=safe_current_user.id)
+        .order_by(Notification.created_at.desc())
+        .all()
+    )
     return render_template('notifications.html', notifications=notifications)
 
 @main.route('/notifications/mark_as_read/<int:notification_id>', endpoint='mark_as_read', methods=['POST'])
@@ -436,7 +494,7 @@ def set_tour_skipped():
     except Exception as e:
         logger.error(f"Error setting tour skipped for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
-        raise
+        # raise is unreachable after return, so you can remove it or keep
 
     return '', 204
 
@@ -450,7 +508,6 @@ def set_tour_complete():
     except Exception as e:
         logger.error(f"Error setting tour complete for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
-        raise
 
     return '', 204
 

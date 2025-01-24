@@ -218,7 +218,7 @@ def get_players_needing_discord_update(session: Session) -> List[Player]:
                 )
             )
             .options(
-                joinedload(Player.team),
-                joinedload(Player.team).joinedload(Team.league)
+                joinedload(Player.teams),  # multi-team
+                joinedload(Player.teams).joinedload(Team.league)
             )
             .all())

@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
@@ -31,11 +31,11 @@ from app.utils.discord_request_handler import optimized_discord_request, make_di
 
 logger = logging.getLogger(__name__)
 
-
 def get_status_html(roles_match: bool) -> str:
     """Generate status HTML based on role match status."""
     return (
-        '<span class="badge bg-success">Synced</span>' if roles_match
+        '<span class="badge bg-success">Synced</span>'
+        if roles_match
         else '<span class="badge bg-warning">Out of Sync</span>'
     )
 
@@ -144,8 +144,8 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
         players = session.query(Player).filter(
             Player.discord_id.in_(discord_ids)
         ).options(
-            joinedload(Player.team),
-            joinedload(Player.team).joinedload(Team.league)
+            joinedload(Player.teams),
+            joinedload(Player.teams).joinedload(Team.league)
         ).all()
 
         loop = asyncio.new_event_loop()
@@ -211,12 +211,12 @@ async def _mass_process_role_updates(session, discord_ids: List[str]) -> List[Di
     max_retries=3,
     retry_backoff=True
 )
-def assign_roles_to_player_task(self, session, player_id: int) -> Dict[str, Any]:
+def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
     """Assign Discord roles to a player."""
     try:
         player = session.query(Player).options(
-            joinedload(Player.team),
-            joinedload(Player.team).joinedload(Team.league)
+            joinedload(Player.teams),
+            joinedload(Player.teams).joinedload(Team.league)
         ).get(player_id)
         if not player:
             return {'success': False, 'message': 'Player not found'}
@@ -224,7 +224,7 @@ def assign_roles_to_player_task(self, session, player_id: int) -> Dict[str, Any]
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(_assign_roles_async(session, player.id))
+            result = loop.run_until_complete(_assign_roles_async(session, player.id, team_id))
         finally:
             loop.close()
 
@@ -253,32 +253,39 @@ def assign_roles_to_player_task(self, session, player_id: int) -> Dict[str, Any]
         logger.error(f"Error assigning roles to player {player_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=15)
 
-async def _assign_roles_async(session, player_id: int) -> Dict[str, Any]:
+async def _assign_roles_async(session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
     player = session.query(Player).get(player_id)
     if not player or not player.discord_id:
         logger.error(f"No Discord ID for player {player_id}")
-        return {
-            'success': False,
-            'message': 'No Discord ID associated with player',
-            'error_type': 'no_discord_id'
-        }
-
+        return {'success': False, 'message': 'No Discord ID'}
     try:
-        result = await process_single_player_update(session, player)
+        async with aiohttp.ClientSession() as aio_session:
+            # For team-specific role assignment
+            if team_id:
+                team = session.query(Team).get(team_id)
+                role_name = f"ECS-FC-PL-{team.name}-PLAYER" 
+                role_id = await get_role_id(Config.SERVER_ID, role_name, aio_session)
+                league_role = f"ECS-FC-PL-{team.league.name}"
+                league_role_id = await get_role_id(Config.SERVER_ID, league_role, aio_session)
+                
+                if role_id:
+                    await make_discord_request(
+                        'PUT',
+                        f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{role_id}",
+                        aio_session
+                    )
+                    if league_role_id:
+                        await make_discord_request(
+                            'PUT',
+                            f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{league_role_id}",
+                            aio_session
+                        )
+                    return {'success': True}
+            # For non-team role updates (like coach status)
+            return await process_single_player_update(session, player)
     except Exception as e:
-        logger.error(f"Exception in process_single_player_update for player {player_id}: {e}", exc_info=True)
-        return {'success': False, 'message': 'Exception occurred', 'error': str(e)}
-
-    if not result or not isinstance(result, dict):
-        logger.error(f"process_single_player_update returned a non-dict or None for player {player_id}.")
-        return {'success': False, 'message': 'Invalid return from process_single_player_update'}
-
-    if result.get('success'):
-        logger.info(f"Successfully assigned roles to player {player_id}")
-    else:
-        logger.error(f"Failed to assign roles to player {player_id}: {result.get('error', 'Unknown error')}")
-
-    return result
+        logger.error(f"Exception assigning roles: {e}", exc_info=True)
+        return {'success': False, 'message': str(e)}
 
 @celery_task(name='app.tasks.tasks_discord.fetch_role_status', queue='discord')
 def fetch_role_status(self, session) -> Dict[str, Any]:
@@ -286,8 +293,8 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
         players = session.query(Player).filter(
             Player.discord_id.isnot(None)
         ).options(
-            joinedload(Player.team),
-            joinedload(Player.team).joinedload(Team.league)
+            joinedload(Player.teams),
+            joinedload(Player.teams).joinedload(Team.league)
         ).all()
 
         loop = asyncio.new_event_loop()
@@ -326,9 +333,13 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=30)
 
 def process_role_results(session, players: List[Player], role_results: List[Dict]) -> Dict[str, Any]:
-    """Process role results from Discord API."""
+    """
+    Process role results from Discord API.
+    NOTE: This function references `player.team` but we now
+    handle multiple teams with a string of names.
+    """
     status_updates = []
-    role_results = []
+    updated_role_results = []
 
     for player, result in zip(players, role_results):
         try:
@@ -338,23 +349,37 @@ def process_role_results(session, players: List[Player], role_results: List[Dict
                     'status': 'error',
                     'error': result['error']
                 })
-                role_results.append(create_error_result(player))
+                updated_role_results.append(create_error_result({
+                    'id': player.id,
+                    'name': player.name,
+                    # Provide fallback strings
+                    'team': "No Team",
+                    'league': "No League",
+                }))
                 continue
 
             current_roles = result.get('roles', [])
             if player:
-                expected_roles = []  # Get synchronously since we're in a sync function
+                # If you want multiple teams as a single string:
+                teams_str = ", ".join(t.name for t in player.teams) if player.teams else "No Team"
+                leagues_str = ", ".join(sorted({
+                    t.league.name for t in player.teams if t.league
+                })) if player.teams else "No League"
+
+                expected_roles = []  # Or call get_expected_roles(session, player) if needed
                 roles_match = set(current_roles) == set(expected_roles)
+
                 status_updates.append({
                     'id': player.id,
                     'status': 'synced' if roles_match else 'mismatch',
                     'current_roles': current_roles
                 })
-                role_results.append({
+
+                updated_role_results.append({
                     'id': player.id,
                     'name': player.name,
-                    'team': player.team.name if player.team else None,
-                    'league': player.team.league.name if player.team and player.team.league else None,
+                    'team': teams_str,
+                    'league': leagues_str,
                     'current_roles': current_roles,
                     'expected_roles': expected_roles,
                     'status_html': get_status_html(roles_match),
@@ -368,11 +393,16 @@ def process_role_results(session, players: List[Player], role_results: List[Dict
                 'status': 'error',
                 'error': str(e)
             })
-            role_results.append(create_error_result(player))
+            updated_role_results.append(create_error_result({
+                'id': player.id,
+                'name': player.name,
+                'team': "No Team",
+                'league': "No League",
+            }))
 
     return {
         'status_updates': status_updates,
-        'role_results': role_results
+        'role_results': updated_role_results
     }
 
 async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
@@ -389,6 +419,12 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
                 roles_match = set(current_roles) == set(expected_roles)
                 status_html = get_status_html(roles_match)
 
+                # Build a comma‐separated list of all team names
+                teams_str = ", ".join(t.name for t in player.teams) if player.teams else "No Team"
+                leagues_str = ", ".join(sorted({
+                    t.league.name for t in player.teams if t.league
+                })) if player.teams else "No League"
+
                 status_updates.append({
                     'id': player.id,
                     'status': 'synced' if roles_match else 'mismatch',
@@ -398,8 +434,8 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
                 role_results.append({
                     'id': player.id,
                     'name': player.name,
-                    'team': player.team.name if player.team else None,
-                    'league': player.team.league.name if player.team and player.team.league else None,
+                    'team': teams_str,
+                    'league': leagues_str,
                     'current_roles': current_roles,
                     'expected_roles': expected_roles,
                     'status_html': status_html,
@@ -416,8 +452,8 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
                 role_results.append(create_error_result({
                     'id': player.id,
                     'name': player.name,
-                    'team': player.team.name if player.team else None,
-                    'league': player.team.league.name if player.team and player.team.league else None
+                    'team': "No Team",
+                    'league': "No League"
                 }))
 
     return {
@@ -456,27 +492,39 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
             current_roles = role_result.get('roles', [])
             if player:
                 expected_roles = await get_expected_roles(session, player)
+                roles_match = set(current_roles) == set(expected_roles)
+                status_html = get_status_html(roles_match)
+
+                # Build a comma‐separated list
+                teams_str = ", ".join(t.name for t in player.teams) if player.teams else "No Team"
+                leagues_str = ", ".join(sorted({
+                    t.league.name for t in player.teams if t.league
+                })) if player.teams else "No League"
+
+                status_updates.append({
+                    'id': p_info['id'],
+                    'status': 'synced' if roles_match else 'mismatch',
+                    'current_roles': current_roles
+                })
+
+                results.append({
+                    'id': p_info['id'],
+                    'name': p_info['name'],
+                    'team': teams_str,
+                    'league': leagues_str,
+                    'current_roles': current_roles,
+                    'expected_roles': expected_roles,
+                    'status_html': status_html,
+                    'last_verified': datetime.utcnow().isoformat()
+                })
             else:
-                expected_roles = []
-
-            roles_match = set(current_roles) == set(expected_roles)
-            status_html = get_status_html(roles_match)
-            status_updates.append({
-                'id': p_info['id'],
-                'status': 'synced' if roles_match else 'mismatch',
-                'current_roles': current_roles
-            })
-
-            results.append({
-                'id': p_info['id'],
-                'name': p_info['name'],
-                'team': p_info['team'],
-                'league': p_info['league'],
-                'current_roles': current_roles,
-                'expected_roles': expected_roles,
-                'status_html': status_html,
-                'last_verified': datetime.utcnow().isoformat()
-            })
+                # No player found, mark an error
+                status_updates.append({
+                    'id': p_info['id'],
+                    'status': 'error',
+                    'error': 'No matching player in DB'
+                })
+                results.append(create_error_result(p_info))
 
         except Exception as e:
             logger.error(f"Error processing player {p_info['id']}: {str(e)}")
@@ -524,12 +572,11 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
     max_retries=3,
     retry_backoff=True
 )
-def remove_player_roles_task(self, session, player_id: int) -> Dict[str, Any]:
-    """Remove Discord roles from a player."""
+def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dict[str, Any]:
     try:
         player = session.query(Player).options(
-            joinedload(Player.team),
-            joinedload(Player.team).joinedload(Team.league)
+            joinedload(Player.teams),
+            joinedload(Player.teams).joinedload(Team.league)
         ).get(player_id)
         if not player:
             return {'success': False, 'message': 'Player not found'}
@@ -537,10 +584,11 @@ def remove_player_roles_task(self, session, player_id: int) -> Dict[str, Any]:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            result = loop.run_until_complete(_remove_player_roles_async(session, player.id))
+            result = loop.run_until_complete(_remove_player_roles_async(session, player.id, team_id))
         finally:
             loop.close()
 
+        # Now we can use result to update the player record
         if result.get('success'):
             player.discord_roles = []
             player.discord_last_verified = datetime.utcnow()
@@ -551,6 +599,7 @@ def remove_player_roles_task(self, session, player_id: int) -> Dict[str, Any]:
             player.last_role_removal = datetime.utcnow()
             if 'error' in result:
                 player.role_removal_error = result['error']
+
         session.flush()
 
         return {
@@ -571,43 +620,35 @@ def remove_player_roles_task(self, session, player_id: int) -> Dict[str, Any]:
         logger.error(f"Error removing roles from player {player_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=15)
 
-async def _remove_player_roles_async(session, player_id: int) -> Dict[str, Any]:
+async def _remove_player_roles_async(session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
     player = session.query(Player).get(player_id)
     if not player or not player.discord_id:
-        logger.error(f"No Discord ID or player not found for player_id {player_id}")
-        return {'success': False, 'message': 'No Discord ID associated with player', 'error_type': 'no_discord_id'}
+        logger.error(f"No Discord ID for player {player_id}") 
+        return {'success': False, 'message': 'No Discord ID'}
 
     try:
         async with aiohttp.ClientSession() as aio_session:
-            guild_id = int(Config.SERVER_ID)
-            
-            # First get all roles using the endpoint that works
-            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
-            member_roles = await make_discord_request('GET', url, aio_session)
-            
-            if not member_roles:
-                return {'success': True, 'message': f"No roles found for {player.name}"}
+            if team_id:
+                team = session.query(Team).get(team_id)
+                role_name = f"ECS-FC-PL-{team.name}-PLAYER"
+                guild_id = int(Config.SERVER_ID)
 
-            # Find team-specific player roles
-            roles_to_remove = []
-            for role in member_roles.get('roles', []):
-                if isinstance(role, str) and 'ECS-FC-PL-' in role and role.endswith('-PLAYER'):
-                    roles_to_remove.append(role)
+                # Get all roles first
+                url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
+                member_roles = await make_discord_request('GET', url, aio_session)
+                
+                if member_roles:
+                    # Remove this specific team's role
+                    role_id = await get_role_id(guild_id, role_name, aio_session)
+                    if role_id:
+                        await remove_role_from_member(guild_id, player.discord_id, role_id, aio_session)
+                        return {'success': True}
 
-            # Remove team roles
-            for role in roles_to_remove:
-                await remove_role_from_member(guild_id, player.discord_id, role, aio_session)
-                logger.info(f"Removed role '{role}' from player '{player.name}'")
-
-            return {
-                'success': True,
-                'message': f"Team roles removed successfully from {player.name}",
-                'removed_roles': roles_to_remove
-            }
+            return {'success': False, 'message': 'No team specified'}
 
     except Exception as e:
         logger.error(f"Error removing roles: {str(e)}", exc_info=True)
-        return {'success': False, 'message': f"Error removing roles: {str(e)}", 'error': str(e)}
+        return {'success': False, 'message': str(e)}
 
 @celery_task(name='app.tasks.tasks_discord.create_team_discord_resources_task', queue='discord')
 def create_team_discord_resources_task(self, session, team_id: int):
