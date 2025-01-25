@@ -594,46 +594,41 @@ async def get_app_managed_roles(session: Session) -> List[str]:
     return static_roles + team_roles
 
 async def get_expected_roles(session: Session, player: Player) -> List[str]:
-    """
-    Build a list of roles for this player:
-      - Each team's "ECS-FC-PL-{team.name}-PLAYER"
-      - Possibly a league-wide role if each team's league is known
-      - Possibly 'Referee' if player.is_ref
-      - Possibly a '...-Coach' role if player.is_coach
-    """
+    """Get app-managed roles for player"""
     roles = []
-    logger.debug(f"Getting roles for player {player.id} ({player.name})")
-
-    # 1) Collect all league names from the teams
-    unique_league_names = set()
+    
+    # Store app-managed role prefixes
+    app_role_prefixes = ["ECS-FC-PL-", "Referee"]
+    
+    # Get current Discord roles
+    async with aiohttp.ClientSession() as aio_session:
+        current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
+        
+    # Keep non-app managed roles
+    for role in current_roles:
+        if not any(role.startswith(prefix) for prefix in app_role_prefixes):
+            roles.append(role)
+    
+    # Add league roles
     for t in player.teams:
         if t.league and t.league.name:
-            unique_league_names.add(t.league.name.strip().upper())
-
-    # 2) For each league, add the league-wide roles
-    for league_name in unique_league_names:
-        logger.debug(f"Processing league {league_name}")
-        if league_name == 'PREMIER':
-            roles.append("ECS-FC-PL-PREMIER")
-            if player.is_coach:
-                roles.append("ECS-FC-PL-PREMIER-COACH")
-        elif league_name == 'CLASSIC':
-            roles.append("ECS-FC-PL-CLASSIC")
-            if player.is_coach:
-                roles.append("ECS-FC-PL-CLASSIC-COACH")
-        # etc. if you have more leagues
-
-    # 3) Add a team-specific role for each team
+            league_name = t.league.name.strip().upper()
+            if league_name == 'PREMIER':
+                roles.append("ECS-FC-PL-PREMIER")
+                if player.is_coach:
+                    roles.append("ECS-FC-PL-PREMIER-COACH") 
+            elif league_name == 'CLASSIC':
+                roles.append("ECS-FC-PL-CLASSIC")
+                if player.is_coach:
+                    roles.append("ECS-FC-PL-CLASSIC-COACH")
+                    
+    # Add team roles
     for t in player.teams:
-        team_role = f"ECS-FC-PL-{t.name}-PLAYER"
-        roles.append(team_role)
-        logger.debug(f"Added team role: {team_role}")
-
-    # If the player is a ref, add that too
+        roles.append(f"ECS-FC-PL-{t.name}-PLAYER")
+        
     if player.is_ref:
         roles.append("Referee")
-
-    logger.info(f"Final roles for player {player.id}: {roles}")
+        
     return roles
 
 async def process_role_updates(session: Session, force_update: bool = False) -> None:
@@ -807,7 +802,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
 
 async def fetch_user_roles(session: Session, discord_id: str, http_session: aiohttp.ClientSession, retries=3, delay=0.5) -> List[str]:
     """
-    Example of robust fetching of user roles with retries and validation.
+    Fetch roles for a user with retry logic and no recursive validation.
     """
     guild_id = int(os.getenv('SERVER_ID'))
     url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{discord_id}/roles"
@@ -815,45 +810,27 @@ async def fetch_user_roles(session: Session, discord_id: str, http_session: aioh
     for attempt in range(retries):
         try:
             response = await make_discord_request('GET', url, http_session)
-            if response and 'roles' in response:
+            
+            # Handle direct list of role names
+            if isinstance(response, list):
+                return response
+            # Handle response with 'roles' key
+            elif response and 'roles' in response:
                 if isinstance(response['roles'], dict):
-                    # e.g. {role_id: role_name, ...}
-                    roles = list(response['roles'].values())
-                elif (isinstance(response['roles'], list)
-                      and all(isinstance(r, dict) for r in response['roles'])):
-                    roles = [r['name'] for r in response['roles']]
-                else:
-                    logger.error(f"Unexpected roles format in response for user {discord_id}: {response['roles']}")
-                    roles = []
-
-                expected_roles = await get_expected_roles_for_user(session, discord_id, http_session)
-                if validate_roles(roles, expected_roles):
-                    logger.debug(f"Roles for user {discord_id} validated successfully: {roles}")
-                    return roles
-                else:
-                    logger.warning(f"Roles mismatch for user {discord_id}: {roles} vs. {expected_roles}")
+                    return list(response['roles'].values())
+                elif isinstance(response['roles'], list):
+                    if all(isinstance(r, dict) for r in response['roles']):
+                        return [r['name'] for r in response['roles']]
+                    return response['roles']
+            
+            logger.warning(f"Unexpected response format for user {discord_id}: {response}")
             await asyncio.sleep(delay)
-        
+            
         except Exception as e:
             logger.error(f"Error fetching roles for user {discord_id} on attempt {attempt + 1}: {str(e)}")
+            if attempt < retries - 1:
+                await asyncio.sleep(delay)
+            else:
+                return []
     
-    logger.error(f"Failed to fetch and validate roles for user {discord_id} after {retries} attempts")
     return []
-
-async def get_expected_roles_for_user(session: Session, discord_id: str, http_session: aiohttp.ClientSession) -> List[str]:
-    """
-    Utility to retrieve the Player from DB by discord_id, then get that player's expected roles.
-    """
-    player = session.query(Player).filter(Player.discord_id == discord_id).first()
-    if not player:
-        logger.warning(f"No player found with discord_id {discord_id}")
-        return []
-    return await get_expected_roles(session, player)
-
-def validate_roles(actual: List[str], expected: List[str]) -> bool:
-    """
-    Example: Only compare roles that start with 'ECS-FC-PL-'.
-    """
-    managed_actual = [r for r in actual if r.startswith('ECS-FC-PL-')]
-    managed_expected = [r for r in expected if r.startswith('ECS-FC-PL-')]
-    return set(managed_actual) == set(managed_expected)

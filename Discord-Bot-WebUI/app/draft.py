@@ -265,7 +265,7 @@ def handle_draft_player(data):
             # Mark for Discord sync / Trigger role assignment for exactly this team
             mark_player_for_discord_update(session, player.id)
             # Pass both player_id AND team_id
-            assign_roles_to_player_task.delay(player.id, team.id)
+            assign_roles_to_player_task.delay(player_id=player.id, team_id=team.id)
 
             # Prepare stats for the response
             current_season = session.query(Season).get(team.league.season_id)

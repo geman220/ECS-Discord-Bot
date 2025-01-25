@@ -13,9 +13,14 @@ DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 DISCORD_API_URL = 'https://discord.com/api/users/@me'
 
 def update_last_login(user):
-    """Update user's last login timestamp."""
-    user.last_login = datetime.utcnow()
-    logger.info(f"Updated last login for user {user.id}")
+    """Update user's last login timestamp and return True/False."""
+    try:
+        user.last_login = datetime.utcnow()
+        logger.info(f"Updated last login for user {user.id}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to update last login for user {user.id}: {e}", exc_info=True)
+        return False
 
 def generate_reset_token(user, expires_sec=1800):
     """Generate a secure token for password reset."""
