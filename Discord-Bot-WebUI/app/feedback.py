@@ -4,7 +4,7 @@ from flask_login import login_required
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, User, Role
 from app.email import send_email
-from app.utils.db_utils import transactional  # Change this import
+from app.utils.db_utils import transactional
 from app.core import db
 from app.utils.user_helpers import safe_current_user
 from sqlalchemy.orm import joinedload

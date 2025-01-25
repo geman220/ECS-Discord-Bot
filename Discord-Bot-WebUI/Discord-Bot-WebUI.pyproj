@@ -67,6 +67,7 @@
     <Compile Include="celery_discord_worker.py" />
     <Compile Include="celery_live_reporting_worker.py" />
     <Compile Include="celery_worker_base.py" />
+    <Compile Include="celery_worker_base_prefork.py" />
     <Compile Include="healthcheck.py" />
     <Compile Include="migrations_config.py" />
     <Compile Include="wsgi.py" />

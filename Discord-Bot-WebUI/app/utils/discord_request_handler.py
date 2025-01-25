@@ -14,6 +14,7 @@ async def make_discord_request(
     This version always attempts to parse the response as JSON. If it's not JSON,
     it logs an error and returns None.
     """
+    logger.debug(f"Discord request: {method} {url}, kwargs={kwargs}")
     for attempt in range(retries):
         try:
             async with session.request(method, url, **kwargs) as response:
