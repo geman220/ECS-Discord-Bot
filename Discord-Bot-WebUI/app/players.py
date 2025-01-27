@@ -540,7 +540,7 @@ def remove_match_stat(stat_id):
         current_app.logger.error(f"Unexpected error deleting match stat {stat_id}: {str(e)}")
         return jsonify({'success': False}), 500
 
-@players_bp.route('/player/<int:player_id>/upload_profile_picture', endpoint='upload_profile_picture', methods=['POST'])
+@players_bp.route('/player/<int:player_id>/upload_profile_picture', methods=['POST'])
 @login_required
 @admin_or_owner_required
 def upload_profile_picture(player_id):
@@ -551,18 +551,30 @@ def upload_profile_picture(player_id):
 
     cropped_image_data = request.form.get('cropped_image_data')
     if not cropped_image_data:
+        # Return JSON or redirect
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message='No image data provided'), 400
         flash('No image data provided.', 'danger')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
     try:
         image_url = save_cropped_profile_picture(cropped_image_data, player_id)
         player.profile_picture_url = image_url
+        session.commit()  # make sure to commit changes
         flash('Profile picture updated successfully!', 'success')
+
+        # If it's AJAX, return JSON success
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=True, message='Profile picture updated!', image_url=image_url)
+
+        # Otherwise do the normal redirect
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
     except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify(success=False, message=str(e)), 500
         flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
         raise
-
-    return redirect(url_for('players.player_profile', player_id=player_id))
 
 @players_bp.route('/delete_player/<int:player_id>', endpoint='delete_player', methods=['POST'])
 @login_required

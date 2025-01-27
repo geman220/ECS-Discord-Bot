@@ -214,10 +214,20 @@
 {% endmacro %}
 
 {% macro render_onboarding_modal(onboarding_form, player) %}
-<form method="POST" class="needs-validation" novalidate>
+<form method="POST"
+      class="needs-validation"
+      enctype="multipart/form-data"
+      novalidate>
     {{ onboarding_form.hidden_tag() }} <!-- CSRF Token -->
     <!-- Hidden input to identify form action -->
     <input type="hidden" id="form_action" name="form_action" value="">
+
+    <!-- NEW: Hidden Player ID for AJAX cropping -->
+    {% if player %}
+    <input type="hidden" id="playerId" value="{{ player.id }}">
+    {% else %}
+    <input type="hidden" id="playerId" value="">
+    {% endif %}
 
     <!-- Carousel for Onboarding Steps -->
     <div id="modalCarouselControls" class="carousel slide" data-bs-interval="false">
@@ -279,8 +289,39 @@
                 </div>
             </div>
 
-            <!-- Step 2: Player Profile -->
+            <!-- Step 2: Profile Picture -->
             <div class="carousel-item" data-step="2">
+                <div class="onboarding-content text-center">
+                    <h4 class="text-primary mb-3">Profile Picture</h4>
+                    <div id="currentProfilePicture" class="mb-3">
+                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                             alt="Profile Picture"
+                             class="rounded-circle"
+                             style="width: 150px; height: 150px;">
+                    </div>
+                    <div class="mb-3">
+                        <!-- Hidden file input -->
+                        <input type="file" name="image" id="image" accept="image/*" class="form-control d-none">
+                        <!-- Button that triggers the file input -->
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('image').click();">
+                            <i class="ti ti-upload me-1"></i> Select Image
+                        </button>
+                        <!-- The new Crop & Save button -->
+                        <button type="button" class="btn btn-primary ms-2" id="cropAndSaveButton" disabled>
+                            Crop & Save
+                        </button>
+                    </div>
+                    <!-- Container for the Cropper preview -->
+                    <div class="img-container d-none">
+                        <img id="imagecan" style="max-width: 100%; height: auto;">
+                    </div>
+                    <!-- Hidden input that can store the final base64 for form submission if needed -->
+                    <input type="hidden" id="cropped_image_data" name="cropped_image_data">
+                </div>
+            </div>
+
+            <!-- Step 3: Player Profile -->
+            <div class="carousel-item" data-step="3">
                 <div class="onboarding-content text-center">
                     <img src="{{ url_for('static', filename='img/undraw_junior_soccer_6sop.svg') }}" alt="Player Profile Image" class="mb-4" style="max-width: 400px; height: auto;">
                     <h4 class="text-primary text-center mb-3">Player Profile</h4>
@@ -364,8 +405,8 @@
                 </div>
             </div>
 
-            <!-- Step 3: Discord Linking -->
-            <div class="carousel-item" data-step="3">
+            <!-- Step 4: Discord Linking -->
+            <div class="carousel-item" data-step="4">
                 <div class="onboarding-content text-center">
                     <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}" alt="Discord Linking Image" class="mb-4" style="max-width: 400px; height: auto;">
                     <h4 class="text-primary mb-3">Link Your Discord Account</h4>
@@ -381,8 +422,8 @@
                 </div>
             </div>
 
-            <!-- Step 4: Notification Settings -->
-            <div class="carousel-item" data-step="4">
+            <!-- Step 5: Notification Settings -->
+            <div class="carousel-item" data-step="5">
                 <div class="onboarding-content">
                     <h4 class="text-primary text-center mb-4">Notification Settings</h4>
                     <div class="notification-options">
@@ -408,12 +449,12 @@
                                     <!-- Phone Number Input -->
                                     <div class="mb-3">
                                         <label for="phoneNumber" class="form-label">Phone Number</label>
-                                        <input type="tel" class="form-control" id="phoneNumber" name="phone_number" required>
+                                        <input type="tel" class="form-control" id="phoneNumber" name="phone_number">
                                     </div>
 
                                     <!-- Consent Checkbox -->
                                     <div class="form-check mb-3">
-                                        <input type="checkbox" class="form-check-input" id="smsConsent" name="sms_consent" required>
+                                        <input type="checkbox" class="form-check-input" id="smsConsent" name="sms_consent">
                                         <label class="form-check-label" for="smsConsent">I agree to receive SMS notifications</label>
                                     </div>
 
@@ -448,18 +489,20 @@
             <!-- Carousel Indicators -->
             <div class="carousel-indicators mt-4">
                 {% if not player %}
-                <!-- Indicators for Users without a Profile -->
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4" aria-label="Step 5"></button>
+                <!-- For new users -->
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Welcome"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Contact"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1.5" aria-label="Photo"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Profile"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Discord"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4" aria-label="Notifications"></button>
                 {% else %}
-                <!-- Indicators for Users with a Profile -->
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Step 1"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Step 2"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Step 3"></button>
-                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Step 4"></button>
+                <!-- For existing users -->
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Contact"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="1" aria-label="Photo"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="2" aria-label="Profile"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="3" aria-label="Discord"></button>
+                <button type="button" data-bs-target="#modalCarouselControls" data-bs-slide-to="4" aria-label="Notifications"></button>
                 {% endif %}
             </div>
 
@@ -473,6 +516,7 @@
                 </button>
             </div>
         </div>
+    </div>
 </form>
 {% endmacro %}
 

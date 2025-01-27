@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 from collections import defaultdict
 from datetime import datetime, timedelta
 from sqlalchemy.orm import aliased, joinedload
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, text
 from app.models import (
     Schedule, Match, Notification, Team, Player, Announcement, Season,
     PlayerSeasonStats, player_teams
@@ -11,6 +11,7 @@ from app.models import (
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
 from app.forms import OnboardingForm, soccer_positions, pronoun_choices, availability_choices, willing_to_referee_choices
+from app.core.session_manager import managed_session
 import logging
 import subprocess
 import requests
@@ -112,22 +113,19 @@ def create_player_profile(onboarding_form):
             needs_manual_review=False,
             linked_primary_player_id=None,
             order_id=None,
-            # We do NOT set team_id or league_id for multi-team logic
             is_current_player=True
         )
 
         session.add(player)
-        safe_current_user.has_completed_onboarding = True
-        safe_current_user.player = player
-
+        session.add(safe_current_user)
+        
+        # Don't commit here - let the caller handle the transaction
         logger.info(f"Created player profile for user {safe_current_user.id}")
-        flash('Player profile created successfully.', 'success')
-
         return player
 
     except Exception as e:
         logger.error(f"Error creating profile for user {safe_current_user.id}: {e}")
-        raise
+        raise  # Re-raise the exception to be handled by the caller
 
 def handle_profile_update(player, onboarding_form):
     session = g.db_session
@@ -175,14 +173,15 @@ def handle_profile_update(player, onboarding_form):
             onboarding_form.profile_picture.data.save(upload_path)
             player.profile_picture_url = url_for('static', filename='uploads/' + filename)
 
-        safe_current_user.has_completed_onboarding = True
-        flash('Profile updated successfully.', 'success')
-        logger.info(f"User {safe_current_user.id} updated their profile successfully.")
+        session.add(player)
+        session.add(safe_current_user)
+        
+        # Don't commit here - let the caller handle the transaction
+        logger.info(f"Updated profile for user {safe_current_user.id}")
 
     except Exception as e:
         logger.error(f"Error updating profile for user {safe_current_user.id}: {e}")
-        flash('An error occurred while updating your profile. Please try again.', 'danger')
-        raise
+        raise  # Re-raise the exception to be handled by the caller
 
 def fetch_upcoming_matches(
     teams,
@@ -280,175 +279,186 @@ def index():
     session = g.db_session
     current_year = datetime.now().year
 
-    # Load the player's full data, including all teams
-    player = getattr(safe_current_user, 'player', None)
-    if player:
-        player = (
-            session.query(Player)
-            .options(joinedload(Player.teams).joinedload(Team.league))
-            .filter_by(id=player.id)
-            .first()
+    try:
+        # Load the player's full data, including all teams
+        player = getattr(safe_current_user, 'player', None)
+        if player:
+            player = (
+                session.query(Player)
+                .options(joinedload(Player.teams).joinedload(Team.league))
+                .filter_by(id=player.id)
+                .first()
+            )
+        else:
+            player = None
+
+        onboarding_form = get_onboarding_form(
+            player, formdata=request.form if request.method == 'POST' else None
         )
-    else:
-        player = None
+        report_form = ReportMatchForm()
 
-    onboarding_form = get_onboarding_form(
-        player, formdata=request.form if request.method == 'POST' else None
-    )
-    report_form = ReportMatchForm()
+        # Get matches for debugging/UI
+        matches = (
+            session.query(Match)
+            .options(joinedload(Match.home_team), joinedload(Match.away_team))
+            .all()
+        )
 
-    # We'll use matches array for debugging or additional UI
-    matches = (
-        session.query(Match)
-        .options(joinedload(Match.home_team), joinedload(Match.away_team))
-        .all()
-    )
+        if player:
+            show_onboarding = not safe_current_user.has_completed_onboarding
+        else:
+            show_onboarding = not safe_current_user.has_skipped_profile_creation
 
-    if player:
-        show_onboarding = not safe_current_user.has_completed_onboarding
-    else:
-        show_onboarding = not safe_current_user.has_skipped_profile_creation
+        show_tour = (
+            safe_current_user.has_completed_onboarding
+            and not safe_current_user.has_completed_tour
+        )
 
-    show_tour = (
-        safe_current_user.has_completed_onboarding
-        and not safe_current_user.has_completed_tour
-    )
+        # Handle POST forms
+        if request.method == 'POST':
+            form_action = request.form.get('form_action', '')
+            logger.info(f"Processing form action: {form_action}")
+            
+            if form_action in ['create_profile', 'update_profile']:
+                if onboarding_form.validate_on_submit():
+                    try:
+                        # Get current state
+                        logger.info(f"Current has_completed_onboarding: {safe_current_user.has_completed_onboarding}")
+            
+                        # Force a refresh to get latest state
+                        session.refresh(safe_current_user)
+            
+                        if not player:
+                            player = create_player_profile(onboarding_form)
+                            if player:
+                                safe_current_user.has_skipped_profile_creation = False
+                        else:
+                            handle_profile_update(player, onboarding_form)
 
-    # Handle POST forms
-    if request.method == 'POST':
-        form_action = request.form.get('form_action', '')
-        logger.debug(f"Form Action: {form_action}")
-        logger.debug(f"Form Data: {request.form}")
-
-        if form_action in ['create_profile', 'update_profile']:
-            if onboarding_form.validate_on_submit():
-                if not player:
-                    # Creating a new Player
-                    player = create_player_profile(onboarding_form)
-                    if player:
-                        safe_current_user.has_skipped_profile_creation = False
+                        if player:
+                            # Set flag and explicitly update user
+                            safe_current_user.has_completed_onboarding = True
+                            session.add(safe_current_user)
+                            session.flush()  # Force the changes to be sent to DB
+                
+                            # Execute an update directly
+                            session.execute(
+                                text("UPDATE users SET has_completed_onboarding = true WHERE id = :user_id"),
+                                {"user_id": safe_current_user.id}
+                            )
+                
+                            session.commit()
+                
+                            # Verify the update
+                            session.refresh(safe_current_user)
+                            logger.info(f"Verified has_completed_onboarding after update: {safe_current_user.has_completed_onboarding}")
+                
+                            # Double check with direct query
+                            result = session.execute(
+                                text("SELECT has_completed_onboarding FROM users WHERE id = :user_id"),
+                                {"user_id": safe_current_user.id}
+                            ).fetchone()
+                            logger.info(f"Direct query verification: has_completed_onboarding = {result[0]}")
+                
+                        flash('Profile updated successfully!', 'success')
+                        return redirect(url_for('main.index'))
+            
+                    except Exception as e:
+                        session.rollback()
+                        logger.error(f"Error in profile creation/update: {str(e)}", exc_info=True)
+                        flash('An error occurred while saving your profile. Please try again.', 'danger')
+                        return redirect(url_for('main.index'))
                 else:
-                    # Updating an existing Player
-                    handle_profile_update(player, onboarding_form)
+                    logger.warning(f"Form validation failed: {onboarding_form.errors}")
+                    flash('Form validation failed. Please check the form inputs.', 'danger')
 
-                if player:
-                    safe_current_user.has_completed_onboarding = True
-                    flash('Player profile created or updated successfully!', 'success')
+            elif form_action == 'reset_skip_profile':
+                try:
+                    with session.begin():
+                        safe_current_user.has_skipped_profile_creation = False
+                        session.add(safe_current_user)
+                    flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
                     return redirect(url_for('main.index'))
-            else:
-                flash('Form validation failed. Please check the form inputs.', 'danger')
-                logger.debug(onboarding_form.errors)
+                except Exception as e:
+                    logger.error(f"Error resetting profile: {str(e)}", exc_info=True)
+                    flash('An error occurred. Please try again.', 'danger')
+                    return redirect(url_for('main.index'))
 
-        elif form_action == 'skip_profile':
-            safe_current_user.has_skipped_profile_creation = True
-            show_onboarding = False
-            flash('You have chosen to skip profile creation for now.', 'info')
-            return redirect(url_for('main.index'))
+        # Prepare template data
+        user_teams = player.teams if player else []
+        today = datetime.now().date()
+        two_weeks_later = today + timedelta(weeks=2)
+        one_week_ago = today - timedelta(weeks=1)
+        yesterday = today - timedelta(days=1)
+        sunday_dow = 0
 
-        elif form_action == 'reset_skip_profile':
-            safe_current_user.has_skipped_profile_creation = False
-            show_onboarding = True
-            flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
-            return redirect(url_for('main.index'))
+        next_matches = fetch_upcoming_matches(
+            teams=user_teams,
+            start_date=today,
+            end_date=two_weeks_later,
+            specific_day=sunday_dow,
+            per_day_limit=2,
+            order='asc'
+        )
 
-    # For the template, we often used to pass "team" or "user_team".
-    # Now we store them as a list of teams: user_teams
-    user_teams = player.teams if player else []
+        previous_matches = fetch_upcoming_matches(
+            teams=user_teams,
+            start_date=one_week_ago,
+            end_date=yesterday,
+            match_limit=2,
+            include_past_matches=True,
+            order='desc'
+        )
 
-    today = datetime.now().date()
-    two_weeks_later = today + timedelta(weeks=2)
-    one_week_ago = today - timedelta(weeks=1)
-    yesterday = today - timedelta(days=1)
+        announcements = fetch_announcements()
+        player_choices_per_match = {}
 
-    sunday_dow = 0
+        # Build player choices for matches
+        for matches_dict in [next_matches, previous_matches]:
+            for date_key, matches_list in matches_dict.items():
+                for match_data in matches_list:
+                    match = match_data['match']
+                    home_team_id = match_data['home_team_id']
+                    opp_team_id = match_data['opponent_team_id']
 
-    # Next Matches
-    next_matches = fetch_upcoming_matches(
-        teams=user_teams,
-        start_date=today,
-        end_date=two_weeks_later,
-        specific_day=sunday_dow,
-        per_day_limit=2,
-        order='asc'
-    )
+                    players = (
+                        session.query(Player)
+                        .join(player_teams, player_teams.c.player_id == Player.id)
+                        .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
+                        .all()
+                    )
 
-    # Previous Matches
-    previous_matches = fetch_upcoming_matches(
-        teams=user_teams,
-        start_date=one_week_ago,
-        end_date=yesterday,
-        match_limit=2,
-        include_past_matches=True,
-        order='desc'
-    )
+                    home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
+                    away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
 
-    announcements = fetch_announcements()
+                    player_choices_per_match[match.id] = {
+                        match_data['home_team_name']: {p.id: p.name for p in home_players},
+                        match_data['opponent_name']: {p.id: p.name for p in away_players}
+                    }
 
-    player_choices_per_match = {}
+        return render_template(
+            'index.html',
+            report_form=report_form,
+            matches=matches,
+            onboarding_form=onboarding_form,
+            user_team=user_teams,
+            next_matches=next_matches,
+            previous_matches=previous_matches,
+            current_year=current_year,
+            team=user_teams,
+            player=player,
+            is_linked_to_discord=(player.discord_id is not None if player else False),
+            discord_server_link="https://discord.gg/weareecs",
+            show_onboarding=show_onboarding,
+            show_tour=show_tour,
+            announcements=announcements,
+            player_choices=player_choices_per_match
+        )
 
-    # Build dictionary of players for each match
-    # previously used Player.team_id, but we must do a join to player_teams
-    for date_key, matches_list in next_matches.items():
-        for match_data in matches_list:
-            match = match_data['match']
-            home_team_id = match_data['home_team_id']
-            opp_team_id = match_data['opponent_team_id']
-
-            # Query players for either home_team_id or opp_team_id
-            players = (
-                session.query(Player)
-                .join(player_teams, player_teams.c.player_id == Player.id)
-                .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
-                .all()
-            )
-
-            home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
-            away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
-
-            player_choices_per_match[match.id] = {
-                match_data['home_team_name']: {p.id: p.name for p in home_players},
-                match_data['opponent_name']: {p.id: p.name for p in away_players}
-            }
-
-    for date_key, matches_list in previous_matches.items():
-        for match_data in matches_list:
-            match = match_data['match']
-            home_team_id = match_data['home_team_id']
-            opp_team_id = match_data['opponent_team_id']
-
-            players = (
-                session.query(Player)
-                .join(player_teams, player_teams.c.player_id == Player.id)
-                .filter(player_teams.c.team_id.in_([home_team_id, opp_team_id]))
-                .all()
-            )
-
-            home_players = [p for p in players if any(t.id == home_team_id for t in p.teams)]
-            away_players = [p for p in players if any(t.id == opp_team_id for t in p.teams)]
-
-            player_choices_per_match[match.id] = {
-                match_data['home_team_name']: {p.id: p.name for p in home_players},
-                match_data['opponent_name']: {p.id: p.name for p in away_players}
-            }
-
-    return render_template(
-        'index.html',
-        report_form=report_form,
-        matches=matches,
-        onboarding_form=onboarding_form,
-        user_team=user_teams,   # pass the entire list to the template
-        next_matches=next_matches,
-        previous_matches=previous_matches,
-        current_year=current_year,
-        team=user_teams,        # might rename in the template if needed
-        player=player,
-        is_linked_to_discord=(player.discord_id is not None if player else False),
-        discord_server_link="https://discord.gg/weareecs",
-        show_onboarding=show_onboarding,
-        show_tour=show_tour,
-        announcements=announcements,
-        player_choices=player_choices_per_match
-    )
+    except Exception as e:
+        logger.error(f"Unexpected error in index route: {str(e)}", exc_info=True)
+        flash('An unexpected error occurred. Please try again.', 'danger')
+        return redirect(url_for('main.index'))
 
 @main.route('/notifications', endpoint='notifications', methods=['GET'])
 @login_required
