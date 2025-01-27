@@ -396,7 +396,61 @@
 
 </div>
 {% endblock %}
+{% block custom_css %}
+<!-- Existing CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
 
+<!-- Onboarding Modal CSS -->
+<style>
+    .carousel-inner {
+        position: relative;
+        padding-bottom: 60px;
+    }
+
+    #carouselControls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 1rem;
+        background: transparent !important;
+        border-top: none !important;
+        z-index: 10;
+    }
+
+    .carousel-indicators button {
+        background-color: rgba(255, 255, 255, 0.5) !important;
+    }
+
+    .carousel-indicators .active {
+        background-color: #fff !important;
+    }
+
+    .carousel-indicators {
+        position: absolute;
+        bottom: 70px;
+        margin-bottom: 0;
+    }
+
+    .onboarding-content {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+        padding-bottom: 100px;
+    }
+
+    .img-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+        .onboarding-content {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
 {% block custom_js %}
 <script>
     const showTour = {{ show_tour | tojson }};
