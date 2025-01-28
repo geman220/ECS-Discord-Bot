@@ -38,18 +38,18 @@
                     </thead>
                     <tbody>
                         {% for match in matches %}
-                        <tr id="row-{{ match.match_id }}" data-match-id="{{ match.match_id }}">
+                        <tr id="row-{{ match.id }}" data-match-id="{{ match.id }}">
                             <td>
-                                <span class="fw-bold" id="opponent-{{ match.match_id }}">{{ match.opponent }}</span>
+                                <span class="fw-bold" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
                             </td>
                             <td>
-                                <span id="date-{{ match.match_id }}">{{ match.formatted_date }}</span>
+                                <span id="date-{{ match.id }}">{{ match.formatted_date }}</span>
                             </td>
                             <td>
-                                <span id="competition-{{ match.match_id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
+                                <span id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
                             </td>
                             <td>
-                                <span id="status-{{ match.match_id }}" class="badge
+                                <span id="status-{{ match.id }}" class="badge
                                     {% if match.live_reporting_status == 'running' %}
                                         bg-success
                                     {% elif match.live_reporting_status == 'scheduled' %}
@@ -62,25 +62,25 @@
                                     {{ match.live_reporting_status|capitalize }}
                                 </span>
                             </td>
-                            <td class="text-center" id="actions-{{ match.match_id }}">
+                            <td class="text-center" id="actions-{{ match.id }}">
                                 <div class="dropdown d-inline-block me-2">
-                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ match.match_id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ match.match_id }}">
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ match.id }}">
                                         <li>
-                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('{{ match.match_id }}')">
+                                            <a class="dropdown-item" href="javascript:void(0);" onclick="editRow('{{ match.id }}')">
                                                 <i class="fas fa-edit me-1"></i> Edit
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.match_id }}')">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.id }}')">
                                                 <i class="fas fa-trash-alt me-1"></i> Delete
                                             </a>
                                         </li>
                                     </ul>
                                 </div>
-                                <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('{{ match.match_id }}')"
+                                <button class="btn btn-sm btn-primary start-button" onclick="startLiveReporting('{{ match.id }}')"
                                         {% if match.live_reporting_status == 'running' %}disabled{% endif %}
                                         aria-label="Start live reporting for match against {{ match.opponent }}">
                                     {% if match.live_reporting_status == 'scheduled' %}
@@ -91,7 +91,7 @@
                                     Start
                                     {% endif %}
                                 </button>
-                                <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('{{ match.match_id }}')"
+                                <button class="btn btn-sm btn-danger stop-button" onclick="stopLiveReporting('{{ match.id }}')"
                                         {% if match.live_reporting_status !='running' %}disabled{% endif %}>
                                     Stop
                                 </button>
