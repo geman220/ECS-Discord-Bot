@@ -69,13 +69,13 @@ def matches():
         inverse_competition_mappings=INVERSE_COMPETITION_MAPPINGS
     )
 
-@bot_admin_bp.route('/start_live_reporting/<match_id>', methods=['POST'])
+@bot_admin_bp.route('/start_live_reporting/<int:match_id>', methods=['POST'])
 @login_required
 def start_live_reporting_route(match_id):
     session_db = g.db_session
     try:
         logger.info(f"Starting live reporting for match_id: {match_id}")
-        match = session_db.query(MLSMatch).filter(MLSMatch.match_id == str(match_id)).first()
+        match = session_db.query(MLSMatch).filter_by(id=match_id).first()
         
         if not match:
             logger.error(f"Match not found in mls_matches with match_id: {match_id}")
@@ -104,7 +104,7 @@ def start_live_reporting_route(match_id):
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
 
-@bot_admin_bp.route('/stop_live_reporting/<match_id>', methods=['POST'])
+@bot_admin_bp.route('/stop_live_reporting/<int:match_id>', methods=['POST'])
 @login_required
 def stop_live_reporting_route(match_id):
     session_db = g.db_session
@@ -168,6 +168,7 @@ def add_mls_match():
                         competition=competition,
                         session=session_db
                     )
+                    session_db.flush()
 
                     if not match:
                         logger.error("Failed to create match record")
