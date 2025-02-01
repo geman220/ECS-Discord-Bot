@@ -594,41 +594,64 @@ async def get_app_managed_roles(session: Session) -> List[str]:
     return static_roles + team_roles
 
 async def get_expected_roles(session: Session, player: Player) -> List[str]:
-    """Get app-managed roles for player"""
+    """
+    Builds the complete set of roles the player should have, based on:
+      - league_id / primary_league_id (for undrafted players)
+      - any leagues from player.teams (for drafted players)
+      - coach/ref flags
+      - preserving any non-managed roles from Discord
+    """
     roles = []
-    
-    # Store app-managed role prefixes
     app_role_prefixes = ["ECS-FC-PL-", "Referee"]
-    
-    # Get current Discord roles
+
+    # 1) Fetch user's current Discord roles to keep non-managed roles
     async with aiohttp.ClientSession() as aio_session:
         current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
-        
-    # Keep non-app managed roles
+
     for role in current_roles:
         if not any(role.startswith(prefix) for prefix in app_role_prefixes):
             roles.append(role)
-    
-    # Add league roles
+
+    # 2) Collect leagues. We'll load them from DB if we only have ID fields:
+    leagues_for_user = set()
+
+    # (a) If the Player model has league_id
+    if player.league_id:
+        league_obj = session.query(League).filter_by(id=player.league_id).first()
+        if league_obj and league_obj.name:
+            leagues_for_user.add(league_obj.name.strip().upper())
+
+    # (b) If the Player model has primary_league_id
+    if player.primary_league_id:
+        league_obj = session.query(League).filter_by(id=player.primary_league_id).first()
+        if league_obj and league_obj.name:
+            leagues_for_user.add(league_obj.name.strip().upper())
+
+    # (c) Also check each team’s league
     for t in player.teams:
         if t.league and t.league.name:
-            league_name = t.league.name.strip().upper()
-            if league_name == 'PREMIER':
-                roles.append("ECS-FC-PL-PREMIER")
-                if player.is_coach:
-                    roles.append("ECS-FC-PL-PREMIER-COACH") 
-            elif league_name == 'CLASSIC':
-                roles.append("ECS-FC-PL-CLASSIC")
-                if player.is_coach:
-                    roles.append("ECS-FC-PL-CLASSIC-COACH")
-                    
-    # Add team roles
+            leagues_for_user.add(t.league.name.strip().upper())
+
+    # 3) For each league, add the base role + coach role
+    for league_name in leagues_for_user:
+        if league_name == "PREMIER":
+            roles.append("ECS-FC-PL-PREMIER")
+            if player.is_coach:
+                roles.append("ECS-FC-PL-PREMIER-COACH")
+        elif league_name == "CLASSIC":
+            roles.append("ECS-FC-PL-CLASSIC")
+            if player.is_coach:
+                roles.append("ECS-FC-PL-CLASSIC-COACH")
+        # Add more elif if you have other leagues, e.g. "ECS FC"
+
+    # 4) Team-based role for each assigned team
     for t in player.teams:
         roles.append(f"ECS-FC-PL-{t.name}-PLAYER")
-        
+
+    # 5) If they're a referee, add the 'Referee' role
     if player.is_ref:
         roles.append("Referee")
-        
+
     return roles
 
 async def process_role_updates(session: Session, force_update: bool = False) -> None:

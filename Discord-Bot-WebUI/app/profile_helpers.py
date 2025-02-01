@@ -11,14 +11,19 @@ logger = logging.getLogger(__name__)
 def handle_coach_status_update(player, user):
     try:
         logger.debug("Entering handle_coach_status_update")
+        
         is_coach = 'is_coach' in request.form
         logger.debug(f"Received is_coach: {is_coach}")
         
         player.is_coach = is_coach
         player.discord_needs_update = True
+        
         session = g.db_session
 
-        # Force immediate Discord role update
+        # 1) Commit FIRST
+        session.commit()
+
+        # 2) Then queue the Celery task
         if player.discord_id:
             logger.debug(f"Queueing Discord role update for player {player.id}")
             discord_task = assign_roles_to_player_task.delay(player_id=player.id)
@@ -27,9 +32,9 @@ def handle_coach_status_update(player, user):
             else:
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 
-        session.commit()
         logger.info(f"{player.name}'s coach status updated successfully to {is_coach}")
         flash(f"{player.name}'s coach status updated successfully.", 'success')
+        
         return redirect(url_for('players.player_profile', player_id=player.id))
         
     except Exception as e:
@@ -42,11 +47,15 @@ def handle_ref_status_update(player, user):
         logger.debug("Entering handle_ref_status_update")
         is_ref = 'is_ref' in request.form
         logger.debug(f"Received is_ref: {is_ref}")
-        
+
         player.is_ref = is_ref
         player.discord_needs_update = True
-        session = g.db_session
 
+        session = g.db_session
+        # 1) COMMIT FIRST so the DB row is updated
+        session.commit()
+
+        # 2) Then enqueue the task
         if player.discord_id:
             discord_task = assign_roles_to_player_task.delay(player_id=player.id)
             if discord_task:
@@ -54,12 +63,10 @@ def handle_ref_status_update(player, user):
             else:
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 
-        session.commit()
-        
         logger.info(f"{player.name}'s referee status updated successfully.")
         flash(f"{player.name}'s referee status updated successfully.", 'success')
         return redirect(url_for('players.player_profile', player_id=player.id))
-        
+
     except Exception as e:
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
         flash('Error updating referee status.', 'danger')

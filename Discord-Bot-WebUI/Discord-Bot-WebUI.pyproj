@@ -47,6 +47,7 @@
     <Compile Include="app\static.py" />
     <Compile Include="app\stat_helpers.py" />
     <Compile Include="app\tasks\monitoring_tasks.py" />
+    <Compile Include="app\tasks\player_sync.py" />
     <Compile Include="app\tasks\tasks_maintenance.py" />
     <Compile Include="app\tasks\tasks_match_updates_helpers.py" />
     <Compile Include="app\tasks\tasks_rsvp_helpers.py" />
@@ -57,6 +58,7 @@
     <Compile Include="app\utils\match_events_utils.py" />
     <Compile Include="app\utils\query_helpers.py" />
     <Compile Include="app\utils\redis_manager.py" />
+    <Compile Include="app\utils\sync_data_manager.py" />
     <Compile Include="app\utils\task_monitor.py" />
     <Compile Include="app\utils\user_helpers.py" />
     <Compile Include="app\utils\__init__.py" />
@@ -66,6 +68,7 @@
     <Compile Include="app\socket_handlers.py" />
     <Compile Include="celery_discord_worker.py" />
     <Compile Include="celery_live_reporting_worker.py" />
+    <Compile Include="celery_player_sync_worker.py" />
     <Compile Include="celery_worker_base.py" />
     <Compile Include="celery_worker_base_prefork.py" />
     <Compile Include="healthcheck.py" />

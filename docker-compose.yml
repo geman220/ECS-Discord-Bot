@@ -39,6 +39,32 @@ services:
       - web
     extra_hosts:
       - "host.docker.internal:host-gateway"
+      
+  celery-player-sync-worker:
+    build:
+      context: ./Discord-Bot-WebUI
+      dockerfile: Dockerfile.webui
+    command: python celery_player_sync_worker.py
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./Discord-Bot-WebUI:/app
+      - celery_sync_data:/tmp/celery_sync
+    healthcheck:
+      test: ["CMD", "python", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   celery-live-reporting-worker:
     build:
@@ -238,3 +264,4 @@ volumes:
   celery_data:
   celery_live_data:
   celery_beat_data:
+  celery_sync_data:

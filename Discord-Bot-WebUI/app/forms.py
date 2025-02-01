@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField, EmailField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
-from app.models import User, Role, League
+from app.models import User, Role, League, Team
 import re
 from sqlalchemy import func
 import logging
@@ -132,13 +132,15 @@ class CreateUserForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired()])
     roles = SelectMultipleField('Roles', validators=[DataRequired()])
     league_id = SelectField('League', coerce=int, choices=[], validators=[Optional()])
+    team_id = SelectField('Team', coerce=int, choices=[], validators=[Optional()])  # New field
     is_current_player = BooleanField('Is Current Player', default=False)
     submit = SubmitField('Create User')
 
     def __init__(self, *args, **kwargs):
         super(CreateUserForm, self).__init__(*args, **kwargs)
         self.roles.choices = [(role.id, role.name) for role in Role.query.all()]
-        self.league_id.choices = [(0, 'None')] + [(league.id, league.name) for league in League.query.all()]  # Ensure field is named league_id
+        self.league_id.choices = [(0, 'None')] + [(league.id, league.name) for league in League.query.all()]
+        self.team_id.choices = [(0, 'None')] + [(team.id, team.name) for team in Team.query.all()]
 
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
@@ -208,13 +210,15 @@ class EditUserForm(FlaskForm):
     email = EmailField('Email', validators=[DataRequired(), Email()])
     roles = SelectMultipleField('Roles', coerce=int, validators=[Optional()])
     league_id = SelectField('League', coerce=int, choices=[], validators=[Optional()])
+    team_id = SelectField('Team', coerce=int, choices=[], validators=[Optional()])  # New field
     is_current_player = BooleanField('Active Player')
     submit = SubmitField('Update User')
 
-    def __init__(self, roles_choices=None, leagues_choices=None, *args, **kwargs):
+    def __init__(self, roles_choices=None, leagues_choices=None, teams_choices=None, *args, **kwargs):
         super(EditUserForm, self).__init__(*args, **kwargs)
         self.roles.choices = roles_choices if roles_choices else []
         self.league_id.choices = leagues_choices if leagues_choices else []
+        self.team_id.choices = teams_choices if teams_choices else [(0, 'None')]  # New field initialization
 
     def validate_email(self, email):
         if not self.user_id.data:

@@ -206,4 +206,159 @@
         });
     }
 </script>
+<script>
+document.querySelector('form[action="{{ url_for("players.update_players") }}"]').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    Swal.fire({
+        title: 'Sync with WooCommerce?',
+        text: 'This will synchronize player data with WooCommerce orders. Continue?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, sync now',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show progress modal
+            Swal.fire({
+                title: 'Syncing with WooCommerce',
+                html: `
+                    <div class="text-center">
+                        <div class="mb-3 progress-stage">Initializing...</div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%">
+                            </div>
+                        </div>
+                        <div class="small text-muted progress-message">Starting...</div>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false
+            });
+
+            // Variable to hold the task ID returned from /update
+            let taskId = "";
+
+            // Function to check progress by building the URL dynamically
+            const checkProgress = () => {
+                if (!taskId) return; // Do nothing if taskId is not yet set
+                // Build the URL using the taskId
+                const statusUrl = '/players/update_status/' + taskId;
+                fetch(statusUrl)
+                    .then(response => response.json())
+                    .then(data => {
+                        const progressBar = document.querySelector('.progress-bar');
+                        const messageDiv = document.querySelector('.progress-message');
+                        if (progressBar && messageDiv) {
+                            progressBar.style.width = (data.progress || 0) + '%';
+                            progressBar.setAttribute('aria-valuenow', data.progress || 0);
+                            messageDiv.textContent = data.message || 'Processing...';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching progress:', error);
+                    });
+            };
+
+            // Start polling for progress every 1 second
+            const progressInterval = setInterval(checkProgress, 1000);
+
+            // Start the sync process by submitting the form via fetch
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // Save the task ID from the response
+                    taskId = data.task_id;
+                })
+                .then(() => {
+                    // Check for task completion by polling its status
+                    const confirmInterval = setInterval(() => {
+                        const statusUrl = '/players/update_status/' + taskId;
+                        fetch(statusUrl)
+                            .then(response => response.json())
+                            .then(statusData => {
+                                if (statusData.stage === 'complete') {
+                                    // When complete, clear both intervals
+                                    clearInterval(confirmInterval);
+                                    clearInterval(progressInterval);
+                                    // Show confirmation modal with sync results
+                                    Swal.fire({
+                                        title: 'Sync Results',
+                                        html: `
+                                            <p>${statusData.new_players || 0} new players found</p>
+                                            <p>${statusData.potential_inactive || 0} players without current orders</p>
+                                            <div class="mb-3">
+                                                <input type="checkbox" id="processNew" checked>
+                                                <label for="processNew">Import new players</label>
+                                            </div>
+                                            <div class="mb-3">
+                                                <input type="checkbox" id="processInactive" checked>
+                                                <label for="processInactive">Mark inactive players</label>
+                                            </div>
+                                        `,
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Proceed',
+                                        cancelButtonText: 'Cancel'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            fetch('{{ url_for("players.confirm_update") }}', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'X-CSRFToken': '{{ csrf_token() }}'
+                                                },
+                                                body: JSON.stringify({
+                                                    task_id: taskId,
+                                                    process_new: document.getElementById('processNew').checked,
+                                                    process_inactive: document.getElementById('processInactive').checked
+                                                })
+                                            })
+                                                .then(response => response.json())
+                                                .then(data => {
+                                                    if (data.status === 'success') {
+                                                        Swal.fire({
+                                                            title: 'Success!',
+                                                            text: 'Player data has been synchronized.',
+                                                            icon: 'success'
+                                                        }).then(() => {
+                                                            window.location.reload();
+                                                        });
+                                                    } else {
+                                                        throw new Error(data.message || 'Unknown error');
+                                                    }
+                                                })
+                                                .catch(error => {
+                                                    Swal.fire({
+                                                        title: 'Error!',
+                                                        text: error.message || 'An error occurred during synchronization.',
+                                                        icon: 'error'
+                                                    });
+                                                });
+                                        }
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error checking completion:', error);
+                            });
+                    }, 1000);
+                })
+                .catch(error => {
+                    clearInterval(progressInterval);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: error.message || 'An error occurred during synchronization.',
+                        icon: 'error'
+                    });
+                });
+        }
+    });
+});
+</script>
 {% endblock %}
