@@ -1141,3 +1141,12 @@ class PlayerTeamHistory(db.Model):
     
     player = db.relationship('Player', backref='team_history')
     team = db.relationship('Team', backref='player_history')
+
+class Progress(db.Model):
+    __tablename__ = 'progress'
+    
+    task_id = db.Column(db.String(50), primary_key=True)
+    stage = db.Column(db.String(50), nullable=False)
+    message = db.Column(db.String(255))
+    progress = db.Column(db.Integer)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -2,16 +2,13 @@
 
 {% block main_content %}
 <div class="container">
-    <!-- Header -->
     <div class="content-header row">
         <div class="col-12 mb-4">
             <h2 class="text-primary">User Management</h2>
         </div>
     </div>
 
-    <!-- Body -->
     <div class="content-body">
-        <!-- Filter Form within a Card -->
         <div class="card card-bordered mb-4">
             <div class="card-body">
                 <form method="get" action="{{ url_for('user_management.manage_users') }}" class="row g-3">
@@ -42,14 +39,12 @@
             </div>
         </div>
 
-        <!-- Create User Button -->
         <div class="mb-3">
             <a href="{{ url_for('user_management.create_user') }}" class="btn btn-success">
                 <i class="bi bi-plus-circle"></i> Create New User
             </a>
         </div>
 
-        <!-- Users Table within a Card -->
         <div class="card card-bordered">
             <div class="card-body">
                 <table class="table table-striped mb-0">
@@ -75,7 +70,7 @@
                                 <span class="badge bg-secondary">{{ role }}</span>
                                 {% endfor %}
                             </td>
-                            <td>{{ user.team }}</td>
+                            <td>{{ user.team if user.team != 'N/A' else 'No Team' }}</td>
                             <td>{{ user.league }}</td>
                             <td>
                                 {% if user.is_current_player %}
@@ -92,7 +87,6 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <!-- Dropdown Menu for Actions -->
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton-{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         Actions
@@ -123,7 +117,6 @@
                     </tbody>
                 </table>
 
-                <!-- Pagination Controls -->
                 {% if pagination.pages > 1 %}
                 <nav aria-label="User pagination">
                     <ul class="pagination justify-content-center mt-4">
@@ -170,7 +163,6 @@
             </div>
         </div>
 
-        <!-- Edit User Modal -->
         <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -202,13 +194,28 @@
                                 </select>
                             </div>
 
-                            <!-- League and Active Player Fields -->
                             <div class="mb-3">
                                 <label for="editLeague" class="form-label">League</label>
                                 <select class="form-select" id="editLeague" name="league_id">
                                     <option value="0">Select League</option>
                                     {% for league in leagues %}
+                                    {% if league.season.is_current %}
                                     <option value="{{ league.id }}">{{ league.name }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editTeam" class="form-label">Team</label>
+                                <select class="form-select" id="editTeam" name="team_id">
+                                    <option value="0">Select Team</option>
+                                    {% for league in leagues %}
+                                    {% if league.season.is_current %}
+                                    {% for team in league.teams %}
+                                    <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                    {% endif %}
                                     {% endfor %}
                                 </select>
                             </div>
@@ -218,7 +225,6 @@
                                 <label class="form-check-label" for="editIsCurrentPlayer">Active Player</label>
                             </div>
 
-                            <!-- No Player Profile Message -->
                             <div id="noPlayerMessage" class="alert alert-warning" style="display: none;">
                                 This user does not have a player profile.
                             </div>
@@ -241,10 +247,26 @@
         const editUserButtons = document.querySelectorAll('.edit-user-btn');
         const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
         const editUserForm = document.getElementById('editUserForm');
-
-        // Use an integer placeholder (e.g., 0) for user_id
         const editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
         const getUserDataUrl = "{{ url_for('user_management.get_user_data') }}";
+
+        // Add league change handler
+        document.getElementById('editLeague').addEventListener('change', function() {
+            const leagueId = this.value;
+            const teamSelect = document.getElementById('editTeam');
+            const options = teamSelect.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (option.value === '0' || option.dataset.league === leagueId) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+
+            // Reset team selection if league changes
+            teamSelect.value = '0';
+        });
 
         editUserButtons.forEach(button => {
             button.addEventListener('click', function (e) {
@@ -259,73 +281,49 @@
                             return;
                         }
 
-                        // Populate modal fields
-                        const editUserIdField = document.getElementById('editUserId');
-                        if (editUserIdField) {
-                            editUserIdField.value = data.id;
-                        } else {
-                            console.error("Hidden field 'editUserId' not found.");
-                        }
+                        document.getElementById('editUserId').value = data.id;
+                        document.getElementById('editUsername').value = data.username;
+                        document.getElementById('editEmail').value = data.email;
 
-                        const editUsernameField = document.getElementById('editUsername');
-                        if (editUsernameField) {
-                            editUsernameField.value = data.username;
-                        }
-
-                        const editEmailField = document.getElementById('editEmail');
-                        if (editEmailField) {
-                            editEmailField.value = data.email;
-                        }
-
-                        // Handle Roles (Multiple Select)
                         const editRolesSelect = document.getElementById('editRoles');
-                        if (editRolesSelect) {
-                            const selectedRoles = data.roles.map(id => id.toString());
-                            for (let option of editRolesSelect.options) {
-                                option.selected = selectedRoles.includes(option.value);
-                            }
+                        const selectedRoles = data.roles.map(id => id.toString());
+                        for (let option of editRolesSelect.options) {
+                            option.selected = selectedRoles.includes(option.value);
                         }
 
-                        // Handle League and Active Player fields
                         const leagueField = document.getElementById('editLeague');
+                        const teamField = document.getElementById('editTeam');
                         const isCurrentPlayerField = document.getElementById('editIsCurrentPlayer');
                         const noPlayerMessage = document.getElementById('noPlayerMessage');
 
                         if (data.has_player) {
-                            if (leagueField) {
-                                leagueField.value = data.league_id || '0';
-                                leagueField.disabled = false;
-                            }
-                            if (isCurrentPlayerField) {
-                                isCurrentPlayerField.checked = data.is_current_player;
-                                isCurrentPlayerField.disabled = false;
-                            }
-                            if (noPlayerMessage) {
-                                noPlayerMessage.style.display = 'none';
-                            }
+                            leagueField.value = data.league_id || '0';
+                            leagueField.disabled = false;
+
+                            teamField.value = data.team_id || '0';
+                            teamField.disabled = false;
+
+                            isCurrentPlayerField.checked = data.is_current_player;
+                            isCurrentPlayerField.disabled = false;
+                            noPlayerMessage.style.display = 'none';
+
+                            // Trigger league change event to filter teams
+                            leagueField.dispatchEvent(new Event('change'));
                         } else {
-                            if (leagueField) {
-                                leagueField.value = '0';
-                                leagueField.disabled = true;
-                            }
-                            if (isCurrentPlayerField) {
-                                isCurrentPlayerField.checked = false;
-                                isCurrentPlayerField.disabled = true;
-                            }
-                            if (noPlayerMessage) {
-                                noPlayerMessage.style.display = 'block';
-                            }
+                            leagueField.value = '0';
+                            leagueField.disabled = true;
+
+                            teamField.value = '0';
+                            teamField.disabled = true;
+
+                            isCurrentPlayerField.checked = false;
+                            isCurrentPlayerField.disabled = true;
+                            noPlayerMessage.style.display = 'block';
                         }
 
-                        // Set the form action by replacing the placeholder with actual user_id
                         const editUserUrl = editUserUrlTemplate.replace('/0', `/${userId}`);
                         editUserForm.action = editUserUrl;
 
-                        // Debugging logs
-                        console.log('Form action set to:', editUserForm.action);
-                        console.log('User ID set to:', editUserIdField ? editUserIdField.value : 'Not found');
-
-                        // Show the modal
                         editUserModal.show();
                     })
                     .catch(error => {

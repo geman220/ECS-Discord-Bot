@@ -80,22 +80,11 @@ def extract_jersey_size_from_product_name(product_name):
         logger.error(f"Error extracting jersey size from product name '{product_name}': {e}", exc_info=True)
         return 'N/A'
 
-def determine_league(product_name, current_seasons):
-    """
-    Determines the league based on the product name.
-
-    Args:
-        product_name (str): The name of the product.
-        current_seasons (list): List of current Season objects.
-
-    Returns:
-        League: The corresponding League object, or None if not found.
-    """
-    if not hasattr(g, 'db_session'):
-        logger.error("No db_session found in the request context.")
-        return None
-
-    session = g.db_session
+def determine_league(product_name, current_seasons, session=None):
+    if session is None:
+        # When not in a request context, use the global session.
+        from app.core import db
+        session = db.session
     product_name = product_name.upper().strip()
     logger.debug(f"Determining league for product name: '{product_name}'")
 

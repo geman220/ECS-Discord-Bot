@@ -1,5 +1,5 @@
 from flask import current_app, url_for, render_template, g
-from app.models import Player, PlayerOrderHistory, User
+from app.models import Player, PlayerOrderHistory, User, Progress
 from app.routes import get_current_season_and_year
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
@@ -13,6 +13,7 @@ import base64
 import logging
 from PIL import Image
 from itsdangerous import URLSafeTimedSerializer
+from app.core.session_manager import managed_session
 from flask_mail import Message
 
 logger = logging.getLogger(__name__)
@@ -76,27 +77,25 @@ def generate_random_password(length=16):
     
     return ''.join(password)
 
-def create_user_for_player(player_data):
-    """Create user for player with proper session management."""
-    session = g.db_session
-    user = match_user(player_data)
+def create_user_for_player(player_data, session=None):
+    if session is None:
+        from app.core import db
+        session = db.session
+    email = player_data['email'].lower()
+    logger.debug(f"create_user_for_player: Checking for user with email: {email}")
+    user = session.query(User).filter_by(email=email).first()
     if user:
-        logger.info(f"User '{user.email}' matched using composite criteria.")
-        return user
-
-    email = player_data.get('email', '').lower()
-    name = standardize_name(player_data.get('name', ''))
-    username = generate_unique_username(name)
-
-    user = User(
-        username=username,
-        email=email,
-        is_approved=False
-    )
-    user.set_password(generate_random_password())
-    session.add(user)
-
-    logger.info(f"Created new user '{user.username}' with email '{user.email}'.")
+        logger.debug(f"create_user_for_player: Found existing user with id {user.id}")
+    else:
+        user = User(
+            username=generate_unique_username(player_data['name']),
+            email=email,
+            is_approved=True
+        )
+        user.set_password(generate_random_password())
+        session.add(user)
+        session.flush()
+        logger.debug(f"create_user_for_player: Created new user with id {user.id}")
     return user
 
 def generate_unique_name(base_name):
@@ -169,18 +168,58 @@ def match_user(player_data):
 
     return None
 
-def match_player(player_data, league):
-    session = g.db_session
-    user = match_user(player_data)
-    if user:
-        player = session.query(Player).filter_by(user_id=user.id).first()
-        if player:
-            return player
+def match_player(player_data, league, user=None, session=None):
+    """
+    Attempt to find an existing Player in this league using:
+      1) The given 'user', if provided (check user_id + league_id).
+      2) If 'user' not provided, try match_user(...) to find a user by email, etc.
+      3) If still no user, fall back to name+phone matching.
 
+    Returns a Player or None.
+    """
+    if session is None:
+        from app.core import db
+        session = db.session
+
+    logger.debug("Entering match_player")
+    logger.debug(f"Player data received: {player_data}")
+
+    # 1) If we already have a user, check for a Player with (user_id, league.id)
+    if user and user.id:
+        logger.debug(f"User was passed in: {user} with id {user.id}. Checking for existing player in league {league.id}...")
+        existing_player = session.query(Player).filter_by(
+            user_id=user.id,
+            league_id=league.id
+        ).first()
+        if existing_player:
+            logger.debug(f"Found existing player by (user_id, league_id): {existing_player.id}")
+            return existing_player
+        else:
+            logger.debug("No player found for this user in this league. Will fall back to name+phone matching if needed.")
+    else:
+        # 2) If no 'user' was supplied, see if there's a user in the DB based on this player's email/whatever.
+        matched_user = match_user(player_data)  # your existing code for email-based lookup
+        if matched_user:
+            logger.debug(f"match_user returned: {matched_user} with id {matched_user.id}")
+            player_by_user = session.query(Player).filter_by(user_id=matched_user.id, league_id=league.id).first()
+            if player_by_user:
+                logger.debug(f"Found player by user_id: {player_by_user.id}")
+                return player_by_user
+            else:
+                logger.debug("No player found using matched_user in this league. Fall back to name+phone.")
+                # We *could* set user = matched_user here if you want
+                user = matched_user
+        else:
+            logger.debug("No matching user found from player data.")
+
+    # 3) Finally, attempt name+phone matching if we either have no user
+    #    or we didn't find a player with that user in this league.
     name = standardize_name(player_data.get('name', ''))
     phone = standardize_phone(player_data.get('phone', ''))
+    logger.debug(f"Standardized name: {name}, Standardized phone: {phone}")
 
     if name and phone:
+        # Example of removing punctuation from phone in the DB
         standardized_phone_db = func.replace(
             func.replace(
                 func.replace(
@@ -189,11 +228,19 @@ def match_player(player_data, league):
                 ), ')', ''
             ), ' ', ''
         )
-        return session.query(Player).filter(
+        player_by_phone = session.query(Player).filter(
             func.lower(Player.name) == func.lower(name),
             standardized_phone_db == phone
         ).first()
+        if player_by_phone:
+            logger.debug(f"Found player by name and phone: {player_by_phone.id}")
+            return player_by_phone
+        else:
+            logger.debug("No player found matching standardized name+phone.")
+    else:
+        logger.debug("Either name or phone is empty after standardization.")
 
+    logger.debug("match_player returning None")
     return None
 
 def extract_player_info(billing):
@@ -239,3 +286,50 @@ def hash_password(password):
 def clean_phone_number(phone):
     cleaned_phone = re.sub(r'\D', '', phone)
     return cleaned_phone[-10:] if len(cleaned_phone) >= 10 else cleaned_phone
+
+def match_player_weighted(player_info, db_session):
+    """
+    Weighted matching for player identification.
+    Returns matching player or None.
+    """
+    name = standardize_name(player_info.get('name', ''))
+    email = player_info.get('email', '').lower()
+    phone = standardize_phone(player_info.get('phone', ''))
+
+    # Try exact email match first
+    if email:
+        player = db_session.query(Player).join(User).filter(
+            func.lower(User.email) == email
+        ).first()
+        if player:
+            return player
+
+    # Try name + phone match
+    if name and phone:
+        standardized_phone_db = func.replace(
+            func.replace(
+                func.replace(
+                    func.replace(Player.phone, '-', ''),
+                    '(', ''
+                ), ')', ''
+            ), ' ', ''
+        )
+        player = db_session.query(Player).filter(
+            func.lower(Player.name) == func.lower(name),
+            standardized_phone_db == phone
+        ).first()
+        if player:
+            return player
+
+    return None
+
+def set_progress(data):
+    """Use separate session for progress updates"""
+    with managed_session() as session:
+        progress = Progress(
+            task_id='woo_sync',
+            stage=data['stage'],
+            message=data['message'],
+            progress=data['progress']
+        )
+        session.merge(progress)

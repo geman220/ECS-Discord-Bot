@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import IntegrityError
-from app.models import User, Role, Player, League
+from app.models import User, Role, Player, League, Season
 from app.forms import EditUserForm, CreateUserForm, ResetPasswordForm, FilterUsersForm
 from app.decorators import role_required
 import logging
@@ -17,24 +17,21 @@ user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_ma
 @role_required('Global Admin')
 def manage_users():
     form = FilterUsersForm(request.args)
-
     session = g.db_session
 
-    # Dynamically populate role and league choices
     roles_query = session.query(Role).all()
-    leagues_query = session.query(League).all()
+    leagues_query = session.query(League).join(Season).filter(Season.is_current == True).all()
 
     form.role.choices = [('', 'All Roles')] + [(role.name, role.name) for role in roles_query]
     form.league.choices = [('', 'All Leagues'), ('none', 'No League')] + [(str(league.id), league.name) for league in leagues_query]
 
-    # Start building the query with eager loading
+    # Updated query with correct relationships
     query = session.query(User).options(
         joinedload(User.roles),
-        joinedload(User.player).joinedload(Player.team),
+        joinedload(User.player).joinedload(Player.teams),
         joinedload(User.player).joinedload(Player.league)
     )
 
-    # Apply filters based on form data
     if form.validate():
         if form.search.data:
             search_term = f"%{form.search.data}%"
@@ -63,23 +60,15 @@ def manage_users():
         if form.active.data:
             is_current_player = form.active.data.lower() == 'true'
             query = query.join(Player).filter(Player.is_current_player == is_current_player)
-    else:
-        # Iterate through form errors and flash them
-        for field, errors in form.errors.items():
-            for error in errors:
-                flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
-        flash('Invalid filter parameters.', 'warning')
 
-    # Implement manual pagination
     page = request.args.get('page', 1, type=int)
-    per_page = 20  # Adjust as needed
+    per_page = 20
 
     query = query.distinct()
     total = query.count()
     users = query.offset((page - 1) * per_page).limit(per_page).all()
     total_pages = (total + per_page - 1) // per_page
 
-    # Prepare user data for the template
     users_data = []
     for user in users:
         user_data = {
@@ -87,23 +76,16 @@ def manage_users():
             'username': user.username,
             'email': user.email,
             'roles': [role.name for role in user.roles],
-            'team': user.player.team.name if user.player and user.player.team else 'N/A',
+            'team': user.player.teams[0].name if (user.player and user.player.teams) else 'N/A',
             'league': user.player.league.name if user.player and user.player.league else "None",
             'is_current_player': user.player.is_current_player if (user.player and user.player.is_current_player is not None) else False,
             'is_approved': user.is_approved
         }
         users_data.append(user_data)
 
-    roles = roles_query
-    leagues = leagues_query
-
-    # Instantiate an empty EditUserForm for the modal
     edit_form = EditUserForm()
-
-    # Exclude 'page' from request.args to avoid duplication in pagination links
     pagination_args = {k: v for k, v in request.args.to_dict(flat=True).items() if k != 'page'}
 
-    # Build simple pagination data
     pagination = {
         'page': page,
         'per_page': per_page,
@@ -116,48 +98,68 @@ def manage_users():
     }
 
     return render_template('manage_users.html', 
-                           users=users_data, 
-                           roles=roles, 
-                           leagues=leagues, 
-                           filter_form=form,
-                           edit_form=edit_form,
-                           pagination=pagination,
-                           pagination_args=pagination_args)
+                         users=users_data, 
+                         roles=roles_query, 
+                         leagues=leagues_query, 
+                         filter_form=form,
+                         edit_form=edit_form,
+                         pagination=pagination,
+                         pagination_args=pagination_args)
 
-@user_management_bp.route('/create_user', endpoint='create_user', methods=['GET', 'POST'])
+@user_management_bp.route('/create_user', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 def create_user():
     session = g.db_session
     form = CreateUserForm()
+    
     if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data, is_approved=True)
+        user = User(username=form.username.data, 
+                   email=form.email.data, 
+                   is_approved=True)
         user.set_password(form.password.data)
+        
+        # Handle roles
         roles = session.query(Role).filter(Role.name.in_(form.roles.data)).all()
         user.roles.extend(roles)
-
+        
+        # Handle player creation if league is selected
         if form.league_id.data and form.league_id.data != '0':
             session.add(user)
-            session.flush()  # To get user.id
-            player = Player(user_id=user.id, league_id=form.league_id.data, is_current_player=form.is_current_player.data)
+            session.flush()
+            
+            player = Player(
+                user_id=user.id,
+                league_id=form.league_id.data,
+                primary_league_id=form.league_id.data,
+                is_current_player=form.is_current_player.data
+            )
+            
+            # Handle team assignment
+            if form.team_id.data:
+                team = session.query(Team).get(form.team_id.data)
+                if team:
+                    player.teams.append(team)
+                    player.primary_team_id = team.id
+                    
             session.add(player)
-        else:
-            session.add(user)
-
+            
+        session.add(user)
+        session.commit()
         flash(f'User {user.username} created successfully.', 'success')
         return redirect(url_for('user_management.manage_users'))
     
     return render_template('create_user.html', form=form)
 
-@user_management_bp.route('/edit_user/<int:user_id>', endpoint='edit_user', methods=['POST'])
+@user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def edit_user(user_id):
     session = g.db_session
-    logger.debug(f"Initiating edit_user for user_id: {user_id}")
-
+    
     user = session.query(User).options(
         joinedload(User.roles),
+        joinedload(User.player).joinedload(Player.teams),
         joinedload(User.player).joinedload(Player.league)
     ).get(user_id)
 
@@ -165,41 +167,41 @@ def edit_user(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('user_management.manage_users'))
 
-    logger.debug(f"Retrieved user: {user.username} with roles: {[role.id for role in user.roles]}")
-
-    all_roles = session.query(Role).all()
-    all_leagues = session.query(League).all()
-    form = EditUserForm(
-        formdata=request.form,
-        roles_choices=[(role.id, role.name) for role in all_roles],
-        leagues_choices=[(0, 'Select League')] + [(league.id, league.name) for league in all_leagues]
-    )
-    logger.debug(f"Form initialized with data: {request.form}")
-
+    form = EditUserForm()
+    
     if form.validate_on_submit():
-        logger.debug("Form validation passed.")
-        # Update user details
+        # Update basic user info
         user.username = form.username.data
         user.email = form.email.data
-
+        
         # Update roles
-        new_roles = set(session.query(Role).filter(Role.id.in_(form.roles.data)).all())
-        user.roles = list(new_roles)
-
+        new_roles = session.query(Role).filter(Role.id.in_(form.roles.data)).all()
+        user.roles = new_roles
+        
         # Update player info
         if user.player:
             league_id = form.league_id.data
             user.player.league_id = league_id if league_id != 0 else None
+            user.player.primary_league_id = league_id if league_id != 0 else None
             user.player.is_current_player = form.is_current_player.data
-
+            
+            # Update team associations
+            if form.team_id.data:
+                team = session.query(Team).get(form.team_id.data)
+                if team:
+                    user.player.teams = [team]
+                    user.player.primary_team_id = team.id
+            else:
+                user.player.teams = []
+                user.player.primary_team_id = None
+        
+        session.commit()
         flash(f'User {user.username} updated successfully.', 'success')
     else:
-        logger.warning(f"Form validation failed with errors: {form.errors}")
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Error in {getattr(form, field).label.text}: {error}", 'danger')
-        flash('Invalid input.', 'warning')
-
+    
     return redirect(url_for('user_management.manage_users'))
 
 @user_management_bp.route('/remove_user/<int:user_id>', endpoint='remove_user', methods=['POST'])
@@ -249,20 +251,24 @@ def get_user_data():
 
     user = session.query(User).options(
         joinedload(User.roles),
+        joinedload(User.player).joinedload(Player.teams),
         joinedload(User.player).joinedload(Player.league)
     ).get(user_id)
 
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
+    primary_team = next((team for team in user.player.teams if team.id == user.player.primary_team_id), None) if user.player else None
+    
     user_data = {
         'id': user.id,
         'username': user.username,
         'email': user.email,
         'roles': [role.id for role in user.roles],
         'league_id': user.player.league_id if (user.player and user.player.league_id) else 0,
+        'team_id': primary_team.id if primary_team else None,
+        'primary_league_id': user.player.primary_league_id if user.player else None,
         'is_current_player': user.player.is_current_player if user.player else False,
         'has_player': user.player is not None
     }
-
     return jsonify(user_data)

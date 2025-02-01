@@ -9,7 +9,7 @@ import logging
 from app.models import (
     Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, 
     PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, 
-    PlayerEvent, PlayerEventType, user_roles, PlayerTeamSeason
+    PlayerEvent, PlayerEventType, user_roles, PlayerTeamSeason, Progress
 )
 from app.decorators import role_required, admin_or_owner_required
 from app.woocommerce import fetch_orders_from_woocommerce
@@ -19,7 +19,7 @@ from app.forms import (
     EditPlayerForm, soccer_positions, goal_frequency_choices, availability_choices
 )
 from app.utils.user_helpers import safe_current_user
-from app.players_helpers import save_cropped_profile_picture, create_user_for_player, extract_player_info
+from app.players_helpers import save_cropped_profile_picture, create_user_for_player, extract_player_info, match_player_weighted, set_progress, match_player
 from app.player_management_helpers import create_player_profile, reset_current_players, record_order_history
 from app.order_helpers import extract_jersey_size_from_product_name, determine_league
 from app.stat_helpers import decrement_player_stats
@@ -28,6 +28,10 @@ from app.profile_helpers import (
     handle_season_stats_update, handle_career_stats_update, handle_add_stat_manually
 )
 from app.db_management import db_manager
+from app.core import celery
+from app.tasks.player_sync import sync_players_with_woocommerce
+from app.utils.sync_data_manager import get_sync_data, delete_sync_data
+from celery.result import AsyncResult
 
 logger = logging.getLogger(__name__)
 
@@ -86,85 +90,103 @@ def view_players():
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def update_players():
-    session = g.db_session
+    task = sync_players_with_woocommerce.apply_async(queue='player_sync')
+    return jsonify({'task_id': task.id, 'status': 'started'})
+
+@players_bp.route('/confirm_update', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def confirm_update():
+    task_id = request.json.get('task_id')
+    if not task_id:
+        return jsonify({'status': 'error', 'message': 'Task ID missing'}), 400
+
+    sync_data = get_sync_data(task_id)
+    if not sync_data:
+        return jsonify({'status': 'error', 'message': 'No sync data found'}), 400
+
     try:
-        current_seasons = session.query(Season).filter_by(is_current=True).all()
-        if not current_seasons:
-            raise Exception("No current seasons found in the database.")
+        from app import db
+        session = db.session
 
-        orders = fetch_orders_from_woocommerce(
-            current_season_name='2024 Fall',
-            filter_current_season=True,
-            current_season_names=[season.name for season in current_seasons],
-            max_pages=10
-        )
+        # Log the sync data structure
+        logger.debug(f"confirm_update: Sync data: {sync_data}")
 
-        detected_players = set()
-
-        reset_current_players(current_seasons)
-
-        for order in orders:
-            player_info = extract_player_info(order['billing'])
-            if not player_info:
-                logger.warning(f"Could not extract player info for order ID {order['order_id']}. Skipping.")
-                continue
-
-            product_name = order['product_name']
-            league = determine_league(product_name, current_seasons)
-            if not league:
-                logger.warning(f"League not found for product '{product_name}'. Skipping order ID {order['order_id']}.")
-                continue
-
-            jersey_size = extract_jersey_size_from_product_name(product_name)
-            player_info['jersey_size'] = jersey_size
-
-            user = create_user_for_player(player_info)
-
-            try:
-                player = create_player_profile(player_info, league, user)
-                detected_players.add(player.id)
-
+        # Process new players if requested
+        if request.json.get('process_new', False):
+            for new_player in sync_data.get('new_players', []):
+                logger.debug(f"confirm_update: Processing new player info: {new_player['info']}")
+                user = create_user_for_player(new_player['info'], session=session)
+                logger.debug(f"confirm_update: User for new player: {user} with id {user.id}")
+                from app.models import League
+                league = session.query(League).get(new_player['league_id'])
+                player = create_player_profile(new_player['info'], league, user, session=session)
+                logger.debug(f"confirm_update: Created/updated player {player.id} with user_id {player.user_id}")
+                player.is_current_player = True
                 if not player.primary_league:
                     player.primary_league = league
-                else:
-                    if league.name in ['Classic', 'Premier', 'ECS FC']:
-                        # Update primary league based on priority if needed
-                        current_priority = ['Classic', 'Premier', 'ECS FC']
-                        if current_priority.index(league.name) < current_priority.index(player.primary_league.name):
-                            if player.primary_league not in player.other_leagues:
-                                player.other_leagues.append(player.primary_league)
-                            player.primary_league = league
-                    else:
-                        if league not in player.other_leagues:
-                            player.other_leagues.append(league)
-
-                session.add(player)
                 record_order_history(
-                    order_id=order['order_id'],
+                    order_id=new_player['order_id'],
                     player_id=player.id,
                     league_id=league.id,
                     season_id=league.season_id,
-                    profile_count=order['quantity']
+                    profile_count=new_player['quantity'],
+                    session=session
                 )
 
-            except IntegrityError as ie:
-                logger.warning(f"Duplicate player-league association for player '{player_info['name']}' and league '{league.name}'. Skipping.")
-                continue
+        # Process updates for existing players
+        for update in sync_data.get('player_league_updates', []):
+            player_id = update.get('player_id')
+            league_id = update.get('league_id')
+            player = session.query(Player).get(player_id)
+            if player:
+                player.is_current_player = True
+                from app.models import League
+                league = session.query(League).get(league_id)
+                if league and league not in player.other_leagues:
+                    player.other_leagues.append(league)
 
-        current_league_ids = [league.id for season in current_seasons for league in season.leagues]
-        all_players = session.query(Player).filter(Player.league_id.in_(current_league_ids)).all()
-        for player in all_players:
-            if player.id not in detected_players:
-                player.is_current_player = False
-                logger.info(f"Marked player '{player.name}' as NOT CURRENT_PLAYER (inactive).")
+        # Process inactive players if requested
+        if request.json.get('process_inactive', False):
+            for player_id in sync_data.get('potential_inactive', []):
+                player = session.query(Player).get(player_id)
+                if player:
+                    player.is_current_player = False
 
+        session.commit()
+        delete_sync_data(task_id)
+        return jsonify({'status': 'success'})
     except Exception as e:
-        logger.error(f"An error occurred while updating players: {e}", exc_info=True)
-        flash(f"An error occurred: {str(e)}", "danger")
-        raise
+        session.rollback()
+        current_app.logger.error(f"Error in confirm_update: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
-    flash("Players updated successfully.", "success")
-    return redirect(url_for('players.view_players'))
+@players_bp.route('/update_status/<task_id>', methods=['GET'])
+@login_required
+def update_status(task_id):
+    task = AsyncResult(task_id, app=celery)
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'progress': 0,
+            'stage': 'init',
+            'message': 'Task pending...'
+        }
+    elif task.state == 'PROGRESS':
+        response = task.info
+    elif task.state == 'SUCCESS':
+        result = task.result
+        result['stage'] = 'complete'
+        result['progress'] = 100
+        response = result
+    else:
+        response = {
+            'state': task.state,
+            'progress': 0,
+            'stage': 'error',
+            'message': str(task.info)
+        }
+    return jsonify(response)
 
 @players_bp.route('/create_player', endpoint='create_player', methods=['POST'])
 @login_required

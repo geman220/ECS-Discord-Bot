@@ -4,17 +4,17 @@ from celery.schedules import crontab
 import pytz
 
 class CeleryConfig:
-    # Timezone Settings (Add these)
+    # Timezone Settings
     timezone = 'America/Los_Angeles'
     enable_utc = False
     beat_tz = pytz.timezone('America/Los_Angeles')
 
-    # Redis Configuration (Add these)
+    # Redis Configuration
     redis_socket_timeout = 5
     redis_socket_connect_timeout = 5
     redis_retry_on_timeout = True
 
-    # Update broker and backend with more options
+    # Broker and Backend
     broker_url = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
     broker_transport_options = {
         'visibility_timeout': 3600,  # 1 hour
@@ -35,7 +35,8 @@ class CeleryConfig:
         'app.tasks.tasks_rsvp',
         'app.tasks.tasks_discord',
         'app.tasks.monitoring_tasks',
-        'app.tasks.tasks_maintenance'
+        'app.tasks.tasks_maintenance',
+        'app.tasks.player_sync'
     )
     
     # Task Settings
@@ -73,6 +74,11 @@ class CeleryConfig:
             'exchange': 'celery',
             'routing_key': 'celery',
             'queue_arguments': {'x-max-priority': 10}
+        },
+        'player_sync': {
+            'exchange': 'player_sync',
+            'routing_key': 'player_sync',
+            'queue_arguments': {'x-max-priority': 10}
         }
     }
     
@@ -84,7 +90,8 @@ class CeleryConfig:
         'app.tasks.tasks_match_updates.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp.*': {'queue': 'celery'},
         'app.tasks.monitoring_tasks.*': {'queue': 'celery'},
-        'app.tasks.tasks_maintenance.*': {'queue': 'celery'}
+        'app.tasks.tasks_maintenance.*': {'queue': 'celery'},
+        'app.tasks.player_sync.*': {'queue': 'player_sync'},
     }
     
     # Beat Schedule
