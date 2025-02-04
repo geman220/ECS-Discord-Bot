@@ -12,6 +12,8 @@ import csv
 import io
 import json
 import datetime
+import urllib
+import difflib
 from common import (
     server_id, 
     has_required_wg_role, 
@@ -55,12 +57,66 @@ SUBGROUPS = [
     "West Sound Armada",
 ]
 
-async def get_product_by_name(product_name):
+async def get_product_by_name(product_name: str):
+    """
+    1) Perform a broad WooCommerce search for product_name.
+    2) If any product is an exact name match, return it.
+    3) Otherwise, do partial/fuzzy matching on product names
+       and pick the 'best' match.
+    """
+    # 1) Build the search URL
     base_wc_url = wc_url.replace("/orders/", "/")
     encoded_name = urllib.parse.quote_plus(product_name)
-    product_url = f"{base_wc_url}products?search={encoded_name}"
+    
+    # Increase the per_page if you have a lot of similar products.
+    # By default, WC might return only 10 or 20 products in the search. 
+    product_url = f"{base_wc_url}products?search={encoded_name}&per_page=50"
+    
+    # 2) Retrieve the list of matching products (could be multiple)
     products = await call_woocommerce_api(product_url)
-    return products[0] if products and isinstance(products, list) else None
+    if not products or not isinstance(products, list):
+        return None
+
+    # 3) Attempt an exact match (case-insensitive)
+    exact_matches = [
+        p for p in products
+        if p.get("name", "").strip().lower() == product_name.strip().lower()
+    ]
+    if exact_matches:
+        # Return the first exact match, or handle multiple if you expect them
+        return exact_matches[0]
+
+    # 4) Attempt a substring match
+    # If, for example, user typed "Classic Division" and the actual product is
+    # "Classic Division - AL", this will find it
+    substring_matches = [
+        p for p in products
+        if product_name.lower() in p.get("name", "").lower()
+    ]
+    if len(substring_matches) == 1:
+        return substring_matches[0]
+    elif len(substring_matches) > 1:
+        # If multiple substring matches, pick the 'closest' name by difflib
+        product_names = [p["name"] for p in substring_matches]
+        best_guess = difflib.get_close_matches(product_name, product_names, n=1)
+        if best_guess:
+            for p in substring_matches:
+                if p["name"] == best_guess[0]:
+                    return p
+        # Fallback: just return the first substring match
+        return substring_matches[0]
+
+    # 5) Fuzzy match approach if no substring matches 
+    # For instance, if the user typed "Clasik Divison - AL" (typo).
+    product_names = [p["name"] for p in products]
+    close = difflib.get_close_matches(product_name, product_names, n=1)
+    if close:
+        for p in products:
+            if p["name"] == close[0]:
+                return p
+
+    # 6) If we reach here, no exact, substring, or fuzzy match found
+    return None
 
 async def get_product_variations(product_id):
     base_wc_url = wc_url.replace("/orders/", "/")
@@ -69,27 +125,35 @@ async def get_product_variations(product_id):
     return variations if isinstance(variations, list) else []
 
 async def get_orders_for_product_ids(product_ids):
-    if len(product_ids)==1:
+    print(f"[DEBUG] get_orders_for_product_ids called with: {product_ids}")
+    
+    if len(product_ids) == 1:
+        all_orders = []
         for product_id in product_ids:
-            all_orders = await get_single_product_orders_by_id(product_id)
+            orders = await get_single_product_orders_by_id(product_id)
+            print(f"[DEBUG] Orders for single product_id {product_id}: {len(orders)} orders")
+            all_orders.extend(orders)
     else:
         all_orders = await get_all_orders()
-    relevant_orders = []
+        print(f"[DEBUG] Total orders retrieved from get_all_orders: {len(all_orders)}")
 
+    relevant_orders = []
     for order in all_orders:
         line_items = order.get("line_items", [])
         for item in line_items:
             product_in_order = item.get("product_id", None)
             if product_in_order in product_ids:
                 append_line = True
-                meta_data = item.get("meta_data")
+                meta_data = item.get("meta_data", [])
                 for meta in meta_data:
-                    if meta.get("key")=="_restock_refunded_items": 
+                    if meta.get("key") == "_restock_refunded_items": 
                         append_line = False
-                if append_line: 
+                if append_line:
                     relevant_orders.append(order)
+                    print(f"[DEBUG] Appended order id: {order.get('id')}")
                 break
 
+    print(f"[DEBUG] Returning {len(relevant_orders)} relevant orders.")
     return relevant_orders
 
 async def get_single_product_orders_by_id(product_id):
@@ -143,6 +207,7 @@ async def get_all_orders():
     return all_orders
 
 async def generate_csv_from_orders(orders, product_ids):
+    print(f"[DEBUG] Starting CSV generation for {len(orders)} orders and product_ids: {product_ids}")
     csv_output = io.StringIO()
     csv_writer = csv.writer(csv_output)
 
@@ -182,20 +247,7 @@ async def generate_csv_from_orders(orders, product_ids):
         for item in line_items:
             product_in_order = item.get("product_id", None)
             if product_in_order in product_ids:
-                alias = ""
-                alias_description = ""
-                alias_1_recipient = ""
-                alias_2_recipient = ""
-                alias_type = ""
-
-                alias = ""
-                alias_description = ""
-                alias_1_recipient = ""
-                alias_2_recipient = ""
-                alias_type = ""
-
-                item_price = item.get("price", "")
-
+                # Populate the row with initial values.
                 row = [
                     item.get("name", ""),
                     billing.get("first_name", ""),
@@ -203,33 +255,34 @@ async def generate_csv_from_orders(orders, product_ids):
                     billing.get("email", ""),
                     order.get("date_paid", ""),
                     item.get("quantity", ""),
-                    item_price,
+                    item.get("price", ""),
                     order.get("id", ""),
                     order.get("status", ""),
                     order.get("customer_note", ""),
                     item.get("variation_name", ""),
                     billing.get("address_1", ""),
-                    alias,
-                    alias,
-                    alias_description,
-                    alias,
-                    alias_1_recipient,
-                    alias_type,
-                    alias,
-                    alias_2_recipient,
-                    alias_type,
+                    "",  # alias placeholder
+                    "",  # alias email placeholder
+                    "",  # alias description placeholder
+                    "",  # alias 1 email placeholder
+                    "",  # alias 1 recipient placeholder
+                    "",  # alias 1 type placeholder
+                    "",  # alias 2 email placeholder
+                    "",  # alias 2 recipient placeholder
+                    "",  # alias 2 type placeholder
                 ]
-
                 variation_detail = extract_variation_detail(order)
                 row.append(variation_detail)
 
                 rows.append(row)
+                print(f"[DEBUG] Processed order id {order.get('id')} into CSV row.")
                 previous_email = billing.get("email", "")
                 break
 
+    print(f"[DEBUG] Sorting {len(rows)} rows.")
     rows.sort(key=lambda x: (x[3].lower(), int(x[7])))
 
-    previous_email = "" #reset the email loop
+    previous_email = ""  # Reset for alias logic.
     for row in rows:
         if row[3] != previous_email:
             alias = f"ecstix-{row[7]}@weareecs.com"
@@ -259,6 +312,7 @@ async def generate_csv_from_orders(orders, product_ids):
     for row in rows:
         csv_writer.writerow(row)
 
+    print(f"[DEBUG] CSV generation completed. Total rows written: {len(rows)}")
     return csv_output
 
 async def generate_csv_for_product_variations(product_name):
@@ -332,31 +386,41 @@ class WooCommerceCommands(commands.Cog):
     @app_commands.describe(product_title="Title of the product")
     @app_commands.guilds(discord.Object(id=server_id))
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
+        print(f"[DEBUG] Received command for product_title: {product_title}")
+
         if not await has_required_wg_role(interaction):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
             return
-        
+
         await interaction.response.defer()
+        print("[DEBUG] Deferred response sent.")
 
         product = await get_product_by_name(product_title)
         if not product:
+            print(f"[DEBUG] Product not found: {product_title}")
             await interaction.followup.send("Product not found.", ephemeral=True)
             return
+        print(f"[DEBUG] Found product: {product}")
 
         product_id = product["id"]
         variations = await get_product_variations(product_id)
+        print(f"[DEBUG] Variations for product_id {product_id}: {variations}")
 
         product_ids = [product_id] + [variation["id"] for variation in variations]
+        print(f"[DEBUG] Searching orders for product_ids: {product_ids}")
 
         relevant_orders = await get_orders_for_product_ids(product_ids)
+        print(f"[DEBUG] Number of relevant orders found: {len(relevant_orders)}")
 
         if not relevant_orders:
             await interaction.followup.send("No orders found for this product or its variations.", ephemeral=True)
             return
 
+        print("[DEBUG] Starting CSV generation...")
         csv_output = await generate_csv_from_orders(relevant_orders, product_ids)
+        print("[DEBUG] CSV generation complete.")
 
         csv_output.seek(0)
         csv_filename = f"{product_title.replace('/', '_')}_orders.csv"
@@ -365,6 +429,7 @@ class WooCommerceCommands(commands.Cog):
         await interaction.followup.send(
             f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
         )
+        print(f"[DEBUG] Followup message with CSV sent: {csv_filename}")
 
         csv_output.close()
 
