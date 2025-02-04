@@ -136,81 +136,72 @@ def update_player_details(player, player_data, user=None):
     logger.debug(f"After update: player.user = {player.user}, player.user_id = {player.user_id}")
     return player
 
-def create_player_profile(player_data, league, user, session=None):
+def create_player_profile(player_data, league, user, session):
     """
-    Create or update a Player record in 'league' for the given 'user'.
-    - We first attempt to find an existing player via match_player(...).
-    - If found, we update that record.
-    - If not found, we check if there's an existing player for (user_id, league_id).
-      If there's exactly one, we might create a placeholder. Otherwise create a new "main" record.
+    Create or update a Player record in 'league' for the given 'user',
+    all within the same session to avoid session mismatch.
     """
-    if session is None:
-        from app.core import db
-        session = db.session
-
     logger.debug("Entering create_player_profile")
     logger.debug(f"User passed in: {user} with id: {user.id}")
 
-    # 1) Attempt to match an existing Player
+    # 1) Try matching an existing player in the league
     player = match_player(player_data, league, user=user, session=session)
     if player:
         logger.debug(f"Matched existing player: {player} (user_id: {player.user_id})")
-        # Update details and force association with the provided user.
-        player = update_player_details(player, player_data, user)
-        # Make sure the league is in other_leagues:
-        if league not in player.other_leagues:
-            player.other_leagues.append(league)
-
-        # Optionally adjust primary_league based on priority logic:
-        if not player.primary_league:
-            player.primary_league = league
-        else:
-            current_priority = ['Classic', 'Premier', 'ECS FC']  # example
-            if current_priority.index(league.name) < current_priority.index(player.primary_league.name):
-                player.primary_league = league
-
-        # Ensure the player is attached to session; flush
+        # (Optional) Update details if desired:
+        # update_player_details(player, player_data, user=user)
         session.add(player)
-        logger.debug(f"Before flush: player.user_id = {player.user_id}")
         session.flush()
-        session.refresh(player)
-        logger.debug(f"After refresh: player.user_id = {player.user_id}")
         logger.info(f"Updated existing player '{player.name}' for user '{user.email}'.")
         return player
 
-    # 2) No matched Player found. Check if there's already a main player for (user, league).
-    logger.debug("No matching player found; checking for existing player for user and league.")
-    existing_player = session.query(Player).filter_by(user_id=user.id, league_id=league.id).first()
+    # 2) Check if there's already a main player for (user, league)
+    logger.debug("No matching player found; checking for existing player for user+league.")
+    existing_player = session.query(Player).filter_by(
+        user_id=user.id,
+        league_id=league.id
+    ).first()
+
     if existing_player:
         logger.debug(f"Existing main player found for user in league: {existing_player}")
-        # Example: create a placeholder if you handle multiple registrations from the same user
-        placeholder_suffix = f"+{existing_player.id}-{uuid.uuid4().hex[:6]}"
+        # Example: create a placeholder or fallback logic:
+        placeholder_suffix = f"+{existing_player.id}"
         placeholder_name = f"{player_data.get('name', '')} {placeholder_suffix}"
-        # We'll store the placeholder email in 'notes' or skip it entirely
-        # placeholder_email = f"placeholder_{existing_player.id}_{uuid.uuid4().hex[:6]}@publeague.com"
 
         new_player = Player(
             name=placeholder_name,
             phone=player_data.get('phone', ''),
             jersey_size=player_data.get('jersey_size', ''),
-            primary_league=None,  # secondary record
             is_current_player=True,
             needs_manual_review=True,
             linked_primary_player_id=existing_player.id,
             league_id=league.id,
             user_id=user.id,
-            order_id=player_data.get('order_id')
-            # Removed email=...
         )
         session.add(new_player)
-        logger.debug("Creating placeholder player; before flush:")
         session.flush()
-        session.refresh(new_player)
-        logger.debug(f"After refresh, placeholder player's user_id: {new_player.user_id}")
         logger.info(
-            f"Created new placeholder player profile '{new_player.name}' for user '{user.email}', flagged for manual review."
+            f"Created new placeholder player profile '{new_player.name}' "
+            f"for user '{user.email}', flagged for manual review."
         )
         return new_player
+
+    # 3) Otherwise, create a truly new main player
+    logger.debug("No existing player for user+league; creating a new main profile.")
+    new_player = Player(
+        name=player_data.get('name', ''),
+        phone=player_data.get('phone', ''),
+        jersey_size=player_data.get('jersey_size', ''),
+        league_id=league.id,
+        user=user,
+        is_current_player=True
+    )
+    session.add(new_player)
+    session.flush()
+    logger.info(
+        f"Created new player profile '{new_player.name}' for user '{user.email}'."
+    )
+    return new_player
     
     # 3) Otherwise, truly new "main" player for this user + league
     logger.debug("No existing player for user+league; creating a new main profile.")
