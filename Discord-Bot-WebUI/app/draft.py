@@ -1,15 +1,15 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, url_for, flash, g
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
-from sqlalchemy.sql import exists, and_
+from sqlalchemy.sql import exists, and_, or_
 from sqlalchemy import text
 from app.sockets.session import socket_session
 from contextlib import contextmanager
 from app.models import (
    League, Player, Team, Season, PlayerSeasonStats,
-   player_teams
+   player_teams, player_league
 )
-from app.decorators import role_required, cleanup_db_connection
+from app.decorators import role_required
 from app.core import socketio, db
 from app.core.session_manager import managed_session
 from flask_socketio import emit
@@ -20,218 +20,274 @@ import logging
 logger = logging.getLogger(__name__)
 draft = Blueprint('draft', __name__)
 
+
 @draft.route('/classic', endpoint='draft_classic')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_classic():
-    with managed_session() as session:
-        current_season = (
-            session.query(Season)
-            .filter_by(league_type='Pub League', is_current=True)
-            .first()
-        )
-        if not current_season:
-            flash('No current Pub League season found.', 'danger')
-            return redirect(url_for('main.index'))
+    session = g.db_session
 
-        classic_league = (
-            session.query(League)
-            .options(joinedload(League.teams))
-            .filter_by(name='Classic', season_id=current_season.id)
-            .first()
-        )
-        if not classic_league:
-            flash('No Classic league found.', 'danger')
-            return redirect(url_for('main.index'))
+    # A) Find ALL leagues named "Classic" (any season) => For player's membership
+    all_classic_leagues = session.query(League).filter(League.name == 'Classic').all()
+    if not all_classic_leagues:
+        flash('No league(s) found with name "Classic".', 'danger')
+        return redirect(url_for('main.index'))
 
-        teams = classic_league.teams
-        team_ids = [t.id for t in teams]
+    # B) Find the *current* "Classic" league => For the actual teams
+    current_classic = (
+        session.query(League)
+        .join(League.season)
+        .filter(League.name == 'Classic')
+        .filter_by(is_current=True)
+        .one_or_none()
+    )
+    if not current_classic:
+        flash('No *current* Classic league found.', 'danger')
+        return redirect(url_for('main.index'))
 
-        not_in_classic_teams = ~exists().where(
+    # 1) TEAMS => only from the current classic
+    teams = current_classic.teams
+    team_ids = [t.id for t in teams]
+
+    # 2) PLAYERS => belongs to "Classic" from any season + is_active
+    classic_league_ids = [l.id for l in all_classic_leagues]
+
+    belongs_to_classic = or_(
+        Player.primary_league_id.in_(classic_league_ids),
+        exists().where(
             and_(
-                player_teams.c.player_id == Player.id,
-                player_teams.c.team_id.in_(team_ids)
+                player_league.c.player_id == Player.id,
+                player_league.c.league_id.in_(classic_league_ids)
             )
         )
+    )
+    is_active = Player.is_current_player.is_(True)
 
-        available_players = (
-            session.query(Player)
-            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
-            .filter(not_in_classic_teams)
-            .order_by(Player.name.asc())
-            .all()
+    # 3) Available = belongs_to_classic & is_active & not in these team_ids
+    not_in_classic_teams = ~exists().where(
+        and_(
+            player_teams.c.player_id == Player.id,
+            player_teams.c.team_id.in_(team_ids)
         )
+    )
 
-        drafted_players = (
-            session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats),
-                joinedload(Player.teams)
-            )
-            .join(player_teams, player_teams.c.player_id == Player.id)
-            .filter(player_teams.c.team_id.in_(team_ids))
-            .order_by(Player.name.asc())
-            .all()
+    available_players = (
+        session.query(Player)
+        .filter(belongs_to_classic)
+        .filter(is_active)
+        .filter(not_in_classic_teams)
+        .order_by(Player.name.asc())
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats)
         )
+        .all()
+    )
 
-        drafted_by_team = {t.id: [] for t in teams}
-        for p in drafted_players:
-            for tm in p.teams:
-                if tm.id in drafted_by_team:
-                    drafted_by_team[tm.id].append(p)
-                    break
-
-        return render_template(
-            'draft_classic.html',
-            teams=teams,
-            available_players=available_players,
-            drafted_players_by_team=drafted_by_team,
-            season=current_season
+    # 4) Drafted = belongs_to_classic & is_active & in these team_ids
+    drafted_players = (
+        session.query(Player)
+        .join(player_teams, player_teams.c.player_id == Player.id)
+        .filter(player_teams.c.team_id.in_(team_ids))
+        .filter(belongs_to_classic)
+        .filter(is_active)
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats),
+            joinedload(Player.teams)
         )
+        .order_by(Player.name.asc())
+        .all()
+    )
+
+    drafted_by_team = {t.id: [] for t in teams}
+    for p in drafted_players:
+        for tm in p.teams:
+            if tm.id in drafted_by_team:
+                drafted_by_team[tm.id].append(p)
+                break
+
+    return render_template(
+        'draft_classic.html',
+        teams=teams,
+        available_players=available_players,
+        drafted_players_by_team=drafted_by_team
+    )
 
 @draft.route('/premier', endpoint='draft_premier')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
-@cleanup_db_connection
 def draft_premier():
-    with managed_session() as session:
-        current_season = (
-            session.query(Season)
-            .filter_by(league_type='Pub League', is_current=True)
-            .first()
-        )
-        if not current_season:
-            flash('No current Pub League season found.', 'danger')
-            return redirect(url_for('main.index'))
+    session = g.db_session
 
-        premier_league = (
-            session.query(League)
-            .options(joinedload(League.teams))
-            .filter_by(name='Premier', season_id=current_season.id)
-            .first()
-        )
-        if not premier_league:
-            flash('No Premier league found.', 'danger')
-            return redirect(url_for('main.index'))
+    # A) All "Premier" leagues for player membership
+    all_premier_leagues = session.query(League).filter(League.name == 'Premier').all()
+    if not all_premier_leagues:
+        flash('No league(s) found with name "Premier".', 'danger')
+        return redirect(url_for('main.index'))
 
-        teams = premier_league.teams
-        team_ids = [t.id for t in teams]
+    # B) Current "Premier" for the actual teams
+    current_premier = (
+        session.query(League)
+        .join(League.season)
+        .filter(League.name == 'Premier')
+        .filter_by(is_current=True)
+        .one_or_none()
+    )
+    if not current_premier:
+        flash('No *current* Premier league found.', 'danger')
+        return redirect(url_for('main.index'))
 
-        not_in_premier_teams = ~exists().where(
+    teams = current_premier.teams
+    team_ids = [t.id for t in teams]
+
+    premier_league_ids = [l.id for l in all_premier_leagues]
+    belongs_to_premier = or_(
+        Player.primary_league_id.in_(premier_league_ids),
+        exists().where(
             and_(
-                player_teams.c.player_id == Player.id,
-                player_teams.c.team_id.in_(team_ids)
+                player_league.c.player_id == Player.id,
+                player_league.c.league_id.in_(premier_league_ids)
             )
         )
+    )
+    is_active = Player.is_current_player.is_(True)
 
-        available_players = (
-            session.query(Player)
-            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
-            .filter(not_in_premier_teams)
-            .order_by(Player.name.asc())
-            .all()
+    not_in_premier_teams = ~exists().where(
+        and_(
+            player_teams.c.player_id == Player.id,
+            player_teams.c.team_id.in_(team_ids)
         )
+    )
 
-        drafted_players = (
-            session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-                joinedload(Player.teams)
-            )
-            .join(player_teams, player_teams.c.player_id == Player.id)
-            .filter(player_teams.c.team_id.in_(team_ids))
-            .order_by(Player.name.asc())
-            .all()
+    available_players = (
+        session.query(Player)
+        .filter(belongs_to_premier)
+        .filter(is_active)
+        .filter(not_in_premier_teams)
+        .order_by(Player.name.asc())
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats)
         )
+        .all()
+    )
 
-        drafted_by_team = {t.id: [] for t in teams}
-        for p in drafted_players:
-            for tm in p.teams:
-                if tm.id in drafted_by_team:
-                    drafted_by_team[tm.id].append(p)
-                    break
-
-        return render_template(
-            'draft_premier.html',
-            teams=teams,
-            available_players=available_players,
-            drafted_players_by_team=drafted_by_team,
-            season=current_season
+    drafted_players = (
+        session.query(Player)
+        .join(player_teams, player_teams.c.player_id == Player.id)
+        .filter(player_teams.c.team_id.in_(team_ids))
+        .filter(belongs_to_premier)
+        .filter(is_active)
+        .order_by(Player.name.asc())
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+            joinedload(Player.teams)
         )
+        .all()
+    )
+
+    drafted_by_team = {t.id: [] for t in teams}
+    for p in drafted_players:
+        for tm in p.teams:
+            if tm.id in drafted_by_team:
+                drafted_by_team[tm.id].append(p)
+                break
+
+    return render_template(
+        'draft_premier.html',
+        teams=teams,
+        available_players=available_players,
+        drafted_players_by_team=drafted_by_team
+    )
 
 @draft.route('/ecs_fc', endpoint='draft_ecs_fc')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
-@cleanup_db_connection
 def draft_ecs_fc():
-    with managed_session() as session:
-        current_season = (
-            session.query(Season)
-            .filter_by(league_type='ECS FC', is_current=True)
-            .first()
-        )
-        if not current_season:
-            flash('No current ECS FC season found.', 'danger')
-            return redirect(url_for('main.index'))
+    session = g.db_session
 
-        ecs_fc_league = (
-            session.query(League)
-            .options(joinedload(League.teams))
-            .filter_by(name='ECS FC', season_id=current_season.id)
-            .first()
-        )
-        if not ecs_fc_league:
-            flash('No ECS FC league found.', 'danger')
-            return redirect(url_for('main.index'))
+    # A) All "ECS FC" leagues for player membership
+    all_ecs_leagues = session.query(League).filter(League.name == 'ECS FC').all()
+    if not all_ecs_leagues:
+        flash('No league(s) named "ECS FC".', 'danger')
+        return redirect(url_for('main.index'))
 
-        teams = ecs_fc_league.teams
-        team_ids = [t.id for t in teams]
+    # B) The "current" ECS FC for the actual teams
+    current_ecs_fc = (
+        session.query(League)
+        .join(League.season)
+        .filter(League.name == 'ECS FC')
+        .filter_by(is_current=True)
+        .one_or_none()
+    )
+    if not current_ecs_fc:
+        flash('No *current* ECS FC league found.', 'danger')
+        return redirect(url_for('main.index'))
 
-        not_in_ecs_teams = ~exists().where(
+    teams = current_ecs_fc.teams
+    team_ids = [t.id for t in teams]
+
+    ecs_league_ids = [l.id for l in all_ecs_leagues]
+    belongs_to_ecs = or_(
+        Player.primary_league_id.in_(ecs_league_ids),
+        exists().where(
             and_(
-                player_teams.c.player_id == Player.id,
-                player_teams.c.team_id.in_(team_ids)
+                player_league.c.player_id == Player.id,
+                player_league.c.league_id.in_(ecs_league_ids)
             )
         )
-
-        available_players = (
-            session.query(Player)
-            .options(joinedload(Player.career_stats), joinedload(Player.season_stats))
-            .filter(not_in_ecs_teams)
-            .order_by(Player.name.asc())
-            .all()
+    )
+    is_active = Player.is_current_player.is_(True)
+    not_in_ecs_teams = ~exists().where(
+        and_(
+            player_teams.c.player_id == Player.id,
+            player_teams.c.team_id.in_(team_ids)
         )
+    )
 
-        drafted_players = (
-            session.query(Player)
-            .options(
-                joinedload(Player.career_stats),
-                joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
-                joinedload(Player.teams)
-            )
-            .join(player_teams, player_teams.c.player_id == Player.id)
-            .filter(player_teams.c.team_id.in_(team_ids))
-            .order_by(Player.name.asc())
-            .all()
+    available_players = (
+        session.query(Player)
+        .filter(belongs_to_ecs)
+        .filter(is_active)
+        .filter(not_in_ecs_teams)
+        .order_by(Player.name.asc())
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats)
         )
+        .all()
+    )
 
-        drafted_by_team = {t.id: [] for t in teams}
-        for p in drafted_players:
-            for tm in p.teams:
-                if tm.id in drafted_by_team:
-                    drafted_by_team[tm.id].append(p)
-                    break
-
-        return render_template(
-            'draft_ecs_fc.html',
-            teams=teams,
-            available_players=available_players,
-            drafted_players_by_team=drafted_by_team,
-            season=current_season
+    drafted_players = (
+        session.query(Player)
+        .join(player_teams, player_teams.c.player_id == Player.id)
+        .filter(player_teams.c.team_id.in_(team_ids))
+        .filter(belongs_to_ecs)
+        .filter(is_active)
+        .order_by(Player.name.asc())
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats).joinedload(PlayerSeasonStats.season),
+            joinedload(Player.teams)
         )
+        .all()
+    )
 
+    drafted_by_team = {t.id: [] for t in teams}
+    for p in drafted_players:
+        for tm in p.teams:
+            if tm.id in drafted_by_team:
+                drafted_by_team[tm.id].append(p)
+                break
+
+    return render_template(
+        'draft_ecs_fc.html',
+        teams=teams,
+        available_players=available_players,
+        drafted_players_by_team=drafted_by_team
+    )
 
 #
 # Socket.IO Event Handlers

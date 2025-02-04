@@ -385,18 +385,3 @@ def async_task(**task_kwargs):
         return wrapped
 
     return async_task_decorator
-
-def cleanup_db_connection(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        finally:
-            if hasattr(g, 'db_session') and g.db_session:
-                try:
-                    g.db_session.commit()
-                except:
-                    g.db_session.rollback()
-                finally:
-                    g.db_session.close()
-    return decorated

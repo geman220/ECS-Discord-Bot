@@ -54,7 +54,10 @@
                             <th>Email</th>
                             <th>Roles</th>
                             <th>Team</th>
-                            <th>League</th>
+                            <!-- We rename "League" to "Primary League" -->
+                            <th>Primary League</th>
+                            <!-- NEW column for "Secondary Leagues" -->
+                            <th>Secondary Leagues</th>
                             <th>Active Player</th>
                             <th>Approved</th>
                             <th>Actions</th>
@@ -71,7 +74,15 @@
                                 {% endfor %}
                             </td>
                             <td>{{ user.team if user.team != 'N/A' else 'No Team' }}</td>
-                            <td>{{ user.league }}</td>
+                            <td>{{ user.league if user.league else 'None' }}</td>
+                            <!-- Display the secondary leagues array -->
+                            <td>
+                                {% if user.other_leagues %}
+                                {{ user.other_leagues|join(', ') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if user.is_current_player %}
                                 <span class="badge bg-success">Yes</span>
@@ -163,6 +174,7 @@
             </div>
         </div>
 
+        <!-- EDIT USER MODAL (unchanged, just with the new secondary leagues multi-select) -->
         <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -195,7 +207,7 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="editLeague" class="form-label">League</label>
+                                <label for="editLeague" class="form-label">League (Primary)</label>
                                 <select class="form-select" id="editLeague" name="league_id">
                                     <option value="0">Select League</option>
                                     {% for league in leagues %}
@@ -204,6 +216,18 @@
                                     {% endif %}
                                     {% endfor %}
                                 </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editSecondaryLeagues" class="form-label">Secondary Leagues (optional)</label>
+                                <select multiple class="form-select" id="editSecondaryLeagues" name="secondary_leagues">
+                                    {% for league in leagues %}
+                                    {% if league.season.is_current %}
+                                    <option value="{{ league.id }}">{{ league.name }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Hold CTRL (or CMD) to select multiple.</small>
                             </div>
 
                             <div class="mb-3">
@@ -250,7 +274,7 @@
         const editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
         const getUserDataUrl = "{{ url_for('user_management.get_user_data') }}";
 
-        // Add league change handler
+        // Filter teams by selected league
         document.getElementById('editLeague').addEventListener('change', function() {
             const leagueId = this.value;
             const teamSelect = document.getElementById('editTeam');
@@ -281,16 +305,19 @@
                             return;
                         }
 
+                        // Populate basic fields
                         document.getElementById('editUserId').value = data.id;
                         document.getElementById('editUsername').value = data.username;
                         document.getElementById('editEmail').value = data.email;
 
+                        // Roles
                         const editRolesSelect = document.getElementById('editRoles');
                         const selectedRoles = data.roles.map(id => id.toString());
                         for (let option of editRolesSelect.options) {
                             option.selected = selectedRoles.includes(option.value);
                         }
 
+                        // Basic player info
                         const leagueField = document.getElementById('editLeague');
                         const teamField = document.getElementById('editTeam');
                         const isCurrentPlayerField = document.getElementById('editIsCurrentPlayer');
@@ -299,10 +326,8 @@
                         if (data.has_player) {
                             leagueField.value = data.league_id || '0';
                             leagueField.disabled = false;
-
                             teamField.value = data.team_id || '0';
                             teamField.disabled = false;
-
                             isCurrentPlayerField.checked = data.is_current_player;
                             isCurrentPlayerField.disabled = false;
                             noPlayerMessage.style.display = 'none';
@@ -312,18 +337,30 @@
                         } else {
                             leagueField.value = '0';
                             leagueField.disabled = true;
-
                             teamField.value = '0';
                             teamField.disabled = true;
-
                             isCurrentPlayerField.checked = false;
                             isCurrentPlayerField.disabled = true;
                             noPlayerMessage.style.display = 'block';
                         }
 
+                        // NEW: Secondary leagues
+                        const secondaryLeaguesSelect = document.getElementById('editSecondaryLeagues');
+                        // Clear old selection
+                        for (let opt of secondaryLeaguesSelect.options) {
+                            opt.selected = false;
+                        }
+                        // Mark the user's existing secondary leagues
+                        if (data.other_leagues && data.other_leagues.length > 0) {
+                            data.other_leagues.forEach((lid) => {
+                                let theOption = secondaryLeaguesSelect.querySelector(`option[value="${lid}"]`);
+                                if (theOption) theOption.selected = true;
+                            });
+                        }
+
+                        // Update form action and show modal
                         const editUserUrl = editUserUrlTemplate.replace('/0', `/${userId}`);
                         editUserForm.action = editUserUrl;
-
                         editUserModal.show();
                     })
                     .catch(error => {
