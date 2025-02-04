@@ -77,26 +77,43 @@ def generate_random_password(length=16):
     
     return ''.join(password)
 
-def create_user_for_player(player_data, session=None):
-    if session is None:
-        from app.core import db
-        session = db.session
-    email = player_data['email'].lower()
-    logger.debug(f"create_user_for_player: Checking for user with email: {email}")
-    user = session.query(User).filter_by(email=email).first()
-    if user:
-        logger.debug(f"create_user_for_player: Found existing user with id {user.id}")
-    else:
-        user = User(
-            username=generate_unique_username(player_data['name']),
-            email=email,
+def create_user_for_player(player_info, session):
+    """
+    Creates or returns an existing User from the given player_info['email'].
+    Ensures everything happens in the provided session.
+    """
+    logger.debug(f"create_user_for_player called with {player_info}")
+
+    logger.debug("Querying for existing user by email...")
+    existing_user = session.query(User).filter(
+        func.lower(User.email) == func.lower(player_info['email'])
+    ).first()
+    logger.debug(f"existing_user={existing_user}")
+
+    if existing_user:
+        logger.debug("Returning existing_user.")
+        return existing_user
+
+    # Otherwise create new user
+    try:
+        random_password = ''.join(
+            secrets.choice(string.ascii_letters + string.digits) 
+            for _ in range(10)
+        )
+        new_user = User(
+            email=player_info['email'],
+            username=player_info['name'] or player_info['email'],
             is_approved=True
         )
-        user.set_password(generate_random_password())
-        session.add(user)
-        session.flush()
-        logger.debug(f"create_user_for_player: Created new user with id {user.id}")
-    return user
+        new_user.set_password(random_password)
+        session.add(new_user)
+        session.flush()  # to populate new_user.id
+        logger.info(f"Created new user: id={new_user.id}, email={new_user.email}")
+        return new_user
+
+    except Exception as e:
+        logger.exception("Error in create_user_for_player")
+        raise
 
 def generate_unique_name(base_name):
     session = g.db_session

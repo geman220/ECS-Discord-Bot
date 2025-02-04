@@ -192,46 +192,87 @@ def update_status(task_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def create_player():
+    """
+    Form handler to create a new Player (and User if needed) within the same session.
+    """
     session = g.db_session
     form = CreatePlayerForm()
+
+    logger.debug("Entered create_player route")
+    logger.debug(
+        f"Form data: name={request.form.get('name')} "
+        f"email={request.form.get('email')} "
+        f"phone={request.form.get('phone')} "
+        f"jersey_size={request.form.get('jersey_size')} "
+        f"league_id={request.form.get('league_id')}"
+    )
+
+    # Populate the form manually
     form.name.data = request.form.get('name')
     form.email.data = request.form.get('email')
     form.phone.data = request.form.get('phone')
     form.jersey_size.data = request.form.get('jersey_size')
     form.league_id.data = request.form.get('league_id')
 
+    # Prepare league & jersey size choices
     leagues = session.query(League).all()
     distinct_jersey_sizes = session.query(Player.jersey_size).distinct().all()
     jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))
-
     form.jersey_size.choices = [(size, size) for size in jersey_sizes]
     form.league_id.choices = [(str(league.id), league.name) for league in leagues]
 
-    if form.validate():
-        try:
-            player_data = {
-                'name': form.name.data,
-                'email': form.email.data.lower(),
-                'phone': form.phone.data,
-                'jersey_size': form.jersey_size.data
-            }
-            league_id = form.league_id.data
-            league = session.query(League).get(league_id)
-
-            user = create_user_for_player(player_data)
-            player = create_player_profile(player_data, league, user)
-
-            flash('Player created or updated successfully.', 'success')
-            return redirect(url_for('players.view_players'))
-
-        except SQLAlchemyError as e:
-            current_app.logger.error(f"Error creating or updating player: {str(e)}")
-            flash('An error occurred while creating or updating the player. Please try again.', 'danger')
-
-    else:
+    # Validate form
+    if not form.validate():
         flash('Form validation failed. Please check your inputs.', 'danger')
+        logger.debug("Form validation failed.")
+        return redirect(url_for('players.view_players'))
 
-    return redirect(url_for('players.view_players'))
+    try:
+        # Gather the player's info
+        player_data = {
+            'name': form.name.data.strip(),
+            'email': form.email.data.lower().strip(),
+            'phone': form.phone.data.strip(),
+            'jersey_size': form.jersey_size.data,
+        }
+        league_id = form.league_id.data
+        league = session.query(League).get(league_id)
+
+        # 1) Create or get the user
+        logger.debug(f"Attempting to create user from player_data={player_data}")
+        user = create_user_for_player(player_data, session=session)
+        logger.debug(
+            f"create_user_for_player returned user={user!r} "
+            f"(id={getattr(user, 'id', None)})"
+        )
+
+        # 2) Create the player profile
+        logger.debug("Attempting to create player profile.")
+        player = create_player_profile(player_data, league, user, session=session)
+        logger.debug(
+            f"create_player_profile returned player={player!r} "
+            f"(id={getattr(player, 'id', None)})"
+        )
+
+        # Commit to persist changes
+        logger.debug("Calling session.commit()...")
+        session.commit()
+        logger.debug("session.commit() succeeded without error.")
+
+        flash('Player created or updated successfully.', 'success')
+        return redirect(url_for('players.view_players'))
+
+    except SQLAlchemyError as e:
+        logger.error("SQLAlchemyError creating/updating player", exc_info=True)
+        session.rollback()
+        flash('An error occurred while creating or updating the player. Please try again.', 'danger')
+        return redirect(url_for('players.view_players'))
+
+    except Exception as e:
+        logger.exception("Unexpected error creating/updating player")
+        session.rollback()
+        flash('An unexpected error occurred. Please contact support.', 'danger')
+        return redirect(url_for('players.view_players'))
 
 @players_bp.route('/player/<int:player_id>/team_history')
 @login_required
