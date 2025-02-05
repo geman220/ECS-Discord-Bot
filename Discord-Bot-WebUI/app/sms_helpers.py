@@ -177,54 +177,79 @@ def handle_re_subscribe(player):
 
 def get_next_match(phone_number):
     """
-    Returns up to 2 upcoming matches for a phone number's player/team.
-    If none, returns [].
+    Returns a list of dictionaries containing upcoming match info for each team the player is on.
+    Each dictionary has keys:
+      - 'team': the Team object
+      - 'matches': a list of upcoming matches (each as a dict with date, time, opponent, and location)
+    If no teams or no upcoming matches are found, returns an empty list.
     """
     session = g.db_session
     player = session.query(Player).filter_by(phone=phone_number).first()
-    if not player or not player.team:
+    if not player:
+        return []
+
+    # Collect teams: include primary_team (if any) and all teams from the many-to-many relationship.
+    teams = []
+    if player.primary_team:
+        teams.append(player.primary_team)
+    for team in player.teams:
+        if team not in teams:
+            teams.append(team)
+    
+    if not teams:
         return []
 
     current_date = datetime.utcnow().date()
-    next_matches = (
-        session.query(Match)
-        .filter(
-            or_(Match.home_team_id == player.team.id,
-                Match.away_team_id == player.team.id),
-            Match.date >= current_date
+    matches_by_team = []
+    for team in teams:
+        next_matches = (
+            session.query(Match)
+            .filter(
+                or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
+                Match.date >= current_date
+            )
+            .order_by(Match.date, Match.time)
+            .limit(2)
+            .all()
         )
-        .order_by(Match.date, Match.time)
-        .limit(2)
-        .all()
-    )
-
-    match_list = []
-    for m in next_matches:
-        opponent = m.away_team if m.home_team_id == player.team.id else m.home_team
-        match_info = {
-            'date': m.date.strftime('%A, %B %d'),
-            'time': m.time.strftime('%I:%M %p'),
-            'opponent': opponent.name if opponent else 'Unknown',
-            'location': m.location or 'TBD'
-        }
-        match_list.append(match_info)
-
-    return match_list
+        
+        if next_matches:
+            match_list = []
+            for m in next_matches:
+                # Determine the opponent based on which side the team is on.
+                opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                match_info = {
+                    'date': m.date.strftime('%A, %B %d'),
+                    'time': m.time.strftime('%I:%M %p'),
+                    'opponent': opponent.name if opponent else 'Unknown',
+                    'location': m.location or 'TBD'
+                }
+                match_list.append(match_info)
+            matches_by_team.append({'team': team, 'matches': match_list})
+    return matches_by_team
 
 
 def handle_next_match_request(player):
     """
-    Replies with up to two upcoming matches for the player's phone/team.
+    Replies with upcoming matches for each team the player is on.
     """
-    next_matches = get_next_match(player.phone)
-    if not next_matches:
+    next_matches_by_team = get_next_match(player.phone)
+    
+    if not next_matches_by_team:
         message = "You don't have any upcoming matches scheduled."
     else:
-        message = "Your upcoming matches:\n"
-        for i, match in enumerate(next_matches, 1):
-            message += f"\n{i}. {match['date']} at {match['time']} vs {match['opponent']}"
-            message += f"\n    Location: {match['location']}\n"
-
+        message_parts = []
+        for entry in next_matches_by_team:
+            team = entry['team']
+            matches = entry['matches']
+            # Header for the team.
+            message_parts.append(f"Team {team.name} upcoming matches:")
+            for i, match in enumerate(matches, 1):
+                message_parts.append(
+                    f"{i}. {match['date']} at {match['time']} vs {match['opponent']} - Location: {match['location']}"
+                )
+        message = "\n\n".join(message_parts)
+    
     send_sms(player.phone, message)
     return True
 
