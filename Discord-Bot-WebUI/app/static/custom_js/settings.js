@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 cancelButtonText: 'No, stay subscribed'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/account/opt-out-sms', {
+                    fetch('/account/opt_out_sms', {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': getCsrfToken()
