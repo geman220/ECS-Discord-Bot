@@ -112,7 +112,7 @@
             </div>
 
             <!-- Stats Card and Team History -->
-            {% if safe_current_user.has_permission('view_player_goals_assists') or safe_current_user.has_permission('view_player_cards') or safe_current_user.id == player.user.id or safe_current_user.has_role('Pub League Coach') %}
+            {% if safe_current_user.has_permission('view_player_goals_assists') or safe_current_user.has_permission('view_player_cards') or safe_current_user.has_role('Pub League Coach') or is_admin %}
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-3">
