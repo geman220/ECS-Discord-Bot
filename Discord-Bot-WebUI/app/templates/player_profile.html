@@ -3,7 +3,7 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y mt-4">
     <div class="row">
-        <!-- Left Column -->
+        <!-- Left Column: Always visible -->
         <div class="col-xl-4 col-lg-5 col-md-5 col-12">
             <!-- Profile Card -->
             <div class="card mb-4 shadow-sm">
@@ -28,7 +28,7 @@
                         {% endif %}
                     </h4>
 
-                    <!-- CHANGED: Instead of player.team, loop over player.teams -->
+                    <!-- Loop over teams -->
                     {% if player.teams and player.teams|length > 0 %}
                     {% for t in player.teams %}
                     <span class="badge bg-primary mt-2 me-1">
@@ -111,45 +111,29 @@
                 </div>
             </div>
 
-            <!-- Stats Card -->
+            <!-- Stats Card and Team History -->
+            {% if safe_current_user.has_permission('view_player_goals_assists') or safe_current_user.has_permission('view_player_cards') or safe_current_user.id == player.user.id or safe_current_user.has_role('Pub League Coach') %}
             <div class="card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-3">
-                        <!-- Season Stats -->
+                        <!-- Stats: Shown only to permitted viewers -->
                         <div>
                             <h6 class="mb-1">Season Stats ({{ season.name }})</h6>
-                            {% if safe_current_user.has_permission('view_player_goals_assists')
-                            or (safe_current_user.id == player.user_id
-                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.season_goals(season.id) }}</p>
                             <p class="mb-1">Assists: {{ player.season_assists(season.id) }}</p>
-                            {% endif %}
-                            {% if safe_current_user.has_permission('view_player_cards')
-                            or (safe_current_user.id == player.user_id
-                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.season_yellow_cards(season.id) }}</p>
                             <p class="mb-0">Red Cards: {{ player.season_red_cards(season.id) }}</p>
-                            {% endif %}
                         </div>
-                        <!-- Career Stats -->
                         <div>
                             <h6 class="mb-1">Career Stats</h6>
-                            {% if safe_current_user.has_permission('view_player_goals_assists')
-                            or (safe_current_user.id == player.user_id
-                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Goals: {{ player.get_career_goals() }}</p>
                             <p class="mb-1">Assists: {{ player.get_career_assists() }}</p>
-                            {% endif %}
-                            {% if safe_current_user.has_permission('view_player_cards')
-                            or (safe_current_user.id == player.user_id
-                            and safe_current_user.has_permission('view_own_stats')) %}
                             <p class="mb-1">Yellow Cards: {{ player.get_career_yellow_cards() }}</p>
                             <p class="mb-0">Red Cards: {{ player.get_career_red_cards() }}</p>
-                            {% endif %}
                         </div>
                     </div>
                     <hr>
-                    <!-- Team History -->
+                    <!-- Team History: Always shown -->
                     <div>
                         <h6 class="mb-3">Team History</h6>
                         {% if team_history %}
@@ -172,9 +156,37 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            <!-- For viewers not allowed to see stats, show only Team History -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div>
+                        <h6 class="mb-3">Team History</h6>
+                        {% if team_history %}
+                        {% for pts in team_history %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <a href="{{ url_for('teams.team_details', team_id=pts.team.id) }}" class="text-decoration-none">
+                                    {{ pts.team.name }}
+                                </a>
+                                <small class="text-muted d-block">{{ pts.season.name }}</small>
+                            </div>
+                            {% if pts.season.is_current %}
+                            <span class="badge bg-success">Current</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p class="text-muted mb-0">No team history available</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
         <!-- End Left Column -->
         <!-- Right Column -->
+        {% if safe_current_user.id == player.user.id or is_admin or safe_current_user.has_role('Pub League Coach') %}
         <div class="col-xl-8 col-lg-7 col-md-7 col-12">
             <div class="card shadow-sm">
                 <div class="card-body">
@@ -182,19 +194,19 @@
                     {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                     <script>
-                                document.addEventListener('DOMContentLoaded', function () {
-                                    {% for category, message in messages %}
-                                    Swal.fire({
-                                        icon: '{{ category }}',
-                                        title: '{{ message }}',
-                                        toast: true,
-                                        position: 'top-right',
-                                        showConfirmButton: false,
-                                        timer: 3000,
-                                        timerProgressBar: true,
-                                    });
-                                    {% endfor %}
+                            document.addEventListener('DOMContentLoaded', function () {
+                                {% for category, message in messages %}
+                                Swal.fire({
+                                    icon: '{{ category }}',
+                                    title: '{{ message }}',
+                                    toast: true,
+                                    position: 'top-right',
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    timerProgressBar: true,
                                 });
+                                {% endfor %}
+                            });
                     </script>
                     {% endif %}
                     {% endwith %}
@@ -207,7 +219,7 @@
                                 <i class="ti ti-user me-1"></i> Account Details
                             </a>
                         </li>
-                        {% if is_admin %}
+                        {% if is_admin and has_permission('edit_player_stats') %}
                         <li class="nav-item">
                             <a class="nav-link" id="admin-settings-tab" data-bs-toggle="pill" href="#admin-settings"
                                role="tab" aria-controls="admin-settings" aria-selected="false">
@@ -221,10 +233,10 @@
                     <div class="tab-content">
                         <!-- Account Details Tab -->
                         <div class="tab-pane fade show active" id="account-details" role="tabpanel" aria-labelledby="account-details-tab">
-                            {% if form %}
+                            {% if safe_current_user.id == player.user.id or is_admin %}
+                            <!-- Editable Form for Profile Owner / Admin -->
                             <form method="POST" enctype="multipart/form-data" class="row g-3">
                                 {{ form.hidden_tag() }}
-
                                 <!-- Personal Information -->
                                 <div class="col-md-6">
                                     <label for="name" class="form-label">{{ form.name.label.text }}</label>
@@ -242,7 +254,6 @@
                                     <label for="jersey_size" class="form-label">{{ form.jersey_size.label.text }}</label>
                                     {{ form.jersey_size(class_="form-select select2", id="jersey_size", required=True) }}
                                 </div>
-
                                 <!-- Additional Details -->
                                 <div class="col-md-6">
                                     <label for="pronouns" class="form-label">{{ form.pronouns.label.text }}</label>
@@ -268,7 +279,6 @@
                                     <label for="frequency_play_goal" class="form-label">{{ form.frequency_play_goal.label.text }}</label>
                                     {{ form.frequency_play_goal(class_="form-select select2", id="frequency_play_goal", required=True) }}
                                 </div>
-
                                 {% if is_classic_league_player %}
                                 <div class="col-md-6">
                                     <label for="{{ form.team_swap.id }}" class="form-label">{{ form.team_swap.label.text }}</label>
@@ -282,25 +292,57 @@
                                     {% endif %}
                                 </div>
                                 {% endif %}
-
                                 <!-- Player Notes -->
                                 <div class="col-12">
                                     <label for="player_notes" class="form-label">{{ form.player_notes.label.text }}</label>
                                     {{ form.player_notes(class_="form-control", id="player_notes", rows=3) }}
                                 </div>
-
                                 <!-- Submit Button -->
                                 <div class="col-12 text-end">
                                     <button type="submit" name="update_profile" class="btn btn-primary">Update Profile</button>
                                 </div>
                             </form>
                             {% else %}
-                            <p class="text-muted">You do not have permission to view this profile.</p>
+                            <!-- Read-Only View for Coaches -->
+                            {% set goal_frequency_map = {
+                            '0': 'Never',
+                            '1': 'Only if our normal GK is unavailable and there are no other options',
+                            '2': 'I will fill in as much as needed, but expect to play in the field',
+                            '3': 'Half of the time',
+                            '4': 'Every Game'
+                            } %}
+
+                            <div class="row g-3">
+                                <div class="col-md-6"><strong>Name:</strong> {{ player.name }}</div>
+                                <div class="col-md-6"><strong>Email:</strong> {{ user.email }}</div>
+                                <div class="col-md-6"><strong>Phone:</strong> {{ player.phone }}</div>
+                                <div class="col-md-6"><strong>Jersey Size:</strong> {{ player.jersey_size }}</div>
+                                <div class="col-md-6"><strong>Pronouns:</strong> {{ player.pronouns }}</div>
+                                <div class="col-md-6"><strong>Expected Weeks Available:</strong> {{ player.expected_weeks_available }}</div>
+                                <div class="col-md-6"><strong>Favorite Position:</strong> {{ player.favorite_position }}</div>
+                                <div class="col-md-6">
+                                    <strong>Other Positions:</strong>
+                                    {% if player.other_positions is string %}
+                                    {{ player.other_positions }}
+                                    {% else %}
+                                    {{ player.other_positions|join(', ') }}
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Positions Not to Play:</strong>
+                                    {% if player.positions_not_to_play is string %}
+                                    {{ player.positions_not_to_play }}
+                                    {% else %}
+                                    {{ player.positions_not_to_play|join(', ') }}
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6"><strong>Frequency Play Goal:</strong> {{ goal_frequency_map[player.frequency_play_goal] }}</div>
+                                <div class="col-12"><strong>Player Notes:</strong> {{ player.player_notes }}</div>
+                            </div>
                             {% endif %}
                         </div>
-
-                        <!-- Admin Settings Tab -->
-                        {% if has_permission('edit_player_stats') %}
+                        <!-- Admin Settings Tab (Admins Only) -->
+                        {% if is_admin and has_permission('edit_player_stats') %}
                         <div class="tab-pane fade" id="admin-settings" role="tabpanel" aria-labelledby="admin-settings-tab">
                             <!-- Player Stats Overview -->
                             <div class="row mb-4">
@@ -360,10 +402,7 @@
                                             </h6>
                                             <p class="mb-1">
                                                 Opponent:
-                                                {{
- event.match.away_team.name if player.team_id == event.match.home_team_id
-                                                           else event.match.home_team.name
-                                                }}
+                                                {{ event.match.away_team.name if player.team_id == event.match.home_team_id else event.match.home_team.name }}
                                             </p>
                                             <p class="mb-1">Event Type: {{ event.event_type }}</p>
                                             <p class="mb-1">Minute: {{ event.minute }}</p>
@@ -434,8 +473,15 @@
                 </div>
                 <!-- End Card Body -->
             </div>
-            <!-- End Card -->
         </div>
+        {% else %}
+        <!-- Right Column: For unauthorized viewers -->
+        <div class="col-xl-8 col-lg-7 col-md-7 col-12">
+            <div class="alert alert-warning">
+                You don't have permission to view detailed profile information.
+            </div>
+        </div>
+        {% endif %}
         <!-- End Right Column -->
     </div>  <!-- Close .row -->
 </div>      <!-- Close .container-xxl -->
