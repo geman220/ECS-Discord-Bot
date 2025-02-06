@@ -88,10 +88,16 @@ def handle_profile_update(form, player, user):
         user.email = new_email
         player.email = new_email
 
-        # Populate player fields from form
-        form.populate_obj(player)
+        # Explicitly update only the intended player fields (do not use populate_obj)
+        player.name = form.name.data.strip()
+        player.phone = form.phone.data.strip()
+        player.jersey_size = form.jersey_size.data
+        player.pronouns = form.pronouns.data
+        player.expected_weeks_available = form.expected_weeks_available.data
+        player.favorite_position = form.favorite_position.data
+        player.frequency_play_goal = form.frequency_play_goal.data  # if applicable
 
-        # Handle array fields
+        # Handle array fields separately (for example, positions)
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
 
@@ -99,6 +105,9 @@ def handle_profile_update(form, player, user):
         if hasattr(form, 'team_swap'):
             player.team_swap = form.team_swap.data if form.team_swap.data else None
             logger.debug(f"Set player.team_swap to {player.team_swap}")
+
+        # Note: We do NOT touch player.is_coach or player.is_ref here.
+        # Their values are updated by handle_coach_status_update and handle_ref_status_update respectively.
 
         flash('Profile updated successfully.', 'success')
         logger.info(f"Profile for player {player.id} updated successfully.")
