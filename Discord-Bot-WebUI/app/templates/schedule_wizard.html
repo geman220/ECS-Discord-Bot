@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Schedule Wizard{% endblock %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <h2>Schedule Wizard (Season: {{ season.name }})</h2>
+
+    {% if not placeholders %}
+    <!-- STEP 1: Generate placeholders -->
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="wizard_step" value="step1">
+        <input type="hidden" name="season_id" value="{{ season.id }}">
+
+        <div class="mb-3">
+            <label>Start Date (First Sunday)</label>
+            <input type="date" class="form-control" name="start_date" required>
+        </div>
+        <div class="mb-3">
+            <label>Number of Weeks</label>
+            <input type="number" class="form-control" name="num_weeks" required>
+        </div>
+        <div class="mb-3">
+            <label>Timeslots (comma separated)</label>
+            <input type="text" class="form-control"
+                   name="timeslots"
+                   placeholder="e.g. 09:00 North,09:00 South"
+                   required>
+            <small class="text-muted">Format: "HH:MM FieldName"</small>
+        </div>
+
+        <!-- New Checkboxes -->
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" name="fun_week" id="funWeekCheck">
+            <label class="form-check-label" for="funWeekCheck">
+                Mark entire day as FUN WEEK
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="1" name="bye_week" id="byeWeekCheck">
+            <label class="form-check-label" for="byeWeekCheck">
+                Mark entire day as BYE WEEK
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Generate Placeholders</button>
+    </form>
+
+    {% else %}
+    <!-- STEP 2: Show placeholders + assign teams -->
+    <h4>Generated Placeholders</h4>
+    <p>Please assign Team A and Team B for each row, then click "Create Matches".</p>
+
+    <form method="POST">
+        <!-- CSRF, etc. -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="wizard_step" value="step2">
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Field</th>
+                    <th>Team A</th>
+                    <th>Team B</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in placeholders %}
+                <tr>
+                    <td>
+                        {{ row.date }}
+                        <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
+                    </td>
+                    <td>
+                        {{ row.time }}
+                        <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
+                    </td>
+                    <td>
+                        {{ row.location }}
+                        <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
+                    </td>
+                    <td>
+                        <select name="team_a_{{ loop.index0 }}" class="form-select">
+                            <option value="">-- Select --</option>
+                            {% for league in leagues %}
+                            {% for t in league.teams %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <select name="team_b_{{ loop.index0 }}" class="form-select">
+                            <option value="">-- Select --</option>
+                            {% for league in leagues %}
+                            {% for t in league.teams %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                            {% endfor %}
+                        </select>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-success">Create Matches</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

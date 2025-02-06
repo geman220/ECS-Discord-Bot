@@ -75,10 +75,18 @@
                         <div>Create Teams</div>
                     </a>
                 </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'publeague.schedule.manage_publeague_schedule' }}">
-                    <a class="menu-link" href="{{ url_for('publeague.schedule.manage_publeague_schedule', season_id=g.current_pub_league_season.id if g.current_pub_league_season else 0) }}">
+                <li class="menu-item {{ 'active' if request.endpoint.endswith('manage_publeague_schedule') }}">
+                    {% if current_pub_league_season %}
+                    <a class="menu-link"
+                       href="{{ url_for('publeague.schedule.manage_publeague_schedule',
+                      season_id=current_pub_league_season.id) }}">
                         <div>Pub League Schedule</div>
                     </a>
+                    {% else %}
+                    <a class="menu-link" href="#" onclick="alert('No active Pub League season')">
+                        <div>Pub League Schedule</div>
+                    </a>
+                    {% endif %}
                 </li>
                 <li class="menu-item {{ 'active' if request.endpoint == 'publeague.schedule.manage_ecsfc_schedule' }}">
                     <a class="menu-link" href="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=g.current_ecs_fc_season.id if g.current_ecs_fc_season else 0) }}">

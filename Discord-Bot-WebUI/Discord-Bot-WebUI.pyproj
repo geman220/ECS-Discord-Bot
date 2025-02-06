@@ -263,6 +263,8 @@
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\discord_role_status.html" />
     <Content Include="app\templates\rsvp_success.html" />
+    <Content Include="app\templates\DEPschedule_management.html" />
+    <Content Include="app\templates\schedule_wizard.html" />
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />
     <Content Include="app\templates\sms_rsvp_form.html" />

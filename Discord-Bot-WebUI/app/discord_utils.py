@@ -369,7 +369,7 @@ async def create_discord_channel(session: Session, team_name: str, division: str
                 return {'success': False, 'error': 'Player role ID not found'}
 
             wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", http_session)
-            pl_leadership_role_id = await get_or_create_role(guild_id, "ECS-FC-PL-LEADERSHIP", http_session)
+            pl_leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", http_session)
             
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
