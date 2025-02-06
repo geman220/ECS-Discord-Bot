@@ -19,7 +19,7 @@ import time
 
 from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
-from app.models import User, Role
+from app.models import User, Role, Season
 from app.lifecycle import request_lifecycle
 from app.assets import init_assets
 from flask_migrate import Migrate
@@ -190,6 +190,22 @@ def create_app(config_object='web_config.Config'):
     def before_request():
         if not request.path.startswith('/static/'):
             g.db_session = app.SessionLocal()
+
+    @app.context_processor
+    def inject_current_pub_league_season():
+        """Inject the current Pub League season into every template's context."""
+        session = app.SessionLocal()
+        try:
+            season = session.query(Season).filter_by(
+                league_type='Pub League',
+                is_current=True
+            ).first()
+        except:
+            season = None
+        finally:
+            session.close()
+
+        return dict(current_pub_league_season=season)
 
     @app.teardown_request
     def teardown_request(exception):

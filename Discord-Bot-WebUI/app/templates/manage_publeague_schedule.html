@@ -1,3 +1,4 @@
+{# manage_publeague_schedule.html #}
 {% extends "base.html" %}
 {% block title %}Pub League Schedule Management{% endblock %}
 
@@ -30,18 +31,22 @@
     <div class="row">
         <div class="col-12">
             <div class="card">
+                <!-- Minimal card header -->
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Pub League Schedule Management</h5>
                 </div>
 
                 <div class="card-body">
+                    <!-- Tabs for each league -->
                     <ul class="nav nav-tabs" role="tablist">
                         {% for league in leagues %}
                         <li class="nav-item">
                             <a class="nav-link {% if loop.first %}active{% endif %}"
                                data-bs-toggle="tab"
                                href="#league-{{ league.id }}"
-                               role="tab">{{ league.name }}</a>
+                               role="tab">
+                                {{ league.name }}
+                            </a>
                         </li>
                         {% endfor %}
                     </ul>
@@ -51,20 +56,43 @@
                         <div id="league-{{ league.id }}"
                              class="tab-pane fade {% if loop.first %}show active{% endif %}"
                              role="tabpanel">
+
+                            <!-- Buttons for bulk wizard and single-week modal -->
+                            <div class="d-flex justify-content-end mt-3 mb-3">
+                                <a class="btn btn-sm btn-primary me-2"
+                                   href="{{ url_for('publeague.schedule.schedule_wizard',
+                                                    season_id=season.id,
+                                                    league_id=league.id) }}">
+                                    Generate Bulk Schedule ({{ league.name }})
+                                </a>
+                                <button class="btn btn-sm btn-secondary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#addSingleWeekModal"
+                                        data-league-id="{{ league.id }}">
+                                    Add Single Week ({{ league.name }})
+                                </button>
+                            </div>
+
+                            <!-- If matches exist, show them by week -->
                             {% if schedule[league.name] %}
                             <div class="accordion" id="accordionWeek{{ league.id }}">
                                 {% for week, data in schedule[league.name].items() %}
                                 <div class="card mb-3">
                                     <div class="card-header p-3">
-                                        <div class="d-flex justify-content-between align-items-center accordion-header" id="heading-{{ league.id }}-{{ week }}">
+                                        <div class="d-flex justify-content-between align-items-center accordion-header"
+                                             id="heading-{{ league.id }}-{{ week }}">
+
                                             <div class="flex-grow-1 accordion-button {% if not loop.first %}collapsed{% endif %}"
                                                  role="button"
                                                  data-bs-toggle="collapse"
                                                  data-bs-target="#week-{{ league.id }}-{{ week }}"
                                                  aria-expanded="{% if loop.first %}true{% else %}false{% endif %}"
                                                  aria-controls="week-{{ league.id }}-{{ week }}">
-                                                <h6 class="mb-0">Week {{ week }} - {{ data.date }}</h6>
+                                                <h6 class="mb-0">
+                                                    Week {{ week }} - {{ data.date }}
+                                                </h6>
                                             </div>
+
                                             <button class="btn btn-sm btn-success add-match-btn ms-2"
                                                     data-week="{{ week }}"
                                                     data-date="{{ data.date }}"
@@ -138,15 +166,18 @@
     </div>
 </div>
 
-<!-- Match Modal -->
+<!-- Edit/Add Match Modal -->
 <div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="editMatchForm">
+                <!-- you can also put a hidden CSRF here if not using a meta tag -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
                 <div class="modal-body">
                     <input type="hidden" id="editMatchId" name="match_id">
                     <input type="hidden" id="editWeek" name="week">
@@ -193,6 +224,7 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -201,8 +233,70 @@
         </div>
     </div>
 </div>
+
+<!-- Single Week Modal -->
+<div class="modal fade" id="addSingleWeekModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Single Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addSingleWeekForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="modal-body">
+                    <input type="hidden" name="league_id" id="singleWeekLeagueId">
+
+                    <div class="mb-3">
+                        <label for="weekDate" class="form-label">Week Date (Sunday)</label>
+                        <input type="date" id="weekDate" name="week_date" class="form-control" required>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <h6>Time Slots</h6>
+                            <div id="singleWeekTimeSlots"></div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-2" id="addTimeSlotBtn">
+                                Add Time Slot
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- FUN/BYE checkboxes -->
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" name="fun_week" value="1" id="funWeekCheckSingle">
+                        <label class="form-check-label" for="funWeekCheckSingle"> Mark entire day as FUN WEEK </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="bye_week" value="1" id="byeWeekCheckSingle">
+                        <label class="form-check-label" for="byeWeekCheckSingle"> Mark entire day as BYE WEEK </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Create Week</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block custom_js %}
+<!-- 1) Provide your leagueTeams map from Jinja -->
+<script>
+  window.leagueTeams = {};
+  {% for league in leagues %}
+  window.leagueTeams[{{ league.id }}] = [
+    {% for team in league.teams %}
+      {id: {{ team.id }}, name: "{{ team.name|e }}"},
+    {% endfor %}
+  ];
+  {% endfor %}
+</script>
+
+<!-- 2) Include your main schedule-management.js AFTER that global -->
 <script src="{{ url_for('static', filename='custom_js/schedule-management.js') }}"></script>
 {% endblock %}

@@ -1,308 +1,329 @@
 // schedule-management.js
 class ScheduleManager {
     constructor() {
-        this.modal = null;
+        // We'll store references to the "Add/Edit Match" modal and the "Add Single Week" form
+        this.editMatchModal = null;
+        this.isAddOperation = false;  // determines if the modal is adding or editing
         this.currentMatchId = null;
-        this.isAddOperation = false;
-        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-        this.initialize();
+        // Attempt to read CSRF from hidden form fields or meta
+        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || null;
+
+        this.init();
     }
 
-    initialize() {
+    init() {
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize modal
-            const modalElement = document.getElementById('editMatchModal');
-            if (modalElement) {
-                this.modal = new bootstrap.Modal(modalElement);
+            // Hook up the Edit/Match modal
+            const modalEl = document.getElementById('editMatchModal');
+            if (modalEl) {
+                this.editMatchModal = new bootstrap.Modal(modalEl);
 
-                // Setup form submission
-                const form = document.getElementById('editMatchForm');
-                if (form) {
-                    form.addEventListener('submit', (e) => this.handleEditSubmit(e));
+                // The form inside the modal
+                const editForm = document.getElementById('editMatchForm');
+                if (editForm) {
+                    editForm.addEventListener('submit', (evt) => this.handleMatchFormSubmit(evt));
                 }
             }
 
-            // Setup all buttons
+            // Listen for the "Add Single Week" modal's dynamic parts
+            this.setupSingleWeekModal();
+
+            // Set up each type of button
             this.setupEditButtons();
             this.setupDeleteButtons();
             this.setupAddMatchButtons();
         });
     }
 
-    setupAddMatchButtons() {
-        document.querySelectorAll('.add-match-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
+    // ----------------------------------------------------------------
+    // 1) SINGLE WEEK MODAL / TIME SLOTS
+    // ----------------------------------------------------------------
+    setupSingleWeekModal() {
+        // We assume there's a button that triggers #addSingleWeekModal
+        const addWeekModal = document.getElementById('addSingleWeekModal');
+        if (!addWeekModal) return;
+
+        // When the modal shows, we set the league_id and clear old timeslots
+        addWeekModal.addEventListener('show.bs.modal', (event) => {
+            const button = event.relatedTarget;
+            if (!button) return;
+            const leagueId = button.getAttribute('data-league-id');
+            document.getElementById('singleWeekLeagueId').value = leagueId;
+            document.getElementById('singleWeekTimeSlots').innerHTML = '';
+
+            // Add at least one slot
+            this.addSingleWeekTimeSlot();
+        });
+
+        // "Add Time Slot" button
+        const addTimeSlotBtn = document.getElementById('addTimeSlotBtn');
+        if (addTimeSlotBtn) {
+            addTimeSlotBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                const weekData = {
-                    week: button.dataset.week,
-                    date: button.dataset.date,
-                    league_id: button.dataset.leagueId
+                this.addSingleWeekTimeSlot();
+            });
+        }
+
+        // Handle the singleWeek form submission
+        const singleWeekForm = document.getElementById('addSingleWeekForm');
+        if (singleWeekForm) {
+            singleWeekForm.addEventListener('submit', (evt) => this.handleSingleWeekSubmit(evt));
+        }
+    }
+
+    addSingleWeekTimeSlot() {
+        // Generate one row with time, field, team_a, team_b
+        const container = document.getElementById('singleWeekTimeSlots');
+        if (!container) return;
+
+        // Read the leagueId so we can build the team dropdown
+        const leagueId = document.getElementById('singleWeekLeagueId').value;
+        const teams = window.leagueTeams[leagueId] || [];
+
+        let optionsHtml = '<option value="">--Select--</option>';
+        teams.forEach(t => {
+            optionsHtml += `<option value="${t.id}">${t.name}</option>`;
+        });
+
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2';
+
+        row.innerHTML = `
+          <div class="col-md-3">
+            <input type="time" name="times[]" class="form-control" required>
+          </div>
+          <div class="col-md-3">
+            <select name="fields[]" class="form-select" required>
+              <option value="North">North</option>
+              <option value="South">South</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select name="team_a[]" class="form-select" required>
+              ${optionsHtml}
+            </select>
+          </div>
+          <div class="col-md-3">
+            <div class="input-group">
+              <select name="team_b[]" class="form-select" required>
+                ${optionsHtml}
+              </select>
+              <button type="button" class="btn btn-danger" onclick="this.closest('.row').remove()">
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+    }
+
+    async handleSingleWeekSubmit(evt) {
+        evt.preventDefault();
+        const form = evt.target;
+        const formData = new FormData(form);
+
+        try {
+            const resp = await fetch(form.action || '/publeague/schedules/add_single_week', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await resp.json();
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('addSingleWeekModal')).hide();
+                location.reload();
+            } else {
+                alert(result.message || 'Error adding single week');
+            }
+        } catch (err) {
+            console.error('Error in handleSingleWeekSubmit:', err);
+            alert('Error adding single week');
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // 2) EDIT/ADD MATCH LOGIC
+    // ----------------------------------------------------------------
+    setupAddMatchButtons() {
+        // .add-match-btn => open the edit modal in "Add" mode
+        document.querySelectorAll('.add-match-btn').forEach(btn => {
+            btn.addEventListener('click', (evt) => {
+                evt.preventDefault();
+                const data = {
+                    league_id: btn.dataset.leagueId,
+                    week: btn.dataset.week,
+                    date: btn.dataset.date
                 };
-                this.openAddMatchModal(weekData);
+                this.openAddMatchModal(data);
             });
         });
     }
 
     setupEditButtons() {
-        document.querySelectorAll('.edit-match-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                e.preventDefault();
+        // .edit-match-btn => open the edit modal in "Edit" mode
+        document.querySelectorAll('.edit-match-btn').forEach(btn => {
+            btn.addEventListener('click', (evt) => {
+                evt.preventDefault();
                 const matchData = {
-                    match_id: button.dataset.matchId,
-                    date: button.dataset.date,
-                    time: button.dataset.time,
-                    team_a: button.dataset.teamA,
-                    team_b: button.dataset.teamB,
-                    team_a_id: button.dataset.teamAId,
-                    team_b_id: button.dataset.teamBId,
-                    location: button.dataset.location,
-                    week: button.dataset.week
+                    match_id: btn.dataset.matchId,
+                    date: btn.dataset.date,
+                    time: btn.dataset.time,
+                    location: btn.dataset.location,
+                    team_a_id: btn.dataset.teamAId,
+                    team_b_id: btn.dataset.teamBId,
+                    week: btn.dataset.week
                 };
-                this.openEditModal(matchData);
+                this.openEditMatchModal(matchData);
             });
         });
     }
 
     setupDeleteButtons() {
-        document.querySelectorAll('.delete-match-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                e.preventDefault();
-                await this.deleteMatch(button.dataset.matchId);
+        // .delete-match-btn => confirm + POST delete
+        document.querySelectorAll('.delete-match-btn').forEach(btn => {
+            btn.addEventListener('click', async (evt) => {
+                evt.preventDefault();
+                const matchId = btn.dataset.matchId;
+                this.deleteMatch(matchId);
             });
         });
     }
 
-    formatDate(dateString) {
-        if (!dateString) return '';
-
-        // Handle ISO format dates (YYYY-MM-DD)
-        if (dateString.includes('-')) {
-            return dateString;
-        }
-
-        try {
-            // Handle date string format (MM/DD/YYYY)
-            if (dateString.includes('/')) {
-                const parts = dateString.split('/');
-                if (parts.length === 3) {
-                    const [month, day, year] = parts;
-                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                }
-            }
-
-            // If none of the above formats match, try to parse as a date
-            const date = new Date(dateString);
-            if (!isNaN(date)) {
-                const year = date.getFullYear();
-                const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                const day = date.getDate().toString().padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            }
-
-            console.warn('Unable to parse date:', dateString);
-            return '';
-        } catch (e) {
-            console.error('Error formatting date:', e);
-            return '';
-        }
-    }
-
-    formatTime(timeString) {
-        if (!timeString) return '';
-        const timeMatch = timeString.match(/(\d+):(\d+)\s*(AM|PM)/i);
-        if (timeMatch) {
-            let [_, hours, minutes, period] = timeMatch;
-            hours = parseInt(hours);
-            if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
-            if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
-            return `${hours.toString().padStart(2, '0')}:${minutes}`;
-        }
-        return timeString;
-    }
-
-    openAddMatchModal(weekData) {
-        if (!this.modal) {
-            console.error('Modal not initialized');
+    openAddMatchModal({ league_id, week, date }) {
+        if (!this.editMatchModal) {
+            console.error('No edit match modal found.');
             return;
         }
-
         this.isAddOperation = true;
         this.currentMatchId = null;
 
-        // Reset form
+        // Reset the form
         const form = document.getElementById('editMatchForm');
         form.reset();
 
-        // Set initial values
-        document.getElementById('editWeek').value = weekData.week;
+        // Set default values (week, date)
+        document.getElementById('editWeek').value = week;
+        document.getElementById('editDate').value = this.toISODate(date);
 
-        // Handle the date more safely
-        const dateValue = weekData.date ? this.formatDate(weekData.date) : '';
-        document.getElementById('editDate').value = dateValue;
-
-        // Update modal title and button
+        // Change label, button text
         document.getElementById('editMatchModalLabel').textContent = 'Add Match';
-        document.querySelector('#editMatchForm button[type="submit"]').textContent = 'Add Match';
+        form.querySelector('button[type="submit"]').textContent = 'Add Match';
 
-        this.modal.show();
+        // Show modal
+        this.editMatchModal.show();
     }
 
-    openEditModal(matchData) {
-        if (!this.modal) {
-            console.error('Modal not initialized');
+    openEditMatchModal(matchData) {
+        if (!this.editMatchModal) {
+            console.error('No edit match modal found.');
             return;
         }
-
         this.isAddOperation = false;
         this.currentMatchId = matchData.match_id;
 
-        // Populate form fields
+        // Fill the form fields
         document.getElementById('editMatchId').value = matchData.match_id;
-        document.getElementById('editDate').value = this.formatDate(matchData.date);
-        document.getElementById('editTime').value = this.formatTime(matchData.time);
-        document.getElementById('editTeamA').value = matchData.team_a_id;
-        document.getElementById('editTeamB').value = matchData.team_b_id;
-        document.getElementById('editLocation').value = matchData.location;
-        document.getElementById('editWeek').value = matchData.week;
+        document.getElementById('editWeek').value = matchData.week || '';
+        document.getElementById('editDate').value = this.toISODate(matchData.date);
+        document.getElementById('editTime').value = this.toISOTime(matchData.time);
+        document.getElementById('editLocation').value = matchData.location || '';
+        // TeamA + TeamB
+        document.getElementById('editTeamA').value = matchData.team_a_id || '';
+        document.getElementById('editTeamB').value = matchData.team_b_id || '';
 
-        // Update modal title and button
+        // Change label, button text
         document.getElementById('editMatchModalLabel').textContent = 'Edit Match';
         document.querySelector('#editMatchForm button[type="submit"]').textContent = 'Save Changes';
 
-        this.modal.show();
+        this.editMatchModal.show();
     }
 
-    async handleEditSubmit(event) {
-        event.preventDefault();
-        const form = event.target;
+    // POST the form to either add_match or edit_match
+    async handleMatchFormSubmit(evt) {
+        evt.preventDefault();
+        const form = evt.target;
         const formData = new FormData(form);
 
+        const url = this.isAddOperation
+            ? '/publeague/schedules/add_match'
+            : `/publeague/schedules/edit_match/${this.currentMatchId}`;
+
         try {
-            const url = this.isAddOperation ?
-                '/publeague/schedules/add_match' :
-                `/publeague/schedules/edit_match/${this.currentMatchId}`;
-
-            const response = await fetch(url, {
+            const resp = await fetch(url, {
                 method: 'POST',
+                body: formData,
                 headers: {
-                    'X-CSRFToken': this.csrfToken,
-                    'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
+                    // optionally 'X-CSRFToken': this.csrfToken if needed
+                }
             });
-
-            // Check if response is JSON
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await response.text();
-                console.error('Non-JSON response:', text);
-                throw new Error(`Server returned an invalid response. Status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.message || `Server error: ${response.status}`);
-            }
-
-            if (result.success) {
-                this.modal.hide();
-                await Swal.fire({
-                    title: 'Success!',
-                    text: result.message || (this.isAddOperation ? 'Match added successfully' : 'Match updated successfully'),
-                    icon: 'success',
-                    timer: 1500
-                });
-                window.location.reload();
+            const data = await resp.json();
+            if (data.success) {
+                this.editMatchModal.hide();
+                alert(data.message || (this.isAddOperation
+                    ? 'Match created successfully' : 'Match updated successfully'));
+                location.reload();
             } else {
-                throw new Error(result.message || 'Failed to process match');
+                alert(data.message || 'Failed to save match');
             }
-        } catch (error) {
-            console.error('Error processing match:', error);
-            await Swal.fire({
-                title: 'Error!',
-                text: error.message || 'An unexpected error occurred',
-                icon: 'error',
-                showConfirmButton: true,
-                confirmButtonText: 'OK'
-            });
+        } catch (err) {
+            console.error('Error in handleMatchFormSubmit:', err);
+            alert('Error saving match');
         }
     }
 
     async deleteMatch(matchId) {
+        if (!confirm('Are you sure you want to delete this match?')) {
+            return;
+        }
+
         try {
-            // Show confirmation dialog first
-            const result = await Swal.fire({
-                title: 'Are you sure?',
-                text: "You won't be able to revert this!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, delete it!'
+            const resp = await fetch(`/publeague/schedules/delete_match/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
-
-            // Only proceed if user confirmed
-            if (result.isConfirmed) {
-                const response = await fetch(`/publeague/schedules/delete_match/${matchId}`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': this.csrfToken,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                let data;
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.includes("application/json")) {
-                    data = await response.json();
-                } else {
-                    const text = await response.text();
-                    console.error('Non-JSON response:', text);
-                    throw new Error('Non-JSON response received from server');
-                }
-
-                if (response.ok && data.success) {
-                    await Swal.fire({
-                        title: 'Deleted!',
-                        text: data.message || 'Match has been deleted.',
-                        icon: 'success',
-                        timer: 1500
-                    });
-                    window.location.reload();
-                } else {
-                    throw new Error(data.message || 'Failed to delete match');
-                }
+            const data = await resp.json();
+            if (data.success) {
+                alert(data.message || 'Match deleted');
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to delete match');
             }
-        } catch (error) {
-            console.error('Error deleting match:', error);
-            await Swal.fire({
-                title: 'Error!',
-                text: error.message || 'An error occurred while deleting the match',
-                icon: 'error'
-            });
+        } catch (err) {
+            console.error('Error deleting match:', err);
+            alert('Error deleting match');
         }
     }
 
-    showAlert(message, type) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
+    // Helpers for date/time
+    toISODate(val) {
+        // If already "YYYY-MM-DD", just return
+        if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+        // Otherwise try to parse
+        const d = new Date(val);
+        if (isNaN(d)) return '';
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 
-        const container = document.querySelector('.container');
-        if (container) {
-            container.insertBefore(alertDiv, container.firstChild);
-            setTimeout(() => alertDiv.remove(), 3000);
-        }
+    toISOTime(val) {
+        // If already "HH:MM"
+        if (/^\d{2}:\d{2}$/.test(val)) return val;
+        // If "7:30 PM"
+        const match = val.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (!match) return val; // fallback
+        let [_, hh, mm, ampm] = match;
+        let h = parseInt(hh, 10);
+        ampm = ampm.toUpperCase();
+        if (ampm === 'PM' && h < 12) h += 12;
+        if (ampm === 'AM' && h === 12) h = 0;
+        return String(h).padStart(2, '0') + ':' + mm;
     }
 }
 
-// Initialize the schedule manager
-const scheduleManager = new ScheduleManager();
+// Instantiate once DOM is loaded
+new ScheduleManager();

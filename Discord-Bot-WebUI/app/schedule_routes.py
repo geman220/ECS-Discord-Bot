@@ -1,10 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort
+﻿from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort, session
 from flask_login import login_required
-from datetime import datetime, date, time
-from collections import defaultdict
-from sqlalchemy.orm import joinedload
-from sqlalchemy import cast, Integer
-from typing import List
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Tuple, Any
+from dataclasses import dataclass
 import logging
 
 from app.decorators import role_required
@@ -12,636 +10,834 @@ from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
 
 logger = logging.getLogger(__name__)
 
+# Blueprint used under something like: publeague.register_blueprint(schedule_bp, url_prefix="/schedules")
 schedule_bp = Blueprint('schedule', __name__)
 
-def get_related_matches(schedule_id: int) -> List[Match]:
-    """Get all matches related to a schedule."""
-    session = g.db_session
-    base_schedule = session.query(Schedule).get(schedule_id)
-    if not base_schedule:
-        return []
-    return session.query(Match).filter(
-        (Match.schedule_id == schedule_id) |
-        (Match.schedule.has(Schedule.opponent == base_schedule.team_id))
-    ).all()
+@dataclass
+class TimeSlot:
+    start_time: datetime
+    field: str
+    team_a_id: Optional[int] = None
+    team_b_id: Optional[int] = None
 
-def update_match_records(session, schedule: Schedule, match_date: date, match_time: time, 
-                         location: str, team_a_id: int, team_b_id: int) -> None:
-    """Update or create match records for a schedule."""
-    try:
-        matches = session.query(Match).filter_by(schedule_id=schedule.id).all()
+class ScheduleManager:
+    def __init__(self, session):
+        self.session = session
 
-        if not matches:
-            new_match = Match(
-                date=match_date,
-                time=match_time,
-                location=location,
-                home_team_id=team_a_id,
-                away_team_id=team_b_id,
-                schedule_id=schedule.id
+    def get_season(self, season_id: int) -> Optional[Season]:
+        return self.session.query(Season).get(season_id)
+
+    def get_league(self, season_id: int, league_name: str) -> Optional[League]:
+        return self.session.query(League).filter_by(
+            name=league_name,
+            season_id=season_id
+        ).first()
+
+    def get_teams_by_league(self, league_id: int) -> List[Dict]:
+        """
+        Return all teams for a given league (id & name).
+        """
+        teams = self.session.query(Team).filter_by(league_id=league_id).all()
+        return [{'id': t.id, 'name': t.name} for t in teams]
+
+    def get_schedule(self, league_id: Optional[int] = None, team_id: Optional[int] = None) -> List[Schedule]:
+        """
+        Return all schedules. Optionally filter by league_id or team_id.
+        """
+        query = self.session.query(Schedule)
+
+        if league_id:
+            # Filter by league
+            query = query.join(Schedule.team).filter(Team.league_id == league_id)
+
+        if team_id:
+            query = query.filter(
+                (Schedule.team_id == team_id) | (Schedule.opponent == team_id)
             )
-            session.add(new_match)
-        else:
-            for match in matches:
-                match.date = match_date
-                match.time = match_time
-                match.location = location
-                match.home_team_id = team_a_id
-                match.away_team_id = team_b_id
 
-        logger.info(f"Successfully updated match records for schedule {schedule.id}")
+        return query.all()
 
-    except Exception as e:
-        logger.error(f"Error updating match records for schedule {schedule.id}: {str(e)}")
-        raise
-
-def get_season_and_league(session, season_id, league_name=None):
-    """Helper function to get season and league."""
-    season = session.query(Season).get(season_id)
-    if not season:
-        abort(404)
-
-    league = None
-    if league_name:
-        league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
-        if not league:
-            abort(404)
-
-    return season, league
-
-def format_match_schedule(session, matches):
-    """Helper function to format match schedules."""
-    schedule = {}
-    displayed_matches = set()
-
-    for match in matches:
-        if not match.team:
-            continue
-
-        opponent_team = session.query(Team).get(int(match.opponent))
-        if not opponent_team:
-            continue
-
-        match_key = (
-            match.week,
-            match.team.name,
-            opponent_team.name,
-            match.time.strftime('%H:%M:%S'),
-            match.location
-        )
-        reverse_match_key = (
-            match.week,
-            opponent_team.name,
-            match.team.name,
-            match.time.strftime('%H:%M:%S'),
-            match.location
-        )
-
-        if match_key in displayed_matches or reverse_match_key in displayed_matches:
-            continue
-
-        displayed_matches.add(match_key)
-        displayed_matches.add(reverse_match_key)
-
-        if match.week not in schedule:
-            schedule[match.week] = {
-                'date': match.date.strftime('%Y-%m-%d'),
-                'matches': []
-            }
-
-        formatted_time = match.time.strftime('%I:%M %p')
-
-        schedule[match.week]['matches'].append({
-            'id': match.id,
-            'team_a': match.team.name,
-            'team_a_id': match.team.id,
-            'team_b': opponent_team.name,
-            'team_b_id': opponent_team.id,
-            'time': formatted_time,
-            'location': match.location,
-        })
-
-    return schedule
-
-def handle_add_match(session, season_id, league_name, week):
-    """Add a new match with proper session management."""
-    try:
-        league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
-        if not league:
-            flash('League not found.', 'danger')
-            return
-
-        team_a = session.query(Team).filter_by(name=request.form.get('teamA'), league_id=league.id).first()
-        team_b = session.query(Team).filter_by(name=request.form.get('teamB'), league_id=league.id).first()
-
-        if not (team_a and team_b):
-            flash('One or both teams not found.', 'danger')
-            return
-
-        new_match = Schedule(
-            week=week,
-            date=request.form.get('date'),
-            time=request.form.get('time'),
-            location=request.form.get('location'),
-            team_id=team_a.id,
-            opponent=team_b.id
-        )
-        session.add(new_match)
-        flash(f'Match {team_a.name} vs {team_b.name} added successfully.', 'success')
-
-    except Exception as e:
-        logger.error(f"Error adding match: {e}")
-        flash('Error occurred while adding the match.', 'danger')
-        raise
-
-def handle_delete_week(session, season_id, week):
-    try:
-        session.query(Schedule).filter_by(week=str(week), season_id=season_id).delete()
-        flash(f'Week {week} and all its matches have been deleted.', 'success')
-    except Exception as e:
-        logger.error(f"Error deleting week {week}: {e}")
-        flash(f'Failed to delete Week {week}.', 'danger')
-        raise
-
-@schedule_bp.route('/publeague/<int:season_id>/schedule', methods=['GET', 'POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def manage_publeague_schedule(season_id):
-    session = g.db_session
-    season = session.query(Season).get(season_id)
-    if not season:
-        abort(404)
-
-    leagues = session.query(League).filter_by(season_id=season_id).all()
-
-    if request.method == 'POST':
-        action = request.form.get('action')
-        league_name = request.form.get('league_name')
-        week = request.form.get('week')
-
-        if action == 'add':
-            handle_add_match(session, season_id, league_name, week)
-        elif action == 'delete':
-            handle_delete_week(session, season_id, week)
-
-        flash(f'Action "{action}" performed successfully.', 'success')
-        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-
-    # Serialize the leagues to a dictionary format
-    serialized_leagues = [
+    def format_week_schedule(self, schedules: List[Schedule]) -> Dict:
+        """
+        Transform a list of schedules into a dict of:
         {
-            'id': league.id,
-            'name': league.name,
-            'season_id': league.season_id,
-            'teams': [{'id': team.id, 'name': team.name} for team in league.teams]
-        } for league in leagues
-    ]
-
-    # GET request - Display the schedule
-    schedule_data = {}
-    for league in leagues:
-        league_schedule = []
-        for team in league.teams:
-            matches_a = session.query(Schedule).filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
-            league_schedule.extend(matches_a)
-            matches_b = session.query(Schedule).filter_by(opponent=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
-            league_schedule.extend(matches_b)
-        schedule_data[league.name] = format_match_schedule(session, league_schedule)
-
-    return render_template('manage_publeague_schedule.html', season=season, leagues=serialized_leagues, schedule=schedule_data)
-
-@schedule_bp.route('/ecsfc/<int:season_id>/schedule', methods=['GET', 'POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def manage_ecsfc_schedule(season_id):
-    session = g.db_session
-    season = session.query(Season).get(season_id)
-    if not season:
-        abort(404)
-
-    leagues = session.query(League).filter_by(season_id=season_id).all()
-
-    leagues_data = []
-    for league in leagues:
-        league_info = {
-            'id': league.id,
-            'name': league.name,
-            'teams': [{'id': team.id, 'name': team.name} for team in league.teams]
+          week_number: {
+            'date': "YYYY-MM-DD",
+            'matches': [
+               { 'id':..., 'team_a':..., 'team_b':..., 'time':..., 'location':...},
+               ...
+            ]
+          },
+          ...
         }
-        leagues_data.append(league_info)
+        """
+        formatted = {}
+        displayed = set()
 
-    schedule_data = {}
-    for league in leagues:
-        league_schedule = []
-        for team in league.teams:
-            matches = session.query(Schedule).filter_by(team_id=team.id).order_by(cast(Schedule.week, Integer).asc(), Schedule.time.asc()).all()
-            league_schedule.extend(matches)
-        schedule_data[league.name] = format_match_schedule(session, league_schedule)
-
-    return render_template('manage_ecsfc_schedule.html', season=season, leagues=leagues_data, schedule=schedule_data)
-
-@schedule_bp.route('/publeague/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def bulk_create_publeague_matches(season_id, league_name):
-    session = g.db_session
-    season = session.query(Season).get(season_id)
-    if not season:
-        abort(404)
-
-    league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
-    if not league:
-        abort(404)
-
-    try:
-        total_weeks = int(request.form.get('total_weeks', 0))
-        matches_per_week = int(request.form.get('matches_per_week', 0))
-
-        if total_weeks == 0 or matches_per_week == 0:
-            flash("Total Weeks and Matches Per Week are required fields.", 'danger')
-            return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-
-        fun_week = request.form.get('fun_week')
-        tst_week = request.form.get('tst_week')
-
-        for week in range(1, total_weeks + 1):
-            if str(week) in [fun_week, tst_week]:
+        for schedule in schedules:
+            if not schedule.team:
                 continue
 
-            week_date = request.form.get(f'date_week{week}')
-            if not week_date:
-                flash(f"Date for Week {week} is missing.", 'danger')
-                return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-
-            for match_num in range(1, matches_per_week + 1):
-                team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
-                team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
-                t = request.form.get(f'time_week{week}_match{match_num}')
-                location = request.form.get(f'location_week{week}_match{match_num}')
-
-                if team_a_id and team_b_id and t and location:
-                    schedule_a = Schedule(
-                        week=str(week),
-                        date=week_date,
-                        time=t,
-                        opponent=team_b_id,
-                        location=location,
-                        team_id=team_a_id
-                    )
-                    session.add(schedule_a)
-
-                    schedule_b = Schedule(
-                        week=str(week),
-                        date=week_date,
-                        time=t,
-                        opponent=team_a_id,
-                        location=location,
-                        team_id=team_b_id
-                    )
-                    session.add(schedule_b)
-
-        flash(f'Bulk matches created for {league_name} league', 'success')
-        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-
-    except Exception as e:
-        logger.error(f"Error creating bulk matches: {e}")
-        flash('Error occurred while creating bulk matches.', 'danger')
-        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-
-@schedule_bp.route('/ecsfc/bulk_create_matches/<int:season_id>/<string:league_name>', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def bulk_create_ecsfc_matches(season_id, league_name):
-    session = g.db_session
-    season = session.query(Season).get(season_id)
-    if not season:
-        abort(404)
-
-    league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
-    if not league:
-        abort(404)
-
-    try:
-        total_weeks = int(request.form.get('total_weeks', 0))
-        matches_per_week = int(request.form.get('matches_per_week', 0))
-
-        if total_weeks == 0 or matches_per_week == 0:
-            flash("Total Weeks and Matches Per Week are required fields.", 'danger')
-            return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
-
-        fun_week = request.form.get('fun_week')
-        tst_week = request.form.get('tst_week')
-
-        def create_week_matches(week):
-            week_date = request.form.get(f'date_week{week}')
-            if not week_date:
-                raise ValueError(f"Date for Week {week} is missing.")
-
-            for match_num in range(1, matches_per_week + 1):
-                team_a_id = request.form.get(f'teamA_week{week}_match{match_num}')
-                team_b_id = request.form.get(f'teamB_week{week}_match{match_num}')
-                t = request.form.get(f'time_week{week}_match{match_num}')
-                location = request.form.get(f'location_week{week}_match{match_num}')
-
-                if all([team_a_id, team_b_id, t, location]):
-                    schedule_a = Schedule(
-                        week=str(week),
-                        date=week_date,
-                        time=t,
-                        opponent=team_b_id,
-                        location=location,
-                        team_id=team_a_id
-                    )
-                    session.add(schedule_a)
-
-                    schedule_b = Schedule(
-                        week=str(week),
-                        date=week_date,
-                        time=t,
-                        opponent=team_a_id,
-                        location=location,
-                        team_id=team_b_id
-                    )
-                    session.add(schedule_b)
-
-        for week in range(1, total_weeks + 1):
-            if str(week) in [fun_week, tst_week]:
+            opponent = self.session.query(Team).get(schedule.opponent)
+            if not opponent:
                 continue
-            try:
-                create_week_matches(week)
-            except ValueError as ve:
-                flash(str(ve), 'danger')
-                return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
-        flash(f'Bulk matches created for {league_name} league', 'success')
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+            match_key = (schedule.week, schedule.team.name, opponent.name)
+            # Avoid duplicates if we find the same pair in reverse
+            if match_key in displayed:
+                continue
 
-    except Exception as e:
-        logger.error(f"Error creating bulk matches: {e}")
-        flash('Error occurred while creating bulk matches.', 'danger')
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+            displayed.add(match_key)
+            displayed.add((schedule.week, opponent.name, schedule.team.name))
 
-@schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
-@role_required(['Pub League Admin', 'Global Admin'])
-def edit_match(match_id):
-    session = g.db_session
-    """Edit match and related records."""
-    try:
-        required_fields = ['date', 'time', 'location', 'team_a', 'team_b', 'week']
-        if not all(field in request.form for field in required_fields):
-            return jsonify({
-                'success': False,
-                'message': 'Missing required fields'
-            }), 400
+            if schedule.week not in formatted:
+                formatted[schedule.week] = {
+                    'date': schedule.date.strftime('%Y-%m-%d'),
+                    'matches': []
+                }
+
+            formatted[schedule.week]['matches'].append({
+                'id': schedule.id,
+                'team_a': schedule.team.name,
+                'team_a_id': schedule.team.id,
+                'team_b': opponent.name,
+                'team_b_id': opponent.id,
+                'time': schedule.time.strftime('%I:%M %p'),
+                'location': schedule.location
+            })
+
+        return formatted
+
+    def update_match(self, match_id: int, data: Dict) -> Tuple[List, Dict]:
+        """
+        Edits an existing schedule entry and its "paired" schedule & match record
+        """
+        schedule = self.session.query(Schedule).get(match_id)
+        if not schedule:
+            return [], {'success': False, 'message': 'Schedule not found'}
 
         try:
-            match_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            match_time = datetime.strptime(request.form['time'], '%H:%M').time()
+            match_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            match_time = datetime.strptime(data['time'], '%H:%M').time()
         except ValueError as e:
-            return jsonify({
-                'success': False,
-                'message': f'Invalid date or time format: {str(e)}'
-            }), 400
+            return [], {'success': False, 'message': f'Invalid date/time: {str(e)}'}
 
-        location = request.form['location']
-        team_a_id = request.form['team_a']
-        team_b_id = request.form['team_b']
-        week = request.form['week']
+        objects_to_update = []
 
-        schedule = session.query(Schedule).get(match_id)
-        if not schedule:
-            return jsonify({
-                'success': False,
-                'message': 'Schedule not found'
-            }), 404
-
-        # Update Schedule record
+        # Update main schedule row
         schedule.date = match_date
         schedule.time = match_time
-        schedule.location = location
-        schedule.team_id = team_a_id
-        schedule.opponent = team_b_id
-        schedule.week = week
+        schedule.location = data['location']
+        schedule.team_id = data['team_a']
+        schedule.opponent = data['team_b']
+        schedule.week = data['week']
+        objects_to_update.append(schedule)
 
-        objects_to_process = [schedule]
-
-        # Update or create Match record
-        match = session.query(Match).filter_by(schedule_id=match_id).first()
+        # Update or create the associated Match record
+        match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if not match:
+            # Create new match
             match = Match(
                 schedule_id=match_id,
                 date=match_date,
                 time=match_time,
-                location=location,
-                home_team_id=team_a_id,
-                away_team_id=team_b_id
+                location=data['location'],
+                home_team_id=data['team_a'],
+                away_team_id=data['team_b']
             )
-            session.add(match)
+            self.session.add(match)
+            objects_to_update.append(match)
         else:
             match.date = match_date
             match.time = match_time
-            match.location = location
-            match.home_team_id = team_a_id
-            match.away_team_id = team_b_id
+            match.location = data['location']
+            match.home_team_id = data['team_a']
+            match.away_team_id = data['team_b']
+            objects_to_update.append(match)
 
-        objects_to_process.append(match)
-
-        # Update paired schedule if it exists
-        paired_schedule = session.query(Schedule).filter_by(
-            team_id=team_b_id,
-            opponent=team_a_id,
-            week=week
+        # Update the "paired" schedule row if it exists
+        paired = self.session.query(Schedule).filter_by(
+            team_id=data['team_b'],
+            opponent=data['team_a'],
+            week=data['week']
         ).first()
 
-        if paired_schedule:
-            paired_schedule.date = match_date
-            paired_schedule.time = match_time
-            paired_schedule.location = location
-            objects_to_process.append(paired_schedule)
+        if paired:
+            paired.date = match_date
+            paired.time = match_time
+            paired.location = data['location']
+            objects_to_update.append(paired)
 
-            paired_match = session.query(Match).filter_by(schedule_id=paired_schedule.id).first()
+            # Check if there's a paired Match record
+            paired_match = self.session.query(Match).filter_by(schedule_id=paired.id).first()
             if paired_match:
                 paired_match.date = match_date
                 paired_match.time = match_time
-                paired_match.location = location
-                paired_match.home_team_id = team_b_id
-                paired_match.away_team_id = team_a_id
-                objects_to_process.append(paired_match)
+                paired_match.location = data['location']
+                objects_to_update.append(paired_match)
 
-        return objects_to_process, jsonify({
-            'success': True,
-            'message': 'Match updated successfully'
-        })
+        return objects_to_update, {'success': True, 'message': 'Match updated'}
 
-    except Exception as e:
-        logger.error(f"Error editing match {match_id}: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'message': f'Error updating match: {str(e)}'
-        }), 500
-
-@schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def delete_match(match_id):
-    session = g.db_session
-    """Delete match and related records."""
-    try:
-        logger.info(f"Attempting to delete match {match_id}")
-
-        schedule = session.query(Schedule).get(match_id)
+    def delete_match(self, match_id: int) -> Tuple[List[Any], Dict]:
+        """
+        Delete the main schedule row, its match record, and the "paired" row+match
+        """
+        schedule = self.session.query(Schedule).get(match_id)
         if not schedule:
-            abort(404)
+            return [], {'success': False, 'message': 'Schedule not found'}
 
         objects_to_delete = []
+        objects_to_delete.append(schedule)
 
-        match = session.query(Match).filter_by(schedule_id=match_id).first()
+        # main match
+        match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if match:
-            scheduled_messages = session.query(ScheduledMessage).filter_by(match_id=match.id).all()
-            for msg in scheduled_messages:
-                msg.deleted = True
-                objects_to_delete.append(msg)
-
-            match.deleted = True
             objects_to_delete.append(match)
+            # also remove any scheduled messages, etc.
+            messages = self.session.query(ScheduledMessage).filter_by(match_id=match.id).all()
+            objects_to_delete.extend(messages)
 
-        # Get paired records
-        paired_schedule = session.query(Schedule).filter_by(
+        # find paired schedule
+        paired = self.session.query(Schedule).filter_by(
             team_id=schedule.opponent,
             opponent=schedule.team_id,
             week=schedule.week
         ).first()
-
-        if paired_schedule:
-            paired_match = session.query(Match).filter_by(schedule_id=paired_schedule.id).first()
+        if paired:
+            objects_to_delete.append(paired)
+            paired_match = self.session.query(Match).filter_by(schedule_id=paired.id).first()
             if paired_match:
-                paired_messages = session.query(ScheduledMessage).filter_by(match_id=paired_match.id).all()
-                for msg in paired_messages:
-                    msg.deleted = True
-                    objects_to_delete.append(msg)
-
-                paired_match.deleted = True
                 objects_to_delete.append(paired_match)
+                paired_messages = self.session.query(ScheduledMessage).filter_by(match_id=paired_match.id).all()
+                objects_to_delete.extend(paired_messages)
 
-            paired_schedule.deleted = True
-            objects_to_delete.append(paired_schedule)
+        return objects_to_delete, {'success': True, 'message': 'Match deleted'}
 
-        schedule.deleted = True
-        objects_to_delete.append(schedule)
-
-        logger.info(f"Successfully marked match {match_id} and related records for deletion")
-
-        response = jsonify({
-            'success': True,
-            'message': 'Match deleted successfully'
-        })
-
-        return objects_to_delete, response
-
-    except Exception as e:
-        logger.error(f"Error deleting match {match_id}: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Error deleting match: {str(e)}'
-        }), 500
-
-@schedule_bp.route('/<string:league_type>/<int:season_id>/delete_week/<int:week_number>', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def delete_week(league_type, season_id, week_number):
-    session = g.db_session
-    try:
-        session.query(Schedule).filter_by(week=str(week_number), season_id=season_id).delete()
-        flash(f'Week {week_number} and all its matches have been deleted.', 'success')
-    except Exception as e:
-        logger.error(f"Error deleting week {week_number}: {e}")
-        flash(f'Failed to delete Week {week_number}.', 'danger')
-        raise
-
-    if league_type == "publeague":
-        return redirect(url_for('schedule.manage_publeague_schedule', season_id=season_id))
-    elif league_type == "ecsfc":
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
-
-@schedule_bp.route('/fetch_schedule', methods=['GET'])
-def fetch_schedule():
-    """Fetch schedule with team filtering capability."""
-    session = g.db_session
-    team_id = request.args.get('team_id')
-    league_id = request.args.get('league_id')
-
-    query = session.query(Schedule)
-
-    if team_id:
-        query = query.filter((Schedule.team_id == team_id) | (Schedule.opponent == team_id))
-    if league_id:
-        query = query.join(Team).filter(Team.league_id == league_id)
-
-    schedules = query.all()
-    return jsonify([s.to_dict() for s in schedules])
-
-@schedule_bp.route('/add_match', methods=['POST'])
-@role_required(['Pub League Admin', 'Global Admin'])
-def add_match():
-    """Add a new match and its related records."""
-    session = g.db_session
-    try:
-        required_fields = ['week', 'date', 'time', 'location', 'team_a', 'team_b']
-        if not all(field in request.form for field in required_fields):
-            return jsonify({
-                'success': False,
-                'message': 'Missing required fields'
-            }), 400
-
+    def create_match(self, data: Dict) -> Tuple[List, Dict]:
+        """
+        Creates two schedule rows (team A vs. team B and the "paired" row) + one match record
+        """
         try:
-            match_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
-            match_time = datetime.strptime(request.form['time'], '%H:%M').time()
+            match_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            match_time = datetime.strptime(data['time'], '%H:%M').time()
         except ValueError as e:
-            return jsonify({
-                'success': False,
-                'message': f'Invalid date or time format: {str(e)}'
-            }), 400
+            return [], {'success': False, 'message': f'Invalid date/time: {str(e)}'}
 
-        week = request.form['week']
-        location = request.form['location']
-        team_a_id = request.form['team_a']
-        team_b_id = request.form['team_b']
+        objects_to_create = []
 
+        # schedule row for A
         schedule_a = Schedule(
-            week=week,
+            week=data['week'],
             date=match_date,
             time=match_time,
-            location=location,
-            team_id=team_a_id,
-            opponent=team_b_id
+            location=data['location'],
+            team_id=data['team_a'],
+            opponent=data['team_b']
         )
+        self.session.add(schedule_a)
+        objects_to_create.append(schedule_a)
 
+        # schedule row for B
         schedule_b = Schedule(
-            week=week,
+            week=data['week'],
             date=match_date,
             time=match_time,
-            location=location,
-            team_id=team_b_id,
-            opponent=team_a_id
+            location=data['location'],
+            team_id=data['team_b'],
+            opponent=data['team_a']
         )
+        self.session.add(schedule_b)
+        objects_to_create.append(schedule_b)
 
+        # match record
         match = Match(
             date=match_date,
             time=match_time,
-            location=location,
-            home_team_id=team_a_id,
-            away_team_id=team_b_id,
+            location=data['location'],
+            home_team_id=data['team_a'],
+            away_team_id=data['team_b'],
             schedule=schedule_a
         )
+        self.session.add(match)
+        objects_to_create.append(match)
 
-        return [schedule_a, schedule_b, match], jsonify({
-            'success': True,
-            'message': 'Match added successfully'
-        }), 201
+        return objects_to_create, {'success': True, 'message': 'Match created'}
 
+######################################################################
+# PRIMARY PUB LEAGUE SCHEDULE ROUTE
+######################################################################
+@schedule_bp.route('/<int:season_id>/schedule', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def manage_publeague_schedule(season_id):
+    """
+    Renders the main schedule management UI for Pub League:
+    e.g. /publeague/schedules/16/schedule
+    """
+    manager = ScheduleManager(g.db_session)
+    season = manager.get_season(season_id)
+    if not season:
+        abort(404)
+
+    leagues = manager.session.query(League).filter_by(season_id=season_id).all()
+    schedule_data = {}
+
+    for league in leagues:
+        schedules = manager.get_schedule(league_id=league.id)
+        schedule_data[league.name] = manager.format_week_schedule(schedules)
+
+    return render_template(
+        'manage_publeague_schedule.html',
+        season=season,
+        leagues=[
+            {
+                'id': league.id,
+                'name': league.name,
+                'teams': manager.get_teams_by_league(league.id)
+            }
+            for league in leagues
+        ],
+        schedule=schedule_data
+    )
+
+######################################################################
+# EDIT MATCH
+######################################################################
+@schedule_bp.route('/edit_match/<int:match_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def edit_match(match_id):
+    """
+    Edits an existing match + schedule rows
+    Endpoint: POST /publeague/schedules/edit_match/<match_id>
+    """
+    manager = ScheduleManager(g.db_session)
+    try:
+        objects, response = manager.update_match(match_id, request.form)
+        if objects:
+            g.db_session.commit()
+        return jsonify(response)
     except Exception as e:
-        logger.error(f"Error adding match: {str(e)}", exc_info=True)
+        logger.error(f"Error editing match {match_id}: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+######################################################################
+# DELETE MATCH
+######################################################################
+@schedule_bp.route('/delete_match/<int:match_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def delete_match(match_id):
+    """
+    Deletes one match + schedule row + paired row
+    Endpoint: POST /publeague/schedules/delete_match/<match_id>
+    """
+    manager = ScheduleManager(g.db_session)
+    try:
+        objects_to_delete, response = manager.delete_match(match_id)
+        if objects_to_delete:
+            for obj in objects_to_delete:
+                g.db_session.delete(obj)
+            g.db_session.commit()
+        return jsonify(response)
+    except Exception as e:
+        logger.error(f"Error deleting match {match_id}: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+######################################################################
+# QUICK ADD MATCH
+######################################################################
+@schedule_bp.route('/add_match', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def add_match():
+    """
+    Quick-add a single match to the schedule
+    Endpoint: POST /publeague/schedules/add_match
+    """
+    manager = ScheduleManager(g.db_session)
+    try:
+        objects, response = manager.create_match(request.form)
+        if objects:
+            g.db_session.commit()
+        return jsonify(response)
+    except Exception as e:
+        logger.error(f"Error adding match: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+######################################################################
+# FETCH SCHEDULE (AJAX)
+######################################################################
+@schedule_bp.route('/fetch_schedule', methods=['GET'])
+def fetch_schedule():
+    """
+    Return a JSON list of schedule objects
+    Endpoint: GET /publeague/schedules/fetch_schedule?league_id=xx&team_id=yy
+    """
+    manager = ScheduleManager(g.db_session)
+    schedules = manager.get_schedule(
+        league_id=request.args.get('league_id'),
+        team_id=request.args.get('team_id')
+    )
+    return jsonify([s.to_dict() for s in schedules])
+
+######################################################################
+# ECS FC MANAGE SCHEDULE
+######################################################################
+@schedule_bp.route('/ecsfc/<int:season_id>/schedule', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def manage_ecsfc_schedule(season_id):
+    """
+    Similar route for ECS FC.
+    Endpoint: /publeague/schedules/ecsfc/<season_id>/schedule
+    """
+    manager = ScheduleManager(g.db_session)
+    season = manager.get_season(season_id)
+    if not season:
+        abort(404)
+
+    leagues = manager.session.query(League).filter_by(season_id=season_id).all()
+    schedule_data = {}
+    for league in leagues:
+        schedules = manager.get_schedule(league_id=league.id)
+        schedule_data[league.name] = manager.format_week_schedule(schedules)
+
+    return render_template(
+        'manage_ecsfc_schedule.html',
+        season=season,
+        leagues=[
+            {
+                'id': league.id,
+                'name': league.name,
+                'teams': manager.get_teams_by_league(league.id)
+            }
+            for league in leagues
+        ],
+        schedule=schedule_data
+    )
+
+######################################################################
+# BULK SCHEDULING WIZARD
+######################################################################
+@schedule_bp.route('/<int:season_id>/schedule_wizard', methods=['GET', 'POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def schedule_wizard(season_id):
+    """
+    Endpoint for Bulk Scheduling Wizard
+    GET: Show step1 form
+    POST: step1 => create placeholders or special FUN/BYE day
+          step2 => finalize placeholders into matches
+    """
+    manager = ScheduleManager(g.db_session)
+    season = manager.get_season(season_id)
+    if not season:
+        abort(404)
+
+    league_id = request.args.get('league_id', type=int)
+    # Optionally filter leagues if league_id is provided
+    if league_id:
+        leagues = manager.session.query(League).filter(
+            League.season_id == season_id,
+            League.id == league_id
+        ).all()
+    else:
+        leagues = manager.session.query(League).filter_by(season_id=season_id).all()
+
+    placeholders = None
+
+    if request.method == 'POST':
+        wizard_step = request.form.get('wizard_step')
+        if wizard_step == 'step1':
+            # Basic form inputs
+            start_date_str = request.form['start_date']
+            num_weeks = int(request.form['num_weeks'])
+            timeslots_str = request.form['timeslots']
+
+            fun_week = request.form.get('fun_week')
+            bye_week = request.form.get('bye_week')
+
+            if fun_week or bye_week:
+                # Handle an entire day as FUN or BYE
+                special_team_name = "FUN WEEK" if fun_week else "BYE"
+                special_team = manager.session.query(Team).filter(
+                    Team.name == special_team_name
+                ).first()
+                if not special_team:
+                    flash(f"Error: No special team named {special_team_name} found in DB", "danger")
+                    return redirect(url_for('schedule.schedule_wizard', season_id=season.id))
+
+                placeholders = []
+                off_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+
+                # build placeholders
+                for lg in leagues:
+                    real_teams = manager.session.query(Team).filter(
+                        Team.league_id == lg.id
+                    ).all()
+
+                    for t in real_teams:
+                        if t.id == special_team.id:
+                            continue
+                        placeholders.append({
+                            'week': 1,
+                            'date': off_date.strftime("%Y-%m-%d"),
+                            'time': "00:00",
+                            'location': "OFF DAY",
+                            'team_a': t.id,
+                            'team_b': special_team.id
+                        })
+
+                # create them immediately
+                for ph in placeholders:
+                    data = {
+                        'week': str(ph['week']),
+                        'date': ph['date'],
+                        'time': ph['time'],
+                        'team_a': ph['team_a'],
+                        'team_b': ph['team_b'],
+                        'location': ph['location']
+                    }
+                    objects, response = manager.create_match(data)
+                    if objects:
+                        manager.session.commit()
+
+                flash(f"{special_team_name} placeholders created for {len(placeholders)} matches!", "success")
+                return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
+
+            # else normal multi-week placeholders
+            timeslot_list = []
+            for slot_str in timeslots_str.split(','):
+                slot_str = slot_str.strip()
+                if not slot_str:
+                    continue
+                parts = slot_str.split()
+                slot_time = parts[0]  # e.g. "09:00"
+                slot_field = ' '.join(parts[1:]) if len(parts) > 1 else "Unknown"
+                timeslot_list.append((slot_time, slot_field))
+
+            placeholders = generate_placeholders(start_date_str, num_weeks, timeslot_list)
+            return render_template(
+                'schedule_wizard.html',
+                season=season,
+                leagues=leagues,
+                placeholders=placeholders
+            )
+
+        elif wizard_step == 'step2':
+            # finalize placeholders
+            create_schedule_from_placeholders(request.form, manager, league_id=league_id)
+            flash("Matches created successfully!", "success")
+            return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
+
+    # GET => show step1
+    return render_template(
+        'schedule_wizard.html',
+        season=season,
+        leagues=leagues,
+        placeholders=placeholders
+    )
+
+######################################################################
+# ADD SINGLE WEEK
+######################################################################
+@schedule_bp.route('/add_single_week', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def add_single_week():
+    manager = ScheduleManager(g.db_session)
+
+    league_id = request.form.get('league_id', type=int)
+    if not league_id:
+        return jsonify({'success': False, 'message': 'No league specified'}), 400
+
+    week_date_str = request.form.get('week_date')
+    if not week_date_str:
+        return jsonify({'success': False, 'message': 'No date provided'}), 400
+
+    fun_week = request.form.get('fun_week')  # "1" if checked
+    bye_week = request.form.get('bye_week')  # "1" if checked
+
+    # parse times+fields arrays
+    times = request.form.getlist('times[]')
+    fields = request.form.getlist('fields[]')
+    team_a_list = request.form.getlist('team_a[]')
+    team_b_list = request.form.getlist('team_b[]')
+
+    # Basic checks
+    n = len(times)
+    if not n or n != len(fields) or n != len(team_a_list) or n != len(team_b_list):
+        return jsonify({'success': False, 'message': 'Timeslots mismatch'}), 400
+
+    try:
+        week_date = datetime.strptime(week_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid date format'}), 400
+
+    # If FUN or BYE => handle special logic like before
+    if fun_week or bye_week:
+        special_team_name = "FUN WEEK" if fun_week else "BYE"
+        special_team = manager.session.query(Team).filter_by(name=special_team_name).first()
+        if not special_team:
+            return jsonify({
+                'success': False,
+                'message': f"No special team named {special_team_name} found"
+            }), 400
+
+        placeholders = []
+        real_teams = manager.session.query(Team).filter_by(league_id=league_id).all()
+        for t in real_teams:
+            if t.id == special_team.id:
+                continue
+            placeholders.append({
+                'date': week_date_str,
+                'team_a': t.id,
+                'team_b': special_team.id,
+                'time': "00:00",
+                'location': "OFF DAY"
+            })
+        create_single_day_placeholders(placeholders, manager, league_id)
         return jsonify({
-            'success': False,
-            'message': f'Error adding match: {str(e)}'
-        }), 500
+            'success': True,
+            'message': f"{special_team_name} single week created."
+        })
+
+    # Else normal multi-match logic (no placeholders). We find or assign the "week number"
+    existing = manager.get_schedule(league_id=league_id)
+    existing_date_to_week = {}
+    for sch in existing:
+        d = sch.date
+        try:
+            w = int(sch.week)
+        except ValueError:
+            w = 1
+        if d not in existing_date_to_week:
+            existing_date_to_week[d] = w
+        else:
+            existing_date_to_week[d] = min(existing_date_to_week[d], w)
+
+    if week_date not in existing_date_to_week:
+        existing_date_to_week[week_date] = -1
+
+    # Sort all existing dates, then re-map them to consecutive weeks
+    all_dates_sorted = sorted(existing_date_to_week.keys())
+    date_to_week = {}
+    w_num = 1
+    for d in all_dates_sorted:
+        date_to_week[d] = w_num
+        w_num += 1
+
+    the_week = date_to_week[week_date]
+
+    created_count = 0
+    for i in range(n):
+        t_str = times[i]
+        field_str = fields[i]
+        a_id = team_a_list[i]
+        b_id = team_b_list[i]
+
+        # Skip if user didn't choose teams
+        if not a_id or not b_id:
+            continue
+
+        try:
+            match_time = datetime.strptime(t_str, '%H:%M').time()
+        except ValueError:
+            # skip bad time
+            continue
+
+        data = {
+            'week': the_week,
+            'date': week_date_str,
+            'time': t_str,
+            'team_a': a_id,
+            'team_b': b_id,
+            'location': field_str
+        }
+        objects, resp = manager.create_match(data)
+        if objects:
+            manager.session.commit()
+            created_count += 1
+
+    return jsonify({
+        'success': True,
+        'message': f"Created {created_count} matches for {week_date_str}."
+    })
+
+def create_single_day_placeholders(placeholders, manager, league_id):
+    """
+    Takes a list of placeholder dictionaries for a single date
+    and merges them into the existing schedule.
+    Then assigns the new date to the next available "week" number,
+    or merges into the date->week logic as in your multi-week code.
+    """
+
+    # 1) Assume all placeholders share the same date
+    date_str = placeholders[0]['date']
+    dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+    # 2) Load existing schedules for this league
+    existing = manager.get_schedule(league_id=league_id)
+
+    # 3) Build existing date->week map
+    existing_date_to_week = {}
+    for sch in existing:
+        d = sch.date
+        try:
+            w = int(sch.week)
+        except ValueError:
+            w = 1
+        if d not in existing_date_to_week:
+            existing_date_to_week[d] = w
+        else:
+            existing_date_to_week[d] = min(existing_date_to_week[d], w)
+
+    # 4) If this date not in map, add it
+    if dt not in existing_date_to_week:
+        existing_date_to_week[dt] = -1  # new date => later assigned
+
+    # 5) Sort all dates, reassign consecutive weeks
+    all_dates_sorted = sorted(existing_date_to_week.keys())
+    date_to_week = {}
+    w_num = 1
+    for d in all_dates_sorted:
+        date_to_week[d] = w_num
+        w_num += 1
+
+    # 6) Actually create each placeholder
+    the_week = date_to_week[dt]
+    for ph in placeholders:
+        # if team_a is None, we can store a placeholder or 0
+        team_a_id = ph['team_a'] if ph['team_a'] else your_placeholder_team_id_or_0()
+        team_b_id = ph['team_b'] if ph['team_b'] else your_placeholder_team_id_or_0()
+
+        objects, response = manager.create_match({
+            'week': the_week,
+            'date': ph['date'],
+            'time': ph['time'],
+            'team_a': team_a_id,
+            'team_b': team_b_id,
+            'location': ph['location']
+        })
+        if objects:
+            manager.session.commit()
+
+def your_placeholder_team_id_or_0():
+    """
+    If user hasn't assigned real teams,
+    you can store 0 or a special "PLACEHOLDER TEAM" ID.
+    Or skip the 'paired' schedule creation if team_id=0
+    """
+    return 0
+
+def generate_placeholders(start_date_str: str, num_weeks: int, timeslot_list: list) -> list:
+    """
+    Generate a list of placeholders for multiple weeks.
+    """
+    from datetime import datetime, timedelta
+
+    placeholders = []
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+
+    for week_idx in range(num_weeks):
+        for (slot_time, slot_field) in timeslot_list:
+            current_date = start_date + timedelta(days=7 * week_idx)
+            placeholders.append({
+                'week': week_idx + 1,
+                'date': current_date.strftime("%Y-%m-%d"),
+                'time': slot_time,
+                'location': slot_field,
+                'team_a': None,
+                'team_b': None
+            })
+    return placeholders
+
+def create_schedule_from_placeholders(form, manager, league_id=None):
+    """
+    Reads placeholders from Step 2 form data, merges with existing schedule data
+    (so newly added dates follow on from existing assigned weeks),
+    and then assigns consistent week numbers across all dates.
+    """
+    rows = []
+    index_list = []
+    for key in form.keys():
+        if key.startswith("team_a_"):
+            idx_str = key.split("_")[-1]
+            index_list.append(int(idx_str))
+    index_list.sort()
+
+    for idx in index_list:
+        date_str = form.get(f"date_{idx}")
+        time_str = form.get(f"time_{idx}")
+        loc_str  = form.get(f"location_{idx}")
+        team_a_id = form.get(f"team_a_{idx}")
+        team_b_id = form.get(f"team_b_{idx}")
+
+        if not team_a_id or not team_b_id:
+            continue
+
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+        rows.append({
+            'parsed_date': dt,
+            'date_str': date_str,
+            'time_str': time_str,
+            'location': loc_str,
+            'team_a': team_a_id,
+            'team_b': team_b_id
+        })
+
+    if not rows:
+        return  # no placeholders to create
+
+    # 2) Load existing schedules for the same league
+    existing_schedules = []
+    if league_id:
+        existing_schedules = manager.get_schedule(league_id=league_id)
+
+    # 3) Build date->week map
+    existing_date_to_week = {}
+    for sch in existing_schedules:
+        d = sch.date
+        try:
+            w = int(sch.week)
+        except ValueError:
+            w = 1
+        if d not in existing_date_to_week:
+            existing_date_to_week[d] = w
+        else:
+            existing_date_to_week[d] = min(existing_date_to_week[d], w)
+
+    # 4) Add new placeholders
+    for r in rows:
+        if r['parsed_date'] not in existing_date_to_week:
+            existing_date_to_week[r['parsed_date']] = -1
+
+    # 5) Sort all dates
+    all_dates_sorted = sorted(existing_date_to_week.keys())
+
+    # 6) Reassign consecutive weeks
+    date_to_week = {}
+    current_week_num = 1
+    for d in all_dates_sorted:
+        date_to_week[d] = current_week_num
+        current_week_num += 1
+
+    # 7) create the new schedule rows
+    for r in rows:
+        the_week = date_to_week[r['parsed_date']]
+        data = {
+            'week': the_week,
+            'date': r['date_str'],
+            'time': r['time_str'],
+            'team_a': r['team_a'],
+            'team_b': r['team_b'],
+            'location': r['location']
+        }
+        objects, response = manager.create_match(data)
+        if objects:
+            manager.session.commit()
