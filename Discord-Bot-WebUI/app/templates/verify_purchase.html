@@ -1,17 +1,39 @@
 {% extends "base.html" %}
 
 {% block main_content %}
-<div class="container">
-    <h2>Verify Your Purchase</h2>
-    <p>Please provide your WooCommerce order ID to verify your purchase and link your Discord account.</p>
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Discord Account Not Linked</h2>
 
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3">
-            <label for="order_id" class="form-label">WooCommerce Order ID</label>
-            <input type="text" class="form-control" id="order_id" name="order_id" required>
+            <p class="card-text">
+                It appears that your Discord account
+                <strong>{{ discord_username }}</strong> with email
+                <strong>{{ discord_email }}</strong> is not linked to any account in our system.
+            </p>
+
+            <p class="card-text">
+                Please contact your coach on Discord and ask them to update your account with your correct Discord email.
+            </p>
+
+            <p class="card-text">
+                If you haven't joined our Discord server yet, please click the button below to join:
+            </p>
+
+            <div class="mb-4">
+                <a href="https://discord.com/invite/weareecs" target="_blank" class="btn btn-secondary">
+                    <i class="fab fa-discord"></i>  Join Our Discord
+                </a>
+            </div>
+
+            <p class="card-text">
+                Once your coach has updated your email, click the button below to try logging in again.
+            </p>
+
+            <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary">
+                <i class="fab fa-discord"></i>  My coach updated my email
+            </a>
         </div>
-        <button type="submit" class="btn btn-primary">Verify</button>
-    </form>
+    </div>
 </div>
 {% endblock %}

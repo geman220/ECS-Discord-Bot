@@ -104,6 +104,8 @@ def discord_callback():
         user_data = get_discord_user_data(token_data['access_token'])
         discord_email = user_data.get('email', '').lower()
         discord_id = user_data.get('id')
+        # Grab the username from Discord data; default to 'Discord User' if missing.
+        discord_username = user_data.get('username', 'Discord User')
 
         if not discord_email:
             flash('Unable to access Discord email.', 'danger')
@@ -111,9 +113,9 @@ def discord_callback():
 
         user = db_session.query(User).filter(func.lower(User.email) == discord_email).first()
         if not user:
-            # If no user in the DB with that email, go to the verification/purchase check
             return redirect(url_for('auth.verify_purchase', 
                                     discord_email=discord_email, 
+                                    discord_username=discord_username,
                                     discord_id=discord_id))
 
         # ---------------------
@@ -139,49 +141,15 @@ def discord_callback():
         return redirect(url_for('auth.login'))
 
 
-@auth.route('/verify_purchase', methods=['GET', 'POST'])
+@auth.route('/verify_purchase', methods=['GET'])
 @transactional
 def verify_purchase():
-    """
-    If a user doesn't exist in the DB but we have a Discord email,
-    ask them for a WooCommerce Order ID to verify purchase,
-    then link the user if found.
-    """
-    session_db = g.db_session  # Avoid shadowing "session"
-    discord_email = request.args.get('discord_email')
-    discord_id = request.args.get('discord_id')
+    discord_email = request.args.get('discord_email', 'your Discord email')
+    discord_username = request.args.get('discord_username', 'Discord User')
 
-    if request.method == 'POST':
-        order_id = request.form.get('order_id')
-        
-        order_info = fetch_order_by_id(order_id)
-        if not order_info:
-            flash('Invalid Order ID or order not found.', 'danger')
-            return redirect(url_for('auth.verify_purchase'))
-
-        woo_email = order_info['billing'].get('email')
-        user = User.query.filter_by(email=woo_email).first()
-
-        if user:
-            if user.player and not user.player.discord_id:
-                user.player.discord_id = discord_id
-                user.email = discord_email
-                session_db.add(user.player)
-                session_db.add(user)
-
-                # Roles assignment
-                assign_roles_to_player_task.delay(player_id=user.player.id)
-                logger.info(f"Linked Discord after purchase verification for player {user.player.id}")
-
-                flash('Purchase verified and Discord account linked.', 'success')
-                login_user(user)
-                return redirect(url_for('main.index'))
-            else:
-                flash('Player profile not found or Discord already linked.', 'danger')
-        else:
-            flash('No matching user account found.', 'danger')
-
-    return render_template('verify_purchase.html')
+    return render_template('verify_purchase.html', 
+                           discord_email=discord_email, 
+                           discord_username=discord_username)
 
 
 # ----------------------------------------------------------------------
