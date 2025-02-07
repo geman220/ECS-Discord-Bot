@@ -21,6 +21,7 @@ from app.availability_api_helpers import (
     update_discord_rsvp,
     verify_availability_data
 )
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -392,16 +393,26 @@ def get_scheduled_messages():
 
    return jsonify(messages_data), 200
 
-@availability_bp.route('/get_player_id_from_discord/<string:discord_id>', endpoint='get_player_id_from_discord', methods=['GET'])
+@availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
 def get_player_id_from_discord(discord_id):
-   session_db = g.db_session
-   player = session_db.query(Player).filter_by(discord_id=discord_id).first()
-   if not player:
-       return jsonify({'error': 'Player not found'}), 404
-   return jsonify({
-       'player_id': player.id, 
-       'team_id': player.team_id
-   }), 200
+    session_db = g.db_session
+    player = session_db.query(Player).filter_by(discord_id=discord_id).first()
+    if not player:
+        return jsonify({'error': 'Player not found'}), 404
+
+    base_url = os.getenv("WEBUI_BASE_URL", "https://portal.ecsfc.com").rstrip('/')
+    raw_pic_path = player.profile_picture_url or ""
+
+    if raw_pic_path and not raw_pic_path.startswith("http"):
+        raw_pic_path = f"{base_url}/{raw_pic_path.lstrip('/')}"
+
+    final_data = {
+        'player_id': player.id,
+        'player_name': player.name,
+        'teams': [team.name for team in player.teams],
+        'profile_picture_url': raw_pic_path
+    }
+    return jsonify(final_data), 200
 
 @availability_bp.route('/task_status/<task_id>', endpoint='task_status', methods=['GET'])
 def task_status(task_id):
