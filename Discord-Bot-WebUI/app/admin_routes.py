@@ -429,20 +429,6 @@ def check_role_status(task_id):
         logger.error(f"Error checking task status: {str(e)}")
         return jsonify({'state': 'ERROR', 'error': str(e)}), 500
 
-
-@admin_bp.route('/admin/discord_role_status', endpoint='discord_role_status', methods=['GET'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def discord_role_status():
-    try:
-        task = fetch_role_status.delay()
-        return render_template('discord_role_status.html', task_id=task.id, players=[])
-    except Exception as e:
-        logger.error(f"Error loading Discord role status page: {str(e)}", exc_info=True)
-        flash('Error loading Discord role status.', 'danger')
-        return render_template('discord_role_status.html', task_id=None, players=[])
-
-
 @admin_bp.route('/admin/update_player_roles/<int:player_id>', endpoint='update_player_roles_route', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
