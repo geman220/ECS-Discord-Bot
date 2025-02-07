@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app, abort, g
 from flask_login import login_required
 from app import csrf
 from app.core import celery
-from app.models import Match, Availability, Team, Player, ScheduledMessage
+from app.models import Match, Availability, Team, Player, ScheduledMessage, User
 from app.tasks.tasks_rsvp import (
     notify_discord_of_rsvp_change_task,
     notify_frontend_of_rsvp_change_task,

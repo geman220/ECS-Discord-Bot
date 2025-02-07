@@ -51,6 +51,7 @@
     <Compile Include="app\tasks\tasks_maintenance.py" />
     <Compile Include="app\tasks\tasks_match_updates_helpers.py" />
     <Compile Include="app\tasks\tasks_rsvp_helpers.py" />
+    <Compile Include="app\user_api.py" />
     <Compile Include="app\utils\db_connection_monitor.py" />
     <Compile Include="app\utils\db_monitoring.py" />
     <Compile Include="app\utils\db_utils.py" />
