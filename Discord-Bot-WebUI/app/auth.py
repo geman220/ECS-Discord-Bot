@@ -64,8 +64,8 @@ def sync_discord_for_user(user: User, discord_id: Optional[str] = None):
         logger.info(f"Linked discord_id={discord_id} to player {user.player.id}")
 
     # Kick off the Celery task to (re)assign roles. This only *adds* our relevant roles.
-    assign_roles_to_player_task.delay(player_id=user.player.id)
-    logger.info(f"Triggered Discord role sync for player {user.player.id}")
+    assign_roles_to_player_task.delay(player_id=user.player.id, only_add=True)
+    logger.info(f"Triggered Discord role sync for player {user.player.id} (only_add=True)")
 
 
 # ----------------------------------------------------------------------

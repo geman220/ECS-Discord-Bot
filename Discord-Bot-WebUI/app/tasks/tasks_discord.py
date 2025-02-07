@@ -210,39 +210,49 @@ async def _mass_process_role_updates(session, discord_ids: List[str]) -> List[Di
     bind=True,
     max_retries=3,
     retry_backoff=True,
-    rate_limit='50/s'  # Explicit rate limit
+    rate_limit='50/s'  # Example: rate limit to 50 Discord calls/sec
 )
-def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
+def assign_roles_to_player_task(
+    self,
+    session,
+    player_id: int,
+    team_id: Optional[int] = None,
+    only_add: bool = True 
+) -> Dict[str, Any]:
     """
-    Rate limited to 50/s across all workers to respect Discord API limits
-    Uses connection pooling for DB connections
+    Assign or update Discord roles for a player.
+    - `only_add=True` => do NOT remove any roles they currently have.
+    - `only_add=False` => remove roles that are not in the expected set.
     """
-    logger.info(f"==> Starting assign_roles_to_player_task for player_id={player_id}, team_id={team_id}")
+    logger.info(f"==> Starting assign_roles_to_player_task for player_id={player_id}, team_id={team_id}, only_add={only_add}")
     try:
-        # Use get_or_create pattern for DB connection
+        # Ensure DB connection
         session.connection()
-        
+
         player = session.query(Player).get(player_id)
         if not player:
             logger.warning(f"Player {player_id} not found in DB.")
             return {'success': False, 'message': 'Player not found'}
 
         logger.info(f"Found player {player_id}, discord_id={player.discord_id}")
-        
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         try:
             logger.debug("About to call _assign_roles_async(...)")
-            result = loop.run_until_complete(_assign_roles_async(session, player.id, team_id))
-            
-            with session.begin_nested():  # Use savepoint for atomic updates
+            result = loop.run_until_complete(_assign_roles_async(session, player.id, team_id, only_add))
+
+            # Update DB with sync status
+            with session.begin_nested():
                 player.discord_roles_updated = datetime.utcnow()
-                player.discord_role_sync_status = 'completed' if result.get('success') else 'failed'
-                player.last_sync_attempt = datetime.utcnow()
-                if not result.get('success'):
+                if result.get('success'):
+                    player.discord_role_sync_status = 'completed'
+                else:
+                    player.discord_role_sync_status = 'failed'
                     player.sync_error = result.get('error')
-            
+                player.last_sync_attempt = datetime.utcnow()
+
             return {
                 'success': True,
                 'message': 'Roles assigned successfully',
@@ -256,12 +266,21 @@ def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional
             asyncio.set_event_loop(None)
 
     except Exception as e:
-        countdown = 60 if isinstance(e, SQLAlchemyError) else 30 if isinstance(e, aiohttp.ClientError) else 15
-        logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True) 
+        logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True)
+        # Use different retry delays based on exception type:
+        countdown = 60 if isinstance(e, SQLAlchemyError) else 15
         raise self.retry(exc=e, countdown=countdown)
 
-async def _assign_roles_async(session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
-    logger.info(f"==> Entering _assign_roles_async for player_id={player_id}, team_id={team_id}")
+async def _assign_roles_async(
+    session,
+    player_id: int,
+    team_id: Optional[int],
+    only_add: bool
+) -> Dict[str, Any]:
+    """
+    Internal async helper to do the actual Discord calls.
+    """
+    logger.info(f"==> Entering _assign_roles_async for player_id={player_id}, team_id={team_id}, only_add={only_add}")
     player = session.query(Player).get(player_id)
     if not player or not player.discord_id:
         logger.warning("No Discord ID or missing player.")
@@ -269,32 +288,37 @@ async def _assign_roles_async(session, player_id: int, team_id: Optional[int] = 
 
     try:
         async with aiohttp.ClientSession() as aio_session:
+            # If a specific team_id was provided, assign that team's role(s) only
             if team_id:
-                # For team-specific role assignment
                 team = session.query(Team).get(team_id)
                 role_name = f"ECS-FC-PL-{team.name}-PLAYER"
-                logger.debug(f"Assigning team role {role_name} to player {player_id}")
+                logger.debug(f"Assigning team role '{role_name}' to player {player_id}")
 
+                # Get the role IDs from Discord
                 role_id = await get_role_id(Config.SERVER_ID, role_name, aio_session)
-                league_role = f"ECS-FC-PL-{team.league.name}"
-                league_role_id = await get_role_id(Config.SERVER_ID, league_role, aio_session)
-                
+                league_role_name = f"ECS-FC-PL-{team.league.name}"
+                league_role_id = await get_role_id(Config.SERVER_ID, league_role_name, aio_session)
+
+                # Only add these roles; do not remove any others
                 if role_id:
                     await make_discord_request(
-                        'PUT',
-                        f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{role_id}",
-                        aio_session
+                        method='PUT',
+                        url=f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{role_id}",
+                        session=aio_session
                     )
-                    if league_role_id:
-                        await make_discord_request(
-                            'PUT',
-                            f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{league_role_id}",
-                            aio_session
-                        )
-                    return {'success': True}
-            # For non-team role updates (like coach status)
-            logger.debug(f"No team_id specified, calling process_single_player_update for {player_id}")
-            return await process_single_player_update(session, player)
+                if league_role_id:
+                    await make_discord_request(
+                        method='PUT',
+                        url=f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/members/{player.discord_id}/roles/{league_role_id}",
+                        session=aio_session
+                    )
+                return {'success': True}
+
+            # Otherwise, run the normal “process_single_player_update” which can handle
+            # whether to remove roles or only add them:
+            logger.debug(f"No team_id specified, calling process_single_player_update(only_add={only_add})")
+            return await process_single_player_update(session, player, only_add=only_add)
+
     except Exception as e:
         logger.error(f"Exception assigning roles: {e}", exc_info=True)
         return {'success': False, 'message': str(e)}

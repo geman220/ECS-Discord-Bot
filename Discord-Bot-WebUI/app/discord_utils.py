@@ -717,24 +717,44 @@ def mark_league_for_update(session: Session, league_id: int) -> None:
     session.execute(stmt)
     logger.info(f"Marked league ID {league_id} for Discord update.")
 
-async def process_single_player_update(session: Session, player: Player) -> dict:
+async def process_single_player_update(session, player, only_add: bool = False) -> dict:
     """
-    Force update a single player's roles.
+    Updates a single player's roles on Discord.
+    - only_add=True => do NOT remove any roles (force_update=False).
+    - only_add=False => remove roles not in expected set (force_update=True).
     """
+    from app.tasks.tasks_discord import update_player_roles  # or wherever that function lives
+
     try:
         if not player.discord_id:
             logger.warning(f"Player '{player.name}' does not have a Discord ID.")
-            return {'success': False, 'message': 'No Discord ID associated with player', 'error': 'no_discord_id'}
+            return {
+                'success': False,
+                'message': 'No Discord ID associated with player',
+                'error': 'no_discord_id'
+            }
 
-        result = await update_player_roles(session, player, force_update=True)
+        # If we only want to add, set force_update=False
+        # If we want removal, set force_update=True
+        force = not only_add
+        result = await update_player_roles(session, player, force_update=force)
+
         if result['success']:
             return {'success': True, 'message': 'Roles updated successfully'}
         else:
-            return {'success': False, 'message': 'Role update failed', 'error': result.get('error')}
+            return {
+                'success': False,
+                'message': 'Role update failed',
+                'error': result.get('error')
+            }
 
     except Exception as e:
         logger.error(f"Error in process_single_player_update for player {player.id}: {str(e)}", exc_info=True)
-        return {'success': False, 'message': 'An exception occurred', 'error': str(e)}
+        return {
+            'success': False,
+            'message': 'An exception occurred',
+            'error': str(e)
+        }
 
 # -------------------------------------------
 # Example: Creating a Match Thread
