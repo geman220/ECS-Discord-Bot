@@ -3,33 +3,137 @@ from discord import app_commands
 from discord.ext import commands
 import aiohttp
 import os
+import logging
 from common import server_id
 
+logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
+
+class SMSEnrollmentModal(discord.ui.Modal, title="SMS Enrollment"):
+    def __init__(self, default_phone: str = ""):
+        super().__init__()
+        self.phone = discord.ui.TextInput(
+            label="Phone Number",
+            placeholder=default_phone if default_phone else "Enter your phone number (e.g., 14255555555)",
+            default=default_phone,
+            required=True
+        )
+        self.add_item(self.phone)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        payload = {
+            "discord_id": str(interaction.user.id),
+            "phone": self.phone.value
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(f"{WEBUI_API_URL}/sms_enroll", json=payload) as resp:
+                    if resp.status == 200:
+                        await interaction.response.send_message(
+                            "Enrollment initiated. Please click the button below to enter the confirmation code.",
+                            ephemeral=True,
+                            view=EnterCodeView()
+                        )
+                    else:
+                        data = await resp.json()
+                        error_msg = data.get("error", "Unknown error")
+                        await interaction.response.send_message(
+                            f"Enrollment failed: {error_msg}", ephemeral=True
+                        )
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"Error connecting to the API: {str(e)}", ephemeral=True
+                )
+
+class SMSCodeModal(discord.ui.Modal, title="SMS Confirmation"):
+    def __init__(self):
+        super().__init__()
+        self.code = discord.ui.TextInput(
+            label="Confirmation Code",
+            placeholder="Enter the code you received via SMS",
+            required=True
+        )
+        self.add_item(self.code)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        payload = {
+            "discord_id": str(interaction.user.id),
+            "code": self.code.value
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(f"{WEBUI_API_URL}/sms_confirm", json=payload) as resp:
+                    if resp.status == 200:
+                        await interaction.response.send_message(
+                            "SMS enrollment confirmed and notifications enabled.", ephemeral=True
+                        )
+                    else:
+                        data = await resp.json()
+                        error_msg = data.get("error", "Unknown error")
+                        await interaction.response.send_message(
+                            f"Confirmation failed: {error_msg}", ephemeral=True
+                        )
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"Error connecting to the API: {str(e)}", ephemeral=True
+                )
+
+class EnterCodeButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Enter Confirmation Code", style=discord.ButtonStyle.primary, custom_id="enter_code")
+    
+    async def callback(self, interaction: discord.Interaction):
+        modal = SMSCodeModal()
+        await interaction.response.send_modal(modal)
+
+class EnterCodeView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=60)
+        self.add_item(EnterCodeButton())
 
 class ToggleButton(discord.ui.Button):
     def __init__(self, label: str, initial_value: bool, custom_id: str):
-        # Green for enabled, red for disabled.
         style = discord.ButtonStyle.green if initial_value else discord.ButtonStyle.red
         super().__init__(label=label, style=style, custom_id=custom_id)
         self.value = initial_value
 
     async def callback(self, interaction: discord.Interaction):
-        # Toggle the value.
         self.value = not self.value
         self.style = discord.ButtonStyle.green if self.value else discord.ButtonStyle.red
-        # Update the view so the button reflects the new state.
         await interaction.response.edit_message(view=self.view)
 
+class EnrollSMSButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Enroll for SMS", style=discord.ButtonStyle.blurple, custom_id="enroll_sms")
+
+    async def callback(self, interaction: discord.Interaction):
+        default_phone = ""
+        async with aiohttp.ClientSession() as session:
+            try:
+                url = f"{WEBUI_API_URL}/get_notifications?discord_id={interaction.user.id}"
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        default_phone = data.get("phone", "")
+                        logger.debug(f"[DEBUG] Fetched phone number: {default_phone}")
+            except Exception as e:
+                logger.error(f"Error fetching phone number: {e}")
+        modal = SMSEnrollmentModal(default_phone=default_phone)
+        await interaction.response.send_modal(modal)
+
 class NotificationToggleView(discord.ui.View):
-    def __init__(self, current_settings: dict):
+    def __init__(self, current_settings: dict, sms_toggle_available: bool):
         super().__init__(timeout=60)
-        self.dm_button = ToggleButton("DM Notifications", current_settings.get("discord", False), "toggle_dm")
+        self.old_dm = current_settings.get("discord", False)
+        self.dm_button = ToggleButton("DM Notifications", self.old_dm, "toggle_dm")
         self.email_button = ToggleButton("Email Notifications", current_settings.get("email", False), "toggle_email")
-        self.sms_button = ToggleButton("SMS Notifications", current_settings.get("sms", False), "toggle_sms")
         self.add_item(self.dm_button)
         self.add_item(self.email_button)
-        self.add_item(self.sms_button)
+        if sms_toggle_available:
+            self.sms_button = ToggleButton("SMS Notifications", current_settings.get("sms", False), "toggle_sms")
+            self.add_item(self.sms_button)
+        else:
+            self.add_item(EnrollSMSButton())
         submit_button = discord.ui.Button(label="Submit", style=discord.ButtonStyle.primary, custom_id="submit_notifications")
         submit_button.callback = self.submit_callback
         self.add_item(submit_button)
@@ -38,8 +142,11 @@ class NotificationToggleView(discord.ui.View):
         notifications = {
             "discord": self.dm_button.value,
             "email": self.email_button.value,
-            "sms": self.sms_button.value,
         }
+        if hasattr(self, "sms_button"):
+            notifications["sms"] = self.sms_button.value
+        else:
+            notifications["sms"] = False
         payload = {
             "discord_id": str(interaction.user.id),
             "notifications": notifications
@@ -48,6 +155,18 @@ class NotificationToggleView(discord.ui.View):
             try:
                 async with session.post(f"{WEBUI_API_URL}/update_notifications", json=payload) as resp:
                     if resp.status == 200:
+                        logger.debug(f"[DEBUG] Old DM: {self.old_dm}, New DM: {self.dm_button.value}")
+                        try:
+                            dm_channel = await interaction.user.create_dm()
+                            logger.debug(f"[DEBUG] DM channel created: {dm_channel.id}")
+                            if self.dm_button.value and self.dm_button.value != self.old_dm:
+                                response = await dm_channel.send("DM notifications enabled for ECS FC.")
+                                logger.debug(f"[DEBUG] DM send response: {response}")
+                            elif not self.dm_button.value and self.old_dm:
+                                response = await dm_channel.send("DM notifications disabled for ECS FC.")
+                                logger.debug(f"[DEBUG] DM send response: {response}")
+                        except Exception as e:
+                            logger.error(f"[ERROR] Error sending DM confirmation: {e}")
                         await interaction.response.send_message("Notification preferences updated successfully.", ephemeral=True)
                     else:
                         data = await resp.json()
@@ -58,16 +177,8 @@ class NotificationToggleView(discord.ui.View):
 
 class TeamRoleSelect(discord.ui.Select):
     def __init__(self, team_roles: list[discord.Role], message_text: str, original_interaction: discord.Interaction):
-        options = [
-            discord.SelectOption(label=role.name, value=str(role.id))
-            for role in team_roles
-        ]
-        super().__init__(
-            placeholder="Select your team role to mention",
-            min_values=1,
-            max_values=1,
-            options=options
-        )
+        options = [discord.SelectOption(label=role.name, value=str(role.id)) for role in team_roles]
+        super().__init__(placeholder="Select your team role to mention", min_values=1, max_values=1, options=options)
         self.team_roles = team_roles
         self.message_text = message_text
         self.original_interaction = original_interaction
@@ -97,18 +208,12 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.describe(message="The message to send to your team")
     @app_commands.guilds(discord.Object(id=server_id))
     async def team(self, interaction: discord.Interaction, message: str):
-        allowed_coach_roles = [
-            "ECS-FC-PL-PREMIER-COACH",
-            "ECS-FC-PL-CLASSIC-COACH"
-        ]
+        allowed_coach_roles = ["ECS-FC-PL-PREMIER-COACH", "ECS-FC-PL-CLASSIC-COACH"]
         member = interaction.user
         if not any(role.name in allowed_coach_roles for role in member.roles):
             await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
             return
-        team_roles = [
-            role for role in member.roles
-            if role.name.startswith("ECS-FC-PL-") and role.name.endswith("-PLAYER")
-        ]
+        team_roles = [role for role in member.roles if role.name.startswith("ECS-FC-PL-") and role.name.endswith("-PLAYER")]
         if not team_roles:
             await interaction.response.send_message("No team role found for you. Please ensure you have the appropriate team role.", ephemeral=True)
             return
@@ -125,6 +230,8 @@ class PubLeagueCommands(commands.Cog):
     @app_commands.guilds(discord.Object(id=server_id))
     async def notifications(self, interaction: discord.Interaction):
         current_settings = {"discord": False, "email": False, "sms": False}
+        sms_enrolled = False
+        phone_verified = False
         async with aiohttp.ClientSession() as session:
             try:
                 url = f"{WEBUI_API_URL}/get_notifications?discord_id={interaction.user.id}"
@@ -132,9 +239,14 @@ class PubLeagueCommands(commands.Cog):
                     if resp.status == 200:
                         data = await resp.json()
                         current_settings = data.get("notifications", current_settings)
+                        sms_enrolled = data.get("sms_enrolled", False)
+                        phone_verified = data.get("phone_verified", False)
+                    else:
+                        logger.error(f"Error fetching notifications: HTTP {resp.status}")
             except Exception as e:
-                print(f"Error fetching current notifications: {e}")
-        view = NotificationToggleView(current_settings)
+                logger.error(f"Error fetching current notifications: {e}")
+        sms_toggle_available = sms_enrolled and phone_verified
+        view = NotificationToggleView(current_settings, sms_toggle_available)
         await interaction.response.send_message(
             "Adjust your notification preferences using the buttons below and click Submit:",
             ephemeral=True,

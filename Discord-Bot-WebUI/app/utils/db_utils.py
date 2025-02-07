@@ -1,32 +1,28 @@
-# app/utils/db_utils.py
+﻿# app/utils/db_utils.py
 
 from functools import wraps
 from flask import g, current_app
-from app.core import celery
+from app.core import celery, db
 import logging
 
 logger = logging.getLogger(__name__)
 
 def transactional(f):
     """
-    Decorator to manage database transactions in request context.
-    Relies on g.db_session being set in request context.
+    Decorator to manage database transactions.
+    Commits on success and rolls back on error.
+    Uses the Flask‑SQLAlchemy db.session, which is automatically
+    removed at the end of the request.
     """
     @wraps(f)
     def wrapped(*args, **kwargs):
-        session = getattr(g, 'db_session', None)
-        if session is None:
-            # If no db_session is available, raise an error or handle gracefully.
-            # This decorator is meant for request-bound functions.
-            raise RuntimeError("No database session available. Ensure this code runs within a request context.")
-
         try:
             result = f(*args, **kwargs)
-            session.commit()
+            db.session.commit()
             return result
         except Exception as e:
-            session.rollback()
-            logger.error(f"Error in transactional function {f.__name__}: {e}", exc_info=True)
+            db.session.rollback()
+            current_app.logger.exception("Error in transactional function %s", f.__name__)
             raise
     return wrapped
 
