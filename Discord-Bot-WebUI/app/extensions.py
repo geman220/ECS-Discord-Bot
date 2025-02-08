@@ -17,15 +17,11 @@ def init_celery(app=None):
         abstract = True
 
         def __call__(self, *args, **kwargs):
-            # If app is None, get the current_app
             flask_app = app or current_app._get_current_object()
-            # Each task execution runs in app context
             with flask_app.app_context():
-                # Create a new session for this task run
                 session = flask_app.SessionLocal()
                 self._session = session
                 try:
-                    # Execute the task
                     result = self.run(*args, **kwargs)
                     session.commit()
                     return result
@@ -45,7 +41,6 @@ def init_celery(app=None):
 
     celery.Task = FlaskTask
 
-    # Basic Celery configuration
     celery.conf.update(
         task_serializer='json',
         accept_content=['json'],
@@ -69,8 +64,6 @@ def init_worker_process(**kwargs):
     if hasattr(db, 'engine'):
         db.engine.dispose()
 
-    # Recreate engine if needed
-    # If you have engine config changes, reconfigure here if necessary
     from flask import current_app
     app = current_app._get_current_object()
     engine_options = app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {})

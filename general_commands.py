@@ -73,23 +73,19 @@ class GeneralCommands(commands.Cog):
         - Otherwise, the invoker and target user must share at least one exact ECS-FC-PL-TEAM-...-PLAYER role.
         - If the user is not found in the portal, respond with "Player not found".
         """
-        invoker = interaction.user  # The user invoking the command
+        invoker = interaction.user
 
-        # Check leadership
         invoker_role_names = [r.name for r in invoker.roles]
         if LEADERSHIP_ROLE_NAME not in invoker_role_names:
-            # Not leadership => must share a team role
             my_team_roles = self._get_team_roles(invoker)
             their_team_roles = self._get_team_roles(person)
 
-            # If there's no overlap, deny immediately
             if my_team_roles.isdisjoint(their_team_roles):
                 return await interaction.response.send_message(
                     content="You do not have permission to look up that user.",
                     ephemeral=True
                 )
 
-        # If we reach here, the user is allowed to proceed
         discord_id = str(person.id)
         api_url = f"{WEBUI_API_URL}/get_player_id_from_discord/{discord_id}"
 
@@ -126,14 +122,12 @@ class GeneralCommands(commands.Cog):
                         await interaction.response.send_message(embed=embed, ephemeral=True)
 
                     elif resp.status == 404:
-                        # The Flask API specifically returns 404 if "Player not found"
                         await interaction.response.send_message(
                             content="Player not found in the portal.",
                             ephemeral=True
                         )
 
                     else:
-                        # Possibly another error code
                         error_text = await resp.text()
                         msg = (
                             f"Could not find a player for ID `{discord_id}`.\n"

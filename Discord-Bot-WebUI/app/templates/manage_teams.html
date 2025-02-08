@@ -131,7 +131,6 @@
                 confirmButtonText: 'Yes, delete it!',
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Create a temporary form to submit the deletion
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = '/publeague/delete_team';
@@ -160,7 +159,6 @@
 
 {% block custom_css %}
 <style>
-    /* Utilize Vuexy's utility classes and remove unnecessary custom styles */
     .list-group-item {
         border: none;
         border-bottom: 1px solid #e3e6ef;
@@ -174,7 +172,6 @@
         cursor: pointer;
     }
 
-    /* Hover Effects */
     .list-group-item:hover {
         background-color: #f8f9fa;
     }

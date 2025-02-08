@@ -344,7 +344,6 @@ def player_profile(player_id):
         jersey_sizes = session.query(Player.jersey_size).distinct().all()
         jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
 
-        # Example: if you need to reference a league named 'Classic'
         classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
             flash('Classic league not found', 'danger')
@@ -485,17 +484,6 @@ def api_player_profile(player_id):
     }
 
     return jsonify(profile_data)
-
-@players_bp.route('/get_needs_review_count', endpoint='get_needs_review_count', methods=['GET'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def get_needs_review_count():
-    try:
-        session = g.db_session
-        count = session.query(Player).filter_by(needs_manual_review=True).count()
-        return jsonify({'count': count})
-    finally:
-        session.close()
 
 @players_bp.route('/admin/review', endpoint='admin_review', methods=['GET'])
 @login_required

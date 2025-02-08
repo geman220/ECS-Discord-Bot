@@ -53,26 +53,21 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         players = session.query(Player).all()
         history_records = []
 
-        # 1. For each Player, see if they have any Team in the old_season
         for player in players:
-            # Gather all the teams that belong to old_season’s leagues
             old_season_teams = [
                 t for t in player.teams if t.league.season_id == old_season.id
             ]
-            # For each matching team, create a history record
             for t in old_season_teams:
                 history_records.append(PlayerTeamSeason(
                     player_id=player.id,
                     team_id=t.id,
                     season_id=old_season.id
                 ))
-        
-        # 2. Bulk save the “history” objects
+
         if history_records:
             session.bulk_save_objects(history_records)
             session.flush()
         
-        # 3. Map old leagues -> new leagues, reassign Player league, etc.
         old_leagues = session.query(League).filter_by(season_id=old_season.id).all()
         new_leagues = session.query(League).filter_by(season_id=new_season.id).all()
 
@@ -86,15 +81,10 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         for old_league in old_leagues:
             new_league_id = league_mapping.get(old_league.name)
             if new_league_id:
-                # For all players in old_league, reset league_id to new_league,
-                # and remove any team assignments, etc. 
                 session.query(Player).filter_by(league_id=old_league.id).update({
                     'league_id': new_league_id,
-                    # There's no single 'team_id' to set to None since it's M2M,
-                    # so you might handle that differently if needed.
                 }, synchronize_session=False)
 
-        # 4. Finally commit
         session.commit()
         return True
 
@@ -105,7 +95,6 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
 def create_pub_league_season(session, season_name: str) -> Optional[Season]:
     season_name = season_name.strip()
 
-    # 1) Check for existing season
     existing = session.query(Season).filter(
         func.lower(Season.name) == season_name.lower(),
         Season.league_type == 'Pub League'
@@ -114,33 +103,28 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
         logger.warning(f'Season "{season_name}" already exists.')
         return None
 
-    # 2) Find the old current season
     old_season = session.query(Season).filter_by(
         league_type='Pub League',
         is_current=True
     ).first()
 
-    # 3) Create new season
     new_season = Season(
         name=season_name,
         league_type='Pub League',
         is_current=True
     )
     session.add(new_season)
-    session.flush()  # Get new_season.id
+    session.flush()
 
-    # 4) Create leagues
     premier_league = League(name="Premier", season_id=new_season.id)
     classic_league = League(name="Classic", season_id=new_season.id)
     session.add(premier_league)
     session.add(classic_league)
 
-    # 5) If we have an old season, do the rollover (which commits at the end).
     if old_season:
         old_season.is_current = False
         rollover_league(session, old_season, new_season)
     else:
-        # 6) If there's no old season, COMMIT here so the leagues actually persist
         session.commit()
 
     return new_season
@@ -218,7 +202,6 @@ def delete_season(season_id):
             teams = session.query(Team).filter_by(league_id=league.id).all()
             for team in teams:
                 session.query(Schedule).filter_by(team_id=team.id).delete()
-                # Mark team for deletion
                 session.delete(team)
             session.delete(league)
 

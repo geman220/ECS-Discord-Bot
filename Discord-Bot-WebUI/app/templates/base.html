@@ -417,68 +417,6 @@
             }
         });
     </script>
-    {% if safe_current_user.is_authenticated and (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')) %}
-    <script>
-        function updateNeedsReviewCount() {
-            fetch('/players/get_needs_review_count')
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => {
-                            console.error('Response error:', text);
-                            if (response.status === 403) {
-                                console.log('User does not have the required role.');
-                                return null;
-                            }
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data) {
-                        const badge = document.getElementById('needs-review-count');
-                        const alertsContainer = document.getElementById('needs-review-alerts');
-
-                        if (badge && alertsContainer) {
-                            const count = data.count;
-                            badge.textContent = count;
-
-                            if (count > 0) {
-                                badge.classList.remove('badge-counter');
-                                badge.classList.add('badge-danger');
-                                badge.style.display = 'inline-block';
-                                alertsContainer.innerHTML = `<a class="dropdown-item d-flex align-items-center" href="/players/admin/review"><div class="mr-3"><div class="icon-circle bg-danger"><i class="fas fa-exclamation-triangle text-white"></i></div></div><div><div class="small text-gray-500">Manual Review</div><span class="font-weight-bold">${count} accounts need manual review</span></div></a>`;
-                            } else {
-                                badge.style.display = 'none';
-                                alertsContainer.innerHTML = '<p class="text-center">No new alerts</p>';
-                            }
-                        } else {
-                            console.error('Badge or alerts container not found in the DOM.');
-                        }
-                    }
-                })
-                .catch(error => console.error('Error fetching needs review count:', error));
-        }
-
-        updateNeedsReviewCount();
-        setInterval(updateNeedsReviewCount, 30000);
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Remove conflicting layout classes
-            document.documentElement.classList.remove('layout-compact');
-
-            // Add 'layout-content-wide' class if not already present
-            if (!document.documentElement.classList.contains('layout-content-wide')) {
-                document.documentElement.classList.add('layout-content-wide');
-            }
-
-            // Ensure 'data-content' attribute is set to 'wide'
-            document.documentElement.setAttribute('data-content', 'wide');
-        });
-    </script>
-    {% endif %}
-
     <!-- Custom JS for specific pages -->
     {% block custom_js %}
     {% endblock %}

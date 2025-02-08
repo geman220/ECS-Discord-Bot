@@ -587,7 +587,6 @@ async def get_app_managed_roles(session: Session) -> List[str]:
         "Referee"
     ]
     
-    # Dynamic team roles
     teams = session.query(Team).all()
     team_roles = [f"ECS-FC-PL-{team.name}-PLAYER" for team in teams]
     
@@ -604,7 +603,6 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     roles = []
     app_role_prefixes = ["ECS-FC-PL-", "Referee"]
 
-    # 1) Fetch user's current Discord roles to keep non-managed roles
     async with aiohttp.ClientSession() as aio_session:
         current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
 
@@ -612,27 +610,22 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if not any(role.startswith(prefix) for prefix in app_role_prefixes):
             roles.append(role)
 
-    # 2) Collect leagues. We'll load them from DB if we only have ID fields:
     leagues_for_user = set()
 
-    # (a) If the Player model has league_id
     if player.league_id:
         league_obj = session.query(League).filter_by(id=player.league_id).first()
         if league_obj and league_obj.name:
             leagues_for_user.add(league_obj.name.strip().upper())
 
-    # (b) If the Player model has primary_league_id
     if player.primary_league_id:
         league_obj = session.query(League).filter_by(id=player.primary_league_id).first()
         if league_obj and league_obj.name:
             leagues_for_user.add(league_obj.name.strip().upper())
 
-    # (c) Also check each team’s league
     for t in player.teams:
         if t.league and t.league.name:
             leagues_for_user.add(t.league.name.strip().upper())
 
-    # 3) For each league, add the base role + coach role
     for league_name in leagues_for_user:
         if league_name == "PREMIER":
             roles.append("ECS-FC-PL-PREMIER")
@@ -642,13 +635,10 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
             roles.append("ECS-FC-PL-CLASSIC")
             if player.is_coach:
                 roles.append("ECS-FC-PL-CLASSIC-COACH")
-        # Add more elif if you have other leagues, e.g. "ECS FC"
 
-    # 4) Team-based role for each assigned team
     for t in player.teams:
         roles.append(f"ECS-FC-PL-{t.name}-PLAYER")
 
-    # 5) If they're a referee, add the 'Referee' role
     if player.is_ref:
         roles.append("Referee")
 
@@ -688,7 +678,6 @@ def mark_team_for_update(session: Session, team_id: int) -> None:
         update(Player)
         .where(
             Player.id.in_(
-                # subquery of player IDs in this team
                 session.query(player_teams.c.player_id)
                 .filter(player_teams.c.team_id == team_id)
             )
@@ -723,7 +712,7 @@ async def process_single_player_update(session, player, only_add: bool = False) 
     - only_add=True => do NOT remove any roles (force_update=False).
     - only_add=False => remove roles not in expected set (force_update=True).
     """
-    from app.tasks.tasks_discord import update_player_roles  # or wherever that function lives
+    from app.tasks.tasks_discord import update_player_roles
 
     try:
         if not player.discord_id:
@@ -734,8 +723,6 @@ async def process_single_player_update(session, player, only_add: bool = False) 
                 'error': 'no_discord_id'
             }
 
-        # If we only want to add, set force_update=False
-        # If we want removal, set force_update=True
         force = not only_add
         result = await update_player_roles(session, player, force_update=force)
 
