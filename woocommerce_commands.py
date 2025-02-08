@@ -480,16 +480,20 @@ class WooCommerceCommands(commands.Cog):
             now = datetime.datetime.now()
             current_year = now.year
 
+            # Do not allow future years
             if year > current_year:
                 await interaction.followup.send(
                     f"You cannot search for a future year ({year}).", ephemeral=True
                 )
                 return
 
+            # Define the date range for the query.
             start_date = datetime.datetime(year, 1, 1, 0, 0, 0)
             if year < current_year:
+                # For past years, use the full year.
                 end_date = datetime.datetime(year, 12, 31, 23, 59, 59)
             else:
+                # For the current year, use up to now.
                 end_date = now
 
             start_of_time = start_date.strftime("%Y-%m-%dT%H:%M:%S")
@@ -497,37 +501,29 @@ class WooCommerceCommands(commands.Cog):
 
             page = 1
             per_page = 100
-            max_pages = 10
             member_info_by_subgroup = defaultdict(list)
 
-            # Loop through pages up to max_pages.
-            while page <= max_pages:
-                # Construct the URL using an f-string for clarity.
+            # Continue paging until no orders are returned.
+            while True:
                 orders_url = (
                     f"{wc_url}?order=desc&page={page}&per_page={per_page}"
                     f"&status=any&after={start_of_time}&before={end_of_time}"
                 )
                 logger.info(f"Fetching orders from page {page}.")
-
                 fetched_orders = await call_woocommerce_api(orders_url)
 
                 if not fetched_orders:
                     logger.info(f"No orders fetched from page {page}. Ending pagination.")
                     break
 
-                if len(fetched_orders) < per_page:
-                    logger.info(f"Fetched {len(fetched_orders)} orders from page {page}. Assuming last page.")
-                    # No need to continue if this is the last page.
-                    break
-
                 # Process each order.
                 for order in fetched_orders:
                     order_id = order.get("id", "Unknown")
-                    subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
+                    # Pass the specified 'year' as membership_year to the customer info lookup.
+                    subgroup_info = await find_customer_info_in_order(order, SUBGROUPS, membership_year=year)
                     if subgroup_info:
                         matched_subgroups, customer_info = subgroup_info
 
-                        # Ensure we have a list of subgroup names.
                         if not isinstance(matched_subgroups, list):
                             logger.error(f"'matched_subgroups' is not a list for Order ID {order_id}.")
                             continue
@@ -537,6 +533,11 @@ class WooCommerceCommands(commands.Cog):
                                 logger.error(f"Subgroup is not a string for Order ID {order_id}: {subgroup}")
                                 continue
                             member_info_by_subgroup[subgroup].append(customer_info)
+
+                # If fewer orders than requested are returned, we assume it's the last page.
+                if len(fetched_orders) < per_page:
+                    logger.info(f"Fetched {len(fetched_orders)} orders on page {page}. Assuming this is the last page.")
+                    break
 
                 page += 1
                 # Respect API rate limits.
