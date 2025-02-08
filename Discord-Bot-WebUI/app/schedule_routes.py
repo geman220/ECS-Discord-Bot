@@ -10,7 +10,6 @@ from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
 
 logger = logging.getLogger(__name__)
 
-# Blueprint used under something like: publeague.register_blueprint(schedule_bp, url_prefix="/schedules")
 schedule_bp = Blueprint('schedule', __name__)
 
 @dataclass
@@ -47,7 +46,6 @@ class ScheduleManager:
         query = self.session.query(Schedule)
 
         if league_id:
-            # Filter by league
             query = query.join(Schedule.team).filter(Team.league_id == league_id)
 
         if team_id:
@@ -83,7 +81,6 @@ class ScheduleManager:
                 continue
 
             match_key = (schedule.week, schedule.team.name, opponent.name)
-            # Avoid duplicates if we find the same pair in reverse
             if match_key in displayed:
                 continue
 
@@ -124,7 +121,6 @@ class ScheduleManager:
 
         objects_to_update = []
 
-        # Update main schedule row
         schedule.date = match_date
         schedule.time = match_time
         schedule.location = data['location']
@@ -133,10 +129,8 @@ class ScheduleManager:
         schedule.week = data['week']
         objects_to_update.append(schedule)
 
-        # Update or create the associated Match record
         match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if not match:
-            # Create new match
             match = Match(
                 schedule_id=match_id,
                 date=match_date,
@@ -155,7 +149,6 @@ class ScheduleManager:
             match.away_team_id = data['team_b']
             objects_to_update.append(match)
 
-        # Update the "paired" schedule row if it exists
         paired = self.session.query(Schedule).filter_by(
             team_id=data['team_b'],
             opponent=data['team_a'],
@@ -168,7 +161,6 @@ class ScheduleManager:
             paired.location = data['location']
             objects_to_update.append(paired)
 
-            # Check if there's a paired Match record
             paired_match = self.session.query(Match).filter_by(schedule_id=paired.id).first()
             if paired_match:
                 paired_match.date = match_date
@@ -189,15 +181,12 @@ class ScheduleManager:
         objects_to_delete = []
         objects_to_delete.append(schedule)
 
-        # main match
         match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if match:
             objects_to_delete.append(match)
-            # also remove any scheduled messages, etc.
             messages = self.session.query(ScheduledMessage).filter_by(match_id=match.id).all()
             objects_to_delete.extend(messages)
 
-        # find paired schedule
         paired = self.session.query(Schedule).filter_by(
             team_id=schedule.opponent,
             opponent=schedule.team_id,
@@ -225,7 +214,6 @@ class ScheduleManager:
 
         objects_to_create = []
 
-        # schedule row for A
         schedule_a = Schedule(
             week=data['week'],
             date=match_date,
@@ -237,7 +225,6 @@ class ScheduleManager:
         self.session.add(schedule_a)
         objects_to_create.append(schedule_a)
 
-        # schedule row for B
         schedule_b = Schedule(
             week=data['week'],
             date=match_date,
@@ -249,7 +236,6 @@ class ScheduleManager:
         self.session.add(schedule_b)
         objects_to_create.append(schedule_b)
 
-        # match record
         match = Match(
             date=match_date,
             time=match_time,
@@ -436,7 +422,6 @@ def schedule_wizard(season_id):
         abort(404)
 
     league_id = request.args.get('league_id', type=int)
-    # Optionally filter leagues if league_id is provided
     if league_id:
         leagues = manager.session.query(League).filter(
             League.season_id == season_id,
@@ -450,7 +435,6 @@ def schedule_wizard(season_id):
     if request.method == 'POST':
         wizard_step = request.form.get('wizard_step')
         if wizard_step == 'step1':
-            # Basic form inputs
             start_date_str = request.form['start_date']
             num_weeks = int(request.form['num_weeks'])
             timeslots_str = request.form['timeslots']
@@ -459,7 +443,6 @@ def schedule_wizard(season_id):
             bye_week = request.form.get('bye_week')
 
             if fun_week or bye_week:
-                # Handle an entire day as FUN or BYE
                 special_team_name = "FUN WEEK" if fun_week else "BYE"
                 special_team = manager.session.query(Team).filter(
                     Team.name == special_team_name
@@ -471,7 +454,6 @@ def schedule_wizard(season_id):
                 placeholders = []
                 off_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
 
-                # build placeholders
                 for lg in leagues:
                     real_teams = manager.session.query(Team).filter(
                         Team.league_id == lg.id
@@ -489,7 +471,6 @@ def schedule_wizard(season_id):
                             'team_b': special_team.id
                         })
 
-                # create them immediately
                 for ph in placeholders:
                     data = {
                         'week': str(ph['week']),
@@ -506,14 +487,13 @@ def schedule_wizard(season_id):
                 flash(f"{special_team_name} placeholders created for {len(placeholders)} matches!", "success")
                 return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
 
-            # else normal multi-week placeholders
             timeslot_list = []
             for slot_str in timeslots_str.split(','):
                 slot_str = slot_str.strip()
                 if not slot_str:
                     continue
                 parts = slot_str.split()
-                slot_time = parts[0]  # e.g. "09:00"
+                slot_time = parts[0]
                 slot_field = ' '.join(parts[1:]) if len(parts) > 1 else "Unknown"
                 timeslot_list.append((slot_time, slot_field))
 
@@ -526,12 +506,10 @@ def schedule_wizard(season_id):
             )
 
         elif wizard_step == 'step2':
-            # finalize placeholders
             create_schedule_from_placeholders(request.form, manager, league_id=league_id)
             flash("Matches created successfully!", "success")
             return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
 
-    # GET => show step1
     return render_template(
         'schedule_wizard.html',
         season=season,
@@ -556,16 +534,14 @@ def add_single_week():
     if not week_date_str:
         return jsonify({'success': False, 'message': 'No date provided'}), 400
 
-    fun_week = request.form.get('fun_week')  # "1" if checked
-    bye_week = request.form.get('bye_week')  # "1" if checked
+    fun_week = request.form.get('fun_week')
+    bye_week = request.form.get('bye_week')
 
-    # parse times+fields arrays
     times = request.form.getlist('times[]')
     fields = request.form.getlist('fields[]')
     team_a_list = request.form.getlist('team_a[]')
     team_b_list = request.form.getlist('team_b[]')
 
-    # Basic checks
     n = len(times)
     if not n or n != len(fields) or n != len(team_a_list) or n != len(team_b_list):
         return jsonify({'success': False, 'message': 'Timeslots mismatch'}), 400
@@ -575,7 +551,6 @@ def add_single_week():
     except ValueError:
         return jsonify({'success': False, 'message': 'Invalid date format'}), 400
 
-    # If FUN or BYE => handle special logic like before
     if fun_week or bye_week:
         special_team_name = "FUN WEEK" if fun_week else "BYE"
         special_team = manager.session.query(Team).filter_by(name=special_team_name).first()
@@ -603,7 +578,6 @@ def add_single_week():
             'message': f"{special_team_name} single week created."
         })
 
-    # Else normal multi-match logic (no placeholders). We find or assign the "week number"
     existing = manager.get_schedule(league_id=league_id)
     existing_date_to_week = {}
     for sch in existing:
@@ -620,7 +594,6 @@ def add_single_week():
     if week_date not in existing_date_to_week:
         existing_date_to_week[week_date] = -1
 
-    # Sort all existing dates, then re-map them to consecutive weeks
     all_dates_sorted = sorted(existing_date_to_week.keys())
     date_to_week = {}
     w_num = 1
@@ -637,14 +610,12 @@ def add_single_week():
         a_id = team_a_list[i]
         b_id = team_b_list[i]
 
-        # Skip if user didn't choose teams
         if not a_id or not b_id:
             continue
 
         try:
             match_time = datetime.strptime(t_str, '%H:%M').time()
         except ValueError:
-            # skip bad time
             continue
 
         data = {
@@ -673,14 +644,11 @@ def create_single_day_placeholders(placeholders, manager, league_id):
     or merges into the date->week logic as in your multi-week code.
     """
 
-    # 1) Assume all placeholders share the same date
     date_str = placeholders[0]['date']
     dt = datetime.strptime(date_str, "%Y-%m-%d").date()
 
-    # 2) Load existing schedules for this league
     existing = manager.get_schedule(league_id=league_id)
 
-    # 3) Build existing date->week map
     existing_date_to_week = {}
     for sch in existing:
         d = sch.date
@@ -693,11 +661,9 @@ def create_single_day_placeholders(placeholders, manager, league_id):
         else:
             existing_date_to_week[d] = min(existing_date_to_week[d], w)
 
-    # 4) If this date not in map, add it
     if dt not in existing_date_to_week:
-        existing_date_to_week[dt] = -1  # new date => later assigned
+        existing_date_to_week[dt] = -1
 
-    # 5) Sort all dates, reassign consecutive weeks
     all_dates_sorted = sorted(existing_date_to_week.keys())
     date_to_week = {}
     w_num = 1
@@ -705,10 +671,8 @@ def create_single_day_placeholders(placeholders, manager, league_id):
         date_to_week[d] = w_num
         w_num += 1
 
-    # 6) Actually create each placeholder
     the_week = date_to_week[dt]
     for ph in placeholders:
-        # if team_a is None, we can store a placeholder or 0
         team_a_id = ph['team_a'] if ph['team_a'] else your_placeholder_team_id_or_0()
         team_b_id = ph['team_b'] if ph['team_b'] else your_placeholder_team_id_or_0()
 
@@ -792,14 +756,12 @@ def create_schedule_from_placeholders(form, manager, league_id=None):
         })
 
     if not rows:
-        return  # no placeholders to create
+        return
 
-    # 2) Load existing schedules for the same league
     existing_schedules = []
     if league_id:
         existing_schedules = manager.get_schedule(league_id=league_id)
 
-    # 3) Build date->week map
     existing_date_to_week = {}
     for sch in existing_schedules:
         d = sch.date
@@ -812,22 +774,18 @@ def create_schedule_from_placeholders(form, manager, league_id=None):
         else:
             existing_date_to_week[d] = min(existing_date_to_week[d], w)
 
-    # 4) Add new placeholders
     for r in rows:
         if r['parsed_date'] not in existing_date_to_week:
             existing_date_to_week[r['parsed_date']] = -1
 
-    # 5) Sort all dates
     all_dates_sorted = sorted(existing_date_to_week.keys())
 
-    # 6) Reassign consecutive weeks
     date_to_week = {}
     current_week_num = 1
     for d in all_dates_sorted:
         date_to_week[d] = current_week_num
         current_week_num += 1
 
-    # 7) create the new schedule rows
     for r in rows:
         the_week = date_to_week[r['parsed_date']]
         data = {

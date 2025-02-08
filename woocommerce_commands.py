@@ -64,31 +64,22 @@ async def get_product_by_name(product_name: str):
     3) Otherwise, do partial/fuzzy matching on product names
        and pick the 'best' match.
     """
-    # 1) Build the search URL
     base_wc_url = wc_url.replace("/orders/", "/")
     encoded_name = urllib.parse.quote_plus(product_name)
     
-    # Increase the per_page if you have a lot of similar products.
-    # By default, WC might return only 10 or 20 products in the search. 
     product_url = f"{base_wc_url}products?search={encoded_name}&per_page=50"
-    
-    # 2) Retrieve the list of matching products (could be multiple)
+
     products = await call_woocommerce_api(product_url)
     if not products or not isinstance(products, list):
         return None
 
-    # 3) Attempt an exact match (case-insensitive)
     exact_matches = [
         p for p in products
         if p.get("name", "").strip().lower() == product_name.strip().lower()
     ]
     if exact_matches:
-        # Return the first exact match, or handle multiple if you expect them
         return exact_matches[0]
 
-    # 4) Attempt a substring match
-    # If, for example, user typed "Classic Division" and the actual product is
-    # "Classic Division - AL", this will find it
     substring_matches = [
         p for p in products
         if product_name.lower() in p.get("name", "").lower()
@@ -96,18 +87,14 @@ async def get_product_by_name(product_name: str):
     if len(substring_matches) == 1:
         return substring_matches[0]
     elif len(substring_matches) > 1:
-        # If multiple substring matches, pick the 'closest' name by difflib
         product_names = [p["name"] for p in substring_matches]
         best_guess = difflib.get_close_matches(product_name, product_names, n=1)
         if best_guess:
             for p in substring_matches:
                 if p["name"] == best_guess[0]:
                     return p
-        # Fallback: just return the first substring match
         return substring_matches[0]
 
-    # 5) Fuzzy match approach if no substring matches 
-    # For instance, if the user typed "Clasik Divison - AL" (typo).
     product_names = [p["name"] for p in products]
     close = difflib.get_close_matches(product_name, product_names, n=1)
     if close:
@@ -115,7 +102,6 @@ async def get_product_by_name(product_name: str):
             if p["name"] == close[0]:
                 return p
 
-    # 6) If we reach here, no exact, substring, or fuzzy match found
     return None
 
 async def get_product_variations(product_id):
@@ -476,83 +462,87 @@ class WooCommerceCommands(commands.Cog):
         await interaction.followup.send(message, ephemeral=True)
 
     @app_commands.command(
-        name="subgrouplist", description="Create a CSV list of members in each subgroup"
+        name="subgrouplist",
+        description="Create a CSV list of members in each subgroup for a specified year"
     )
-    @app_commands.guilds(discord.Object(id=server_id))  # Replace SERVER_ID with your actual server ID
-    async def subgrouplist(self, interaction: discord.Interaction):
+    @app_commands.describe(year="The year for which to generate the CSV list (e.g., 2024, 2025)")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def subgrouplist(self, interaction: discord.Interaction, year: int):
         try:
-            # Check permissions
             if not await has_admin_role(interaction):
                 await interaction.response.send_message(
                     "You do not have the necessary permissions.", ephemeral=True
                 )
                 return
 
-            # Defer the response to give the bot time to process
             await interaction.response.defer(ephemeral=True, thinking=True)
 
-            # Set a wide date range to fetch all orders
-            # Alternatively, set a date range that covers the current year
-            start_of_time = f"{datetime.datetime.now().year - 1}-01-01T00:00:00"  # Start from last year
-            today = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            now = datetime.datetime.now()
+            current_year = now.year
+
+            if year > current_year:
+                await interaction.followup.send(
+                    f"You cannot search for a future year ({year}).", ephemeral=True
+                )
+                return
+
+            start_date = datetime.datetime(year, 1, 1, 0, 0, 0)
+            if year < current_year:
+                end_date = datetime.datetime(year, 12, 31, 23, 59, 59)
+            else:
+                end_date = now
+
+            start_of_time = start_date.strftime("%Y-%m-%dT%H:%M:%S")
+            end_of_time = end_date.strftime("%Y-%m-%dT%H:%M:%S")
 
             page = 1
-            per_page = 100  # Maximum per WooCommerce API
-            done = False
+            per_page = 100
+            max_pages = 10
             member_info_by_subgroup = defaultdict(list)
 
-            while not done:
-                # Construct the orders URL with pagination and date filters
-                orders_url = wc_url.replace(
-                    "orders/",
-                    f"orders?order=desc&page={page}&per_page={per_page}"
-                    f"&status=any&after={start_of_time}&before={today}"
+            # Loop through pages up to max_pages.
+            while page <= max_pages:
+                # Construct the URL using an f-string for clarity.
+                orders_url = (
+                    f"{wc_url}?order=desc&page={page}&per_page={per_page}"
+                    f"&status=any&after={start_of_time}&before={end_of_time}"
                 )
-
                 logger.info(f"Fetching orders from page {page}.")
 
-                # Fetch orders from WooCommerce
                 fetched_orders = await call_woocommerce_api(orders_url)
 
                 if not fetched_orders:
-                    # If the API call failed or no orders returned, stop fetching
                     logger.info(f"No orders fetched from page {page}. Ending pagination.")
-                    done = True
                     break
 
                 if len(fetched_orders) < per_page:
-                    # Last page of results
                     logger.info(f"Fetched {len(fetched_orders)} orders from page {page}. Assuming last page.")
-                    done = True
+                    # No need to continue if this is the last page.
+                    break
 
-                # Process each order
+                # Process each order.
                 for order in fetched_orders:
-                    order_id = order.get('id', 'Unknown')
-                    # Fetch customer info based on subgroup
+                    order_id = order.get("id", "Unknown")
                     subgroup_info = await find_customer_info_in_order(order, SUBGROUPS)
                     if subgroup_info:
                         matched_subgroups, customer_info = subgroup_info
-                        
-                        # Verify that 'matched_subgroups' is a list
+
+                        # Ensure we have a list of subgroup names.
                         if not isinstance(matched_subgroups, list):
                             logger.error(f"'matched_subgroups' is not a list for Order ID {order_id}.")
-                            continue  # Skip this order
+                            continue
 
-                        # Verify that each 'subgroup' is a string
                         for subgroup in matched_subgroups:
                             if not isinstance(subgroup, str):
                                 logger.error(f"Subgroup is not a string for Order ID {order_id}: {subgroup}")
-                                continue  # Skip this subgroup
-                            
+                                continue
                             member_info_by_subgroup[subgroup].append(customer_info)
 
-                # Move to the next page
                 page += 1
-
-                # Sleep to respect API rate limits
+                # Respect API rate limits.
                 await asyncio.sleep(1)
 
-            # Check if any members were found
+            # If no members were found, inform the user.
             if not member_info_by_subgroup:
                 logger.info("No members found matching the criteria.")
                 await interaction.followup.send(
@@ -561,7 +551,7 @@ class WooCommerceCommands(commands.Cog):
                 )
                 return
 
-            # Create CSV
+            # Generate CSV output.
             csv_output = io.StringIO()
             csv_writer = csv.writer(csv_output)
             header = ["Subgroup", "First Name", "Last Name", "Email"]
@@ -569,7 +559,6 @@ class WooCommerceCommands(commands.Cog):
 
             for subgroup, members in member_info_by_subgroup.items():
                 for member in members:
-                    # Ensure that the member's data is correctly formatted
                     csv_writer.writerow([
                         subgroup,
                         member.get("first_name", "").strip(),
@@ -577,26 +566,21 @@ class WooCommerceCommands(commands.Cog):
                         member.get("email", "").strip()
                     ])
 
-            # Prepare CSV for sending
             csv_output.seek(0)
-            filename = "subgroup_members_list.csv"
+            filename = f"subgroup_members_list_{year}.csv"
             csv_file = discord.File(fp=csv_output, filename=filename)
 
-            # Send the CSV file as a follow-up message
+            # Send the CSV file as a follow-up message.
             await interaction.followup.send(
                 content="Here is the list of subgroup members:",
                 file=csv_file,
                 ephemeral=True
             )
-            # Close the StringIO object
             csv_output.close()
 
         except Exception as e:
-            # Log the error
             logger.error(f"An error occurred: {str(e)}")
-            # Check if the interaction has already been acknowledged
             if interaction.response.is_done():
-                # If already acknowledged (deferred), use followup
                 try:
                     await interaction.followup.send(
                         f"An error occurred while generating the list: {str(e)}",
@@ -605,7 +589,6 @@ class WooCommerceCommands(commands.Cog):
                 except discord.HTTPException as followup_error:
                     logger.error(f"Failed to send followup message: {followup_error}")
             else:
-                # If not acknowledged, send a response
                 try:
                     await interaction.response.send_message(
                         f"An error occurred while generating the list: {str(e)}",

@@ -14,7 +14,7 @@ from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.user_helpers import safe_current_user
-from app.utils.db_utils import transactional  # Import transactional decorator
+from app.utils.db_utils import transactional
 import aiohttp
 import logging
 import requests
@@ -111,7 +111,6 @@ def settings():
 @transactional
 def update_notifications():
     session = g.db_session
-    # Re-query the user from this session
     user = session.query(User).get(current_user.id)
 
     form = NotificationSettingsForm(prefix='notification')
@@ -228,8 +227,6 @@ def opt_out_sms():
 @account_bp.route('/sms-verification-status', methods=['GET'])
 @login_required
 def sms_verification_status():
-    # This only needs to read data, so db.session or g.db_session doesn't matter,
-    # but for consistency, you can do the same approach:
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -356,11 +353,9 @@ def incoming_sms_webhook():
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip()
 
-    # Normalize the phone number
     if sender_number.startswith('+1'):
         sender_number = sender_number[2:]
 
-    # Just delegate to your unified command function
     return handle_incoming_text_command(sender_number, message_text)
 
 @account_bp.route('/show_2fa_qr', methods=['GET'])

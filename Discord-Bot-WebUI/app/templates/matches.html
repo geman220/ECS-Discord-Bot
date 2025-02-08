@@ -367,7 +367,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    location.reload(); // Reload the page to reflect the cleared matches
+                    location.reload();
                 } else {
                     alert('Failed to clear matches.');
                 }

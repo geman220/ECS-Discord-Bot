@@ -16,7 +16,7 @@ import globalConfig from '../config/globalConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { argonTheme, Images } from '../constants';
 import { getEventIcon, getEventIconFamily, getEventColor, getRSVPColor } from '../utils/eventHelpers';
-import Icon from '../components/Icon'; // Ensure you use the updated Icon component
+import Icon from '../components/Icon';
 
 const MatchDetails = ({ route, navigation }) => {
     const { matchId } = route.params;

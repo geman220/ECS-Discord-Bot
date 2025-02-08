@@ -74,14 +74,12 @@ def update_player_discord_roles(self, session, player_id: int) -> Dict[str, Any]
                 update_player_roles(session, player, force_update=False)
             )
             
-            # Update player info
             player.discord_roles = result.get('current_roles', [])
             player.discord_last_verified = datetime.utcnow()
             player.discord_needs_update = False
             player.last_sync_attempt = datetime.utcnow()
             player.sync_status = 'success' if result.get('success') else 'mismatch'
 
-            # Socket notification after DB updates
             socketio.emit('role_update', result)
             return result
         finally:
@@ -140,7 +138,6 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
 def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[str, Any]:
     """Process Discord role updates for multiple players."""
     try:
-        # Get players needing updates
         players = session.query(Player).filter(
             Player.discord_id.in_(discord_ids)
         ).options(
@@ -157,7 +154,6 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
         finally:
             loop.close()
 
-        # Update player statuses
         for player in players:
             result = next((r for r in results if r.get('player_id') == player.id), None)
             if result:
@@ -210,7 +206,7 @@ async def _mass_process_role_updates(session, discord_ids: List[str]) -> List[Di
     bind=True,
     max_retries=3,
     retry_backoff=True,
-    rate_limit='50/s'  # Example: rate limit to 50 Discord calls/sec
+    rate_limit='50/s'
 )
 def assign_roles_to_player_task(
     self,
@@ -226,7 +222,6 @@ def assign_roles_to_player_task(
     """
     logger.info(f"==> Starting assign_roles_to_player_task for player_id={player_id}, team_id={team_id}, only_add={only_add}")
     try:
-        # Ensure DB connection
         session.connection()
 
         player = session.query(Player).get(player_id)
@@ -243,7 +238,6 @@ def assign_roles_to_player_task(
             logger.debug("About to call _assign_roles_async(...)")
             result = loop.run_until_complete(_assign_roles_async(session, player.id, team_id, only_add))
 
-            # Update DB with sync status
             with session.begin_nested():
                 player.discord_roles_updated = datetime.utcnow()
                 if result.get('success'):
@@ -267,7 +261,6 @@ def assign_roles_to_player_task(
 
     except Exception as e:
         logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True)
-        # Use different retry delays based on exception type:
         countdown = 60 if isinstance(e, SQLAlchemyError) else 15
         raise self.retry(exc=e, countdown=countdown)
 
@@ -288,18 +281,15 @@ async def _assign_roles_async(
 
     try:
         async with aiohttp.ClientSession() as aio_session:
-            # If a specific team_id was provided, assign that team's role(s) only
             if team_id:
                 team = session.query(Team).get(team_id)
                 role_name = f"ECS-FC-PL-{team.name}-PLAYER"
                 logger.debug(f"Assigning team role '{role_name}' to player {player_id}")
 
-                # Get the role IDs from Discord
                 role_id = await get_role_id(Config.SERVER_ID, role_name, aio_session)
                 league_role_name = f"ECS-FC-PL-{team.league.name}"
                 league_role_id = await get_role_id(Config.SERVER_ID, league_role_name, aio_session)
 
-                # Only add these roles; do not remove any others
                 if role_id:
                     await make_discord_request(
                         method='PUT',
@@ -314,8 +304,6 @@ async def _assign_roles_async(
                     )
                 return {'success': True}
 
-            # Otherwise, run the normal “process_single_player_update” which can handle
-            # whether to remove roles or only add them:
             logger.debug(f"No team_id specified, calling process_single_player_update(only_add={only_add})")
             return await process_single_player_update(session, player, only_add=only_add)
 
@@ -340,7 +328,6 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
                 _fetch_roles_batch(session, players)
             )
 
-            # Update player statuses in bulk
             for status in results['status_updates']:
                 player = session.query(Player).get(status['id'])
                 if player:
@@ -388,7 +375,6 @@ def process_role_results(session, players: List[Player], role_results: List[Dict
                 updated_role_results.append(create_error_result({
                     'id': player.id,
                     'name': player.name,
-                    # Provide fallback strings
                     'team': "No Team",
                     'league': "No League",
                 }))
@@ -396,13 +382,12 @@ def process_role_results(session, players: List[Player], role_results: List[Dict
 
             current_roles = result.get('roles', [])
             if player:
-                # If you want multiple teams as a single string:
                 teams_str = ", ".join(t.name for t in player.teams) if player.teams else "No Team"
                 leagues_str = ", ".join(sorted({
                     t.league.name for t in player.teams if t.league
                 })) if player.teams else "No League"
 
-                expected_roles = []  # Or call get_expected_roles(session, player) if needed
+                expected_roles = []
                 roles_match = set(current_roles) == set(expected_roles)
 
                 status_updates.append({
@@ -451,11 +436,9 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
             try:
                 current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
                 
-                # Filter to only consider managed roles for comparison
                 managed_prefixes = ["ECS-FC-PL-", "Referee"]
                 managed_current = {r for r in current_roles if any(r.startswith(p) for p in managed_prefixes)}
                 
-                # Build expected roles
                 expected_roles = set()
                 for team in player.teams:
                     if team.league and team.league.name:
@@ -482,7 +465,7 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
                 status_updates.append({
                     'id': player.id,
                     'status': 'synced' if roles_match else 'mismatch',
-                    'current_roles': list(current_roles)  # Convert set back to list
+                    'current_roles': list(current_roles)
                 })
 
                 role_results.append({
@@ -525,11 +508,9 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
 
                 current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
                 
-                # Filter managed roles
                 managed_prefixes = ["ECS-FC-PL-", "Referee"]
                 managed_current = {r for r in current_roles if any(r.startswith(p) for p in managed_prefixes)}
-                
-                # Build expected roles
+
                 expected_roles = set()
                 for team in player.teams:
                     if team.league and team.league.name:
@@ -574,7 +555,6 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
                 logger.error(f"Error processing player {p_info['id']}: {str(e)}")
                 results.append(create_error_result(p_info))
 
-    # Update player statuses
     for update in status_updates:
         player = session.query(Player).get(update['id'])
         if player:
@@ -628,7 +608,6 @@ def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dic
         finally:
             loop.close()
 
-        # Now we can use result to update the player record
         if result.get('success'):
             player.discord_roles = []
             player.discord_last_verified = datetime.utcnow()
@@ -673,12 +652,10 @@ async def _remove_player_roles_async(session, player_id: int, team_id: Optional[
                 role_name = f"ECS-FC-PL-{team.name}-PLAYER"
                 guild_id = int(Config.SERVER_ID)
 
-                # Get all roles first
                 url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
                 member_roles = await make_discord_request('GET', url, aio_session)
                 
                 if member_roles:
-                    # Remove this specific team's role
                     role_id = await get_role_id(guild_id, role_name, aio_session)
                     if role_id:
                         await remove_role_from_member(guild_id, player.discord_id, role_id, aio_session)
@@ -705,12 +682,10 @@ def create_team_discord_resources_task(self, session, team_id: int):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            # Execute Discord channel creation
             channel_result = loop.run_until_complete(
                 create_discord_channel(session, team.name, team.league.name, team.id)
             )
-            
-            # Set channel ID if successful
+
             if channel_result and channel_result.get('channel_id'):
                 team.discord_channel_id = channel_result['channel_id']
             
@@ -776,7 +751,6 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
 @celery_task(name='app.tasks.tasks_discord.update_team_discord_resources_task', queue='discord')
 def update_team_discord_resources_task(self, session, team_id: int, new_team_name: str):
     try:
-        # Create session explicitly
         team = session.query(Team).options(joinedload(Team.league)).get(team_id)
         if not team:
             return {'success': False, 'message': 'Team not found'}
@@ -785,12 +759,12 @@ def update_team_discord_resources_task(self, session, team_id: int, new_team_nam
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(rename_team_roles(session, team, new_team_name))
-            session.commit()  # Commit changes
+            session.commit()
             return {'success': True, 'message': 'Discord resources updated'}
         finally:
             loop.close()
     except Exception as e:
-        session.rollback()  # Rollback on error
+        session.rollback()
         raise self.retry(exc=e, countdown=30)
 
 async def _process_role_updates_batch(session, players: List[Player]) -> List[Dict[str, Any]]:
@@ -798,7 +772,6 @@ async def _process_role_updates_batch(session, players: List[Player]) -> List[Di
     results = []
     for player in players:
         try:
-            # Process each player's role update
             await update_player_roles(session, player, force_update=False)
             results.append({
                 'player_id': player.id,

@@ -8,7 +8,7 @@ import string
 import logging
 
 from app.models import User, Player, Match
-# from app.core import db  # If you're no longer using db.session directly
+
 logger = logging.getLogger(__name__)
 
 

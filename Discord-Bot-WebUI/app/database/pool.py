@@ -7,6 +7,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Set these flags as needed. In production, both should be False.
+DEBUG_POOL = False
+LOG_CONNECTION_RESET = False
+
 class RateLimitedPool(QueuePool):
     def __init__(self, *args, **kwargs):
         self._last_checkout = 0
@@ -20,8 +24,6 @@ class RateLimitedPool(QueuePool):
         event.listen(self, 'checkout', self._on_checkout)
         event.listen(self, 'checkin', self._on_checkin)
         event.listen(self, 'reset', self._on_reset)
-        # You can keep this as .info or remove entirely
-        logger.info("Pool event listeners registered")
 
     def _get_stack_info(self, depth=10):
         """Get partial stack trace info."""
@@ -61,7 +63,7 @@ class RateLimitedPool(QueuePool):
                     f"Connection ID: {conn_id}\n"
                     f"Route: {route}\n"
                     f"Stack trace at checkout:\n{stack}\n"
-                    f"Current stack:\n{self._get_stack_info()}"
+                    f"Current stack:\n{self._get_stack_info() if DEBUG_POOL else '<stack omitted>'}"
                 )
 
     def _check_transactions(self):
@@ -72,7 +74,6 @@ class RateLimitedPool(QueuePool):
             self._last_transaction_check = now
 
     def _do_get(self):
-        """Acquire a connection from the pool."""
         self._check_transactions()
 
         now = time.time()
@@ -81,29 +82,24 @@ class RateLimitedPool(QueuePool):
         self._last_checkout = now
 
         conn = super()._do_get()
-        # We only store minimal info here, to reduce noise
-        self._active_connections[id(conn)] = (time.time(), "<stack omitted>", None)
+        stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
+        self._active_connections[id(conn)] = (time.time(), stack, None)
         return conn
 
     def _on_checkout(self, dbapi_conn, con_record, con_proxy):
-        """When the pool hands out a connection."""
         conn_id = id(dbapi_conn)
         route = None
-
-        # If there's a request context, store the path
         try:
             from flask import has_request_context, request
             if has_request_context():
                 route = request.path
-        except:
+        except Exception:
             pass
 
-        # Update the dict if it already exists, or create a fresh entry
-        checkout_time, old_stack, _ = self._active_connections.get(conn_id, (time.time(), "", None))
-        self._active_connections[conn_id] = (time.time(), old_stack, route)
-
-        # If you still want minimal info here, set to .info or remove:
-        # logger.info(f"Connection checkout: {conn_id} (route={route})")
+        checkout_time, old_stack, _ = self._active_connections.get(conn_id, (time.time(), "<stack omitted>", None))
+        if DEBUG_POOL:
+            old_stack = self._get_stack_info(depth=20)
+        self._active_connections[conn_id] = (checkout_time, old_stack, route)
 
     def _on_checkin(self, dbapi_conn, con_record):
         """When a connection is returned to the pool."""
@@ -112,21 +108,30 @@ class RateLimitedPool(QueuePool):
 
         try:
             if dbapi_conn and not dbapi_conn.closed:
-                dbapi_conn.rollback()  # ensure no open transaction
+                dbapi_conn.rollback()
         except Exception as e:
             logger.error(f"Error during connection {conn_id} cleanup: {e}", exc_info=True)
 
     def _on_reset(self, dbapi_conn, record):
-        """Connection is being reset by the pool."""
-        logger.warning(
+        conn_id = id(dbapi_conn)
+        checkout_info = self._active_connections.get(conn_id, ("<unknown>", "<no stack>", None))
+        checkout_time, checkout_stack, route = checkout_info
+        current_stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
+        message = (
             f"CONNECTION RESET\n"
-            f"Connection ID: {id(dbapi_conn)}\n"
-            f"Transaction State: {self._get_transaction_state()}\n"
-            f"Stack:\n{self._get_stack_info()}"
+            f"Connection ID: {conn_id}\n"
+            f"Route: {route}\n"
+            f"Checked out at: {checkout_time}\n"
+            f"Checkout Stack:\n{checkout_stack}\n"
+            f"Current Transaction State: {self._get_transaction_state()}\n"
+            f"Current Stack:\n{current_stack}"
         )
+        if LOG_CONNECTION_RESET:
+            logger.warning(message)
+        else:
+            if DEBUG_POOL and logger.isEnabledFor(logging.DEBUG):
+                logger.debug(message)
 
-
-# Then the engine config in production can disable echo logs:
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
     'pool_size': 10,
@@ -143,11 +148,9 @@ ENGINE_OPTIONS = {
             '-c lock_timeout=5000'
         )
     },
-    # Disable verbose logging of each statement/pool event:
     'echo': False,
     'echo_pool': False,
 }
-
 
 def create_engine_with_retry(*args, **kwargs):
     """
@@ -162,7 +165,6 @@ def create_engine_with_retry(*args, **kwargs):
     for attempt in range(max_retries):
         try:
             engine = create_engine(*args, **kwargs)
-            # Quick test to ensure the engine works
             with engine.connect() as conn:
                 conn.execute("SELECT 1")
             return engine

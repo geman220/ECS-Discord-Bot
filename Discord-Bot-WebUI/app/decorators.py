@@ -367,7 +367,7 @@ def async_task(**task_kwargs):
         @wraps(f)
         async def wrapped(*args, **kwargs):
             app = celery.flask_app
-            async_session = app.SessionLocal()  # sync session; adapt if you truly need async DB
+            async_session = app.SessionLocal()
             try:
                 # f should accept session if needed
                 result = await f(async_session, *args, **kwargs)

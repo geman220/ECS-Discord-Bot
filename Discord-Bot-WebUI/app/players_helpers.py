@@ -40,7 +40,6 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
         image.save(file_path, format='PNG')
         profile_path = f"/static/img/uploads/profile_pictures/{filename}"
 
-        # Update player's profile_picture using the session
         player.profile_picture = profile_path
         return player.profile_picture
 
@@ -94,7 +93,6 @@ def create_user_for_player(player_info, session):
         logger.debug("Returning existing_user.")
         return existing_user
 
-    # Otherwise create new user
     try:
         random_password = ''.join(
             secrets.choice(string.ascii_letters + string.digits) 
@@ -107,7 +105,7 @@ def create_user_for_player(player_info, session):
         )
         new_user.set_password(random_password)
         session.add(new_user)
-        session.flush()  # to populate new_user.id
+        session.flush()
         logger.info(f"Created new user: id={new_user.id}, email={new_user.email}")
         return new_user
 
@@ -126,7 +124,7 @@ def generate_unique_name(base_name):
 
 def generate_unique_username(base_name):
     session = g.db_session
-    unique_username = base_name[:50]  # Ensure it doesn't exceed length
+    unique_username = base_name[:50]
     while session.query(User).filter_by(username=unique_username).first():
         unique_username = f"{base_name} ({str(uuid.uuid4())[:8]})"[:50]
     return unique_username
@@ -167,7 +165,6 @@ def match_user(player_data):
         return user
 
     if name and phone:
-        # Standardize phone in DB comparison
         standardized_phone_db = func.replace(
             func.replace(
                 func.replace(
@@ -201,7 +198,6 @@ def match_player(player_data, league, user=None, session=None):
     logger.debug("Entering match_player")
     logger.debug(f"Player data received: {player_data}")
 
-    # 1) If we already have a user, check for a Player with (user_id, league.id)
     if user and user.id:
         logger.debug(f"User was passed in: {user} with id {user.id}. Checking for existing player in league {league.id}...")
         existing_player = session.query(Player).filter_by(
@@ -214,8 +210,7 @@ def match_player(player_data, league, user=None, session=None):
         else:
             logger.debug("No player found for this user in this league. Will fall back to name+phone matching if needed.")
     else:
-        # 2) If no 'user' was supplied, see if there's a user in the DB based on this player's email/whatever.
-        matched_user = match_user(player_data)  # your existing code for email-based lookup
+        matched_user = match_user(player_data)
         if matched_user:
             logger.debug(f"match_user returned: {matched_user} with id {matched_user.id}")
             player_by_user = session.query(Player).filter_by(user_id=matched_user.id, league_id=league.id).first()
@@ -224,19 +219,15 @@ def match_player(player_data, league, user=None, session=None):
                 return player_by_user
             else:
                 logger.debug("No player found using matched_user in this league. Fall back to name+phone.")
-                # We *could* set user = matched_user here if you want
                 user = matched_user
         else:
             logger.debug("No matching user found from player data.")
 
-    # 3) Finally, attempt name+phone matching if we either have no user
-    #    or we didn't find a player with that user in this league.
     name = standardize_name(player_data.get('name', ''))
     phone = standardize_phone(player_data.get('phone', ''))
     logger.debug(f"Standardized name: {name}, Standardized phone: {phone}")
 
     if name and phone:
-        # Example of removing punctuation from phone in the DB
         standardized_phone_db = func.replace(
             func.replace(
                 func.replace(
@@ -313,7 +304,6 @@ def match_player_weighted(player_info, db_session):
     email = player_info.get('email', '').lower()
     phone = standardize_phone(player_info.get('phone', ''))
 
-    # Try exact email match first
     if email:
         player = db_session.query(Player).join(User).filter(
             func.lower(User.email) == email
@@ -321,7 +311,6 @@ def match_player_weighted(player_info, db_session):
         if player:
             return player
 
-    # Try name + phone match
     if name and phone:
         standardized_phone_db = func.replace(
             func.replace(

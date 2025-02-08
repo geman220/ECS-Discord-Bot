@@ -37,7 +37,6 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
         scheduled_count = 0
         for match_data in matches_data:
             if not match_data['has_message']:
-                # Example logic: send at Monday 9AM of the match's week
                 send_date = match_data['date'] - timedelta(days=match_data['date'].weekday() + 1)
                 send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
 
@@ -74,7 +73,6 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
     """Celery task to send availability message for either a Pub League Match or MLSMatch."""
     try:
         message = session.query(ScheduledMessage).options(
-            # If it's a Pub League match, these loads will work; MLSMatch won't have these relationships
             joinedload(ScheduledMessage.match)
         ).get(scheduled_message_id)
 
@@ -83,11 +81,8 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
 
         match = message.match
 
-        # Determine if this is an MLSMatch or a Pub League Match
         if isinstance(match, MLSMatch):
-            # MLS logic
-            # We only have 'opponent', 'is_home_game', and 'date_time'
-            local_team_name = "ECS FC"  # Your local MLS team name
+            local_team_name = "ECS FC"
             if match.is_home_game:
                 home_team_name = local_team_name
                 away_team_name = match.opponent
@@ -95,17 +90,13 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
                 home_team_name = match.opponent
                 away_team_name = local_team_name
 
-            # For MLS matches, if you previously relied on home_team/away_team channels, decide what to do now.
-            # If you don't have channels for MLS matches, set them to None or skip them.
             home_channel_id = None
             away_channel_id = None
 
             match_date_str = match.date_time.strftime('%Y-%m-%d')
             match_time_str = match.date_time.strftime('%H:%M:%S')
         else:
-            # Pub League logic (original)
             if not hasattr(match, 'home_team') or not hasattr(match, 'away_team'):
-                # If somehow we have a normal Match but no relationships, handle error
                 raise ValueError("Pub League match found but no home_team/away_team attributes.")
 
             home_channel_id = str(match.home_team.discord_channel_id)
@@ -132,13 +123,9 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
         finally:
             loop.close()
 
-        # Update status to SENT
         message = session.query(ScheduledMessage).get(scheduled_message_id)
         if message:
             message.status = 'SENT'
-            # If result returned message IDs, store them if needed
-            # message.home_discord_message_id = result.get('home_message_id')
-            # message.away_discord_message_id = result.get('away_message_id')
 
         return {
             "success": True,
@@ -147,7 +134,6 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
         }
 
     except Exception as e:
-        # Mark failed if sending failed
         msg = session.query(ScheduledMessage).get(scheduled_message_id)
         if msg:
             msg.status = 'FAILED'
@@ -192,10 +178,8 @@ def send_scheduled_messages(self, session) -> Dict[str, Any]:
 
         for msg_data in messages_to_send:
             try:
-                # Queue the task to send the message
                 send_availability_message_task.delay(msg_data['id'])
 
-                # Mark status as QUEUED
                 message = session.query(ScheduledMessage).get(msg_data['id'])
                 if message:
                     message.status = 'QUEUED'
@@ -240,9 +224,6 @@ async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, 
                 return {
                     "match_id": message_data["match_id"],
                     "status": "sent",
-                    # "home_message_id": result.get('home_message_id'),
-                    # "away_message_id": result.get('away_message_id')
-                    # Uncomment above lines if your API returns these fields
                 }
 
     except Exception as e:

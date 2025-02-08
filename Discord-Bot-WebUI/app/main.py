@@ -119,13 +119,12 @@ def create_player_profile(onboarding_form):
         session.add(player)
         session.add(safe_current_user)
         
-        # Don't commit here - let the caller handle the transaction
         logger.info(f"Created player profile for user {safe_current_user.id}")
         return player
 
     except Exception as e:
         logger.error(f"Error creating profile for user {safe_current_user.id}: {e}")
-        raise  # Re-raise the exception to be handled by the caller
+        raise
 
 def handle_profile_update(player, onboarding_form):
     session = g.db_session
@@ -176,12 +175,11 @@ def handle_profile_update(player, onboarding_form):
         session.add(player)
         session.add(safe_current_user)
         
-        # Don't commit here - let the caller handle the transaction
         logger.info(f"Updated profile for user {safe_current_user.id}")
 
     except Exception as e:
         logger.error(f"Error updating profile for user {safe_current_user.id}: {e}")
-        raise  # Re-raise the exception to be handled by the caller
+        raise
 
 def fetch_upcoming_matches(
     teams,
@@ -201,11 +199,9 @@ def fetch_upcoming_matches(
     grouped_matches = defaultdict(list)
     today = datetime.now().date()
 
-    # If we get None or an empty list, return empty grouped_matches
     if not teams:
         return grouped_matches
 
-    # Collect all the team IDs
     team_ids = [t.id for t in teams]
 
     if not start_date:
@@ -219,7 +215,6 @@ def fetch_upcoming_matches(
         else:
             end_date = today + timedelta(weeks=4)
 
-    # Asc or Desc ordering
     order_by = [Match.date.asc(), Match.time.asc()] if order == 'asc' else [Match.date.desc(), Match.time.desc()]
 
     query = (
@@ -245,7 +240,6 @@ def fetch_upcoming_matches(
     matches = query.all()
 
     if specific_day is not None and per_day_limit is not None:
-        # If we only want a limited number of matches per day
         day_count = defaultdict(int)
         for match in matches:
             match_date = match.date
@@ -280,7 +274,6 @@ def index():
     current_year = datetime.now().year
 
     try:
-        # Load the player's full data, including all teams
         player = getattr(safe_current_user, 'player', None)
         if player:
             player = (
@@ -297,7 +290,6 @@ def index():
         )
         report_form = ReportMatchForm()
 
-        # Get matches for debugging/UI
         matches = (
             session.query(Match)
             .options(joinedload(Match.home_team), joinedload(Match.away_team))
@@ -314,7 +306,6 @@ def index():
             and not safe_current_user.has_completed_tour
         )
 
-        # Handle POST forms
         if request.method == 'POST':
             form_action = request.form.get('form_action', '')
             logger.info(f"Processing form action: {form_action}")
@@ -322,10 +313,8 @@ def index():
             if form_action in ['create_profile', 'update_profile']:
                 if onboarding_form.validate_on_submit():
                     try:
-                        # Get current state
                         logger.info(f"Current has_completed_onboarding: {safe_current_user.has_completed_onboarding}")
             
-                        # Force a refresh to get latest state
                         session.refresh(safe_current_user)
             
                         if not player:
@@ -336,12 +325,10 @@ def index():
                             handle_profile_update(player, onboarding_form)
 
                         if player:
-                            # Set flag and explicitly update user
                             safe_current_user.has_completed_onboarding = True
                             session.add(safe_current_user)
-                            session.flush()  # Force the changes to be sent to DB
+                            session.flush()
                 
-                            # Execute an update directly
                             session.execute(
                                 text("UPDATE users SET has_completed_onboarding = true WHERE id = :user_id"),
                                 {"user_id": safe_current_user.id}
@@ -349,11 +336,9 @@ def index():
                 
                             session.commit()
                 
-                            # Verify the update
                             session.refresh(safe_current_user)
                             logger.info(f"Verified has_completed_onboarding after update: {safe_current_user.has_completed_onboarding}")
                 
-                            # Double check with direct query
                             result = session.execute(
                                 text("SELECT has_completed_onboarding FROM users WHERE id = :user_id"),
                                 {"user_id": safe_current_user.id}
@@ -384,7 +369,6 @@ def index():
                     flash('An error occurred. Please try again.', 'danger')
                     return redirect(url_for('main.index'))
 
-        # Prepare template data
         user_teams = player.teams if player else []
         today = datetime.now().date()
         two_weeks_later = today + timedelta(weeks=2)
@@ -413,7 +397,6 @@ def index():
         announcements = fetch_announcements()
         player_choices_per_match = {}
 
-        # Build player choices for matches
         for matches_dict in [next_matches, previous_matches]:
             for date_key, matches_list in matches_dict.items():
                 for match_data in matches_list:
@@ -504,7 +487,6 @@ def set_tour_skipped():
     except Exception as e:
         logger.error(f"Error setting tour skipped for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
-        # raise is unreachable after return, so you can remove it or keep
 
     return '', 204
 

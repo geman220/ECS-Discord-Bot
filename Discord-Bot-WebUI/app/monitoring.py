@@ -21,7 +21,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Define the blueprint BEFORE using it in decorators
 monitoring_bp = Blueprint('monitoring', __name__, url_prefix='/monitoring')
 
 class TaskMonitor:
@@ -451,8 +450,6 @@ def check_connections():
         """))
 
         connections = []
-        # transaction_metadata usage commented out or removed if db_manager no longer has transaction_metadata
-        # For now, assume we no longer rely on db_manager.transaction_metadata
         for row in result:
             connections.append(dict(row._mapping))
 
@@ -465,7 +462,6 @@ def check_connections():
 @role_required(['Global Admin'])
 def cleanup_connections():
     try:
-        # Check for leaked connections
         db_manager.check_for_leaked_connections()
         
         session = g.db_session
@@ -497,7 +493,7 @@ def cleanup_connections():
 @role_required(['Global Admin'])
 def connection_stats():
     try:
-        pool_stats = db_manager.get_pool_stats()  # Allowed
+        pool_stats = db_manager.get_pool_stats()
         engine = db.get_engine()
 
         session = g.db_session
@@ -574,7 +570,6 @@ def get_db_monitoring_data():
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=hours)
 
-        # DBMonitoringSnapshot is a Flask-SQLAlchemy model, so just query using db.session
         snapshots = DBMonitoringSnapshot.query.filter(
             DBMonitoringSnapshot.timestamp.between(start_time, end_time)
         ).order_by(DBMonitoringSnapshot.timestamp.asc()).all()
@@ -603,7 +598,6 @@ def get_db_monitoring_data():
 @role_required('Global Admin')
 def get_debug_logs():
     try:
-        # This code attempts to read from a MemoryHandler, ensure you have such a handler if needed.
         logs = []
         logger_root = logging.getLogger()
         for handler in logger_root.handlers:
@@ -708,7 +702,6 @@ def get_stack_trace(pid):
         logger.debug(f"Looking up transaction details for PID: {pid}")
         logger.debug(f"Current metadata keys: {list(db_manager.transaction_metadata.keys()) if hasattr(db_manager, 'transaction_metadata') else 'No transaction_metadata'}")
 
-        # If db_manager.get_transaction_details(pid) depends on old transaction metadata logic, you may remove it.
         details = db_manager.get_transaction_details(pid) if hasattr(db_manager, 'get_transaction_details') else None
 
         if not details:
