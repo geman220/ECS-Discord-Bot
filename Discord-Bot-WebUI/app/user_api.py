@@ -17,6 +17,30 @@ logger = logging.getLogger(__name__)
 user_bp = Blueprint('user_api', __name__)
 csrf.exempt(user_bp)
 
+@user_bp.route('/player_lookup', methods=['GET'])
+def player_lookup():
+    """
+    Lookup a player using a case-insensitive partial match on the player's name.
+    Query parameter: name
+    Returns the player's id, name, and discord_id if found.
+    """
+    name_query = request.args.get("name")
+    if not name_query:
+        return jsonify({"error": "Missing name parameter"}), 400
+
+    session_db = g.db_session
+
+    # Perform a case-insensitive search using a partial match.
+    player = session_db.query(Player).filter(Player.name.ilike(f"%{name_query}%")).first()
+    if not player:
+        return jsonify({"error": "Player not found"}), 404
+
+    return jsonify({
+        "id": player.id,
+        "name": player.name,
+        "discord_id": player.discord_id
+    }), 200
+
 @user_bp.route('/get_notifications', methods=['GET'])
 def get_notifications():
     discord_id = request.args.get("discord_id")
