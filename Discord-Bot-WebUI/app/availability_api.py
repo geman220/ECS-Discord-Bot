@@ -363,35 +363,36 @@ def is_user_on_team():
        'is_team_member': bool(player and player.team_id == team_id)
    }), 200
 
-@availability_bp.route('/get_scheduled_messages', endpoint='get_scheduled_messages', methods=['GET'])
+@availability_bp.route('/get_scheduled_messages', methods=['GET'])
 def get_scheduled_messages():
-   session_db = g.db_session
-   messages = (
-       session_db.query(ScheduledMessage, Match)
-       .join(Match, Match.id == ScheduledMessage.match_id)
-       .with_entities(
-           ScheduledMessage.match_id,
-           ScheduledMessage.home_channel_id,
-           ScheduledMessage.home_message_id,
-           ScheduledMessage.away_channel_id,
-           ScheduledMessage.away_message_id,
-           Match.home_team_id,
-           Match.away_team_id
-       )
-       .all()
-   )
+    from app.core.session_manager import managed_session
+    with managed_session() as session_db:
+        messages = (
+            session_db.query(ScheduledMessage, Match)
+            .join(Match, Match.id == ScheduledMessage.match_id)
+            .with_entities(
+                ScheduledMessage.match_id,
+                ScheduledMessage.home_channel_id,
+                ScheduledMessage.home_message_id,
+                ScheduledMessage.away_channel_id,
+                ScheduledMessage.away_message_id,
+                Match.home_team_id,
+                Match.away_team_id
+            )
+            .all()
+        )
 
-   messages_data = [{
-       'match_id': m.match_id,
-       'home_channel_id': m.home_channel_id,
-       'home_message_id': m.home_message_id,
-       'away_channel_id': m.away_channel_id,
-       'away_message_id': m.away_message_id,
-       'home_team_id': m.home_team_id,
-       'away_team_id': m.away_team_id
-   } for m in messages]
+        messages_data = [{
+            'match_id': m.match_id,
+            'home_channel_id': m.home_channel_id,
+            'home_message_id': m.home_message_id,
+            'away_channel_id': m.away_channel_id,
+            'away_message_id': m.away_message_id,
+            'home_team_id': m.home_team_id,
+            'away_team_id': m.away_team_id
+        } for m in messages]
 
-   return jsonify(messages_data), 200
+    return jsonify(messages_data), 200
 
 @availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
 def get_player_id_from_discord(discord_id):

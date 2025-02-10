@@ -4,7 +4,7 @@ from discord.ext import commands
 import aiohttp
 import os
 import logging
-from common import server_id
+from common import server_id, has_admin_role
 
 logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
@@ -252,6 +252,86 @@ class PubLeagueCommands(commands.Cog):
             ephemeral=True,
             view=view
         )
+
+    @app_commands.command(name="checkroles", description="Check a player's Discord roles by player name")
+    @app_commands.describe(player_name="Player name (first and last) to look up")
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def checkroles(self, interaction: discord.Interaction, player_name: str):
+        """
+        Lookup a player by name via your Flask API, retrieve their discord_id,
+        then get and display the member's roles from your Discord guild.
+        """
+        # Only allow specific roles to execute this command.
+        allowed_roles = [
+            "ECS-FC-PL-CLASSIC-COACH",
+            "ECS-FC-PL-PREMIER-COACH",
+            "WG: ECS FC PL Leadership"
+        ]
+        if not any(role.name in allowed_roles for role in interaction.user.roles):
+            await interaction.response.send_message(
+                "You do not have permission to execute this command.",
+                ephemeral=True
+            )
+            return
+
+        # Build the API URL using the player_name as a query parameter
+        lookup_url = f"{WEBUI_API_URL}/player_lookup?name={player_name}"
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(lookup_url) as resp:
+                    if resp.status != 200:
+                        await interaction.response.send_message(
+                            f"Player '{player_name}' not found in the database.",
+                            ephemeral=True
+                        )
+                        return
+                    player_data = await resp.json()
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"Error connecting to the API: {str(e)}",
+                    ephemeral=True
+                )
+                return
+
+        # Extract the discord_id from the player record
+        discord_id = player_data.get("discord_id")
+        if not discord_id:
+            await interaction.response.send_message(
+                "Player record found but no discord_id is associated.",
+                ephemeral=True
+            )
+            return
+
+        # Lookup the member in the guild using the discord_id
+        guild = interaction.guild
+        member = guild.get_member(int(discord_id))
+        if not member:
+            try:
+                member = await guild.fetch_member(int(discord_id))
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"Could not retrieve member: {str(e)}",
+                    ephemeral=True
+                )
+                return
+
+        if not member:
+            await interaction.response.send_message(
+                "Member not found in this guild.",
+                ephemeral=True
+            )
+            return
+
+        # Filter roles to include only those starting with "ECS-FC-PL"
+        team_role_mentions = [role.mention for role in member.roles if role.name.startswith("ECS-FC-PL")]
+        if not team_role_mentions:
+            team_role_mentions = ["No matching roles found."]
+
+        # Build the message using the clickable mention (member.mention)
+        message = f"{member.mention}'s roles: {', '.join(team_role_mentions)}"
+
+        # Send an ephemeral response (only visible to the command invoker)
+        await interaction.response.send_message(message, ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(PubLeagueCommands(bot))
