@@ -333,5 +333,125 @@ class PubLeagueCommands(commands.Cog):
         # Send an ephemeral response (only visible to the command invoker)
         await interaction.response.send_message(message, ephemeral=True)
 
+    @app_commands.command(
+        name="checkmyteam",
+        description="Check which current players on your team(s) are missing from Discord."
+    )
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def checkteam(self, interaction: discord.Interaction):
+        # Ensure the user is a coach.
+        allowed_coach_roles = ["ECS-FC-PL-CLASSIC-COACH", "ECS-FC-PL-PREMIER-COACH"]
+        if not any(role.name in allowed_coach_roles for role in interaction.user.roles):
+            await interaction.response.send_message(
+                "You do not have permission to execute this command.", ephemeral=True
+            )
+            return
+
+        # Retrieve the user's team role(s) case-insensitively.
+        team_roles = [
+            role for role in interaction.user.roles
+            if role.name.lower().startswith("ecs-fc-pl-") and role.name.lower().endswith("-player")
+        ]
+        if not team_roles:
+            await interaction.response.send_message(
+                "No team role found for you. Please ensure you have the appropriate team role.", ephemeral=True
+            )
+            return
+
+        # Defer the response since processing might take a bit.
+        await interaction.response.defer(ephemeral=True)
+
+        # Prepare to collect results for each team.
+        results = []
+        # We'll re-use a single session for all API calls.
+        async with aiohttp.ClientSession() as session:
+            # Define the prefix and suffix (in lowercase) for parsing.
+            prefix = "ecs-fc-pl-"
+            suffix = "-player"
+
+            for team_role in team_roles:
+                # Parse the team name from the role name using lowercase.
+                role_name_lower = team_role.name.lower()
+                team_name = role_name_lower[len(prefix):-len(suffix)]
+                team_name = team_name.replace("-", " ")
+
+                # Query the WebUI API for team data using the derived team name.
+                lookup_url = f"{WEBUI_API_URL}/team_lookup?name={team_name}"
+                try:
+                    async with session.get(lookup_url) as resp:
+                        if resp.status != 200:
+                            results.append(f"Team '{team_name}' not found in the database.")
+                            continue
+                        data = await resp.json()
+                except Exception as e:
+                    results.append(f"Error connecting to the API for team '{team_name}': {str(e)}")
+                    continue
+
+                # Extract team and player details from the API response.
+                team_data = data.get("team")
+                players = data.get("players", [])
+
+                # Filter to include only current players.
+                current_players = [p for p in players if p.get("is_current_player")]
+                if not current_players:
+                    results.append(f"No current players found for team '{team_name}'.")
+                    continue
+
+                # Separate players into those with a linked discord_id and those without.
+                unlinked_players = [p for p in current_players if not p.get("discord_id")]
+                linked_players = [p for p in current_players if p.get("discord_id")]
+
+                # Build a set of expected Discord IDs (convert to int if needed).
+                expected_ids = set()
+                for player in linked_players:
+                    try:
+                        expected_ids.add(int(player["discord_id"]))
+                    except (ValueError, TypeError):
+                        continue
+
+                # Get the set of actual Discord member IDs from this team role.
+                actual_ids = {member.id for member in team_role.members}
+
+                # Identify missing IDs: players expected but not having the team role.
+                missing_ids = expected_ids - actual_ids
+
+                # Separate missing IDs into two groups.
+                not_in_discord_ids = set()
+                in_discord_missing_role_ids = set()
+                for d_id in missing_ids:
+                    member = interaction.guild.get_member(d_id)
+                    if member is None:
+                        not_in_discord_ids.add(d_id)
+                    else:
+                        in_discord_missing_role_ids.add(d_id)
+
+                not_in_discord_players = [p for p in linked_players if int(p["discord_id"]) in not_in_discord_ids]
+                in_discord_missing_role_players = [p for p in linked_players if int(p["discord_id"]) in in_discord_missing_role_ids]
+
+                # Build the report block for this team.
+                block_lines = [
+                    f"**Team Check for {team_data['name']}**",
+                    f"Total current players (DB): {len(current_players)}"
+                ]
+                if unlinked_players:
+                    unlinked_names = ", ".join(p.get("name", "Unknown") for p in unlinked_players)
+                    block_lines.append(
+                        f":warning: **Unlinked Accounts:** {unlinked_names} (These players need to link their Discord account.)"
+                    )
+                if not_in_discord_players:
+                    not_in_discord_names = ", ".join(p.get("name", "Unknown") for p in not_in_discord_players)
+                    block_lines.append(f":x: **Not in Discord:** {not_in_discord_names}")
+                if in_discord_missing_role_players:
+                    in_discord_names = ", ".join(p.get("name", "Unknown") for p in in_discord_missing_role_players)
+                    block_lines.append(f":warning: **In Discord but Missing Role:** {in_discord_names}")
+                if not not_in_discord_players and not in_discord_missing_role_players:
+                    block_lines.append(":white_check_mark: All linked players are correctly in Discord with the role.")
+
+                results.append("\n".join(block_lines))
+
+        # Combine results from all team roles.
+        final_report = "\n\n".join(results)
+        await interaction.followup.send(final_report, ephemeral=True)
+
 async def setup(bot):
     await bot.add_cog(PubLeagueCommands(bot))

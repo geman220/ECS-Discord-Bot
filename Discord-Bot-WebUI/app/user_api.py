@@ -1,6 +1,6 @@
 from app import csrf
 from flask import Blueprint, request, jsonify, g, current_app
-from app.models import User, Player, Match
+from app.models import User, Player, Match, Team, player_teams
 from app.sms_helpers import (
     send_welcome_message,
     send_sms,
@@ -159,3 +159,52 @@ def sms_confirm():
         return jsonify({"message": "SMS enrollment confirmed and notifications enabled."}), 200
     else:
         return jsonify({"error": "Invalid confirmation code."}), 400
+
+@user_bp.route('/team_lookup', methods=['GET'])
+def team_lookup():
+    """
+    Lookup a team using a case-insensitive partial match on the team's name.
+    Query parameter: name
+    Returns the team's id, name, and list of current players with their names and discord_id.
+    """
+    team_name_query = request.args.get("name")
+    if not team_name_query:
+        return jsonify({"error": "Missing name parameter"}), 400
+
+    session_db = g.db_session
+
+    # Find the team using a case-insensitive partial match.
+    team = session_db.query(Team).filter(Team.name.ilike(f"%{team_name_query}%")).first()
+    if not team:
+        return jsonify({"error": "Team not found"}), 404
+
+    # Retrieve players for the team who are marked as current.
+    # NOTE: Use a join on the association table since Player no longer has a direct "team_id" column.
+    players = (
+        session_db.query(Player)
+        .join(player_teams)
+        .filter(
+            player_teams.c.team_id == team.id,
+            Player.is_current_player == True
+        )
+        .all()
+    )
+
+    players_list = []
+    for player in players:
+        players_list.append({
+            "id": player.id,
+            "name": player.name,
+            "discord_id": player.discord_id,
+            "is_current_player": player.is_current_player
+            # Add other fields if needed.
+        })
+
+    return jsonify({
+        "team": {
+            "id": team.id,
+            "name": team.name
+            # Add more team data if needed.
+        },
+        "players": players_list
+    }), 200
