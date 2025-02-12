@@ -38,15 +38,17 @@
                                 {{ match.opponent }} vs Sounders
                                 {% endif %}
                             </td>
-                            <td>{{ match.date_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ match.date_time.strftime('%m/%d/%Y %I:%M %p') }}</td>
                             <td>{{ match.competition }}</td>
                             <td>
                                 <div class="d-flex flex-column">
                                     <span class="badge bg-{{ 'success' if match.thread_created else 'warning' }}">
                                         {{ 'Thread Created' if match.thread_created else 'Pending' }}
                                     </span>
-                                    {% if not match.thread_created and match.thread_creation_time %}
-                                    <small class="text-muted">Scheduled: {{ match.thread_creation_time.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    {% if match.thread_creation_time %}
+                                    <small class="text-muted">
+                                        Scheduled: {{ match.thread_creation_time.strftime('%m/%d/%Y %I:%M %p') }}
+                                    </small>
                                     {% endif %}
                                 </div>
                             </td>
@@ -56,19 +58,25 @@
                                         {{ match.live_reporting_status|title }}
                                     </span>
                                     {% if match.live_reporting_scheduled and not match.live_reporting_started %}
-                                    <small class="text-muted">Starts: {{ (match.date_time - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M') }}</small>
+                                    <small class="text-muted">
+                                        Starts: {{ (match.date_time - timedelta(minutes=5)).strftime('%m/%d/%Y %I:%M %p') }}
+                                    </small>
                                     {% endif %}
                                 </div>
                             </td>
                             <td>
                                 <div class="btn-group">
                                     {% if not match.thread_created %}
-                                    <button class="btn btn-sm btn-primary schedule-btn"
-                                            data-match-id="{{ match.id }}">
+                                    {% if match.live_reporting_scheduled %}
+                                    <button class="btn btn-sm btn-primary schedule-btn" data-match-id="{{ match.id }}">
+                                        Re-schedule
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-primary schedule-btn" data-match-id="{{ match.id }}">
                                         Schedule
                                     </button>
-                                    <button class="btn btn-sm btn-success create-thread-btn"
-                                            data-match-id="{{ match.id }}">
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-success create-thread-btn" data-match-id="{{ match.id }}">
                                         Create Now
                                     </button>
                                     {% else %}
@@ -124,6 +132,13 @@
 {% block custom_js %}
 <script>
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Configure jQuery to send CSRF token on every AJAX request.
+    $.ajaxSetup({
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
 
     async function scheduleMatch(matchId) {
         try {
@@ -229,29 +244,24 @@
             alert('Error stopping reporting');
         }
     }
-</script>
-<script>
-    // Add CSRF token to all jQuery AJAX requests
-    $.ajaxSetup({
-        headers: {
-            'X-CSRFToken': csrfToken
-        }
-    });
 
+    // Attach event handlers
     $(document).ready(function () {
         $('.schedule-btn').on('click', function () {
             const matchId = $(this).data('match-id');
-            $.post(`/bot/admin/match/schedule/${matchId}`)
+            // Append ?force=true to force re-scheduling
+            const url = `/bot/admin/match/schedule/${matchId}?force=true`;
+            $.post(url)
                 .done(function (response) {
                     if (response.success) {
-                        showToast('Success', 'Match tasks scheduled successfully');
+                        showToast('Success', 'Match tasks re-scheduled successfully');
                         location.reload();
                     } else {
                         showToast('Error', response.message);
                     }
                 })
                 .fail(function (err) {
-                    showToast('Error', 'Failed to schedule match tasks');
+                    showToast('Error', 'Failed to re-schedule match tasks');
                 });
         });
 

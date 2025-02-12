@@ -12,6 +12,7 @@ import aiohttp
 import time
 import os
 import requests
+import random
 import json
 from aiohttp import ClientError
 from discord.ext import commands
@@ -498,44 +499,47 @@ def create_match_event_embed(event_data, focus_team_id, is_hype=False):
 
 def create_goal_embed(team_name, athlete, is_focus_team_event, event_time, is_hype):
     scorer_name = athlete.get('displayName', "Unknown Player")
-
     if is_focus_team_event:
-        # Our team scored
+        messages = [
+            f"🎉 GOOOOOAAAALLLL! {scorer_name} scores for {team_name} at {event_time}! Keep it coming! ⚽🔥",
+            f"Goal! {scorer_name} puts {team_name} in the lead at {event_time}! Amazing strike! 🚀",
+            f"Fantastic! {scorer_name} nets one for {team_name} at {event_time}! Let’s keep the momentum! 💪"
+        ]
         embed = discord.Embed(
-            title=f"🎉 GOOOOOAAAALLLL! {team_name} scores!",
-            description=f"**{scorer_name}** nets one for us at {event_time}! Keep it coming! ⚽🔥",
+            title=random.choice(messages),
             color=discord.Color.green()
         )
     else:
-        # Opponent team scored
-        if is_hype:
-            # Hype for opponent's misfortune (not applicable for goals)
-            pass  # This case shouldn't happen based on your logic
-        else:
-            embed = discord.Embed(
-                title=f"😡 Goal for {team_name}",
-                description=f"{scorer_name} scores for the opposition at {event_time}. Let's strike back! 💪",
-                color=discord.Color.red()
-            )
-
+        messages = [
+            f"😡 Goal for {team_name} by {scorer_name} at {event_time}. We must fight back! 💪",
+            f"{scorer_name} scores for the opposition at {event_time}. Time to regroup! ⚡",
+            f"They take the lead... {scorer_name} scores for {team_name} at {event_time}. Let's counterattack! 🔥"
+        ]
+        embed = discord.Embed(
+            title=random.choice(messages),
+            color=discord.Color.red()
+        )
     return embed
 
 def create_card_embed(card_type, team_name, athlete, is_focus_team_event, event_time, is_hype):
     player_name = athlete.get('displayName', "Unknown Player")
     emoji = "🟨" if card_type == "Yellow Card" else "🟥"
-
     if is_hype:
-        # Favorable event (opponent received a card)
+        messages = [
+            f"{emoji} {card_type} for {team_name}! {player_name} gets booked at {event_time}. Advantage us! 😈",
+            f"{emoji} A booking for {team_name} at {event_time}! {player_name} should be more careful! 🔥"
+        ]
         embed = discord.Embed(
-            title=f"{emoji} {card_type} for {team_name}",
-            description=f"{player_name} from {team_name} got a {card_type.lower()} at {event_time}! Advantage us! 😈",
+            title=random.choice(messages),
             color=discord.Color.green()
         )
     else:
-        # Unfavorable event (our team received a card)
+        messages = [
+            f"{emoji} {card_type} for {team_name}: {player_name} received it at {event_time}. Stay focused!",
+            f"{emoji} {player_name} got a {card_type.lower()} at {event_time} for {team_name}. Let's tighten up our play!"
+        ]
         embed = discord.Embed(
-            title=f"{emoji} {card_type} for {team_name}",
-            description=f"Unfortunately, {player_name} received a {card_type.lower()} at {event_time}. Stay focused!",
+            title=random.choice(messages),
             color=discord.Color.red() if card_type == "Red Card" else discord.Color.gold()
         )
     return embed
@@ -615,30 +619,66 @@ def create_score_update_embed(update_data, focus_team_id):
     if home_team_id == focus_team_id:
         embed.title = f"⚽ Score Update: {home_team_name} vs {away_team_name}"
         embed.description = f"**{home_team_name}** {home_score} - {away_score} {away_team_name}"
-        embed.color = discord.Color.green() if home_score > away_score else discord.Color.red()
         embed.set_thumbnail(url=home_team.get('logo'))
+        # Randomized messages for our team scoring conditions
         if home_score > away_score:
-            embed.add_field(name="Status", value="We're in the lead! Keep pushing! 🔥", inline=False)
+            messages = [
+                "We're in the lead! Keep pushing! 🔥",
+                "On top of the game—let’s maintain our momentum! 🚀",
+                "Great job! We're ahead. Stay focused! 💪"
+            ]
+            embed.color = discord.Color.green()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
         elif home_score < away_score:
-            embed.add_field(name="Status", value="We're behind, but it's not over! Let's rally! 💪", inline=False)
+            messages = [
+                "We're behind, but it's not over! Let's rally! 💪",
+                "Time to step it up—fight back! ⚡",
+                "Challenging start, but we can turn it around! 🔥"
+            ]
+            embed.color = discord.Color.red()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
         else:
-            embed.add_field(name="Status", value="It's all square! Time to take control! ⚖️", inline=False)
+            messages = [
+                "It's all square! Time to take control! ⚖️",
+                "Evenly matched—now's our chance to break through! 🌟",
+                "The score is level. Let’s create an opportunity! ⚽"
+            ]
+            embed.color = discord.Color.gold()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
     elif away_team_id == focus_team_id:
         embed.title = f"⚽ Score Update: {home_team_name} vs {away_team_name}"
         embed.description = f"{home_team_name} {home_score} - {away_score} **{away_team_name}**"
-        embed.color = discord.Color.green() if away_score > home_score else discord.Color.red()
         embed.set_thumbnail(url=away_team.get('logo'))
         if away_score > home_score:
-            embed.add_field(name="Status", value="We're in the lead! Keep pushing! 🔥", inline=False)
+            messages = [
+                "We're ahead! Keep the pressure on! 💪",
+                "Fantastic! We're leading on the road! 🚀",
+                "In the lead—stay sharp and maintain the edge! 🔥"
+            ]
+            embed.color = discord.Color.green()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
         elif away_score < home_score:
-            embed.add_field(name="Status", value="We're behind, but it's not over! Let's rally! 💪", inline=False)
+            messages = [
+                "We're behind, but there's still time! Let's fight back! 💪",
+                "Challenging game—time to regroup and push harder! 🔥",
+                "We're trailing; every minute counts! ⚡"
+            ]
+            embed.color = discord.Color.red()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
         else:
-            embed.add_field(name="Status", value="It's all square! Time to take control! ⚖️", inline=False)
+            messages = [
+                "It's a draw! Let's take the initiative! ⚽",
+                "Level game—now's our chance to break the deadlock! 🌟",
+                "Tied up at the moment. We need to push for the win! ⚖️"
+            ]
+            embed.color = discord.Color.gold()
+            embed.add_field(name="Status", value=random.choice(messages), inline=False)
     else:
         embed.title = f"Score Update: {home_team_name} vs {away_team_name}"
         embed.description = f"{home_team_name} {home_score} - {away_score} {away_team_name}"
         embed.color = discord.Color.blue()
 
+    embed.add_field(name="Match Status", value=update_data.get('match_status', "Unknown"), inline=True)
     return embed
 
 def create_halftime_embed(update_data, focus_team_id):
@@ -739,12 +779,23 @@ def create_pre_match_embed(update_data, focus_team_id):
     )
     embed.add_field(name="💰 Odds", value=odds_info, inline=False)
 
+    # Randomize pre-match hype messages based on focus team
     if home_team_id == str(focus_team_id):
-        embed.description = f"🔥 It's matchday! Get ready to witness {home_team_name} dominate on home turf! 🏟️"
+        messages = [
+            f"🔥 It's matchday! {home_team_name} is set to dominate on home turf! 🏟️",
+            f"Get ready! {home_team_name} is fired up for a big night at home! 💪",
+            f"{home_team_name} is ready to rock the stadium—let's show them our power! 🚀"
+        ]
+        embed.description = random.choice(messages)
         embed.set_thumbnail(url=home_team.get('logo'))
-        embed.add_field(name="Team Spirit", value="Our boys are fired up and ready to give it their all! 💪", inline=False)
+        embed.add_field(name="Team Spirit", value="Our boys are pumped and ready to give it their all! 💪", inline=False)
     elif away_team_id == str(focus_team_id):
-        embed.description = f"🌟 It's time for {away_team_name} to shine on the road! Let's show them what we're made of! 💪"
+        messages = [
+            f"🌟 It's time for {away_team_name} to shine on the road! Let's show them what we've got! 💪",
+            f"{away_team_name} is ready for battle away from home—let's make it a statement! 🚀",
+            f"On the road and on fire! {away_team_name} is set to take control! 🔥"
+        ]
+        embed.description = random.choice(messages)
         embed.set_thumbnail(url=away_team.get('logo'))
         embed.add_field(name="Away Day Magic", value="We're taking our A-game to their turf! Let's make our traveling fans proud! 🛫", inline=False)
     else:

@@ -491,7 +491,7 @@ def view_mls_matches():
 @login_required
 @role_required('Global Admin')
 def schedule_mls_match_thread_route(match_id):
-    hours_before = request.json.get('hours_before', 24)
+    hours_before = request.json.get('hours_before', 48)
     task = schedule_mls_thread_task.delay(match_id, hours_before)
     return jsonify({
         'success': True,

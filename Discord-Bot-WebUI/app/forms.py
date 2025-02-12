@@ -373,3 +373,9 @@ class NoteForm(FlaskForm):
 class FeedbackReplyForm(FlaskForm):
     content = TextAreaField('Reply', validators=[DataRequired()])
     submit = SubmitField('Submit Reply')
+
+class HelpTopicForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    markdown_content = TextAreaField('Markdown Content', validators=[DataRequired()])
+    roles = SelectMultipleField('Allowed Roles', coerce=int, validators=[DataRequired()])
+    submit = SubmitField('Submit')

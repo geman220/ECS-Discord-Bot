@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Help Topics</h4>
+        {% if current_user.has_role("Global Admin") %}
+        <a href="{{ url_for('help.admin_help_topics') }}" class="btn btn-secondary">Admin Dashboard</a>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <!-- Search Input -->
+            <div class="mb-3">
+                <input type="text" id="search-topic" class="form-control" placeholder="Search help topics...">
+            </div>
+            <ul class="list-group" id="help-topics-list">
+                {% for topic in topics %}
+                <li class="list-group-item">
+                    <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}">{{ topic.title }}</a>
+                </li>
+                {% else %}
+                <li class="list-group-item">No help topics available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    $(document).ready(function () {
+        // Initialize Fancybox (if needed)
+        $("[data-fancybox]").fancybox({
+            loop: true,
+            buttons: ["zoom", "slideShow", "fullScreen", "close"],
+            animationEffect: "zoom",
+        });
+
+        // Debounced AJAX search for help topics with debugging logs.
+        let debounceTimeout;
+        $('#search-topic').on('keyup', function () {
+            clearTimeout(debounceTimeout);
+            let query = $(this).val();
+
+            debounceTimeout = setTimeout(function () {
+                $.ajax({
+                    url: "{{ url_for('help.search_topics') }}",
+                    data: { query: query },
+                    success: function (data) {
+
+                        let list = $("#help-topics-list");
+                        list.empty();
+                        if (data.topics && data.topics.length) {
+                            data.topics.forEach(function (topic) {
+                                // Build topic URL by concatenating the help base URL and the topic id.
+                                let topicUrl = "{{ url_for('help.index') }}".replace(/\/$/, '') + "/" + topic.id;
+                                list.append('<li class="list-group-item"><a href="' + topicUrl + '">' + topic.title + '</a></li>');
+                            });
+                        } else {
+                            list.append('<li class="list-group-item">No help topics available.</li>');
+                        }
+                    },
+                    error: function () {
+                        console.error("Error while searching topics.");
+                    }
+                });
+            }, 300); // Adjust debounce delay as needed.
+        });
+    });
+
+    function confirmDelete(topicId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will permanently delete the help topic.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + topicId).submit();
+            }
+        });
+    }
+</script>
+{% endblock %}
