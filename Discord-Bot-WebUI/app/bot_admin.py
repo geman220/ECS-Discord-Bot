@@ -11,8 +11,9 @@ from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
 from app.decorators import role_required
 from app.models import Match, MLSMatch
 from app.match_scheduler import MatchScheduler
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import parser
+import pytz
 import json
 import logging
 
@@ -20,8 +21,19 @@ logger = logging.getLogger(__name__)
 
 bot_admin_bp = Blueprint('bot_admin', __name__, url_prefix='/bot/admin')
 
+def ensure_utc(dt):
+    """
+    Convert a datetime object to UTC.
+    If the datetime is naive, assume it's in UTC.
+    Otherwise, convert it to UTC.
+    """
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=pytz.UTC)
+    else:
+        return dt.astimezone(pytz.UTC)
+
 def get_scheduler():
-    """Get or create MatchScheduler instance."""
+    """Get or create a MatchScheduler instance."""
     if not hasattr(current_app, 'match_scheduler'):
         current_app.match_scheduler = MatchScheduler()
     return current_app.match_scheduler
@@ -51,16 +63,27 @@ def matches():
     session_db = g.db_session
     match_dates = load_match_dates_from_db(session=session_db)
 
+    pacific_tz = pytz.timezone('America/Los_Angeles')
+
     for match in match_dates:
+        # 'match["date"]' is presumed to be stored in UTC in the DB.
         if isinstance(match['date'], str):
             dt_object = parser.parse(match['date'])
-            match['date'] = dt_object
-            match['formatted_date'] = dt_object.strftime('%m/%d/%Y %I:%M %p')
+        else:
+            dt_object = match['date']
+
+        # Force UTC if datetime is naive
+        if not dt_object.tzinfo:
+            dt_object = dt_object.replace(tzinfo=pytz.UTC)
+
+        # Convert UTC to PST (or PDT as appropriate) for display
+        dt_pst = dt_object.astimezone(pacific_tz)
+        match['date_time'] = dt_pst
+        match['formatted_date'] = dt_pst.strftime('%m/%d/%Y %I:%M %p')
         match['live_reporting_scheduled'] = match.get('live_reporting_scheduled', False)
         match['live_reporting_started'] = match.get('live_reporting_started', False)
 
     match_dates.sort(key=lambda x: x['date'])
-
     return render_template(
         'matches.html',
         title='Sounders Match Dates',
@@ -91,7 +114,6 @@ def start_live_reporting_route(match_id):
         match.live_reporting_scheduled = True
 
         logger.info(f"Successfully started live reporting for match {match_id}, task_id: {task.id}, status: {match.live_reporting_status}")
-
         return jsonify({
             'success': True,
             'message': 'Live reporting started',
@@ -135,7 +157,6 @@ def add_mls_match():
     try:
         date = request.form.get('date')
         competition_friendly = request.form.get('competition')
-        
         competition = COMPETITION_MAPPINGS.get(competition_friendly)
         
         if not date or not competition:
@@ -144,7 +165,6 @@ def add_mls_match():
 
         date_only = date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
-
         endpoint = f"sports/soccer/{competition}/scoreboard?dates={formatted_date}"
         match_data = async_to_sync(fetch_espn_data(endpoint))
 
@@ -155,6 +175,8 @@ def add_mls_match():
         for event in match_data['events']:
             if 'Seattle Sounders FC' in event.get("name", ""):
                 match_details = extract_match_details(event)
+                # Convert the match datetime to UTC before storing
+                match_details['date_time'] = ensure_utc(match_details['date_time'])
                 try:
                     match = insert_mls_match(
                         match_id=match_details['match_id'],
@@ -215,7 +237,6 @@ def update_mls_match_route(match_id):
             competition_friendly = request.form.get('competition')
 
         logger.debug(f"Data received - Date: {date}, Competition: {competition_friendly}")
-
         competition = COMPETITION_MAPPINGS.get(competition_friendly)
 
         if not date or not competition:
@@ -224,7 +245,6 @@ def update_mls_match_route(match_id):
 
         date_only = date.split(" ")[0]
         formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
-
         endpoint = f"sports/soccer/{competition}/scoreboard?dates={formatted_date}"
         logger.debug(f"Fetching data from ESPN API: {endpoint}")
         match_data = async_to_sync(fetch_espn_data(endpoint))
@@ -236,6 +256,8 @@ def update_mls_match_route(match_id):
         for event in match_data['events']:
             if 'Seattle Sounders FC' in event.get("name", ""):
                 match_details = extract_match_details(event)
+                # Convert the match datetime to UTC before storing
+                match_details['date_time'] = ensure_utc(match_details['date_time'])
                 update_mls_match(
                     match_id=match_id,
                     opponent=match_details['opponent'],
@@ -278,7 +300,6 @@ def remove_mls_match(match_id):
                 celery.control.revoke(task_id.decode('utf-8'), terminate=True)
 
         redis_client.delete(thread_key, reporting_key)
-
         session_db.delete(match)
         logger.info(f"Match {match_id} and associated tasks removed successfully.")
         return jsonify(success=True, message="Match removed successfully.")
@@ -342,7 +363,6 @@ def create_match_thread(match_id):
 
         task = force_create_mls_thread_task.delay(match.match_id)
         logger.info(f"Created thread task for match {match_id} (ESPN ID: {match.match_id}), task_id: {task.id}")
-
         return jsonify({'success': True, 'message': 'Thread creation started', 'task_id': task.id})
 
     except Exception as e:
@@ -354,25 +374,26 @@ def create_match_thread(match_id):
 def schedule_match(match_id):
     session_db = g.db_session
     try:
+        # Check if "force" is provided in the query string (e.g. ?force=true)
+        force = request.args.get('force', 'false').lower() == 'true'
         match = session_db.query(MLSMatch).filter_by(id=match_id).first()
         if not match:
             return jsonify({'success': False, 'message': 'Match not found'}), 404
 
-        scheduler = get_scheduler()
-        result = scheduler.schedule_match_tasks(match_id)
+        scheduler = get_scheduler()  # your function that returns a MatchScheduler instance
+        result = scheduler.schedule_match_tasks(match_id, force=force)
         return jsonify(result)
     except Exception as e:
-        logger.error(f"Error scheduling match {match_id}: {str(e)}", exc_info=True)
+        current_app.logger.error(f"Error scheduling match {match_id}: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @bot_admin_bp.route('/check-redis', methods=['GET'])
 @login_required
 def check_redis():
-    from app.redis_manager import RedisManager  # Ensure redis_manager is refactored too
+    from app.redis_manager import RedisManager
     try:
         redis_manager = RedisManager()
         connection_status = redis_manager.check_connection()
-
         scheduler = get_scheduler()
         tasks_status = scheduler.monitor_scheduled_tasks()
 

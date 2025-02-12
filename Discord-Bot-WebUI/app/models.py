@@ -37,6 +37,11 @@ player_teams = db.Table('player_teams',
     db.Column('is_coach', db.Boolean, default=False)
 )
 
+help_topic_roles = db.Table('help_topic_roles',
+    db.Column('help_topic_id', db.Integer, db.ForeignKey('help_topics.id'), primary_key=True),
+    db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
+)
+
 class League(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -1089,14 +1094,15 @@ class MLSMatch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.String, unique=True, nullable=False)
     opponent = db.Column(db.String(100), nullable=False)
-    date_time = db.Column(db.DateTime, nullable=False)
+    date_time = db.Column(db.DateTime(timezone=True), nullable=False)
     is_home_game = db.Column(db.Boolean, nullable=False)
     summary_link = db.Column(db.String(200))
     stats_link = db.Column(db.String(200))
     commentary_link = db.Column(db.String(200))
     venue = db.Column(db.String(100))
     competition = db.Column(db.String(50))
-    thread_creation_time = db.Column(db.DateTime)
+
+    thread_creation_time = db.Column(db.DateTime(timezone=True))
     thread_created = db.Column(db.Boolean, default=False)
     discord_thread_id = db.Column(db.String)
 
@@ -1112,6 +1118,7 @@ class MLSMatch(db.Model):
 
     def __repr__(self):
         return f'<MLSMatch {self.match_id}: {self.opponent} on {self.date_time}>'
+
 
 class PlayerTeamSeason(db.Model):
     __tablename__ = 'player_team_season'
@@ -1150,3 +1157,16 @@ class Progress(db.Model):
     message = db.Column(db.String(255))
     progress = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class HelpTopic(db.Model):
+    __tablename__ = 'help_topics'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    markdown_content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    allowed_roles = db.relationship('Role', secondary=help_topic_roles, backref=db.backref('help_topics', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<HelpTopic {self.title}>'

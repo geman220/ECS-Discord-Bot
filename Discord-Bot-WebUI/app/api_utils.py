@@ -178,25 +178,27 @@ def async_to_sync(coroutine: Any) -> Any:
 
 def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Extract match details from event data.
-    
-    Args:
-        event: Event data dictionary
-        
-    Returns:
-        dict: Extracted match details
+    Extract match details from event data and ensure the datetime is stored as UTC.
     """
     try:
         team_id = get_team_id()
         
         # Extract basic match info
         match_id = event.get("id")
-        date_time_utc = event.get("date")
+        date_time_str = event.get("date")   # ESPN datetime string (naive but actually PST)
         name = event.get("name")
         venue = event.get("competitions", [{}])[0].get("venue", {}).get("fullName")
         
-        # Convert UTC to PST
-        date_time_pst = convert_to_pst(date_time_utc)
+        # Parse ESPN's datetime string
+        parsed_dt = parser.parse(date_time_str)
+        
+        # If the parsed datetime is naive, assume it is in PST and localize it
+        if parsed_dt.tzinfo is None or parsed_dt.tzinfo.utcoffset(parsed_dt) is None:
+            pst = pytz.timezone("America/Los_Angeles")
+            parsed_dt = pst.localize(parsed_dt)
+        
+        # Convert to UTC for storage
+        parsed_dt = parsed_dt.astimezone(pytz.UTC)
         
         # Extract competitors info
         competitors = event.get("competitions", [{}])[0].get("competitors", [])
@@ -212,6 +214,7 @@ def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
             team_logo = team_data["team"].get("logos", [{}])[0].get("href")
         else:
             opponent = "Unknown"
+            # If we cannot find the Sounders data, guess "home" by known venues
             is_home_game = venue in ["Lumen Field", "Starfire Sports Stadium"]
             team_logo = "Unknown"
         
@@ -221,7 +224,7 @@ def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "match_id": match_id,
             "opponent": opponent,
-            "date_time": date_time_pst,
+            "date_time": parsed_dt,  # Stored as UTC
             "venue": venue,
             "name": name,
             "team_logo": team_logo,

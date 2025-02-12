@@ -1,10 +1,9 @@
-# match_api.py
-
-from flask import Blueprint, request, jsonify, current_app, g
+from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
 from app.models import MLSMatch
 from datetime import datetime
 from app.utils.match_events_utils import get_new_events
+from app.core.session_manager import managed_session
 import asyncio
 import aiohttp
 import hashlib
@@ -30,52 +29,53 @@ csrf.exempt(match_api)
 async def process_live_match_updates(match_id, thread_id, match_data, last_status=None, last_score=None, last_event_keys=None):
     logger.info(f"Processing live match updates for match_id={match_id}")
     try:
-        session = g.db_session
-        last_event_keys = last_event_keys or []
-        
-        competition = match_data["competitions"][0]
-        status_type = competition["status"]["type"]["name"]
-        home_competitor = competition["competitors"][0]
-        away_competitor = competition["competitors"][1]
-        home_team = home_competitor["team"]
-        away_team = away_competitor["team"]
-        home_score = home_competitor.get("score", "0")
-        away_score = away_competitor.get("score", "0")
-        current_time = competition["status"].get("displayClock", "N/A")
-        current_score = f"{home_score}-{away_score}"
+        # Use the managed session to ensure proper commit/rollback/cleanup.
+        with managed_session() as session:
+            last_event_keys = last_event_keys or []
+            
+            competition = match_data["competitions"][0]
+            status_type = competition["status"]["type"]["name"]
+            home_competitor = competition["competitors"][0]
+            away_competitor = competition["competitors"][1]
+            home_team = home_competitor["team"]
+            away_team = away_competitor["team"]
+            home_score = home_competitor.get("score", "0")
+            away_score = away_competitor.get("score", "0")
+            current_time = competition["status"].get("displayClock", "N/A")
+            current_score = f"{home_score}-{away_score}"
 
-        logger.debug(f"Match status: {status_type}, Current score: {current_score}, Time: {current_time}")
+            logger.debug(f"Match status: {status_type}, Current score: {current_score}, Time: {current_time}")
 
-        # Handle match status changes
-        if status_type != last_status:
-            logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
-            await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score)
+            # Handle match status changes
+            if status_type != last_status:
+                logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
+                await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score)
 
-        # Handle score changes
-        if current_score != last_score:
-            logger.info(f"Score changed from {last_score} to {current_score} for match_id={match_id}")
-            await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
+            # Handle score changes
+            if current_score != last_score:
+                logger.info(f"Score changed from {last_score} to {current_score} for match_id={match_id}")
+                await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
 
-        # Process events
-        events = competition.get("details", [])
-        logger.debug(f"Total events fetched: {len(events)}")
+            # Process events
+            events = competition.get("details", [])
+            logger.debug(f"Total events fetched: {len(events)}")
 
-        team_map = {
-            home_team['id']: home_team,
-            away_team['id']: away_team
-        }
+            team_map = {
+                home_team['id']: home_team,
+                away_team['id']: away_team
+            }
 
-        new_events, current_event_keys = get_new_events(events, last_event_keys)
-        logger.debug(f"Found {len(new_events)} new events to process")
+            new_events, current_event_keys = get_new_events(events, last_event_keys)
+            logger.debug(f"Found {len(new_events)} new events to process")
 
-        for event in new_events:
-            logger.debug(f"Processing event: {event}")
-            await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+            for event in new_events:
+                logger.debug(f"Processing event: {event}")
+                await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
 
-        match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
-        logger.info(f"Match ended: {match_ended} for match_id={match_id}")
+            match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
+            logger.info(f"Match ended: {match_ended} for match_id={match_id}")
 
-        return match_ended, current_event_keys
+            return match_ended, current_event_keys
 
     except Exception as e:
         logger.error(f"Error processing live match updates for match_id={match_id}: {str(e)}", exc_info=True)
@@ -162,7 +162,7 @@ async def process_match_event(thread_id, event, team_map, home_team, away_team, 
         await send_update_to_bot(thread_id, "match_event", event_data)
 
 async def fetch_channel_id_from_webui(match_id):
-    session = g.db_session
+    # This function does not require a DB session.
     webui_url = current_app.config['WEBUI_API_URL']
     try:
         async with aiohttp.ClientSession() as asession:
@@ -248,28 +248,27 @@ async def send_update_to_bot(thread_id, update_type, update_data):
 @match_api.route('/schedule_live_reporting', endpoint='schedule_live_reporting_route', methods=['POST'])
 @login_required
 def schedule_live_reporting_route():
-    session = g.db_session
     data = request.json
     match_id = data.get('match_id')
 
     try:
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return jsonify({'error': 'Match not found'}), 404
+        with managed_session() as session:
+            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            if not match:
+                logger.error(f"Match {match_id} not found")
+                return jsonify({'error': 'Match not found'}), 404
 
-        if match.live_reporting_scheduled:
-            logger.warning(f"Live reporting already scheduled for match {match_id}")
-            return jsonify({'error': 'Live reporting already scheduled'}), 400
+            if match.live_reporting_scheduled:
+                logger.warning(f"Live reporting already scheduled for match {match_id}")
+                return jsonify({'error': 'Live reporting already scheduled'}), 400
 
-        match.live_reporting_scheduled = True
+            match.live_reporting_scheduled = True
 
-        time_diff = match.date_time - datetime.utcnow()
-        celery.send_task('app.tasks.start_live_reporting', args=[match_id], countdown=time_diff.total_seconds())
+            time_diff = match.date_time - datetime.utcnow()
+            celery.send_task('app.tasks.start_live_reporting', args=[match_id], countdown=time_diff.total_seconds())
 
-        logger.info(f"Live reporting scheduled for match {match_id}")
-        return jsonify({'success': True, 'message': 'Live reporting scheduled'})
-
+            logger.info(f"Live reporting scheduled for match {match_id}")
+            return jsonify({'success': True, 'message': 'Live reporting scheduled'})
     except Exception as e:
         logger.error(f"Error scheduling live reporting for match {match_id}: {str(e)}")
         raise
@@ -277,25 +276,24 @@ def schedule_live_reporting_route():
 @match_api.route('/start_live_reporting/<match_id>', endpoint='start_live_reporting_route', methods=['POST'])
 @login_required
 def start_live_reporting_route(match_id):
-    session = g.db_session
     try:
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return jsonify({'success': False, 'error': 'Match not found'}), 404
+        with managed_session() as session:
+            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            if not match:
+                logger.error(f"Match {match_id} not found")
+                return jsonify({'success': False, 'error': 'Match not found'}), 404
 
-        if match.live_reporting_status == 'running':
-            logger.warning(f"Live reporting already running for match {match_id}")
-            return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
+            if match.live_reporting_status == 'running':
+                logger.warning(f"Live reporting already running for match {match_id}")
+                return jsonify({'success': False, 'error': 'Live reporting already running'}), 400
 
-        task = celery.send_task('app.tasks.start_live_reporting', args=[match_id])
-        match.live_reporting_status = 'running'
-        match.live_reporting_started = True
-        match.live_reporting_task_id = task.id
+            task = celery.send_task('app.tasks.start_live_reporting', args=[match_id])
+            match.live_reporting_status = 'running'
+            match.live_reporting_started = True
+            match.live_reporting_task_id = task.id
 
-        logger.info(f"Live reporting started for match {match_id}")
-        return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
-
+            logger.info(f"Live reporting started for match {match_id}")
+            return jsonify({'success': True, 'message': 'Live reporting started successfully', 'task_id': task.id})
     except Exception as e:
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}")
         raise
@@ -303,59 +301,62 @@ def start_live_reporting_route(match_id):
 @match_api.route('/stop_live_reporting/<match_id>', endpoint='stop_live_reporting_route', methods=['POST'])
 @login_required
 def stop_live_reporting_route(match_id):
-    session = g.db_session
     try:
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return jsonify({'success': False, 'error': 'Match not found'}), 404
+        with managed_session() as session:
+            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            if not match:
+                logger.error(f"Match {match_id} not found")
+                return jsonify({'success': False, 'error': 'Match not found'}), 404
 
-        if match.live_reporting_status != 'running':
-            logger.warning(f"Live reporting is not running for match {match_id}")
-            return jsonify({'success': False, 'error': 'Live reporting is not running for this match'}), 400
+            if match.live_reporting_status != 'running':
+                logger.warning(f"Live reporting is not running for match {match_id}")
+                return jsonify({'success': False, 'error': 'Live reporting is not running for this match'}), 400
 
-        match.live_reporting_status = 'stopped'
-        match.live_reporting_started = False
+            match.live_reporting_status = 'stopped'
+            match.live_reporting_started = False
 
-        celery.control.revoke(match.live_reporting_task_id, terminate=True)
+            celery.control.revoke(match.live_reporting_task_id, terminate=True)
 
-        logger.info(f"Live reporting stopped for match {match_id}")
-        return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
-
+            logger.info(f"Live reporting stopped for match {match_id}")
+            return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})
     except Exception as e:
         logger.error(f"Error stopping live reporting for match {match_id}: {str(e)}")
         raise
 
 @match_api.route('/get_match_status/<match_id>', endpoint='get_match_status', methods=['GET'])
 def get_match_status(match_id):
-    session = g.db_session
-    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
-    if not match:
-        logger.error(f"Match {match_id} not found")
-        return jsonify({'error': 'Match not found'}), 404
-    
-    logger.info(f"Returning match status for match {match_id}")
-    return jsonify({
-        'match_id': match.match_id,
-        'live_reporting_scheduled': match.live_reporting_scheduled,
-        'live_reporting_started': match.live_reporting_started,
-        'discord_thread_id': match.discord_thread_id
-    })
+    try:
+        with managed_session() as session:
+            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            if not match:
+                logger.error(f"Match {match_id} not found")
+                return jsonify({'error': 'Match not found'}), 404
+
+            logger.info(f"Returning match status for match {match_id}")
+            return jsonify({
+                'match_id': match.match_id,
+                'live_reporting_scheduled': match.live_reporting_scheduled,
+                'live_reporting_started': match.live_reporting_started,
+                'discord_thread_id': match.discord_thread_id
+            })
+    except Exception as e:
+        logger.error(f"Error retrieving match status for match {match_id}: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
 
 @match_api.route('/match/<int:match_id>/channel', endpoint='get_match_channel', methods=['GET'])
 def get_match_channel(match_id):
-    session = g.db_session
     logger.info(f"Fetching channel ID for match {match_id}")
     try:
-        match = session.query(MLSMatch).filter_by(match_id=str(match_id)).first()
-        if not match:
-            logger.warning(f"No match found with match_id {match_id}")
-            return jsonify({'error': 'Match not found'}), 404
-        if not match.discord_thread_id:
-            logger.warning(f"No discord_thread_id found for match {match_id}")
-            return jsonify({'error': 'No channel ID found for this match'}), 404
-        logger.info(f"Returning channel ID {match.discord_thread_id} for match {match_id}")
-        return jsonify({'channel_id': match.discord_thread_id})
+        with managed_session() as session:
+            match = session.query(MLSMatch).filter_by(match_id=str(match_id)).first()
+            if not match:
+                logger.warning(f"No match found with match_id {match_id}")
+                return jsonify({'error': 'Match not found'}), 404
+            if not match.discord_thread_id:
+                logger.warning(f"No discord_thread_id found for match {match_id}")
+                return jsonify({'error': 'No channel ID found for this match'}), 404
+            logger.info(f"Returning channel ID {match.discord_thread_id} for match {match_id}")
+            return jsonify({'channel_id': match.discord_thread_id})
     except Exception as e:
         logger.error(f"Error fetching channel ID for match {match_id}: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500

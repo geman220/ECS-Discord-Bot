@@ -35,6 +35,10 @@ class DatabaseManager:
         }
         self._local = threading.local()
 
+    def get_pool_stats(self):
+        """Return the current pool statistics."""
+        return self.pool_stats
+
     def init_app(self, app):
         """Initialize with Flask app and setup event handlers."""
         if self.initialized:

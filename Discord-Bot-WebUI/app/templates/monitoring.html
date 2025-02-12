@@ -149,6 +149,45 @@
 
 {% block custom_js %}
 <script>
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // Configure jQuery to send CSRF token on every AJAX request.
+    $.ajaxSetup({
+        headers: {
+            'X-CSRFToken': csrfToken
+        }
+    });
+
+    // Utility: Convert seconds to HH:MM:SS format
+    function secondsToHMS(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    // Utility: Format ISO date string into local date/time string
+    function formatLocalDate(isoDate) {
+        const d = new Date(isoDate);
+        return d.toLocaleString();
+    }
+
+    // New function: Create match details HTML (if provided)
+    function createMatchDetails(details) {
+        return `
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Match Details</h6>
+                <p><strong>Opponent:</strong> ${details.opponent}</p>
+                <p><strong>Match Time:</strong> ${formatLocalDate(details.date_time)}</p>
+                <p><strong>Thread Scheduled:</strong> ${details.thread_creation_time ? formatLocalDate(details.thread_creation_time) : 'N/A'}</p>
+                <p><strong>Live Reporting Status:</strong> ${details.live_reporting_status}</p>
+                <p><strong>Live Reporting Scheduled:</strong> ${details.live_reporting_scheduled ? 'Yes' : 'No'}</p>
+            </div>
+        </div>`;
+    }
+
     // State management
     let taskData = {};
     let redisData = {};
@@ -270,21 +309,27 @@
         });
     }
 
-    // Create accordion item for task
+    // Create accordion item for a match
     function createAccordionItem(matchId, matchData) {
+        // If additional match details exist, display them in the header
+        let headerText = `Match ${matchId}`;
+        if (matchData.match_details) {
+            headerText += ` - ${matchData.match_details.opponent} (${formatLocalDate(matchData.match_details.date_time)})`;
+        }
         const div = document.createElement('div');
         div.className = 'accordion-item';
         div.innerHTML = `
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#match-${matchId}">
-                Match ${matchId}
+                ${headerText}
                 ${getStatusBadges(matchData)}
             </button>
         </h2>
         <div id="match-${matchId}" class="accordion-collapse collapse">
             <div class="accordion-body">
                 ${createTaskDetails(matchData)}
+                ${matchData.match_details ? createMatchDetails(matchData.match_details) : ''}
             </div>
         </div>`;
         return div;
@@ -323,23 +368,23 @@
         }
     }
 
-    // Create detailed task information
+    // Create detailed task information for tasks
     function createTaskDetails(matchData) {
         let html = '';
 
         if (matchData.thread_task) {
-            html += createTaskSection('Thread Creation Task', matchData.thread_task, matchData.thread_task.id);
+            html += createTaskSection('Thread Creation Task', matchData.thread_task);
         }
 
         if (matchData.reporting_task) {
-            html += createTaskSection('Live Reporting Task', matchData.reporting_task, matchData.reporting_task.id);
+            html += createTaskSection('Live Reporting Task', matchData.reporting_task);
         }
 
         return html;
     }
 
-    // Create individual task section
-    function createTaskSection(title, task, taskId) {
+    // Create a section for an individual task
+    function createTaskSection(title, task) {
         return `
         <div class="card mb-3">
             <div class="card-header">
@@ -362,15 +407,34 @@
                     <dd class="col-sm-9">${task.info}</dd>
                     ` : ''}
                 </dl>
+                <dl class="row">
+                    <dt class="col-sm-3">Countdown</dt>
+                    <dd class="col-sm-9">${task.ttl !== null ? secondsToHMS(task.ttl) : 'N/A'}</dd>
+                </dl>
 
                 <div class="btn-group">
-                    <button class="btn btn-danger btn-sm" onclick="revokeTask('${taskId}', '${matchData.match_key}')">
+                    <button class="btn btn-danger btn-sm" onclick="revokeTask('${task.id}', '${task.match_key}')">
                         Revoke Task
                     </button>
-                    <button class="btn btn-warning btn-sm" onclick="rescheduleTask('${taskId}', '${matchData.match_key}')">
+                    <button class="btn btn-warning btn-sm" onclick="rescheduleTask('${task.id}', '${task.match_key}')">
                         Reschedule
                     </button>
                 </div>
+            </div>
+        </div>`;
+    }
+
+    // New function: Create match details section
+    function createMatchDetails(details) {
+        return `
+        <div class="card mb-3">
+            <div class="card-body">
+                <h6>Match Details</h6>
+                <p><strong>Opponent:</strong> ${details.opponent}</p>
+                <p><strong>Match Time:</strong> ${formatLocalDate(details.date_time)}</p>
+                <p><strong>Thread Scheduled:</strong> ${details.thread_creation_time ? formatLocalDate(details.thread_creation_time) : 'N/A'}</p>
+                <p><strong>Live Reporting Status:</strong> ${details.live_reporting_status}</p>
+                <p><strong>Live Reporting Scheduled:</strong> ${details.live_reporting_scheduled ? 'Yes' : 'No'}</p>
             </div>
         </div>`;
     }
@@ -396,16 +460,37 @@
     // Create table row for Redis key
     function createRedisKeyRow(key, data) {
         const tr = document.createElement('tr');
+        let stored = data.value || 'N/A';
+        let taskId = stored;
+        let eta = null;
+        // Attempt to parse the stored value as JSON to extract task ID and ETA
+        try {
+            const obj = JSON.parse(stored);
+            taskId = obj.task_id;
+            eta = obj.eta;
+        } catch (e) {
+            taskId = stored;
+        }
+
+        let countdown = 'N/A';
+        if (eta) {
+            const etaDate = new Date(eta);
+            const now = new Date();
+            let diff = Math.floor((etaDate - now) / 1000);
+            if (diff < 0) diff = 0;
+            countdown = secondsToHMS(diff);
+        }
+
         const taskStatus = data.task_status ? data.task_status.status : 'N/A';
         tr.innerHTML = `
         <td>${key}</td>
-        <td>${data.value || 'N/A'}</td>
+        <td>${taskId || 'N/A'}</td>
         <td>
             <span class="badge bg-${getStatusColor(taskStatus)}">${taskStatus}</span>
         </td>
-        <td>${data.ttl !== null ? data.ttl + 's' : 'N/A'}</td>
+        <td>${countdown}</td>
         <td>
-            <button class="btn btn-danger btn-sm" onclick="revokeTask('${data.value}', '${key}')">
+            <button class="btn btn-danger btn-sm" onclick="revokeTask('${taskId}', '${key}')">
                 Revoke Task
             </button>
         </td>`;
@@ -433,7 +518,10 @@
         try {
             const response = await fetch('{{ url_for("monitoring.revoke_task") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ task_id: taskId, key: key })
             });
 
@@ -455,7 +543,10 @@
         try {
             const response = await fetch('{{ url_for("monitoring.reschedule_task") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
                 body: JSON.stringify({ task_id: taskId, key: key })
             });
 
@@ -478,7 +569,10 @@
         try {
             const response = await fetch('{{ url_for("monitoring.revoke_all_tasks") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
             });
 
             const result = await response.json();

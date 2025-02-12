@@ -44,6 +44,16 @@
         </li>
         {% endif %}
 
+        <!-- Help Topics - Available for everyone logged in -->
+        {% if safe_current_user.is_authenticated %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'help.index' }}">
+            <a class="menu-link" href="{{ url_for('help.index') }}">
+                <i data-feather="help-circle" class="menu-icon"></i>
+                <div>Help Topics</div>
+            </a>
+        </li>
+        {% endif %}
+
         {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
         {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'Pub League Player' in user_roles %}

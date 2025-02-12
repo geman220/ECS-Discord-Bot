@@ -1,6 +1,6 @@
 # app/core/session_manager.py
 
-from flask import g, current_app
+from flask import g, current_app, has_request_context
 from contextlib import contextmanager
 import logging
 # Import the text function from SQLAlchemy
@@ -17,11 +17,13 @@ relationship = db.relationship
 
 @contextmanager
 def managed_session():
-    """Global session manager for consistent transaction handling"""
-    if hasattr(g, 'db_session'):
+    """Global session manager for consistent transaction handling."""
+    if has_request_context() and hasattr(g, 'db_session'):
         session = g.db_session
+        use_global = True
     else:
         session = current_app.SessionLocal()
+        use_global = False
 
     try:
         session.execute(text("SET LOCAL statement_timeout = '10s'"))
@@ -32,7 +34,7 @@ def managed_session():
         session.rollback()
         raise
     finally:
-        if not hasattr(g, 'db_session'):
+        if not use_global:
             session.close()
 
 def cleanup_request(exception=None):

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Admin - Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Admin - Help Topics</h4>
+        <a href="{{ url_for('help.new_help_topic') }}" class="btn btn-primary">Create New Help Topic</a>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <ul class="list-group">
+                {% for topic in topics %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ topic.title }}</span>
+                    <div>
+                        <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}" class="btn btn-sm btn-warning me-2">Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ topic.id }})">Delete</button>
+                        <form id="delete-form-{{ topic.id }}" action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}" method="post" style="display:none;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        </form>
+                    </div>
+                </li>
+                {% else %}
+                <li class="list-group-item">No help topics found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    function confirmDelete(topicId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This will permanently delete the help topic.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + topicId).submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

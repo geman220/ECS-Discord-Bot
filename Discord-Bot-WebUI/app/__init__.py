@@ -236,6 +236,7 @@ def init_blueprints(app):
     from app.app_api import mobile_api
     from app.monitoring import monitoring_bp
     from app.user_api import user_bp
+    from app.help import help_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -257,6 +258,7 @@ def init_blueprints(app):
     app.register_blueprint(mobile_api, url_prefix='/api/v1')
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(monitoring_bp)
+    app.register_blueprint(help_bp, url_prefix='/help')
 
 def init_context_processors(app):
     @app.context_processor
