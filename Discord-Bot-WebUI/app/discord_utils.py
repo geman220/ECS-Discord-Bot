@@ -470,7 +470,7 @@ async def rename_team_roles(session: Session, team: Team, new_team_name: str) ->
         # If the team has a channel, rename it
         if team.discord_channel_id:
             url = f"{Config.BOT_API_URL}/channels/{team.discord_channel_id}"
-            tasks.append(make_discord_request('PATCH', url, http_session, json={"name": new_team_name}))
+            tasks.append(make_discord_request('PATCH', url, http_session, json={"new_name": new_team_name}))
 
         await asyncio.gather(*tasks)
 
@@ -487,7 +487,7 @@ async def rename_role(guild_id: int, role_id: Union[str, int], new_name: str, se
         role_id_str = resolved_id
 
     url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles/{role_id_str}"
-    payload = {"name": new_name}
+    payload = {"new_name": new_name}
     response = await make_discord_request('PATCH', url, session, json=payload)
 
     if response:
