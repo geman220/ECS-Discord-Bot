@@ -322,10 +322,14 @@
                                 <div class="col-md-6"><strong>Favorite Position:</strong> {{ player.favorite_position }}</div>
                                 <div class="col-md-6">
                                     <strong>Other Positions:</strong>
+                                    {% if player.other_positions %}
                                     {% if player.other_positions is string %}
                                     {{ player.other_positions }}
                                     {% else %}
                                     {{ player.other_positions|join(', ') }}
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">None selected</span>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
