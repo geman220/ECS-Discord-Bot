@@ -56,10 +56,21 @@ class GeneralCommands(commands.Cog):
         else:
             await interaction.response.send_message("No upcoming away matches found.")
 
-    @app_commands.command(name="verify", description="Verify your ECS membership with your Order #")
+    @app_commands.command(name="verify", description="Hit send to verify your ECS membership!")
     @app_commands.guilds(discord.Object(id=server_id))
-    async def verify_order(self, interaction: discord.Interaction):
-        modal = VerifyModal(title="Verify Membership", bot=self.bot)
+    @app_commands.describe(order="Your Order number (optional, can include '#' prefix)")
+    async def verify_order(self, interaction: discord.Interaction, order: str = None):
+        if order:
+            order = order.strip()
+            if order.startswith("#"):
+                order = order[1:].strip()
+            if not order.isdigit():
+                return await interaction.response.send_message(
+                    "Invalid order number. Please provide a numeric Order ID (e.g. 123456 or #123456).",
+                    ephemeral=True
+                )
+        # Pass the cleaned order as 'default_order' to the modal.
+        modal = VerifyModal(bot=self.bot, default_order=order)
         await interaction.response.send_modal(modal)
 
     @app_commands.command(name="lookup", description="Look up a player by Discord user.")
