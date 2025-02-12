@@ -334,10 +334,14 @@
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Positions Not to Play:</strong>
+                                    {% if player.positions_not_to_play %}
                                     {% if player.positions_not_to_play is string %}
                                     {{ player.positions_not_to_play }}
                                     {% else %}
                                     {{ player.positions_not_to_play|join(', ') }}
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">None selected</span>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6"><strong>Frequency Play Goal:</strong> {{ goal_frequency_map[player.frequency_play_goal] }}</div>
