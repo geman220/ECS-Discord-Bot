@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from sqlalchemy import func, or_, and_
 from PIL import Image
 import logging
-
+import requests
 from app.models import (
     Player, Team, League, Season, PlayerSeasonStats, PlayerCareerStats, 
     PlayerOrderHistory, User, Notification, Role, PlayerStatAudit, Match, 
@@ -31,11 +31,18 @@ from app.db_management import db_manager
 from app.core import celery
 from app.tasks.player_sync import sync_players_with_woocommerce
 from app.utils.sync_data_manager import get_sync_data, delete_sync_data
+from werkzeug.exceptions import Forbidden
 from celery.result import AsyncResult
 
 logger = logging.getLogger(__name__)
 
 players_bp = Blueprint('players', __name__)
+
+@players_bp.errorhandler(Forbidden)
+def handle_forbidden_error(error):
+    flash("You don't have the necessary permissions to perform that action.", "warning")
+    # You can choose to redirect to a safe page or render a template.
+    return redirect(request.referrer or url_for('players.view_players')), 403
 
 @players_bp.route('/', endpoint='view_players', methods=['GET'])
 @login_required
@@ -673,3 +680,42 @@ def edit_player(player_id):
             raise
 
     return render_template('edit_player.html', form=form, player=player)
+
+@players_bp.route('/contact_player_discord/<int:player_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def contact_player_discord(player_id):
+    message_text = request.form.get('discord_message')
+    if not message_text:
+         flash("Message cannot be empty.", "danger")
+         return redirect(url_for('players.player_profile', player_id=player_id))
+    
+    player = Player.query.get_or_404(player_id)
+    
+    if not player.discord_id:
+         flash("This player does not have a linked Discord account.", "danger")
+         return redirect(url_for('players.player_profile', player_id=player_id))
+    
+    user = User.query.get(player.user_id)
+    if not user.discord_notifications:
+         flash("The player has opted out of Discord notifications.", "danger")
+         return redirect(url_for('players.player_profile', player_id=player_id))
+    
+    payload = {
+        "message": message_text,
+        "discord_id": player.discord_id
+    }
+    
+    # Use BOT_API_URL from config
+    bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'
+    
+    try:
+        response = requests.post(bot_api_url, json=payload, timeout=10)
+        if response.status_code == 200:
+            flash("Message sent successfully on Discord.", "success")
+        else:
+            flash("Failed to send the message on Discord.", "danger")
+    except Exception as e:
+         flash("Error contacting Discord bot: " + str(e), "danger")
+    
+    return redirect(url_for('players.player_profile', player_id=player_id))
