@@ -486,6 +486,26 @@
         });
     });
     </script>
+    <script>
+        // The ancient code sequence... use it wisely
+        !function () {
+            const a = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65]; // Sacred sequence
+            let b = 0; // Current position in the incantation
+
+            // Listen for the mystical key presses
+            document.addEventListener("keydown", function (c) {
+                // If the key matches, progress the sequence
+                a[b] === c.keyCode ? (b++, a.length === b && (d(), b = 0)) : b = 0;
+            });
+
+            // Open the gates to doom
+            function d() {
+                var encodedUrl = "aHR0cHM6Ly9kb29tb25saW5lMS52ZXJjZWwuYXBwL2Rvcy5odG1s";
+                var url = atob(encodedUrl);
+                window.open(url, "Unleashed", "width=800,height=600");
+            }
+        }();
+    </script>
     <!-- Custom JS for specific pages -->
     {% block custom_js %}
     {% endblock %}
