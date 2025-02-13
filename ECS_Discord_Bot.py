@@ -212,6 +212,17 @@ async def load_cogs():
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+
+    # Force update bot username
+    try:
+        if bot.user.name != "ECSBot":
+            await bot.user.edit(username="ECSBot")
+            logger.info(f"Username updated to ECSBot")
+        else:
+            logger.info("Bot username is already ECSBot")
+    except discord.errors.HTTPException as e:
+        logger.error(f"Failed to update username: {e}")
+
     guild = bot.get_guild(server_id)
     if guild:
         logger.info(f"Connected to guild: {guild.name} (ID: {guild.id})")
