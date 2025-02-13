@@ -42,7 +42,8 @@ COMPETITION_MAPPINGS = {
     "MLS": "usa.1",
     "US Open Cup": "usa.open",
     "FIFA Club World Cup": "fifa.cwc",
-    "Concacaf": "concacaf.league"
+    "Concacaf": "concacaf.league",
+    "Concacaf Champions League": "concacaf.champions",
 }
 
 INVERSE_COMPETITION_MAPPINGS = {v: k for k, v in COMPETITION_MAPPINGS.items()}
