@@ -1,26 +1,56 @@
-from flask import g
-from app.models import Player, League, PlayerOrderHistory, User
-from app.routes import get_current_season_and_year
-from sqlalchemy.orm import joinedload
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func
-from datetime import datetime
+# app/player_management_helpers.py
+
+"""
+Player Management Helpers Module
+
+This module provides utility functions to manage player profiles and related data,
+including creating or updating player records, handling placeholder players,
+and recording order history. It also includes functions to reset current player flags,
+fetch existing players, and check if an order has already been processed.
+"""
+
 import uuid
 import secrets
 import string
 import logging
+from datetime import datetime
 
+from flask import g
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
+
+from app.core import db
+from app.models import Player, League, PlayerOrderHistory, User
 from app.players_helpers import (
     generate_random_password,
     generate_unique_username,
     standardize_name,
     standardize_phone,
-    match_player,
+    match_player
 )
 
 logger = logging.getLogger(__name__)
 
+
 def create_or_update_player(player_data, league, current_seasons, existing_main_player, existing_placeholders, total_line_items):
+    """
+    Create or update a player based on the provided data, league, and order details.
+
+    If an existing main player is found, update their details and create additional
+    placeholder players as needed to match the total line items. Otherwise, create a new
+    main player and corresponding placeholders.
+
+    Args:
+        player_data (dict): Player data extracted from the order.
+        league (League): The league the order is associated with.
+        current_seasons (list): List of current Season objects.
+        existing_main_player (Player): The main player record if it exists.
+        existing_placeholders (list): List of placeholder players already created.
+        total_line_items (int): Total number of line items (player profiles) from the order.
+
+    Returns:
+        Player: The main player record after update or creation.
+    """
     if not hasattr(g, 'db_session'):
         logger.error("No db_session found in the request context.")
         return None
@@ -61,10 +91,22 @@ def create_or_update_player(player_data, league, current_seasons, existing_main_
                 is_placeholder=True
             )
             logger.info(f"Created a new placeholder linked to {main_player.name}")
-
         return main_player
 
+
 def create_new_player(player_data, league, original_player_id=None, is_placeholder=False):
+    """
+    Create a new player record. For placeholders, modify the name, email, and phone.
+
+    Args:
+        player_data (dict): Player data from the order.
+        league (League): The league for the player.
+        original_player_id (int, optional): The main player's ID to link placeholders.
+        is_placeholder (bool): Flag indicating if this is a placeholder record.
+
+    Returns:
+        Player: The newly created player record.
+    """
     session = g.db_session
     if is_placeholder:
         placeholder_suffix = f"+{original_player_id}-{uuid.uuid4().hex[:6]}"
@@ -75,8 +117,8 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         name = player_data['name']
         email, phone = player_data['email'], player_data['phone']
 
-    logger.debug(f"create_new_player: Creating player with name={name}, email={email}")
-    
+    logger.debug(f"Creating player with name={name}, email={email}")
+
     existing_user = session.query(User).filter_by(email=email).first()
     if not existing_user:
         existing_user = User(
@@ -86,9 +128,9 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         )
         existing_user.set_password(generate_random_password())
         session.add(existing_user)
-        session.flush()  # To get the user.id
-        logger.debug(f"create_new_player: Created new user with id {existing_user.id} for email {email}")
-    
+        session.flush()  # Ensure user.id is available
+        logger.debug(f"Created new user with id {existing_user.id} for email {email}")
+
     new_player = Player(
         name=name,
         email=email,
@@ -98,19 +140,31 @@ def create_new_player(player_data, league, original_player_id=None, is_placehold
         is_current_player=True,
         needs_manual_review=is_placeholder,
         linked_primary_player_id=original_player_id,
-        order_id=player_data['order_id'],
+        order_id=player_data.get('order_id'),
         user=existing_user
     )
     session.add(new_player)
     session.flush()
-    logger.debug(f"create_new_player: New player {new_player.id} created with user_id {new_player.user_id}")
+    logger.debug(f"New player {new_player.id} created with user_id {new_player.user_id}")
     return new_player
 
+
 def update_player_details(player, player_data, user=None):
+    """
+    Update player details with data from the order.
+
+    Args:
+        player (Player): The player to update.
+        player_data (dict): New data to update the player.
+        user (User, optional): The associated user; if provided, enforce association.
+
+    Returns:
+        Player: The updated player object.
+    """
     session = g.db_session
     logger.debug("Entering update_player_details")
     logger.debug(f"Before update: player.user = {player.user}, player.user_id = {player.user_id}")
-    
+
     player.is_current_player = True
     player.phone = standardize_phone(player_data.get('phone', ''))
     player.jersey_size = player_data.get('jersey_size', '')
@@ -119,7 +173,6 @@ def update_player_details(player, player_data, user=None):
 
     if user is not None:
         logger.debug(f"User provided: {user} with id: {user.id}")
-        # Always force the association so that user_id is updated properly.
         player.user = user
         player.user_id = user.id
         if not user.email:
@@ -127,19 +180,28 @@ def update_player_details(player, player_data, user=None):
             logger.info(f"Set email for user '{user.username}' to '{new_email}'.")
         elif user.email.lower() != new_email:
             logger.info(
-                f"Email from WooCommerce '{new_email}' does not match user's email '{user.email}'. "
-                "Keeping the user's current email."
+                f"Email from order '{new_email}' does not match user's email '{user.email}'. Keeping current email."
             )
     else:
         logger.warning("No user provided to update player details; player.user remains unchanged!")
-    
+
     logger.debug(f"After update: player.user = {player.user}, player.user_id = {player.user_id}")
     return player
 
+
 def create_player_profile(player_data, league, user, session):
     """
-    Create or update a Player record in 'league' for the given 'user',
-    all within the same session to avoid session mismatch.
+    Create or update a Player record in the specified league for the given user,
+    using the provided session to ensure consistency.
+
+    Args:
+        player_data (dict): Data for the player.
+        league (League): The league associated with the player.
+        user (User): The user owning the player profile.
+        session (Session): The database session to use.
+
+    Returns:
+        Player: The matched or newly created player record.
     """
     logger.debug("Entering create_player_profile")
     logger.debug(f"User passed in: {user} with id: {user.id}")
@@ -148,8 +210,6 @@ def create_player_profile(player_data, league, user, session):
     player = match_player(player_data, league, user=user, session=session)
     if player:
         logger.debug(f"Matched existing player: {player} (user_id: {player.user_id})")
-        # (Optional) Update details if desired:
-        # update_player_details(player, player_data, user=user)
         session.add(player)
         session.flush()
         logger.info(f"Updated existing player '{player.name}' for user '{user.email}'.")
@@ -164,10 +224,8 @@ def create_player_profile(player_data, league, user, session):
 
     if existing_player:
         logger.debug(f"Existing main player found for user in league: {existing_player}")
-        # Example: create a placeholder or fallback logic:
         placeholder_suffix = f"+{existing_player.id}"
         placeholder_name = f"{player_data.get('name', '')} {placeholder_suffix}"
-
         new_player = Player(
             name=placeholder_name,
             phone=player_data.get('phone', ''),
@@ -181,12 +239,11 @@ def create_player_profile(player_data, league, user, session):
         session.add(new_player)
         session.flush()
         logger.info(
-            f"Created new placeholder player profile '{new_player.name}' "
-            f"for user '{user.email}', flagged for manual review."
+            f"Created new placeholder player profile '{new_player.name}' for user '{user.email}', flagged for manual review."
         )
         return new_player
 
-    # 3) Otherwise, create a truly new main player
+    # 3) Otherwise, create a new main player profile
     logger.debug("No existing player for user+league; creating a new main profile.")
     new_player = Player(
         name=player_data.get('name', ''),
@@ -198,32 +255,21 @@ def create_player_profile(player_data, league, user, session):
     )
     session.add(new_player)
     session.flush()
-    logger.info(
-        f"Created new player profile '{new_player.name}' for user '{user.email}'."
-    )
-    return new_player
-    
-    # 3) Otherwise, truly new "main" player for this user + league
-    logger.debug("No existing player for user+league; creating a new main profile.")
-    new_player = Player(
-        name=standardize_name(player_data.get('name', '')),
-        phone=standardize_phone(player_data.get('phone', '')),
-        jersey_size=player_data.get('jersey_size', ''),
-        primary_league=league,
-        user=user,
-        is_current_player=True,
-        order_id=player_data.get('order_id')
-    )
-    new_player.other_leagues.append(league)
-    session.add(new_player)
-    logger.debug("Creating new main player; before flush:")
-    session.flush()
-    session.refresh(new_player)
-    logger.debug(f"After refresh, new player's user_id: {new_player.user_id}")
     logger.info(f"Created new player profile '{new_player.name}' for user '{user.email}'.")
     return new_player
 
+
 def create_user_and_player_profile(player_info, league):
+    """
+    Create a new user and associated player profile for the given league.
+
+    Args:
+        player_info (dict): Dictionary containing player details.
+        league (League): The league to which the player belongs.
+
+    Returns:
+        Player: The created or existing player profile.
+    """
     if not hasattr(g, 'db_session'):
         logger.error("No db_session found in the request context.")
         return None
@@ -238,7 +284,6 @@ def create_user_and_player_profile(player_info, league):
 
         user = get_existing_user()
         if not user:
-            # Create new user
             random_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(10))
             user = User(
                 email=player_info['email'].lower(),
@@ -282,7 +327,17 @@ def create_user_and_player_profile(player_info, league):
         logger.error(f"Error creating player: {e}", exc_info=True)
         raise
 
+
 def reset_current_players(current_seasons):
+    """
+    Reset the is_current_player flag for all players in the specified seasons.
+
+    Args:
+        current_seasons (list): List of current Season objects.
+
+    Returns:
+        int: The number of player records updated.
+    """
     if not hasattr(g, 'db_session'):
         logger.error("No db_session found in the request context.")
         return 0
@@ -303,8 +358,17 @@ def reset_current_players(current_seasons):
         logger.error(f"Error resetting players: {str(e)}", exc_info=True)
         raise
 
+
 def fetch_existing_players(email):
-    """Fetch players with proper session management."""
+    """
+    Fetch the main player and any placeholder players associated with the given email.
+
+    Args:
+        email (str): The player's email address.
+
+    Returns:
+        tuple: (main_player (Player or None), placeholders (list of Player))
+    """
     if not hasattr(g, 'db_session'):
         logger.error("No db_session found in the request context.")
         return None, []
@@ -314,18 +378,30 @@ def fetch_existing_players(email):
         email=email.lower(), 
         linked_primary_player_id=None
     ).first()
-    
+
     if not main_player:
         return None, []
-    
+
     placeholders = session.query(Player).filter_by(
         linked_primary_player_id=main_player.id
     ).all()
-    
+
     return main_player, placeholders
 
+
 def check_if_order_processed(order_id, player_id, league_id, season_id):
-    """Check order processing status with proper session management."""
+    """
+    Check if an order has already been processed for a given player, league, and season.
+
+    Args:
+        order_id (str): The order identifier.
+        player_id (int): The player's identifier.
+        league_id (int): The league's identifier.
+        season_id (int): The season's identifier.
+
+    Returns:
+        PlayerOrderHistory: The order history record if found, otherwise None.
+    """
     if not hasattr(g, 'db_session'):
         logger.error("No db_session found in the request context.")
         return None
@@ -338,9 +414,23 @@ def check_if_order_processed(order_id, player_id, league_id, season_id):
         season_id=season_id
     ).first()
 
+
 def record_order_history(order_id, player_id, league_id, season_id, profile_count, session=None):
+    """
+    Record the order processing history in the database.
+
+    Args:
+        order_id (str): The order identifier.
+        player_id (int): The player's identifier.
+        league_id (int): The league's identifier.
+        season_id (int): The season's identifier.
+        profile_count (int): The number of player profiles created.
+        session (Session, optional): The database session to use; defaults to global db.session.
+
+    Returns:
+        PlayerOrderHistory: The created order history record.
+    """
     if session is None:
-        from app.core import db
         session = db.session
     try:
         order_history = PlayerOrderHistory(

@@ -1,3 +1,14 @@
+# app/teams_helpers.py
+
+"""
+Teams Helpers Module
+
+This module provides helper functions for populating team statistics,
+updating league standings, and processing player events in match reports.
+It also includes functions to update individual player statistics and
+retrieve the current season ID.
+"""
+
 import logging
 from sqlalchemy import func
 from app.models import (
@@ -7,8 +18,30 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 
+
 def populate_team_stats(team, season):
-    # Calculate top scorer
+    """
+    Calculate and return statistical data for a given team and season.
+
+    This function computes:
+      - Top scorer and top assister for the team.
+      - Recent match form (last 5 matches) as a sequence of 'W', 'D', or 'L'.
+      - Average goals per match.
+
+    Args:
+        team (Team): The team for which to calculate stats.
+        season (Season): The season to consider.
+
+    Returns:
+        dict: A dictionary containing team stats including:
+            - top_scorer_name
+            - top_scorer_goals
+            - top_assister_name
+            - top_assister_assists
+            - recent_form
+            - avg_goals_per_match
+    """
+    # Calculate top scorer.
     top_scorer = db.session.query(Player.name, PlayerSeasonStats.goals).join(
         PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
     ).filter(
@@ -16,9 +49,11 @@ def populate_team_stats(team, season):
         Player.team_id == team.id
     ).order_by(PlayerSeasonStats.goals.desc()).first()
 
-    top_scorer_name, top_scorer_goals = top_scorer if top_scorer and top_scorer[1] > 0 else ("No goals scored", 0)
+    top_scorer_name, top_scorer_goals = (
+        top_scorer if top_scorer and top_scorer[1] > 0 else ("No goals scored", 0)
+    )
 
-    # Calculate top assister
+    # Calculate top assister.
     top_assister = db.session.query(Player.name, PlayerSeasonStats.assists).join(
         PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
     ).filter(
@@ -26,9 +61,11 @@ def populate_team_stats(team, season):
         Player.team_id == team.id
     ).order_by(PlayerSeasonStats.assists.desc()).first()
 
-    top_assister_name, top_assister_assists = top_assister if top_assister and top_assister[1] > 0 else ("No assists recorded", 0)
+    top_assister_name, top_assister_assists = (
+        top_assister if top_assister and top_assister[1] > 0 else ("No assists recorded", 0)
+    )
 
-    # Fetch last 5 matches for recent form
+    # Fetch the last 5 matches to determine recent form.
     matches = Match.query.join(
         Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))
     ).join(
@@ -50,7 +87,7 @@ def populate_team_stats(team, season):
 
     recent_form = ' '.join(recent_form_list) if recent_form_list else "N/A"
 
-    # Calculate average goals per match
+    # Calculate average goals per match.
     total_goals = db.session.query(func.sum(PlayerSeasonStats.goals)).join(
         Player, PlayerSeasonStats.player_id == Player.id
     ).filter(
@@ -80,13 +117,25 @@ def populate_team_stats(team, season):
         "avg_goals_per_match": avg_goals_per_match
     }
 
+
 def update_standings(match, old_home_score=None, old_away_score=None):
-    logger = logging.getLogger(__name__)
+    """
+    Update league standings based on a match's outcome.
+
+    Retrieves or creates standings for both home and away teams, then:
+      - If previous scores exist, reverts the old result.
+      - Applies the new match result to update wins, losses, draws, goals, goal difference, and points.
+
+    Args:
+        match (Match): The match object.
+        old_home_score (int, optional): Previous home team score.
+        old_away_score (int, optional): Previous away team score.
+    """
     home_team = match.home_team
     away_team = match.away_team
     season = home_team.league.season
 
-    # Fetch or create standings
+    # Helper function to fetch or create a team's standing for the season.
     def get_standing(team):
         standing = Standings.query.filter_by(team_id=team.id, season_id=season.id).first()
         if not standing:
@@ -97,15 +146,26 @@ def update_standings(match, old_home_score=None, old_away_score=None):
     home_standing = get_standing(home_team)
     away_standing = get_standing(away_team)
 
-    # Revert old result if exists
+    # Revert old match result if previous scores are provided.
     if old_home_score is not None and old_away_score is not None:
         logger.info(f"Reverting old result for Match ID: {match.id}")
         adjust_standings(home_standing, away_standing, old_home_score, old_away_score, subtract=True)
 
-    # Apply new result
+    # Apply the new match result.
     adjust_standings(home_standing, away_standing, match.home_team_score, match.away_team_score)
 
+
 def adjust_standings(home_standing, away_standing, home_score, away_score, subtract=False):
+    """
+    Adjust the standings for both home and away teams based on match scores.
+
+    Args:
+        home_standing: Standing object for the home team.
+        away_standing: Standing object for the away team.
+        home_score (int): Home team score.
+        away_score (int): Away team score.
+        subtract (bool, optional): If True, subtracts the result (used for reverting). Defaults to False.
+    """
     multiplier = -1 if subtract else 1
     if home_score > away_score:
         home_standing.wins += 1 * multiplier
@@ -131,12 +191,23 @@ def adjust_standings(home_standing, away_standing, home_score, away_score, subtr
     home_standing.played += 1 * multiplier
     away_standing.played += 1 * multiplier
 
+
 def process_events(match, data, event_type, add_key, remove_key):
+    """
+    Process player events for a match: remove and add/update events.
+
+    Args:
+        match (Match): The match object.
+        data (dict): Data containing events to add and remove.
+        event_type (PlayerEventType): The type of event to process.
+        add_key (str): Key in data for events to add.
+        remove_key (str): Key in data for events to remove.
+    """
     logger.info(f"Processing {event_type.name} events for Match ID {match.id}")
     events_to_add = data.get(add_key, [])
     events_to_remove = data.get(remove_key, [])
 
-    # Remove events
+    # Process removals.
     for event_data in events_to_remove:
         stat_id = event_data.get('stat_id')
         if stat_id:
@@ -148,7 +219,7 @@ def process_events(match, data, event_type, add_key, remove_key):
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found.")
 
-    # Add or update events
+    # Process additions or updates.
     for event_data in events_to_add:
         player_id = int(event_data.get('player_id'))
         minute = event_data.get('minute')
@@ -184,7 +255,16 @@ def process_events(match, data, event_type, add_key, remove_key):
             update_player_stats(player_id, event_type.value)
             logger.info(f"Added {event_type.name}: Player ID {player_id}")
 
+
 def update_player_stats(player_id, event_type, increment=True):
+    """
+    Update the player's season and career statistics based on an event.
+
+    Args:
+        player_id (int): The ID of the player.
+        event_type (str): The event type value (e.g., 'goal', 'assist', etc.).
+        increment (bool, optional): If True, increments stats; if False, decrements. Defaults to True.
+    """
     logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}")
     season_id = current_season_id()
     adjustment = 1 if increment else -1
@@ -200,8 +280,10 @@ def update_player_stats(player_id, event_type, increment=True):
         db.session.add(career_stats)
 
     def update_stat(stat_name):
-        setattr(season_stats, stat_name, max((getattr(season_stats, stat_name) or 0) + adjustment, 0))
-        setattr(career_stats, stat_name, max((getattr(career_stats, stat_name) or 0) + adjustment, 0))
+        current_value = getattr(season_stats, stat_name) or 0
+        setattr(season_stats, stat_name, max(current_value + adjustment, 0))
+        current_value_career = getattr(career_stats, stat_name) or 0
+        setattr(career_stats, stat_name, max(current_value_career + adjustment, 0))
 
     if event_type == PlayerEventType.GOAL.value:
         update_stat('goals')
@@ -212,6 +294,13 @@ def update_player_stats(player_id, event_type, increment=True):
     elif event_type == PlayerEventType.RED_CARD.value:
         update_stat('red_cards')
 
+
 def current_season_id():
+    """
+    Retrieve the current season's ID.
+
+    Returns:
+        int: The current season ID, or None if no current season is found.
+    """
     current_season = Season.query.filter_by(is_current=True).first()
     return current_season.id if current_season else None

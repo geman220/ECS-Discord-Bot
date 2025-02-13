@@ -1,15 +1,23 @@
 # app/account.py
 
+"""
+Account Module
+
+This module defines the account-related routes for the application, including
+settings, notification and password updates, SMS and two-factor authentication,
+and Discord account linking. It leverages Flask-Login for user management,
+Flask-WTF for forms, and custom helper functions for SMS, 2FA, and Discord integration.
+"""
+
 import qrcode
 import base64
 from io import BytesIO
-from flask import send_file
+from flask import send_file, Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, g
+from flask_login import login_required, current_user
 from app import csrf
 from app.core import db
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, g
-from flask_login import login_required, current_user
-from app.forms import Verify2FAForm, NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
-from app.models import Player, Team, Match, User, Notification
+from app.forms import NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
+from app.models import Player, User, Notification
 from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic, handle_incoming_text_command
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -24,29 +32,60 @@ logger = logging.getLogger(__name__)
 
 account_bp = Blueprint('account', __name__)
 
+# Discord OAuth2 configuration constants.
 DISCORD_OAUTH2_URL = 'https://discord.com/api/oauth2/authorize'
 DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 DISCORD_API_URL = 'https://discord.com/api/users/@me'
-
 
 # --------------------
 # Helper Functions
 # --------------------
 
 def get_player_notifications(user_id):
+    """
+    Retrieve the 10 most recent notifications for a given user.
+
+    Args:
+        user_id: The ID of the user.
+
+    Returns:
+        A list of Notification objects ordered by creation date (descending).
+    """
     return Notification.query.filter_by(user_id=user_id)\
         .order_by(Notification.created_at.desc())\
         .limit(10)\
         .all()
 
+
 def get_player_with_team(user_id):
+    """
+    Retrieve a Player along with their associated team information.
+
+    Args:
+        user_id: The ID of the user.
+
+    Returns:
+        A Player object with the team relationship eagerly loaded, or None if not found.
+    """
     return Player.query.options(db.joinedload(Player.team))\
         .filter_by(user_id=user_id)\
         .first()
 
+
 def create_or_update_player(session, user_id, phone_number):
     """
-    Updated to use session passed in rather than db.session
+    Create or update a Player record with the provided phone number.
+
+    This function uses the provided session (instead of the global db.session)
+    to ensure transactional safety during user updates.
+
+    Args:
+        session: The database session to use.
+        user_id: The ID of the user.
+        phone_number: The phone number to set for the player.
+
+    Returns:
+        The created or updated Player object.
     """
     player = session.query(Player).filter_by(user_id=user_id).first()
     if not player:
@@ -59,7 +98,24 @@ def create_or_update_player(session, user_id, phone_number):
     player.sms_opt_out_timestamp = None
     return player
 
+
 def link_discord_account(code, discord_client_id, discord_client_secret, redirect_uri, player):
+    """
+    Link a Discord account to a player's profile.
+
+    Exchanges an OAuth2 authorization code for an access token and retrieves
+    the user's Discord ID. Updates the player's discord_id attribute accordingly.
+
+    Args:
+        code: The OAuth2 authorization code from Discord.
+        discord_client_id: The Discord client ID.
+        discord_client_secret: The Discord client secret.
+        redirect_uri: The redirect URI used in the OAuth2 flow.
+        player: The Player object to update.
+
+    Returns:
+        A tuple (success, error_message). If success is True, linking succeeded.
+    """
     token_data = {
         'client_id': discord_client_id,
         'client_secret': discord_client_secret,
@@ -85,7 +141,6 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
     player.discord_id = discord_id
     return True, None
 
-
 # --------------------
 # Routes
 # --------------------
@@ -93,6 +148,11 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
 @account_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    """
+    Render the account settings page.
+
+    Displays forms for updating notification settings, password changes, and enabling/disabling 2FA.
+    """
     notification_form = NotificationSettingsForm(prefix='notification', obj=safe_current_user)
     password_form = PasswordChangeForm(prefix='password')
     enable_2fa_form = Enable2FAForm(prefix='enable2fa')
@@ -110,6 +170,12 @@ def settings():
 @login_required
 @transactional
 def update_notifications():
+    """
+    Update user notification settings.
+
+    Processes the NotificationSettingsForm submission and updates the user's email, Discord
+    notifications, and profile visibility.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -128,6 +194,11 @@ def update_notifications():
 @login_required
 @transactional
 def change_password():
+    """
+    Change the user's password.
+
+    Validates the current password and updates it to the new password using secure hashing.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -149,6 +220,11 @@ def change_password():
 @login_required
 @transactional
 def update_account_info():
+    """
+    Update account information.
+
+    Updates the user's email and, if a player profile exists, the player's name and phone.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -165,6 +241,12 @@ def update_account_info():
 @login_required
 @transactional
 def initiate_sms_opt_in():
+    """
+    Initiate SMS opt-in process.
+
+    Validates the phone number and consent, creates or updates the player's record, checks
+    for blocked numbers, and sends a confirmation SMS.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -193,6 +275,11 @@ def initiate_sms_opt_in():
 @login_required
 @transactional
 def confirm_sms_opt_in():
+    """
+    Confirm SMS opt-in.
+
+    Validates the SMS confirmation code and updates the user's SMS notification settings.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -214,6 +301,11 @@ def confirm_sms_opt_in():
 @login_required
 @transactional
 def opt_out_sms():
+    """
+    Opt out of SMS notifications.
+
+    Disables SMS notifications for the user and records the opt-out timestamp.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -227,6 +319,11 @@ def opt_out_sms():
 @account_bp.route('/sms-verification-status', methods=['GET'])
 @login_required
 def sms_verification_status():
+    """
+    Check SMS verification status.
+
+    Returns a JSON response indicating whether the player's phone has been verified and the associated phone number.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -240,28 +337,35 @@ def sms_verification_status():
 
 @account_bp.route('/enable_2fa', methods=['GET', 'POST'])
 @login_required
-@transactional
 def enable_2fa():
-    session = g.db_session
-    user = session.query(User).get(current_user.id)
+    """
+    Enable two-factor authentication (2FA) for the current user.
 
+    On GET requests, generates a new TOTP secret, creates a QR code for setup, and returns it as a JSON response.
+    On POST requests, verifies the provided TOTP code and enables 2FA if valid.
+    """
+    # GET: Generate TOTP secret and QR code.
     if request.method == 'GET':
-        if not user.totp_secret:
-            user.generate_totp_secret()
-        totp = pyotp.TOTP(user.totp_secret)
-        otp_uri = totp.provisioning_uri(name=user.email, issuer_name="ECS Web")
+        if not current_user.totp_secret:
+            current_user.generate_totp_secret()
+        totp = pyotp.TOTP(current_user.totp_secret)
+        otp_uri = totp.provisioning_uri(name=current_user.email, issuer_name="ECS Web")
         img = qrcode.make(otp_uri)
         buffered = BytesIO()
-        img.save(buffered)
-        qr_code = base64.b64encode(buffered.getvalue()).decode()
-        return jsonify({'qr_code': qr_code, 'secret': user.totp_secret})
+        img.save(buffered, format="PNG")
+        buffered.seek(0)
+        session['temp_totp_secret'] = current_user.totp_secret
+        return jsonify({
+            'qr_code': base64.b64encode(buffered.getvalue()).decode(),
+            'secret': current_user.totp_secret
+        })
     
+    # POST: Verify the TOTP code and enable 2FA.
     elif request.method == 'POST':
         code = request.json.get('code')
-        totp = pyotp.TOTP(user.totp_secret)
-        
+        totp = pyotp.TOTP(current_user.totp_secret)
         if totp.verify(code):
-            user.is_2fa_enabled = True
+            current_user.is_2fa_enabled = True
             flash('2FA enabled successfully.', 'success')
             return jsonify({'success': True})
         else:
@@ -272,6 +376,11 @@ def enable_2fa():
 @login_required
 @transactional
 def disable_2fa():
+    """
+    Disable two-factor authentication (2FA) for the current user.
+
+    If the user has 2FA enabled, it will be disabled and the TOTP secret cleared.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -289,10 +398,14 @@ def disable_2fa():
 @account_bp.route('/link-discord')
 @login_required
 def link_discord():
+    """
+    Redirect the user to Discord for OAuth2 linking.
+
+    Constructs the Discord OAuth2 URL with required parameters and redirects the user.
+    """
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = url_for('account.discord_callback', _external=True)
     scope = 'identify email'
-    
     discord_login_url = f"{DISCORD_OAUTH2_URL}?client_id={discord_client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
     return redirect(discord_login_url)
 
@@ -301,9 +414,14 @@ def link_discord():
 @login_required
 @transactional
 def discord_callback():
+    """
+    Handle the Discord OAuth2 callback.
+
+    Retrieves the authorization code from Discord, links the Discord account to the user's profile,
+    and provides appropriate feedback.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
-
     code = request.args.get('code')
     if not code:
         flash('Discord linking failed. Please try again.', 'danger')
@@ -325,7 +443,6 @@ def discord_callback():
         flash('Your Discord account has been successfully linked.', 'success')
     else:
         flash(f'Failed to link Discord account: {error}', 'danger')
-
     return redirect(url_for('account.settings'))
 
 
@@ -333,6 +450,11 @@ def discord_callback():
 @login_required
 @transactional
 def unlink_discord():
+    """
+    Unlink the user's Discord account.
+
+    Clears the discord_id from the player's profile and provides user feedback.
+    """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
@@ -348,8 +470,13 @@ def unlink_discord():
 @account_bp.route('/webhook/incoming-sms', methods=['POST'])
 @transactional
 def incoming_sms_webhook():
-    session = g.db_session
+    """
+    Webhook endpoint for processing incoming SMS commands.
 
+    Retrieves the sender's phone number and message body, normalizes the phone number,
+    and passes the command to a helper function for processing.
+    """
+    session = g.db_session
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip()
 
@@ -358,9 +485,16 @@ def incoming_sms_webhook():
 
     return handle_incoming_text_command(sender_number, message_text)
 
+
 @account_bp.route('/show_2fa_qr', methods=['GET'])
 @login_required
 def show_2fa_qr():
+    """
+    Generate and display a QR code for setting up two-factor authentication (2FA).
+
+    Generates a temporary TOTP secret, creates an OTP URI, and renders a QR code image.
+    The QR code is returned as an image/png file.
+    """
     try:
         totp_secret = pyotp.random_base32()
         logger.debug(f"TOTP Secret (not saved yet): {totp_secret}")
@@ -381,7 +515,6 @@ def show_2fa_qr():
         session['temp_totp_secret'] = totp_secret
 
         return send_file(buffer, mimetype='image/png')
-
     except Exception as e:
         logger.error(f"Error generating QR code: {str(e)}")
         return "Error generating QR code", 500

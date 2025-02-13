@@ -1,32 +1,59 @@
-# feedback.py
+# app/feedback.py
+
+"""
+Feedback Module
+
+This module defines the blueprint endpoints and helper functions for handling user feedback.
+It includes routes for submitting feedback, viewing individual feedback entries with replies,
+and closing feedback. The module also sends notification emails to administrators upon feedback
+submission and manages database transactions and error handling to ensure a smooth user experience.
+"""
+
+import logging
+from datetime import datetime
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required
+from sqlalchemy.orm import joinedload
+
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, Role
 from app.email import send_email
 from app.utils.db_utils import transactional
 from app.core import db
 from app.utils.user_helpers import safe_current_user
-from sqlalchemy.orm import joinedload
-from datetime import datetime
-import logging
 
 logger = logging.getLogger(__name__)
-
 feedback_bp = Blueprint('feedback', __name__, template_folder='templates')
 
+
 def get_admin_emails():
-    """Get admin emails"""
+    """
+    Retrieve email addresses of all Global Admin users.
+    
+    Returns:
+        list: A list of email addresses for users with the 'Global Admin' role.
+    """
     admin_role = Role.query.filter_by(name='Global Admin').first()
     if admin_role:
         admin_users = User.query.filter(User.roles.contains(admin_role)).all()
         return [user.email for user in admin_users]
     return []
 
+
 @transactional
 def create_feedback_entry(form_data, user_id=None, username=None):
-    """Creates a new feedback entry"""
+    """
+    Creates a new feedback entry in the database.
+
+    Parameters:
+        form_data (dict): Data from the feedback form.
+        user_id (int, optional): ID of the user submitting the feedback.
+        username (str, optional): Username of the feedback submitter.
+
+    Returns:
+        Feedback: The newly created feedback object.
+    """
     try:
         new_feedback = Feedback(
             user_id=user_id,
@@ -44,8 +71,20 @@ def create_feedback_entry(form_data, user_id=None, username=None):
         logger.error(f"Error creating feedback: {str(e)}")
         raise
 
+
 def get_user_feedbacks(user_id, page, per_page, search_query):
-    """Retrieves paginated user feedbacks"""
+    """
+    Retrieves paginated feedback entries for a specific user.
+
+    Parameters:
+        user_id (int): ID of the user.
+        page (int): The current page number.
+        per_page (int): Number of feedbacks per page.
+        search_query (str): Optional search query to filter feedbacks by title or category.
+
+    Returns:
+        Pagination: A paginated object containing the user's feedback entries.
+    """
     try:
         feedback_query = Feedback.query.filter_by(user_id=user_id if user_id else None)
         
@@ -61,9 +100,17 @@ def get_user_feedbacks(user_id, page, per_page, search_query):
         logger.error(f"Error getting user feedbacks: {str(e)}")
         raise
 
+
 @feedback_bp.route('/submit_feedback', methods=['GET', 'POST'])
 @transactional
 def submit_feedback():
+    """
+    Handles the submission of new feedback.
+
+    Renders the feedback submission form and processes form submissions.
+    Upon successful submission, sends a notification email to administrators
+    and redirects the user to view the submitted feedback.
+    """
     try:
         form = FeedbackForm()
         page = request.args.get('page', 1, type=int)
@@ -120,10 +167,17 @@ def submit_feedback():
         flash('An unexpected error occurred. Please try again.', 'danger')
         return redirect(url_for('main.index'))
 
+
 @feedback_bp.route('/feedback/<int:feedback_id>', methods=['GET', 'POST'])
 @login_required
 @transactional
 def view_feedback(feedback_id):
+    """
+    Displays a specific feedback entry along with its replies.
+
+    Allows the user to view the details of their feedback and add a reply.
+    Only the owner of the feedback is permitted to view or reply.
+    """
     try:
         feedback = Feedback.query.options(
             joinedload(Feedback.replies).joinedload(FeedbackReply.user),
@@ -165,10 +219,17 @@ def view_feedback(feedback_id):
         flash('An error occurred while viewing the feedback.', 'danger')
         return redirect(url_for('feedback.submit_feedback'))
 
+
 @feedback_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
 @transactional
 def close_feedback(feedback_id):
+    """
+    Closes an existing feedback entry.
+
+    Sets the feedback status to 'Closed' and records the closure time.
+    Only the owner of the feedback is allowed to perform this action.
+    """
     feedback = Feedback.query.get_or_404(feedback_id)
     
     if feedback.user_id != safe_current_user.id:

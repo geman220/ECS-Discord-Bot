@@ -1,13 +1,21 @@
 # celery_worker.py
 
-from celery_worker_base import flask_app, celery_app as celery, logger
+"""
+Celery Worker
+
+This script starts the main Celery worker using an Eventlet pool with the 'celery'
+queue. It configures high concurrency and prefetch settings, and also applies
+resource limits such as maximum tasks per child and time limits.
+"""
+
 import sys
+from celery_worker_base import celery_app as celery, logger
 
 if __name__ == '__main__':
     try:
         logger.info("Starting Celery worker")
 
-        # Start Celery worker with Eventlet pool
+        # Start the Celery worker with the specified options.
         celery.worker_main([
             'worker',
             '--loglevel=INFO',

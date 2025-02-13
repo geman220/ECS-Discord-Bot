@@ -1,3 +1,17 @@
+# app/utils/discord_request_handler.py
+
+"""
+Discord Request Handler Module
+
+This module provides helper functions and classes for making requests to the Discord
+bot API with rate limiting, retry logic, and concurrency control. It defines:
+  - make_discord_request: an async function to perform a single Discord API request with retries.
+  - DiscordRateLimiter: a class to limit the rate of outgoing requests.
+  - OptimizedDiscordRequests: a class that uses both a rate limiter and a semaphore to manage
+    concurrent requests and cache 404 responses.
+  - optimized_discord_request: an async helper to execute multiple Discord requests concurrently.
+"""
+
 import asyncio
 import aiohttp
 import logging
@@ -6,13 +20,31 @@ from typing import Optional, Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
+
 async def make_discord_request(
-    method: str, url: str, session: aiohttp.ClientSession, retries: int = 3, delay: float = 0.5, **kwargs
+    method: str,
+    url: str,
+    session: aiohttp.ClientSession,
+    retries: int = 3,
+    delay: float = 0.5,
+    **kwargs
 ) -> Any:
-    """Make a Discord API request with retries, handling 404 and 429 responses.
-    
-    This version always attempts to parse the response as JSON. If it's not JSON,
+    """
+    Make a Discord API request with retries, handling 404 and 429 responses.
+
+    This function attempts to parse the response as JSON. If the response is not JSON,
     it logs an error and returns None.
+
+    Args:
+        method: HTTP method (e.g., 'GET', 'POST').
+        url: The API endpoint URL.
+        session: An aiohttp.ClientSession for making the request.
+        retries: Number of retry attempts if a request fails.
+        delay: Delay between retry attempts in seconds.
+        **kwargs: Additional keyword arguments passed to session.request.
+
+    Returns:
+        The JSON-decoded response if successful, or None if an error occurs.
     """
     logger.debug(f"Discord request: {method} {url}, kwargs={kwargs}")
     for attempt in range(retries):
@@ -22,21 +54,21 @@ async def make_discord_request(
                     logger.warning(f"404 Not Found for URL: {url}")
                     return None
                 elif response.status == 429:
-                    # Rate limited by Discord
+                    # Rate limited by Discord; wait for Retry-After header value.
                     retry_after = float(response.headers.get('Retry-After', '1'))
                     logger.warning(f"Rate limited (429) by Discord. Retrying after {retry_after}s")
                     await asyncio.sleep(retry_after)
                     continue
                 elif response.status >= 400:
+                    # For other errors, log and raise an exception.
                     response_text = await response.text()
                     logger.error(f"Error {response.status} for {url}: {response_text}")
                     response.raise_for_status()
                 else:
-                    # Successful response
+                    # Successful response; attempt to decode JSON.
                     try:
                         return await response.json()
                     except (aiohttp.ContentTypeError, ValueError) as e:
-                        # The response isn't valid JSON
                         logger.error(f"Failed to decode JSON from {url}: {e}")
                         return None
 
@@ -47,20 +79,40 @@ async def make_discord_request(
     logger.error(f"Failed to complete {method} request to {url} after {retries} attempts.")
     return None
 
+
 class DiscordRateLimiter:
+    """
+    A simple rate limiter for Discord API requests.
+
+    This class limits the number of requests sent within a given time window.
+    """
     def __init__(self, max_requests: int = 50, time_window: int = 1):
+        """
+        Initialize the rate limiter.
+
+        Args:
+            max_requests: Maximum number of requests allowed in the time window.
+            time_window: Time window in seconds.
+        """
         self.max_requests = max_requests
         self.time_window = time_window
-        self.requests = []
+        self.requests = []  # List to track the timestamps of requests.
         self._lock = asyncio.Lock()
 
     async def acquire(self):
+        """
+        Acquire permission to make a new request.
+
+        This method waits if the number of requests in the current time window
+        has reached the maximum allowed.
+        """
         async with self._lock:
             now = datetime.utcnow()
-            # Remove old requests outside the time window
+            # Remove timestamps older than the time window.
             self.requests = [t for t in self.requests if (now - t) < timedelta(seconds=self.time_window)]
 
             if len(self.requests) >= self.max_requests:
+                # Calculate sleep time based on the oldest request in the window.
                 sleep_time = self.time_window - (now - min(self.requests)).total_seconds()
                 if sleep_time > 0:
                     await asyncio.sleep(sleep_time)
@@ -69,12 +121,33 @@ class DiscordRateLimiter:
 
 
 class OptimizedDiscordRequests:
+    """
+    Optimized interface for making Discord API requests.
+
+    This class uses a DiscordRateLimiter and an asyncio semaphore to limit the rate
+    and concurrency of API requests. It also caches member-not-found responses.
+    """
     def __init__(self):
         self.rate_limiter = DiscordRateLimiter()
-        self.semaphore = asyncio.Semaphore(50)  # Limit concurrent requests
-        self.not_found_cache = set()  # Cache for member not found responses
+        self.semaphore = asyncio.Semaphore(50)  # Limit concurrent requests.
+        self.not_found_cache = set()  # Cache for member not found responses.
 
     async def make_request(self, method: str, url: str, session: aiohttp.ClientSession, **kwargs) -> Optional[Dict[Any, Any]]:
+        """
+        Make an optimized Discord API request.
+
+        If the member ID extracted from the URL is cached as not found, returns a cached response.
+        Otherwise, it waits for rate limiter and semaphore before making the request.
+
+        Args:
+            method: HTTP method to use.
+            url: The target API URL.
+            session: An aiohttp.ClientSession instance.
+            **kwargs: Additional parameters for the request.
+
+        Returns:
+            A dictionary with the response data if successful, or None.
+        """
         member_id = self._extract_member_id(url)
         if member_id and member_id in self.not_found_cache:
             return {"detail": "Member not found (cached)"}
@@ -84,40 +157,51 @@ class OptimizedDiscordRequests:
 
             response = await make_discord_request(method, url, session, **kwargs)
             if response is None:
-                # Could be a 404 or failed after retries
-                # If we previously got None due to 404:
+                # If a 404 occurred, cache the member as not found.
                 if member_id:
                     self.not_found_cache.add(member_id)
                     return {"detail": "Member not found"}
                 return None
 
-            # If response has an error field, it's an error from make_discord_request
+            # If the response indicates an error, return it directly.
             if isinstance(response, dict) and 'error' in response:
-                # Return it as is
                 return response
 
             return response
 
     def _extract_member_id(self, url: str) -> Optional[str]:
-        """Extract member ID from Discord API URL if present."""
+        """
+        Extract a member ID from a Discord API URL if present.
+
+        Args:
+            url: The API URL string.
+
+        Returns:
+            The extracted member ID, or None if not found.
+        """
         try:
             if "/members/" in url:
                 parts = url.split("/members/")
                 if len(parts) > 1:
                     return parts[1].split("/")[0]
-        except:
+        except Exception:
             pass
         return None
 
 
-# Global instance for convenience
+# Global instance for convenience.
 discord_client = OptimizedDiscordRequests()
+
 
 async def optimized_discord_request(tasks: List[tuple]) -> List[Optional[Dict[Any, Any]]]:
     """
     Execute multiple Discord requests concurrently.
-    tasks: list of tuples (method, url, kwargs_dict)
-    Returns a list of results in the same order.
+
+    Args:
+        tasks: A list of tuples, each containing (method, url, kwargs_dict).
+
+    Returns:
+        A list of results corresponding to the tasks in the same order.
     """
     async with aiohttp.ClientSession() as aiosession:
         coros = []

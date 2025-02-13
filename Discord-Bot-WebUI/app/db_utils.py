@@ -1,22 +1,48 @@
+# app/db_utils.py
+
+"""
+Database Utilities Module
+
+This module provides helper functions for managing MLS match data,
+including insertion, update, deletion, and bulk updates. It also includes
+functions for formatting match display data, safely committing database
+transactions, and updating Discord-related information for players and teams.
+"""
+
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
+
 from sqlalchemy.orm import joinedload, Session
 from sqlalchemy.exc import SQLAlchemyError
+
 from app.models import MLSMatch, Player, Team
 
 logger = logging.getLogger(__name__)
 
+
 def format_match_display_data(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Format match display data with proper date formatting."""
+    """
+    Format match display data with proper date formatting.
+
+    Args:
+        matches (List[Dict[str, Any]]): A list of match dictionaries.
+
+    Returns:
+        List[Dict[str, Any]]: The list with an additional 'formatted_date' key.
+    """
     formatted_matches = []
     for match in matches:
         match_copy = match.copy()
-        if isinstance(match_copy['date'], str):
-            dt_object = datetime.fromisoformat(match_copy['date'])
-            match_copy['formatted_date'] = dt_object.strftime('%m/%d/%Y %I:%M %p')
+        if isinstance(match_copy.get('date'), str):
+            try:
+                dt_object = datetime.fromisoformat(match_copy['date'])
+                match_copy['formatted_date'] = dt_object.strftime('%m/%d/%Y %I:%M %p')
+            except Exception as e:
+                logger.error(f"Error formatting date for match {match.get('match_id')}: {e}")
         formatted_matches.append(match_copy)
     return formatted_matches
+
 
 def insert_mls_match(
     session: Session,
@@ -30,7 +56,24 @@ def insert_mls_match(
     venue: str,
     competition: str
 ) -> MLSMatch:
-    """Insert a new MLS match."""
+    """
+    Insert a new MLS match into the database.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        match_id (str): Unique match identifier.
+        opponent (str): Opponent team name.
+        date_time (datetime): Match datetime.
+        is_home_game (bool): True if home game.
+        summary_link (str): Link to match summary.
+        stats_link (str): Link to match statistics.
+        commentary_link (str): Link to match commentary.
+        venue (str): Match venue.
+        competition (str): Competition identifier.
+
+    Returns:
+        MLSMatch: The newly created MLSMatch object.
+    """
     new_match = MLSMatch(
         match_id=match_id,
         opponent=opponent,
@@ -49,19 +92,40 @@ def insert_mls_match(
     session.add(new_match)
     return new_match
 
+
 def update_mls_match(session: Session, match_id: str, **kwargs) -> bool:
-    """Update MLS match."""
+    """
+    Update an existing MLS match with new data.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        match_id (str): Unique match identifier.
+        **kwargs: Key-value pairs to update on the match record.
+
+    Returns:
+        bool: True if the match was updated; False if not found.
+    """
     match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for update.")
         return False
-        
+
     for key, value in kwargs.items():
         setattr(match, key, value)
     return True
 
+
 def delete_mls_match(session: Session, match_id: str) -> bool:
-    """Delete MLS match."""
+    """
+    Delete an MLS match from the database.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        match_id (str): Unique match identifier.
+
+    Returns:
+        bool: True if deletion was successful; False if match not found.
+    """
     match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for deletion.")
@@ -69,8 +133,18 @@ def delete_mls_match(session: Session, match_id: str) -> bool:
     session.delete(match)
     return True
 
+
 def get_upcoming_mls_matches(session: Session, hours_ahead: int = 24) -> List[MLSMatch]:
-    """Get upcoming MLS matches."""
+    """
+    Retrieve upcoming MLS matches within a given timeframe.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        hours_ahead (int): How many hours ahead to look (default: 24).
+
+    Returns:
+        List[MLSMatch]: List of upcoming MLSMatch objects.
+    """
     now = datetime.utcnow()
     end_time = now + timedelta(hours=hours_ahead)
     return session.query(MLSMatch).filter(
@@ -79,8 +153,19 @@ def get_upcoming_mls_matches(session: Session, hours_ahead: int = 24) -> List[ML
         MLSMatch.thread_created == False
     ).all()
 
+
 def mark_mls_match_thread_created(session: Session, match_id: str, thread_id: str) -> bool:
-    """Mark MLS match thread as created."""
+    """
+    Mark an MLS match as having its Discord thread created.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        match_id (str): Unique match identifier.
+        thread_id (str): The Discord thread ID.
+
+    Returns:
+        bool: True if the match was updated; False if match not found.
+    """
     match = session.query(MLSMatch).filter_by(match_id=match_id).first()
     if not match:
         logger.warning(f"MLS match {match_id} not found for marking thread creation.")
@@ -89,8 +174,17 @@ def mark_mls_match_thread_created(session: Session, match_id: str, thread_id: st
     match.discord_thread_id = thread_id
     return True
 
+
 def load_match_dates_from_db(session: Session) -> List[Dict[str, Any]]:
-    """Load match dates from database."""
+    """
+    Load match dates from the database for display purposes.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+
+    Returns:
+        List[Dict[str, Any]]: A list of dictionaries containing match details.
+    """
     matches = session.query(MLSMatch).all()
     return [
         {
@@ -107,8 +201,17 @@ def load_match_dates_from_db(session: Session) -> List[Dict[str, Any]]:
         for match in matches
     ]
 
+
 def safe_commit(session: Session) -> bool:
-    """Safely commit changes to the database."""
+    """
+    Safely commit changes to the database, rolling back on error.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+
+    Returns:
+        bool: True if commit was successful; False otherwise.
+    """
     try:
         session.commit()
         return True
@@ -117,17 +220,26 @@ def safe_commit(session: Session) -> bool:
         logger.error(f"Error committing: {e}")
         return False
 
+
 def bulk_update_matches(session: Session, updates: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Bulk update matches."""
+    """
+    Perform a bulk update of matches.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        updates (List[Dict[str, Any]]): List of dictionaries containing updates.
+            Each dictionary must include 'match_id' and key-value pairs to update.
+
+    Returns:
+        dict: Summary of the bulk update, including counts of updated and failed match IDs.
+    """
     try:
         success_count = 0
         failed_ids = []
-        
         for update in updates:
             match_id = update.pop('match_id', None)
             if not match_id:
                 continue
-                
             match = session.query(MLSMatch).filter_by(match_id=match_id).first()
             if match:
                 for key, value in update.items():
@@ -135,7 +247,6 @@ def bulk_update_matches(session: Session, updates: List[Dict[str, Any]]) -> Dict
                 success_count += 1
             else:
                 failed_ids.append(match_id)
-        
         return {
             'success': True,
             'updated_count': success_count,
@@ -148,12 +259,36 @@ def bulk_update_matches(session: Session, updates: List[Dict[str, Any]]) -> Dict
             'error': str(e)
         }
 
+
 def get_match_by_id(session: Session, match_id: str) -> Optional[MLSMatch]:
-    """Get a single match by ID."""
+    """
+    Retrieve a single MLS match by its match_id.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        match_id (str): The unique match identifier.
+
+    Returns:
+        Optional[MLSMatch]: The matching MLSMatch object, or None if not found.
+    """
     return session.query(MLSMatch).filter_by(match_id=match_id).first()
 
-def update_player_discord_info(session: Session, player_id: int, current_roles: List[str], verified_time: datetime) -> bool:
-    """Update player's Discord role information."""
+
+def update_player_discord_info(
+    session: Session, player_id: int, current_roles: List[str], verified_time: datetime
+) -> bool:
+    """
+    Update a player's Discord role information.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        player_id (int): The player's ID.
+        current_roles (List[str]): List of current Discord roles.
+        verified_time (datetime): The timestamp when roles were verified.
+
+    Returns:
+        bool: True if updated successfully; False otherwise.
+    """
     try:
         player = session.query(Player).get(player_id)
         if player:
@@ -166,8 +301,18 @@ def update_player_discord_info(session: Session, player_id: int, current_roles: 
         logger.error(f"Error updating Discord info for player {player_id}: {str(e)}")
         return False
 
+
 def mark_player_for_discord_update(session: Session, player_id: int) -> bool:
-    """Mark a player for Discord role update."""
+    """
+    Mark a player for Discord role update.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        player_id (int): The player's ID.
+
+    Returns:
+        bool: True if marked successfully; False otherwise.
+    """
     try:
         player = session.query(Player).get(player_id)
         if player:
@@ -178,8 +323,19 @@ def mark_player_for_discord_update(session: Session, player_id: int) -> bool:
         logger.error(f"Error marking player {player_id} for Discord update: {str(e)}")
         return False
 
+
 def update_discord_channel_id(session: Session, team_id: int, channel_id: str) -> bool:
-    """Update team's Discord channel ID."""
+    """
+    Update a team's Discord channel ID.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        team_id (int): The team's ID.
+        channel_id (str): The new Discord channel ID.
+
+    Returns:
+        bool: True if updated; False otherwise.
+    """
     try:
         team = session.query(Team).get(team_id)
         if team:
@@ -190,8 +346,22 @@ def update_discord_channel_id(session: Session, team_id: int, channel_id: str) -
         logger.error(f"Error updating Discord channel ID for team {team_id}: {str(e)}")
         return False
 
-def update_discord_role_ids(session: Session, team_id: int, coach_role_id: str = None, player_role_id: str = None) -> bool:
-    """Update team's Discord role IDs."""
+
+def update_discord_role_ids(
+    session: Session, team_id: int, coach_role_id: str = None, player_role_id: str = None
+) -> bool:
+    """
+    Update a team's Discord role IDs.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+        team_id (int): The team's ID.
+        coach_role_id (str, optional): The coach role ID.
+        player_role_id (str, optional): The player role ID.
+
+    Returns:
+        bool: True if updated; False otherwise.
+    """
     try:
         team = session.query(Team).get(team_id)
         if team:
@@ -205,8 +375,21 @@ def update_discord_role_ids(session: Session, team_id: int, coach_role_id: str =
         logger.error(f"Error updating Discord role IDs for team {team_id}: {str(e)}")
         return False
 
+
 def get_players_needing_discord_update(session: Session) -> List[Player]:
-    """Get all players that need Discord role updates."""
+    """
+    Retrieve all players that require a Discord role update.
+
+    A player needs an update if:
+      - They have a Discord ID, AND
+      - Their roles need updating OR they have never been verified OR their last verification is older than 90 days.
+
+    Args:
+        session (Session): The SQLAlchemy session.
+
+    Returns:
+        List[Player]: List of players needing a Discord update.
+    """
     threshold_date = datetime.utcnow() - timedelta(days=90)
     return (session.query(Player)
             .filter(
@@ -218,7 +401,7 @@ def get_players_needing_discord_update(session: Session) -> List[Player]:
                 )
             )
             .options(
-                joinedload(Player.teams),  # multi-team
+                joinedload(Player.teams),  # multi-team support
                 joinedload(Player.teams).joinedload(Team.league)
             )
             .all())

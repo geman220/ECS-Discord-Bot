@@ -1,15 +1,31 @@
 # app/extensions.py
 
+"""
+Extensions Module
+
+This module initializes and configures various application extensions,
+including Celery and SQLAlchemy. It provides a function to initialize
+Celery with Flask's application context and manages database connection
+initialization and cleanup for Celery worker processes.
+"""
+
 import logging
 from flask import current_app
 from celery.signals import worker_process_init, worker_process_shutdown
 from app.core import db, celery
-from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
 
 def init_celery(app=None):
-    """Initialize Celery with the application."""
+    """
+    Initialize Celery with the Flask application context.
+
+    Parameters:
+        app (Flask): The Flask application instance.
+
+    Returns:
+        Celery: The configured Celery instance.
+    """
     if app:
         celery.conf.update(app.config)
 
@@ -60,17 +76,21 @@ def init_celery(app=None):
 
 @worker_process_init.connect
 def init_worker_process(**kwargs):
-    """Initialize worker process - dispose old engine connections."""
+    """
+    Initialize the worker process by disposing old engine connections and
+    re-creating the SQLAlchemy engine using the Flask application's configuration.
+    """
     if hasattr(db, 'engine'):
         db.engine.dispose()
 
-    from flask import current_app
     app = current_app._get_current_object()
     engine_options = app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {})
     db.engine = db.create_engine(db.engine.url, **engine_options)
 
 @worker_process_shutdown.connect
 def cleanup_worker_process(**kwargs):
-    """Cleanup database connections when worker process shuts down."""
+    """
+    Cleanup database connections when the worker process shuts down.
+    """
     if hasattr(db, 'engine'):
         db.engine.dispose()

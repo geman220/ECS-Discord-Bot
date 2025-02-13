@@ -1,19 +1,48 @@
+# app/calendar.py
+
+"""
+Calendar Module
+
+This module defines endpoints for retrieving calendar events and referee
+information for the league. Endpoints include:
+- Retrieving a schedule of match events.
+- Retrieving available referees for a match.
+- Assigning or removing referees from matches.
+- Rendering the calendar view page.
+
+Access is restricted to authenticated users with appropriate roles.
+"""
+
 from datetime import datetime
-from flask import Blueprint, jsonify, render_template, request, g, abort
-from app.models import Match, Team, Season, League, Player
-from sqlalchemy.orm import aliased, joinedload
-from flask_login import login_required
-from app.decorators import role_required
 import logging
 
-logger = logging.getLogger(__name__)
+from flask import Blueprint, jsonify, render_template, request, g
+from flask_login import login_required
+from sqlalchemy.orm import aliased, joinedload
 
+from app.models import Match, Team, Season, Player
+from app.decorators import role_required
+
+logger = logging.getLogger(__name__)
 calendar_bp = Blueprint('calendar', __name__)
+
 
 @calendar_bp.route('/calendar/events', endpoint='get_schedule', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def get_schedule():
+    """
+    Retrieve a schedule of match events for the current season.
+
+    This endpoint:
+    - Loads the current season and its associated leagues.
+    - Retrieves matches for those leagues.
+    - Converts match dates from UTC to Pacific Time for display.
+    - Builds an event list with details (title, start time, description, color, URL, etc.).
+
+    Returns:
+        JSON response containing the list of events and basic statistics.
+    """
     session_db = g.db_session
     try:
         seasons = session_db.query(Season).options(joinedload(Season.leagues)).filter_by(is_current=True).all()
@@ -23,6 +52,7 @@ def get_schedule():
 
         league_ids = [league.id for season in seasons for league in season.leagues]
 
+        # Aliases for join queries
         home_team = aliased(Team)
         away_team = aliased(Team)
         ref_player = aliased(Player)
@@ -53,6 +83,7 @@ def get_schedule():
         assigned_refs = 0
 
         for match in matches:
+            # Determine division based on league ID (example logic)
             division = 'Premier' if match.home_league_id == 10 else 'Classic'
             start_datetime = datetime.combine(match.date, match.time)
             ref_name = match.ref_name if match.ref_name else 'Unassigned'
@@ -87,10 +118,19 @@ def get_schedule():
         logger.exception("An error occurred while fetching events.")
         return jsonify({'error': 'An internal error occurred.'}), 500
 
+
 @calendar_bp.route('/calendar/refs', endpoint='get_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def get_refs():
+    """
+    Retrieve a list of referees available for a specific match.
+
+    Expects a 'match_id' query parameter.
+
+    Returns:
+        JSON response with referee details excluding those assigned to the match teams.
+    """
     session_db = g.db_session
     try:
         match_id = request.args.get('match_id', type=int)
@@ -102,14 +142,13 @@ def get_refs():
             return jsonify({'error': 'Match not found.'}), 404
 
         refs = session_db.query(Player).filter_by(is_ref=True).all()
-
         ref_list = []
         for ref in refs:
+            # Exclude refs who are players on the match teams
             if ref.team_id not in [match.home_team_id, match.away_team_id]:
                 matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
                     Match.date == match.date
                 ).count()
-
                 total_matches_assigned = session_db.query(Match).filter_by(ref_id=ref.id).count()
 
                 ref_list.append({
@@ -125,10 +164,19 @@ def get_refs():
         logger.exception("An error occurred while fetching referees.")
         return jsonify({'error': 'An internal error occurred.'}), 500
 
+
 @calendar_bp.route('/calendar/assign_ref', endpoint='assign_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def assign_ref():
+    """
+    Assign a referee to a match.
+
+    Expects JSON with 'match_id' and 'ref_id'.
+
+    Returns:
+        JSON response indicating success or error.
+    """
     session_db = g.db_session
     try:
         data = request.get_json()
@@ -173,10 +221,19 @@ def assign_ref():
         logger.exception("An error occurred while assigning the referee.")
         raise
 
+
 @calendar_bp.route('/calendar/available_refs', endpoint='available_refs', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def available_refs():
+    """
+    Retrieve available referees for a specified date range.
+
+    Expects 'start_date' and 'end_date' as ISO format query parameters.
+
+    Returns:
+        JSON response with a list of available referees and match assignment statistics.
+    """
     session_db = g.db_session
     try:
         start_date_str = request.args.get('start_date')
@@ -190,12 +247,10 @@ def available_refs():
 
         refs = session_db.query(Player).filter_by(is_ref=True).all()
         ref_list = []
-
         for ref in refs:
             matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
                 Match.date >= start_date, Match.date <= end_date
             ).count()
-
             total_matches_assigned = session_db.query(Match).filter_by(ref_id=ref.id).count()
 
             ref_list.append({
@@ -210,15 +265,23 @@ def available_refs():
         logger.exception(f"Error fetching available referees: {str(e)}")
         return jsonify({'error': 'An error occurred fetching referees'}), 500
 
+
 @calendar_bp.route('/calendar/remove_ref', endpoint='remove_ref', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def remove_ref():
+    """
+    Remove the referee assignment from a match.
+
+    Expects JSON with 'match_id'.
+
+    Returns:
+        JSON response indicating success or error.
+    """
     session_db = g.db_session
     try:
         data = request.get_json()
         match_id = data.get('match_id')
-
         if not match_id:
             logger.warning("Match ID is required to remove referee.")
             return jsonify({'error': 'Match ID is required.'}), 400
@@ -241,8 +304,12 @@ def remove_ref():
         logger.exception("An error occurred while removing the referee.")
         raise
 
+
 @calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
 def calendar_view():
+    """
+    Render the calendar view page.
+    """
     return render_template('calendar.html')

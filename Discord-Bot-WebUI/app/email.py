@@ -1,11 +1,23 @@
+# app/email.py
+
+"""
+Email Module
+
+This module provides functionality for sending emails using the Gmail API.
+It utilizes a service account with delegated credentials to build the Gmail
+service and send HTML-formatted emails. Detailed logging and error handling
+are included to facilitate debugging and ensure reliable email delivery.
+"""
+
 import os
 import logging
-from flask import Flask, jsonify, Blueprint
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from email.mime.text import MIMEText
 import base64
 import traceback
+from email.mime.text import MIMEText
+
+from flask import Blueprint
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 
 email_bp = Blueprint('email', __name__, template_folder='templates')
 
@@ -16,12 +28,22 @@ logging.basicConfig(
 )
 
 def send_email(to, subject, body):
+    """
+    Sends an HTML email using the Gmail API with a service account.
+
+    Parameters:
+        to (str or list): Recipient email address or a list of email addresses.
+        subject (str): The subject of the email.
+        body (str): The HTML body content of the email.
+
+    Returns:
+        dict or None: The sent message data on success, or None if an error occurred.
+    """
     SCOPES = ['https://www.googleapis.com/auth/gmail.send']
     
     logging.debug("Starting send_email function")
     
     credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-
     if not credentials_path:
         logging.error("GOOGLE_APPLICATION_CREDENTIALS is not set or is empty.")
         return None
@@ -60,9 +82,9 @@ def send_email(to, subject, body):
         message['subject'] = subject
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
         message_body = {'raw': raw}
-        message = service.users().messages().send(userId="me", body=message_body).execute()
-        logging.debug(f"Email sent successfully with Message Id: {message['id']}")
-        return message
+        sent_message = service.users().messages().send(userId="me", body=message_body).execute()
+        logging.debug(f"Email sent successfully with Message Id: {sent_message['id']}")
+        return sent_message
     except Exception as error:
         logging.error(f"An error occurred while sending the email: {error}")
         traceback.print_exc()

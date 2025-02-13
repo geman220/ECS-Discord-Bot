@@ -1,7 +1,14 @@
 # celery_discord_worker.py
 
-from celery_worker_base_prefork import flask_app, celery_app as celery, logger
+"""
+Celery Discord Worker
+
+This module starts the Discord-specific Celery worker using a prefork pool.
+It uses celery.worker_main with defined options to launch the worker.
+"""
+
 import sys
+from celery_worker_base_prefork import celery_app as celery, logger
 
 if __name__ == '__main__':
     try:

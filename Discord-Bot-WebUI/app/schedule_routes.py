@@ -1,16 +1,35 @@
-﻿from flask import Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort, session
-from flask_login import login_required
+﻿# app/schedule_routes.py
+
+"""
+Schedule Routes Module
+
+This module provides routes and helper classes for managing schedules,
+matches, and related operations in the Pub League and ECS FC. It includes
+endpoints for viewing, editing, deleting, and creating matches as well as a
+bulk scheduling wizard.
+"""
+
+# Standard library imports
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import List, Dict, Optional, Tuple, Any
 import logging
 
+# Third-party imports
+from flask import (
+    Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort
+)
+from flask_login import login_required
+
+# Local application imports
 from app.decorators import role_required
 from app.models import Season, League, Team, Schedule, Match, ScheduledMessage
 
 logger = logging.getLogger(__name__)
 
+# Blueprint definition
 schedule_bp = Blueprint('schedule', __name__)
+
 
 @dataclass
 class TimeSlot:
@@ -19,14 +38,17 @@ class TimeSlot:
     team_a_id: Optional[int] = None
     team_b_id: Optional[int] = None
 
+
 class ScheduleManager:
     def __init__(self, session):
         self.session = session
 
     def get_season(self, season_id: int) -> Optional[Season]:
+        """Retrieve a Season by its ID."""
         return self.session.query(Season).get(season_id)
 
     def get_league(self, season_id: int, league_name: str) -> Optional[League]:
+        """Retrieve a League by season ID and league name."""
         return self.session.query(League).filter_by(
             name=league_name,
             season_id=season_id
@@ -34,14 +56,19 @@ class ScheduleManager:
 
     def get_teams_by_league(self, league_id: int) -> List[Dict]:
         """
-        Return all teams for a given league (id & name).
+        Return all teams for a given league with their id and name.
+        
+        Returns:
+            List[Dict]: A list of dictionaries representing teams.
         """
         teams = self.session.query(Team).filter_by(league_id=league_id).all()
         return [{'id': t.id, 'name': t.name} for t in teams]
 
-    def get_schedule(self, league_id: Optional[int] = None, team_id: Optional[int] = None) -> List[Schedule]:
+    def get_schedule(
+        self, league_id: Optional[int] = None, team_id: Optional[int] = None
+    ) -> List[Schedule]:
         """
-        Return all schedules. Optionally filter by league_id or team_id.
+        Return schedule entries. Optionally filter by league_id or team_id.
         """
         query = self.session.query(Schedule)
 
@@ -57,17 +84,11 @@ class ScheduleManager:
 
     def format_week_schedule(self, schedules: List[Schedule]) -> Dict:
         """
-        Transform a list of schedules into a dict of:
-        {
-          week_number: {
-            'date': "YYYY-MM-DD",
-            'matches': [
-               { 'id':..., 'team_a':..., 'team_b':..., 'time':..., 'location':...},
-               ...
-            ]
-          },
-          ...
-        }
+        Transform a list of schedules into a dictionary organized by week.
+
+        Returns:
+            Dict: A mapping of week numbers to a dictionary containing the date
+                  and a list of match details.
         """
         formatted = {}
         displayed = set()
@@ -84,6 +105,7 @@ class ScheduleManager:
             if match_key in displayed:
                 continue
 
+            # Add both orderings to avoid duplicates
             displayed.add(match_key)
             displayed.add((schedule.week, opponent.name, schedule.team.name))
 
@@ -105,9 +127,16 @@ class ScheduleManager:
 
         return formatted
 
-    def update_match(self, match_id: int, data: Dict) -> Tuple[List, Dict]:
+    def update_match(self, match_id: int, data: Dict) -> Tuple[List[Any], Dict]:
         """
-        Edits an existing schedule entry and its "paired" schedule & match record
+        Edit an existing schedule entry and its paired schedule and match record.
+
+        Args:
+            match_id (int): The ID of the schedule to update.
+            data (Dict): A dictionary with new match data.
+
+        Returns:
+            Tuple: A tuple containing a list of updated objects and a response dict.
         """
         schedule = self.session.query(Schedule).get(match_id)
         if not schedule:
@@ -172,14 +201,19 @@ class ScheduleManager:
 
     def delete_match(self, match_id: int) -> Tuple[List[Any], Dict]:
         """
-        Delete the main schedule row, its match record, and the "paired" row+match
+        Delete a match, its schedule row, and the paired schedule and match.
+
+        Args:
+            match_id (int): The ID of the main schedule row to delete.
+
+        Returns:
+            Tuple: A tuple of objects to delete and a response dict.
         """
         schedule = self.session.query(Schedule).get(match_id)
         if not schedule:
             return [], {'success': False, 'message': 'Schedule not found'}
 
-        objects_to_delete = []
-        objects_to_delete.append(schedule)
+        objects_to_delete = [schedule]
 
         match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if match:
@@ -202,9 +236,15 @@ class ScheduleManager:
 
         return objects_to_delete, {'success': True, 'message': 'Match deleted'}
 
-    def create_match(self, data: Dict) -> Tuple[List, Dict]:
+    def create_match(self, data: Dict) -> Tuple[List[Any], Dict]:
         """
-        Creates two schedule rows (team A vs. team B and the "paired" row) + one match record
+        Create two schedule rows (for both teams) and one match record.
+
+        Args:
+            data (Dict): A dictionary containing match details.
+
+        Returns:
+            Tuple: A tuple containing a list of created objects and a response dict.
         """
         try:
             match_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
@@ -249,6 +289,7 @@ class ScheduleManager:
 
         return objects_to_create, {'success': True, 'message': 'Match created'}
 
+
 ######################################################################
 # PRIMARY PUB LEAGUE SCHEDULE ROUTE
 ######################################################################
@@ -257,8 +298,9 @@ class ScheduleManager:
 @role_required(['Pub League Admin', 'Global Admin'])
 def manage_publeague_schedule(season_id):
     """
-    Renders the main schedule management UI for Pub League:
-    e.g. /publeague/schedules/16/schedule
+    Render the main schedule management UI for Pub League.
+
+    URL example: /publeague/schedules/16/schedule
     """
     manager = ScheduleManager(g.db_session)
     season = manager.get_season(season_id)
@@ -275,16 +317,11 @@ def manage_publeague_schedule(season_id):
     return render_template(
         'manage_publeague_schedule.html',
         season=season,
-        leagues=[
-            {
-                'id': league.id,
-                'name': league.name,
-                'teams': manager.get_teams_by_league(league.id)
-            }
-            for league in leagues
-        ],
+        leagues=[{'id': league.id, 'name': league.name, 'teams': manager.get_teams_by_league(league.id)}
+                 for league in leagues],
         schedule=schedule_data
     )
+
 
 ######################################################################
 # EDIT MATCH
@@ -294,7 +331,8 @@ def manage_publeague_schedule(season_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def edit_match(match_id):
     """
-    Edits an existing match + schedule rows
+    Edit an existing match and its schedule rows.
+    
     Endpoint: POST /publeague/schedules/edit_match/<match_id>
     """
     manager = ScheduleManager(g.db_session)
@@ -307,6 +345,7 @@ def edit_match(match_id):
         logger.error(f"Error editing match {match_id}: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 ######################################################################
 # DELETE MATCH
 ######################################################################
@@ -315,7 +354,8 @@ def edit_match(match_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def delete_match(match_id):
     """
-    Deletes one match + schedule row + paired row
+    Delete a match, its schedule row, and the paired row.
+    
     Endpoint: POST /publeague/schedules/delete_match/<match_id>
     """
     manager = ScheduleManager(g.db_session)
@@ -330,6 +370,7 @@ def delete_match(match_id):
         logger.error(f"Error deleting match {match_id}: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 ######################################################################
 # QUICK ADD MATCH
 ######################################################################
@@ -338,7 +379,8 @@ def delete_match(match_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def add_match():
     """
-    Quick-add a single match to the schedule
+    Quick-add a single match to the schedule.
+    
     Endpoint: POST /publeague/schedules/add_match
     """
     manager = ScheduleManager(g.db_session)
@@ -351,13 +393,15 @@ def add_match():
         logger.error(f"Error adding match: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 ######################################################################
 # FETCH SCHEDULE (AJAX)
 ######################################################################
 @schedule_bp.route('/fetch_schedule', methods=['GET'])
 def fetch_schedule():
     """
-    Return a JSON list of schedule objects
+    Return a JSON list of schedule objects.
+    
     Endpoint: GET /publeague/schedules/fetch_schedule?league_id=xx&team_id=yy
     """
     manager = ScheduleManager(g.db_session)
@@ -367,6 +411,7 @@ def fetch_schedule():
     )
     return jsonify([s.to_dict() for s in schedules])
 
+
 ######################################################################
 # ECS FC MANAGE SCHEDULE
 ######################################################################
@@ -375,7 +420,8 @@ def fetch_schedule():
 @role_required(['Pub League Admin', 'Global Admin'])
 def manage_ecsfc_schedule(season_id):
     """
-    Similar route for ECS FC.
+    Render the ECS FC schedule management UI.
+    
     Endpoint: /publeague/schedules/ecsfc/<season_id>/schedule
     """
     manager = ScheduleManager(g.db_session)
@@ -392,16 +438,11 @@ def manage_ecsfc_schedule(season_id):
     return render_template(
         'manage_ecsfc_schedule.html',
         season=season,
-        leagues=[
-            {
-                'id': league.id,
-                'name': league.name,
-                'teams': manager.get_teams_by_league(league.id)
-            }
-            for league in leagues
-        ],
+        leagues=[{'id': league.id, 'name': league.name, 'teams': manager.get_teams_by_league(league.id)}
+                 for league in leagues],
         schedule=schedule_data
     )
+
 
 ######################################################################
 # BULK SCHEDULING WIZARD
@@ -411,10 +452,12 @@ def manage_ecsfc_schedule(season_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def schedule_wizard(season_id):
     """
-    Endpoint for Bulk Scheduling Wizard
-    GET: Show step1 form
-    POST: step1 => create placeholders or special FUN/BYE day
-          step2 => finalize placeholders into matches
+    Bulk Scheduling Wizard endpoint.
+    
+    GET: Show the initial form.
+    POST: Process wizard steps:
+         - Step 1: Create placeholders (or special FUN/BYE day).
+         - Step 2: Finalize placeholders into matches.
     """
     manager = ScheduleManager(g.db_session)
     season = manager.get_season(season_id)
@@ -517,6 +560,7 @@ def schedule_wizard(season_id):
         placeholders=placeholders
     )
 
+
 ######################################################################
 # ADD SINGLE WEEK
 ######################################################################
@@ -524,6 +568,9 @@ def schedule_wizard(season_id):
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def add_single_week():
+    """
+    Add match entries for a single week based on provided times, fields, and team selections.
+    """
     manager = ScheduleManager(g.db_session)
 
     league_id = request.form.get('league_id', type=int)
@@ -578,6 +625,7 @@ def add_single_week():
             'message': f"{special_team_name} single week created."
         })
 
+    # Build mapping from existing dates to week numbers.
     existing = manager.get_schedule(league_id=league_id)
     existing_date_to_week = {}
     for sch in existing:
@@ -636,19 +684,17 @@ def add_single_week():
         'message': f"Created {created_count} matches for {week_date_str}."
     })
 
+
 def create_single_day_placeholders(placeholders, manager, league_id):
     """
-    Takes a list of placeholder dictionaries for a single date
-    and merges them into the existing schedule.
-    Then assigns the new date to the next available "week" number,
-    or merges into the date->week logic as in your multi-week code.
+    Merge a list of placeholder dictionaries for a single date into the schedule.
+    
+    Assigns the new date to the next available week number.
     """
-
     date_str = placeholders[0]['date']
     dt = datetime.strptime(date_str, "%Y-%m-%d").date()
 
     existing = manager.get_schedule(league_id=league_id)
-
     existing_date_to_week = {}
     for sch in existing:
         d = sch.date
@@ -687,20 +733,28 @@ def create_single_day_placeholders(placeholders, manager, league_id):
         if objects:
             manager.session.commit()
 
+
 def your_placeholder_team_id_or_0():
     """
-    If user hasn't assigned real teams,
-    you can store 0 or a special "PLACEHOLDER TEAM" ID.
-    Or skip the 'paired' schedule creation if team_id=0
+    Return a placeholder team ID if real teams are not assigned.
+    
+    You may modify this to return a special "PLACEHOLDER TEAM" ID or 0.
     """
     return 0
 
+
 def generate_placeholders(start_date_str: str, num_weeks: int, timeslot_list: list) -> list:
     """
-    Generate a list of placeholders for multiple weeks.
-    """
-    from datetime import datetime, timedelta
+    Generate a list of placeholders for multiple weeks based on a start date and timeslots.
+    
+    Args:
+        start_date_str (str): The start date in "YYYY-MM-DD" format.
+        num_weeks (int): The number of weeks for which to generate placeholders.
+        timeslot_list (list): A list of tuples (slot_time, slot_field).
 
+    Returns:
+        list: A list of placeholder dictionaries.
+    """
     placeholders = []
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
 
@@ -717,11 +771,13 @@ def generate_placeholders(start_date_str: str, num_weeks: int, timeslot_list: li
             })
     return placeholders
 
+
 def create_schedule_from_placeholders(form, manager, league_id=None):
     """
-    Reads placeholders from Step 2 form data, merges with existing schedule data
-    (so newly added dates follow on from existing assigned weeks),
-    and then assigns consistent week numbers across all dates.
+    Merge placeholder data from the wizard into the schedule.
+
+    Reads placeholders from the submitted form, merges them with existing schedule data,
+    and assigns consistent week numbers across all dates.
     """
     rows = []
     index_list = []
@@ -779,7 +835,6 @@ def create_schedule_from_placeholders(form, manager, league_id=None):
             existing_date_to_week[r['parsed_date']] = -1
 
     all_dates_sorted = sorted(existing_date_to_week.keys())
-
     date_to_week = {}
     current_week_num = 1
     for d in all_dates_sorted:

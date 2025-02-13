@@ -1,3 +1,18 @@
+# app/tasks/tasks_core.py
+
+"""
+Core tasks for scheduling match availability and player synchronization.
+
+This module defines several Celery tasks that:
+  - Schedule availability messages for upcoming matches.
+  - Send availability messages to Discord via an asynchronous HTTP call.
+  - Retry failed tasks generically.
+  - Process and queue scheduled messages for sending.
+  - Clean up old scheduled messages from the database.
+
+Each task uses a provided database session and updates task state for progress reporting.
+"""
+
 import logging
 import asyncio
 import aiohttp
@@ -9,7 +24,10 @@ from app.models import Match, ScheduledMessage, MLSMatch
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.players_helpers import extract_player_info
+
 logger = logging.getLogger(__name__)
+
 
 @celery_task(
     name='app.tasks.tasks_core.schedule_season_availability',
@@ -17,17 +35,34 @@ logger = logging.getLogger(__name__)
     bind=True
 )
 def schedule_season_availability(self, session) -> Dict[str, Any]:
-    """Schedule availability messages for matches in the next week (Pub League example)."""
+    """
+    Schedule availability messages for matches occurring in the next week (Pub League example).
+
+    The task:
+      - Determines the current date range (today through 7 days ahead).
+      - Retrieves matches scheduled in that date range.
+      - For each match without a scheduled message, calculates a send time (9 AM on a computed date).
+      - Creates a ScheduledMessage record in the database.
+      - Updates Celery task state as progress.
+
+    Returns:
+        A dictionary summarizing the number of messages scheduled and match count.
+    
+    Raises:
+        Exception: If no current Pub League season is found or other errors occur.
+    """
     try:
         start_date = datetime.utcnow().date()
         end_date = start_date + timedelta(days=7)
 
+        # Query matches within the next week along with any associated scheduled messages
         matches = session.query(Match).options(
             joinedload(Match.scheduled_messages)
         ).filter(
             Match.date.between(start_date, end_date)
         ).all()
 
+        # Prepare data for each match
         matches_data = [{
             'id': match.id,
             'date': match.date,
@@ -35,8 +70,10 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
         } for match in matches]
 
         scheduled_count = 0
+        # Process each match; schedule a message if not already present
         for match_data in matches_data:
             if not match_data['has_message']:
+                # Calculate send date and time (9:00 AM on the computed day)
                 send_date = match_data['date'] - timedelta(days=match_data['date'].weekday() + 1)
                 send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
 
@@ -61,6 +98,7 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error in schedule_season_availability: {str(e)}", exc_info=True)
+        # Retry the task after 60 seconds with a maximum of 3 retries
         self.retry(exc=e, countdown=60, max_retries=3)
         return {"success": False, "message": str(e)}
 
@@ -70,8 +108,23 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
     bind=True
 )
 def send_availability_message_task(self, session, scheduled_message_id: int) -> Dict[str, Any]:
-    """Celery task to send availability message for either a Pub League Match or MLSMatch."""
+    """
+    Send an availability message for a match (handles both Pub League and MLSMatch).
+
+    The task:
+      - Retrieves the ScheduledMessage and its associated match.
+      - Extracts and formats match details differently based on match type.
+      - Invokes an asynchronous helper to send the message via an HTTP call.
+      - Updates the ScheduledMessage status to 'SENT' upon success.
+
+    Returns:
+        A dictionary indicating success, with details of the sent message.
+    
+    Raises:
+        Exception: If the message or match is not found or if sending fails.
+    """
     try:
+        # Fetch scheduled message along with its associated match
         message = session.query(ScheduledMessage).options(
             joinedload(ScheduledMessage.match)
         ).get(scheduled_message_id)
@@ -81,6 +134,7 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
 
         match = message.match
 
+        # Process match details based on match type (MLSMatch or Pub League match)
         if isinstance(match, MLSMatch):
             local_team_name = "ECS FC"
             if match.is_home_game:
@@ -97,7 +151,7 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             match_time_str = match.date_time.strftime('%H:%M:%S')
         else:
             if not hasattr(match, 'home_team') or not hasattr(match, 'away_team'):
-                raise ValueError("Pub League match found but no home_team/away_team attributes.")
+                raise ValueError("Pub League match found but missing home_team/away_team attributes.")
 
             home_channel_id = str(match.home_team.discord_channel_id)
             away_channel_id = str(match.away_team.discord_channel_id)
@@ -116,6 +170,7 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             "away_team_name": away_team_name
         }
 
+        # Create a new event loop for asynchronous operations
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -123,6 +178,7 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
         finally:
             loop.close()
 
+        # Update the scheduled message status to SENT
         message = session.query(ScheduledMessage).get(scheduled_message_id)
         if message:
             message.status = 'SENT'
@@ -134,6 +190,7 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
         }
 
     except Exception as e:
+        # Mark the message as FAILED if an error occurs
         msg = session.query(ScheduledMessage).get(scheduled_message_id)
         if msg:
             msg.status = 'FAILED'
@@ -146,7 +203,17 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
     bind=True
 )
 def retry_failed_task(self, session, task_name: str, *args, **kwargs) -> Any:
-    """Generic task to retry failed operations."""
+    """
+    Generic task to retry failed operations.
+
+    This task attempts to locate and re-run a specified task using its name and parameters.
+
+    Returns:
+        The result of the retried task.
+    
+    Raises:
+        Exception: If the retried task fails.
+    """
     from app import celery
     try:
         task = celery.tasks[task_name]
@@ -161,7 +228,17 @@ def retry_failed_task(self, session, task_name: str, *args, **kwargs) -> Any:
     bind=True
 )
 def send_scheduled_messages(self, session) -> Dict[str, Any]:
-    """Process and send all pending scheduled messages."""
+    """
+    Process and send all pending scheduled messages.
+
+    This task:
+      - Queries for all pending scheduled messages whose send time is due.
+      - For each message, queues the sending task and updates its status to 'QUEUED'.
+      - Tracks the number of processed and failed messages.
+
+    Returns:
+        A summary dictionary of the processing outcome.
+    """
     try:
         now = datetime.utcnow()
         messages = session.query(ScheduledMessage).filter(
@@ -174,16 +251,16 @@ def send_scheduled_messages(self, session) -> Dict[str, Any]:
         processed_count = 0
         failed_count = 0
 
+        # Import the send task to queue messages
         from app.tasks.tasks_core import send_availability_message_task
 
         for msg_data in messages_to_send:
             try:
                 send_availability_message_task.delay(msg_data['id'])
-
+                # Update status to QUEUED after successfully queueing the task
                 message = session.query(ScheduledMessage).get(msg_data['id'])
                 if message:
                     message.status = 'QUEUED'
-
                 processed_count += 1
             except Exception as e:
                 logger.error(f"Error queueing message {msg_data['id']}: {str(e)}", exc_info=True)
@@ -208,7 +285,20 @@ def send_scheduled_messages(self, session) -> Dict[str, Any]:
 
 
 async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Helper coroutine to send availability message - no DB operations."""
+    """
+    Asynchronous helper coroutine to send an availability message via HTTP.
+
+    This function makes a POST request to the Discord bot API with the provided message data.
+    
+    Args:
+        message_data: A dictionary containing match and channel details.
+
+    Returns:
+        A dictionary with the message send result.
+    
+    Raises:
+        Exception: If the HTTP request fails or returns a non-200 status code.
+    """
     bot_api_url = "http://discord-bot:5001/api/post_availability"
 
     try:
@@ -216,7 +306,9 @@ async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, 
             async with aiosession.post(bot_api_url, json=message_data, timeout=30) as response:
                 if response.status != 200:
                     error_text = await response.text()
-                    logger.error(f"Failed to send availability message. Status: {response.status}, Error: {error_text}")
+                    logger.error(
+                        f"Failed to send availability message. Status: {response.status}, Error: {error_text}"
+                    )
                     raise Exception(f"Failed to send message: {error_text}")
 
                 result = await response.json()
@@ -238,7 +330,21 @@ async def _send_availability_message(message_data: Dict[str, Any]) -> Dict[str, 
     retry_backoff=True
 )
 def cleanup_old_messages(self, session, days_old: int = 30) -> Dict[str, Any]:
-    """Clean up old scheduled messages that are SENT or FAILED and older than X days."""
+    """
+    Clean up old scheduled messages that are either SENT or FAILED and older than a specified number of days.
+
+    The task:
+      - Computes a cutoff date based on the provided days_old parameter.
+      - Processes messages in batches (default size 1000) to delete eligible messages.
+      - Logs deletion details and statistics for each batch.
+
+    Returns:
+        A dictionary summarizing the cleanup process, including total deletions and batch statistics.
+    
+    Raises:
+        SQLAlchemyError: If a database error occurs during deletion, with a retry.
+        Exception: For any other errors, with a retry.
+    """
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=days_old)
         batch_size = 1000
@@ -284,7 +390,7 @@ def cleanup_old_messages(self, session, days_old: int = 30) -> Dict[str, Any]:
             session.flush()
 
             logger.info(
-                f"Processed cleanup batch",
+                "Processed cleanup batch",
                 extra={
                     'batch_number': cleanup_stats['batches_processed'],
                     'batch_size': len(messages_to_delete),
@@ -317,17 +423,9 @@ def cleanup_old_messages(self, session, days_old: int = 30) -> Dict[str, Any]:
 
     except SQLAlchemyError as e:
         error_msg = f"Database error cleaning up old messages: {str(e)}"
-        logger.error(
-            error_msg,
-            extra={'days_old': days_old},
-            exc_info=True
-        )
+        logger.error(error_msg, extra={'days_old': days_old}, exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
         error_msg = f"Error cleaning up old messages: {str(e)}"
-        logger.error(
-            error_msg,
-            extra={'days_old': days_old},
-            exc_info=True
-        )
+        logger.error(error_msg, extra={'days_old': days_old}, exc_info=True)
         raise self.retry(exc=e, countdown=30)

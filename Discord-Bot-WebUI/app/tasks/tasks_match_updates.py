@@ -1,15 +1,26 @@
 ﻿# app/tasks/tasks_match_updates.py
 
+"""
+Match Updates Tasks Module
+
+This module defines Celery tasks related to match updates for live reporting,
+including processing match updates and fetching match and team IDs based on
+Discord message details. The tasks leverage async operations to send updates
+to Discord and update match records in the database.
+"""
+
 import logging
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, Tuple
 from sqlalchemy.exc import SQLAlchemyError
+
 from app.decorators import celery_task
 from app.models import MLSMatch, ScheduledMessage
 from app.utils.discord_helpers import send_discord_update
 
 logger = logging.getLogger(__name__)
+
 
 @celery_task(
     name='app.tasks.tasks_match_updates.process_match_updates',
@@ -18,24 +29,35 @@ logger = logging.getLogger(__name__)
     max_retries=3
 )
 def process_match_updates(self, session, match_id: str, match_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Process match updates and send them to Discord."""
+    """
+    Process match updates and send them to Discord.
+
+    This task validates the provided match data, retrieves the match record from the
+    database, constructs an update message based on the current match status and score,
+    and sends the update to Discord via an asynchronous helper.
+
+    Args:
+        session: The database session.
+        match_id: The ID of the match to update.
+        match_data: Dictionary containing live match data (must include 'competitions').
+
+    Returns:
+        A dictionary containing success status, message, update type, and match status.
+
+    Raises:
+        Retries the task after 60 seconds on SQLAlchemyError and after 30 seconds on general errors.
+    """
     try:
-        # Validate input data
+        # Validate incoming match data format.
         if not match_data or 'competitions' not in match_data:
-            return {
-                'success': False,
-                'message': 'Invalid match data format'
-            }
+            return {'success': False, 'message': 'Invalid match data format'}
 
         match = session.query(MLSMatch).get(match_id)
         if not match:
             logger.error(f"Match {match_id} not found")
-            return {
-                'success': False,
-                'message': f'No match found with ID {match_id}'
-            }
+            return {'success': False, 'message': f'No match found with ID {match_id}'}
 
-        # Extract match data
+        # Extract information from the ESPN data.
         competition = match_data['competitions'][0]
         home_comp = competition['competitors'][0]
         away_comp = competition['competitors'][1]
@@ -47,7 +69,7 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         match_status = competition['status']['type']['name']
         current_minute = competition['status'].get('displayClock', 'N/A')
 
-        # Create update message
+        # Build update message based on match status.
         update_type, update_message = create_match_update(
             match_status,
             home_team,
@@ -57,17 +79,16 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
             current_minute
         )
 
-        # Update match in database
+        # Update match record.
         match.current_status = match_status
         match.current_score = f"{home_score}-{away_score}"
         match.current_minute = current_minute
         match.last_update_time = datetime.utcnow()
 
-        # Create event loop for async operations
+        # Create a new event loop for async operations.
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            # Send update to Discord
             loop.run_until_complete(send_discord_update(
                 match.discord_thread_id,
                 update_type,
@@ -91,6 +112,7 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         logger.error(f"Error processing match updates: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_match_updates.fetch_match_and_team_id_task',
     bind=True,
@@ -98,7 +120,23 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
     max_retries=3
 )
 def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str) -> Dict[str, Any]:
-    """Fetch match and team ID from message details."""
+    """
+    Fetch match and team ID based on Discord message details.
+
+    This task locates a ScheduledMessage record by matching the provided channel and message IDs.
+    Depending on which channel (home or away) the message came from, it returns the corresponding team ID.
+
+    Args:
+        session: The database session.
+        message_id: The ID of the Discord message.
+        channel_id: The ID of the Discord channel.
+
+    Returns:
+        A dictionary with success status, match_id, and team_id if found.
+    
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         scheduled_message = session.query(ScheduledMessage).filter(
             ((ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id)) |
@@ -107,26 +145,19 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
 
         if not scheduled_message:
             logger.error(f"No scheduled message found for message_id: {message_id}")
-            return {
-                'success': False,
-                'message': 'Message ID not found'
-            }
+            return {'success': False, 'message': 'Message ID not found'}
 
-        # Determine team ID based on channel and message
+        # Determine the team ID based on the channel the message was sent in.
         if scheduled_message.home_channel_id == channel_id and scheduled_message.home_message_id == message_id:
             team_id = scheduled_message.match.home_team_id
         elif scheduled_message.away_channel_id == channel_id and scheduled_message.away_message_id == message_id:
             team_id = scheduled_message.match.away_team_id
         else:
             logger.error(f"Team ID not found for message: {message_id}")
-            return {
-                'success': False,
-                'message': 'Team ID not found'
-            }
+            return {'success': False, 'message': 'Team ID not found'}
 
-        # Update message status
+        # Update the last fetch timestamp.
         scheduled_message.last_fetch = datetime.utcnow()
-        #scheduled_message.fetch_count = (scheduled_message.fetch_count or 0) + 1
 
         logger.info(f"Found match_id: {scheduled_message.match_id}, team_id: {team_id}")
         return {
@@ -142,6 +173,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
         logger.error(f"Error fetching match and team ID: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 def create_match_update(
     status: str,
     home_team: str,
@@ -151,7 +183,18 @@ def create_match_update(
     current_minute: str
 ) -> Tuple[str, str]:
     """
-    Create an appropriate update message based on match status.
+    Create an update message based on the match status.
+
+    Args:
+        status: The current match status.
+        home_team: Home team name.
+        away_team: Away team name.
+        home_score: Home team score.
+        away_score: Away team score.
+        current_minute: Current minute or clock display.
+
+    Returns:
+        A tuple (update_type, update_message) appropriate for the match status.
     """
     if status == 'STATUS_SCHEDULED':
         return (
@@ -174,6 +217,7 @@ def create_match_update(
             f"Match Status: {status}"
         )
 
+
 @celery_task(
     name='app.tasks.tasks_match_updates.get_active_matches',
     bind=True,
@@ -181,7 +225,21 @@ def create_match_update(
     max_retries=3
 )
 def get_active_matches_task(self, session) -> Dict[str, Any]:
-    """Get all active matches that need updates."""
+    """
+    Retrieve all active matches that require updates.
+
+    This task queries for matches with a current status of 'STATUS_IN_PROGRESS' or 'STATUS_HALFTIME'
+    and returns summary data for each match.
+
+    Args:
+        session: The database session.
+
+    Returns:
+        A dictionary containing a success flag, a message, and a list of active match summaries.
+
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         matches = session.query(MLSMatch).filter(
             MLSMatch.current_status.in_(['STATUS_IN_PROGRESS', 'STATUS_HALFTIME'])

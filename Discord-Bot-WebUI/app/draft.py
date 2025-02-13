@@ -1,21 +1,33 @@
+# app/draft.py
+
+"""
+Draft Module
+
+This module defines the blueprint endpoints for handling the drafting process
+for different leagues (Classic, Premier, ECS FC) in the application. It includes
+routes to render draft pages and Socket.IO event handlers to process drafting
+and removal of players from teams. The module interacts with the database,
+dispatches tasks for Discord role updates, and ensures proper session handling.
+"""
+
+import logging
+
 from flask import Blueprint, render_template, redirect, url_for, flash, g
 from flask_login import login_required
+from flask_socketio import emit
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import exists, and_, or_
 from sqlalchemy import text
-from app.sockets.session import socket_session
-from contextlib import contextmanager
-from app.models import (
-   League, Player, Team, Season, PlayerSeasonStats,
-   player_teams, player_league
-)
-from app.decorators import role_required
+
 from app.core import socketio, db
-from app.core.session_manager import managed_session
-from flask_socketio import emit
-from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
+from app.decorators import role_required
 from app.db_utils import mark_player_for_discord_update
-import logging
+from app.models import (
+    League, Player, Team, Season, PlayerSeasonStats,
+    player_teams, player_league
+)
+from app.sockets.session import socket_session
+from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
 logger = logging.getLogger(__name__)
 draft = Blueprint('draft', __name__)
@@ -25,15 +37,22 @@ draft = Blueprint('draft', __name__)
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_classic():
+    """
+    Render the draft page for the 'Classic' league.
+    
+    Retrieves both all Classic leagues (for player membership)
+    and the current Classic league (for team data), then organizes
+    available and drafted players accordingly.
+    """
     session = g.db_session
 
-    # A) Find ALL leagues named "Classic" (any season) => For player's membership
+    # A) Find ALL leagues named "Classic" (any season) for player membership
     all_classic_leagues = session.query(League).filter(League.name == 'Classic').all()
     if not all_classic_leagues:
         flash('No league(s) found with name "Classic".', 'danger')
         return redirect(url_for('main.index'))
 
-    # B) Find the *current* "Classic" league => For the actual teams
+    # B) Find the *current* "Classic" league for the actual teams
     current_classic = (
         session.query(League)
         .join(League.season)
@@ -45,13 +64,12 @@ def draft_classic():
         flash('No *current* Classic league found.', 'danger')
         return redirect(url_for('main.index'))
 
-    # 1) TEAMS => only from the current classic
+    # 1) TEAMS => only from the current Classic league
     teams = current_classic.teams
     team_ids = [t.id for t in teams]
 
-    # 2) PLAYERS => belongs to "Classic" from any season + is_active
+    # 2) PLAYERS => belongs to "Classic" from any season and is active
     classic_league_ids = [l.id for l in all_classic_leagues]
-
     belongs_to_classic = or_(
         Player.primary_league_id.in_(classic_league_ids),
         exists().where(
@@ -63,7 +81,7 @@ def draft_classic():
     )
     is_active = Player.is_current_player.is_(True)
 
-    # 3) Available = belongs_to_classic & is_active & not in these team_ids
+    # 3) Available players: belong to Classic, are active, and not already on a team
     not_in_classic_teams = ~exists().where(
         and_(
             player_teams.c.player_id == Player.id,
@@ -84,7 +102,7 @@ def draft_classic():
         .all()
     )
 
-    # 4) Drafted = belongs_to_classic & is_active & in these team_ids
+    # 4) Drafted players: belong to Classic, are active, and are assigned to a team
     drafted_players = (
         session.query(Player)
         .join(player_teams, player_teams.c.player_id == Player.id)
@@ -114,10 +132,18 @@ def draft_classic():
         drafted_players_by_team=drafted_by_team
     )
 
+
 @draft.route('/premier', endpoint='draft_premier')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_premier():
+    """
+    Render the draft page for the 'Premier' league.
+    
+    Retrieves all Premier leagues for player membership and the
+    current Premier league for team data, then organizes available
+    and drafted players accordingly.
+    """
     session = g.db_session
 
     # A) All "Premier" leagues for player membership
@@ -126,7 +152,7 @@ def draft_premier():
         flash('No league(s) found with name "Premier".', 'danger')
         return redirect(url_for('main.index'))
 
-    # B) Current "Premier" for the actual teams
+    # B) Current "Premier" league for team data
     current_premier = (
         session.query(League)
         .join(League.season)
@@ -202,10 +228,18 @@ def draft_premier():
         drafted_players_by_team=drafted_by_team
     )
 
+
 @draft.route('/ecs_fc', endpoint='draft_ecs_fc')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def draft_ecs_fc():
+    """
+    Render the draft page for the 'ECS FC' league.
+    
+    Retrieves all ECS FC leagues for player membership and the
+    current ECS FC league for team data, then organizes available
+    and drafted players accordingly.
+    """
     session = g.db_session
 
     # A) All "ECS FC" leagues for player membership
@@ -214,7 +248,7 @@ def draft_ecs_fc():
         flash('No league(s) named "ECS FC".', 'danger')
         return redirect(url_for('main.index'))
 
-    # B) The "current" ECS FC for the actual teams
+    # B) The "current" ECS FC league for team data
     current_ecs_fc = (
         session.query(League)
         .join(League.season)
@@ -289,6 +323,7 @@ def draft_ecs_fc():
         drafted_players_by_team=drafted_by_team
     )
 
+
 #
 # Socket.IO Event Handlers
 #
@@ -298,7 +333,6 @@ def handle_draft_player(data):
     Drafts a player to a team, sets them as primary if none is set,
     dispatches tasks for Discord role updates, and emits 'player_drafted'.
     """
-
     with socket_session(db.engine) as session:
         try:
             session.execute(text("SET LOCAL statement_timeout = '10s'"))
@@ -314,13 +348,12 @@ def handle_draft_player(data):
             if team not in player.teams:
                 player.teams.append(team)
 
-            # If player has no primary team, set this one
+            # Set primary team if not already set
             if not player.primary_team_id:
                 player.primary_team_id = team.id
 
-            # Mark for Discord sync / Trigger role assignment for exactly this team
+            # Mark for Discord sync and trigger role assignment for this team
             mark_player_for_discord_update(session, player.id)
-            # Pass both player_id AND team_id
             assign_roles_to_player_task.delay(player_id=player.id, team_id=team.id)
 
             # Prepare stats for the response
@@ -347,13 +380,13 @@ def handle_draft_player(data):
             emit('error', {'message': 'Draft failed - please try again'}, broadcast=False)
             raise
 
+
 @socketio.on('remove_player', namespace='/draft')
 def handle_remove_player(data):
     """
-    Removes a player from a team, unsets primary if applicable,
+    Removes a player from a team, unsets the primary team if applicable,
     dispatches a task for Discord role updates, and emits 'player_removed'.
     """
-
     with socket_session(db.engine) as session:
         try:
             session.execute(text("SET LOCAL statement_timeout = '10s'"))
@@ -369,11 +402,11 @@ def handle_remove_player(data):
             if team in player.teams:
                 player.teams.remove(team)
 
-            # Reset primary if this was the player's current primary team
+            # Reset primary team if this was the player's current primary team
             if player.primary_team_id == team.id:
                 player.primary_team_id = None
 
-            # Trigger removal for this exact team
+            # Trigger removal for this team
             remove_player_roles_task.delay(player.id, team.id)
 
             current_season = session.query(Season).get(team.league.season_id)

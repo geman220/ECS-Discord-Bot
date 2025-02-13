@@ -1,9 +1,21 @@
+# app/order_helpers.py
+
+"""
+Order Helpers Module
+
+This module provides utility functions to extract order details such as season names,
+jersey sizes, and to determine the correct league based on product names. It assists in
+processing WooCommerce orders by mapping product details to application-specific models.
+"""
+
 from flask import g
+from app.core import db
 from app.models import League
 import re
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 def is_order_in_current_season(order, season_map):
     """
@@ -20,6 +32,7 @@ def is_order_in_current_season(order, season_map):
     # Assuming the product name starts with the season name, e.g., "2024 Fall ECS Pub League - Premier Division - AM"
     season_name = extract_season_name(product_name)
     return season_name in season_map
+
 
 def extract_season_name(product_name):
     """
@@ -45,6 +58,7 @@ def extract_season_name(product_name):
         return f"{year} {season}"
     return ""
 
+
 def extract_jersey_size(product_name):
     """
     Extract the jersey size from the product name.
@@ -58,6 +72,7 @@ def extract_jersey_size(product_name):
     if ' - ' in product_name:
         return product_name.split(' - ')[-1].strip()
     return ""
+
 
 def extract_jersey_size_from_product_name(product_name):
     """
@@ -80,10 +95,21 @@ def extract_jersey_size_from_product_name(product_name):
         logger.error(f"Error extracting jersey size from product name '{product_name}': {e}", exc_info=True)
         return 'N/A'
 
+
 def determine_league(product_name, current_seasons, session=None):
+    """
+    Determine the league based on the product name and current seasons.
+
+    Args:
+        product_name (str): The product name.
+        current_seasons (list): List of current Season objects.
+        session (SQLAlchemy Session, optional): Database session to use.
+
+    Returns:
+        League: The League object if determined, or None otherwise.
+    """
     if session is None:
         # When not in a request context, use the global session.
-        from app.core import db
         session = db.session
     product_name = product_name.upper().strip()
     logger.debug(f"Determining league for product name: '{product_name}'")
@@ -120,6 +146,7 @@ def determine_league(product_name, current_seasons, session=None):
 
     logger.warning(f"Could not determine league type from product name: '{product_name}'")
     return None
+
 
 def get_league_by_product_name(product_name, current_seasons):
     """

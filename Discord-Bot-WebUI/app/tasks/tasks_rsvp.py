@@ -1,10 +1,21 @@
 # app/tasks/tasks_rsvp.py
 
+"""
+RSVP Tasks Module
+
+This module defines several Celery tasks to manage RSVP updates and notifications.
+Tasks include updating RSVP responses, sending availability messages to Discord,
+processing scheduled RSVP messages, notifying the frontend of RSVP changes,
+updating Discord RSVP status, notifying Discord of RSVP changes, cleaning up stale RSVPs,
+and monitoring overall RSVP system health.
+"""
+
 import logging
 import asyncio
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
-from app.core import socketio, celery
+from typing import Optional, Dict, Any
+
+from app.core import socketio
 from app.decorators import celery_task
 from app.models import Match, Availability, Player, ScheduledMessage
 from sqlalchemy.orm import joinedload
@@ -17,9 +28,32 @@ from app.tasks.tasks_rsvp_helpers import (
 
 logger = logging.getLogger(__name__)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.update_rsvp', max_retries=3, queue='discord')
 def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 discord_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Update RSVP response for a given match and player.
+
+    This task:
+      - Retrieves the Player record and current Availability for the match.
+      - Updates or creates the Availability record based on the new response.
+      - If a discord_id is provided, schedules a task to update the Discord RSVP.
+      - Schedules a task to notify the frontend of the RSVP change.
+
+    Args:
+        session: Database session.
+        match_id: ID of the match.
+        player_id: ID of the player.
+        new_response: The new RSVP response.
+        discord_id: (Optional) Discord ID of the player.
+
+    Returns:
+        A dictionary summarizing the update result and timestamp.
+
+    Raises:
+        Retries the task on database or general errors.
+    """
     try:
         logger.info("Starting RSVP update", extra={
             "match_id": match_id,
@@ -28,20 +62,20 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             "discord_id": discord_id
         })
 
-        # Check if player exists
         player = session.query(Player).get(player_id)
         if not player:
             logger.warning("Player not found", extra={"player_id": player_id})
             return {'success': False, 'message': "Player not found"}
 
-        # Update or create availability
+        # Retrieve current availability record for the player and match.
         availability = session.query(Availability).filter_by(
             match_id=match_id,
             player_id=player_id
         ).first()
-        
+
         old_response = availability.response if availability else None
 
+        # Update or create the availability record.
         if availability:
             if new_response == 'no_response':
                 session.delete(availability)
@@ -63,7 +97,7 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 )
                 session.add(availability)
 
-        # Queue notifications
+        # Schedule Discord RSVP update if a discord_id is provided.
         if discord_id:
             update_discord_rsvp_task.apply_async(kwargs={
                 "match_id": match_id,
@@ -72,6 +106,7 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 "old_response": old_response
             }, countdown=5)
 
+        # Notify frontend of the RSVP change.
         notify_frontend_of_rsvp_change_task.apply_async(kwargs={
             "match_id": match_id,
             "player_id": player_id,
@@ -94,15 +129,32 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
         logger.error(f"Error updating RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.send_availability_message', max_retries=3, retry_backoff=True, queue='discord')
 def send_availability_message(self, session, scheduled_message_id: int) -> Dict[str, Any]:
-    """Send availability message to Discord."""
+    """
+    Send an availability message to Discord.
+
+    This task creates a new event loop to run the asynchronous helper that sends the message.
+    It then updates the ScheduledMessage record with the result (e.g., SENT or FAILED).
+
+    Args:
+        session: Database session.
+        scheduled_message_id: ID of the scheduled message to send.
+
+    Returns:
+        A dictionary with the result of the send operation.
+
+    Raises:
+        Retries the task on database or general errors.
+    """
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             result = loop.run_until_complete(_send_availability_message_async(scheduled_message_id))
             
+            # Update the ScheduledMessage record based on the result.
             message = session.query(ScheduledMessage).get(scheduled_message_id)
             if message:
                 message.last_send_attempt = datetime.utcnow()
@@ -113,7 +165,6 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
                 else:
                     message.status = 'FAILED'
                     message.send_error = result.get('message')
-
             return result
         finally:
             loop.close()
@@ -124,9 +175,25 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
         logger.error(f"Error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.process_scheduled_messages', max_retries=3, queue='discord')
 def process_scheduled_messages(self, session) -> Dict[str, Any]:
-    """Process and send all pending scheduled messages."""
+    """
+    Process and send all pending scheduled RSVP messages.
+
+    This task queries for ScheduledMessage records that are pending and due to be sent.
+    It processes messages in batches, queues each message for sending, and updates their
+    status to 'QUEUED' or 'FAILED' accordingly.
+
+    Args:
+        session: Database session.
+
+    Returns:
+        A dictionary summarizing the processing outcome, including counts and details.
+
+    Raises:
+        Retries the task on database or general errors.
+    """
     try:
         now = datetime.utcnow()
         messages = session.query(ScheduledMessage).filter(
@@ -147,20 +214,19 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
         batch_size = 50
         for i in range(0, len(messages_data), batch_size):
             batch = messages_data[i:i + batch_size]
-            
             for message_data in batch:
                 try:
                     if not message_data['match_id']:
                         logger.warning(f"Skipping message {message_data['id']} - no match associated")
                         continue
 
+                    # Queue each message for sending.
                     send_availability_message.apply_async(
                         kwargs={'scheduled_message_id': message_data['id']},
                         countdown=5 * (i // batch_size),
                         expires=3600
                     )
 
-                    # Update message status to QUEUED
                     msg = session.query(ScheduledMessage).get(message_data['id'])
                     if msg:
                         msg.status = 'QUEUED'
@@ -181,7 +247,6 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
                         msg.status = 'FAILED'
                         msg.last_error = str(e)
                         msg.error_timestamp = datetime.utcnow()
-
                     failed_count += 1
                     results.append({
                         'message_id': message_data['id'],
@@ -206,9 +271,23 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
         logger.error(f"Error processing scheduled messages: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.notify_frontend_of_rsvp_change', max_retries=2, queue='discord')
 def notify_frontend_of_rsvp_change_task(self, session, match_id: int, player_id: int, response: str) -> Dict[str, Any]:
-    """Notify frontend of RSVP changes via WebSocket."""
+    """
+    Notify the frontend of an RSVP change via WebSocket.
+
+    This task emits a socket.io event with the RSVP update details to update the frontend in real time.
+
+    Args:
+        session: Database session.
+        match_id: ID of the match.
+        player_id: ID of the player.
+        response: The new RSVP response.
+
+    Returns:
+        A dictionary indicating whether the notification was sent successfully.
+    """
     try:
         notification_data = {
             'match_id': match_id,
@@ -218,7 +297,6 @@ def notify_frontend_of_rsvp_change_task(self, session, match_id: int, player_id:
         }
 
         socketio.emit('rsvp_update', notification_data, namespace='/availability')
-        
         logger.info("Frontend notified of RSVP change", extra=notification_data)
         
         return {
@@ -235,13 +313,29 @@ def notify_frontend_of_rsvp_change_task(self, session, match_id: int, player_id:
             'error_type': 'socket_error'
         }
 
+
 @celery_task(name='app.tasks.tasks_rsvp.update_discord_rsvp', max_retries=3, retry_backoff=True, queue='discord')
 def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_response: str, old_response: Optional[str] = None) -> Dict[str, Any]:
-    """Update Discord RSVP status."""
-    try:
-        required_fields = ['match_id', 'discord_id', 'new_response']
-        # Already have all arguments as separate parameters
+    """
+    Update Discord RSVP status by communicating with the Discord API.
 
+    This task runs an asynchronous helper to update the RSVP on Discord and then updates the corresponding
+    Availability record with the sync status and timestamp.
+
+    Args:
+        session: Database session.
+        match_id: ID of the match.
+        discord_id: Discord user ID.
+        new_response: New RSVP response.
+        old_response: (Optional) Previous RSVP response.
+
+    Returns:
+        A dictionary with the update result and sync timestamp.
+
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
+    try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -275,9 +369,25 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
         logger.error(f"Error updating Discord RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.notify_discord_of_rsvp_change', max_retries=3, retry_backoff=True, queue='discord')
 def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str, Any]:
-    """Notify Discord of RSVP changes."""
+    """
+    Notify Discord of RSVP changes for a match.
+
+    This task fetches a Match record, calls an asynchronous helper to notify Discord,
+    and then updates the Match record with the notification status and timestamp.
+
+    Args:
+        session: Database session.
+        match_id: ID of the match.
+
+    Returns:
+        A dictionary with the notification result and timestamp.
+
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         match = session.query(Match).get(match_id)
         if not match:
@@ -310,13 +420,29 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
         logger.error(f"Error notifying Discord of RSVP change: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.cleanup_stale_rsvps', max_retries=3, queue='discord')
 def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
-    """Clean up stale RSVPs."""
+    """
+    Clean up stale RSVP records.
+
+    This task deletes Availability records for matches that occurred more than a specified
+    number of days ago. It processes records in batches and returns details about the cleanup.
+
+    Args:
+        session: Database session.
+        days_old: Age threshold (in days) for stale RSVPs (default: 30).
+
+    Returns:
+        A dictionary summarizing the cleanup process.
+    
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=days_old)
         
-        # Get past matches
+        # Get past matches via a subquery.
         past_match_ids = session.query(Match.id).filter(Match.date < datetime.utcnow()).subquery()
 
         total_deleted = 0
@@ -364,9 +490,24 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
         logger.error(f"Error cleaning up stale RSVPs: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(name='app.tasks.tasks_rsvp.monitor_rsvp_health', max_retries=3, queue='discord')
 def monitor_rsvp_health(self, session) -> Dict[str, Any]:
-    """Monitor overall RSVP system health."""
+    """
+    Monitor the overall health of the RSVP system.
+
+    This task gathers various metrics from Availability and ScheduledMessage records,
+    computes a health score based on unsynced and failed counts, and returns a health status.
+
+    Args:
+        session: Database session.
+
+    Returns:
+        A dictionary containing health metrics, score, status, and a timestamp.
+
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         total_avail = session.query(Availability).count()
         unsynced_count = session.query(Availability).filter(
@@ -396,15 +537,15 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         }
 
         health_score = 100
-        if metrics['total_availabilities'] > 0:
-            unsynced_percentage = (unsynced_count / metrics['total_availabilities']) * 100
-            failed_percentage = (failed_count / metrics['total_availabilities']) * 100
+        if total_avail > 0:
+            unsynced_percentage = (unsynced_count / total_avail) * 100
+            failed_percentage = (failed_count / total_avail) * 100
 
             if unsynced_percentage > 10:
                 health_score -= 20
             if failed_percentage > 5:
                 health_score -= 30
-            if metrics['failed_messages_count'] > 10:
+            if failed_messages_count > 10:
                 health_score -= 20
 
         health_status = 'healthy' if health_score >= 80 else 'degraded' if health_score >= 50 else 'unhealthy'

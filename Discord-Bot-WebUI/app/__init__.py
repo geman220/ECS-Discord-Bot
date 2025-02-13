@@ -1,10 +1,21 @@
 # app/__init__.py
 
-import os
+"""
+Flask Application Factory
+
+This module provides the create_app function to initialize and configure the Flask
+application. It sets up configuration from a specified config object, initializes
+extensions (e.g., SQLAlchemy, Celery, SocketIO, Flask-Login, Mail, CSRF, Migrate),
+configures Redis for caching and session storage, registers blueprints, context
+processors, and error handlers, and applies middleware such as ProxyFix and debugging
+support when in debug mode.
+"""
+
+import redis
 import logging
 import logging.config
-from datetime import datetime, timedelta
 
+from datetime import timedelta
 from flask import Flask, request, session, redirect, url_for, render_template, flash, g
 from flask_assets import Environment
 from flask_login import LoginManager, current_user
@@ -13,20 +24,17 @@ from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
-
-import redis
-import time
-
-from app.log_config.logging_config import LOGGING_CONFIG
-from app.utils.user_helpers import safe_current_user
-from app.models import User, Role, Season
-from app.lifecycle import request_lifecycle
-from app.assets import init_assets
 from flask_migrate import Migrate
 from werkzeug.routing import BuildError
 from sqlalchemy.orm import joinedload, sessionmaker
 
-# Initialize Flask extensions
+from app.assets import init_assets
+from app.log_config.logging_config import LOGGING_CONFIG
+from app.utils.user_helpers import safe_current_user
+from app.models import User, Role, Season
+from app.lifecycle import request_lifecycle
+
+# Initialize Flask extensions.
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
@@ -37,22 +45,38 @@ logger = logging.getLogger(__name__)
 from app.core import db, socketio, configure_celery
 
 def create_app(config_object='web_config.Config'):
+    """
+    Application factory function for creating a Flask app instance.
+
+    Loads configuration from the specified config object, initializes Flask extensions,
+    sets up logging, Redis, SQLAlchemy, Celery, and other components, and registers
+    blueprints, context processors, and error handlers.
+
+    Args:
+        config_object: The configuration object to load (default is 'web_config.Config').
+
+    Returns:
+        A configured Flask application instance.
+    """
     app = Flask(__name__)
     app.config.from_object(config_object)
     
+    # Initialize asset management.
     assets = Environment(app)
     app.config['FLASK_ASSETS_USE_CDN'] = False
     init_assets(app)
 
-    # Configure logging
+    # Configure logging using a dictConfig.
     logging.config.dictConfig(LOGGING_CONFIG)
     app.logger.setLevel(logging.DEBUG)
     if app.debug:
         logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
+    # SECRET_KEY is mandatory.
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY must be set')
 
+    # Initialize Redis clients: one for general use and one for session storage.
     redis_client = redis.from_url(
         app.config['REDIS_URL'],
         decode_responses=True,
@@ -63,7 +87,6 @@ def create_app(config_object='web_config.Config'):
         retry_on_timeout=True,
         max_connections=10
     )
-
     session_redis = redis.from_url(
         app.config['REDIS_URL'],
         decode_responses=False,
@@ -74,7 +97,6 @@ def create_app(config_object='web_config.Config'):
         retry_on_timeout=True,
         max_connections=10
     )
-
     try:
         redis_client.ping()
         session_redis.ping()
@@ -85,25 +107,24 @@ def create_app(config_object='web_config.Config'):
 
     app.redis = redis_client
 
+    # Configure database settings.
     from app.database.config import configure_db_settings
     configure_db_settings(app)
-
     db.init_app(app)
 
-    # Only now do we create the engine and session factory inside the app context
+    # Create the engine and session factory within the app context.
     with app.app_context():
-        # Use db.engine directly after init_app
         engine = db.engine
         SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
         app.SessionLocal = SessionLocal
 
+    # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)
-
     def custom_before_request():
         logger.debug(f"Custom logic for request: {request.path}")
-
     request_lifecycle.register_before_request(custom_before_request)
 
+    # Initialize additional extensions.
     login_manager.init_app(app)
     csrf.init_app(app)
     mail.init_app(app)
@@ -122,6 +143,7 @@ def create_app(config_object='web_config.Config'):
             logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None
 
+    # Initialize SocketIO with Redis as the message queue.
     socketio.init_app(
         app,
         message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
@@ -130,16 +152,20 @@ def create_app(config_object='web_config.Config'):
         cors_allowed_origins=app.config.get('CORS_ORIGINS', '*')
     )
 
+    # Register blueprints, context processors, and error handlers.
     init_blueprints(app)
     init_context_processors(app)
     install_error_handlers(app)
 
+    # Apply ProxyFix to handle reverse proxy headers.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+    # Apply DebugMiddleware in debug mode.
     if app.debug:
         app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
         logger.debug("Applied DebugMiddleware")
 
+    # Configure session management to use Redis.
     app.config.update({
         'SESSION_TYPE': 'redis',
         'SESSION_REDIS': session_redis,
@@ -147,10 +173,10 @@ def create_app(config_object='web_config.Config'):
         'SESSION_KEY_PREFIX': 'session:',
         'SESSION_USE_SIGNER': True
     })
-
     Session(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+    # Initialize JWT for API authentication.
     from flask_jwt_extended import JWTManager
     JWTManager(app)
 
@@ -188,6 +214,7 @@ def create_app(config_object='web_config.Config'):
 
     @app.before_request
     def before_request():
+        # Create a new database session for each request (excluding static assets).
         if not request.path.startswith('/static/'):
             g.db_session = app.SessionLocal()
 
@@ -200,11 +227,10 @@ def create_app(config_object='web_config.Config'):
                 league_type='Pub League',
                 is_current=True
             ).first()
-        except:
+        except Exception:
             season = None
         finally:
             session.close()
-
         return dict(current_pub_league_season=season)
 
     @app.teardown_request
@@ -215,6 +241,11 @@ def create_app(config_object='web_config.Config'):
     return app
 
 def init_blueprints(app):
+    """
+    Register blueprints with the Flask application.
+
+    Imports and registers all blueprints for modular functionality.
+    """
     logger = logging.getLogger(__name__)
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp
@@ -263,6 +294,12 @@ def init_blueprints(app):
     app.register_blueprint(search_bp)
 
 def init_context_processors(app):
+    """
+    Register context processors with the Flask application.
+
+    Provides utilities such as safe_current_user, user roles, and permission-checking functions
+    for use in templates.
+    """
     @app.context_processor
     def utility_processor():
         user_roles = []
@@ -271,10 +308,10 @@ def init_context_processors(app):
         if safe_current_user.is_authenticated and hasattr(g, 'db_session'):
             try:
                 session = g.db_session
+                from app.models import User, Role
                 user = session.query(User).options(
                     joinedload(User.roles).joinedload(Role.permissions)
                 ).get(safe_current_user.id)
-
                 if user:
                     user_roles = [role.name for role in user.roles]
                     user_permissions = [
@@ -301,17 +338,29 @@ def init_context_processors(app):
         }
 
 def install_error_handlers(app):
-    # Define custom error handlers here if needed
+    """
+    Install custom error handlers with the Flask application.
+
+    Additional error handlers can be defined and registered here.
+    """
     pass
 
 class DebugMiddleware:
     def __init__(self, wsgi_app, app):
+        """
+        Initialize DebugMiddleware.
+
+        Args:
+            wsgi_app: The original WSGI application.
+            app: The Flask application instance.
+        """
         self.wsgi_app = wsgi_app
         self.flask_app = app
 
     def __call__(self, environ, start_response):
         with self.flask_app.app_context():
             with self.flask_app.request_context(environ):
+                from flask import request, session
                 logger.debug(f"Request Path: {environ.get('PATH_INFO')}")
                 logger.debug(f"Request Method: {environ.get('REQUEST_METHOD')}")
                 logger.debug(f"Request Headers: {dict(request.headers)}")
