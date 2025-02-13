@@ -42,7 +42,7 @@
                     <span class="badge bg-secondary mt-2">No Team</span>
                     {% endif %}
 
-                    {% if is_admin or is_player %}
+                    {% if is_admin or is_player or safe_current_user.has_role('Pub League Coach') %}
                     <p class="text-muted mt-2 mb-1">{{ user.email }}</p>
                     <p class="text-muted mb-1">{{ player.phone }}</p>
                     <p class="text-muted mb-3">Jersey Size: {{ player.jersey_size }}</p>
@@ -51,14 +51,25 @@
                     <!-- Discord Link -->
                     <div class="mb-3">
                         {% if player.discord_id %}
-                        <span class="badge bg-success">
-                            <i class="fab fa-discord me-1"></i> Linked to Discord
-                        </span>
+                        <div>
+                            <span class="badge bg-success">
+                                <i class="fab fa-discord me-1"></i> Linked to Discord
+                            </span>
+                        </div>
+                        {% if is_admin or safe_current_user.has_role('Pub League Coach') %}
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-success btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#discordContactModal">
+                                <i class="fab fa-discord me-1"></i> Contact Player on Discord
+                            </button>
+                        </div>
+                        {% endif %}
                         {% else %}
                         {% if safe_current_user.is_authenticated and safe_current_user.id == player.user.id %}
-                        <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-sm">
-                            <i class="fab fa-discord me-1"></i> Link to Discord
-                        </a>
+                        <div>
+                            <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-sm">
+                                <i class="fab fa-discord me-1"></i> Link to Discord
+                            </a>
+                        </div>
                         {% endif %}
                         {% endif %}
                     </div>
@@ -561,6 +572,32 @@
     </div>
 </div>
 
+<!-- Discord Contact Modal -->
+<div class="modal fade" id="discordContactModal" tabindex="-1" aria-labelledby="discordContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered custom-discord-modal">
+        <div class="modal-content">
+            <!-- The form posts to your Flask endpoint -->
+            <form action="{{ url_for('players.contact_player_discord', player_id=player.id) }}" method="POST">
+                {{ form.csrf_token }}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="discordContactModalLabel">Contact Player on Discord</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 w-100">
+                        <label for="discord_message" class="form-label">Message</label>
+                        <textarea class="form-control" id="discord_message" name="discord_message" rows="4" placeholder="Type your message here..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Send Message</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Manual Review Modal -->
 {% if player.needs_manual_review and is_admin %}
 <div class="modal fade" id="manualReviewModal" tabindex="-1" aria-labelledby="manualReviewModalLabel" aria-hidden="true">
@@ -589,7 +626,6 @@
     </div>
 </div>
 {% endif %}
-
 {% endblock %}
 
 {% block custom_js %}
@@ -626,6 +662,23 @@
 
     .modal-footer {
         justify-content: flex-end;
+    }
+    /* Custom styling for the Discord Contact Modal */
+    .custom-discord-modal .modal-content {
+        max-width: 400px; /* Adjust the width as desired */
+        margin: auto;
+    }
+    /* Optionally, reduce the padding/margin in the modal body */
+    .custom-discord-modal .modal-body {
+        padding: 1.5rem;
+    }
+    /* Center the modal header text if desired */
+    .custom-discord-modal .modal-header {
+        text-align: center;
+    }
+    /* Ensure the textarea doesn't take up more than 100% of the modal width */
+    .custom-discord-modal .modal-body .form-control {
+        width: 100%;
     }
 </style>
 {% endblock %}

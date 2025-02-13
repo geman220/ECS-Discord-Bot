@@ -1467,6 +1467,31 @@ async def update_discord_rsvp(request: dict, bot: commands.Bot = Depends(get_bot
         logger.error(f"Error updating Discord RSVP: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update Discord RSVP: {str(e)}")
 
+@app.post("/send_discord_dm")
+async def send_discord_dm(
+    message: str = Body(..., embed=True, description="The message to send"),
+    discord_id: str = Body(..., embed=True, description="The player's Discord ID"),
+    bot: commands.Bot = Depends(get_bot)
+):
+    # Fetch the Discord user by their discord_id
+    try:
+        user = await bot.fetch_user(int(discord_id))
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="User not found or Discord ID invalid")
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Attempt to send a DM to the user
+    try:
+        dm_channel = await user.create_dm()
+        dm_message = await dm_channel.send(message)
+        return {"status": "sent", "message_id": dm_message.id}
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="Cannot send DM to this user. They may have DMs disabled.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send DM: {str(e)}")
+
 async def update_message_with_reactions(
     bot: commands.Bot,
     message_id: str,
