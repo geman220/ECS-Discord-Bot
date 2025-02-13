@@ -44,6 +44,7 @@
     <Compile Include="app\players_helpers.py" />
     <Compile Include="app\player_management_helpers.py" />
     <Compile Include="app\lifecycle.py" />
+    <Compile Include="app\search.py" />
     <Compile Include="app\sockets\session.py" />
     <Compile Include="app\static.py" />
     <Compile Include="app\stat_helpers.py" />

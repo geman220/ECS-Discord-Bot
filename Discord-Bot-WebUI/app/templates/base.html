@@ -50,6 +50,9 @@
     <!-- Include Fancybox CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css">
 
+    <!-- Jquery CSS -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
     <!-- Helpers and Misc Scripts -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/template-customizer.js') }}"></script>
@@ -287,6 +290,9 @@
     <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
 
+    <!-- jQuery UI (must be loaded after jQuery) -->
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+
     <!-- Global Scripts -->
     <!-- Toast Auto Dismiss and Progress Bar -->
     <script>
@@ -425,6 +431,60 @@
                 showNextToast();
             }
         });
+    </script>
+    <script>
+    $(document).ready(function() {
+        // Build the base URL for player profiles.
+        var playerProfileBaseUrl = "{{ url_for('players.player_profile', player_id=9999) }}";
+        playerProfileBaseUrl = playerProfileBaseUrl.replace('9999', '');
+
+        $("#player-search").autocomplete({
+            source: function(request, response) {
+                $.ajax({
+                    url: "{{ url_for('search.search_players') }}",
+                    dataType: "json",
+                    data: { term: request.term },
+                    success: function(data) {
+                        response($.map(data, function(item) {
+                            return {
+                                label: item.name,
+                                value: item.name,
+                                id: item.id,
+                                profile_picture_url: item.profile_picture_url
+                            };
+                        }));
+                    }
+                });
+            },
+            minLength: 1,
+            select: function(event, ui) {
+                window.location.href = playerProfileBaseUrl + ui.item.id;
+            }
+        }).autocomplete("instance")._renderItem = function(ul, item) {
+            // Create a container for the image and name
+            var $li = $("<li>");
+            var $div = $("<div>").css({
+                "display": "flex",
+                "align-items": "center"
+            });
+            if(item.profile_picture_url) {
+                $div.append("<img src='" + item.profile_picture_url + "' style='width:30px; height:30px; border-radius:50%; margin-right:10px;' />");
+            }
+            $div.append("<span>" + item.label + "</span>");
+            return $li.append($div).appendTo(ul);
+        };
+
+        // Optionally, handle ENTER key when a suggestion exists:
+        $("#player-search").on("keypress", function(e) {
+            if (e.which == 13) {
+                var firstItem = $("#player-search").autocomplete("instance").menu.element.find("li:first-child a");
+                if (firstItem.length) {
+                    var playerId = firstItem.data("ui-autocomplete-item").id;
+                    window.location.href = playerProfileBaseUrl + playerId;
+                }
+            }
+        });
+    });
     </script>
     <!-- Custom JS for specific pages -->
     {% block custom_js %}
