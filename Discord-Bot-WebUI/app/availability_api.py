@@ -1,5 +1,24 @@
-from flask import Blueprint, request, jsonify, current_app, abort, g
+# app/availability_api.py
+
+"""
+Availability API Module
+
+This module defines endpoints for managing match availability, including:
+- Scheduling availability polls
+- Retrieving and updating match availability
+- Storing and fetching message IDs associated with scheduled messages
+- Syncing match RSVP data with external systems (Discord, frontend)
+- Other utilities related to availability data management
+"""
+
+import os
+import logging
+
+# Third-party imports
+from flask import Blueprint, request, jsonify, abort, g
 from flask_login import login_required
+
+# Local application imports
 from app import csrf
 from app.core import celery
 from app.models import Match, Availability, Team, Player, ScheduledMessage, User
@@ -21,30 +40,42 @@ from app.availability_api_helpers import (
     update_discord_rsvp,
     verify_availability_data
 )
-import os
-import logging
 
 logger = logging.getLogger(__name__)
 availability_bp = Blueprint('availability_api', __name__)
 csrf.exempt(availability_bp)
 
+
 @availability_bp.before_request
 def limit_remote_addr():
+    """
+    Restrict API access to allowed hosts.
+    """
     allowed_hosts = ['127.0.0.1:5000', 'localhost:5000', 'webui:5000']
     if request.host not in allowed_hosts:
         return "Access Denied", 403
 
-@availability_bp.route('/schedule_availability_poll', endpoint='schedule_availability_poll', methods=['POST'])
+
+@availability_bp.route('/schedule_availability_poll', methods=['POST'], endpoint='schedule_availability_poll')
 def schedule_availability_poll():
-    logger.debug("Endpoint hit: /api/schedule_availability_poll")
+    """
+    Schedule an availability poll for a match.
+    
+    Expects JSON with required fields:
+        - match_id
+        - match_date (validated via validate_date)
+        - match_time (validated via validate_time)
+        - team_id
+    """
+    logger.debug("Endpoint hit: /schedule_availability_poll")
     session_db = g.db_session
     data = request.json
+
     required_fields = ['match_id', 'match_date', 'match_time', 'team_id']
-    
     if not all(data.get(field) for field in required_fields):
         logger.error("Missing required data")
         return jsonify({"error": "Missing required data"}), 400
-        
+
     if not validate_date(data['match_date']) or not validate_time(data['match_time']):
         logger.error("Invalid date or time format")
         return jsonify({"error": "Invalid date or time format"}), 400
@@ -62,8 +93,12 @@ def schedule_availability_poll():
         "match_id": match.id
     }), 200
 
-@availability_bp.route('/match_availability/<int:match_id>', endpoint='get_match_availability', methods=['GET'])
+
+@availability_bp.route('/match_availability/<int:match_id>', methods=['GET'], endpoint='get_match_availability')
 def get_match_availability(match_id):
+    """
+    Retrieve availability results for a given match.
+    """
     session_db = g.db_session
     match = session_db.query(Match).get(match_id)
     if not match:
@@ -75,12 +110,21 @@ def get_match_availability(match_id):
         "availability": results
     }), 200
 
-@availability_bp.route('/update_availability', endpoint='update_availability', methods=['POST'])
+
+@availability_bp.route('/update_availability', methods=['POST'], endpoint='update_availability')
 def update_availability():
+    """
+    Update availability based on data received from Discord.
+
+    Expects JSON with:
+        - match_id
+        - discord_id
+        - response
+    """
     session_db = g.db_session
     data = request.json
     logger.info(f"Received data from Discord: {data}")
-    
+
     required_fields = ['match_id', 'discord_id', 'response']
     if not all(data.get(field) for field in required_fields):
         logger.error("Missing required data")
@@ -97,13 +141,25 @@ def update_availability():
         logger.error(f"Player with Discord ID {data['discord_id']} not found")
         return jsonify({"error": "Player not found"}), 404
 
+    # Trigger notifications
     notify_discord_of_rsvp_change_task.delay(data['match_id'])
     notify_frontend_of_rsvp_change_task.delay(data['match_id'], player.id, data['response'])
 
     return jsonify({"message": "Availability updated successfully"}), 200
 
-@availability_bp.route('/store_message_ids', endpoint='store_message_ids', methods=['POST'])
+
+@availability_bp.route('/store_message_ids', methods=['POST'], endpoint='store_message_ids')
 def store_message_ids():
+    """
+    Store message IDs for a match's scheduled messages.
+    
+    Expects JSON with:
+        - match_id
+        - home_channel_id
+        - home_message_id
+        - away_channel_id
+        - away_message_id
+    """
     session_db = g.db_session
     try:
         data = request.json
@@ -111,7 +167,6 @@ def store_message_ids():
             'match_id', 'home_channel_id', 'home_message_id',
             'away_channel_id', 'away_message_id'
         ]
-        
         if not all(field in data for field in required_fields):
             logger.error("Missing required data for message IDs")
             return jsonify({"error": "Missing required fields"}), 400
@@ -124,56 +179,73 @@ def store_message_ids():
             away_message_id=data['away_message_id'],
             session=session_db
         )
-        
+
         if not message:
             return jsonify({"error": status}), 400
-            
+
         return jsonify({"message": status}), 200
-        
+
     except Exception as e:
         logger.error(f"Error storing message IDs: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@availability_bp.route('/get_match_id_from_message/<string:message_id>', endpoint='get_match_id_from_message', methods=['GET'])
+
+@availability_bp.route('/get_match_id_from_message/<string:message_id>', methods=['GET'], endpoint='get_match_id_from_message')
 def get_match_id_from_message(message_id):
+    """
+    Retrieve a match ID based on a given message ID.
+    """
     session_db = g.db_session
     scheduled_message = session_db.query(ScheduledMessage).filter(
-       (ScheduledMessage.home_message_id == message_id) |
-       (ScheduledMessage.away_message_id == message_id)
+        (ScheduledMessage.home_message_id == message_id) |
+        (ScheduledMessage.away_message_id == message_id)
     ).first()
-   
+
     if not scheduled_message:
-       return jsonify({'error': 'Match not found'}), 404
-   
+        return jsonify({'error': 'Match not found'}), 404
+
     return jsonify({
-       'match_id': scheduled_message.match_id
+        'match_id': scheduled_message.match_id
     }), 200
 
-@availability_bp.route('/update_availability_web', endpoint='update_availability_web', methods=['POST'])
+
+@availability_bp.route('/update_availability_web', methods=['POST'], endpoint='update_availability_web')
 @login_required
 def update_availability_web():
+    """
+    Update a player's availability via the web interface.
+    
+    Expects JSON with:
+        - match_id
+        - player_id
+        - response
+    """
     data = request.json
     logger.info(f"Received web update data: {data}")
-   
+
     required_fields = ['match_id', 'player_id', 'response']
     if not all(data.get(field) for field in required_fields):
         logger.error("Missing required data")
         return jsonify({"error": "Invalid data"}), 400
-   
+
     success, message = update_rsvp(
-       data['match_id'],
-       data['player_id'], 
-       data['response'],
-       session=g.db_session
+        data['match_id'],
+        data['player_id'],
+        data['response'],
+        session=g.db_session
     )
-   
+
     if success:
-       return jsonify({"message": message}), 200
+        return jsonify({"message": message}), 200
     return jsonify({"error": "Failed to update availability"}), 500
 
-@availability_bp.route('/sync_match_rsvps/<int:match_id>', endpoint='sync_match_rsvps', methods=['POST'])
+
+@availability_bp.route('/sync_match_rsvps/<int:match_id>', methods=['POST'], endpoint='sync_match_rsvps')
 @login_required
 def sync_match_rsvps(match_id):
+    """
+    Sync match RSVPs to update Discord and frontend data.
+    """
     session_db = g.db_session
     try:
         match = session_db.query(Match).get(match_id)
@@ -194,27 +266,43 @@ def sync_match_rsvps(match_id):
                 if result['status'] != 'success':
                     logger.error(f"Failed to update Discord RSVP for player {availability.player_id}")
             else:
-                logger.info(f"Player {availability.player_id} doesn't have a Discord account. Skipping Discord update.")
+                logger.info(f"Player {availability.player_id} has no Discord account; skipping update.")
 
         return jsonify({"message": "Match RSVPs synced successfully"}), 200
+
     except Exception as e:
         logger.error(f"Error syncing match RSVPs: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
-@availability_bp.route('/get_match_rsvps/<int:match_id>', endpoint='get_match_rsvps', methods=['GET'])
+
+@availability_bp.route('/get_match_rsvps/<int:match_id>', methods=['GET'], endpoint='get_match_rsvps')
 def get_match_rsvps(match_id):
+    """
+    Retrieve RSVP data for a match.
+
+    Optionally filters by team_id provided as a query parameter.
+    """
     session_db = g.db_session
     team_id = request.args.get('team_id', type=int)
     logger.debug(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}")
-    
+
     verify_availability_data(match_id, team_id, session=session_db)
-    
     rsvp_data = get_match_rsvp_data(match_id, team_id, session=session_db)
     logger.debug(f"Returning RSVP data: {rsvp_data}")
     return jsonify(rsvp_data), 200
 
-@availability_bp.route('/update_availability_from_discord', endpoint='update_availability_from_discord', methods=['POST'])
+
+@availability_bp.route('/update_availability_from_discord', methods=['POST'], endpoint='update_availability_from_discord')
 def update_availability_from_discord():
+    """
+    Update availability data based on information received from Discord.
+
+    Expects JSON with:
+        - match_id
+        - discord_id
+        - response
+        - optionally, responded_at
+    """
     session_db = g.db_session
     try:
         data = request.json
@@ -245,11 +333,7 @@ def update_availability_from_discord():
 
         if data['response'] != 'no_response':
             notify_discord_of_rsvp_change_task.delay(data['match_id'])
-            notify_frontend_of_rsvp_change_task.delay(
-                data['match_id'],
-                player_id,
-                data['response']
-            )
+            notify_frontend_of_rsvp_change_task.delay(data['match_id'], player_id, data['response'])
 
         return jsonify({
             'status': 'success',
@@ -263,8 +347,12 @@ def update_availability_from_discord():
             'error': str(e)
         }), 500
 
-@availability_bp.route('/get_message_ids/<int:match_id>', endpoint='get_message_ids', methods=['GET'])
+
+@availability_bp.route('/get_message_ids/<int:match_id>', methods=['GET'], endpoint='get_message_ids')
 def get_message_ids(match_id):
+    """
+    Retrieve message IDs associated with a match.
+    """
     session_db = g.db_session
     logger.info(f"Received request for message IDs for match_id {match_id}")
     message_data = get_message_data(match_id, session=session_db)
@@ -274,28 +362,31 @@ def get_message_ids(match_id):
     logger.info(f"Returning message data for match_id {match_id}: {message_data}")
     return jsonify(message_data), 200
 
-@availability_bp.route('/get_match_and_team_id_from_message', endpoint='get_match_and_team_id_from_message', methods=['GET'])
+
+@availability_bp.route('/get_match_and_team_id_from_message', methods=['GET'], endpoint='get_match_and_team_id_from_message')
 def get_match_and_team_id_from_message():
+    """
+    Retrieve match and team IDs based on a provided message_id and channel_id.
+    """
     try:
         message_id = request.args.get('message_id')
         channel_id = request.args.get('channel_id')
-        
         logger.debug(f"Received request with message_id: {message_id}, channel_id: {channel_id}")
-        
+
         if not message_id or not channel_id:
             logger.error("Missing required parameters")
             return jsonify({
                 'status': 'error',
                 'error': 'Missing required parameters'
             }), 400
-        
+
         task = fetch_match_and_team_id_task.apply_async(
             kwargs={
                 'message_id': message_id,
                 'channel_id': channel_id
             }
         )
-        
+
         try:
             result = task.get(timeout=10)
             logger.debug(f"Task result received: {result}")
@@ -339,32 +430,45 @@ def get_match_and_team_id_from_message():
                 'status': 'error',
                 'error': 'Task timed out'
             }), 504
-            
+
     except Exception as e:
-        error_msg = f"Failed to process request for message_id: {request.args.get('message_id')}, channel_id: {request.args.get('channel_id')}. Error: {str(e)}"
+        error_msg = (f"Failed to process request for message_id: {request.args.get('message_id')}, "
+                     f"channel_id: {request.args.get('channel_id')}. Error: {str(e)}")
         logger.error(error_msg, exc_info=True)
         return jsonify({
             'status': 'error',
             'error': error_msg
         }), 500
 
-@availability_bp.route('/is_user_on_team', endpoint='is_user_on_team', methods=['POST'])
+
+@availability_bp.route('/is_user_on_team', methods=['POST'], endpoint='is_user_on_team')
 def is_user_on_team():
-   session_db = g.db_session
-   data = request.json
-   discord_id = data.get('discord_id')
-   team_id = data.get('team_id')
+    """
+    Check if a user (by Discord ID) is a member of a specific team.
 
-   if not discord_id or not team_id:
-       return jsonify({'error': 'Missing required fields'}), 400
+    Expects JSON with:
+        - discord_id
+        - team_id
+    """
+    session_db = g.db_session
+    data = request.json
+    discord_id = data.get('discord_id')
+    team_id = data.get('team_id')
 
-   player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-   return jsonify({
-       'is_team_member': bool(player and player.team_id == team_id)
-   }), 200
+    if not discord_id or not team_id:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+    return jsonify({
+        'is_team_member': bool(player and player.team_id == team_id)
+    }), 200
+
 
 @availability_bp.route('/get_scheduled_messages', methods=['GET'])
 def get_scheduled_messages():
+    """
+    Retrieve all scheduled messages along with associated match and team IDs.
+    """
     from app.core.session_manager import managed_session
     with managed_session() as session_db:
         messages = (
@@ -394,8 +498,12 @@ def get_scheduled_messages():
 
     return jsonify(messages_data), 200
 
+
 @availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
 def get_player_id_from_discord(discord_id):
+    """
+    Retrieve a player's ID and basic profile data based on their Discord ID.
+    """
     session_db = g.db_session
     player = session_db.query(Player).filter_by(discord_id=discord_id).first()
     if not player:
@@ -403,7 +511,6 @@ def get_player_id_from_discord(discord_id):
 
     base_url = os.getenv("WEBUI_BASE_URL", "https://portal.ecsfc.com").rstrip('/')
     raw_pic_path = player.profile_picture_url or ""
-
     if raw_pic_path and not raw_pic_path.startswith("http"):
         raw_pic_path = f"{base_url}/{raw_pic_path.lstrip('/')}"
 
@@ -415,34 +522,44 @@ def get_player_id_from_discord(discord_id):
     }
     return jsonify(final_data), 200
 
-@availability_bp.route('/task_status/<task_id>', endpoint='task_status', methods=['GET'])
-def task_status(task_id):
-   task = celery.AsyncResult(task_id)
-   response = {
-       'state': task.state,
-       'status': _get_task_status(task)
-   }
-   
-   if task.state == 'SUCCESS':
-       response['result'] = task.result
-   elif task.state == 'FAILURE':
-       response['error'] = str(task.result)
-   
-   return jsonify(response)
 
-@availability_bp.route('/get_match_request/<int:match_id>', endpoint='get_match_request', methods=['GET'])
+@availability_bp.route('/task_status/<task_id>', methods=['GET'], endpoint='task_status')
+def task_status(task_id):
+    """
+    Retrieve the status of a background Celery task.
+    """
+    task = celery.AsyncResult(task_id)
+    response = {
+        'state': task.state,
+        'status': _get_task_status(task)
+    }
+    if task.state == 'SUCCESS':
+        response['result'] = task.result
+    elif task.state == 'FAILURE':
+        response['error'] = str(task.result)
+    return jsonify(response)
+
+
+@availability_bp.route('/get_match_request/<int:match_id>', methods=['GET'], endpoint='get_match_request')
 def get_match_request(match_id):
-   session_db = g.db_session
-   match_data = get_match_request_data(match_id, session=session_db)
-   if not match_data:
-       return jsonify({'error': 'Match not found'}), 404
-   return jsonify(match_data), 200
+    """
+    Retrieve match request data for a specific match.
+    """
+    session_db = g.db_session
+    match_data = get_match_request_data(match_id, session=session_db)
+    if not match_data:
+        return jsonify({'error': 'Match not found'}), 404
+    return jsonify(match_data), 200
+
 
 def _get_task_status(task):
-   if task.state == 'PENDING':
-       return 'Pending...'
-   elif task.state == 'SUCCESS':
-       return task.result
-   elif task.state == 'FAILURE':
-       return str(task.info)
-   return 'In progress...'
+    """
+    Helper function to interpret a Celery task's state.
+    """
+    if task.state == 'PENDING':
+        return 'Pending...'
+    elif task.state == 'SUCCESS':
+        return task.result
+    elif task.state == 'FAILURE':
+        return str(task.info)
+    return 'In progress...'

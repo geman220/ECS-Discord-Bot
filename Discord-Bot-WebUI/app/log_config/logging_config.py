@@ -1,6 +1,18 @@
+# app/log_config/logging_config.py
+
+"""
+Logging configuration for the application.
+
+This configuration is used to initialize Python's logging module with a
+dictionary-based setup. It defines formatters, handlers, and loggers for
+various parts of the application to ensure detailed and organized logging.
+"""
+
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
+
+    # Formatters define the layout of the log messages.
     'formatters': {
         'detailed': {
             'format': '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s'
@@ -9,6 +21,8 @@ LOGGING_CONFIG = {
             'format': '%(asctime)s [%(levelname)s] %(message)s'
         }
     },
+
+    # Handlers specify where log messages are sent (e.g., console, files).
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
@@ -31,6 +45,8 @@ LOGGING_CONFIG = {
             'formatter': 'detailed',
         }
     },
+
+    # Loggers define logging behavior for specific modules or components.
     'loggers': {
         'sqlalchemy.engine': {
             'handlers': ['db_file', 'console'],
@@ -73,6 +89,8 @@ LOGGING_CONFIG = {
             'propagate': False
         }
     },
+
+    # The root logger catches all messages not handled by other loggers.
     'root': {
         'handlers': ['console'],
         'level': 'DEBUG',

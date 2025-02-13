@@ -36,8 +36,8 @@
     <Compile Include="app\db_management.py" />
     <Compile Include="app\debug\diagnostic.py" />
     <Compile Include="app\help.py" />
-    <Compile Include="app\logging\logging_config.py" />
-    <Compile Include="app\logging\__init__.py" />
+    <Compile Include="app\log_config\logging_config.py" />
+    <Compile Include="app\log_config\__init__.py" />
     <Compile Include="app\match_scheduler.py" />
     <Compile Include="app\monitoring.py" />
     <Compile Include="app\order_helpers.py" />
@@ -130,9 +130,10 @@
     <Folder Include="app\" />
     <Folder Include="app\config\" />
     <Folder Include="app\core\" />
-    <Folder Include="app\logging\" />
     <Folder Include="app\database\" />
     <Folder Include="app\debug\" />
+    <Folder Include="app\log_config\" />
+    <Folder Include="app\log_config\__pycache__\" />
     <Folder Include="app\sockets\" />
     <Folder Include="app\static\dist\" />
     <Folder Include="app\static\js\" />
@@ -152,6 +153,8 @@
     <Folder Include="app\templates\feedback\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="app\log_config\__pycache__\logging_config.cpython-313.pyc" />
+    <Content Include="app\log_config\__pycache__\__init__.cpython-313.pyc" />
     <Content Include="app\static\css\core-dark.css" />
     <Content Include="app\static\css\core.css" />
     <Content Include="app\static\css\pages\advanced-wizard.css" />

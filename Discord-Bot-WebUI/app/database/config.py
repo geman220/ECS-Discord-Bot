@@ -1,58 +1,83 @@
 # app/database/config.py
+
+"""
+Database configuration utilities.
+
+This module provides functions to set up detailed logging for SQLAlchemy and to
+configure database settings for the Flask application using engine options.
+"""
+
 import logging
-from app.database.pool import RateLimitedPool, ENGINE_OPTIONS  # Import both
+from app.database.pool import ENGINE_OPTIONS
 
 logger = logging.getLogger(__name__)
 
 def setup_db_logging():
-    """Configure detailed logging"""
+    """
+    Configure detailed logging for SQLAlchemy engine and connection pool.
+
+    Sets the log level for the SQLAlchemy engine and pool loggers, attaches a
+    FileHandler with a specific formatter, and disables propagation to prevent
+    duplicate logging.
+    """
     db_logger = logging.getLogger('sqlalchemy.engine')
     db_logger.setLevel(logging.INFO)
-    
-    # Add pool logging
+
     pool_logger = logging.getLogger('sqlalchemy.pool')
     pool_logger.setLevel(logging.INFO)
-    
+
     formatter = logging.Formatter(
         '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(message)s'
     )
-    
-    # Clear existing handlers
-    for logger in (db_logger, pool_logger):
-        logger.handlers = []
+
+    # Iterate over the loggers and set up the file handler for each.
+    for logger_instance in (db_logger, pool_logger):
+        # Clear existing handlers.
+        logger_instance.handlers = []
+        # Create and configure a file handler.
         fh = logging.FileHandler('sql_detailed.log')
         fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        logger.propagate = False
+        logger_instance.addHandler(fh)
+        # Disable propagation to avoid duplicate logs.
+        logger_instance.propagate = False
 
 def configure_db_settings(app):
-    """Configure database settings with enhanced options"""
+    """
+    Configure the Flask application's database settings with enhanced options.
+
+    This function updates the engine options by adding an 'application_name'
+    parameter to the connection arguments, applies the configuration to the app,
+    sets up detailed SQLAlchemy logging, and logs the current pool settings.
+
+    :param app: The Flask application instance.
+    :return: True if the configuration is applied successfully.
+    :raises Exception: Re-raises any exception encountered during configuration.
+    """
     try:
-        # Start with base ENGINE_OPTIONS from pool.py
         engine_options = ENGINE_OPTIONS.copy()
-        
-        # Add Flask-specific configurations
+
+        # Update connection arguments to include an application name for tracking.
         engine_options.update({
             'connect_args': {
-                **ENGINE_OPTIONS['connect_args'],
+                **ENGINE_OPTIONS.get('connect_args', {}),
                 'application_name': 'flask_app'
             }
         })
-        
-        # Update app config
+
+        # Apply SQLAlchemy settings to the Flask app configuration.
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-        
-        # Configure detailed logging
+
+        # Set up detailed logging for database operations.
         setup_db_logging()
-        
-        # Log configuration summary
+
+        # Log current database pool settings for debugging purposes.
         logger.info("Database settings configured with:")
-        logger.info(f"Pool size: {engine_options['pool_size']}")
-        logger.info(f"Max overflow: {engine_options['max_overflow']}")
-        logger.info(f"Pool timeout: {engine_options['pool_timeout']}")
-        logger.info(f"Pool recycle: {engine_options['pool_recycle']}")
-        
+        logger.info(f"Pool size: {engine_options.get('pool_size')}")
+        logger.info(f"Max overflow: {engine_options.get('max_overflow')}")
+        logger.info(f"Pool timeout: {engine_options.get('pool_timeout')}")
+        logger.info(f"Pool recycle: {engine_options.get('pool_recycle')}")
+
     except Exception as e:
         logger.error(f"Error configuring database settings: {e}", exc_info=True)
         raise

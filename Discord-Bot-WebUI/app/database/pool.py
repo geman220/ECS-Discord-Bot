@@ -1,41 +1,74 @@
+# app/database/pool.py
+
+"""
+Custom SQLAlchemy engine and connection pool with rate limiting.
+
+This module provides a RateLimitedPool class that extends SQLAlchemy's QueuePool
+to add rate limiting on connection checkouts, tracking of active connections,
+and logging for long-running transactions. It also defines ENGINE_OPTIONS for the pool
+configuration and a helper function, create_engine_with_retry(), to create an engine
+with retry logic for initial connection attempts.
+"""
+
 from sqlalchemy.pool import QueuePool
-from sqlalchemy import event
-from sqlalchemy.exc import DisconnectionError
+from sqlalchemy import event, create_engine
+from flask import has_request_context, request
 import traceback
 import time
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Set these flags as needed. In production, both should be False.
+# Toggle for including detailed stack traces during pool operations.
 DEBUG_POOL = False
+# Toggle for logging connection resets at warning level.
 LOG_CONNECTION_RESET = False
 
+
 class RateLimitedPool(QueuePool):
+    """
+    A custom SQLAlchemy connection pool that rate limits checkouts and monitors
+    connection usage to warn about long-running transactions.
+    """
     def __init__(self, *args, **kwargs):
+        # Track the last checkout time to enforce a minimum interval between checkouts.
         self._last_checkout = 0
-        self._min_checkout_interval = 0.1
+        self._min_checkout_interval = 0.1  # in seconds
+
+        # Dictionary to track active connections:
+        # { connection_id: (checkout_time, stack_trace, route) }
         self._active_connections = {}
+
+        # For periodic checking of long-running transactions.
         self._last_transaction_check = 0
-        self._transaction_check_interval = 60
+        self._transaction_check_interval = 60  # in seconds
 
         super().__init__(*args, **kwargs)
 
+        # Listen for pool events.
         event.listen(self, 'checkout', self._on_checkout)
         event.listen(self, 'checkin', self._on_checkin)
         event.listen(self, 'reset', self._on_reset)
 
     def _get_stack_info(self, depth=10):
-        """Get partial stack trace info."""
+        """
+        Retrieve partial stack trace information up to the specified depth.
+        
+        :param depth: The number of stack frames to include.
+        :return: A string representation of the stack trace.
+        """
         stack = traceback.extract_stack(limit=depth)
         return "\n".join(
-            f"File: {frame.filename}, Line: {frame.lineno}, "
-            f"Function: {frame.name}, Code: {frame.line}"
+            f"File: {frame.filename}, Line: {frame.lineno}, Function: {frame.name}, Code: {frame.line}"
             for frame in stack
         )
 
     def _get_transaction_state(self):
-        """Summarize connections currently checked out."""
+        """
+        Summarize the state of currently checked-out connections.
+        
+        :return: A dictionary containing the number of active connections and details for each.
+        """
         now = time.time()
         active_conns = []
         for conn_id, (checkout_time, stack, route) in self._active_connections.items():
@@ -52,7 +85,11 @@ class RateLimitedPool(QueuePool):
         }
 
     def log_long_running_transactions(self, threshold_seconds=30):
-        """Warn if a connection is checked out longer than threshold."""
+        """
+        Log a warning if any connection has been checked out longer than the threshold.
+        
+        :param threshold_seconds: Duration in seconds beyond which a connection is considered long-running.
+        """
         now = time.time()
         for conn_id, (checkout_time, stack, route) in self._active_connections.items():
             duration = now - checkout_time
@@ -67,42 +104,62 @@ class RateLimitedPool(QueuePool):
                 )
 
     def _check_transactions(self):
-        """Periodically scan for long-running connections."""
+        """
+        Periodically check and log long-running transactions.
+        """
         now = time.time()
         if now - self._last_transaction_check > self._transaction_check_interval:
             self.log_long_running_transactions()
             self._last_transaction_check = now
 
     def _do_get(self):
+        """
+        Override the pool's _do_get to enforce a minimum interval between checkouts and track active connections.
+        
+        :return: A database connection from the underlying pool.
+        """
         self._check_transactions()
 
         now = time.time()
+        # Enforce a minimum checkout interval.
         if now - self._last_checkout < self._min_checkout_interval:
             time.sleep(self._min_checkout_interval)
         self._last_checkout = now
 
         conn = super()._do_get()
+        # Capture stack trace at checkout if debugging is enabled.
         stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
         self._active_connections[id(conn)] = (time.time(), stack, None)
         return conn
 
     def _on_checkout(self, dbapi_conn, con_record, con_proxy):
+        """
+        Event handler called when a connection is checked out from the pool.
+        
+        Attempts to capture the route (request path) if in a Flask request context.
+        """
         conn_id = id(dbapi_conn)
         route = None
         try:
-            from flask import has_request_context, request
             if has_request_context():
                 route = request.path
         except Exception:
             pass
 
-        checkout_time, old_stack, _ = self._active_connections.get(conn_id, (time.time(), "<stack omitted>", None))
+        # Retrieve the initial checkout time and stack, if available.
+        checkout_time, old_stack, _ = self._active_connections.get(
+            conn_id, (time.time(), "<stack omitted>", None)
+        )
         if DEBUG_POOL:
             old_stack = self._get_stack_info(depth=20)
         self._active_connections[conn_id] = (checkout_time, old_stack, route)
 
     def _on_checkin(self, dbapi_conn, con_record):
-        """When a connection is returned to the pool."""
+        """
+        Event handler called when a connection is returned to the pool.
+        
+        Removes the connection from the active connections tracker and attempts a rollback.
+        """
         conn_id = id(dbapi_conn)
         self._active_connections.pop(conn_id, None)
 
@@ -113,6 +170,11 @@ class RateLimitedPool(QueuePool):
             logger.error(f"Error during connection {conn_id} cleanup: {e}", exc_info=True)
 
     def _on_reset(self, dbapi_conn, record):
+        """
+        Event handler called when a connection is reset.
+        
+        Logs the reset event along with connection details and current transaction state.
+        """
         conn_id = id(dbapi_conn)
         checkout_info = self._active_connections.get(conn_id, ("<unknown>", "<no stack>", None))
         checkout_time, checkout_stack, route = checkout_info
@@ -132,6 +194,8 @@ class RateLimitedPool(QueuePool):
             if DEBUG_POOL and logger.isEnabledFor(logging.DEBUG):
                 logger.debug(message)
 
+
+# ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
     'pool_size': 10,
@@ -152,19 +216,26 @@ ENGINE_OPTIONS = {
     'echo_pool': False,
 }
 
+
 def create_engine_with_retry(*args, **kwargs):
     """
-    Create engine with simple retry logic for initial connection attempts.
-    """
-    from sqlalchemy import create_engine
-    import time
+    Create an SQLAlchemy engine with retry logic for initial connection attempts.
 
+    This function attempts to create and test an engine by executing a simple query.
+    If the engine creation or connection fails, it retries up to a maximum number of times.
+
+    :param args: Positional arguments to pass to create_engine.
+    :param kwargs: Keyword arguments to pass to create_engine.
+    :return: A connected SQLAlchemy engine.
+    :raises Exception: If engine creation fails after the maximum retries.
+    """
     max_retries = 3
-    retry_delay = 1
+    retry_delay = 1  # seconds
 
     for attempt in range(max_retries):
         try:
             engine = create_engine(*args, **kwargs)
+            # Test the engine by making a simple query.
             with engine.connect() as conn:
                 conn.execute("SELECT 1")
             return engine

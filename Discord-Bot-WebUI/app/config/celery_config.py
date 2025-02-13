@@ -1,9 +1,18 @@
 ## app/config/celery_config.py
+
 import os
 from celery.schedules import crontab
 import pytz
 
+
 class CeleryConfig:
+    """
+    Celery configuration for the application.
+
+    This class defines settings including timezone, broker/backend, task registration,
+    worker settings, serialization, queue configuration, task routing, and periodic task scheduling.
+    """
+
     # Timezone Settings
     timezone = 'America/Los_Angeles'
     enable_utc = False
@@ -14,7 +23,7 @@ class CeleryConfig:
     redis_socket_connect_timeout = 5
     redis_retry_on_timeout = True
 
-    # Broker and Backend
+    # Broker and Backend Settings
     broker_url = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')
     broker_transport_options = {
         'visibility_timeout': 3600,  # 1 hour
@@ -38,26 +47,26 @@ class CeleryConfig:
         'app.tasks.tasks_maintenance',
         'app.tasks.player_sync'
     )
-    
+
     # Task Settings
     task_acks_late = True
     task_reject_on_worker_lost = True
     task_acks_on_failure_or_timeout = True
     task_track_started = True
-    task_time_limit = 30 * 60
-    task_soft_time_limit = 15 * 60
-    
+    task_time_limit = 30 * 60  # 30 minutes
+    task_soft_time_limit = 15 * 60  # 15 minutes
+
     # Worker Settings
     worker_prefetch_multiplier = 1
     worker_max_tasks_per_child = 50
     worker_concurrency = 4
     broker_connection_retry_on_startup = True
-    
-    # Serialization
+
+    # Serialization Settings
     accept_content = ['json']
     task_serializer = 'json'
     result_serializer = 'json'
-    
+
     # Queue Configuration
     task_queues = {
         'live_reporting': {
@@ -81,7 +90,7 @@ class CeleryConfig:
             'queue_arguments': {'x-max-priority': 10}
         }
     }
-    
+
     # Task Routes
     task_routes = {
         'app.tasks.tasks_discord.*': {'queue': 'discord'},
@@ -93,10 +102,9 @@ class CeleryConfig:
         'app.tasks.tasks_maintenance.*': {'queue': 'celery'},
         'app.tasks.player_sync.*': {'queue': 'player_sync'},
     }
-    
-    # Beat Schedule
+
+    # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
-        # Match Management Tasks
         'check-upcoming-matches': {
             'task': 'app.tasks.tasks_live_reporting.check_upcoming_matches',
             'schedule': crontab(minute='*/5'),
@@ -121,8 +129,6 @@ class CeleryConfig:
                 'expires': 840
             }
         },
-        
-        # Monitoring Tasks
         'verify-scheduled-tasks': {
             'task': 'app.tasks.tasks_live_reporting.verify_scheduled_tasks',
             'schedule': crontab(minute='*/15'),
@@ -139,16 +145,14 @@ class CeleryConfig:
                 'expires': 1740
             }
         },
-
         'collect-db-stats': {
             'task': 'app.tasks.monitoring_tasks.collect_db_stats',
-            'schedule': crontab(minute='*/5'),  # Runs every 5 minutes
+            'schedule': crontab(minute='*/5'),
             'options': {
-                'queue': 'celery',  # Specify the queue to use
-                'expires': 330      # Task expires after 5.5 minutes
+                'queue': 'celery',
+                'expires': 330  # Task expires after 5.5 minutes
             }
         },
-        
         # Core Tasks
         'schedule-season-availability': {
             'task': 'app.tasks.tasks_core.schedule_season_availability',
@@ -158,7 +162,6 @@ class CeleryConfig:
                 'expires': 3540
             }
         },
-
         'process-scheduled-messages': {
             'task': 'app.tasks.tasks_rsvp.process_scheduled_messages',
             'schedule': crontab(minute='*/5'),
@@ -167,7 +170,6 @@ class CeleryConfig:
                 'expires': 270
             }
         },
-
         'monitor-scheduled-tasks': {
             'task': 'app.tasks.tasks_live_reporting.verify_scheduled_tasks',
             'schedule': crontab(minute='*/5'),  # Run every 5 minutes
@@ -176,7 +178,6 @@ class CeleryConfig:
                 'expires': 270
             }
         },
-
         'monitor-all-matches': {
             'task': 'app.tasks.tasks_live_reporting.monitor_all_matches',
             'schedule': crontab(minute='*/15'),  # Run every 15 minutes
@@ -185,7 +186,6 @@ class CeleryConfig:
                 'expires': 840
             }
         },
-
         'verify-redis-tasks': {
             'task': 'app.tasks.tasks_live_reporting.verify_redis_tasks',
             'schedule': crontab(minute='*/10'),  # Run every 10 minutes

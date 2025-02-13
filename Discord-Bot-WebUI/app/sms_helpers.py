@@ -1,13 +1,24 @@
-from flask import current_app, jsonify, g
-from textmagic.rest import TextmagicRestClient
-from datetime import datetime
-from sqlalchemy import or_
-from twilio.rest import Client
+# app/sms_helpers.py
+
+"""
+SMS Helpers Module
+
+This module provides functions to send SMS messages using Twilio, generate and verify
+SMS confirmation codes, check subscription status via TextMagic, and handle incoming
+SMS commands for the ECS FC application.
+"""
+
+import logging
 import random
 import string
-import logging
+from datetime import datetime
 
-from app.models import User, Player, Match
+from flask import current_app, jsonify, g
+from sqlalchemy import or_
+from textmagic.rest import TextmagicRestClient
+from twilio.rest import Client
+
+from app.models import Player, Match
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +26,12 @@ logger = logging.getLogger(__name__)
 def send_welcome_message(phone_number):
     """
     Send an introductory welcome message describing the available commands.
+
+    Args:
+        phone_number (str): The recipient's phone number.
+
+    Returns:
+        The result of sending the SMS.
     """
     welcome_message = (
         "Welcome to ECS FC! You're now signed up for match notifications and reminders.\n\n"
@@ -29,8 +46,14 @@ def send_welcome_message(phone_number):
 
 def send_sms(phone_number, message):
     """
-    Sends an SMS using Twilio.
-    Returns (success_bool, message_or_error).
+    Send an SMS using Twilio.
+
+    Args:
+        phone_number (str): The recipient's phone number.
+        message (str): The message to send.
+
+    Returns:
+        tuple: (success (bool), message SID or error string).
     """
     client = Client(
         current_app.config['TWILIO_SID'],
@@ -50,15 +73,28 @@ def send_sms(phone_number, message):
 
 def generate_confirmation_code():
     """
-    Generates a 6-digit numeric code for confirming SMS subscription.
+    Generate a 6-digit numeric code for confirming SMS subscription.
+
+    Returns:
+        str: A 6-digit numeric confirmation code.
     """
     return ''.join(random.choices(string.digits, k=6))
 
 
 def send_confirmation_sms(user):
     """
-    1. Generate & store a random code for user.
-    2. Send that code to user's phone.
+    Generate and send an SMS confirmation code to the user.
+
+    This function:
+      1. Generates a random confirmation code.
+      2. Stores the code and opt-in timestamp on the user object.
+      3. Sends the code to the user's phone.
+
+    Args:
+        user: The user object.
+
+    Returns:
+        tuple: (success (bool), message SID or error string).
     """
     session = g.db_session
     player = session.query(Player).filter_by(user_id=user.id).first()
@@ -67,7 +103,7 @@ def send_confirmation_sms(user):
     
     confirmation_code = generate_confirmation_code()
     user.sms_confirmation_code = confirmation_code
-    # Optionally track when user opted in
+    # Optionally track when the user opted in.
     user.sms_opt_in_timestamp = datetime.utcnow()
 
     message = (
@@ -80,13 +116,21 @@ def send_confirmation_sms(user):
 
 def verify_sms_confirmation(user, code):
     """
-    1. Checks if the provided code matches user's stored code.
-    2. On success, enable sms_notifications, clear the code, send welcome message.
+    Verify that the provided SMS confirmation code matches the user's stored code.
+
+    On success, enables SMS notifications, clears the confirmation code,
+    and sends a welcome message.
+
+    Args:
+        user: The user object.
+        code (str): The confirmation code provided by the user.
+
+    Returns:
+        bool: True if the confirmation is successful; otherwise, False.
     """
     session = g.db_session
     try:
         if user.sms_confirmation_code == code:
-            # Confirm user
             user.sms_notifications = True
             user.sms_confirmation_code = None
 
@@ -104,8 +148,13 @@ def verify_sms_confirmation(user, code):
 
 def user_is_blocked_in_textmagic(phone_number):
     """
-    Checks if phone_number is in TextMagic's unsubscribers list.
-    Returns True if unsubscribed/blocked, else False.
+    Check if a phone number is unsubscribed/blocked in TextMagic.
+
+    Args:
+        phone_number (str): The phone number to check.
+
+    Returns:
+        bool: True if the phone number is unsubscribed; otherwise, False.
     """
     try:
         client = TextmagicRestClient(
@@ -113,8 +162,7 @@ def user_is_blocked_in_textmagic(phone_number):
             current_app.config['TEXTMAGIC_API_KEY']
         )
         response = client.unsubscribers.list(search=phone_number)
-        
-        # unsubscribers.list() returns { 'resources': [...] }
+        # The response should include a 'resources' list.
         unsubscribers_list = response.get('resources', [])
         if unsubscribers_list:
             current_app.logger.info(f'Phone number {phone_number} is unsubscribed in TextMagic.')
@@ -128,13 +176,20 @@ def user_is_blocked_in_textmagic(phone_number):
 
 
 # -------------------------------------------------------------------------
-# Command Handling
+# Command Handling Functions
 # -------------------------------------------------------------------------
 
 def handle_opt_out(player):
     """
-    Sets player & user to unsubscribed from SMS notifications.
-    Called when user sends "end".
+    Process an opt-out request by marking the player and user as unsubscribed.
+
+    Sends a confirmation SMS indicating the user has been unsubscribed.
+
+    Args:
+        player: The player object.
+
+    Returns:
+        bool: True upon completion.
     """
     session = g.db_session
     logger.info(f'Opt-out request received for player: {player.user_id}')
@@ -143,15 +198,22 @@ def handle_opt_out(player):
         player.user.sms_notifications = False
     logger.info(f'Player {player.user_id} unsubscribed from SMS notifications')
     
-    # Send final confirmation SMS (optional)
+    # Optionally send a final confirmation SMS.
     send_sms(player.phone, "You have been unsubscribed. Reply START anytime to re-subscribe.")
     return True
 
 
 def handle_re_subscribe(player):
     """
-    Re-subscribes the user to SMS notifications.
-    Called when user sends "start".
+    Re-subscribe a user to SMS notifications.
+
+    Updates consent fields and sends a re-subscription confirmation SMS.
+
+    Args:
+        player: The player object.
+
+    Returns:
+        bool: True upon successful re-subscription.
     """
     session = g.db_session
     logger.info(f'Re-subscription request for player: {player.user_id}')
@@ -177,18 +239,23 @@ def handle_re_subscribe(player):
 
 def get_next_match(phone_number):
     """
-    Returns a list of dictionaries containing upcoming match info for each team the player is on.
-    Each dictionary has keys:
-      - 'team': the Team object
-      - 'matches': a list of upcoming matches (each as a dict with date, time, opponent, and location)
-    If no teams or no upcoming matches are found, returns an empty list.
+    Retrieve upcoming match information for the player associated with a phone number.
+
+    Searches for the player's teams and retrieves up to two upcoming matches per team.
+    Each match dictionary contains formatted date, time, opponent name, and location.
+
+    Args:
+        phone_number (str): The player's phone number.
+
+    Returns:
+        list: A list of dictionaries, each containing team and match details.
     """
     session = g.db_session
     player = session.query(Player).filter_by(phone=phone_number).first()
     if not player:
         return []
 
-    # Collect teams: include primary_team (if any) and all teams from the many-to-many relationship.
+    # Collect teams from primary and many-to-many relationships.
     teams = []
     if player.primary_team:
         teams.append(player.primary_team)
@@ -216,7 +283,7 @@ def get_next_match(phone_number):
         if next_matches:
             match_list = []
             for m in next_matches:
-                # Determine the opponent based on which side the team is on.
+                # Determine opponent based on which side the team is on.
                 opponent = m.away_team if m.home_team_id == team.id else m.home_team
                 match_info = {
                     'date': m.date.strftime('%A, %B %d'),
@@ -231,7 +298,16 @@ def get_next_match(phone_number):
 
 def handle_next_match_request(player):
     """
-    Replies with upcoming matches for each team the player is on.
+    Handle an SMS request for upcoming match information.
+
+    Retrieves upcoming matches for the player's teams and sends an SMS
+    summarizing the match details.
+
+    Args:
+        player: The player object.
+
+    Returns:
+        bool: True after processing the request.
     """
     next_matches_by_team = get_next_match(player.phone)
     
@@ -242,7 +318,7 @@ def handle_next_match_request(player):
         for entry in next_matches_by_team:
             team = entry['team']
             matches = entry['matches']
-            # Header for the team.
+            # Add a header for each team.
             message_parts.append(f"Team {team.name} upcoming matches:")
             for i, match in enumerate(matches, 1):
                 message_parts.append(
@@ -256,7 +332,13 @@ def handle_next_match_request(player):
 
 def send_help_message(phone_number):
     """
-    Sends an SMS listing all available text commands.
+    Send an SMS listing all available text commands.
+
+    Args:
+        phone_number (str): The recipient's phone number.
+
+    Returns:
+        bool: True after sending the help message.
     """
     help_message = (
         "Available commands:\n"
@@ -270,25 +352,32 @@ def send_help_message(phone_number):
 
 
 # -------------------------------------------------------------------------
-#  Single Entry-Point for Incoming SMS Commands
+# Single Entry-Point for Incoming SMS Commands
 # -------------------------------------------------------------------------
 
 def handle_incoming_text_command(phone_number, message_text):
     """
-    A single function to parse and handle incoming SMS commands.
-    - Normalizes the command
-    - Finds the player
-    - Calls the appropriate function
-    - Sends fallback if unrecognized
+    Parse and handle an incoming SMS command.
+
+    Normalizes the command text, locates the corresponding player, and
+    calls the appropriate function. Sends a fallback message if the command
+    is unrecognized.
+
+    Args:
+        phone_number (str): The sender's phone number.
+        message_text (str): The received text command.
+
+    Returns:
+        A JSON response indicating the status and message.
     """
     session = g.db_session
     player = session.query(Player).filter_by(phone=phone_number).first()
     if not player:
-        # Unknown phone number
+        # Unknown phone number: notify the sender.
         send_sms(phone_number, "We couldn't match your phone number to a user.")
         return jsonify({'status': 'error', 'message': 'Unknown user phone'})
 
-    # Convert message_text to lower-case and strip whitespace
+    # Normalize command text.
     cmd = message_text.strip().lower()
 
     if cmd in ['end', 'stop', 'unsubscribe']:
@@ -304,6 +393,6 @@ def handle_incoming_text_command(phone_number, message_text):
         handle_next_match_request(player)
         return jsonify({'status': 'success', 'message': 'Next match info sent'})
     else:
-        # Unrecognized command
+        # Unrecognized command fallback.
         send_sms(phone_number, "Sorry, we didn't recognize that command. Reply HELP for options.")
         return jsonify({'status': 'success', 'message': 'Unrecognized command'})

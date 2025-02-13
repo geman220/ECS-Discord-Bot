@@ -1,10 +1,19 @@
+# app/loggers.py
+
+"""
+Loggers Module
+
+This module defines a custom Gunicorn logger by extending Gunicorn's glogging.Logger.
+The custom logger configures the logging settings, including setting a uniform log
+formatter and appropriate log levels for both error and access logs.
+"""
+
 import logging
-import sys
 from gunicorn import glogging
 
 class GunicornLogger(glogging.Logger):
     def setup(self, cfg):
-        """Configure Gunicorn logging"""
+        """Configure Gunicorn logging with a custom formatter and log levels."""
         super().setup(cfg)
         
         # Add custom formatter
@@ -17,6 +26,6 @@ class GunicornLogger(glogging.Logger):
         for handler in self.error_log.handlers + self.access_log.handlers:
             handler.setFormatter(formatter)
             
-        # Ensure we catch everything
+        # Set log levels to capture all necessary details
         self.error_log.setLevel(logging.DEBUG)
         self.access_log.setLevel(logging.INFO)

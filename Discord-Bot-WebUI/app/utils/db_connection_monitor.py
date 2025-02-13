@@ -1,35 +1,69 @@
-from datetime import datetime, timedelta
+# app/utils/db_connection_monitor.py
+
+"""
+Database Connection Monitor
+
+This module provides a DBConnectionMonitor class for monitoring and managing 
+PostgreSQL database connections. It can be initialized with a Flask app to 
+configure default connection timeouts and is used to identify and terminate 
+long-running or "stuck" connections. The cleanup_connections method is registered 
+to run at the end of each request.
+"""
+
 import logging
 from typing import List, Dict, Optional
 from sqlalchemy import text
-from flask import current_app
-from contextlib import contextmanager
 from app.core import db
 
 logger = logging.getLogger(__name__)
 
+
 class DBConnectionMonitor:
     def __init__(self, app=None):
+        """
+        Initialize the DBConnectionMonitor.
+
+        Optionally accepts a Flask app, in which case it automatically initializes
+        the monitor using the app's configuration.
+        """
         self.app = app
         if app is not None:
             self.init_app(app)
 
     def init_app(self, app):
-        """Initialize with Flask app"""
+        """
+        Initialize the monitor with a Flask application.
+
+        Sets default configuration values for database connection timeouts and
+        registers the cleanup_connections method to be called when the application
+        context tears down.
+
+        Args:
+            app: The Flask application instance.
+        """
         self.app = app
-        # Base timeout for normal web requests
-        app.config.setdefault('DB_CONNECTION_TIMEOUT', 30)  # seconds
-        # Timeout for active queries
-        app.config.setdefault('DB_QUERY_TIMEOUT', 300)  # 5 minutes
-        # Maximum age for any connection
-        app.config.setdefault('DB_MAX_CONNECTION_AGE', 900)  # 15 minutes
-        # Timeout for idle-in-transaction
-        app.config.setdefault('DB_IDLE_TRANSACTION_TIMEOUT', 60)  # 1 minute
+        # Set default configuration values if not already set.
+        app.config.setdefault('DB_CONNECTION_TIMEOUT', 30)      # Timeout for normal web requests (seconds)
+        app.config.setdefault('DB_QUERY_TIMEOUT', 300)          # Timeout for active queries (seconds)
+        app.config.setdefault('DB_MAX_CONNECTION_AGE', 900)       # Maximum age for any connection (seconds)
+        app.config.setdefault('DB_IDLE_TRANSACTION_TIMEOUT', 60)  # Timeout for idle-in-transaction (seconds)
         app.config.setdefault('DB_MONITOR_ENABLED', True)
         app.teardown_appcontext(self.cleanup_connections)
 
     def get_long_running_connections(self, threshold_seconds: Optional[int] = None) -> List[Dict]:
-        """Get all database connections running longer than threshold"""
+        """
+        Retrieve database connections running longer than the specified threshold.
+
+        If no threshold is provided, the default DB_CONNECTION_TIMEOUT is used.
+        The method queries PostgreSQL's pg_stat_activity to find connections that 
+        exceed thresholds for query duration, idle transaction time, or overall age.
+
+        Args:
+            threshold_seconds: Optional threshold (in seconds) for identifying long-running connections.
+
+        Returns:
+            A list of dictionaries representing problematic connections.
+        """
         if not self.app.config['DB_MONITOR_ENABLED']:
             return []
 
@@ -81,6 +115,7 @@ class DBConnectionMonitor:
                     "max_age": max_age,
                     "idle_timeout": idle_timeout
                 })
+                # Convert each row to a dictionary.
                 connections = [dict(zip(row._mapping.keys(), row._mapping.values())) for row in result]
         
                 if connections:
@@ -102,7 +137,19 @@ class DBConnectionMonitor:
             return []
 
     def terminate_stuck_connections(self, age_threshold_seconds: int = None) -> int:
-        """Terminate connections that have been running longer than threshold"""
+        """
+        Terminate database connections running longer than the specified threshold.
+
+        The method retrieves problematic connections and attempts to terminate them
+        using PostgreSQL's pg_terminate_backend function.
+
+        Args:
+            age_threshold_seconds: Optional threshold (in seconds) for termination; if not provided,
+                                   defaults to the DB_QUERY_TIMEOUT value.
+
+        Returns:
+            The number of connections terminated.
+        """
         if not self.app.config['DB_MONITOR_ENABLED']:
             return 0
 
@@ -113,11 +160,11 @@ class DBConnectionMonitor:
         terminated = 0
 
         for conn in connections:
-            # Skip admin connections and connections without queries
+            # Skip admin connections and connections without any query.
             if (conn['application_name'] and 'admin' in conn['application_name'].lower()) or not conn['query']:
                 continue
                 
-            # Skip active queries that aren't extremely old
+            # Skip active queries that haven't exceeded the maximum allowed age.
             if (conn['state'] == 'active' and 
                 conn.get('connection_age', 0) < self.app.config['DB_MAX_CONNECTION_AGE']):
                 continue
@@ -141,11 +188,19 @@ class DBConnectionMonitor:
                 )
             except Exception as e:
                 logger.error(f"Failed to terminate connection {conn['pid']}: {e}")
-
         return terminated
 
     def cleanup_connections(self, exception=None):
-        """Cleanup function to be called at the end of each request"""
+        """
+        Cleanup database connections at the end of a request.
+
+        If an exception occurred during the request, it logs the error. Then, if
+        connection monitoring is enabled, it terminates stuck connections that have
+        exceeded a threshold (set to DB_CONNECTION_TIMEOUT * 3).
+
+        Args:
+            exception: Optional exception that occurred during the request.
+        """
         if exception:
             logger.error(f"Exception during request, checking for stuck connections: {exception}")
         

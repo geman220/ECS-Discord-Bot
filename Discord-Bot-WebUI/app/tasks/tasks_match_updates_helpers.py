@@ -1,5 +1,14 @@
 # app/tasks/tasks_match_updates_helpers.py
 
+"""
+Match Updates Helpers Module
+
+This module contains helper functions and async routines for processing match
+updates. It includes functions to fetch match info in a thread-safe manner,
+create update messages based on match status, determine team IDs from message
+details, and send updates to Discord threads.
+"""
+
 import logging
 import aiohttp
 import asyncio
@@ -12,12 +21,27 @@ from app.core import celery
 
 logger = logging.getLogger(__name__)
 
+
 async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Async helper for processing match updates."""
+    """
+    Asynchronously process match updates and send an update to Discord.
+
+    This helper function retrieves match information in a thread-safe manner,
+    constructs an update message based on the live match data, sends the update
+    to Discord, and then updates the match status in the database.
+
+    Args:
+        match_id: The ID of the match.
+        match_data: Dictionary containing live match data (must include 'competitions').
+
+    Returns:
+        A dictionary with the result of the update process.
+    """
     executor = ThreadPoolExecutor(max_workers=1)
     app = celery.flask_app
 
     try:
+        # Retrieve match info synchronously in an executor
         def get_match_info_sync() -> Optional[Dict[str, Any]]:
             with app.app_context():
                 session = app.SessionLocal()
@@ -40,11 +64,9 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
 
         match_info = await asyncio.get_event_loop().run_in_executor(executor, get_match_info_sync)
         if not match_info:
-            return {
-                'success': False,
-                'message': f"No match found with ID {match_id}"
-            }
+            return {'success': False, 'message': f"No match found with ID {match_id}"}
 
+        # Extract update information from match_data.
         competition = match_data['competitions'][0]
         home_comp = competition['competitors'][0]
         away_comp = competition['competitors'][1]
@@ -58,15 +80,24 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
             'current_minute': competition['status'].get('displayClock', 'N/A')
         }
 
-        update_type, update_data = create_match_update(**update_info)
+        # Create update message based on match status.
+        update_type, update_data = create_match_update(
+            match_status=update_info['match_status'],
+            home_team=update_info['home_team'],
+            away_team=update_info['away_team'],
+            home_score=update_info['home_score'],
+            away_score=update_info['away_score'],
+            current_minute=update_info['current_minute']
+        )
 
-        # Send update to Discord
+        # Send update to Discord.
         await send_discord_update(
             match_info['discord_thread_id'],
             update_type,
             update_data
         )
 
+        # Update match status synchronously in an executor.
         def update_match_status_sync():
             with app.app_context():
                 session = app.SessionLocal()
@@ -104,6 +135,7 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
     finally:
         executor.shutdown()
 
+
 def create_match_update(
     match_status: str,
     home_team: str,
@@ -112,7 +144,20 @@ def create_match_update(
     away_score: str,
     current_minute: str
 ) -> Tuple[str, str]:
-    """Create appropriate update message based on match status."""
+    """
+    Create an appropriate update message based on the match status.
+
+    Args:
+        match_status: The current status of the match.
+        home_team: Home team name.
+        away_team: Away team name.
+        home_score: Home team score.
+        away_score: Away team score.
+        current_minute: The current minute or clock display.
+
+    Returns:
+        A tuple (update_type, update_message) based on the match status.
+    """
     update_types = {
         'STATUS_SCHEDULED': (
             "pre_match_info",
@@ -131,14 +176,27 @@ def create_match_update(
             f"🏁 Full Time: {home_team} {home_score} - {away_score} {away_team}"
         )
     }
-
     return update_types.get(
         match_status,
         ("status_update", f"Match Status: {match_status}")
     )
 
+
 def get_team_id_from_message(message: Match, channel_id: str, message_id: str) -> Optional[int]:
-    """Helper function to determine team ID from message details."""
+    """
+    Determine the team ID based on message details.
+
+    This helper checks if the provided channel and message IDs match the home or away
+    channel/message IDs of the given Match object and returns the corresponding team ID.
+
+    Args:
+        message: The Match object containing channel and team details.
+        channel_id: The channel ID where the message was sent.
+        message_id: The message ID.
+
+    Returns:
+        The team ID if found, otherwise None.
+    """
     try:
         if message.home_channel_id == channel_id and message.home_message_id == message_id:
             return message.match.home_team_id
@@ -149,8 +207,22 @@ def get_team_id_from_message(message: Match, channel_id: str, message_id: str) -
         logger.error(f"Error determining team ID: {str(e)}")
         return None
 
+
 async def send_discord_update(thread_id: str, update_type: str, update_data: str) -> Dict[str, Any]:
-    """Send update to Discord thread."""
+    """
+    Send an update to a Discord thread via the Discord bot API.
+
+    Args:
+        thread_id: The Discord thread ID.
+        update_type: The type of update (e.g., score update).
+        update_data: The update message content.
+
+    Returns:
+        A dictionary indicating the success status and message.
+
+    Raises:
+        Exception: If the Discord API returns a non-200 status code.
+    """
     bot_api_url = f"http://discord-bot:5001/api/thread/{thread_id}/update"
 
     try:

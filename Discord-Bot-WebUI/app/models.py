@@ -1,16 +1,29 @@
-from app.core import db
-from datetime import datetime, timedelta
-from flask_login import UserMixin
-from flask import request
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey, and_, or_, desc, exists, case
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
-import enum
-import logging
-import pyotp
+# app/models.py
 
-# Get the logger for this module
+"""
+Database Models Module
+
+This module defines the SQLAlchemy ORM models used throughout the application.
+It includes models for users, roles, permissions, leagues, seasons, teams, players,
+matches, notifications, feedback, and various statistical and history tracking entities.
+"""
+
+import logging
+import enum
+from datetime import datetime, timedelta
+
+import pyotp
+from flask import request
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey, or_, desc
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
+
+from app.core import db
+
+# Set up the module logger
 logger = logging.getLogger(__name__)
 
 # Association table for the many-to-many relationship between User and Role
@@ -20,38 +33,43 @@ user_roles = db.Table(
     db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
 )
 
-player_league = db.Table('player_league',
+# Association table for many-to-many relationship between Player and League (secondary leagues)
+player_league = db.Table(
+    'player_league',
     db.Column('player_id', db.Integer, db.ForeignKey('player.id'), primary_key=True),
     db.Column('league_id', db.Integer, db.ForeignKey('league.id'), primary_key=True)
 )
 
-# Association table for the many-to-many relationship between Role and Permission
-role_permissions = db.Table('role_permissions',
+# Association table for many-to-many relationship between Role and Permission
+role_permissions = db.Table(
+    'role_permissions',
     db.Column('role_id', db.Integer, db.ForeignKey('roles.id')),
     db.Column('permission_id', db.Integer, db.ForeignKey('permissions.id'))
 )
 
-player_teams = db.Table('player_teams',
+# Association table for many-to-many relationship between Player and Team
+player_teams = db.Table(
+    'player_teams',
     db.Column('player_id', db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), primary_key=True),
     db.Column('team_id', db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), primary_key=True),
     db.Column('is_coach', db.Boolean, default=False)
 )
 
-help_topic_roles = db.Table('help_topic_roles',
+# Association table for many-to-many relationship between HelpTopic and Role
+help_topic_roles = db.Table(
+    'help_topic_roles',
     db.Column('help_topic_id', db.Integer, db.ForeignKey('help_topics.id'), primary_key=True),
     db.Column('role_id', db.Integer, db.ForeignKey('roles.id'), primary_key=True)
 )
 
+
 class League(db.Model):
+    """Model representing a league."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     season = db.relationship('Season', back_populates='leagues')
-    teams = db.relationship(
-        'Team',
-        back_populates='league',
-        lazy='joined'
-    )
+    teams = db.relationship('Team', back_populates='league', lazy='joined')
     players = db.relationship(
         'Player',
         secondary=player_teams,
@@ -62,7 +80,7 @@ class League(db.Model):
         backref=db.backref('associated_leagues', viewonly=True)
     )
     primary_players = db.relationship('Player', back_populates='primary_league', foreign_keys='Player.primary_league_id')
-    other_players = db.relationship('Player', secondary='player_league', back_populates='other_leagues')
+    other_players = db.relationship('Player', secondary=player_league, back_populates='other_leagues')
     users = db.relationship('User', back_populates='league')
 
     def to_dict(self, session=None):
@@ -71,16 +89,18 @@ class League(db.Model):
             'name': self.name,
             'season_id': self.season_id,
         }
-    
+
     def __repr__(self):
         return f'<League {self.name}>'
 
+
 class User(UserMixin, db.Model):
+    """Model representing a user in the system."""
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    _email = db.Column('email', db.String(120), unique=True, nullable=False)  # Private attribute
+    _email = db.Column('email', db.String(120), unique=True, nullable=False)  # Private attribute for email
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp(), nullable=False)
@@ -98,11 +118,11 @@ class User(UserMixin, db.Model):
     league = db.relationship('League', back_populates='users')
     is_2fa_enabled = db.Column(db.Boolean, default=False)
     totp_secret = db.Column(db.String(32), nullable=True)
-    roles = db.relationship('Role', secondary=user_roles, back_populates='users')  # Removed cascade
-    player = db.relationship('Player', back_populates='user', uselist=False)  # Link to Player model
+    roles = db.relationship('Role', secondary=user_roles, back_populates='users')
+    player = db.relationship('Player', back_populates='user', uselist=False)
     stat_change_logs = db.relationship('StatChangeLog', back_populates='user', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='user', cascade='all, delete-orphan')
-    feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')  # New relationship
+    feedbacks = db.relationship('Feedback', back_populates='user', lazy='dynamic')
     notes = db.relationship('Note', back_populates='author', lazy=True)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
     feedback_replies = db.relationship('FeedbackReply', back_populates='user', lazy=True)
@@ -123,14 +143,12 @@ class User(UserMixin, db.Model):
     def email(cls):
         return cls._email
 
-    # Method to generate TOTP secret
     def generate_totp_secret(self):
-        import pyotp
+        """Generate a TOTP secret for 2FA."""
         self.totp_secret = pyotp.random_base32()
 
-    # Method to verify the provided 2FA code
     def verify_totp(self, token):
-        import pyotp
+        """Verify a provided 2FA token."""
         totp = pyotp.TOTP(self.totp_secret)
         return totp.verify(token)
 
@@ -161,22 +179,24 @@ class User(UserMixin, db.Model):
             'league_id': self.league_id
         }
 
+
 class Role(db.Model):
+    """Model representing a user role."""
     __tablename__ = 'roles'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
     description = db.Column(db.String(255), nullable=True)
 
-    # Many-to-many relationship between Role and User
     users = db.relationship('User', secondary=user_roles, back_populates='roles')
-    # Many-to-many relationship between Role and Permission
     permissions = db.relationship('Permission', secondary=role_permissions, back_populates='roles')
 
     def __repr__(self):
         return f'<Role {self.name}>'
 
+
 class Permission(db.Model):
+    """Model representing a permission."""
     __tablename__ = 'permissions'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
@@ -186,7 +206,9 @@ class Permission(db.Model):
     def __repr__(self):
         return f'<Permission {self.name}>'
 
+
 class Season(db.Model):
+    """Model representing a season."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     league_type = db.Column(db.String(50), nullable=False)
@@ -195,7 +217,6 @@ class Season(db.Model):
     player_stats = db.relationship('PlayerSeasonStats', back_populates='season', lazy=True, cascade="all, delete-orphan")
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
     stat_audits = db.relationship('PlayerStatAudit', back_populates='season', cascade='all, delete-orphan')
-
     player_assignments = relationship(
         'PlayerTeamSeason',
         back_populates='season',
@@ -213,19 +234,16 @@ class Season(db.Model):
     def __repr__(self):
         return f'<Season {self.name} ({self.league_type})>'
 
+
 class Team(db.Model):
+    """Model representing a team."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     league = db.relationship('League', back_populates='teams')
-    players = db.relationship(
-        'Player',
-        secondary=player_teams,
-        back_populates='teams'
-    )
+    players = db.relationship('Player', secondary=player_teams, back_populates='teams')
     matches = db.relationship('Schedule', foreign_keys='Schedule.team_id', lazy=True)
 
-    # Change these to String:
     discord_channel_id = db.Column(db.String(30), nullable=True)
     discord_coach_role_id = db.Column(db.String(30), nullable=True)
     discord_player_role_id = db.Column(db.String(30), nullable=True)
@@ -258,16 +276,16 @@ class Team(db.Model):
 
     @property
     def coaches(self):
-        """Get all coaches for this team"""
-        return [player for player, is_coach 
-                in db.session.query(Player, player_teams.c.is_coach)
-                .join(player_teams)
-                .filter(player_teams.c.team_id == self.id,
-                       player_teams.c.is_coach == True)]
+        """Get all coaches for this team."""
+        return [
+            player for player, is_coach in db.session.query(Team, player_teams.c.is_coach)
+            .join(player_teams)
+            .filter(player_teams.c.team_id == self.id, player_teams.c.is_coach == True)
+        ]
 
     @property
     def recent_form(self):
-        # Example property returning a small HTML snippet
+        """Return a small HTML snippet representing the team's recent match outcomes."""
         last_five_matches = Match.query.filter(
             (Match.home_team_id == self.id) | (Match.away_team_id == self.id)
         ).order_by(Match.date.desc()).limit(5).all()
@@ -275,11 +293,8 @@ class Team(db.Model):
         form = []
         for match in last_five_matches:
             if match.home_team_score is not None and match.away_team_score is not None:
-                if (
-                    (match.home_team_id == self.id and match.home_team_score > match.away_team_score)
-                    or
-                    (match.away_team_id == self.id and match.away_team_score > match.home_team_score)
-                ):
+                if ((match.home_team_id == self.id and match.home_team_score > match.away_team_score) or
+                    (match.away_team_id == self.id and match.away_team_score > match.home_team_score)):
                     form.append('<span style="color:green;">W</span>')
                 elif match.home_team_score == match.away_team_score:
                     form.append('<span style="color:yellow;">D</span>')
@@ -287,7 +302,6 @@ class Team(db.Model):
                     form.append('<span style="color:red;">L</span>')
             else:
                 form.append('<span style="color:gray;">N/A</span>')
-
         return ''.join(form)
 
     @property
@@ -303,7 +317,6 @@ class Team(db.Model):
         ).group_by(Player.id).order_by(
             desc('total_goals')
         ).first()
-        
         return f"{top_scorer[0].name} ({top_scorer[1]} goals)" if top_scorer and top_scorer[1] > 0 else "No data"
 
     @property
@@ -319,7 +332,6 @@ class Team(db.Model):
         ).group_by(Player.id).order_by(
             desc('total_assists')
         ).first()
-        
         return f"{top_assist[0].name} ({top_assist[1]} assists)" if top_assist and top_assist[1] > 0 else "No data"
 
     @property
@@ -349,18 +361,19 @@ class Team(db.Model):
             f"<strong>Avg Goals/Match:</strong> {self.avg_goals_per_match}"
         )
 
+
 class PlayerOrderHistory(db.Model):
+    """Model to track a player's order history (e.g., WooCommerce orders)."""
     __tablename__ = 'player_order_history'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)  # Link to Player
-    order_id = db.Column(db.String, nullable=False)  # WooCommerce Order ID
-    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)  # Link to Season
-    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)  # Link to League
-    profile_count = db.Column(db.Integer, default=1, nullable=False)  # Number of profiles created for the player in the season
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)  # Date the order was created
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    order_id = db.Column(db.String, nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    profile_count = db.Column(db.Integer, default=1, nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
 
-    # Relationships
     player = db.relationship('Player', back_populates='order_history')
     season = db.relationship('Season', backref='order_histories', lazy=True)
     league = db.relationship('League', backref='order_histories', lazy=True)
@@ -368,7 +381,9 @@ class PlayerOrderHistory(db.Model):
     def __repr__(self):
         return f'<PlayerOrderHistory {self.player_id} - Order {self.order_id} - Season {self.season_id} - League {self.league_id}>'
 
+
 class StatChangeLog(db.Model):
+    """Model for logging changes to player statistics."""
     __tablename__ = 'stat_change_logs'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -385,7 +400,9 @@ class StatChangeLog(db.Model):
     user = db.relationship('User', back_populates='stat_change_logs')
     season = db.relationship('Season', back_populates='stat_change_logs')
 
+
 class Player(db.Model):
+    """Model representing a player."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), nullable=True)
@@ -398,8 +415,8 @@ class Player(db.Model):
     is_coach = db.Column(db.Boolean, default=False)
     is_ref = db.Column(db.Boolean, default=False)
     discord_id = db.Column(db.String(100), unique=True)
-    needs_manual_review = db.Column(db.Boolean, default=False)  # New field for manual review
-    linked_primary_player_id = db.Column(db.Integer, nullable=True)  # Reference to the primary player
+    needs_manual_review = db.Column(db.Boolean, default=False)
+    linked_primary_player_id = db.Column(db.Integer, nullable=True)
     order_id = db.Column(db.String, nullable=True)
     events = db.relationship('PlayerEvent', back_populates='player', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
     pronouns = db.Column(db.String(50), nullable=True)
@@ -412,76 +429,55 @@ class Player(db.Model):
     frequency_play_goal = db.Column(db.Text, nullable=True)
     additional_info = db.Column(db.Text, nullable=True)
     player_notes = db.Column(db.Text, nullable=True)
-    team_swap = db.Column(db.String(10), nullable=True) 
-    #team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
-    #team = db.relationship('Team', back_populates='players')
-    teams = db.relationship(
-        'Team',
-        secondary=player_teams,
-        back_populates='players'
-    )
-    # Primary (single) team
+    team_swap = db.Column(db.String(10), nullable=True)
+    teams = db.relationship('Team', secondary=player_teams, back_populates='players')
     primary_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
     primary_team = db.relationship('Team', foreign_keys=[primary_team_id])
-
-    # Single league
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     league = db.relationship('League', back_populates='players', foreign_keys=[league_id])
-
-    # Primary league
     primary_league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=True)
     primary_league = db.relationship('League', back_populates='primary_players', foreign_keys=[primary_league_id])
-
-    # (Potentially) many other leagues
     other_leagues = db.relationship('League', secondary='player_league', back_populates='other_players')
-
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     user = db.relationship('User', back_populates='player')
     availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
-    notes = db.Column(db.Text, nullable=True)  # Admin notes
+    notes = db.Column(db.Text, nullable=True)
     is_current_player = db.Column(db.Boolean, default=False)
     profile_picture_url = db.Column(db.String(255), nullable=True)
     stat_change_logs = db.relationship('StatChangeLog', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
     stat_audits = db.relationship('PlayerStatAudit', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
-    
     season_stats = db.relationship('PlayerSeasonStats', back_populates='player', passive_deletes=True)
     career_stats = db.relationship('PlayerCareerStats', back_populates='player', passive_deletes=True)
     order_history = db.relationship('PlayerOrderHistory', back_populates='player', cascade='all, delete')
-    
     discord_roles = db.Column(JSON)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)
     discord_roles_synced = db.Column(db.Boolean, default=False)
-
     season_assignments = relationship(
         'PlayerTeamSeason',
         back_populates='player',
         cascade='all, delete-orphan'
     )
 
-    #@property
-    #def team(self):
-    #    """Compatibility property that returns primary team"""
-    #    return self.primary_team
-
     @property 
     def current_teams(self):
-        """Get all current teams with coach status"""
-        return [(team, assoc.is_coach) for team, assoc 
-                in db.session.query(Team, player_teams.c.is_coach)
-                .join(player_teams)
-                .filter(player_teams.c.player_id == self.id)]
+        """Return a list of tuples containing teams and associated coach status."""
+        return [
+            (team, assoc.is_coach) for team, assoc in db.session.query(Team, player_teams.c.is_coach)
+            .join(player_teams)
+            .filter(player_teams.c.player_id == self.id)
+        ]
 
     def get_all_teams(self, session=None):
         teams = []
-        if self.team:
-            teams.append(self.team)
+        if self.primary_team:
+            teams.append(self.primary_team)
     
-        # Get teams where player is coaching
-        if self.is_coach:
+        if self.is_coach and session:
             coached_team = session.query(Team).filter(
                 Team.coach_id == self.id,
-                Team.id != self.team_id if self.team_id else True
+                Team.id != self.primary_team_id if self.primary_team_id else True
             ).first()
             if coached_team:
                 teams.append(coached_team)
@@ -495,7 +491,7 @@ class Player(db.Model):
         data = {
             'id': self.id,
             'name': self.name,
-            'team_id': self.team_id,
+            'team_id': self.primary_team_id,
             'is_coach': self.is_coach,
             'is_ref': self.is_ref,
             'jersey_number': self.jersey_number,
@@ -544,7 +540,7 @@ class Player(db.Model):
 
     def update_season_stats(self, season_id, stats_changes, user_id):
         if not stats_changes:
-            logging.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
+            logger.warning(f"No stats changes provided for Player ID {self.id} in Season ID {season_id}.")
             return
 
         try:
@@ -557,22 +553,22 @@ class Player(db.Model):
                 if hasattr(season_stats, stat):
                     current_value = getattr(season_stats, stat)
                     setattr(season_stats, stat, current_value + increment)
-                    logging.debug(
+                    logger.debug(
                         f"Updated {stat} for Player ID {self.id} in Season ID {season_id}: "
                         f"{current_value} + {increment} = {current_value + increment}"
                     )
                     self.log_stat_change(stat, current_value, current_value + increment, 
-                                       StatChangeType.EDIT.value, user_id, season_id)
+                                         StatChangeType.EDIT.value, user_id, season_id)
 
             self.update_career_stats(stats_changes, user_id)
-            logging.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
+            logger.info(f"Player ID {self.id} stats updated for Season ID {season_id} by User ID {user_id}.")
         except Exception as e:
-            logging.error(f"Error updating season stats: {str(e)}")
+            logger.error(f"Error updating season stats: {str(e)}")
             raise
 
     def update_career_stats(self, stats_changes, user_id):
         if not stats_changes:
-            logging.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
+            logger.warning(f"No stats changes provided for Player ID {self.id} in Career Stats.")
             return
 
         try:
@@ -586,21 +582,21 @@ class Player(db.Model):
                 if hasattr(self.career_stats[0], stat):
                     current_value = getattr(self.career_stats[0], stat)
                     setattr(self.career_stats[0], stat, current_value + increment)
-                    logging.debug(
+                    logger.debug(
                         f"Updated {stat} for Player ID {self.id} in Career Stats: "
                         f"{current_value} + {increment} = {current_value + increment}"
                     )
                     self.log_stat_change(stat, current_value, current_value + increment, 
-                                       StatChangeType.EDIT.value, user_id)
+                                         StatChangeType.EDIT.value, user_id)
             
-            logging.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
+            logger.info(f"Player ID {self.id} career stats updated by User ID {user_id}.")
         except Exception as e:
-            logging.error(f"Error updating career stats: {str(e)}")
+            logger.error(f"Error updating career stats: {str(e)}")
             raise
 
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
         if change_type not in [ct.value for ct in StatChangeType]:
-            logging.warning(f"Invalid change type '{change_type}' for stat change logging.")
+            logger.warning(f"Invalid change type '{change_type}' for stat change logging.")
             return
 
         try:
@@ -614,12 +610,12 @@ class Player(db.Model):
                 season_id=season_id
             )
             db.session.add(log_entry)
-            logging.info(
+            logger.info(
                 f"Logged stat change for Player ID {self.id}: {stat} {change_type} "
                 f"from {old_value} to {new_value} by User ID {user_id}."
             )
         except Exception as e:
-            logging.error(f"Error logging stat change for Player ID {self.id}: {str(e)}")
+            logger.error(f"Error logging stat change for Player ID {self.id}: {str(e)}")
             raise
 
     def get_career_goals(self, session=None):
@@ -650,16 +646,19 @@ class Player(db.Model):
 
     def get_current_teams(self, with_coach_status=False):
         if with_coach_status:
-            return [(team, is_coach) for team, is_coach 
-                    in db.session.query(Team, player_teams.c.is_coach)
-                    .join(player_teams)
-                    .filter(player_teams.c.player_id == self.id)]
+            return [
+                (team, is_coach) for team, is_coach in db.session.query(Team, player_teams.c.is_coach)
+                .join(player_teams)
+                .filter(player_teams.c.player_id == self.id)
+            ]
         return self.teams
 
     def get_all_match_stats(self, session=None):
         return PlayerEvent.query.filter_by(player_id=self.id).all()
 
+
 class Schedule(db.Model):
+    """Model representing a schedule for matches."""
     id = db.Column(db.Integer, primary_key=True)
     week = db.Column(db.String(10), nullable=False)
     date = db.Column(db.Date, nullable=False)
@@ -674,7 +673,9 @@ class Schedule(db.Model):
     matches = db.relationship('Match', back_populates='schedule', lazy=True)
     season = db.relationship('Season')
 
+
 class Match(db.Model):
+    """Model representing a match between two teams."""
     __tablename__ = 'matches'
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
@@ -693,12 +694,9 @@ class Match(db.Model):
     home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_matches')
     away_team = db.relationship('Team', foreign_keys=[away_team_id], backref='away_matches')
     schedule = db.relationship('Schedule', back_populates='matches')
-
     availability = db.relationship('Availability', back_populates='match', lazy=True, cascade="all, delete-orphan")
-
     ref_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
     ref = db.relationship('Player', backref='assigned_matches')
-
     scheduled_messages = db.relationship('ScheduledMessage', back_populates='match')
 
     def to_dict(self, include_teams=False, include_events=False):
@@ -725,10 +723,7 @@ class Match(db.Model):
 
     @property
     def reported(self):
-        """
-        Determine if the match has been reported based on scores being set.
-        Returns True if any score is present (including 0), otherwise False.
-        """
+        """Determine if the match has been reported based on scores."""
         return (
             self.home_team_score is not None and
             self.away_team_score is not None
@@ -742,7 +737,9 @@ class Match(db.Model):
             return self.home_team.name
         return None
 
+
 class PlayerSeasonStats(db.Model):
+    """Model for storing a player's season statistics."""
     __tablename__ = 'player_season_stats'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -774,7 +771,9 @@ class PlayerSeasonStats(db.Model):
             'red_cards': self.red_cards,
         }
 
+
 class PlayerCareerStats(db.Model):
+    """Model for storing a player's career statistics."""
     __tablename__ = 'player_career_stats'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -788,13 +787,7 @@ class PlayerCareerStats(db.Model):
 
     @classmethod 
     def get_stats_by_team(cls, team_id):
-        return db.session.query(
-            cls
-        ).join(
-            Player
-        ).join(
-            player_teams
-        ).filter(
+        return db.session.query(cls).join(Player).join(player_teams).filter(
             player_teams.c.team_id == team_id
         ).all()
 
@@ -808,26 +801,26 @@ class PlayerCareerStats(db.Model):
             'red_cards': self.red_cards,
         }
 
+
 class Standings(db.Model):
-    __tablename__ = 'standings'  # Ensure the table name is specified if not following naming conventions
+    """Model representing team standings for a season."""
+    __tablename__ = 'standings'
 
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=False)
     played = db.Column(db.Integer, default=0, nullable=False)
-    wins = db.Column(db.Integer, default=0, nullable=False)            # Renamed from 'won'
-    draws = db.Column(db.Integer, default=0, nullable=False)           # Renamed from 'drawn'
-    losses = db.Column(db.Integer, default=0, nullable=False)          # Renamed from 'lost'
+    wins = db.Column(db.Integer, default=0, nullable=False)
+    draws = db.Column(db.Integer, default=0, nullable=False)
+    losses = db.Column(db.Integer, default=0, nullable=False)
     goals_for = db.Column(db.Integer, default=0, nullable=False)
     goals_against = db.Column(db.Integer, default=0, nullable=False)
-    goal_difference = db.Column(db.Integer, default=0, nullable=False)  # Store goal difference in a column
+    goal_difference = db.Column(db.Integer, default=0, nullable=False)
     points = db.Column(db.Integer, default=0, nullable=False)
 
-    # Relationships
     team = db.relationship('Team', backref='standings')
     season = db.relationship('Season', backref='standings')
 
-    # Update goal_difference whenever goals_for or goals_against are changed
     @staticmethod
     def update_goal_difference(mapper, connection, target):
         target.goal_difference = target.goals_for - target.goals_against
@@ -836,11 +829,7 @@ class Standings(db.Model):
     def team_goals(self):
         return db.session.query(
             func.sum(PlayerSeasonStats.goals)
-        ).join(
-            Player
-        ).join(
-            player_teams
-        ).filter(
+        ).join(Player).join(player_teams).filter(
             player_teams.c.team_id == self.team_id
         ).scalar() or 0
 
@@ -860,10 +849,13 @@ class Standings(db.Model):
             'points': self.points,
         }
 
+# Listen for goal difference updates
 event.listen(Standings, 'before_insert', Standings.update_goal_difference)
 event.listen(Standings, 'before_update', Standings.update_goal_difference)
 
+
 class Availability(db.Model):
+    """Model representing a player's availability for a match."""
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
@@ -883,13 +875,15 @@ class Availability(db.Model):
             'responded_at': self.responded_at.isoformat() if self.responded_at else None,
         }
 
+
 class Notification(db.Model):
+    """Model representing a system notification for a user."""
     __tablename__ = 'notifications'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.String(255), nullable=False)
-    notification_type = db.Column(db.String(50), nullable=False, default='system') 
+    notification_type = db.Column(db.String(50), nullable=False, default='system')
     icon = db.Column(db.String(50), nullable=True)
     read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -897,11 +891,8 @@ class Notification(db.Model):
     user = db.relationship('User', back_populates='notifications')
 
     def icon_class(self):
-        # Use the stored icon if available
         if self.icon:
             return self.icon
-        
-        # Fallback to default mapping if icon isn't stored
         icon_mapping = {
             'warning': 'ti ti-alert-triangle',
             'error': 'ti ti-alert-circle',
@@ -911,7 +902,9 @@ class Notification(db.Model):
         }
         return icon_mapping.get(self.notification_type, 'ti-bell')
 
+
 class Announcement(db.Model):
+    """Model representing an announcement."""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
@@ -919,13 +912,16 @@ class Announcement(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     position = db.Column(db.Integer, default=0)
 
+
 class PlayerEventType(enum.Enum):
     GOAL = 'goal'
     ASSIST = 'assist'
     YELLOW_CARD = 'yellow_card'
     RED_CARD = 'red_card'
 
+
 class PlayerEvent(db.Model):
+    """Model representing a match event (goal, assist, etc.) for a player."""
     __tablename__ = 'player_event'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -949,18 +945,21 @@ class PlayerEvent(db.Model):
             data['player'] = self.player.to_dict(public=True)
         return data
 
+
 class StatChangeType(enum.Enum):
     ADD = 'add'
     EDIT = 'edit'
     DELETE = 'delete'
 
+
 class PlayerStatAudit(db.Model):
+    """Model for auditing changes to player statistics."""
     __tablename__ = 'player_stat_audit'
 
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=True)
-    stat_type = db.Column(db.String(50), nullable=False)  # e.g., 'goals', 'assists'
+    stat_type = db.Column(db.String(50), nullable=False)
     old_value = db.Column(db.Integer, nullable=False)
     new_value = db.Column(db.Integer, nullable=False)
     change_type = db.Column(db.Enum(StatChangeType), nullable=False)
@@ -971,7 +970,9 @@ class PlayerStatAudit(db.Model):
     season = db.relationship('Season', back_populates='stat_audits')
     user = db.relationship('User', back_populates='stat_audits')
 
+
 class Feedback(db.Model):
+    """Model representing user feedback."""
     __tablename__ = 'feedback'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -1000,12 +1001,14 @@ class Feedback(db.Model):
             old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
             for ticket in old_closed_tickets:
                 db.session.delete(ticket)
-            logging.info(f"Successfully deleted old closed tickets older than {thirty_days_ago}")
+            logger.info(f"Successfully deleted old closed tickets older than {thirty_days_ago}")
         except Exception as e:
-            logging.error(f"Error deleting old closed tickets: {str(e)}")
+            logger.error(f"Error deleting old closed tickets: {str(e)}")
             raise
 
+
 class FeedbackReply(db.Model):
+    """Model representing a reply to a feedback ticket."""
     __tablename__ = 'feedback_replies'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1013,7 +1016,7 @@ class FeedbackReply(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    is_admin_reply = db.Column(db.Boolean, default=False)  # New field
+    is_admin_reply = db.Column(db.Boolean, default=False)
 
     feedback = db.relationship('Feedback', back_populates='replies')
     user = db.relationship('User', back_populates='feedback_replies')
@@ -1021,7 +1024,9 @@ class FeedbackReply(db.Model):
     def __repr__(self):
         return f'<FeedbackReply {self.id} for Feedback {self.feedback_id}>'
 
+
 class Note(db.Model):
+    """Model representing a note attached to a feedback ticket."""
     __tablename__ = 'notes'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1036,7 +1041,9 @@ class Note(db.Model):
     def __repr__(self):
         return f'<Note {self.id} by {self.author.username}>'
 
+
 class ScheduledMessage(db.Model):
+    """Model representing a scheduled message for a match."""
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
@@ -1046,12 +1053,13 @@ class ScheduledMessage(db.Model):
     away_channel_id = db.Column(db.String(20), nullable=True)
     away_message_id = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     match = db.relationship('Match', back_populates='scheduled_messages')
 
+
 class Token(db.Model):
+    """Model representing a token for player operations (e.g., password reset)."""
     __tablename__ = 'tokens'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1083,12 +1091,14 @@ class Token(db.Model):
     def invalidate(self):
         try:
             self.used = True
-            logging.info(f"Token {self.token} for player {self.player_id} invalidated")
+            logger.info(f"Token {self.token} for player {self.player_id} invalidated")
         except Exception as e:
-            logging.error(f"Error invalidating token {self.token} for player {self.player_id}: {str(e)}")
+            logger.error(f"Error invalidating token {self.token} for player {self.player_id}: {str(e)}")
             raise
 
+
 class MLSMatch(db.Model):
+    """Model representing an MLS match with additional details."""
     __tablename__ = 'mls_matches'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -1101,11 +1111,9 @@ class MLSMatch(db.Model):
     commentary_link = db.Column(db.String(200))
     venue = db.Column(db.String(100))
     competition = db.Column(db.String(50))
-
     thread_creation_time = db.Column(db.DateTime(timezone=True))
     thread_created = db.Column(db.Boolean, default=False)
     discord_thread_id = db.Column(db.String)
-
     live_reporting_scheduled = db.Column(db.Boolean, default=False)
     live_reporting_started = db.Column(db.Boolean, default=False)
     live_reporting_status = db.Column(db.String(20), default='not_started')
@@ -1121,6 +1129,7 @@ class MLSMatch(db.Model):
 
 
 class PlayerTeamSeason(db.Model):
+    """Model linking a player, team, and season for assignments."""
     __tablename__ = 'player_team_season'
 
     id = Column(Integer, primary_key=True)
@@ -1128,7 +1137,6 @@ class PlayerTeamSeason(db.Model):
     team_id = Column(Integer, ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
     season_id = Column(Integer, ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
 
-    # Relationships
     player = relationship('Player', back_populates='season_assignments')
     team = relationship('Team', back_populates='season_assignments')
     season = relationship('Season', back_populates='player_assignments')
@@ -1136,7 +1144,9 @@ class PlayerTeamSeason(db.Model):
     def __repr__(self):
         return f'<PlayerTeamSeason player={self.player_id} team={self.team_id} season={self.season_id}>'
 
+
 class PlayerTeamHistory(db.Model):
+    """Model for tracking the history of player-team associations."""
     __tablename__ = 'player_team_history'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -1149,7 +1159,9 @@ class PlayerTeamHistory(db.Model):
     player = db.relationship('Player', backref='team_history')
     team = db.relationship('Team', backref='player_history')
 
+
 class Progress(db.Model):
+    """Model representing the progress of a task."""
     __tablename__ = 'progress'
     
     task_id = db.Column(db.String(50), primary_key=True)
@@ -1158,7 +1170,9 @@ class Progress(db.Model):
     progress = db.Column(db.Integer)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
 class HelpTopic(db.Model):
+    """Model representing a help topic."""
     __tablename__ = 'help_topics'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)

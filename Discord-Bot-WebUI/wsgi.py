@@ -1,4 +1,5 @@
-import os
+# wsgi.py
+
 import sys
 
 # Only use eventlet and full app setup when not running migrations

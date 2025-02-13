@@ -1,22 +1,34 @@
+# app/match_api.py
+
+"""
+Match API Module
+
+This module defines the API endpoints for match-related live reporting and updates.
+It provides endpoints to schedule live reporting for matches, process live updates,
+send pre-match information, and manage match statuses. Asynchronous functions and
+Celery tasks are leveraged for background processing, ensuring real-time updates
+for live matches.
+"""
+
+import logging
+from datetime import datetime
+
+import aiohttp
+import requests
+
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required
-from app.models import MLSMatch
-from datetime import datetime
-from app.utils.match_events_utils import get_new_events
-from app.core.session_manager import managed_session
-import asyncio
-import aiohttp
-import hashlib
-import requests
-import time
-import json
-import logging
-from app.core import celery
 from flask_wtf.csrf import CSRFProtect
 
+from app.models import MLSMatch
+from app.utils.match_events_utils import get_new_events
+from app.core.session_manager import managed_session
+from app.core import celery
+
+# Initialize CSRF protection for the blueprint
 csrf = CSRFProtect()
 
-# FIX THIS AFTER TESTING
+# FIXME: Update TEAM_ID after testing
 TEAM_ID = '9726'
 
 # Set up logging
@@ -26,13 +38,27 @@ logger = logging.getLogger(__name__)
 match_api = Blueprint('match_api', __name__)
 csrf.exempt(match_api)
 
+
 async def process_live_match_updates(match_id, thread_id, match_data, last_status=None, last_score=None, last_event_keys=None):
+    """
+    Process live match updates for a given match.
+
+    Parameters:
+        match_id (str): The match identifier.
+        thread_id (str): The Discord thread ID for updates.
+        match_data (dict): The data for the current match.
+        last_status (str, optional): The previous match status.
+        last_score (str, optional): The previous score.
+        last_event_keys (list, optional): Keys of previously processed events.
+
+    Returns:
+        tuple: (match_ended (bool), current_event_keys (list))
+    """
     logger.info(f"Processing live match updates for match_id={match_id}")
     try:
-        # Use the managed session to ensure proper commit/rollback/cleanup.
         with managed_session() as session:
             last_event_keys = last_event_keys or []
-            
+
             competition = match_data["competitions"][0]
             status_type = competition["status"]["type"]["name"]
             home_competitor = competition["competitors"][0]
@@ -81,7 +107,19 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
         logger.error(f"Error processing live match updates for match_id={match_id}: {str(e)}", exc_info=True)
         return False, last_event_keys
 
+
 async def send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time):
+    """
+    Send a score update to the bot.
+
+    Parameters:
+        thread_id (str): The Discord thread ID.
+        home_team (dict): Home team information.
+        away_team (dict): Away team information.
+        home_score (str): Home team score.
+        away_score (str): Away team score.
+        current_time (str): Current match time.
+    """
     update_data = {
         "home_team": home_team,
         "away_team": away_team,
@@ -91,7 +129,19 @@ async def send_score_update(thread_id, home_team, away_team, home_score, away_sc
     }
     await send_update_to_bot(thread_id, "score_update", update_data)
 
+
 async def handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score):
+    """
+    Handle changes in match status by sending appropriate updates.
+
+    Parameters:
+        thread_id (str): The Discord thread ID.
+        status_type (str): The new status of the match.
+        home_team (dict): Home team information.
+        away_team (dict): Away team information.
+        home_score (str): Home team score.
+        away_score (str): Away team score.
+    """
     if status_type == "STATUS_HALFTIME":
         logger.info(f"Sending halftime update to thread {thread_id}")
         await send_update_to_bot(thread_id, "halftime", {
@@ -109,7 +159,20 @@ async def handle_status_change(thread_id, status_type, home_team, away_team, hom
             "away_score": away_score,
         })
 
+
 async def process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score):
+    """
+    Process an individual match event and send an update to the bot.
+
+    Parameters:
+        thread_id (str): The Discord thread ID.
+        event (dict): The match event data.
+        team_map (dict): Mapping of team IDs to team data.
+        home_team (dict): Home team information.
+        away_team (dict): Away team information.
+        home_score (str): Home team score.
+        away_score (str): Away team score.
+    """
     event_type = event.get("type", {}).get("text", "Unknown Event")
     event_time = event.get("clock", {}).get("displayValue", "N/A")
     event_team_id = str(event.get("team", {}).get("id", ""))
@@ -161,8 +224,17 @@ async def process_match_event(thread_id, event, team_map, home_team, away_team, 
         logger.info(f"Reporting event: {event_type} for team {event_team_name}")
         await send_update_to_bot(thread_id, "match_event", event_data)
 
+
 async def fetch_channel_id_from_webui(match_id):
-    # This function does not require a DB session.
+    """
+    Fetch the Discord channel ID for a match from the WebUI API.
+
+    Parameters:
+        match_id (str): The match identifier.
+
+    Returns:
+        str or None: The Discord channel ID or None if not found.
+    """
     webui_url = current_app.config['WEBUI_API_URL']
     try:
         async with aiohttp.ClientSession() as asession:
@@ -181,7 +253,15 @@ async def fetch_channel_id_from_webui(match_id):
         logger.error(f"Error fetching channel ID: {str(e)}", exc_info=True)
         return None
 
+
 async def send_pre_match_info(thread_id, match_data):
+    """
+    Prepare and send pre-match information to the bot.
+
+    Parameters:
+        thread_id (str): The Discord thread ID.
+        match_data (dict): The match data.
+    """
     logger.info("Preparing pre-match info")
 
     competition = match_data["competitions"][0]
@@ -196,7 +276,6 @@ async def send_pre_match_info(thread_id, match_data):
     match_date_formatted = match_date.strftime("%A, %B %d, %Y at %I:%M %p UTC")
 
     venue = competition.get("venue", {}).get("fullName", "Unknown Venue")
-
     home_form = home_competitor.get('form', 'N/A')
     away_form = away_competitor.get('form', 'N/A')
 
@@ -218,7 +297,16 @@ async def send_pre_match_info(thread_id, match_data):
         "away_odds": away_odds,
     })
 
+
 async def send_update_to_bot(thread_id, update_type, update_data):
+    """
+    Send an update to the bot.
+
+    Parameters:
+        thread_id (str): The Discord thread ID.
+        update_type (str): The type of update.
+        update_data (dict): The data for the update.
+    """
     logger.info(f"Sending {update_type} update to bot for thread {thread_id}")
     logger.debug(f"Update data: {update_data}")
 
@@ -232,7 +320,6 @@ async def send_update_to_bot(thread_id, update_type, update_data):
     }
 
     logger.info(f"Sending request to {url}")
-
     async with aiohttp.ClientSession() as asession:
         try:
             async with asession.post(url, json=payload) as response:
@@ -245,9 +332,16 @@ async def send_update_to_bot(thread_id, update_type, update_data):
         except Exception as e:
             logger.error(f"Exception occurred while sending update to bot: {str(e)}", exc_info=True)
 
+
 @match_api.route('/schedule_live_reporting', endpoint='schedule_live_reporting_route', methods=['POST'])
 @login_required
 def schedule_live_reporting_route():
+    """
+    Schedule live reporting for a match.
+
+    Expects JSON payload with a match_id.
+    Returns a JSON response indicating scheduling success or failure.
+    """
     data = request.json
     match_id = data.get('match_id')
 
@@ -273,9 +367,15 @@ def schedule_live_reporting_route():
         logger.error(f"Error scheduling live reporting for match {match_id}: {str(e)}")
         raise
 
+
 @match_api.route('/start_live_reporting/<match_id>', endpoint='start_live_reporting_route', methods=['POST'])
 @login_required
 def start_live_reporting_route(match_id):
+    """
+    Start live reporting for a match.
+
+    Returns a JSON response indicating success or failure and the task ID if started.
+    """
     try:
         with managed_session() as session:
             match = session.query(MLSMatch).filter_by(match_id=match_id).first()
@@ -298,9 +398,15 @@ def start_live_reporting_route(match_id):
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}")
         raise
 
+
 @match_api.route('/stop_live_reporting/<match_id>', endpoint='stop_live_reporting_route', methods=['POST'])
 @login_required
 def stop_live_reporting_route(match_id):
+    """
+    Stop live reporting for a match.
+
+    Returns a JSON response indicating success or failure.
+    """
     try:
         with managed_session() as session:
             match = session.query(MLSMatch).filter_by(match_id=match_id).first()
@@ -323,8 +429,15 @@ def stop_live_reporting_route(match_id):
         logger.error(f"Error stopping live reporting for match {match_id}: {str(e)}")
         raise
 
+
 @match_api.route('/get_match_status/<match_id>', endpoint='get_match_status', methods=['GET'])
 def get_match_status(match_id):
+    """
+    Retrieve the current live reporting status of a match.
+
+    Returns:
+        JSON response with match status details.
+    """
     try:
         with managed_session() as session:
             match = session.query(MLSMatch).filter_by(match_id=match_id).first()
@@ -343,8 +456,15 @@ def get_match_status(match_id):
         logger.error(f"Error retrieving match status for match {match_id}: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500
 
+
 @match_api.route('/match/<int:match_id>/channel', endpoint='get_match_channel', methods=['GET'])
 def get_match_channel(match_id):
+    """
+    Retrieve the Discord channel ID associated with a match.
+
+    Returns:
+        JSON response with the channel_id or an error message.
+    """
     logger.info(f"Fetching channel ID for match {match_id}")
     try:
         with managed_session() as session:

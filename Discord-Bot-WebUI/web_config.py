@@ -1,10 +1,18 @@
-# web_config.py
+"""
+Web Configuration Module
+
+This module defines the configuration settings for the Flask application,
+including database, session, external service credentials, Celery, and JWT settings.
+Values are loaded primarily from environment variables.
+"""
+
 from datetime import timedelta, datetime
 import os
-import redis
+
 import pytz
 
 class Config:
+    """Application configuration settings."""
     # Basic Flask/App Configuration
     SECRET_KEY = os.getenv('SECRET_KEY')
     MATCH_CHANNEL_ID = os.getenv('MATCH_CHANNEL_ID')
@@ -84,5 +92,5 @@ class Config:
 
     @staticmethod
     def get_current_time():
-        """Helper method to get current time in PST"""
+        """Return the current time in the configured timezone (PST)."""
         return datetime.now(pytz.timezone('America/Los_Angeles'))

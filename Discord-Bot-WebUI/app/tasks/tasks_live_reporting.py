@@ -1,9 +1,26 @@
+# app/tasks/tasks_live_reporting.py
+
+"""
+Live Reporting Tasks Module
+
+This module defines Celery tasks for live match reporting. Tasks include:
+  - Processing live match updates via ESPN data.
+  - Starting live reporting for a match.
+  - Scheduling live reporting for upcoming matches.
+  - Creating Discord threads for matches.
+  - Scheduling thread creation (individually or in batch).
+  - Force-creating a Discord thread for a match.
+  - Ending match reporting and cleaning up.
+
+Tasks leverage async HTTP calls to ESPN and Discord APIs, and update the live
+reporting status on MLSMatch objects.
+"""
+
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from flask import current_app
+from flask import current_app, g
 from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio
 from app.decorators import celery_task, async_task
@@ -24,11 +41,26 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                          last_status: Optional[str] = None,
                          last_score: Optional[str] = None,
                          last_event_keys: Optional[list] = None) -> Dict[str, Any]:
-    """Process a single match update iteration."""
+    """
+    Process a single live match update iteration.
+
+    This task:
+      - Verifies the match exists and is in 'running' state.
+      - Fetches ESPN match data asynchronously.
+      - Processes live updates via an async helper.
+      - If the match has ended, updates its status.
+      - Otherwise, updates current status and score,
+        then schedules the next update in 30 seconds.
+
+    Returns:
+        A dictionary with the update result (success, message, status, score, match_status).
+
+    Raises:
+        Retries the task on SQLAlchemy or general exceptions.
+    """
     try:
         logger.info(f"Processing update for match {match_id}")
 
-        # Here we assume match_id is the ESPN match id (a string)
         match = session.query(MLSMatch).filter_by(match_id=match_id).first()
         if not match:
             logger.error(f"Match {match_id} not found")
@@ -40,17 +72,18 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 
         last_event_keys = last_event_keys or []
 
+        # Create a new event loop for async operations.
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             full_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard/{match_id}"
+            # Fetch match data from ESPN.
             match_data = loop.run_until_complete(fetch_espn_data(full_url=full_url))
-
             if not match_data:
                 logger.error(f"Failed to fetch data for match {match_id}")
                 return {'success': False, 'message': 'Failed to fetch match data'}
 
-            # Process live updates
+            # Process live match updates and retrieve current event keys.
             match_ended, current_event_keys = loop.run_until_complete(
                 process_live_match_updates(
                     match_id=str(match_id),
@@ -72,19 +105,20 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                 match.live_reporting_started = False
             return {'success': True, 'message': 'Match ended', 'status': 'completed'}
 
-        # Extract new status and score
+        # Extract new status and score from ESPN data.
         new_status = match_data["competitions"][0]["status"]["type"]["name"]
         home_score = match_data['competitions'][0]['competitors'][0]['score']
         away_score = match_data['competitions'][0]['competitors'][1]['score']
         new_score = f"{home_score}-{away_score}"
 
-        # Update match info in DB
+        # Update match with new status, score, and timestamp.
         match = session.query(MLSMatch).filter_by(match_id=match_id).first()
         if match:
             match.current_status = new_status
             match.current_score = new_score
             match.last_update_time = datetime.utcnow()
 
+        # Schedule the next update with updated parameters.
         self.apply_async(
             args=[match_id, thread_id, competition],
             kwargs={
@@ -111,6 +145,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         logger.error(f"Error in process_match_update: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.start_live_reporting',
     bind=True,
@@ -118,11 +153,24 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
     max_retries=3
 )
 def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
-    """Start live match reporting."""
+    """
+    Start live match reporting for a specific match.
+
+    This task:
+      - Retrieves the match by ID (attempts numeric conversion first).
+      - Checks if reporting is already running.
+      - Updates match status to running and records start time.
+      - Triggers the initial match update task.
+
+    Returns:
+        A dictionary indicating the reporting start result.
+
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
     try:
         logger.info(f"Starting live reporting for match_id: {match_id}")
 
-        # Attempt primary key lookup if possible
         try:
             pk = int(match_id)
             match = session.query(MLSMatch).get(pk)
@@ -136,6 +184,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         if match.live_reporting_status == 'running':
             return {'success': False, 'message': 'Live reporting already running'}
 
+        # Mark the match as running.
         match.live_reporting_started = True
         match.live_reporting_status = 'running'
         match.reporting_start_time = datetime.utcnow()
@@ -148,7 +197,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
 
         logger.info(f"Updated match status to running for {match_id}")
 
-        # Schedule the first update
+        # Trigger the update task asynchronously.
         process_match_update.delay(
             match_id=str(match_data['match_id']),
             thread_id=str(match_data['thread_id']),
@@ -184,6 +233,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         logger.error(f"Error in start_live_reporting: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.schedule_live_reporting',
     bind=True,
@@ -191,7 +241,20 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     max_retries=3
 )
 def schedule_live_reporting(self, session) -> Dict[str, Any]:
-    """Schedule live reporting for upcoming matches."""
+    """
+    Schedule live reporting for upcoming matches.
+
+    This task:
+      - Queries for matches within the next 48 hours that haven't started live reporting.
+      - Schedules each match to start live reporting at the appropriate time.
+      - Marks matches as scheduled.
+
+    Returns:
+        A summary dictionary with the number of matches scheduled.
+
+    Raises:
+        Retries the task on errors.
+    """
     try:
         now = datetime.utcnow()
         upcoming_matches = session.query(MLSMatch).filter(
@@ -225,13 +288,27 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
         logger.error(f"Error scheduling live reporting: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @async_task(
     name='app.tasks.tasks_live_reporting.create_match_thread_task',
     queue='live_reporting',
     max_retries=3
 )
 async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
-    """Create match thread with retries."""
+    """
+    Create a Discord thread for a match with retries.
+
+    This async task:
+      - Retrieves the match by ID.
+      - If a thread does not already exist, creates one via the Discord API.
+      - Emits a socketio event on successful thread creation.
+
+    Returns:
+        A dictionary indicating success or failure, along with the thread ID if successful.
+
+    Raises:
+        Retries on SQLAlchemy or general errors.
+    """
     try:
         match = session.query(MLSMatch).filter_by(match_id=match_id).first()
         if not match:
@@ -265,13 +342,22 @@ async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
         logger.error(f"Error creating match thread: {str(e)}", exc_info=True)
         raise create_match_thread_task.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
     queue='live_reporting',
     max_retries=3
 )
 def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
-    """Check for and create scheduled match threads."""
+    """
+    Check for matches with scheduled thread creation and trigger thread creation.
+
+    Returns:
+        A dictionary summarizing the number of match threads scheduled for creation.
+
+    Raises:
+        Retries the task on error.
+    """
     try:
         now = datetime.utcnow()
         due_matches = session.query(MLSMatch).filter(
@@ -295,6 +381,7 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
         logger.error(f"Error checking scheduled threads: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.force_create_mls_thread_task',
     bind=True,
@@ -302,7 +389,15 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
     max_retries=2
 )
 def force_create_mls_thread_task(self, session, match_id: str) -> Dict[str, Any]:
-    """Force immediate creation of Discord thread for MLS match."""
+    """
+    Force the immediate creation of a Discord thread for an MLS match.
+
+    Returns:
+        A dictionary with the creation result and thread ID if successful.
+
+    Raises:
+        Retries the task on errors.
+    """
     try:
         logger.info(f"Starting thread creation for match {match_id}")
         try:
@@ -347,13 +442,23 @@ def force_create_mls_thread_task(self, session, match_id: str) -> Dict[str, Any]
         logger.error(f"Error creating thread for match {match_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.schedule_mls_thread_task',
     queue='live_reporting',
     max_retries=2
 )
 def schedule_mls_thread_task(self, session, match_id: int, hours_before: int = 48) -> Dict[str, Any]:
-    """Schedule creation of Discord thread for MLS match."""
+    """
+    Schedule the creation of a Discord thread for an MLS match.
+
+    Args:
+        match_id: The ID of the match.
+        hours_before: Number of hours before the match to schedule thread creation.
+
+    Returns:
+        A dictionary with scheduling result.
+    """
     try:
         match = session.query(MLSMatch).get(match_id)
         if not match:
@@ -373,13 +478,22 @@ def schedule_mls_thread_task(self, session, match_id: int, hours_before: int = 4
         logger.error(f"Error scheduling MLS thread: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 @celery_task(
     name='app.tasks.tasks_live_reporting.schedule_all_mls_threads_task',
     queue='live_reporting',
     max_retries=2
 )
 def schedule_all_mls_threads_task(self, session, default_hours_before: int = 48) -> Dict[str, Any]:
-    """Schedule thread creation for all unscheduled MLS matches."""
+    """
+    Schedule thread creation for all unscheduled MLS matches.
+
+    Returns:
+        A summary dictionary indicating the number of match threads scheduled.
+
+    Raises:
+        Retries the task on errors.
+    """
     try:
         matches = session.query(MLSMatch).filter(
             MLSMatch.thread_created == False,
@@ -404,10 +518,17 @@ def schedule_all_mls_threads_task(self, session, default_hours_before: int = 48)
         logger.error(f"Error scheduling all MLS threads: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
+
 async def end_match_reporting(match_id: str) -> None:
-    """End match reporting and cleanup."""
+    """
+    End live match reporting and perform cleanup.
+
+    This async helper:
+      - Retrieves the match via the current Flask application context.
+      - Sets the live reporting status to 'completed' and marks reporting as stopped.
+      - Commits and closes the session if it was newly created.
+    """
     try:
-        from flask import g
         session = getattr(g, 'db_session', None)
         if session is None:
             app = current_app._get_current_object()

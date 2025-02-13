@@ -1,34 +1,60 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, g
-from flask_wtf.csrf import validate_csrf, CSRFError
+# app/teams.py
+
+"""
+Teams Module
+
+This module defines routes related to teams, including viewing team details,
+an overview of teams, reporting match results, and displaying league standings.
+It handles both current and historical player data and match reports.
+"""
+
+import logging
 from collections import defaultdict
 from datetime import datetime
-from sqlalchemy.orm import selectinload, joinedload
+from typing import Optional
+
+from flask import (
+    Blueprint, render_template, redirect, url_for, flash, request, jsonify, g
+)
 from flask_login import login_required
-from app.utils.user_helpers import safe_current_user
-import logging
+from flask_wtf.csrf import validate_csrf, CSRFError
+from sqlalchemy import or_
+from sqlalchemy.orm import selectinload, joinedload
+
 from app.models import (
     Team, Player, League, Season, Match, Standings,
     PlayerEventType, PlayerEvent, PlayerTeamSeason
 )
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events
+from app.utils.user_helpers import safe_current_user
 
 logger = logging.getLogger(__name__)
-
 teams_bp = Blueprint('teams', __name__)
+
 
 @teams_bp.route('/<int:team_id>', endpoint='team_details')
 @login_required
 def team_details(team_id):
     """
-    View details about a specific team, including current/historical players and matches.
+    Display details about a specific team, including current/historical players and matches.
+
+    The view fetches the team along with its players, determines whether to show
+    current players or historical players (based on season status), gathers matches,
+    and prepares data for rendering the team details page.
+
+    Args:
+        team_id (int): The ID of the team to display.
+
+    Returns:
+        A rendered template for team details.
     """
     session = g.db_session
-    
-    # Load the requested team along with its players (many-to-many)
+
+    # Load team along with its associated players using eager loading.
     team = (
         session.query(Team)
-        .options(joinedload(Team.players))  # eager-load players
+        .options(joinedload(Team.players))
         .get(team_id)
     )
     if not team:
@@ -38,10 +64,10 @@ def team_details(team_id):
     league = session.query(League).get(team.league_id)
     season = league.season if league else None
 
-    # Current players are now simply team.players (from the many-to-many relationship)
+    # Retrieve current players from the many-to-many relationship.
     current_players = team.players
 
-    # If there's a Season, we can also check historical players from PlayerTeamSeason
+    # Retrieve historical players from PlayerTeamSeason if a season exists.
     historical_players = []
     if season:
         historical_players = (
@@ -54,32 +80,27 @@ def team_details(team_id):
             .all()
         )
 
-    # Determine whether to show current_players or historical_players
-    # (following the old logic: if we have current players or the season is current, use them;
-    # otherwise, use historical)
-    if current_players or (season and season.is_current):
-        players = current_players
-    else:
-        players = historical_players
+    # Choose to display current players if available or if the season is current.
+    players = current_players if current_players or (season and season.is_current) else historical_players
 
     report_form = ReportMatchForm()
 
-    # Fetch matches for this team in this league, loading both teams + players
+    # Fetch matches for this team within the same league.
     all_matches = (
         session.query(Match)
         .options(
             selectinload(Match.home_team).joinedload(Team.players),
-            selectinload(Match.away_team).joinedload(Team.players),
+            selectinload(Match.away_team).joinedload(Team.players)
         )
         .filter(
             ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
-            # Make sure it's the same league
             ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
         )
         .order_by(Match.date.asc())
         .all()
     )
 
+    # Build a schedule mapping dates to match details and gather player choices.
     schedule = defaultdict(list)
     player_choices = {}
 
@@ -87,7 +108,7 @@ def team_details(team_id):
         home_team_name = match.home_team.name if match.home_team else 'Unknown'
         away_team_name = match.away_team.name if match.away_team else 'Unknown'
 
-        # For historical matches (non-current), we load from PlayerTeamSeason
+        # Load players differently for historical vs. current seasons.
         if season and not season.is_current:
             home_players = (
                 session.query(Player)
@@ -110,42 +131,23 @@ def team_details(team_id):
             home_team_players = {p.id: p.name for p in home_players}
             away_team_players = {p.id: p.name for p in away_players}
         else:
-            # Current season: just use the relationship from the match
-            home_team_players = (
-                {p.id: p.name for p in match.home_team.players}
-                if match.home_team else {}
-            )
-            away_team_players = (
-                {p.id: p.name for p in match.away_team.players}
-                if match.away_team else {}
-            )
+            home_team_players = {p.id: p.name for p in match.home_team.players} if match.home_team else {}
+            away_team_players = {p.id: p.name for p in match.away_team.players} if match.away_team else {}
 
         player_choices[match.id] = {
             home_team_name: home_team_players,
             away_team_name: away_team_players
         }
 
-        # Determine which score belongs to this team
+        # Determine scores for display.
         if match.home_team_id == team_id:
-            your_team_score = (
-                match.home_team_score if match.home_team_score is not None
-                else 'N/A'
-            )
-            opponent_score = (
-                match.away_team_score if match.away_team_score is not None
-                else 'N/A'
-            )
+            your_team_score = match.home_team_score if match.home_team_score is not None else 'N/A'
+            opponent_score = match.away_team_score if match.away_team_score is not None else 'N/A'
         else:
-            your_team_score = (
-                match.away_team_score if match.away_team_score is not None
-                else 'N/A'
-            )
-            opponent_score = (
-                match.home_team_score if match.home_team_score is not None
-                else 'N/A'
-            )
+            your_team_score = match.away_team_score if match.away_team_score is not None else 'N/A'
+            opponent_score = match.home_team_score if match.home_team_score is not None else 'N/A'
 
-        # Determine W/L/T
+        # Determine match result (Win/Loss/Tie) if scores are available.
         if your_team_score != 'N/A' and opponent_score != 'N/A':
             if your_team_score > opponent_score:
                 result_text = 'W'
@@ -160,20 +162,13 @@ def team_details(team_id):
             result_text = '-'
             result_class = 'secondary'
 
-        display_score = (
-            f"{your_team_score} - {opponent_score}"
-            if your_team_score != 'N/A'
-            else '-'
-        )
+        display_score = f"{your_team_score} - {opponent_score}" if your_team_score != 'N/A' else '-'
 
         schedule[match.date].append({
             'id': match.id,
             'time': match.time,
             'location': match.location,
-            'opponent_name': (
-                away_team_name if match.home_team_id == team_id
-                else home_team_name
-            ),
+            'opponent_name': away_team_name if match.home_team_id == team_id else home_team_name,
             'home_team_name': home_team_name,
             'away_team_name': away_team_name,
             'home_team_id': match.home_team_id,
@@ -186,6 +181,7 @@ def team_details(team_id):
             'reported': match.reported,
         })
 
+    # Determine the next match date for display.
     next_match_date = None
     if schedule:
         today = datetime.today().date()
@@ -210,22 +206,23 @@ def team_details(team_id):
         player_choices=player_choices
     )
 
+
 @teams_bp.route('/', endpoint='teams_overview')
 @login_required
 def teams_overview():
     """
     Show an overview of teams for the current Pub League and/or ECS FC seasons.
+
+    Retrieves the current seasons and then queries for teams associated with those seasons.
     """
     session = g.db_session
 
-    # 1. Get current Pub League season
+    # Retrieve current Pub League and ECS FC seasons.
     current_pub_season = (
         session.query(Season)
         .filter_by(is_current=True, league_type='Pub League')
         .first()
     )
-
-    # 2. Get current ECS FC season
     current_ecs_season = (
         session.query(Season)
         .filter_by(is_current=True, league_type='ECS FC')
@@ -236,7 +233,7 @@ def teams_overview():
         flash('No current season found for either Pub League or ECS FC.', 'warning')
         return redirect(url_for('home.index'))
 
-    from sqlalchemy import or_
+    # Build conditions based on which current seasons exist.
     conditions = []
     if current_pub_season:
         conditions.append(League.season_id == current_pub_season.id)
@@ -256,11 +253,21 @@ def teams_overview():
     teams = teams_query.order_by(Team.name).all()
     return render_template('teams_overview.html', teams=teams)
 
+
 @teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
 @login_required
 def report_match(match_id):
     """
-    Endpoint to GET existing match data or POST an update (score, events, etc.).
+    GET: Return existing match report data (scores, events, etc.) as JSON.
+    POST: Update the match report with new scores, events, and notes.
+
+    CSRF validation is performed on POST requests.
+    
+    Args:
+        match_id (int): The ID of the match to report.
+    
+    Returns:
+        JSON response with status and message, or a rendered template.
     """
     session = g.db_session
     logger.info(f"Starting report_match for Match ID: {match_id}")
@@ -288,6 +295,7 @@ def report_match(match_id):
                 'notes': match.notes or ''
             }
 
+            # Build a dictionary of events for each type.
             for event_type, field_name in event_mapping.items():
                 events = (
                     session.query(PlayerEvent)
@@ -328,7 +336,7 @@ def report_match(match_id):
         old_home_score = match.home_team_score
         old_away_score = match.away_team_score
 
-        # Attempt to set new scores
+        # Update match scores.
         try:
             match.home_team_score = int(data.get('home_team_score', old_home_score or 0))
             match.away_team_score = int(data.get('away_team_score', old_away_score or 0))
@@ -337,13 +345,13 @@ def report_match(match_id):
 
         match.notes = data.get('notes', match.notes)
 
-        # Process events
+        # Process player events for the match.
         process_events(session, match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove')
         process_events(session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
         process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
         process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
 
-        # Update standings
+        # Update standings based on the new match data.
         update_standings(session, match, old_home_score, old_away_score)
         logger.info(f"Match ID {match_id} reported successfully.")
         return jsonify({'success': True}), 200
@@ -351,12 +359,15 @@ def report_match(match_id):
     else:
         return jsonify({'success': False, 'message': 'Method not allowed.'}), 405
 
+
 @teams_bp.route('/standings', endpoint='view_standings')
 @login_required
 def view_standings():
     """
-    Displays the standings for the current Pub League,
-    separated into Premier and Classic divisions if they exist.
+    Display the standings for the current Pub League, separated into Premier and Classic divisions.
+
+    Retrieves the current Pub League season, queries standings for each division,
+    and populates team statistics for display.
     """
     session = g.db_session
     season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
@@ -386,7 +397,7 @@ def view_standings():
     premier_standings = get_standings('Premier')
     classic_standings = get_standings('Classic')
 
-    # We assume populate_team_stats is a helper to gather full stats.
+    # Populate detailed stats for each team.
     premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
     classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
 

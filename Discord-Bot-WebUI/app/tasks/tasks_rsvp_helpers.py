@@ -1,18 +1,35 @@
 # app/tasks/tasks_rsvp_helpers.py
 
+"""
+RSVP Helpers Module
+
+This module provides asynchronous helper functions used by RSVP-related tasks.
+Functions include updating Discord availability embeds, sending availability messages,
+updating user reactions (RSVP) on Discord, notifying Discord of changes, posting messages,
+checking the Discord API connection, and handling Discord-related errors.
+"""
+
 import logging
 import aiohttp
-import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
-from concurrent.futures import ThreadPoolExecutor
-from flask import current_app
-from app.core import celery
 
 logger = logging.getLogger(__name__)
 
+
 async def update_availability_embed(match_id: int) -> Dict[str, Any]:
-    """Update availability embed in Discord."""
+    """
+    Update the availability embed in Discord for a given match.
+
+    Sends a POST request to the Discord bot API to update the embed for the match.
+
+    Args:
+        match_id: The ID of the match.
+
+    Returns:
+        A dictionary indicating whether the update was successful, along with a message,
+        and, in case of failure, an error message and status code.
+    """
     bot_api_url = f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
 
     try:
@@ -67,9 +84,11 @@ async def update_availability_embed(match_id: int) -> Dict[str, Any]:
             'error_type': 'unexpected_error'
         }
 
+
 async def _send_availability_message_async(message_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Async helper for sending an availability message to Discord.
+    Asynchronously send an availability message to Discord.
+
     'message_data' should include all necessary fields:
     {
         'scheduled_message_id': int,
@@ -81,8 +100,13 @@ async def _send_availability_message_async(message_data: Dict[str, Any]) -> Dict
         'home_team_name': str,
         'away_team_name': str
     }
+
+    Args:
+        message_data: Dictionary containing message details.
+
+    Returns:
+        A dictionary with the result, including success status, message IDs, and timestamp.
     """
-    # Validate required fields
     required_fields = ['scheduled_message_id', 'match_id', 'home_channel_id', 'away_channel_id']
     if not all(f in message_data for f in required_fields):
         logger.error("Missing required fields in message_data", extra={'message_data': message_data})
@@ -92,7 +116,7 @@ async def _send_availability_message_async(message_data: Dict[str, Any]) -> Dict
             'error_type': 'validation_error'
         }
 
-    # Post message to Discord
+    # Post message to Discord and get message IDs.
     message_ids = await post_availability_message(message_data)
     if not message_ids:
         return {
@@ -119,16 +143,24 @@ async def _send_availability_message_async(message_data: Dict[str, Any]) -> Dict
         'sent_at': datetime.utcnow().isoformat()
     }
 
+
 async def _update_discord_rsvp_async(data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Async helper for updating Discord RSVP.
-    data should have:
+    Asynchronously update a user's RSVP on Discord.
+
+    The input data should have:
     {
         'match_id': int,
         'discord_id': str,
         'new_response': str,
         'old_response': Optional[str]
     }
+
+    Args:
+        data: Dictionary with RSVP update information.
+
+    Returns:
+        A dictionary with the update result, including success status and a timestamp.
     """
     required_fields = ['match_id', 'discord_id', 'new_response']
     if not all(key in data for key in required_fields):
@@ -154,10 +186,16 @@ async def _update_discord_rsvp_async(data: Dict[str, Any]) -> Dict[str, Any]:
         'sync_status': 'synced' if result['success'] else 'failed'
     }
 
+
 async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
     """
-    Async helper for notifying Discord of RSVP changes.
-    The caller must ensure the match_id is valid and pass it here.
+    Asynchronously notify Discord of RSVP changes for a match.
+
+    Args:
+        match_id: The ID of the match.
+
+    Returns:
+        A dictionary with the notification result and a timestamp.
     """
     result = await update_availability_embed(match_id)
     return {
@@ -166,8 +204,17 @@ async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
         'notification_time': datetime.utcnow().isoformat()
     }
 
+
 async def post_availability_message(message_data: Dict[str, Any]) -> Optional[Tuple[str, str]]:
-    """Post availability message to Discord and return message IDs."""
+    """
+    Post an availability message to Discord and return message IDs.
+
+    Args:
+        message_data: Dictionary containing the message details.
+
+    Returns:
+        A tuple (home_message_id, away_message_id) if successful, or None otherwise.
+    """
     bot_api_url = "http://discord-bot:5001/api/post_availability"
     
     try:
@@ -215,8 +262,17 @@ async def post_availability_message(message_data: Dict[str, Any]) -> Optional[Tu
         )
         return None
 
+
 async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Update user reaction in Discord."""
+    """
+    Update a user's reaction (RSVP) on Discord.
+
+    Args:
+        request_data: Dictionary containing 'match_id', 'discord_id', 'new_response', and optionally 'old_response'.
+
+    Returns:
+        A dictionary with the result of the update operation, including success status, message, and duration.
+    """
     bot_api_url = "http://discord-bot:5001/api/update_user_reaction"
     
     required_fields = ['match_id', 'discord_id', 'new_response']
@@ -249,7 +305,6 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
                         'error_type': 'discord_api_error',
                         'status_code': response.status
                     }
-
                 duration = (datetime.utcnow() - start_time).total_seconds()
                 logger.info(
                     "Discord RSVP update successful",
@@ -260,14 +315,12 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
                         'new_response': request_data.get('new_response')
                     }
                 )
-
                 return {
                     'success': True,
                     'message': "Discord RSVP updated successfully",
                     'timestamp': datetime.utcnow().isoformat(),
                     'duration': duration
                 }
-
     except aiohttp.ClientError as e:
         error_msg = f"Discord API error: {str(e)}"
         logger.error(
@@ -300,8 +353,14 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
             'error_type': 'unexpected_error'
         }
 
+
 async def check_discord_connection() -> Dict[str, Any]:
-    """Check Discord bot API connection health."""
+    """
+    Check the health of the Discord bot API connection.
+
+    Returns:
+        A dictionary indicating whether the connection is healthy along with a timestamp.
+    """
     bot_api_url = "http://discord-bot:5001/api/health"
     
     try:
@@ -325,8 +384,18 @@ async def check_discord_connection() -> Dict[str, Any]:
             'error_type': 'connection_error'
         }
 
+
 def handle_discord_error(e: Exception, context: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle Discord-related errors with proper logging."""
+    """
+    Handle Discord-related errors by logging detailed information.
+
+    Args:
+        e: The exception that was raised.
+        context: A dictionary containing additional context about the error.
+
+    Returns:
+        A dictionary containing error details, including the error type and a timestamp.
+    """
     error_msg = str(e)
     error_type = 'discord_api_error' if isinstance(e, aiohttp.ClientError) else 'unexpected_error'
     

@@ -1,17 +1,28 @@
 # celery_beat.py
 
+"""
+Celery Beat Scheduler Script
+
+This script initializes the Celery beat scheduler after verifying the Redis
+connection and ensuring the beat schedule directory is set up. It uses Eventlet
+to monkey-patch the standard library for asynchronous operations.
+"""
+
 import eventlet
 eventlet.monkey_patch()
+
+import os
+import sys
+
+from celery.apps.beat import Beat
 
 from celery_worker_base import flask_app, celery_app as celery, logger
 from app.utils.redis_manager import RedisManager
 from app.config.celery_config import CeleryConfig
-from celery.apps.beat import Beat
-import os
-import sys
+
 
 def verify_redis():
-    """Verify Redis connection is working"""
+    """Verify that the Redis connection is working."""
     with flask_app.app_context():
         redis_manager = RedisManager()
         try:
@@ -24,8 +35,9 @@ def verify_redis():
             logger.error(f"Redis connection error: {str(e)}")
             return False
 
+
 def setup_beat_directory():
-    """Create directory for beat schedule files"""
+    """Create the directory for Celery beat schedule files."""
     try:
         beat_dir = '/tmp/celerybeat'
         os.makedirs(beat_dir, exist_ok=True)
@@ -36,8 +48,9 @@ def setup_beat_directory():
         logger.error(f"Failed to create beat directory: {str(e)}")
         return False
 
+
 def start_beat():
-    """Start the Celery beat scheduler"""
+    """Start the Celery beat scheduler."""
     try:
         schedule_file = '/tmp/celerybeat/celerybeat-schedule'
         pid_file = '/tmp/celerybeat/celerybeat.pid'
@@ -59,6 +72,7 @@ def start_beat():
         logger.error(f"Failed to start beat scheduler: {str(e)}")
         raise
 
+
 if __name__ == '__main__':
     try:
         logger.info("Initializing Celery beat scheduler")
@@ -68,12 +82,12 @@ if __name__ == '__main__':
             logger.error("Redis verification failed. Exiting.")
             sys.exit(1)
         
-        # Setup beat directory
+        # Setup beat schedule directory
         if not setup_beat_directory():
             logger.error("Beat directory setup failed. Exiting.")
             sys.exit(1)
         
-        # Start beat scheduler
+        # Start the beat scheduler
         start_beat()
         
     except Exception as e:

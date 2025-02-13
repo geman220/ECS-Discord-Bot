@@ -1,24 +1,32 @@
-from flask import Blueprint, render_template, jsonify, current_app, request, g
+# app/monitoring.py
+
+"""
+Monitoring Module
+
+This module defines endpoints and utilities for application monitoring, including task
+status, Redis key inspection, database connection statistics, system resource usage,
+and debugging information. These endpoints help administrators (Global Admin)
+track live reporting tasks, inspect Redis keys, monitor DB connections, and gather
+performance data from the system.
+"""
+
+import json
+import logging
+import psutil
+from datetime import datetime, timedelta
+
+from flask import Blueprint, render_template, jsonify, current_app, request
 from flask_login import login_required
+from celery.result import AsyncResult
+from sqlalchemy import text
+
 from app.decorators import role_required
 from app.utils.redis_manager import RedisManager
 from app.db_management import db_manager
-from celery.result import AsyncResult
 from app.core import celery, db
 from app.models import MLSMatch
-from datetime import datetime, timedelta
 from app.database.db_models import DBMonitoringSnapshot
-from app.tasks.tasks_live_reporting import (
-    start_live_reporting,
-    create_match_thread_task,
-    force_create_mls_thread_task
-)
-from sqlalchemy import text
-import psutil
-import logging
-import json
-
-# Import our managed_session context manager
+from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
 from app.core.session_manager import managed_session
 
 logger = logging.getLogger(__name__)
@@ -27,13 +35,21 @@ monitoring_bp = Blueprint('monitoring', __name__, url_prefix='/monitoring')
 
 
 class TaskMonitor:
-    """Monitor Celery tasks and their status."""
-    
+    """Monitor Celery tasks and their statuses via Redis keys."""
+
     def __init__(self):
         self.redis = RedisManager().client
-    
-    def get_task_status(self, task_id: str):
-        """Get status of a specific task."""
+
+    def get_task_status(self, task_id: str) -> dict:
+        """
+        Get the status of a specific Celery task.
+        
+        Parameters:
+            task_id (str): The task ID to check.
+        
+        Returns:
+            dict: A dictionary with task ID, status, info, readiness, and success flag.
+        """
         try:
             result = AsyncResult(task_id, app=celery)
             return {
@@ -45,14 +61,18 @@ class TaskMonitor:
             }
         except Exception as e:
             logger.error(f"Error getting task status: {str(e)}")
-            return {
-                'id': task_id,
-                'status': 'ERROR',
-                'error': str(e)
-            }
-    
-    def verify_scheduled_tasks(self, match_id: str):
-        """Get status of scheduled tasks for a match."""
+            return {'id': task_id, 'status': 'ERROR', 'error': str(e)}
+
+    def verify_scheduled_tasks(self, match_id: str) -> dict:
+        """
+        Retrieve scheduled thread and reporting task statuses for a given match.
+        
+        Parameters:
+            match_id (str): The match identifier.
+        
+        Returns:
+            dict: A dictionary containing thread and reporting task details.
+        """
         try:
             thread_key = f"match_scheduler:{match_id}:thread"
             reporting_key = f"match_scheduler:{match_id}:reporting"
@@ -83,31 +103,50 @@ class TaskMonitor:
             }
         except Exception as e:
             logger.error(f"Error verifying tasks: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-    
-    def monitor_all_matches(self):
-        """Monitor all matches and their tasks."""
+            return {'success': False, 'error': str(e)}
+
+    def monitor_all_matches(self) -> dict:
+        """
+        Monitor all matches that have live reporting scheduled.
+        
+        Returns:
+            dict: A dictionary mapping match IDs to their scheduled task details.
+        """
         try:
             with managed_session() as session:
-                matches = session.query(MLSMatch).filter(
-                    MLSMatch.live_reporting_scheduled == True
-                ).all()
+                matches = session.query(MLSMatch).filter(MLSMatch.live_reporting_scheduled == True).all()
             results = {}
             for match in matches:
                 results[str(match.id)] = self.verify_scheduled_tasks(str(match.id))
-            return {
-                'success': True,
-                'matches': results
-            }
+            return {'success': True, 'matches': results}
         except Exception as e:
             logger.error(f"Error monitoring matches: {str(e)}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {'success': False, 'error': str(e)}
+
+    def _process_redis_keys(self, keys: list) -> dict:
+        """
+        Process Redis keys to extract scheduled task details.
+        
+        Parameters:
+            keys (list): List of Redis keys (bytes).
+        
+        Returns:
+            dict: A mapping of match IDs to their task information.
+        """
+        scheduled_tasks = {}
+        for key in keys:
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+            task_data = self.redis.get(key)
+            if task_data and isinstance(task_data, bytes):
+                task_data = task_data.decode('utf-8')
+            ttl = self.redis.ttl(key)
+            # Expected key format: match_scheduler:<match_id>:<task_type>
+            _, match_id, task_type = key_str.split(':')
+            if match_id not in scheduled_tasks:
+                scheduled_tasks[match_id] = {}
+            scheduled_tasks[match_id][task_type] = {'task_id': task_data, 'ttl': ttl}
+        return scheduled_tasks
+
 
 task_monitor = TaskMonitor()
 
@@ -116,6 +155,11 @@ task_monitor = TaskMonitor()
 @login_required
 @role_required('Global Admin')
 def monitor_dashboard():
+    """
+    Render the monitoring dashboard page.
+    
+    Accessible only to Global Admin users.
+    """
     return render_template('monitoring.html')
 
 
@@ -123,6 +167,12 @@ def monitor_dashboard():
 @login_required
 @role_required('Global Admin')
 def get_all_tasks():
+    """
+    Retrieve the scheduled tasks for all matches.
+    
+    Returns:
+        JSON response with scheduled tasks details.
+    """
     try:
         result = task_monitor.monitor_all_matches()
         return jsonify(result)
@@ -134,6 +184,15 @@ def get_all_tasks():
 @monitoring_bp.route('/tasks/match/<match_id>', endpoint='get_match_tasks')
 @login_required
 def get_match_tasks(match_id):
+    """
+    Retrieve scheduled tasks for a specific match.
+    
+    Parameters:
+        match_id (str): The match identifier.
+    
+    Returns:
+        JSON response with the scheduled tasks for the match.
+    """
     try:
         result = task_monitor.verify_scheduled_tasks(match_id)
         return jsonify(result)
@@ -141,14 +200,20 @@ def get_match_tasks(match_id):
         logger.error(f"Error getting match tasks: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @monitoring_bp.route('/redis/keys', endpoint='get_redis_keys')
 @login_required
 @role_required('Global Admin')
 def get_redis_keys():
+    """
+    Retrieve all Redis keys related to match scheduling.
+    
+    Returns:
+        JSON response with key details including value, TTL, and task status.
+    """
     try:
         redis_client = RedisManager().client
         scheduler_keys = redis_client.keys('match_scheduler:*')
-        
         result = {}
         for key in scheduler_keys:
             try:
@@ -158,13 +223,11 @@ def get_redis_keys():
                 if value is not None:
                     value_str = value.decode('utf-8') if isinstance(value, bytes) else str(value)
                     try:
-                        # Try to parse as JSON
                         stored_obj = json.loads(value_str)
                         stored_value = stored_obj.get("task_id", value_str)
                     except Exception:
                         stored_value = value_str
                 ttl = redis_client.ttl(key)
-                
                 task_status = None
                 if stored_value and len(stored_value) == 36:
                     try:
@@ -177,33 +240,35 @@ def get_redis_keys():
                         }
                     except Exception as task_error:
                         logger.warning(f"Error getting task status for {stored_value}: {str(task_error)}")
-                
                 result[key_str] = {
                     'value': value.decode('utf-8') if isinstance(value, bytes) else value,
                     'ttl': ttl,
                     'task_status': task_status
                 }
-                
             except Exception as key_error:
                 logger.error(f"Error processing key {key}: {str(key_error)}")
                 result[str(key)] = {'error': str(key_error)}
-        
         return jsonify({'success': True, 'keys': result, 'total': len(result)})
     except Exception as e:
         logger.error(f"Error getting Redis keys: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @monitoring_bp.route('/redis/test', endpoint='test_redis')
 @login_required
 @role_required('Global Admin')
 def test_redis():
+    """
+    Test Redis connection and retrieve scheduler keys information.
+    
+    Returns:
+        JSON response with ping result, total keys, and detailed key info.
+    """
     try:
         redis_client = RedisManager().client
         ping_result = redis_client.ping()
-        
         scheduler_keys = redis_client.keys('match_scheduler:*')
         keys_info = {}
-        
         for key in scheduler_keys:
             try:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
@@ -213,9 +278,7 @@ def test_redis():
                         value = value.decode('utf-8') if isinstance(value, bytes) else str(value)
                     except (UnicodeDecodeError, AttributeError):
                         value = str(value)
-                
                 ttl = redis_client.ttl(key)
-                
                 task_status = None
                 if value and len(value) == 36:
                     try:
@@ -228,59 +291,45 @@ def test_redis():
                         }
                     except Exception as task_error:
                         logger.warning(f"Error getting task status for {value}: {str(task_error)}")
-                
-                keys_info[key_str] = {
-                    'value': value,
-                    'ttl': ttl,
-                    'task_status': task_status
-                }
-                
+                keys_info[key_str] = {'value': value, 'ttl': ttl, 'task_status': task_status}
             except Exception as key_error:
                 logger.error(f"Error processing key {key}: {str(key_error)}")
-                keys_info[str(key)] = {
-                    'error': str(key_error)
-                }
-        
+                keys_info[str(key)] = {'error': str(key_error)}
         logger.info(f"Redis connection test: {ping_result}")
         logger.info(f"Found {len(scheduler_keys)} scheduler keys")
-        
         return jsonify({
             'success': True,
             'ping': ping_result,
             'total_keys': len(scheduler_keys),
             'keys': keys_info
         })
-        
     except Exception as e:
         logger.error(f"Redis test failed: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/tasks/revoke', endpoint='revoke_task', methods=['POST'])
 @login_required
 @role_required('Global Admin')
 def revoke_task():
+    """
+    Revoke a specific scheduled task and clean up its Redis key.
+    
+    Expects JSON payload with 'key' and 'task_id'.
+    
+    Returns:
+        JSON response indicating revocation status.
+    """
     try:
         data = request.get_json()
         key = data.get('key')
         task_id = data.get('task_id')
-        
         if not key or not task_id:
-            return jsonify({
-                'success': False,
-                'error': 'Missing key or task_id'
-            }), 400
-            
+            return jsonify({'success': False, 'error': 'Missing key or task_id'}), 400
         logger.info(f"Revoking task {task_id} and cleaning up Redis key {key}")
-        
         celery.control.revoke(task_id, terminate=True)
-        
         redis_client = RedisManager().client
         redis_client.delete(key)
-        
         with managed_session() as session:
             if 'thread' in key:
                 match_id = key.split(':')[1]
@@ -294,12 +343,7 @@ def revoke_task():
                     match.live_reporting_scheduled = False
                     match.live_reporting_started = False
                     match.live_reporting_status = 'not_started'
-        
-        return jsonify({
-            'success': True,
-            'message': f'Task {task_id} revoked and Redis key {key} removed'
-        })
-        
+        return jsonify({'success': True, 'message': f'Task {task_id} revoked and Redis key {key} removed'})
     except Exception as e:
         logger.error(f"Error revoking task: {str(e)}", exc_info=True)
         raise
@@ -309,44 +353,36 @@ def revoke_task():
 @login_required
 @role_required('Global Admin')
 def revoke_all_tasks():
+    """
+    Revoke all scheduled tasks by cleaning up all Redis keys and updating match records.
+    
+    Returns:
+        JSON response with the number of revoked tasks and any failures.
+    """
     try:
         redis_client = RedisManager().client
         keys = redis_client.keys('match_scheduler:*')
-        
         revoked_count = 0
         failed_tasks = []
-        
         logger.info(f"Attempting to revoke {len(keys)} tasks")
-        
         for key in keys:
             try:
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
                 value = redis_client.get(key)
-                
                 if value:
                     task_id = value.decode('utf-8') if isinstance(value, bytes) else str(value)
                     logger.info(f"Revoking task {task_id} for key {key_str}")
-                    
                     try:
                         celery.control.revoke(task_id, terminate=True)
                         logger.info(f"Successfully revoked task {task_id}")
                     except Exception as revoke_error:
                         logger.error(f"Error revoking task {task_id}: {str(revoke_error)}")
-                        failed_tasks.append({
-                            'task_id': task_id,
-                            'error': str(revoke_error)
-                        })
-                    
+                        failed_tasks.append({'task_id': task_id, 'error': str(revoke_error)})
                     redis_client.delete(key)
                     revoked_count += 1
-                    
             except Exception as key_error:
                 logger.error(f"Error processing key {key}: {str(key_error)}")
-                failed_tasks.append({
-                    'key': str(key),
-                    'error': str(key_error)
-                })
-        
+                failed_tasks.append({'key': str(key), 'error': str(key_error)})
         with managed_session() as session:
             matches = session.query(MLSMatch).all()
             for match in matches:
@@ -354,19 +390,11 @@ def revoke_all_tasks():
                 match.live_reporting_scheduled = False
                 match.live_reporting_started = False
                 match.live_reporting_status = 'not_started'
-        
-        response_data = {
-            'success': True,
-            'message': f'Revoked {revoked_count} tasks and cleaned up Redis',
-            'revoked_count': revoked_count
-        }
-        
+        response_data = {'success': True, 'message': f'Revoked {revoked_count} tasks and cleaned up Redis', 'revoked_count': revoked_count}
         if failed_tasks:
             response_data['failed_tasks'] = failed_tasks
             response_data['warning'] = 'Some tasks failed to revoke'
-            
         return jsonify(response_data)
-        
     except Exception as e:
         logger.error(f"Error revoking all tasks: {str(e)}", exc_info=True)
         raise
@@ -376,55 +404,40 @@ def revoke_all_tasks():
 @login_required
 @role_required('Global Admin')
 def reschedule_task():
+    """
+    Reschedule a task by revoking the existing task and scheduling a new one.
+    
+    Expects JSON payload with 'key' and 'task_id'.
+    
+    Returns:
+        JSON response with new task ID and status.
+    """
     try:
         data = request.get_json()
         key = data.get('key')
         task_id = data.get('task_id')
-        
         if not key or not task_id:
-            return jsonify({
-                'success': False,
-                'error': 'Missing key or task_id'
-            }), 400
-            
+            return jsonify({'success': False, 'error': 'Missing key or task_id'}), 400
         logger.info(f"Rescheduling task {task_id} for key {key}")
-        
         match_id = key.split(':')[1]
         with managed_session() as session:
             match = session.query(MLSMatch).get(match_id)
             if not match:
-                return jsonify({
-                    'success': False,
-                    'error': 'Match not found'
-                }), 404
-            
+                return jsonify({'success': False, 'error': 'Match not found'}), 404
             celery.control.revoke(task_id, terminate=True)
             redis_client = RedisManager().client
             redis_client.delete(key)
-            
             if 'thread' in key:
                 thread_time = match.date_time - timedelta(hours=48)
-                new_task = force_create_mls_thread_task.apply_async(
-                    args=[match_id],
-                    eta=thread_time
-                )
+                new_task = force_create_mls_thread_task.apply_async(args=[match_id], eta=thread_time)
                 match.thread_creation_time = thread_time
                 redis_client.setex(key, 172800, new_task.id)
             else:
                 reporting_time = match.date_time - timedelta(minutes=5)
-                new_task = start_live_reporting.apply_async(
-                    args=[str(match_id)],
-                    eta=reporting_time
-                )
+                new_task = start_live_reporting.apply_async(args=[str(match_id)], eta=reporting_time)
                 match.live_reporting_scheduled = True
                 redis_client.setex(key, 172800, new_task.id)
-        
-        return jsonify({
-            'success': True,
-            'message': f'Task rescheduled successfully. New task ID: {new_task.id}',
-            'new_task_id': new_task.id
-        })
-        
+        return jsonify({'success': True, 'message': f'Task rescheduled successfully. New task ID: {new_task.id}', 'new_task_id': new_task.id})
     except Exception as e:
         logger.error(f"Error rescheduling task: {str(e)}", exc_info=True)
         raise
@@ -434,12 +447,21 @@ def reschedule_task():
 @login_required
 @role_required(['Global Admin'])
 def db_monitoring():
+    """
+    Render the database monitoring page.
+    """
     return render_template('db_monitoring.html')
 
 
 @monitoring_bp.route('/db/connections', endpoint='check_connections')
 @role_required(['Global Admin'])
 def check_connections():
+    """
+    Check current database connections.
+    
+    Returns:
+        JSON response with details of active connections.
+    """
     try:
         with managed_session() as session:
             result = session.execute(text("""
@@ -460,9 +482,7 @@ def check_connections():
                 WHERE pid != pg_backend_pid()
                 ORDER BY age DESC
             """))
-    
             connections = [dict(row._mapping) for row in result]
-    
         return jsonify({'success': True, 'connections': connections})
     except Exception as e:
         logger.error(f"Error checking connections: {e}", exc_info=True)
@@ -472,9 +492,14 @@ def check_connections():
 @monitoring_bp.route('/db/cleanup', endpoint='cleanup_connections', methods=['POST'])
 @role_required(['Global Admin'])
 def cleanup_connections():
+    """
+    Terminate long-running or idle database connections.
+    
+    Returns:
+        JSON response indicating the number of terminated connections.
+    """
     try:
         db_manager.check_for_leaked_connections()
-        
         with managed_session() as session:
             result = session.execute(text("""
                 SELECT pg_terminate_backend(pid)
@@ -488,26 +513,24 @@ def cleanup_connections():
                   )
             """))
             terminated = result.rowcount
-    
-        return jsonify({
-            'success': True,
-            'message': f'Cleaned up {terminated} connections'
-        })
+        return jsonify({'success': True, 'message': f'Cleaned up {terminated} connections'})
     except Exception as e:
         logger.error(f"Error cleaning up connections: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/db/stats', endpoint='connection_stats')
 @role_required(['Global Admin'])
 def connection_stats():
-    try:
-        pool_stats = db_manager.get_pool_stats()  # Assuming this method exists after your updates
-        engine = db.get_engine()
+    """
+    Retrieve database connection statistics and pool metrics.
     
+    Returns:
+        JSON response with detailed connection statistics and pool usage.
+    """
+    try:
+        pool_stats = db_manager.get_pool_stats()  # Assuming this method exists
+        engine = db.get_engine()
         with managed_session() as session:
             result = session.execute(text("""
                 SELECT 
@@ -520,7 +543,6 @@ def connection_stats():
                 WHERE pid != pg_backend_pid()
             """))
             basic_stats = dict(result.mappings().first())
-    
         return jsonify({
             'success': True,
             'stats': {
@@ -538,56 +560,53 @@ def connection_stats():
         })
     except Exception as e:
         logger.error(f"Error getting connection stats: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/db/terminate', endpoint='terminate_connection', methods=['POST'])
 @role_required(['Global Admin'])
 def terminate_connection():
+    """
+    Terminate a specific database connection by PID.
+    
+    Expects JSON payload with 'pid'.
+    
+    Returns:
+        JSON response indicating whether the connection was terminated.
+    """
     try:
         data = request.get_json()
         pid = data.get('pid')
-        
         if not pid:
-            return jsonify({
-                'success': False,
-                'error': 'Missing pid'
-            }), 400
-            
+            return jsonify({'success': False, 'error': 'Missing pid'}), 400
         with managed_session() as session:
-            session.execute(
-                text("SELECT pg_terminate_backend(:pid)"),
-                {"pid": pid}
-            )
-        
-        return jsonify({
-            'success': True,
-            'message': f'Connection {pid} terminated'
-        })
+            session.execute(text("SELECT pg_terminate_backend(:pid)"), {"pid": pid})
+        return jsonify({'success': True, 'message': f'Connection {pid} terminated'})
     except Exception as e:
         logger.error(f"Error terminating connection: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/db/monitoring_data', endpoint='get_db_monitoring_data')
 @login_required
 @role_required(['Global Admin'])
 def get_db_monitoring_data():
+    """
+    Retrieve historical database monitoring data snapshots.
+    
+    Query parameter:
+        hours (int): Number of hours to look back (default 24).
+    
+    Returns:
+        JSON response with a list of monitoring data snapshots.
+    """
     try:
         hours = int(request.args.get('hours', 24))
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=hours)
-    
         snapshots = DBMonitoringSnapshot.query.filter(
             DBMonitoringSnapshot.timestamp.between(start_time, end_time)
         ).order_by(DBMonitoringSnapshot.timestamp.asc()).all()
-    
         data = []
         for snapshot in snapshots:
             data.append({
@@ -598,11 +617,7 @@ def get_db_monitoring_data():
                 'recent_events': snapshot.recent_events,
                 'session_monitor': snapshot.session_monitor,
             })
-    
-        return jsonify({
-            'success': True,
-            'data': data
-        })
+        return jsonify({'success': True, 'data': data})
     except Exception as e:
         logger.error(f"Error fetching monitoring data: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -612,6 +627,12 @@ def get_db_monitoring_data():
 @login_required
 @role_required('Global Admin')
 def get_debug_logs():
+    """
+    Retrieve debug logs from the root logger's handlers that support buffering.
+    
+    Returns:
+        JSON response with a list of log entries.
+    """
     try:
         logs = []
         logger_root = logging.getLogger()
@@ -624,23 +645,22 @@ def get_debug_logs():
                         'message': record.getMessage(),
                         'logger': record.name
                     })
-        
-        return jsonify({
-            'success': True,
-            'logs': logs
-        })
+        return jsonify({'success': True, 'logs': logs})
     except Exception as e:
         current_app.logger.error(f"Error getting debug logs: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/debug/queries', endpoint='get_debug_queries')
 @login_required
 @role_required('Global Admin')
 def get_debug_queries():
+    """
+    Retrieve the top 100 slowest queries from pg_stat_statements.
+    
+    Returns:
+        JSON response with query statistics.
+    """
     try:
         with managed_session() as session:
             result = session.execute(text("""
@@ -656,7 +676,6 @@ def get_debug_queries():
                 ORDER BY total_time DESC 
                 LIMIT 100
             """))
-        
             queries = []
             for row in result:
                 queries.append({
@@ -668,23 +687,22 @@ def get_debug_queries():
                     'mean_time': round(row.mean_time, 2),
                     'rows': row.rows
                 })
-            
-        return jsonify({
-            'success': True,
-            'queries': queries
-        })
+        return jsonify({'success': True, 'queries': queries})
     except Exception as e:
         current_app.logger.error(f"Error getting debug queries: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/debug/system', endpoint='get_system_stats')
 @login_required
 @role_required('Global Admin')
 def get_system_stats():
+    """
+    Retrieve system statistics for the current process.
+    
+    Returns:
+        JSON response with memory, CPU, thread, open files, and connection counts.
+    """
     try:
         process = psutil.Process()
         stats = {
@@ -699,29 +717,30 @@ def get_system_stats():
             'open_files': len(process.open_files()),
             'connections': len(process.connections())
         }
-        
-        return jsonify({
-            'success': True,
-            'stats': stats
-        })
+        return jsonify({'success': True, 'stats': stats})
     except Exception as e:
         current_app.logger.error(f"Error getting system stats: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @monitoring_bp.route('/db/connections/<int:pid>/stack', endpoint='get_stack_trace')
 @login_required
 @role_required('Global Admin')
 def get_stack_trace(pid):
+    """
+    Retrieve the stack trace or details of a transaction for a given DB process ID.
+    
+    Parameters:
+        pid (int): The process ID.
+    
+    Returns:
+        JSON response with transaction details.
+    """
     try:
         logger.debug(f"Looking up transaction details for PID: {pid}")
         logger.debug(f"Current metadata keys: {list(db_manager.transaction_metadata.keys()) if hasattr(db_manager, 'transaction_metadata') else 'No transaction_metadata'}")
     
         details = db_manager.get_transaction_details(pid) if hasattr(db_manager, 'get_transaction_details') else None
-    
         if not details:
             with managed_session() as session:
                 result = session.execute(text("""
@@ -729,7 +748,6 @@ def get_stack_trace(pid):
                     FROM pg_stat_activity 
                     WHERE pid = :pid
                 """), {"pid": pid}).first()
-            
             if result:
                 return jsonify({
                     'success': True,
@@ -744,16 +762,7 @@ def get_stack_trace(pid):
                         }
                     }
                 })
-    
-        return jsonify({
-            'success': True,
-            'pid': pid,
-            'details': details
-        })
-        
+        return jsonify({'success': True, 'pid': pid, 'details': details})
     except Exception as e:
         logger.error(f"Error getting transaction details for pid {pid}: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500

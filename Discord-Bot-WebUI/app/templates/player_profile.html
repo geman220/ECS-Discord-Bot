@@ -11,7 +11,7 @@
                     <!-- Profile Picture -->
                     <div class="mb-3">
                         {% if player.profile_picture_url %}
-                        <img class="rounded-circle" src="{{ player.profile_picture_url }}" alt="Profile Picture" width="120" height="120">
+                        <img class="rounded-circle" src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}" alt="Profile Picture" width="120" height="120">
                         {% else %}
                         <img class="rounded-circle" src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" width="120" height="120">
                         {% endif %}

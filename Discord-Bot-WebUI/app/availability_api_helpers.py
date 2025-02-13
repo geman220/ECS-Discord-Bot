@@ -1,25 +1,71 @@
-from flask import jsonify, current_app, g, abort
-from app.models import Match, Availability, Team, Player, ScheduledMessage
-from app.tasks.tasks_rsvp import update_discord_rsvp_task
-from datetime import datetime
-from typing import Optional
-import aiohttp
+# app/availability_api_helpers.py
+
+"""
+Availability API Helpers Module
+
+This module contains utility functions for validating date/time inputs,
+retrieving and processing availability data, storing message IDs, updating
+RSVP data (both locally and via Discord), and fetching match request data.
+"""
+
+# Standard library imports
 import re
 import logging
+from datetime import datetime
+from typing import Optional
+
+# Third-party imports
+import aiohttp
+
+# Local application imports
+from flask import g
+from app.models import Match, Availability, Player, ScheduledMessage
+from app.tasks.tasks_rsvp import update_discord_rsvp_task
 
 logger = logging.getLogger(__name__)
 
+
 def validate_date(date_text):
+    """
+    Validate a date string in YYYY-MM-DD format.
+
+    Args:
+        date_text (str): The date string.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
     try:
         datetime.strptime(date_text, '%Y-%m-%d')
         return True
     except ValueError:
         return False
 
+
 def validate_time(time_text):
+    """
+    Validate a time string in HH:MM or HH:MM:SS format.
+
+    Args:
+        time_text (str): The time string.
+
+    Returns:
+        bool: True if the time string matches the expected format, False otherwise.
+    """
     return re.match(r"^\d{2}:\d{2}(:\d{2})?$", time_text) is not None
 
+
 def get_availability_results(match_id, session=None):
+    """
+    Retrieve availability results for a given match.
+
+    Args:
+        match_id: The ID of the match.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        dict: Counts for 'yes', 'no', 'maybe' responses and a list of individual responses.
+    """
     if session is None:
         session = g.db_session
 
@@ -34,10 +80,22 @@ def get_availability_results(match_id, session=None):
         } for a in availability_list]
     }
 
+
 def store_message_ids_for_match(match_id, home_channel_id, home_message_id, 
                                 away_channel_id, away_message_id, session=None):
     """
-    Store message IDs with proper validation and error handling.
+    Store message IDs for scheduled messages associated with a match.
+
+    Args:
+        match_id (int): The match ID.
+        home_channel_id: Home channel identifier.
+        home_message_id: Home message identifier.
+        away_channel_id: Away channel identifier.
+        away_message_id: Away message identifier.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        tuple: (ScheduledMessage object or None, status message)
     """
     if session is None:
         session = g.db_session
@@ -59,14 +117,20 @@ def store_message_ids_for_match(match_id, home_channel_id, home_message_id,
         scheduled_message.away_message_id = away_message_id
 
         return scheduled_message, "Message IDs stored successfully"
-        
+
     except Exception as e:
         logger.error(f"Error storing message IDs for match {match_id}: {str(e)}")
         return None, str(e)
 
+
 def verify_availability_data(match_id: int, team_id: Optional[int] = None, session=None) -> None:
     """
-    Verify the state of availability data in the database
+    Log detailed availability data for a match, optionally filtering by team.
+
+    Args:
+        match_id (int): The match ID.
+        team_id (Optional[int]): Team ID to filter availability data.
+        session: Optional database session; defaults to g.db_session.
     """
     if session is None:
         session = g.db_session
@@ -76,13 +140,9 @@ def verify_availability_data(match_id: int, team_id: Optional[int] = None, sessi
         if not match:
             logger.error(f"Match {match_id} not found!")
             return
-        
-        logger.debug(f"Found match: {match_id}")
 
-        all_availabilities = session.query(Availability).filter(
-            Availability.match_id == match_id
-        ).all()
-        
+        logger.debug(f"Found match: {match_id}")
+        all_availabilities = session.query(Availability).filter(Availability.match_id == match_id).all()
         logger.debug(f"All availabilities for match {match_id}:")
         for avail in all_availabilities:
             player = session.query(Player).get(avail.player_id)
@@ -100,7 +160,6 @@ def verify_availability_data(match_id: int, team_id: Optional[int] = None, sessi
                                    .filter(Availability.match_id == match_id,
                                            Player.team_id == team_id)
                                    .all())
-            
             logger.debug(f"Availabilities for team {team_id}:")
             for avail in team_availabilities:
                 player = session.query(Player).get(avail.player_id)
@@ -110,22 +169,27 @@ def verify_availability_data(match_id: int, team_id: Optional[int] = None, sessi
     except Exception as e:
         logger.error(f"Error verifying data: {str(e)}", exc_info=True)
 
+
 def get_match_rsvp_data(match_id, team_id=None, session=None):
     """
-    Get RSVP data with proper error handling and validation.
+    Retrieve RSVP data for a match, optionally filtered by team.
+
+    Args:
+        match_id (int): The match ID.
+        team_id (Optional[int]): Team ID to filter results.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        dict: RSVP data categorized by response ('yes', 'no', 'maybe').
     """
     if session is None:
         session = g.db_session
 
     try:
-        base_count = session.query(Availability).filter(
-            Availability.match_id == match_id
-        ).count()
+        base_count = session.query(Availability).filter(Availability.match_id == match_id).count()
         logger.debug(f"Total availability records for match {match_id}: {base_count}")
 
-        query = session.query(Availability, Player).join(Player)
-        query = query.filter(Availability.match_id == match_id)
-
+        query = session.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
         all_avail = query.with_entities(
             Availability.response, 
             Player.name,
@@ -133,7 +197,7 @@ def get_match_rsvp_data(match_id, team_id=None, session=None):
             Player.team_id
         ).all()
         logger.debug(f"All availabilities before team filter: {all_avail}")
-        
+
         if team_id:
             query = query.filter(Player.team_id == team_id)
             filtered_avail = query.with_entities(
@@ -149,15 +213,9 @@ def get_match_rsvp_data(match_id, team_id=None, session=None):
             Player.name,
             Player.id
         ).all()
-        
         logger.debug(f"Final availability records: {availability_records}")
-        
-        rsvp_data = {
-            'yes': [], 
-            'no': [], 
-            'maybe': []
-        }
-        
+
+        rsvp_data = {'yes': [], 'no': [], 'maybe': []}
         for response, player_name, player_id in availability_records:
             logger.debug(f"Processing record: response={response}, player={player_name}, id={player_id}")
             if response in rsvp_data:
@@ -169,13 +227,26 @@ def get_match_rsvp_data(match_id, team_id=None, session=None):
         
         logger.debug(f"Final RSVP data for match {match_id}, team {team_id}: {rsvp_data}")
         return rsvp_data
-        
+
     except Exception as e:
-        logger.error(f"Error getting RSVP data for match {match_id}, team {team_id}: {str(e)}", 
-                    exc_info=True)
+        logger.error(f"Error getting RSVP data for match {match_id}, team {team_id}: {str(e)}", exc_info=True)
         return {'yes': [], 'no': [], 'maybe': []}
 
+
 async def update_discord_rsvp(match, player, new_response, old_response, session=None):
+    """
+    Asynchronously trigger a Discord RSVP update task.
+
+    Args:
+        match: The match instance.
+        player: The player instance.
+        new_response: The new RSVP response.
+        old_response: The previous RSVP response.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        dict: Status message indicating if the task was queued.
+    """
     if session is None:
         session = g.db_session
 
@@ -205,31 +276,31 @@ async def update_discord_rsvp(match, player, new_response, old_response, session
     update_discord_rsvp_task.delay(data)
     return {"status": "success", "message": "RSVP update task queued"}
 
+
 def process_availability_update(match_id, discord_id, response, responded_at=None, session=None):
     """
     Process an availability update for a player.
-    Returns: Tuple[Optional[int], dict]
+
+    Args:
+        match_id (int): The match ID.
+        discord_id (str): The player's Discord ID.
+        response (str): The new availability response.
+        responded_at (datetime, optional): The time of response.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        tuple: (player_id or None, dict with status and message)
     """
     if session is None:
         session = g.db_session
 
     try:
-        result = {
-            'status': 'success',
-            'message': None
-        }
-
+        result = {'status': 'success', 'message': None}
         player = session.query(Player).filter_by(discord_id=str(discord_id)).first()
         if not player:
-            return None, {
-                'status': 'error',
-                'message': 'Player not found'
-            }
+            return None, {'status': 'error', 'message': 'Player not found'}
 
-        availability = session.query(Availability).filter_by(
-            match_id=match_id,
-            player_id=player.id
-        ).first()
+        availability = session.query(Availability).filter_by(match_id=match_id, player_id=player.id).first()
 
         if response == 'no_response':
             if availability:
@@ -258,14 +329,19 @@ def process_availability_update(match_id, discord_id, response, responded_at=Non
 
     except Exception as e:
         logger.error(f"Error in process_availability_update: {str(e)}", exc_info=True)
-        return None, {
-            'status': 'error',
-            'message': str(e)
-        }
+        return None, {'status': 'error', 'message': str(e)}
+
 
 def get_message_data(match_id, session=None):
     """
-    Get message data for a match with proper error handling.
+    Retrieve message data for a match.
+
+    Args:
+        match_id (int): The match ID.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        dict or None: Message data if available; otherwise None.
     """
     if session is None:
         session = g.db_session
@@ -275,16 +351,13 @@ def get_message_data(match_id, session=None):
                              .join(Match)
                              .filter(ScheduledMessage.match_id == match_id)
                              .first())
-
         if not scheduled_message:
             logger.debug(f"No scheduled message found for match_id {match_id}")
             return None
 
         logger.debug(f"Found scheduled_message for match_id {match_id}: {scheduled_message}")
 
-        if not (scheduled_message.match and 
-                scheduled_message.match.home_team_id and 
-                scheduled_message.match.away_team_id):
+        if not (scheduled_message.match and scheduled_message.match.home_team_id and scheduled_message.match.away_team_id):
             logger.error(f"Incomplete match data for match_id {match_id}")
             return None
 
@@ -296,7 +369,6 @@ def get_message_data(match_id, session=None):
             'away_channel_id': scheduled_message.away_channel_id,
             'away_team_id': scheduled_message.match.away_team_id
         }
-
         logger.debug(f"Message data for match_id {match_id}: {data}")
 
         if not all(data.values()):
@@ -309,9 +381,17 @@ def get_message_data(match_id, session=None):
         logger.exception(f"Error getting message data for match_id {match_id}")
         return None
 
+
 def get_match_request_data(match_id, session=None):
     """
-    Get match request data with proper error handling.
+    Retrieve match request data for a given match.
+
+    Args:
+        match_id (int): The match ID.
+        session: Optional database session; defaults to g.db_session.
+
+    Returns:
+        dict or None: Dictionary containing match request details, or None if not found.
     """
     if session is None:
         session = g.db_session

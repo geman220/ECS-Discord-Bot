@@ -1,3 +1,14 @@
+# app/lifecycle.py
+
+"""
+Lifecycle Module
+
+This module provides a RequestLifecycle class that manages the lifecycle of each request.
+It sets up before, after, and teardown request handlers to track performance, manage caching,
+log database operations, and ensure proper cleanup of resources. This module is essential
+for monitoring request performance and ensuring optimal resource usage throughout the application.
+"""
+
 import logging
 from flask import g, has_app_context, request
 import time
@@ -18,7 +29,7 @@ class RequestLifecycle:
         self.db = None  # Will be set in init_app
 
     def init_app(self, app, db):
-        """Initialize request lifecycle with app and database"""
+        """Initialize request lifecycle with app and database."""
         self.db = db
 
         @app.before_request
@@ -36,7 +47,7 @@ class RequestLifecycle:
             g._cache_hits = 0
             g._cache_misses = 0
 
-            # Batch execute handlers
+            # Batch execute before-request handlers
             for handler in self.before_request_handlers:
                 try:
                     handler()
@@ -50,7 +61,7 @@ class RequestLifecycle:
                 response.cache_control.public = True
                 response.add_etag()
             
-            # Add performance logging
+            # Log request performance metrics
             self.log_request_performance(response)
             return response
 
@@ -77,7 +88,7 @@ class RequestLifecycle:
 
         @app.teardown_appcontext
         def cleanup_app_context(exc):
-            """Final cleanup when app context ends"""
+            """Final cleanup when app context ends."""
             try:
                 if hasattr(g, 'db_session'):
                     # db_session cleanup is handled in __init__.py teardown_request
@@ -89,7 +100,7 @@ class RequestLifecycle:
 
         @app.context_processor
         def inject_template_vars():
-            """Inject template variables into all templates"""
+            """Inject template variables into all templates."""
             if getattr(g, '_bypass_db', False):
                 return {}
             
@@ -99,7 +110,7 @@ class RequestLifecycle:
             return self._template_cache[request.endpoint]
 
     def _get_template_vars(self) -> Dict[str, Any]:
-        """Get template variables with caching"""
+        """Get template variables with caching."""
         from app.models import Season
         
         if not hasattr(g, 'db_session'):
@@ -114,7 +125,7 @@ class RequestLifecycle:
         }
 
     def _clear_request_context(self):
-        """Clear all request-specific attributes"""
+        """Clear all request-specific attributes."""
         for attr in list(vars(g)):
             try:
                 delattr(g, attr)
@@ -122,22 +133,22 @@ class RequestLifecycle:
                 pass
 
     def register_cleanup(self, cleanup_func: Callable):
-        """Register a cleanup function to run at request end"""
+        """Register a cleanup function to run at request end."""
         if has_app_context() and not getattr(g, '_bypass_db', False):
             if not hasattr(g, '_cleanups'):
                 g._cleanups = []
             g._cleanups.append(cleanup_func)
 
     def register_before_request(self, handler: Callable):
-        """Add a before-request handler"""
+        """Add a before-request handler."""
         self.before_request_handlers.append(handler)
 
     def register_after_request(self, handler: Callable):
-        """Add an after-request handler"""
+        """Add an after-request handler."""
         self.after_request_handlers.append(handler)
 
     def log_db_operation(self, operation: str, duration: float, sql_query: Optional[str] = None):
-        """Log database operation timing with details"""
+        """Log database operation timing with details."""
         if has_app_context() and not getattr(g, '_bypass_db', False):
             if not hasattr(g, '_db_operations'):
                 g._db_operations = []
@@ -159,7 +170,7 @@ class RequestLifecycle:
             )
 
     def log_request_performance(self, response):
-        """Log detailed request performance metrics"""
+        """Log detailed request performance metrics."""
         if not getattr(g, '_bypass_db', False):
             try:
                 duration = time.time() - g._request_start_time
@@ -189,7 +200,7 @@ class RequestLifecycle:
                 return None
 
     def get_request_stats(self) -> Dict[str, Any]:
-        """Get current request statistics"""
+        """Get current request statistics."""
         return {
             'db_operations': len(self._db_operation_log),
             'cache_hits': getattr(g, '_cache_hits', 0),

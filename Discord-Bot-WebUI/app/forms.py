@@ -1,6 +1,24 @@
+# app/forms.py
+
+"""
+Forms Module
+
+This module defines the web forms used throughout the application. It includes
+forms for user authentication, registration, player profile management, feedback,
+and administrative functions. Leveraging Flask-WTF and WTForms, it provides secure,
+validated inputs and dynamic form generation based on the application's needs.
+"""
+
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, FormField, EmailField
-from wtforms.validators import DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, NumberRange, InputRequired, AnyOf
+from wtforms import (
+    StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, 
+    SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, 
+    FormField, EmailField
+)
+from wtforms.validators import (
+    DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, 
+    NumberRange, InputRequired
+)
 from app.models import User, Role, League, Team
 import re
 from sqlalchemy import func
@@ -89,6 +107,7 @@ class OnboardingForm(FlaskForm):
 
     submit = SubmitField('Submit')
 
+
 def to_int(value):
     try:
         if value is None or value == '':
@@ -97,11 +116,13 @@ def to_int(value):
     except (TypeError, ValueError):
         raise ValidationError('Not a valid integer value.')
 
+
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
     remember = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
+
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -125,6 +146,7 @@ class RegistrationForm(FlaskForm):
         if user:
             raise ValidationError('That email is already in use. Please choose a different one.')
 
+
 class CreateUserForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -146,6 +168,7 @@ class CreateUserForm(FlaskForm):
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError('Email is already in use. Please choose a different one.')
+
 
 class PlayerProfileForm(FlaskForm):
     name = StringField('Name', validators=[Optional()])
@@ -174,17 +197,20 @@ class PlayerProfileForm(FlaskForm):
     notes = TextAreaField('Admin Notes', validators=[Optional()])
     is_coach = BooleanField('Coach', validators=[Optional()])
 
+
 class SeasonStatsForm(FlaskForm):
     season_goals = IntegerField('Season Goals', filters=[to_int], validators=[Optional()])
     season_assists = IntegerField('Season Assists', filters=[to_int], validators=[Optional()])
     season_yellow_cards = IntegerField('Season Yellow Cards', filters=[to_int], validators=[Optional()])
     season_red_cards = IntegerField('Season Red Cards', filters=[to_int], validators=[Optional()])
 
+
 class CareerStatsForm(FlaskForm):
     career_goals = IntegerField('Career Goals', filters=[to_int], validators=[Optional()])
     career_assists = IntegerField('Career Assists', filters=[to_int], validators=[Optional()])
     career_yellow_cards = IntegerField('Career Yellow Cards', filters=[to_int], validators=[Optional()])
     career_red_cards = IntegerField('Career Red Cards', filters=[to_int], validators=[Optional()])
+
 
 class UpdateRoleForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -195,14 +221,17 @@ class UpdateRoleForm(FlaskForm):
         super(UpdateRoleForm, self).__init__(*args, **kwargs)
         self.roles.choices = [(role.name, role.name) for role in Role.query.all()]
 
+
 class ForgotPasswordForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     submit = SubmitField('Request Password Reset')
+
 
 class ResetPasswordForm(FlaskForm):
     password = PasswordField('New Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Reset Password')
+
 
 class EditUserForm(FlaskForm):
     user_id = HiddenField('User ID', validators=[DataRequired()])
@@ -246,6 +275,7 @@ class EditUserForm(FlaskForm):
         if user and user.id != user_id_int:
             raise ValidationError('Username is already taken. Please choose a different one.')
 
+
 class FilterUsersForm(FlaskForm):
     class Meta:
         csrf = False
@@ -257,6 +287,7 @@ class FilterUsersForm(FlaskForm):
     active = SelectField('Active Status', coerce=str, validators=[Optional()], choices=[('', 'All'), ('true', 'Active Players'), ('false', 'Inactive Players')])
     submit = SubmitField('Filter')
 
+
 class NotificationSettingsForm(FlaskForm):
     email_notifications = BooleanField('Email Notifications')
     sms_notifications = BooleanField('SMS Notifications')
@@ -264,13 +295,14 @@ class NotificationSettingsForm(FlaskForm):
     profile_visibility = SelectField('Profile Visibility', choices=[('everyone', 'Everyone'), ('teammates', 'Teammates'), ('private', 'Private')])
     submit_notifications = SubmitField('Save Changes')
 
+
 class PasswordChangeForm(FlaskForm):
     current_password = PasswordField('Current Password', validators=[DataRequired(message="Please enter your current password.")])
     new_password = PasswordField('New Password', validators=[
         DataRequired(message="Please enter a new password."),
         Length(min=8, message="Password must be at least 8 characters long."),
         Regexp(
-            '^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+            '^(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$',
             message="Password must contain at least one uppercase letter, one number, and one special character."
         )
     ])
@@ -280,35 +312,43 @@ class PasswordChangeForm(FlaskForm):
     ])
     submit_password = SubmitField('Update Password')
 
+
 class Enable2FAForm(FlaskForm):
     totp_token = StringField('2FA Code', validators=[
         DataRequired(message="Please enter the 2FA code."),
         Length(min=6, max=6, message="2FA code must be exactly 6 digits."),
-        Regexp('^\d{6}$', message="2FA code must contain only digits.")
+        Regexp('^\\d{6}$', message="2FA code must contain only digits.")
     ])
     submit_enable_2fa = SubmitField('Verify')
+
 
 class Disable2FAForm(FlaskForm):
     submit_disable_2fa = SubmitField('Disable 2FA')
 
+
 class EmptyForm(FlaskForm):
     pass
 
+
 class SubmitForm(FlaskForm):
     submit = SubmitField('Submit')
+
 
 class AnnouncementForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     content = TextAreaField('Content', validators=[DataRequired()])
     submit = SubmitField('Save')
 
+
 class TwoFactorForm(FlaskForm):
     token = StringField('2FA Token', validators=[DataRequired()])
     submit = SubmitField('Verify')
 
+
 class Verify2FAForm(FlaskForm):
     totp_token = StringField('2FA Token', validators=[DataRequired()])
     submit = SubmitField('Verify')
+
 
 class PlayerEventForm(FlaskForm):
     player_id = SelectField('Player', coerce=int, validators=[DataRequired()])
@@ -323,6 +363,7 @@ class PlayerEventForm(FlaskForm):
 
     submit = SubmitField('Submit')
 
+
 class ReportMatchForm(FlaskForm):
     home_team_score = IntegerField('Home Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])
     away_team_score = IntegerField('Away Team Score', validators=[InputRequired(message="This field is required"), NumberRange(min=0)])
@@ -333,6 +374,7 @@ class ReportMatchForm(FlaskForm):
     red_cards = FieldList(FormField(PlayerEventForm), min_entries=0, max_entries=10)
 
     notes = TextAreaField('Match Notes')
+
 
 class CreatePlayerForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(max=100)])
@@ -347,12 +389,14 @@ class CreatePlayerForm(FlaskForm):
         if User.query.filter(func.lower(User.email) == email).first():
             raise ValidationError('Email is already registered.')
 
+
 class EditPlayerForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired(), Length(max=100)])
     phone = StringField('Phone Number', validators=[DataRequired(), Length(max=20)])
     jersey_size = SelectField('Jersey Size', validators=[DataRequired()], choices=[])
     league_id = SelectField('League', validators=[DataRequired()], choices=[])
     submit = SubmitField('Update Player')
+
 
 class FeedbackForm(FlaskForm):
     name = StringField('Name', validators=[Optional()])
@@ -361,18 +405,22 @@ class FeedbackForm(FlaskForm):
     description = TextAreaField('Description', validators=[DataRequired()])
     submit = SubmitField('Submit Feedback')
 
+
 class AdminFeedbackForm(FlaskForm):
     priority = SelectField('Priority', choices=[('Low', 'Low'), ('Medium', 'Medium'), ('High', 'High')], validators=[DataRequired()])
     status = SelectField('Status', choices=[('Open', 'Open'), ('In Progress', 'In Progress'), ('Closed', 'Closed')], validators=[DataRequired()])
     submit = SubmitField('Update Feedback')
 
+
 class NoteForm(FlaskForm):
     content = TextAreaField('Add Note', validators=[DataRequired()])
     submit = SubmitField('Add Note')
 
+
 class FeedbackReplyForm(FlaskForm):
     content = TextAreaField('Reply', validators=[DataRequired()])
     submit = SubmitField('Submit Reply')
+
 
 class HelpTopicForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])

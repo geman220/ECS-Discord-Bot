@@ -1,8 +1,14 @@
 # celery_player_sync_worker.py
 
+"""
+Celery Player Sync Worker
+
+This script starts a dedicated Celery worker for player synchronization tasks,
+using an Eventlet pool and a dedicated 'player_sync' queue.
+"""
+
 import sys
-import logging
-from celery_worker_base import flask_app, celery_app as celery, logger
+from celery_worker_base import celery_app as celery, logger
 
 if __name__ == '__main__':
     try:

@@ -1,35 +1,47 @@
+# app/user_api.py
+
+"""
+User API Module
+
+This module defines a set of API endpoints for user-related operations,
+including player lookup, notification preferences retrieval and updates,
+SMS enrollment and confirmation, and team lookup via case-insensitive queries.
+"""
+
+import logging
+from datetime import datetime
+
+from flask import Blueprint, request, jsonify, g, url_for
 from app import csrf
-from flask import Blueprint, request, jsonify, g, current_app
-from app.models import User, Player, Match, Team, player_teams
+from app.models import User, Player, Team, player_teams
 from app.sms_helpers import (
-    send_welcome_message,
     send_sms,
     verify_sms_confirmation,
-    send_confirmation_sms,
-    generate_confirmation_code
+    send_confirmation_sms
 )
-from datetime import datetime
-import random
-import string
-import logging
 
 logger = logging.getLogger(__name__)
 user_bp = Blueprint('user_api', __name__)
-csrf.exempt(user_bp)
+csrf.exempt(user_bp)  # Exempt this blueprint from CSRF protection for API endpoints
+
 
 @user_bp.route('/player_lookup', methods=['GET'])
 def player_lookup():
     """
     Lookup a player using a case-insensitive partial match on the player's name.
-    Query parameter: name
-    Returns the player's id, name, and discord_id if found.
+
+    Query Parameters:
+        name (str): The partial name to search for.
+
+    Returns:
+        JSON response with the player's id, name, and discord_id if found,
+        or an error message if not found or if the parameter is missing.
     """
     name_query = request.args.get("name")
     if not name_query:
         return jsonify({"error": "Missing name parameter"}), 400
 
     session_db = g.db_session
-
     # Perform a case-insensitive search using a partial match.
     player = session_db.query(Player).filter(Player.name.ilike(f"%{name_query}%")).first()
     if not player:
@@ -41,14 +53,24 @@ def player_lookup():
         "discord_id": player.discord_id
     }), 200
 
+
 @user_bp.route('/get_notifications', methods=['GET'])
 def get_notifications():
+    """
+    Retrieve notification preferences for a player based on their discord_id.
+
+    Query Parameters:
+        discord_id (str): The discord ID of the player.
+
+    Returns:
+        JSON response containing the user's notification preferences,
+        SMS enrollment status, and phone verification status.
+    """
     discord_id = request.args.get("discord_id")
     if not discord_id:
         return jsonify({"error": "Missing discord_id parameter"}), 400
 
     session_db = g.db_session
-
     player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
     if not player:
         return jsonify({"error": "Player not found"}), 404
@@ -70,8 +92,19 @@ def get_notifications():
         "phone_verified": phone_verified
     }), 200
 
+
 @user_bp.route('/update_notifications', methods=['POST'])
 def update_notifications():
+    """
+    Update a user's notification preferences.
+
+    Expects a JSON payload containing:
+        - discord_id: The user's discord ID.
+        - notifications: A dictionary with keys 'discord', 'email', and 'sms'.
+
+    Returns:
+        JSON response confirming successful update or describing errors.
+    """
     session_db = g.db_session
     data = request.json
     discord_id = data.get("discord_id")
@@ -88,7 +121,7 @@ def update_notifications():
     if not user:
         return jsonify({"error": "Associated user not found"}), 404
 
-    # Save previous SMS state to detect change.
+    # Save previous SMS state to detect changes.
     previous_sms = user.sms_notifications
 
     user.discord_notifications = notifications.get("discord", False)
@@ -96,10 +129,12 @@ def update_notifications():
     user.sms_notifications = notifications.get("sms", False)
 
     if not notifications.get("sms", False) and previous_sms:
+        # User has disabled SMS notifications.
         player.is_phone_verified = False
         player.sms_opt_out_timestamp = datetime.utcnow()
     session_db.commit()
 
+    # Notify the user via SMS about changes in SMS notification status.
     if notifications.get("sms", False) and not previous_sms:
         success, sid = send_sms(player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.")
         if not success:
@@ -111,8 +146,22 @@ def update_notifications():
 
     return jsonify({"message": "Notification preferences updated successfully"}), 200
 
+
 @user_bp.route('/sms_enroll', methods=['POST'])
 def sms_enroll():
+    """
+    Initiate SMS enrollment for a user.
+
+    Expects a JSON payload containing:
+        - discord_id: The user's discord ID.
+        - phone: The user's phone number.
+
+    The function updates the player's phone number and triggers the sending
+    of a confirmation SMS containing a verification code.
+
+    Returns:
+        JSON response indicating success or error.
+    """
     session_db = g.db_session
     data = request.json
     discord_id = data.get("discord_id")
@@ -136,8 +185,21 @@ def sms_enroll():
     else:
         return jsonify({"error": msg_info}), 400
 
+
 @user_bp.route('/sms_confirm', methods=['POST'])
 def sms_confirm():
+    """
+    Confirm SMS enrollment using a verification code.
+
+    Expects a JSON payload containing:
+        - discord_id: The user's discord ID.
+        - code: The confirmation code received via SMS.
+
+    If the code is verified, marks the player's phone as verified and enables SMS notifications.
+
+    Returns:
+        JSON response confirming the SMS enrollment or an error message.
+    """
     session_db = g.db_session
     data = request.json
     discord_id = data.get("discord_id")
@@ -160,26 +222,31 @@ def sms_confirm():
     else:
         return jsonify({"error": "Invalid confirmation code."}), 400
 
+
 @user_bp.route('/team_lookup', methods=['GET'])
 def team_lookup():
     """
     Lookup a team using a case-insensitive partial match on the team's name.
-    Query parameter: name
-    Returns the team's id, name, and list of current players with their names and discord_id.
+
+    Query Parameters:
+        name (str): The partial team name to search for.
+
+    Returns:
+        JSON response containing the team's id, name, and a list of current players
+        (each with their id, name, and discord_id), or an error message.
     """
     team_name_query = request.args.get("name")
     if not team_name_query:
         return jsonify({"error": "Missing name parameter"}), 400
 
     session_db = g.db_session
-
     # Find the team using a case-insensitive partial match.
     team = session_db.query(Team).filter(Team.name.ilike(f"%{team_name_query}%")).first()
     if not team:
         return jsonify({"error": "Team not found"}), 404
 
-    # Retrieve players for the team who are marked as current.
-    # NOTE: Use a join on the association table since Player no longer has a direct "team_id" column.
+    # Retrieve players associated with the team who are marked as current.
+    # NOTE: Uses a join on the association table since Player no longer has a direct "team_id" column.
     players = (
         session_db.query(Player)
         .join(player_teams)
@@ -190,21 +257,17 @@ def team_lookup():
         .all()
     )
 
-    players_list = []
-    for player in players:
-        players_list.append({
-            "id": player.id,
-            "name": player.name,
-            "discord_id": player.discord_id,
-            "is_current_player": player.is_current_player
-            # Add other fields if needed.
-        })
+    players_list = [{
+        "id": player.id,
+        "name": player.name,
+        "discord_id": player.discord_id,
+        "is_current_player": player.is_current_player
+    } for player in players]
 
     return jsonify({
         "team": {
             "id": team.id,
             "name": team.name
-            # Add more team data if needed.
         },
         "players": players_list
     }), 200
