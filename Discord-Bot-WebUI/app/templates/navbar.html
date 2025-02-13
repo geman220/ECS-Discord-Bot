@@ -1,4 +1,4 @@
-<!-- Navbar -->
+<!-- navbar.html -->
 <nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
     <!-- Menu Toggle (Visible on smaller screens) -->
     <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
@@ -9,16 +9,10 @@
 
     <!-- Navbar content -->
     <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
-
-        <!-- Search -->
-        <div class="navbar-nav align-items-center">
-            <div class="nav-item navbar-search-wrapper mb-0">
-                <a class="nav-item nav-link search-toggler d-flex align-items-center px-0" href="javascript:void(0);">
-                    <i class="ti ti-search ti-md me-2 me-lg-4 ti-lg"></i>
-                    <span class="d-none d-md-inline-block text-muted fw-normal">Search (Ctrl+/)</span>
-                </a>
-            </div>
-        </div>
+        <!-- Search (Autocomplete) -->
+        <form class="d-flex align-items-center" onsubmit="return false;">
+            <input type="text" id="player-search" name="query" class="form-control" placeholder="Search players" aria-label="Search">
+        </form>
         <!-- /Search -->
 
         <ul class="navbar-nav flex-row align-items-center ms-auto">
@@ -28,59 +22,30 @@
                     <i class="ti ti-sun ti-md"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end dropdown-styles">
-                    <li><a class="dropdown-item waves-effect active" href="javascript:void(0);" data-theme="light"><span class="align-middle"><i class="ti ti-sun ti-md me-3"></i>Light</span></a></li>
-                    <li><a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="dark"><span class="align-middle"><i class="ti ti-moon-stars ti-md me-3"></i>Dark</span></a></li>
-                    <li><a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="system"><span class="align-middle"><i class="ti ti-device-desktop-analytics ti-md me-3"></i>System</span></a></li>
+                    <li>
+                        <a class="dropdown-item waves-effect active" href="javascript:void(0);" data-theme="light">
+                            <span class="align-middle">
+                                <i class="ti ti-sun ti-md me-3"></i>Light
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="dark">
+                            <span class="align-middle">
+                                <i class="ti ti-moon-stars ti-md me-3"></i>Dark
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item waves-effect" href="javascript:void(0);" data-theme="system">
+                            <span class="align-middle">
+                                <i class="ti ti-device-desktop-analytics ti-md me-3"></i>System
+                            </span>
+                        </a>
+                    </li>
                 </ul>
             </li>
             <!-- /Style Switcher -->
-            <!-- Quick Links
-            <li class="nav-item dropdown-shortcuts navbar-dropdown dropdown">
-                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                    <i class="ti ti-layout-grid-add ti-md"></i>
-                </a>
-                <div class="dropdown-menu dropdown-menu-end p-0">
-                    <div class="dropdown-menu-header border-bottom">
-                        <div class="dropdown-header d-flex align-items-center py-3">
-                            <h6 class="mb-0 me-auto">Shortcuts</h6>
-                            <a href="javascript:void(0)" class="btn btn-text-secondary rounded-pill btn-icon dropdown-shortcuts-add waves-effect waves-light" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Add shortcuts" data-bs-original-title="Add shortcuts"><i class="ti ti-plus text-heading"></i></a>
-                        </div>
-                    </div>
-                    <div class="dropdown-shortcuts-list scrollable-container ps">
-                        <div class="row row-bordered overflow-visible g-0">
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-calendar ti-26px text-heading"></i></span>
-                                <a href="app-calendar.html" class="stretched-link">Calendar</a><small>Appointments</small>
-                            </div>
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-file-dollar ti-26px text-heading"></i></span>
-                                <a href="app-invoice-list.html" class="stretched-link">Invoice App</a><small>Manage Accounts</small>
-                            </div>
-                        </div>
-                        <div class="row row-bordered overflow-visible g-0">
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-user ti-26px text-heading"></i></span>
-                                <a href="app-user-list.html" class="stretched-link">User App</a><small>Manage Users</small>
-                            </div>
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-users ti-26px text-heading"></i></span>
-                                <a href="app-access-roles.html" class="stretched-link">Role Management</a><small>Permission</small>
-                            </div>
-                        </div>
-                        <div class="row row-bordered overflow-visible g-0">
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-device-desktop-analytics ti-26px text-heading"></i></span>
-                                <a href="index.html" class="stretched-link">Dashboard</a><small>User Dashboard</small>
-                            </div>
-                            <div class="dropdown-shortcuts-item col">
-                                <span class="dropdown-shortcuts-icon rounded-circle mb-3"><i class="ti ti-settings ti-26px text-heading"></i></span>
-                                <a href="pages-account-settings-account.html" class="stretched-link">Setting</a><small>Account Settings</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </li>
-            /Quick Links -->
             <!-- Notifications -->
             <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
                 <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -109,7 +74,6 @@
                                 <div class="d-flex">
                                     <div class="flex-shrink-0 me-3">
                                         <div class="avatar">
-                                            <!-- Display custom icon based on notification type -->
                                             <i class="{{ notification.icon }} ti-md"></i>
                                         </div>
                                     </div>
@@ -145,7 +109,6 @@
                         {% if safe_current_user.player %}
                         <img src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" alt="{{ safe_current_user.player.name }}" class="rounded-circle">
                         {% else %}
-                        <!-- User does not have a player profile yet -->
                         <img src="{{ url_for('static', filename='img/default_player.png') }}" alt="Default Profile Picture" class="rounded-circle">
                         {% endif %}
                         {% endif %}
@@ -221,3 +184,60 @@
         </ul>
     </div>
 </nav>
+<style>
+    /* Make the search input larger */
+    #player-search {
+        width: 1200px; /* Adjust width as needed */
+        padding: 10px 15px; /* Adjust padding as needed */
+        font-size: 16px; /* Adjust font size if necessary */
+        border: none; /* Remove border */
+        background: transparent; /* Make background transparent */
+        outline: none; /* Remove focus outline */
+        box-shadow: none; /* Remove any box-shadow */
+        -webkit-appearance: none; /* Remove default styling in WebKit browsers */
+        -moz-appearance: none;
+    }
+
+        #player-search:focus {
+            border: none;
+            background: transparent;
+            outline: none;
+            box-shadow: 0 0 0 2px #007bff;
+        }
+
+    /* Style the autocomplete dropdown with a dark background and white text */
+    .ui-autocomplete {
+        max-height: 250px; /* Limit the height and allow scrolling if needed */
+        overflow-y: auto; /* Vertical scroll */
+        overflow-x: hidden; /* Hide horizontal scroll */
+        padding: 10px 0; /* Add padding on top and bottom */
+        font-size: 16px; /* Increase font size for suggestions */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Add a subtle shadow */
+        border: 1px solid #444;
+        border-radius: 0 0 4px 4px;
+        background-color: #333 !important; /* Dark background */
+        color: #fff !important; /* White text */
+    }
+
+    /* Style each autocomplete suggestion item with white text */
+    .ui-menu-item-wrapper {
+        padding: 10px 20px; /* Increase padding inside each item */
+        cursor: pointer;
+        color: #fff;
+    }
+
+        /* Change background on hover for better contrast */
+        .ui-menu-item-wrapper:hover,
+        .ui-state-active {
+            background: #555 !important;
+        }
+
+        /* Ensure that images in suggestions are sized nicely */
+        .ui-menu-item-wrapper img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+</style>
