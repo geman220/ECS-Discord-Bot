@@ -35,6 +35,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Removed separate managed_message_ids set; using bot_state instead
 
+VERIFY_CHANNEL_ID = 1036026916282585228
+
 async def load_managed_message_ids():
     global session  # Use the global session variable
 
@@ -268,6 +270,25 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    # Check if the message is sent in the verification channel
+    if message.channel.id == VERIFY_CHANNEL_ID:
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            logging.error("Missing permission to delete messages in the verification channel.")
+        else:
+            dm_text = (
+                "Hi there! It looks like you sent a message in the verification channel. "
+                "Please use the `/verify` command to verify your ECS membership. "
+                "A window will popup and you can enter your Order ID"
+            )
+            try:
+                await message.author.send(dm_text)
+            except discord.Forbidden:
+                logging.warning("Unable to send DM to the user.")
+        return  # Stop processing further if this was in the verification channel
+
+    # Process other messages as usual
     await bot.process_commands(message)
 
 @bot.event
