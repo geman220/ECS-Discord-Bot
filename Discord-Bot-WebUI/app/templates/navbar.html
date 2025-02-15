@@ -185,54 +185,49 @@
     </div>
 </nav>
 <style>
-    /* Make the search input larger */
+    /* Responsive search input styling */
     #player-search {
-        width: 1200px; /* Adjust width as needed */
-        padding: 10px 15px; /* Adjust padding as needed */
-        font-size: 16px; /* Adjust font size if necessary */
-        border: none; /* Remove border */
-        background: transparent; /* Make background transparent */
-        outline: none; /* Remove focus outline */
-        box-shadow: none; /* Remove any box-shadow */
-        -webkit-appearance: none; /* Remove default styling in WebKit browsers */
+        width: 100%;
+        max-width: 600px; /* Adjust max-width for larger screens as needed */
+        padding: 10px 15px;
+        font-size: 16px;
+        border: none;
+        background: transparent;
+        outline: none;
+        box-shadow: none;
+        -webkit-appearance: none;
         -moz-appearance: none;
     }
 
         #player-search:focus {
-            border: none;
-            background: transparent;
-            outline: none;
             box-shadow: 0 0 0 2px #007bff;
         }
 
     /* Style the autocomplete dropdown with a dark background and white text */
     .ui-autocomplete {
-        max-height: 250px; /* Limit the height and allow scrolling if needed */
-        overflow-y: auto; /* Vertical scroll */
-        overflow-x: hidden; /* Hide horizontal scroll */
-        padding: 10px 0; /* Add padding on top and bottom */
-        font-size: 16px; /* Increase font size for suggestions */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Add a subtle shadow */
+        max-height: 250px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 10px 0;
+        font-size: 16px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         border: 1px solid #444;
         border-radius: 0 0 4px 4px;
-        background-color: #333 !important; /* Dark background */
-        color: #fff !important; /* White text */
+        background-color: #333 !important;
+        color: #fff !important;
     }
 
-    /* Style each autocomplete suggestion item with white text */
     .ui-menu-item-wrapper {
-        padding: 10px 20px; /* Increase padding inside each item */
+        padding: 10px 20px;
         cursor: pointer;
         color: #fff;
     }
 
-        /* Change background on hover for better contrast */
         .ui-menu-item-wrapper:hover,
         .ui-state-active {
             background: #555 !important;
         }
 
-        /* Ensure that images in suggestions are sized nicely */
         .ui-menu-item-wrapper img {
             width: 30px;
             height: 30px;
