@@ -10,7 +10,8 @@
     <!-- Navbar content -->
     <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
         <!-- Search (Autocomplete) -->
-        <form class="d-flex align-items-center" onsubmit="return false;">
+        <!-- Added flex-grow-1 so the form can expand -->
+        <form class="d-flex align-items-center flex-grow-1" onsubmit="return false;">
             <input type="text" id="player-search" name="query" class="form-control" placeholder="Search players" aria-label="Search">
         </form>
         <!-- /Search -->
@@ -185,10 +186,9 @@
     </div>
 </nav>
 <style>
-    /* Responsive search input styling */
+    /* Base search input styling */
     #player-search {
         width: 100%;
-        max-width: 600px; /* Mobile: smaller max width */
         padding: 10px 15px;
         font-size: 16px;
         border: none;
@@ -199,10 +199,17 @@
         -moz-appearance: none;
     }
 
-    /* Increase the search area on larger screens */
+    /* On smaller screens, limit the max width */
+    @media (max-width: 991px) {
+        #player-search {
+            max-width: 600px;
+        }
+    }
+
+    /* On larger screens, allow a larger search input */
     @media (min-width: 992px) {
         #player-search {
-            max-width: 1200px; /* Desktop: larger search area */
+            max-width: 1200px;
         }
     }
 
