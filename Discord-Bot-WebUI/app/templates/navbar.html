@@ -188,7 +188,7 @@
     /* Responsive search input styling */
     #player-search {
         width: 100%;
-        max-width: 600px; /* Adjust max-width for larger screens as needed */
+        max-width: 600px; /* Mobile: smaller max width */
         padding: 10px 15px;
         font-size: 16px;
         border: none;
@@ -199,9 +199,16 @@
         -moz-appearance: none;
     }
 
-        #player-search:focus {
-            box-shadow: 0 0 0 2px #007bff;
+    /* Increase the search area on larger screens */
+    @media (min-width: 992px) {
+        #player-search {
+            max-width: 1200px; /* Desktop: larger search area */
         }
+    }
+
+    #player-search:focus {
+        box-shadow: 0 0 0 2px #007bff;
+    }
 
     /* Style the autocomplete dropdown with a dark background and white text */
     .ui-autocomplete {
