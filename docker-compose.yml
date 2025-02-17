@@ -122,7 +122,7 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
-    command: python celery_beat.py
+    command: python celery_beat.py -s /tmp/celerybeat/celerybeat-schedule
     env_file:
       - .env
     environment:
@@ -130,7 +130,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./Discord-Bot-WebUI:/app
-      #- celery_beat_data:/tmp/celerybeat
+      - celery_beat_data:/tmp/celerybeat
     healthcheck:
       test: ["CMD", "python", "healthcheck.py"]
       interval: 30s
