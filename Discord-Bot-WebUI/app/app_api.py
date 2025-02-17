@@ -16,6 +16,7 @@ import logging
 
 # Third-party imports
 import requests
+from sqlalchemy import func
 
 # Flask and extensions
 from flask import (
