@@ -401,6 +401,58 @@ async def on_raw_reaction_add(payload):
         await message.remove_reaction(payload.emoji, user)
 
 @bot.event
+async def on_member_join(member: discord.Member):
+    """
+    When a member joins the server, check with the Flask app if the member is linked.
+    If linked, retrieve the expected roles and assign them using Discord API calls.
+    """
+    logger.info(f"Member join event triggered for {member.id} - {member.name}")
+    # Wait a few seconds to allow for any asynchronous linking in Flask to complete.
+    await asyncio.sleep(5)
+    
+    flask_url = f"{WEBUI_API_URL}/player/by_discord/{member.id}"
+    logger.info(f"Requesting expected roles from Flask at {flask_url}")
+    
+    try:
+        async with aiohttp.ClientSession() as http_session:
+            async with http_session.get(flask_url) as resp:
+                logger.info(f"Flask API response status: {resp.status} for member {member.id}")
+                response_text = await resp.text()
+                logger.debug(f"Raw response text: {response_text}")
+                
+                if resp.status == 200:
+                    try:
+                        data = await resp.json()
+                        logger.debug(f"Response JSON for member {member.id}: {data}")
+                    except Exception as json_error:
+                        logger.error(f"Failed to parse JSON response for member {member.id}: {json_error}")
+                        return  # Exit if we can't parse the JSON
+                    
+                    if data.get("exists"):
+                        expected_roles = data.get("expected_roles", [])
+                        if expected_roles:
+                            logger.info(f"Linked player found for {member.id} ({data.get('player_name')}). Expected roles: {expected_roles}")
+                            for role_name in expected_roles:
+                                # Look up the role by name in the guild.
+                                role = discord.utils.get(member.guild.roles, name=role_name)
+                                if role:
+                                    try:
+                                        await member.add_roles(role)
+                                        logger.info(f"Assigned role '{role_name}' to member {member.id}")
+                                    except Exception as e:
+                                        logger.error(f"Failed to assign role '{role_name}' to member {member.id}: {e}")
+                                else:
+                                    logger.error(f"Role '{role_name}' not found in guild {member.guild.name} for member {member.id}.")
+                        else:
+                            logger.info(f"No expected roles for linked player {member.id}.")
+                    else:
+                        logger.info(f"No linked player record found for member {member.id}.")
+                else:
+                    logger.error(f"Flask API returned status {resp.status} for member {member.id}. Response: {response_text}")
+    except Exception as e:
+        logger.exception(f"Error processing member join for {member.id}: {e}")
+
+@bot.event
 async def on_raw_reaction_remove(payload):
     if payload.user_id == bot.user.id:
         return

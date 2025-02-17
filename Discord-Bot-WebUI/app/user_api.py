@@ -14,6 +14,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, g, url_for
 from app import csrf
 from app.models import User, Player, Team, player_teams
+from app.discord_utils import get_expected_roles
 from app.sms_helpers import (
     send_sms,
     verify_sms_confirmation,
@@ -22,7 +23,7 @@ from app.sms_helpers import (
 
 logger = logging.getLogger(__name__)
 user_bp = Blueprint('user_api', __name__)
-csrf.exempt(user_bp)  # Exempt this blueprint from CSRF protection for API endpoints
+csrf.exempt(user_bp)
 
 
 @user_bp.route('/player_lookup', methods=['GET'])
@@ -271,3 +272,26 @@ def team_lookup():
         },
         "players": players_list
     }), 200
+
+@user_bp.route('/player/by_discord/<discord_id>', methods=['GET'])
+def get_player_by_discord(discord_id: str):
+    try:
+        logger.info(f"Looking up player with discord_id: {discord_id}")
+        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
+        if not player:
+            logger.info(f"No player found for discord_id: {discord_id}")
+            return jsonify({"exists": False}), 404
+
+        logger.info(f"Found player: {player.name} (ID: {player.id}). Calculating expected roles...")
+        import asyncio
+        expected_roles = asyncio.run(get_expected_roles(g.db_session, player))
+        logger.info(f"Expected roles for player {player.name}: {expected_roles}")
+        return jsonify({
+            "exists": True,
+            "player_name": player.name,
+            "expected_roles": expected_roles
+        }), 200
+
+    except Exception as e:
+        logger.exception(f"Error in get_player_by_discord for discord_id: {discord_id}: {e}")
+        return jsonify({"error": "Internal server error"}), 500

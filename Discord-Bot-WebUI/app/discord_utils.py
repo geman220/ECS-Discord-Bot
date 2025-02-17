@@ -13,6 +13,7 @@ import aiohttp
 import asyncio
 import logging
 import time
+import re
 from functools import wraps
 from typing import Optional, List, Dict, Any, Union
 
@@ -37,7 +38,6 @@ GLOBAL_RATE_LIMIT = 50  # Adjust according to Discord's global rate limit per se
 # Global caches for categories and roles
 category_cache: Dict[str, str] = {}
 role_name_cache: Dict[str, str] = {}
-
 
 class RateLimiter:
     """
@@ -744,10 +744,12 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     async with aiohttp.ClientSession() as aio_session:
         current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
 
+    # Preserve any roles that are not managed by our app
     for role in current_roles:
         if not any(role.startswith(prefix) for prefix in app_role_prefixes):
             roles.append(role)
 
+    # Determine leagues associated with the player
     leagues_for_user = set()
     if player.league_id:
         league_obj = session.query(League).filter_by(id=player.league_id).first()
@@ -761,19 +763,24 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if t.league and t.league.name:
             leagues_for_user.add(t.league.name.strip().upper())
 
+    # Append league-based roles, normalizing the constructed role names
     for league_name in leagues_for_user:
         if league_name == "PREMIER":
-            roles.append("ECS-FC-PL-PREMIER")
+            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
             if player.is_coach:
-                roles.append("ECS-FC-PL-PREMIER-COACH")
+                roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
         elif league_name == "CLASSIC":
-            roles.append("ECS-FC-PL-CLASSIC")
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
             if player.is_coach:
-                roles.append("ECS-FC-PL-CLASSIC-COACH")
+                roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+
+    # Append team-based roles using normalized role names
     for t in player.teams:
-        roles.append(f"ECS-FC-PL-{t.name}-PLAYER")
+        roles.append(normalize_name(f"ECS-FC-PL-{t.name}-PLAYER"))
+
     if player.is_ref:
-        roles.append("Referee")
+        roles.append(normalize_name("Referee"))
+    
     return roles
 
 
