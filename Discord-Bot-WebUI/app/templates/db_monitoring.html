@@ -73,8 +73,9 @@
                             <th>Age</th>
                             <th>State</th>
                             <th>Source</th>
-                            <th>Transaction Age</th>
-                            <th>Transaction Name</th>
+                            <th>Tx Age</th>
+                            <th>Query Start</th>
+                            <th>Tx Start</th>
                             <th>Query</th>
                             <th>Stack Trace</th>
                             <th>Actions</th>
@@ -143,31 +144,22 @@
 {% block custom_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Initialize dashboard
         refreshDashboard();
-
-        // Set up auto-refresh every 5 seconds
         setInterval(refreshDashboard, 5000);
-
-        // Set up force cleanup button
         document.getElementById('forceCleanup').addEventListener('click', handleForceCleanup);
     });
 
     async function refreshDashboard() {
         try {
-            // Fetch all data in parallel
             const [statsResponse, connectionsResponse] = await Promise.all([
                 fetch('/monitoring/db/stats'),
                 fetch('/monitoring/db/connections')
             ]);
-
             const statsData = await statsResponse.json();
             const connectionsData = await connectionsResponse.json();
-
             if (statsData.success) {
                 updateStats(statsData.stats);
             }
-
             if (connectionsData.success) {
                 updateTables(connectionsData.connections);
             }
@@ -190,53 +182,50 @@
     function updateTables(connections) {
         const activeConnections = connections.filter(conn => !conn.leaked);
         const leakedConnections = connections.filter(conn => conn.leaked);
-
         document.getElementById('activeConnectionsTable').innerHTML = activeConnections.map(conn => `
-        <tr>
-            <td>${conn.pid}</td>
-            <td>${formatDuration(conn.age)}</td>
-            <td><span class="badge bg-${getStateColor(conn.state)}">${conn.state}</span></td>
-            <td>${escapeHtml(conn.usename)}@${escapeHtml(conn.client_addr || 'local')}</td>
-            <td>${formatDuration(conn.transaction_age)}</td>
-            <td>${escapeHtml(conn.transaction_name || '-')}</td>
-            <td>
-                <button class="btn btn-sm btn-secondary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')">
-                    View Query
-                </button>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
-                    View
-                </button>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-danger" onclick="terminateConnection(${conn.pid})">
-                    Terminate
-                </button>
-            </td>
-        </tr>
-    `).join('');
+            <tr>
+                <td>${conn.pid}</td>
+                <td>${formatDuration(conn.age)}</td>
+                <td><span class="badge bg-${getStateColor(conn.state)}">${conn.state}</span></td>
+                <td>${escapeHtml(conn.usename)}@${escapeHtml(conn.client_addr || 'local')}</td>
+                <td>${formatDuration(conn.transaction_age)}</td>
+                <td>${conn.query_start ? new Date(conn.query_start).toLocaleTimeString() : '-'}</td>
+                <td>${conn.xact_start ? new Date(conn.xact_start).toLocaleTimeString() : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')">
+                        View Query
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
+                        View
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="terminateConnection(${conn.pid})">
+                        Terminate
+                    </button>
+                </td>
+            </tr>
+        `).join('');
 
         document.getElementById('leakedConnectionsTable').innerHTML = leakedConnections.map(conn => `
-        <tr>
-            <td>${conn.pid}</td>
-            <td>${escapeHtml(conn.transaction_name || '-')}</td>
-            <td>
-                <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
-                    View
-                </button>
-            </td>
-            <td>${formatDuration(conn.leaked_duration)}</td>
-        </tr>
-    `).join('');
+            <tr>
+                <td>${conn.pid}</td>
+                <td>${escapeHtml(conn.transaction_name || '-')}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
+                        View
+                    </button>
+                </td>
+                <td>${formatDuration(conn.leaked_duration)}</td>
+            </tr>
+        `).join('');
     }
 
     async function handleForceCleanup() {
         try {
-            const response = await fetch('/monitoring/db/cleanup', {
-                method: 'POST'
-            });
-
+            const response = await fetch('/monitoring/db/cleanup', { method: 'POST' });
             const data = await response.json();
             if (data.success) {
                 showAlert(data.message, 'success');
@@ -253,10 +242,10 @@
         try {
             const response = await fetch(`/monitoring/db/connections/${pid}/stack`);
             const data = await response.json();
-
             if (data.success) {
                 const modal = document.getElementById('stackTraceModal');
-                modal.querySelector('.stack-trace-content').textContent = data.stack_trace;
+                // Use data.details.stack_trace instead of data.stack_trace
+                modal.querySelector('.stack-trace-content').textContent = data.details.stack_trace || 'No stack trace captured';
                 new bootstrap.Modal(modal).show();
             } else {
                 showAlert('Failed to fetch stack trace: ' + data.error, 'danger');
@@ -280,18 +269,9 @@
     function showQuery(pid, query) {
         try {
             const modal = document.getElementById('queryModal');
-            if (!modal) {
-                console.error('Query modal not found');
-                return;
-            }
             const content = modal.querySelector('.query-content');
-            if (!content) {
-                console.error('Query content element not found');
-                return;
-            }
             content.textContent = query || 'No query available';
-            const modalInstance = new bootstrap.Modal(modal);
-            modalInstance.show();
+            new bootstrap.Modal(modal).show();
         } catch (error) {
             console.error('Error showing query:', error);
             showAlert('Error displaying query: ' + error.message, 'danger');
@@ -302,16 +282,12 @@
         if (!confirm('Are you sure you want to terminate this connection?')) {
             return;
         }
-
         try {
             const response = await fetch('/monitoring/db/terminate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pid })
             });
-
             const data = await response.json();
             if (data.success) {
                 showAlert(`Connection ${pid} terminated successfully`, 'success');
@@ -329,11 +305,10 @@
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
         alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
         alertContainer.appendChild(alert);
-
         setTimeout(() => alert.remove(), 5000);
     }
 

@@ -50,6 +50,7 @@ class DatabaseMetrics:
         """
         self.session_starts[session_id] = time.time()
         DB_CONNECTIONS.inc()
+        logger.debug(f"Session {session_id} started at {self.session_starts[session_id]}")
         
     def end_session(self, session_id: int):
         """
@@ -65,6 +66,7 @@ class DatabaseMetrics:
             duration = time.time() - self.session_starts[session_id]
             DB_CONNECTIONS.dec()
             DB_OPERATION_DURATION.labels('session').observe(duration)
+            logger.debug(f"Session {session_id} ended; duration {duration:.2f}s")
             del self.session_starts[session_id]
             
     def record_operation(self, operation_type: str, duration: float):
@@ -82,12 +84,15 @@ class DatabaseMetrics:
         DB_OPERATIONS.labels(operation_type).inc()
         DB_OPERATION_DURATION.labels(operation_type).observe(duration)
         
-        if duration > current_app.config.get('DB_SLOW_QUERY_THRESHOLD', 1.0):
-            self.long_queries.append({
+        threshold = current_app.config.get('DB_SLOW_QUERY_THRESHOLD', 1.0)
+        if duration > threshold:
+            record = {
                 'type': operation_type,
                 'duration': duration,
                 'timestamp': datetime.utcnow()
-            })
+            }
+            self.long_queries.append(record)
+            logger.warning(f"Slow operation recorded: {record}")
             
     def record_error(self, error_type: str):
         """
@@ -100,6 +105,7 @@ class DatabaseMetrics:
         """
         DB_ERRORS.labels(error_type).inc()
         self.error_counts[error_type] = self.error_counts.get(error_type, 0) + 1
+        logger.error(f"Database error recorded: {error_type}")
         
     def get_metrics(self) -> Dict:
         """
@@ -125,11 +131,11 @@ class DatabaseMetrics:
         Removes long query records older than one hour and cleans up any orphaned session start
         entries (i.e., sessions that have been active for more than one hour without being ended).
         """
-        # Remove long queries older than one hour.
         cutoff = datetime.utcnow() - timedelta(hours=1)
+        old_long_queries = len(self.long_queries)
         self.long_queries = [q for q in self.long_queries if q['timestamp'] > cutoff]
+        logger.debug(f"Cleaned up {old_long_queries - len(self.long_queries)} long query records")
         
-        # Identify orphaned sessions that have been active for more than 1 hour.
         current_time = time.time()
         orphaned_sessions = [
             session_id for session_id, start_time in self.session_starts.items()

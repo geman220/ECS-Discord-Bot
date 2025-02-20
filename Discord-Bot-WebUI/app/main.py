@@ -467,6 +467,7 @@ def index():
 
         return render_template(
             'index.html',
+            title='Home',
             report_form=report_form,
             matches=matches,
             onboarding_form=onboarding_form,

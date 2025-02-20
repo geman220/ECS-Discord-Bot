@@ -312,4 +312,4 @@ def calendar_view():
     """
     Render the calendar view page.
     """
-    return render_template('calendar.html')
+    return render_template('calendar.html', title='Pub League Calendar')

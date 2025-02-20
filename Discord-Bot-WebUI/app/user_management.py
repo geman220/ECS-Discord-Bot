@@ -127,6 +127,7 @@ def manage_users():
 
     return render_template(
         'manage_users.html',
+        title='User Management',
         users=users_data,
         roles=roles_query,
         leagues=leagues_query,
@@ -185,7 +186,7 @@ def create_user():
         flash(f'User {user.username} created successfully.', 'success')
         return redirect(url_for('user_management.manage_users'))
 
-    return render_template('create_user.html', form=form)
+    return render_template('create_user.html', title='Create User', form=form)
 
 
 @user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])

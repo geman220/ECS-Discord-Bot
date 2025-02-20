@@ -22,7 +22,9 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "associatedDomains": [ "applinks:portal.ecsfc.com" ]
+      "associatedDomains": [
+        "applinks:portal.ecsfc.com"
+      ]
     },
     "android": {
       "package": "com.ecsfc.app",
@@ -35,7 +37,10 @@
               "host": "auth"
             }
           ],
-          "category": [ "BROWSABLE", "DEFAULT" ]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -48,6 +53,10 @@
         "projectId": "99453acc-f967-417c-aaff-70ab9f35b5d1"
       }
     },
-    "owner": "geman220"
+    "owner": "geman220",
+    "plugins": [
+      "expo-asset",
+      "expo-font"
+    ]
   }
 }

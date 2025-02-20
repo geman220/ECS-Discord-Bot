@@ -388,29 +388,21 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
     queue='live_reporting',
     max_retries=2
 )
-def force_create_mls_thread_task(self, session, match_id: str) -> Dict[str, Any]:
+def force_create_mls_thread_task(self, injected_session, match_id: str, force: bool = False) -> Dict[str, Any]:
     """
     Force the immediate creation of a Discord thread for an MLS match.
-
-    Returns:
-        A dictionary with the creation result and thread ID if successful.
-
-    Raises:
-        Retries the task on errors.
+    Returns a dictionary with the creation result and thread ID if successful.
     """
+    session = current_app.SessionLocal()
     try:
         logger.info(f"Starting thread creation for match {match_id}")
-        try:
-            pk = int(match_id)
-            match = session.query(MLSMatch).get(pk)
-        except ValueError:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
 
         if not match:
             logger.error(f"Match {match_id} not found")
             return {'success': False, 'message': f'Match {match_id} not found'}
 
-        if match.thread_created:
+        if match.thread_created and not force:
             logger.info(f"Thread already exists for match {match_id}")
             return {'success': True, 'message': 'Thread already exists'}
 
@@ -421,6 +413,7 @@ def force_create_mls_thread_task(self, session, match_id: str) -> Dict[str, Any]
             if thread_id:
                 match.thread_created = True
                 match.discord_thread_id = thread_id
+                session.commit()
 
                 logger.info(f"Created thread {thread_id} for match {match_id}")
                 return {
@@ -436,11 +429,15 @@ def force_create_mls_thread_task(self, session, match_id: str) -> Dict[str, Any]
             loop.close()
 
     except SQLAlchemyError as e:
+        session.rollback()
         logger.error(f"Database error creating thread for match {match_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
+        session.rollback()
         logger.error(f"Error creating thread for match {match_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
+    finally:
+        session.close()
 
 
 @celery_task(

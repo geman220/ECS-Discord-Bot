@@ -16,7 +16,7 @@ import logging
 
 # Third-party imports
 import requests
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 # Flask and extensions
 from flask import (
@@ -25,8 +25,9 @@ from flask import (
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 
 # Local application imports
+from app import csrf
 from app.models import (
-    User, Player, Team, Match, Season
+    User, Player, Team, Match, Season, League
 )
 from app.decorators import (
     jwt_role_required
@@ -42,6 +43,7 @@ from app.app_api_helpers import (
 
 logger = logging.getLogger(__name__)
 mobile_api = Blueprint('mobile_api', __name__)
+csrf.exempt(mobile_api)
 
 
 @mobile_api.before_request
@@ -49,7 +51,7 @@ def limit_remote_addr():
     """
     Restrict API access to allowed hosts.
     """
-    allowed_hosts = ['127.0.0.1:5000', 'localhost:5000', 'webui:5000']
+    allowed_hosts = ['127.0.0.1:5000', 'localhost:5000', 'webui:5000', '192.168.1.112:5000']
     if request.host not in allowed_hosts:
         return "Access Denied", 403
 
@@ -168,8 +170,8 @@ def get_user_profile():
             "additional_info": player.additional_info,
             "is_current_player": player.is_current_player,
             "profile_picture_url": full_profile_picture_url,
-            "team_id": player.team_id,
-            "team_name": player.team.name if player.team else None,
+            "team_id": player.primary_team_id,
+            "team_name": player.primary_team.name if player.primary_team else None,
             "league_name": player.league.name if player.league else None,
         }
         response_data.update(player_data)
@@ -245,10 +247,30 @@ def get_player(player_id: int):
 @jwt_required()
 def get_teams():
     """
-    Retrieve a list of all teams with associated league names.
+    Retrieve a list of teams for the current season with associated league names.
     """
     session_db = g.db_session
-    teams = session_db.query(Team).all()
+
+    # Retrieve current seasons for Pub League and ECS FC.
+    current_pub_season = session_db.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    current_ecs_season = session_db.query(Season).filter_by(is_current=True, league_type='ECS FC').first()
+
+    # Build conditions based on which current seasons exist.
+    conditions = []
+    if current_pub_season:
+        conditions.append(League.season_id == current_pub_season.id)
+    if current_ecs_season:
+        conditions.append(League.season_id == current_ecs_season.id)
+
+    # Query teams by joining with League and applying the conditions.
+    teams_query = session_db.query(Team).join(League, Team.league_id == League.id)
+    if len(conditions) == 1:
+        teams_query = teams_query.filter(conditions[0])
+    elif len(conditions) == 2:
+        teams_query = teams_query.filter(or_(*conditions))
+
+    teams = teams_query.order_by(Team.name).all()
+
     teams_data = [
         {
             **team.to_dict(),
@@ -294,10 +316,10 @@ def get_my_team():
     current_user_id = get_jwt_identity()
     player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-    if not player or not player.team:
+    if not player or not player.primary_team:
         return jsonify({"msg": "Team not found"}), 404
 
-    return get_team_details(player.team.id)
+    return get_team_details(player.primary_team.id)
 
 
 @mobile_api.route('/matches', endpoint='get_all_matches', methods=['GET'])
@@ -549,7 +571,7 @@ def discord_callback():
         )
 
         user_data = get_discord_user_data(token_data['access_token'])
-        user = process_discord_user(user_data, session=g.db_session)
+        user = process_discord_user(user_data)
 
         if user.is_2fa_enabled:
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
@@ -579,5 +601,5 @@ def get_players():
         (Team.name.ilike(f"%{search_query}%"))
     )
 
-    players_data = [build_player_response(player, session=session_db) for player in players_query.all()]
+    players_data = [build_player_response(player) for player in players_query.all()]
     return jsonify(players_data), 200

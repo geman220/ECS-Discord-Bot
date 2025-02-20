@@ -154,6 +154,7 @@ def submit_feedback():
         
         return render_template(
             'feedback/submit_feedback.html',
+            title='Submit Feedback',
             form=form,
             feedbacks=user_feedbacks,
             search_query=search_query,
@@ -209,7 +210,8 @@ def view_feedback(feedback_id):
                 raise
             
         return render_template(
-            'view_feedback_user.html', 
+            'view_feedback_user.html',
+            title='View Feedback',
             feedback=feedback,
             form=form
         )

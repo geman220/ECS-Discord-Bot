@@ -164,6 +164,7 @@ def verify_purchase():
     discord_email = request.args.get('discord_email', 'your Discord email')
     discord_username = request.args.get('discord_username', 'Discord User')
     return render_template('verify_purchase.html',
+                           title='Discord Error',
                            discord_email=discord_email,
                            discord_username=discord_username)
 
@@ -197,13 +198,13 @@ def login():
 
         if request.method == 'GET':
             logger.debug("GET request - rendering login form")
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
         logger.debug("Processing login POST request")
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
             flash('Please check your form inputs.', 'danger')
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
         email = form.email.data.lower()
         logger.debug(f"Attempting login for email: {email}")
@@ -212,7 +213,7 @@ def login():
         if not users:
             logger.debug("No user found with provided email")
             flash('Invalid email or password', 'danger')
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
         if len(users) > 1:
             logger.debug(f"Multiple users found for email {email}")
@@ -220,7 +221,7 @@ def login():
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
                 flash('Multiple profiles found. Please contact an admin.', 'warning')
-                return render_template('login.html', form=form)
+                return render_template('login.html', title='Login', form=form)
 
         user = users[0]
         logger.debug(f"Found user: {user.id}")
@@ -228,12 +229,12 @@ def login():
         if not user.check_password(form.password.data):
             logger.debug("Invalid password")
             flash('Invalid email or password', 'danger')
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
         if not user.is_approved:
             logger.debug("User not approved")
             flash('Your account is not approved yet.', 'info')
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
         # If 2FA is enabled, redirect to 2FA verification.
         if user.is_2fa_enabled:
@@ -261,17 +262,17 @@ def login():
             else:
                 logger.error("Failed to update last login")
                 flash('Login failed. Please try again.', 'danger')
-                return render_template('login.html', form=form)
+                return render_template('login.html', title='Login', form=form)
 
         except Exception as e:
             logger.error(f"Error during login: {str(e)}", exc_info=True)
             flash('Login failed. Please try again.', 'danger')
-            return render_template('login.html', form=form)
+            return render_template('login.html', title='Login', form=form)
 
     except Exception as e:
         logger.error(f"Unexpected error in login route: {str(e)}", exc_info=True)
         flash('An unexpected error occurred. Please try again.', 'danger')
-        return render_template('login.html', form=form)
+        return render_template('login.html', title='Login', form=form)
 
 
 # ----------------------------------------------------------------------
@@ -306,7 +307,7 @@ def verify_2fa_login():
 
         flash('Invalid 2FA token.', 'danger')
 
-    return render_template('verify_2fa.html', form=form)
+    return render_template('verify_2fa.html', title='Verify 2FA', form=form)
 
 
 # ----------------------------------------------------------------------
@@ -369,7 +370,7 @@ def register():
             logger.error(f"Registration error: {str(e)}")
             flash('Registration failed. Please try again.', 'danger')
 
-    return render_template('register.html', form=form)
+    return render_template('register.html', title='Register', form=form)
 
 
 @auth.route('/forgot_password', methods=['GET', 'POST'])
@@ -393,7 +394,7 @@ def forgot_password():
         flash('No account found with that email.', 'danger')
         return redirect(url_for('auth.forgot_password'))
 
-    return render_template('forgot_password.html', form=form)
+    return render_template('forgot_password.html', title='Forgot Password', form=form)
 
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
@@ -428,7 +429,7 @@ def reset_password_token(token):
             logger.error(f"Password reset error: {str(e)}")
             flash('Password reset failed. Please try again.', 'danger')
 
-    return render_template('reset_password.html', form=form, token=token)
+    return render_template('reset_password.html', title='Reset Password', form=form, token=token)
 
 
 @auth.route('/logout', methods=['POST'])
@@ -447,10 +448,10 @@ def logout():
 @auth.errorhandler(404)
 def not_found_error(error):
     logger.error(f"404 error: {error}")
-    return render_template('404.html'), 404
+    return render_template('404.html', title='404',), 404
 
 
 @auth.errorhandler(500)
 def internal_error(error):
     logger.error(f"500 error: {error}")
-    return render_template('500.html'), 500
+    return render_template('500.html', title='500',), 500

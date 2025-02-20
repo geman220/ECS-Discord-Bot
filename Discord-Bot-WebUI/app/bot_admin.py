@@ -318,19 +318,16 @@ def update_mls_match_route(match_id):
         raise
 
 
-@bot_admin_bp.route('/matches/remove/<int:match_id>', methods=['POST'])
+@bot_admin_bp.route('/matches/remove/<match_id>', methods=['POST'])
 @login_required
 def remove_mls_match(match_id):
-    """
-    Remove an MLS match and revoke associated live reporting tasks.
-    """
     session_db = g.db_session
     try:
-        match = session_db.query(MLSMatch).get(match_id)
+        match = session_db.query(MLSMatch).filter_by(match_id=match_id).first()
         if not match:
             return jsonify(success=False, message="Match not found."), 404
 
-        redis_client = current_app.extensions['redis']
+        redis_client = RedisManager().client
         thread_key = f"match_scheduler:{match_id}:thread"
         reporting_key = f"match_scheduler:{match_id}:reporting"
 
@@ -343,7 +340,6 @@ def remove_mls_match(match_id):
         session_db.delete(match)
         logger.info(f"Match {match_id} and associated tasks removed successfully.")
         return jsonify(success=True, message="Match removed successfully.")
-
     except Exception as e:
         logger.error(f"Error removing match {match_id}: {str(e)}")
         raise
@@ -400,13 +396,16 @@ def create_match_thread(match_id):
     Create a thread for a match by triggering a Celery task.
     """
     session_db = g.db_session
+    force = request.args.get('force', 'false').lower() == 'true'
+    
     try:
         match = session_db.query(MLSMatch).filter_by(id=match_id).first()
         if not match:
             return jsonify({'success': False, 'message': 'Match not found'}), 404
         if not match.match_id:
             return jsonify({'success': False, 'message': 'No ESPN match ID found'}), 400
-        if match.thread_created:
+        # Only block thread creation if one already exists and force isn't True
+        if match.thread_created and not force:
             return jsonify({'success': False, 'message': 'Thread already exists'}), 400
 
         task = force_create_mls_thread_task.delay(match.match_id)

@@ -16,6 +16,7 @@ import time
 import re
 from functools import wraps
 from typing import Optional, List, Dict, Any, Union
+from zoneinfo import ZoneInfo
 
 from web_config import Config
 
@@ -915,13 +916,17 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
         home_team_name = match.opponent
         away_team_name = local_team_name
 
-    thread_name = f"{home_team_name} vs {away_team_name} - {match.date_time.strftime('%Y-%m-%d')}"
+    # Convert match.date_time (assumed to be in UTC) to PST
+    utc_time = match.date_time.replace(tzinfo=ZoneInfo("UTC"))
+    pst_time = utc_time.astimezone(ZoneInfo("America/Los_Angeles"))
+
+    thread_name = f"{home_team_name} vs {away_team_name} - {pst_time.strftime('%Y-%m-%d')}"
     embed_data = {
         "title": f"Match Thread: {home_team_name} vs {away_team_name}",
         "description": "**Let's go Sounders!**",
         "color": 0x5B9A49,
         "fields": [
-            {"name": "Date and Time", "value": match.date_time.strftime("%m/%d/%Y %I:%M %p PST"), "inline": False},
+            {"name": "Date and Time", "value": pst_time.strftime("%m/%d/%Y %I:%M %p %Z"), "inline": False},
             {"name": "Venue", "value": match.venue if match.venue else "TBD", "inline": False},
             {"name": "Competition", "value": match.competition if match.competition else "Unknown", "inline": True},
             {"name": "Broadcast", "value": "AppleTV", "inline": True},

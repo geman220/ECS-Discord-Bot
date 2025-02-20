@@ -161,7 +161,7 @@ def build_player_response(player: Player) -> Dict[str, Any]:
         'id': player.id,
         'name': player.name,
         'profile_picture_url': profile_picture,
-        'team_name': player.team.name if player.team else None,
+        'team_name': player.primary_team.name if player.primary_team else None,
         'league_name': player.league.name if player.league else None,
     }
 
@@ -359,16 +359,16 @@ def get_match_events(match: Match) -> Dict[str, int]:
     return {
         'home_yellow_cards': sum(1 for event in events
                                  if event.event_type == PlayerEventType.YELLOW_CARD 
-                                 and event.player.team_id == match.home_team_id),
+                                 and event.player.primary_team_id == match.home_team_id),
         'away_yellow_cards': sum(1 for event in events
                                  if event.event_type == PlayerEventType.YELLOW_CARD 
-                                 and event.player.team_id == match.away_team_id),
+                                 and event.player.primary_team_id == match.away_team_id),
         'home_red_cards': sum(1 for event in events
                               if event.event_type == PlayerEventType.RED_CARD 
-                              and event.player.team_id == match.home_team_id),
+                              and event.player.primary_team_id == match.home_team_id),
         'away_red_cards': sum(1 for event in events
                               if event.event_type == PlayerEventType.RED_CARD 
-                              and event.player.team_id == match.away_team_id)
+                              and event.player.primary_team_id == match.away_team_id)
     }
 
 
@@ -416,9 +416,9 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         query = query.filter(
             or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
         )
-    elif player and player.team_id:
+    elif player and player.primary_team_id:
         query = query.filter(
-            or_(Match.home_team_id == player.team_id, Match.away_team_id == player.team_id)
+            or_(Match.home_team_id == player.primary_team_id, Match.away_team_id == player.primary_team_id)
         )
 
     if upcoming:
