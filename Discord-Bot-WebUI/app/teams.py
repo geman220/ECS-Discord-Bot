@@ -9,17 +9,23 @@ It handles both current and historical player data and match reports.
 """
 
 import logging
+import os
+import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Optional
+from werkzeug.utils import secure_filename
 
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, request, jsonify, g
+    Blueprint, render_template, redirect, url_for, flash, request, jsonify, g,
+    current_app
 )
 from flask_login import login_required
 from flask_wtf.csrf import validate_csrf, CSRFError
 from sqlalchemy import or_
 from sqlalchemy.orm import selectinload, joinedload
+from PIL import Image
+from io import BytesIO
 
 from app.models import (
     Team, Player, League, Season, Match, Standings,
@@ -32,6 +38,10 @@ from app.utils.user_helpers import safe_current_user
 logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @teams_bp.route('/<int:team_id>', endpoint='team_details')
 @login_required
@@ -409,3 +419,57 @@ def view_standings():
         premier_stats=premier_stats,
         classic_stats=classic_stats
     )
+
+@teams_bp.route('/upload_team_kit/<int:team_id>', methods=['POST'])
+@login_required
+def upload_team_kit(team_id):
+    session = g.db_session
+    team = session.query(Team).get(team_id)
+    if not team:
+        flash('Team not found.', 'danger')
+        return redirect(url_for('teams.teams_overview'))
+    
+    if 'team_kit' not in request.files:
+        flash('No file part in the request.', 'danger')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    
+    file = request.files['team_kit']
+    if file.filename == '':
+        flash('No file selected.', 'danger')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    
+    if file and allowed_file(file.filename):
+        
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'kits')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        
+        image = Image.open(file).convert("RGBA")
+        
+        def make_background_transparent(img, bg_color=(255, 255, 255), tolerance=30):
+            datas = img.getdata()
+            newData = []
+            for item in datas:
+                if (abs(item[0] - bg_color[0]) < tolerance and
+                    abs(item[1] - bg_color[1]) < tolerance and
+                    abs(item[2] - bg_color[2]) < tolerance):
+                    newData.append((255, 255, 255, 0))
+                else:
+                    newData.append(item)
+            img.putdata(newData)
+            return img
+        
+        image = make_background_transparent(image)
+        image.save(file_path, format='PNG')
+        
+        # Append a timestamp to bust the cache
+        timestamp = int(time.time())
+        team.kit_url = url_for('static', filename='img/uploads/kits/' + filename) + f'?v={timestamp}'
+        session.commit()
+        
+        flash('Team kit updated successfully!', 'success')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    else:
+        flash('Invalid file type. Allowed types: png, jpg, jpeg, gif.', 'danger')
+        return redirect(url_for('teams.team_details', team_id=team_id))

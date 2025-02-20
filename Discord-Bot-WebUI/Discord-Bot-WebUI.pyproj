@@ -276,7 +276,6 @@
     <Content Include="app\templates\reset_password.html" />
     <Content Include="app\templates\roles.html" />
     <Content Include="app\templates\rsvp_success.html" />
-    <Content Include="app\templates\DEPschedule_management.html" />
     <Content Include="app\templates\schedule_wizard.html" />
     <Content Include="app\templates\settings.html" />
     <Content Include="app\templates\sidebar.html" />

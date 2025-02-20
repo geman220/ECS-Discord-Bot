@@ -257,6 +257,8 @@ class Team(db.Model):
         cascade='all, delete-orphan'
     )
 
+    kit_url = db.Column(db.String(255), nullable=True)
+
     def to_dict(self, include_players=False):
         data = {
             'id': self.id,

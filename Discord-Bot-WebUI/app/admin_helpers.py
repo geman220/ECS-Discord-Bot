@@ -109,11 +109,12 @@ def get_filtered_users(filters) -> List[User]:
         filters: A dictionary of filter criteria.
 
     Returns:
-        A list of User objects that match the filters.
+        A SQLAlchemy query object for User objects that match the filters.
+        (Call .all() on the returned query when you need to iterate over the results.)
     """
     query = User.query.options(
         joinedload(User.roles),
-        joinedload(User.player).joinedload(Player.team),
+        joinedload(User.player).joinedload(Player.primary_team),
         joinedload(User.player).joinedload(Player.league)
     )
 
@@ -149,7 +150,8 @@ def get_filtered_users(filters) -> List[User]:
         if isinstance(is_approved, bool):
             query = query.filter(User.is_approved == is_approved)
 
-    return query.distinct().all()
+    # Return the query object so that methods like .count() are available.
+    return query.distinct()
 
 
 def handle_user_action(action: str, user_id: int) -> bool:
@@ -311,36 +313,43 @@ def handle_announcement_update(title: str = None, content: str = None,
         return False
 
 
-def get_role_permissions_data(role_id: int) -> Optional[List[int]]:
+def get_role_permissions_data(role_id: int, session=None) -> Optional[List[int]]:
     """
     Retrieve permission IDs for a specific role.
 
     Args:
         role_id: The ID of the role.
-
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
     Returns:
         A list of permission IDs for the role, or None if the role is not found.
     """
-    role = Role.query.get(role_id)
+    if session is None:
+        session = db.session
+    role = session.query(Role).get(role_id)
     if not role:
         return None
     return [perm.id for perm in role.permissions]
 
 
-def handle_permissions_update(role_id: int, permission_ids: List[int]) -> bool:
+def handle_permissions_update(role_id: int, permission_ids: List[int], session=None) -> bool:
     """
     Update a role's permissions.
 
     Args:
         role_id: The ID of the role.
         permission_ids: A list of permission IDs to assign to the role.
+        session: (Optional) A SQLAlchemy session to use for the query.
 
     Returns:
         True if the permissions were updated successfully, False otherwise.
     """
     try:
-        role = Role.query.get_or_404(role_id)
-        role.permissions = Permission.query.filter(Permission.id.in_(permission_ids)).all()
+        if session is None:
+            session = db.session
+        role = session.query(Role).get_or_404(role_id)
+        role.permissions = session.query(Permission).filter(Permission.id.in_(permission_ids)).all()
+        session.commit()
         return True
     except Exception as e:
         logger.error(f"Error updating permissions: {e}")
@@ -370,14 +379,14 @@ def get_rsvp_status_data(match: Match) -> List[Dict[str, Any]]:
             (Player.id == Availability.player_id) & (Availability.match_id == match.id)
         ).\
         filter(
-            (Player.team_id == match.home_team_id) | (Player.team_id == match.away_team_id)
+            (Player.primary_team_id == match.home_team_id) | (Player.primary_team_id == match.away_team_id)
         ).\
-        options(joinedload(Player.team)).\
+        options(joinedload(Player.primary_team)).\
         all()
 
     rsvp_data = [{
         'player': player,
-        'team': player.team,
+        'team': player.primary_team,
         'response': availability.response if availability else 'No Response',
         'responded_at': availability.responded_at if availability else None
     } for player, availability in players_with_availability]
@@ -558,24 +567,21 @@ def get_initial_expected_roles(player: Player) -> List[str]:
     Returns:
         A list of expected role strings.
     """
-    if player.team:
+    if player.primary_team:
         roles = []
-        # Determine team-specific role based on whether the player is a coach.
         role_suffix = 'Coach' if player.is_coach else 'Player'
-        roles.append(f"ECS-FC-PL-{player.team.name}-{role_suffix}")
-        
-        # Add league role if available.
-        if player.team.league:
+        roles.append(f"ECS-FC-PL-{player.primary_team.name}-{role_suffix}")
+        if player.primary_team.league:
             league_map = {
                 'Premier': 'ECS-FC-PL-PREMIER',
                 'Classic': 'ECS-FC-PL-CLASSIC',
                 'ECS FC': 'ECS-FC-LEAGUE'
             }
-            league_role = league_map.get(player.team.league.name)
+            # Updated to reference primary_team instead of non-existent team
+            league_role = league_map.get(player.primary_team.league.name)
             if league_role:
                 roles.append(league_role)
                 
-        # Include referee role if applicable.
         if player.is_ref:
             roles.append('Referee')
             
