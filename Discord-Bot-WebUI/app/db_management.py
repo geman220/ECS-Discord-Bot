@@ -102,8 +102,8 @@ class DatabaseManager:
         Args:
             app: The Flask application instance.
         """
-        if self.initialized:
-            return
+        #if self.initialized:
+        #    return
 
         try:
             self.app = app

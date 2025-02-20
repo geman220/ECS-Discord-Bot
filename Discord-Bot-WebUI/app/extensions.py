@@ -79,13 +79,20 @@ def init_worker_process(**kwargs):
     """
     Initialize the worker process by disposing old engine connections and
     re-creating the SQLAlchemy engine using the Flask application's configuration.
+    Then re-attach the DatabaseManager instrumentation to the new engine.
     """
     if hasattr(db, 'engine'):
         db.engine.dispose()
 
     app = current_app._get_current_object()
     engine_options = app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {})
+
+    # Recreate a new engine
     db.engine = db.create_engine(db.engine.url, **engine_options)
+
+    # Re-init instrumentation for the *new* engine
+    with app.app_context():
+        db_manager.init_app(app)
 
 @worker_process_shutdown.connect
 def cleanup_worker_process(**kwargs):
