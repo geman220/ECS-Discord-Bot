@@ -551,7 +551,7 @@ def connection_stats():
         JSON response with detailed connection statistics and pool usage.
     """
     try:
-        pool_stats = db_manager.get_pool_stats()  # Assuming this method exists
+        pool_stats = db_manager.get_pool_stats()
         engine = db.get_engine()
         with managed_session() as session:
             result = session.execute(text("""
