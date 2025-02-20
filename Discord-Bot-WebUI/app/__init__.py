@@ -33,6 +33,8 @@ from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
 from app.models import User, Role, Season
 from app.lifecycle import request_lifecycle
+from app.db_management import db_manager
+from app.database.config import configure_db_settings
 
 # Initialize Flask extensions.
 login_manager = LoginManager()
@@ -58,13 +60,14 @@ def create_app(config_object='web_config.Config'):
     Returns:
         A configured Flask application instance.
     """
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static")
     app.config.from_object(config_object)
     
     # Initialize asset management.
-    assets = Environment(app)
+    #assets = Environment(app)
     app.config['FLASK_ASSETS_USE_CDN'] = False
-    init_assets(app)
+    #init_assets(app)
+    app.assets = init_assets(app)
 
     # Configure logging using a dictConfig.
     logging.config.dictConfig(LOGGING_CONFIG)
@@ -108,12 +111,12 @@ def create_app(config_object='web_config.Config'):
     app.redis = redis_client
 
     # Configure database settings.
-    from app.database.config import configure_db_settings
     configure_db_settings(app)
     db.init_app(app)
 
     # Create the engine and session factory within the app context.
     with app.app_context():
+        db_manager.init_app(app)
         engine = db.engine
         SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
         app.SessionLocal = SessionLocal

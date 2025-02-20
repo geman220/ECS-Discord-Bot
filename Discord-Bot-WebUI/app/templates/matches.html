@@ -38,7 +38,7 @@
                     </thead>
                     <tbody>
                         {% for match in matches %}
-                        <tr id="row-{{ match.id }}" data-match-id="{{ match.id }}">
+                        <tr id="row-{{ match.match_id }}" data-match-id="{{ match.match_id }}">
                             <td>
                                 <span class="fw-bold" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
                             </td>
@@ -74,7 +74,7 @@
                                             </a>
                                         </li>
                                         <li>
-                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.id }}')">
+                                            <a class="dropdown-item text-danger" href="javascript:void(0);" onclick="removeMatch('{{ match.match_id }}')">
                                                 <i class="fas fa-trash-alt me-1"></i> Delete
                                             </a>
                                         </li>
@@ -246,10 +246,8 @@
     // Helper function to format the date string
     function formatDate(dateString) {
         const dateObj = new Date(dateString);
-
         // Adjust the date by adding 25 hours
         dateObj.setHours(dateObj.getHours() + 25);
-
         const options = {
             year: 'numeric',
             month: '2-digit',
@@ -258,7 +256,6 @@
             minute: '2-digit',
             hour12: true
         };
-
         return dateObj.toLocaleString('en-US', options).replace(',', '');
     }
 
@@ -266,11 +263,9 @@
         const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
         const dateCell = row.querySelector('td:nth-child(2)');
         const competitionCell = row.querySelector('td:nth-child(3)');
-
         // Revert to original values
         dateCell.textContent = dateCell.getAttribute('data-original-value');
         competitionCell.textContent = competitionCell.getAttribute('data-original-value');
-
         // Restore actions to default
         resetActionButtons(matchId);
     }
@@ -319,73 +314,115 @@
     }
 
     function removeMatch(matchId) {
-        if (!matchId) {
-            console.error('Invalid match ID');
-            alert('Error: Unable to remove match due to invalid ID.');
-            return;
-        }
+        // If match_id is actually a string in your DB, remove parseInt conversion.
+        // Otherwise, if it's numeric, you can leave as is.
+        const id = matchId; // Assuming matchId is a string like "726810"
 
-        if (confirm('Are you sure you want to remove this match? This action cannot be undone.')) {
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-            fetch(`/bot/admin/matches/remove/${matchId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                }
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const row = document.querySelector(`tr[data-match-id="${matchId}"]`);
-                        if (row) {
-                            row.remove();
-                        }
-                        alert(data.message);
-                    } else {
-                        alert(data.message || 'Failed to remove the match.');
+        // Use SweetAlert2 for confirmation
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                fetch(`/bot/admin/matches/remove/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
                     }
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while removing the match.');
-                });
-        }
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const row = document.querySelector(`tr[data-match-id="${id}"]`);
+                            if (row) {
+                                row.remove();
+                            }
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: data.message
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Deletion Failed',
+                                text: data.message || 'Failed to remove the match.'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while removing the match.'
+                        });
+                    });
+            }
+        });
     }
 
     function clearAllMatches() {
-        if (confirm('Are you sure you want to clear all matches? This action cannot be undone.')) {
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-            fetch('{{ url_for("bot_admin.clear_all_mls_matches") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('Failed to clear matches.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, clear all!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                fetch('{{ url_for("bot_admin.clear_all_mls_matches") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cleared!',
+                                text: 'All matches have been cleared.'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed',
+                                text: 'Failed to clear matches.'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while clearing matches.'
+                        });
+                    });
+            }
+        });
     }
 
     function startLiveReporting(matchId) {
+        const id = matchId; // Here you can decide if you need to convert as above
         const startButton = document.querySelector(`button.start-button[onclick="startLiveReporting('${matchId}')"]`);
         const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
 
         startButton.disabled = true;
-
-        fetch(`/bot/admin/start_live_reporting/${matchId}`, {
+        fetch(`/bot/admin/start_live_reporting/${id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -416,10 +453,10 @@
     }
 
     function stopLiveReporting(matchId) {
+        const id = matchId;
         const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
         stopButton.disabled = true;
-
-        fetch(`/bot/admin/stop_live_reporting/${matchId}`, {
+        fetch(`/bot/admin/stop_live_reporting/${id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -453,11 +490,8 @@
         const stopButton = document.querySelector(`button.stop-button[onclick="stopLiveReporting('${matchId}')"]`);
 
         if (statusSpan && startButton && stopButton) {
-            // Update status badge
             statusSpan.textContent = status.charAt(0).toUpperCase() + status.slice(1);
             statusSpan.className = `badge bg-${getStatusColor(status)}`;
-
-            // Update buttons
             if (status === 'running') {
                 startButton.textContent = 'Running';
                 startButton.disabled = true;
@@ -489,7 +523,6 @@
         }
     }
 
-    // Periodically update match statuses
     function updateAllMatchStatuses() {
         fetch('/bot/admin/get_all_match_statuses')
             .then(response => response.json())
@@ -501,10 +534,7 @@
             .catch(error => console.error('Error updating statuses:', error));
     }
 
-    // Update statuses every 30 seconds
     setInterval(updateAllMatchStatuses, 30000);
-
-    // Initial update on page load
     document.addEventListener('DOMContentLoaded', updateAllMatchStatuses);
 </script>
 {% endblock %}

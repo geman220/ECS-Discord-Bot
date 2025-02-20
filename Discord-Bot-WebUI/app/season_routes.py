@@ -61,7 +61,7 @@ def manage_seasons():
 
         return redirect(url_for('publeague.season.manage_seasons'))
 
-    return render_template('manage_seasons.html', pub_league_seasons=pub_league_seasons, ecs_fc_seasons=ecs_fc_seasons)
+    return render_template('manage_seasons.html', pub_league_seasons=pub_league_seasons, ecs_fc_seasons=ecs_fc_seasons, title='Manage Seasons')
 
 
 def rollover_league(session, old_season: Season, new_season: Season) -> bool:

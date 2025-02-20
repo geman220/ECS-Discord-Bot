@@ -78,7 +78,8 @@ const Home = ({ navigation }) => {
         title: userData.team_name,
         body: userData.league_name,
         cta: 'View My Team',
-        ctaNavigation: () => navigation.navigate('Teams', { screen: 'Team', params: { teamId: userData.team_id } }),
+        ctaNavigation: () =>
+            navigation.navigate('Teams', { screen: 'TeamDetails', params: { teamId: userData.team_id } }),
     };
 
     return (

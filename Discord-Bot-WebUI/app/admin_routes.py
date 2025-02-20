@@ -320,7 +320,7 @@ def view_scheduled_messages():
     """
     session = g.db_session
     messages = session.query(ScheduledMessage).order_by(ScheduledMessage.scheduled_send_time).all()
-    return render_template('admin/scheduled_messages.html', messages=messages)
+    return render_template('admin/scheduled_messages.html', title='Discord Scheduled Messages', messages=messages)
 
 
 @admin_bp.route('/admin/force_send/<int:message_id>', endpoint='force_send_message', methods=['POST'])
@@ -374,7 +374,7 @@ def rsvp_status(match_id):
     if not match:
         abort(404)
     rsvp_data = get_rsvp_status_data(match, session=session)
-    return render_template('admin/rsvp_status.html', match=match, rsvps=rsvp_data)
+    return render_template('admin/rsvp_status.html', title='RSVP Status', match=match, rsvps=rsvp_data)
 
 
 @admin_bp.route('/admin/reports', endpoint='admin_reports')
@@ -410,7 +410,7 @@ def admin_reports():
     total = query.count()
     feedbacks = query.offset((page - 1) * per_page).limit(per_page).all()
 
-    return render_template('admin_reports.html', feedbacks=feedbacks, page=page, total=total, per_page=per_page)
+    return render_template('admin_reports.html', title='Admin Reports', feedbacks=feedbacks, page=page, total=total, per_page=per_page)
 
 
 # -----------------------------------------------------------
@@ -619,6 +619,7 @@ def view_mls_matches():
     session = g.db_session
     matches = session.query(MLSMatch).all()
     return render_template('admin/mls_matches.html',
+                           title='MLS Matches',
                            matches=matches,
                            timedelta=timedelta)
 

@@ -251,7 +251,7 @@ def teams_overview():
         teams_query = teams_query.filter(or_(*conditions))
 
     teams = teams_query.order_by(Team.name).all()
-    return render_template('teams_overview.html', teams=teams)
+    return render_template('teams_overview.html', title='Teams Overview', teams=teams)
 
 
 @teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
@@ -403,6 +403,7 @@ def view_standings():
 
     return render_template(
         'view_standings.html',
+        title='Standings',
         premier_standings=premier_standings,
         classic_standings=classic_standings,
         premier_stats=premier_stats,

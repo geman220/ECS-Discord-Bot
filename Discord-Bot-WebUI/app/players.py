@@ -103,6 +103,7 @@ def view_players():
 
     return render_template(
         'view_players.html',
+        title='View Players',
         players=players,
         search_term=search_term,
         leagues=leagues,
@@ -315,7 +316,7 @@ def get_player_team_history(player_id):
             Season.name.desc()
         ).all()
         
-        return render_template('_team_history.html', team_history=history)
+        return render_template('_team_history.html', title='Team History', team_history=history)
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching team history: {str(e)}")
         return "Error loading team history", 500
@@ -428,6 +429,7 @@ def player_profile(player_id):
 
         return render_template(
             'player_profile.html',
+            title='Player Profile',
             player=player,
             user=user,
             matches=matches,
@@ -531,7 +533,7 @@ def admin_review():
         )
         session.add(notification)
 
-    return render_template('admin_review.html', players=players_needing_review)
+    return render_template('admin_review.html', title='Admin Review', players=players_needing_review)
 
 
 @players_bp.route('/create-profile', endpoint='create_profile', methods=['POST'])
@@ -704,7 +706,7 @@ def edit_player(player_id):
     form = EditPlayerForm(obj=player)
 
     if request.method == 'GET':
-        return render_template('edit_player.html', form=form, player=player)
+        return render_template('edit_player.html', title='Edit Player', form=form, player=player)
 
     if form.validate_on_submit():
         try:
@@ -716,7 +718,7 @@ def edit_player(player_id):
             flash('An error occurred while updating the player. Please try again.', 'danger')
             raise
 
-    return render_template('edit_player.html', form=form, player=player)
+    return render_template('edit_player.html', title='Edit Player', form=form, player=player)
 
 
 @players_bp.route('/contact_player_discord/<int:player_id>', methods=['POST'])

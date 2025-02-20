@@ -8,23 +8,31 @@ ensures the assets extension is initialized, and then builds each asset bundle.
 """
 
 import logging
+import os
 from app import create_app
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 if __name__ == '__main__':
     try:
-        # Initialize the Flask app
         app = create_app()
         with app.app_context():
-            # Verify that the assets extension is initialized
             if 'assets' not in app.extensions:
                 logging.error("Assets not initialized properly")
             else:
                 assets = app.extensions['assets']
-                # Build each asset bundle
-                for bundle in assets:
+                
+                dist_path = os.path.join(app.static_folder, "dist")
+                if not os.path.exists(dist_path):
+                    os.makedirs(dist_path)
+                    logging.debug(f"Created output directory: {dist_path}")
+                else:
+                    logging.debug(f"Output directory exists: {dist_path}")
+                
+                for name, bundle in assets._named_bundles.items():
+                    logging.info(f"Building bundle: {name}")
                     bundle.build()
-                logging.info("Assets built successfully")
+                    logging.debug(f"Finished building bundle: {name}")
+                logging.debug("Assets built successfully")
     except Exception as e:
         logging.error(f"Error building assets: {str(e)}")

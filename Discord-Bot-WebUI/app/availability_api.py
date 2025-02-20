@@ -470,11 +470,10 @@ def get_scheduled_messages():
     Retrieve all scheduled messages along with associated match and team IDs.
     """
     from app.core.session_manager import managed_session
+
     with managed_session() as session_db:
         messages = (
-            session_db.query(ScheduledMessage, Match)
-            .join(Match, Match.id == ScheduledMessage.match_id)
-            .with_entities(
+            session_db.query(
                 ScheduledMessage.match_id,
                 ScheduledMessage.home_channel_id,
                 ScheduledMessage.home_message_id,
@@ -483,18 +482,19 @@ def get_scheduled_messages():
                 Match.home_team_id,
                 Match.away_team_id
             )
+            .join(Match, Match.id == ScheduledMessage.match_id)
             .all()
         )
 
-        messages_data = [{
-            'match_id': m.match_id,
-            'home_channel_id': m.home_channel_id,
-            'home_message_id': m.home_message_id,
-            'away_channel_id': m.away_channel_id,
-            'away_message_id': m.away_message_id,
-            'home_team_id': m.home_team_id,
-            'away_team_id': m.away_team_id
-        } for m in messages]
+    messages_data = [{
+        'match_id': m.match_id,
+        'home_channel_id': m.home_channel_id,
+        'home_message_id': m.home_message_id,
+        'away_channel_id': m.away_channel_id,
+        'away_message_id': m.away_message_id,
+        'home_team_id': m.home_team_id,
+        'away_team_id': m.away_team_id
+    } for m in messages]
 
     return jsonify(messages_data), 200
 

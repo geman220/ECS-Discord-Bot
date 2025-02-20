@@ -174,6 +174,7 @@ def rsvp_page(token):
         form = FlaskForm()
         return render_template(
             'sms_rsvp_form.html',
+            title='RSVP',
             form=form,
             player=player,
             matches=matches,

@@ -131,6 +131,44 @@
 
 {% block custom_js %}
 <script>
+    // Define a showToast function to display notifications using Bootstrap toasts
+    function showToast(title, message) {
+        // Create a toast container if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Create a new toast element
+        let toastEl = document.createElement('div');
+        toastEl.className = 'toast';
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        toastEl.innerHTML = `
+        <div class="toast-header">
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+        toastContainer.appendChild(toastEl);
+
+        // Initialize and show the toast (requires Bootstrap's JS)
+        var bsToast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        bsToast.show();
+
+        // Remove the toast from DOM after it hides
+        toastEl.addEventListener('hidden.bs.toast', () => {
+            toastEl.remove();
+        });
+    }
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     // Configure jQuery to send CSRF token on every AJAX request.
@@ -184,7 +222,8 @@
 
     async function createThreadNow(matchId) {
         try {
-            const response = await fetch(`/bot/admin/match/${matchId}/create-thread`, {
+            // Append ?force=true to force thread creation
+            const response = await fetch(`/bot/admin/match/${matchId}/create-thread?force=true`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -267,7 +306,8 @@
 
         $('.create-thread-btn').on('click', function () {
             const matchId = $(this).data('match-id');
-            $.post(`/bot/admin/match/${matchId}/create-thread`)
+            // Append ?force=true to force the thread creation
+            $.post(`/bot/admin/match/${matchId}/create-thread?force=true`)
                 .done(function (response) {
                     if (response.success) {
                         showToast('Success', 'Thread creation started');

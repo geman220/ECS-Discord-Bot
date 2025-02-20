@@ -95,6 +95,7 @@ function ProfileStack({ navigation, route }) {
 function TeamsStack({ navigation, route }) {
     return (
         <Stack.Navigator
+            initialRouteName="Teams"
             screenOptions={({ route, navigation }) => ({
                 headerStyle: { backgroundColor: argonTheme.COLORS.PRIMARY },
                 headerTintColor: "#fff",
@@ -102,9 +103,7 @@ function TeamsStack({ navigation, route }) {
                 headerLeft: getHeaderLeft(navigation, route, "Teams"),
             })}
         >
-            {/* This should now point to the Teams component */}
             <Stack.Screen name="Teams" component={Teams} options={{ title: "Teams" }} />
-            {/* Still keeping the Team details page if needed */}
             <Stack.Screen
                 name="TeamDetails"
                 component={Team}

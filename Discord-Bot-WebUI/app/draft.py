@@ -127,6 +127,7 @@ def draft_classic():
 
     return render_template(
         'draft_classic.html',
+        title='Classic League Draft',
         teams=teams,
         available_players=available_players,
         drafted_players_by_team=drafted_by_team
@@ -223,6 +224,7 @@ def draft_premier():
 
     return render_template(
         'draft_premier.html',
+        title='Premier League Draft',
         teams=teams,
         available_players=available_players,
         drafted_players_by_team=drafted_by_team
@@ -318,6 +320,7 @@ def draft_ecs_fc():
 
     return render_template(
         'draft_ecs_fc.html',
+        title='ECS FC League Draft',
         teams=teams,
         available_players=available_players,
         drafted_players_by_team=drafted_by_team
