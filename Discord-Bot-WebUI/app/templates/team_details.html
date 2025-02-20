@@ -5,10 +5,27 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Team Header -->
-    <div class="team-header text-center bg-primary text-white py-4 mb-4">
+    <div class="team-header text-center bg-primary text-white py-4 mb-4" style="position: relative;">
+        {% if team.kit_url %}
+        <img src="{{ team.kit_url }}" alt="Team Kit" style="max-height: 150px; position: absolute; top: 10px; right: 10px; z-index: 3;">
+        {% endif %}
         <h1 class="display-4 font-weight-bold">{{ team.name }}</h1>
         <p class="lead">Division: {{ league.name }}</p>
         <p class="lead">Season: {{ season.name if season else 'No active season' }}</p>
+
+        <!-- Upload button to update team kit -->
+        {% if safe_current_user.has_permission('upload_kit') %}
+        <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
+              method="post"
+              enctype="multipart/form-data"
+              style="position: absolute; top: 10px; left: 10px; z-index: 2;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="file" name="team_kit" id="team_kit" style="display: none;" onchange="this.form.submit();">
+            <button type="button" class="btn btn-light" onclick="document.getElementById('team_kit').click();" aria-label="Upload Team Kit">
+                <i class="bx bx-upload"></i> Upload Kit
+            </button>
+        </form>
+        {% endif %}
     </div>
 
     <div class="row">

@@ -18,6 +18,7 @@ from flask import (
     Blueprint, render_template, redirect, url_for, flash,
     request, jsonify, abort, g
 )
+from sqlalchemy import func
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
@@ -95,7 +96,7 @@ def admin_dashboard():
         elif action == 'update_permissions':
             role_id = request.form.get('role_id')
             permissions = request.form.getlist('permissions')
-            success = handle_permissions_update(role_id, permissions, session=session)
+            success = handle_permissions_update(role_id, permissions)
             if not success:
                 flash('Error updating permissions.', 'danger')
             return redirect(url_for('admin.admin_dashboard'))
@@ -227,14 +228,61 @@ def get_role_permissions():
 def manage_announcements():
     """
     Render the announcement management view.
+    On POST, create a new announcement.
+    Also include user data so the Manage Users table is not empty.
     """
     session = g.db_session
-    form = AnnouncementForm()
+    announcement_form = AnnouncementForm()
+
+    if announcement_form.validate_on_submit():
+        # Determine the next available position
+        max_position = session.query(func.max(Announcement.position)).scalar() or 0
+        new_announcement = Announcement(
+            title=announcement_form.title.data,
+            content=announcement_form.content.data,
+            position=max_position + 1
+        )
+        session.add(new_announcement)
+        session.commit()
+        flash("Announcement created successfully.", "success")
+        return redirect(url_for('admin.manage_announcements'))
+
     announcements = session.query(Announcement).order_by(Announcement.position).all()
+
+    # Build user filters (using empty defaults if not provided)
+    filters = {
+        'search': request.args.get('search', ''),
+        'role': request.args.get('role', ''),
+        'league': request.args.get('league', ''),
+        'active': request.args.get('active', ''),
+        'approved': request.args.get('approved', '')
+    }
+    users_query = get_filtered_users(filters)
+    total_users = users_query.count()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    users = users_query.offset((page - 1) * per_page).limit(per_page).all()
+
+    # Create additional forms for user actions if needed
+    edit_form = EditUserForm()
+    reset_password_form = ResetPasswordForm()
+
+    # Also pass roles and permissions for the Manage Roles section
+    roles = session.query(Role).all()
+    permissions = session.query(Permission).all()
+
     return render_template(
         'admin_dashboard.html',
         announcements=announcements,
-        announcement_form=form
+        announcement_form=announcement_form,
+        users=users,
+        total_users=total_users,
+        page=page,
+        per_page=per_page,
+        edit_form=edit_form,
+        reset_password_form=reset_password_form,
+        roles=roles,
+        permissions=permissions
     )
 
 
@@ -256,6 +304,7 @@ def edit_announcement(announcement_id):
 
     announcement.title = data['title']
     announcement.content = data['content']
+    session.commit()
     return jsonify({'success': True})
 
 
@@ -272,6 +321,7 @@ def delete_announcement(announcement_id):
         abort(404)
 
     session.delete(announcement)
+    session.commit()
     flash('Announcement deleted successfully.', 'success')
     return jsonify({'success': True})
 
@@ -292,6 +342,7 @@ def reorder_announcements():
         ann = session.query(Announcement).get(item['id'])
         if ann:
             ann.position = item['position']
+    session.commit()
     return jsonify({'success': True})
 
 
