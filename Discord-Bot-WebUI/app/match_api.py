@@ -24,6 +24,7 @@ from app.models import MLSMatch
 from app.utils.match_events_utils import get_new_events
 from app.core.session_manager import managed_session
 from app.core import celery
+from app.core.helpers import get_match
 
 # Initialize CSRF protection for the blueprint
 csrf = CSRFProtect()
@@ -347,7 +348,7 @@ def schedule_live_reporting_route():
 
     try:
         with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if not match:
                 logger.error(f"Match {match_id} not found")
                 return jsonify({'error': 'Match not found'}), 404
@@ -378,7 +379,7 @@ def start_live_reporting_route(match_id):
     """
     try:
         with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if not match:
                 logger.error(f"Match {match_id} not found")
                 return jsonify({'success': False, 'error': 'Match not found'}), 404
@@ -409,7 +410,7 @@ def stop_live_reporting_route(match_id):
     """
     try:
         with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if not match:
                 logger.error(f"Match {match_id} not found")
                 return jsonify({'success': False, 'error': 'Match not found'}), 404
@@ -440,7 +441,7 @@ def get_match_status(match_id):
     """
     try:
         with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if not match:
                 logger.error(f"Match {match_id} not found")
                 return jsonify({'error': 'Match not found'}), 404
@@ -468,7 +469,7 @@ def get_match_channel(match_id):
     logger.info(f"Fetching channel ID for match {match_id}")
     try:
         with managed_session() as session:
-            match = session.query(MLSMatch).filter_by(match_id=str(match_id)).first()
+            match = get_match(session, match_id)
             if not match:
                 logger.warning(f"No match found with match_id {match_id}")
                 return jsonify({'error': 'Match not found'}), 404

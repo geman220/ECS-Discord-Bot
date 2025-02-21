@@ -19,6 +19,7 @@ from flask import g
 from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
 from app.core import celery as celery_app
+from app.core.helpers import get_match
 from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ class MatchScheduler:
             Optional[MLSMatch]: The updated match object if found, otherwise None.
         """
         session = g.db_session
-        match = session.query(MLSMatch).get(match_id)
+        match = get_match(session, match_id)
         if match:
             match.thread_creation_time = thread_time
             match.live_reporting_scheduled = True

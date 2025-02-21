@@ -85,7 +85,7 @@ class TaskMonitor:
                 return {'success': False, 'message': 'No session available'}
 
         try:
-            match = session.query(MLSMatch).get(match_id)
+            match = get_match(session, match_id)
             if not match:
                 return {'success': False, 'message': 'Match not found'}
             

@@ -26,6 +26,7 @@
     <Compile Include="app\cli.py" />
     <Compile Include="app\config\celery_config.py" />
     <Compile Include="app\config\__init__.py" />
+    <Compile Include="app\core\helpers.py" />
     <Compile Include="app\core\session_manager.py" />
     <Compile Include="app\core\__init__.py" />
     <Compile Include="app\database\cache.py" />
