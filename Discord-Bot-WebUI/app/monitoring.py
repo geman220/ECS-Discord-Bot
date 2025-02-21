@@ -30,6 +30,7 @@ from app.decorators import role_required
 from app.utils.redis_manager import RedisManager
 from app.db_management import db_manager
 from app.core import celery, db
+from app.core.helpers import get_match
 from app.models import MLSMatch
 from app.database.db_models import DBMonitoringSnapshot
 from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
@@ -343,12 +344,12 @@ def revoke_task():
         with managed_session() as session:
             if 'thread' in key:
                 match_id = key.split(':')[1]
-                match = session.query(MLSMatch).get(match_id)
+                match = get_match(session, match_id)
                 if match:
                     match.thread_creation_time = None
             elif 'reporting' in key:
                 match_id = key.split(':')[1]
-                match = session.query(MLSMatch).get(match_id)
+                match = get_match(session, match_id)
                 if match:
                     match.live_reporting_scheduled = False
                     match.live_reporting_started = False
@@ -431,7 +432,7 @@ def reschedule_task():
         logger.info(f"Rescheduling task {task_id} for key {key}")
         match_id = key.split(':')[1]
         with managed_session() as session:
-            match = session.query(MLSMatch).get(match_id)
+            match = get_match(session, match_id)
             if not match:
                 return jsonify({'success': False, 'error': 'Match not found'}), 404
             celery.control.revoke(task_id, terminate=True)

@@ -52,7 +52,7 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         if not match_data or 'competitions' not in match_data:
             return {'success': False, 'message': 'Invalid match data format'}
 
-        match = session.query(MLSMatch).get(match_id)
+        match = get_match(session, match_id)
         if not match:
             logger.error(f"Match {match_id} not found")
             return {'success': False, 'message': f'No match found with ID {match_id}'}

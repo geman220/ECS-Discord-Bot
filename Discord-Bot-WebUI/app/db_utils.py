@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload, Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import MLSMatch, Player, Team
+from app.core.helpers import get_match
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ def update_mls_match(session: Session, match_id: str, **kwargs) -> bool:
     Returns:
         bool: True if the match was updated; False if not found.
     """
-    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+    match = get_match(session, match_id)
     if not match:
         logger.warning(f"MLS match {match_id} not found for update.")
         return False
@@ -126,7 +127,7 @@ def delete_mls_match(session: Session, match_id: str) -> bool:
     Returns:
         bool: True if deletion was successful; False if match not found.
     """
-    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+    match = get_match(session, match_id)
     if not match:
         logger.warning(f"MLS match {match_id} not found for deletion.")
         return False
@@ -166,7 +167,7 @@ def mark_mls_match_thread_created(session: Session, match_id: str, thread_id: st
     Returns:
         bool: True if the match was updated; False if match not found.
     """
-    match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+    match = get_match(session, match_id)
     if not match:
         logger.warning(f"MLS match {match_id} not found for marking thread creation.")
         return False
@@ -240,7 +241,7 @@ def bulk_update_matches(session: Session, updates: List[Dict[str, Any]]) -> Dict
             match_id = update.pop('match_id', None)
             if not match_id:
                 continue
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if match:
                 for key, value in update.items():
                     setattr(match, key, value)

@@ -23,6 +23,7 @@ import asyncio
 from flask import current_app, g
 from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio
+from app.core.helpers import get_match
 from app.decorators import celery_task, async_task
 from app.models import MLSMatch
 from app.match_api import process_live_match_updates
@@ -61,7 +62,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
     try:
         logger.info(f"Processing update for match {match_id}")
 
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = get_match(session, match_id)
         if not match:
             logger.error(f"Match {match_id} not found")
             return {'success': False, 'message': 'Match not found'}
@@ -99,7 +100,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 
         if match_ended:
             logger.info(f"Match {match_id} has ended")
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
             if match:
                 match.live_reporting_status = 'completed'
                 match.live_reporting_started = False
@@ -112,7 +113,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         new_score = f"{home_score}-{away_score}"
 
         # Update match with new status, score, and timestamp.
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = get_match(session, match_id)
         if match:
             match.current_status = new_status
             match.current_score = new_score
@@ -175,7 +176,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             pk = int(match_id)
             match = session.query(MLSMatch).get(pk)
         except ValueError:
-            match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+            match = get_match(session, match_id)
 
         if not match:
             logger.error(f"Match {match_id} not found")
@@ -310,7 +311,7 @@ async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
         Retries on SQLAlchemy or general errors.
     """
     try:
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = get_match(session, match_id)
         if not match:
             return {'success': False, 'message': f'Match {match_id} not found'}
 
@@ -396,7 +397,7 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
     session = current_app.SessionLocal()
     try:
         logger.info(f"Starting thread creation for match {match_id}")
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = get_match(session, match_id)
 
         if not match:
             logger.error(f"Match {match_id} not found")
@@ -457,7 +458,7 @@ def schedule_mls_thread_task(self, session, match_id: int, hours_before: int = 4
         A dictionary with scheduling result.
     """
     try:
-        match = session.query(MLSMatch).get(match_id)
+        match = get_match(session, match_id)
         if not match:
             return {'success': False, 'message': f'Match {match_id} not found'}
 
@@ -534,7 +535,7 @@ async def end_match_reporting(match_id: str) -> None:
         else:
             new_session = False
 
-        match = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        match = get_match(session, match_id)
         if match:
             match.live_reporting_status = 'completed'
             match.live_reporting_started = False

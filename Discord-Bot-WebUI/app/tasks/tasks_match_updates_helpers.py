@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy.exc import SQLAlchemyError
 from app.models import MLSMatch, Match
 from app.core import celery
+from app.core.helpers import get_match
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
             with app.app_context():
                 session = app.SessionLocal()
                 try:
-                    match = session.query(MLSMatch).get(match_id)
+                    match = get_match(session, match_id)
                     if not match:
                         return None
                     return {
@@ -102,7 +103,7 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
             with app.app_context():
                 session = app.SessionLocal()
                 try:
-                    match = session.query(MLSMatch).get(match_id)
+                    match = get_match(session, match_id)
                     if match:
                         match.last_update_time = datetime.utcnow()
                         match.last_update_type = update_type
