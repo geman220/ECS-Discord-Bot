@@ -134,6 +134,9 @@ def create_app(config_object='web_config.Config'):
     migrate.init_app(app, db)
     app.celery = configure_celery(app)
 
+    from app.API.predictions import predictions_api
+    csrf.exempt(predictions_api)
+
     @login_manager.user_loader
     def load_user(user_id):
         try:
@@ -272,6 +275,7 @@ def init_blueprints(app):
     from app.user_api import user_bp
     from app.help import help_bp
     from app.search import search_bp
+    from app.API.predictions import predictions_api
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -292,6 +296,7 @@ def init_blueprints(app):
     app.register_blueprint(user_management_bp)
     app.register_blueprint(mobile_api, url_prefix='/api/v1')
     app.register_blueprint(user_bp, url_prefix='/api')
+    app.register_blueprint(predictions_api, url_prefix='/api')
     app.register_blueprint(monitoring_bp)
     app.register_blueprint(help_bp, url_prefix='/help')
     app.register_blueprint(search_bp)

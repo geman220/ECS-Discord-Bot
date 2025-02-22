@@ -1186,3 +1186,19 @@ class HelpTopic(db.Model):
 
     def __repr__(self):
         return f'<HelpTopic {self.title}>'
+
+class Prediction(db.Model):
+    """Model representing a user's prediction for a match."""
+    __tablename__ = 'predictions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.String, nullable=False)
+    discord_user_id = db.Column(db.String, nullable=False)
+    home_score = db.Column(db.Integer, nullable=False)
+    opponent_score = db.Column(db.Integer, nullable=False)
+    is_correct = db.Column(db.Boolean, default=None)
+    season_correct_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Prediction {self.match_id} by {self.discord_user_id}>"
