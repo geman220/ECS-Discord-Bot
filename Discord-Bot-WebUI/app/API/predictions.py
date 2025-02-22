@@ -28,7 +28,7 @@ endpoints.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify, current_app
 from app.core.session_manager import managed_session
@@ -117,7 +117,8 @@ def create_prediction():
             # Query the match record to enforce prediction cutoff.
             match_record = session.query(MLSMatch).filter_by(match_id=match_id).first()
             if match_record:
-                now = datetime.utcnow()
+                # Use an offset-aware datetime
+                now = datetime.now(timezone.utc)
                 # Check if live reporting has started or if we're within 5 minutes of kickoff.
                 if (match_record.live_reporting_started or
                     match_record.live_reporting_status == 'running' or
