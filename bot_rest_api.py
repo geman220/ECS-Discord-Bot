@@ -18,6 +18,8 @@ from aiohttp import ClientError
 from discord.ext import commands
 from datetime import datetime
 from typing import Tuple, Optional, Union
+from utils import get_correct_predictions
+
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -390,11 +392,12 @@ def create_match_embed(update_type, update_data):
     elif update_type == "halftime":
         return create_halftime_embed(update_data, focus_team_id)
     elif update_type == "fulltime":
-        return create_fulltime_embed(update_data, focus_team_id)
-    elif update_type == "pre_match_info":
+        # Extract match_id from update_data (ensure update_data contains it)
+        match_id = update_data.get("match_id")
+        return create_fulltime_embed(match_id, update_data, focus_team_id)
+    elif update_type in ["status_scheduled", "pre_match_info"]:
         return create_pre_match_embed(update_data, focus_team_id)
     else:
-        # Default embed for unknown update types
         logger.warning(f"Unknown update type: {update_type}")
         embed = discord.Embed(
             title="Match Update",
@@ -455,7 +458,7 @@ def create_match_update_embed(update_data, focus_team_id):
         embed.color = discord.Color.blue()
         embed.add_field(name="Status", value=match_status, inline=False)
 
-    embed.add_field(name="Match Status", value=match_status, inline=True)
+    #embed.add_field(name="Match Status", value=match_status, inline=True)
     embed.add_field(name="Time", value=time, inline=True)
 
     return embed
@@ -678,7 +681,7 @@ def create_score_update_embed(update_data, focus_team_id):
         embed.description = f"{home_team_name} {home_score} - {away_score} {away_team_name}"
         embed.color = discord.Color.blue()
 
-    embed.add_field(name="Match Status", value=update_data.get('match_status', "Unknown"), inline=True)
+    #embed.add_field(name="Match Status", value=update_data.get('match_status', "Unknown"), inline=True)
     return embed
 
 def create_halftime_embed(update_data, focus_team_id):
@@ -710,21 +713,28 @@ def create_halftime_embed(update_data, focus_team_id):
 
     return embed
 
-def create_fulltime_embed(update_data, focus_team_id):
+def create_fulltime_embed(match_id, update_data, focus_team_id):
+    """
+    Create a full-time embed including the result and, if available, a list of users who predicted correctly.
+    The match_id is used to fetch the prediction data from the Flask API.
+    """
+    # Fetch correct predictions from the Flask API
+    correct_predictions = get_correct_predictions(match_id)
+
     home_team = update_data.get('home_team', {})
     away_team = update_data.get('away_team', {})
     home_score = update_data.get('home_score', "0")
     away_score = update_data.get('away_score', "0")
-
+    
     home_team_name = home_team.get('displayName', "Home Team")
     away_team_name = away_team.get('displayName', "Away Team")
     home_team_id = str(home_team.get('id', ""))
     away_team_id = str(away_team.get('id', ""))
-
+    
     embed = discord.Embed()
     embed.title = "Full-Time"
     embed.set_footer(text="Match has ended.")
-
+    
     if home_team_id == focus_team_id:
         embed.description = f"**{home_team_name}** {home_score} - {away_score} {away_team_name}"
         if int(home_score) > int(away_score):
@@ -752,7 +762,13 @@ def create_fulltime_embed(update_data, focus_team_id):
     else:
         embed.description = f"{home_team_name} {home_score} - {away_score} {away_team_name}"
         embed.color = discord.Color.blue()
-
+    
+    # Add a field for correct predictions if any were found.
+    if correct_predictions:
+        # Format the Discord user IDs as mentions.
+        mentions = ", ".join([f"<@{user_id}>" for user_id in correct_predictions])
+        embed.add_field(name="Correct Predictions", value=mentions, inline=False)
+    
     return embed
 
 def create_pre_match_embed(update_data, focus_team_id):
@@ -767,7 +783,6 @@ def create_pre_match_embed(update_data, focus_team_id):
     embed.title = f"🚨 Pre-Match Hype: {home_team_name} vs {away_team_name} 🚨"
     embed.color = discord.Color.blue()
 
-    embed.add_field(name="📅 Date", value=update_data.get('match_date_formatted', "N/A"), inline=False)
     embed.add_field(name="🏟️ Venue", value=update_data.get('venue', "N/A"), inline=False)
     embed.add_field(name="🏠 Home Form", value=update_data.get('home_form', "N/A"), inline=True)
     embed.add_field(name="🛫 Away Form", value=update_data.get('away_form', "N/A"), inline=True)
@@ -777,7 +792,7 @@ def create_pre_match_embed(update_data, focus_team_id):
         f"Draw: {update_data.get('draw_odds', 'N/A')}\n"
         f"Away Win: {update_data.get('away_odds', 'N/A')}"
     )
-    embed.add_field(name="💰 Odds", value=odds_info, inline=False)
+    #embed.add_field(name="💰 Odds", value=odds_info, inline=False)
 
     # Randomize pre-match hype messages based on focus team
     if home_team_id == str(focus_team_id):

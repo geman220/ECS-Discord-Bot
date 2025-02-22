@@ -76,7 +76,8 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
             # Handle match status changes
             if status_type != last_status:
                 logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
-                await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score)
+                # Pass the full match_data so that pre-match details can be extracted
+                await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score, match_data)
 
             # Handle score changes
             if current_score != last_score:
@@ -131,7 +132,7 @@ async def send_score_update(thread_id, home_team, away_team, home_score, away_sc
     await send_update_to_bot(thread_id, "score_update", update_data)
 
 
-async def handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score):
+async def handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score, match_data=None):
     """
     Handle changes in match status by sending appropriate updates.
 
@@ -142,8 +143,12 @@ async def handle_status_change(thread_id, status_type, home_team, away_team, hom
         away_team (dict): Away team information.
         home_score (str): Home team score.
         away_score (str): Away team score.
+        match_data (dict, optional): Full match data for additional context.
     """
-    if status_type == "STATUS_HALFTIME":
+    if status_type == "STATUS_SCHEDULED":
+        logger.info(f"Sending pre-match update to thread {thread_id}")
+        await send_pre_match_info(thread_id, match_data)
+    elif status_type == "STATUS_HALFTIME":
         logger.info(f"Sending halftime update to thread {thread_id}")
         await send_update_to_bot(thread_id, "halftime", {
             "home_team": home_team,

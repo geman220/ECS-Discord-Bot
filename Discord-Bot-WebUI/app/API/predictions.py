@@ -209,3 +209,17 @@ def get_predictions(match_id):
     except Exception as e:
         current_app.logger.error(f"Error fetching predictions: {str(e)}")
         return jsonify({'error': 'Failed to fetch predictions'}), 500
+
+@predictions_api.route('/predictions/<match_id>/correct', methods=['GET'])
+def get_correct_predictions(match_id):
+    """
+    Retrieve a list of Discord user IDs for users whose predictions were correct for the given match.
+    """
+    try:
+        with managed_session() as session:
+            predictions = session.query(Prediction).filter_by(match_id=match_id, is_correct=True).all()
+            correct_users = [p.discord_user_id for p in predictions]
+        return jsonify({'correct_predictions': correct_users}), 200
+    except Exception as e:
+        current_app.logger.error(f"Error fetching correct predictions: {str(e)}")
+        return jsonify({'error': 'Failed to fetch correct predictions'}), 500
