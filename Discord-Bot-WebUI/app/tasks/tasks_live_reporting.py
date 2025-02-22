@@ -23,9 +23,10 @@ import asyncio
 from flask import current_app, g
 from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio
+from app.core.session_manager import managed_session
 from app.core.helpers import get_match
 from app.decorators import celery_task, async_task
-from app.models import MLSMatch
+from app.models import MLSMatch, Prediction
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
 from app.api_utils import fetch_espn_data
@@ -558,18 +559,19 @@ async def end_match_reporting(match_id: str) -> None:
 def finalize_predictions_for_match(match_id: str, final_home_score: int, final_away_score: int):
     """
     Finalize predictions for a match by comparing each prediction with the final score.
-    Marks predictions as correct if they exactly match the final scores.
+    Marks predictions as correct if they exactly match the final scores,
+    and returns a list of Discord user IDs that predicted correctly.
     """
-    from app.core.session_manager import managed_session
-    from app.models import Prediction
     logger.info(f"Finalizing predictions for match {match_id}: Final Score {final_home_score}-{final_away_score}")
+    correct_users = []
     with managed_session() as session:
         predictions = session.query(Prediction).filter_by(match_id=match_id).all()
         for pred in predictions:
             if pred.home_score == final_home_score and pred.opponent_score == final_away_score:
                 pred.is_correct = True
-                # Increment season tally, for example:
-                pred.season_correct_count = pred.season_correct_count + 1
+                pred.season_correct_count += 1
+                correct_users.append(pred.discord_user_id)
             else:
                 pred.is_correct = False
         session.commit()
+    return correct_users

@@ -1,6 +1,8 @@
 # utils.py
 
 from dateutil import parser
+import requests
+import os
 import datetime
 import pytz
 import re
@@ -8,6 +10,8 @@ import json
 import logging
 
 logger = logging.getLogger(__name__)
+
+API_BASE_URL = os.getenv("WEBUI_API_URL")
 
 def convert_to_pst(utc_datetime):
     if not isinstance(utc_datetime, str):
@@ -173,3 +177,21 @@ def extract_base_product_title(full_title: str) -> str:
 def extract_variation_detail(order: dict) -> str:
     variation_detail = order.get('product_variation', '')
     return variation_detail
+
+def get_correct_predictions(match_id):
+    """
+    Fetch predictions for a given match from the Flask API and return a list of Discord user IDs 
+    whose predictions were correct.
+    """
+    try:
+        response = requests.get(f"{API_BASE_URL}/predictions/{match_id}")
+        if response.status_code == 200:
+            predictions = response.json()
+            # Filter predictions where is_correct is True
+            return [p['discord_user_id'] for p in predictions if p.get('is_correct')]
+        else:
+            print(f"Error fetching predictions: {response.text}")
+            return []
+    except Exception as e:
+        print(f"Exception fetching predictions: {str(e)}")
+        return []
