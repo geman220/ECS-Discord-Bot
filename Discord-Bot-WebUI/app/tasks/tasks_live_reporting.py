@@ -100,6 +100,15 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 
         if match_ended:
             logger.info(f"Match {match_id} has ended")
+            try:
+                # Extract final scores from the ESPN data.
+                final_home_score = int(match_data['competitions'][0]['competitors'][0]['score'])
+                final_away_score = int(match_data['competitions'][0]['competitors'][1]['score'])
+                # Finalize predictions based on the final scores.
+                finalize_predictions_for_match(match_id, final_home_score, final_away_score)
+                logger.info(f"Predictions finalized for match {match_id}")
+            except Exception as fe:
+                logger.error(f"Error finalizing predictions for match {match_id}: {str(fe)}", exc_info=True)
             match = get_match(session, match_id)
             if match:
                 match.live_reporting_status = 'completed'
@@ -158,7 +167,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     Start live match reporting for a specific match.
 
     This task:
-      - Retrieves the match by ID (attempts numeric conversion first).
+      - Retrieves the match by its identifier (using the get_match helper).
       - Checks if reporting is already running.
       - Updates match status to running and records start time.
       - Triggers the initial match update task.
@@ -172,11 +181,8 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     try:
         logger.info(f"Starting live reporting for match_id: {match_id}")
 
-        try:
-            pk = int(match_id)
-            match = session.query(MLSMatch).get(pk)
-        except ValueError:
-            match = get_match(session, match_id)
+        # Always use get_match to retrieve the match.
+        match = get_match(session, match_id)
 
         if not match:
             logger.error(f"Match {match_id} not found")
@@ -221,7 +227,8 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         try:
             app = current_app._get_current_object()
             error_session = app.SessionLocal()
-            match = error_session.query(MLSMatch).filter_by(match_id=match_id).first()
+            # Use get_match here as well.
+            match = get_match(error_session, match_id)
             if match:
                 match.live_reporting_status = 'failed'
                 match.live_reporting_started = False
@@ -547,3 +554,22 @@ async def end_match_reporting(match_id: str) -> None:
 
     except Exception as e:
         logger.error(f"Error ending match reporting: {str(e)}")
+
+def finalize_predictions_for_match(match_id: str, final_home_score: int, final_away_score: int):
+    """
+    Finalize predictions for a match by comparing each prediction with the final score.
+    Marks predictions as correct if they exactly match the final scores.
+    """
+    from app.core.session_manager import managed_session
+    from app.models import Prediction
+    logger.info(f"Finalizing predictions for match {match_id}: Final Score {final_home_score}-{final_away_score}")
+    with managed_session() as session:
+        predictions = session.query(Prediction).filter_by(match_id=match_id).all()
+        for pred in predictions:
+            if pred.home_score == final_home_score and pred.opponent_score == final_away_score:
+                pred.is_correct = True
+                # Increment season tally, for example:
+                pred.season_correct_count = pred.season_correct_count + 1
+            else:
+                pred.is_correct = False
+        session.commit()

@@ -22,6 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="app\API\predictions.py" />
     <Compile Include="app\assets.py" />
     <Compile Include="app\cli.py" />
     <Compile Include="app\config\celery_config.py" />
@@ -135,6 +136,7 @@
     <Folder Include="app\debug\" />
     <Folder Include="app\log_config\" />
     <Folder Include="app\log_config\__pycache__\" />
+    <Folder Include="app\API\" />
     <Folder Include="app\sockets\" />
     <Folder Include="app\static\dist\" />
     <Folder Include="app\static\js\" />
