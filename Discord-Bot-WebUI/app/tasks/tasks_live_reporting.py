@@ -110,11 +110,28 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                 logger.info(f"Predictions finalized for match {match_id}")
             except Exception as fe:
                 logger.error(f"Error finalizing predictions for match {match_id}: {str(fe)}", exc_info=True)
+    
+            # Build update_data including the match_id
+            update_data = {
+                "match_id": match_id,  # This is the key update.
+                "home_team": match_data['competitions'][0]['competitors'][0],
+                "away_team": match_data['competitions'][0]['competitors'][1],
+                "home_score": final_home_score,
+                "away_score": final_away_score
+            }
+    
             match = get_match(session, match_id)
             if match:
                 match.live_reporting_status = 'completed'
                 match.live_reporting_started = False
-            return {'success': True, 'message': 'Match ended', 'status': 'completed'}
+
+            # Return the update data so that the Discord bot can use it to build the full-time embed.
+            return {
+                'success': True,
+                'message': 'Match ended',
+                'status': 'completed',
+                'update_data': update_data
+            }
 
         # Extract new status and score from ESPN data.
         new_status = match_data["competitions"][0]["status"]["type"]["name"]

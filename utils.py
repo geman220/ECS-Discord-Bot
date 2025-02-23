@@ -184,14 +184,14 @@ def get_correct_predictions(match_id):
     whose predictions were correct.
     """
     try:
-        response = requests.get(f"{API_BASE_URL}/predictions/{match_id}")
+        response = requests.get(f"{API_BASE_URL}/predictions/{match_id}/correct")
         if response.status_code == 200:
-            predictions = response.json()
-            # Filter predictions where is_correct is True
-            return [p['discord_user_id'] for p in predictions if p.get('is_correct')]
+            data = response.json()
+            correct_predictions = data.get('correct_predictions', [])
+            return correct_predictions
         else:
-            print(f"Error fetching predictions: {response.text}")
+            print(f"Error fetching correct predictions: {response.text}")
             return []
     except Exception as e:
-        print(f"Exception fetching predictions: {str(e)}")
+        print(f"Exception fetching correct predictions: {str(e)}")
         return []
