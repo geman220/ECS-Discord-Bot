@@ -570,6 +570,7 @@ def schedule_wizard(season_id):
 def add_single_week():
     """
     Add match entries for a single week based on provided times, fields, and team selections.
+    This updated version uses logic similar to the bulk scheduling wizard.
     """
     manager = ScheduleManager(g.db_session)
 
@@ -598,6 +599,7 @@ def add_single_week():
     except ValueError:
         return jsonify({'success': False, 'message': 'Invalid date format'}), 400
 
+    # If FUN/BYE week is checked, handle it using the special team logic.
     if fun_week or bye_week:
         special_team_name = "FUN WEEK" if fun_week else "BYE"
         special_team = manager.session.query(Team).filter_by(name=special_team_name).first()
@@ -625,7 +627,7 @@ def add_single_week():
             'message': f"{special_team_name} single week created."
         })
 
-    # Build mapping from existing dates to week numbers.
+    # Compute the new week number using logic similar to bulk scheduling.
     existing = manager.get_schedule(league_id=league_id)
     existing_date_to_week = {}
     for sch in existing:
@@ -652,6 +654,8 @@ def add_single_week():
     the_week = date_to_week[week_date]
 
     created_count = 0
+    # Collect objects to commit at once.
+    objects_to_commit = []
     for i in range(n):
         t_str = times[i]
         field_str = fields[i]
@@ -676,8 +680,15 @@ def add_single_week():
         }
         objects, resp = manager.create_match(data)
         if objects:
-            manager.session.commit()
+            objects_to_commit.extend(objects)
             created_count += 1
+
+    if objects_to_commit:
+        try:
+            g.db_session.commit()
+        except Exception as e:
+            g.db_session.rollback()
+            return jsonify({'success': False, 'message': f'Commit failed: {str(e)}'}), 500
 
     return jsonify({
         'success': True,

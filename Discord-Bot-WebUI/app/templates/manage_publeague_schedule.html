@@ -242,7 +242,7 @@
                 <h5 class="modal-title">Add Single Week</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addSingleWeekForm">
+            <form id="addSingleWeekForm" action="{{ url_for('publeague.schedule.add_single_week') }}" method="POST">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="modal-body">
