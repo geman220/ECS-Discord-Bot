@@ -40,3 +40,4 @@ yarn.lock
 *.p12
 *.key
 *.mobileprovision
+Discord-Bot-WebUI/app/static/.webassets-cache/
