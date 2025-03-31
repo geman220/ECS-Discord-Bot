@@ -1,5 +1,19 @@
 // report_match.js
 
+// This ensures that all AJAX requests include the CSRF token
+$(document).ready(function () {
+    // Set up CSRF token for all AJAX requests
+    var csrftoken = $('input[name="csrf_token"]').val();
+
+    $.ajaxSetup({
+        beforeSend: function (xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+});
+
 // Function to create player options grouped by team
 function createPlayerOptions(matchId) {
     let options = '<option value="" selected>Select a player</option>';
@@ -296,35 +310,17 @@ function eventExists(event, eventsArray) {
 }
 
 // Function to send the AJAX request to update stats
-function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove) {
+function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
+    yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove) {
     const homeTeamScore = $('#home_team_score-' + matchId).val();
     const awayTeamScore = $('#away_team_score-' + matchId).val();
     const notes = $('#match_notes-' + matchId).val();
-    var csrfToken = $('input[name="csrf_token"]').val();
-
-    // Log the data being sent
-    console.log('Data being sent to server:', {
-        home_team_score: homeTeamScore,
-        away_team_score: awayTeamScore,
-        notes: notes,
-        goals_to_add: goalsToAdd,
-        goals_to_remove: goalsToRemove,
-        assists_to_add: assistsToAdd,
-        assists_to_remove: assistsToRemove,
-        yellow_cards_to_add: yellowCardsToAdd,
-        yellow_cards_to_remove: yellowCardsToRemove,
-        red_cards_to_add: redCardsToAdd,
-        red_cards_to_remove: redCardsToRemove
-    });
 
     $.ajax({
         url: `/teams/report_match/${matchId}`,
         method: 'POST',
         contentType: 'application/json',
         dataType: 'json',
-        headers: {
-            'X-CSRFToken': csrfToken
-        },
         data: JSON.stringify({
             home_team_score: homeTeamScore,
             away_team_score: awayTeamScore,
@@ -338,19 +334,6 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             red_cards_to_add: redCardsToAdd,
             red_cards_to_remove: redCardsToRemove
         }),
-        beforeSend: function () {
-            // Disable the submit button to prevent multiple submissions
-            $(`#submitBtn-${matchId}`).prop('disabled', true);
-            // Optionally, show a loading spinner
-            Swal.fire({
-                title: 'Submitting...',
-                text: 'Please wait while your report is being submitted.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading()
-                }
-            });
-        },
         success: function (response) {
             if (response.success) {
                 Swal.fire(
@@ -358,12 +341,12 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                     'Your match report has been submitted successfully.',
                     'success'
                 ).then(() => {
-                    // Optionally, close the modal
+                    // Close the modal
                     const modalElement = document.getElementById(`reportMatchModal-${matchId}`);
                     const modal = bootstrap.Modal.getInstance(modalElement);
                     modal.hide();
 
-                    // Optionally, reload the page to reflect changes
+                    // Reload the page to reflect changes
                     location.reload();
                 });
             } else {
@@ -372,22 +355,21 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                     response.message || 'There was an error submitting your report.',
                     'error'
                 ).then(() => {
-                    // Re-enable the submit button
                     $(`#submitBtn-${matchId}`).prop('disabled', false);
                 });
             }
         },
         error: function (xhr, status, error) {
+            console.error('AJAX Error:', error);
+            console.error('Response:', xhr.responseText);
+
             Swal.fire(
                 'Error!',
                 'An unexpected error occurred while submitting your report.',
                 'error'
             ).then(() => {
-                // Re-enable the submit button
                 $(`#submitBtn-${matchId}`).prop('disabled', false);
             });
-            console.error('AJAX Error:', error);
-            console.error('Response:', xhr.responseText);
         }
     });
 }
