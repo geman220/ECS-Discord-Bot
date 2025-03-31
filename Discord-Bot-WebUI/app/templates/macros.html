@@ -49,7 +49,7 @@
                                        class="form-control"
                                        id="away_team_score-{{ match.id }}"
                                        name="away_team_score"
-                                       value="{{ match.away_team_score }}" {# Pre-fill if editing #}
+                                       value="{{ match.away_team_score if match.away_team_score is not none else 0 }}"
                                        required />
                             </div>
                         </div>
