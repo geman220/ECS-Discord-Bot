@@ -130,8 +130,8 @@ $(document).on('click', '.edit-match-btn', function () {
             console.log(`Received response for Match ID: ${matchId}`, response);
 
             // Set default values if response fields are null/undefined
-            $('#home_team_score-' + matchId).val(response.home_team_score || '');
-            $('#away_team_score-' + matchId).val(response.away_team_score || '');
+            $('#home_team_score-' + matchId).val(response.home_team_score != null ? response.home_team_score : 0);
+            $('#away_team_score-' + matchId).val(response.away_team_score != null ? response.away_team_score : 0);
             $('#match_notes-' + matchId).val(response.notes || '');
             $('#submitBtn-' + matchId).prop('disabled', false);
 
