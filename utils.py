@@ -184,14 +184,18 @@ def get_correct_predictions(match_id):
     whose predictions were correct.
     """
     try:
-        response = requests.get(f"{API_BASE_URL}/predictions/{match_id}/correct")
+        api_url = f"{API_BASE_URL}/predictions/{match_id}/correct"
+        logger.info(f"Fetching correct predictions from: {api_url}")
+        
+        response = requests.get(api_url)
         if response.status_code == 200:
             data = response.json()
             correct_predictions = data.get('correct_predictions', [])
+            logger.info(f"Found {len(correct_predictions)} correct predictions for match {match_id}")
             return correct_predictions
         else:
-            print(f"Error fetching correct predictions: {response.text}")
+            logger.error(f"Error fetching correct predictions: Status {response.status_code}, Response: {response.text}")
             return []
     except Exception as e:
-        print(f"Exception fetching correct predictions: {str(e)}")
+        logger.exception(f"Exception fetching correct predictions for match {match_id}: {str(e)}")
         return []
