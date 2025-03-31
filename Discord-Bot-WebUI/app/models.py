@@ -825,7 +825,7 @@ class Standings(db.Model):
 
     @staticmethod
     def update_goal_difference(mapper, connection, target):
-        target.goal_difference = target.goals_for - target.goals_against
+        target.goal_difference = (target.goals_for or 0) - (target.goals_against or 0)
 
     @property
     def team_goals(self):
