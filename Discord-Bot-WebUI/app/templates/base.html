@@ -4,8 +4,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="description" content="ECS Soccer League Management Portal" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#fff" />
     <title>{{ title }}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='assets/img/favicon/apple-touch-icon.png') }}" />
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}" />
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -70,6 +76,72 @@
         .swal2-container {
             z-index: 99999 !important;
         }
+        
+        /* Better mobile experience */
+        @media (max-width: 767.98px) {
+            /* Larger tap targets */
+            .btn, button, a {
+                padding: 0.5rem 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            /* Improve form controls */
+            .form-control, .form-select {
+                padding: 0.5rem;
+                height: auto;
+                min-height: 40px;
+                font-size: 16px; /* Prevent iOS zoom */
+            }
+            
+            /* Better spacing for mobile */
+            .container-p-y {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+            
+            /* Ensure modals work better on mobile */
+            .modal-dialog {
+                margin: 0.5rem;
+                max-width: calc(100% - 1rem);
+            }
+            
+            /* Make cards more compact */
+            .card-header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+            
+            /* Fix fixed positioning for iOS */
+            .position-fixed {
+                position: absolute !important;
+            }
+        }
+        
+        /* Smooth scrolling */
+        body {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Fix 100vh issue on mobile */
+        :root {
+            --vh: 1vh;
+        }
+        
+        .vh-100 {
+            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
+        }
+        
+        /* Touch active state */
+        .touch-active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
         /* Ensure proper background for dropdown in dark mode */
         html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,
         html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option {
@@ -257,6 +329,9 @@
     <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
 
+    <!-- Responsive JS helper -->
+    <script src="{{ url_for('static', filename='js/responsive-helper.js') }}"></script>
+    
     <!-- Other JS files -->
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
 

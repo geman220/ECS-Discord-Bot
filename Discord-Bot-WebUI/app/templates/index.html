@@ -408,6 +408,28 @@
     .nav-pills .nav-link {
         font-size: 0.875rem;
         padding: 0.4rem 0.8rem;
+        white-space: nowrap;
+        margin: 0 2px;
+    }
+    
+    /* Small tabs for mobile */
+    .small-tabs {
+        margin-bottom: 0.5rem;
+    }
+    
+    .small-tabs .nav-link {
+        padding: 0.35rem 0.7rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Scrollable tabs on small screens */
+    .overflow-auto::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .overflow-auto::-webkit-scrollbar-thumb {
+        background-color: rgba(0,0,0,0.2);
+        border-radius: 4px;
     }
     
     /* RSVP controls */
@@ -419,6 +441,74 @@
     .carousel-indicators {
         bottom: -5px;
     }
+    
+    /* Mobile adaptations */
+    @media (max-width: 767.98px) {
+        .card-header .card-title {
+            font-size: 1rem;
+        }
+        
+        .action-buttons .btn {
+            padding: 0.25rem 0.5rem;
+        }
+        
+        /* Touch-friendly controls */
+        .btn-group > .btn {
+            padding: 0.5rem 0.75rem;
+        }
+        
+        /* Adjust spacing on mobile */
+        .mb-md-0 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Fix for iOS devices */
+        .nav-pills {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1rem;
+        }
+    }
+    
+    /* Fix for iOS 100vh issue */
+    :root {
+        --vh: 1vh;
+    }
+    
+    .full-height {
+        height: calc(var(--vh, 1vh) * 100);
+    }
+    
+    /* iOS Specific Styles */
+    @supports (-webkit-touch-callout: none) {
+        /* Safari/iOS specific style adjustments */
+        input[type="radio"], 
+        input[type="checkbox"] {
+            -webkit-appearance: none;
+        }
+        
+        /* Fix for iOS button styles */
+        .btn {
+            -webkit-appearance: none;
+        }
+        
+        /* Prevent unwanted zoom on input focus */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+    }
+    
+    /* Active state for tabs */
+    .nav-pills .nav-link.active {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
 </style>
 {% endblock %}
 
@@ -426,6 +516,103 @@
 <script>
     const showTour = {{ show_tour | tojson }};
     const playerChoices = {{ player_choices | tojson }};
+    
+    // Fix iOS 100vh issue
+    function setViewportHeight() {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    // Initialize and handle mobile-specific behaviors
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set viewport height fix
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', setViewportHeight);
+        
+        // Make tabs touch-friendly
+        const tabContainers = document.querySelectorAll('.nav-pills');
+        tabContainers.forEach(container => {
+            if (window.innerWidth < 768) {
+                container.classList.add('small-tabs', 'overflow-auto', 'flex-nowrap');
+            }
+        });
+        
+        // Handle any modals better on mobile
+        const allModals = document.querySelectorAll('.modal');
+        allModals.forEach(modal => {
+            modal.addEventListener('shown.bs.modal', function() {
+                // Fix for iOS scroll issues in modals
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    document.body.style.overflow = 'hidden';
+                    document.body.style.position = 'fixed';
+                    document.body.style.width = '100%';
+                }
+            });
+            
+            modal.addEventListener('hidden.bs.modal', function() {
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                    document.body.style.overflow = '';
+                    document.body.style.position = '';
+                    document.body.style.width = '';
+                }
+            });
+        });
+        
+        // Enable fast click on mobile devices to reduce tap delay
+        if ('ontouchstart' in window) {
+            const buttons = document.querySelectorAll('button, .btn, a');
+            buttons.forEach(button => {
+                button.addEventListener('touchstart', function() {}, {passive: true});
+            });
+        }
+        
+        // Add pull-to-refresh functionality
+        let startY;
+        let startTopScroll;
+        document.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].pageY;
+            startTopScroll = window.scrollY;
+        }, {passive: true});
+        
+        document.addEventListener('touchmove', function(e) {
+            // Pull down refresh only if at the top of the page
+            if (window.scrollY === 0 && e.touches[0].pageY - startY > 60 && !document.querySelector('.refresh-spinner')) {
+                // Create and show refresh indicator
+                const spinner = document.createElement('div');
+                spinner.className = 'refresh-spinner position-fixed w-100 text-center pt-2';
+                spinner.style.top = '0';
+                spinner.style.zIndex = '9999';
+                spinner.innerHTML = '<i class="ti ti-refresh rotate"></i> Pull down to refresh...';
+                document.body.appendChild(spinner);
+            }
+        }, {passive: true});
+        
+        document.addEventListener('touchend', function(e) {
+            const spinner = document.querySelector('.refresh-spinner');
+            if (spinner && window.scrollY === 0 && e.changedTouches[0].pageY - startY > 100) {
+                spinner.innerHTML = '<i class="ti ti-refresh rotate ti-spin"></i> Refreshing...';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            } else if (spinner) {
+                document.body.removeChild(spinner);
+            }
+        }, {passive: true});
+    });
+    
+    // Register service worker if supported by the browser
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/static/js/service-worker.js')
+                .then(function(registration) {
+                    console.log('ServiceWorker registered: ', registration);
+                })
+                .catch(function(error) {
+                    console.log('ServiceWorker registration failed: ', error);
+                });
+        });
+    }
 </script>
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
