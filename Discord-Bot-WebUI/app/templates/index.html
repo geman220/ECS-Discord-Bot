@@ -3,13 +3,6 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="text-primary">Dashboard</h2>
-        </div>
-    </div>
-
     <!-- Onboarding Modal -->
     {% if show_onboarding %}
     <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true">
@@ -36,421 +29,399 @@
     </div>
     {% endif %}
 
-    {% if not show_onboarding %}
-    <!-- Announcements Carousel -->
-    {% if announcements %}
-    <div class="row mb-4">
+    <!-- Welcome Header -->
+    <div class="row mb-3">
         <div class="col-12">
-            <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
-                <!-- Indicators -->
-                <div class="carousel-indicators">
-                    {% for announcement in announcements %}
-                    <button type="button" data-bs-target="#announcementsCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" {% if loop.first %}aria-current="true" {% endif %} aria-label="Slide {{ loop.index }}"></button>
-                    {% endfor %}
-                </div>
-
-                <!-- Carousel Items -->
-                <div class="carousel-inner">
-                    {% for announcement in announcements %}
-                    <div class="carousel-item {% if loop.first %}active{% endif %}">
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <h5 class="text-primary">{{ announcement.title }}</h5>
-                                <p>{{ announcement.content }}</p>
-                                <p class="text-muted"><small>{{ announcement.created_at.strftime('%B %d, %Y') }}</small></p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Controls -->
-                <button class="carousel-control-prev" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#announcementsCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="alert alert-info text-center" role="alert">
-        <p class="mb-0">No new announcements</p>
-    </div>
-    {% endif %}
-    {% endif %}
-
-    <!-- Cards Row -->
-    <div class="row">
-        <!-- Welcome Message Card -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
                     {% if player %}
-                    <h5 class="card-title mb-0">Welcome, {{ player.name }}!</h5>
-                    {% else %}
-                    <h5 class="card-title mb-0">Welcome!</h5>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    {% if player %}
-                    <!-- If player has teams, show them all leagues, else no league -->
-                    {% if player.teams and player.teams|length > 0 %}
-                    {#
-                    Instead of select('truthy'), use selectattr('league') to filter out
-                    teams that have no league. Then map to the league's name.
-                    #}
-                    {% set unique_leagues = (
-                    player.teams
-                    |selectattr('league')
-                    |map(attribute='league')
-                    |map(attribute='name')
-                    |unique
-                    |list
-                    ) %}
-                    <p>
-                        You are currently playing in:
-                        <strong>
-                            {{ unique_leagues|join(', ') }}
-                        </strong>
-                        league(s).
-                    </p>
-                    {% endif %}
-                    <p>
-                        Don't forget to join our <a href="https://discord.gg/weareecs" target="_blank">Discord</a> if you haven't already. We're excited to see you on the field!
-                    </p>
-                    {% else %}
-                    <p>
-                        It looks like you don't have a player profile yet. Please create one to access all features.
-                    </p>
-                    <!-- Create Player Profile Button -->
-                    <form method="POST" action="{{ url_for('main.index') }}" class="d-inline">
-                        {{ onboarding_form.hidden_tag() }}
-                        <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
-                        <button type="submit" class="btn btn-primary">Create My Player Profile</button>
-                    </form>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Profile Overview Card -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-info text-white d-flex align-items-center">
-                    <h5 class="card-title mb-0">Your Profile</h5>
-                </div>
-                <div class="card-body" id="playerProfile">
-                    {% if player %}
-                    <div class="d-flex align-items-center">
-                        <div class="avatar me-3">
-                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_avatar.png') }}" alt="Avatar" class="rounded-circle">
-                        </div>
-                        <div>
-                            <h6 class="mb-0">{{ player.name }}</h6>
-                            <!-- Show multiple teams, comma-separated -->
-                            {% if player.teams and player.teams|length > 0 %}
-                            {% set teams_str = player.teams|map(attribute='name')|join(', ') %}
-                            {#
-                            For the league names, skip None leagues with selectattr('league'),
-                            then map -> league -> name, deduplicate with unique, and join
-                            #}
-                            {% set leagues_str = (
+                    <h2 class="text-primary mb-0">Welcome, {{ player.name }}!</h2>
+                    <p class="text-muted">
+                        {% if player.teams and player.teams|length > 0 %}
+                            {% set unique_leagues = (
                             player.teams
                             |selectattr('league')
                             |map(attribute='league')
                             |map(attribute='name')
                             |unique
-                            |join(', ')
+                            |list
                             ) %}
-                            <small class="text-muted">{{ teams_str }} - {{ leagues_str }}</small>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <p class="mt-3">Make sure your contact details and preferences are up to date.</p>
-                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-info w-100">Update Profile</a>
+                            You are playing in {{ unique_leagues|join(', ') }} league(s)
+                        {% else %}
+                            You are not currently assigned to a team
+                        {% endif %}
+                    </p>
                     {% else %}
-                    <p class="text-muted mb-0 text-center">Please create a player profile to access this feature.</p>
+                    <h2 class="text-primary mb-0">Welcome!</h2>
+                    <p class="text-muted">Please create your player profile to get started</p>
                     {% endif %}
                 </div>
+                {% if player %}
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                             alt="Profile" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                    </div>
+                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="ti ti-user-circle me-1"></i> My Profile
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
+    </div>
 
-        <!-- Team Overview Card -->
-        {% if player and player.teams and player.teams|length > 0 %}
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header bg-success text-white">
-                    <h5 class="card-title mb-0">Your Team(s)</h5>
-                </div>
-                <div class="card-body" id="teamOverview">
-                    <!-- Loop all teams -->
-                    {% for t in player.teams %}
-                    <div class="d-flex align-items-center">
-                        <div class="icon-container me-3">
-                            <!-- SVG Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-users text-success">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h6 class="mb-0">{{ t.name }}</h6>
-                            {% if t.league %}
-                            <small class="text-muted">{{ t.league.name }}</small>
-                            {% else %}
-                            <small class="text-muted">No League</small>
-                            {% endif %}
+    {% if not show_onboarding %}
+    <!-- Announcements Card (simple design) -->
+    {% if announcements %}
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body p-3">
+                    <div id="announcementsCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0 me-3">
+                                <i class="ti ti-bell text-primary" style="font-size: 2rem;"></i>
+                            </div>
+                            <div class="carousel-inner flex-grow-1">
+                                {% for announcement in announcements %}
+                                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                    <h5 class="text-primary mb-1">{{ announcement.title }}</h5>
+                                    <p class="mb-0">{{ announcement.content }}</p>
+                                    <small class="text-muted">{{ announcement.created_at.strftime('%B %d, %Y') }}</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="flex-shrink-0 ms-3">
+                                <button class="btn btn-sm btn-icon btn-outline-primary rounded-circle" type="button" 
+                                        data-bs-target="#announcementsCarousel" data-bs-slide="next">
+                                    <i class="ti ti-chevron-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <p class="mt-3">See your team members and upcoming matches.</p>
-                    <a href="{{ url_for('teams.team_details', team_id=t.id) }}" class="btn btn-success w-100">View Team</a>
-                    {% if not loop.last %}
-                    <hr>
-                    {% endif %}
-                    {% endfor %}
                 </div>
             </div>
         </div>
-        {% endif %}
-    </div> <!-- end .row -->
-    <!-- Next Matches Section -->
-    {% if next_matches and player and player.teams and player.teams|length > 0 %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if not player %}
+    <!-- Create Profile Card (if no player profile) -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-warning text-white">
-                    <h5 class="card-title mb-0">Next Matches</h5>
-                </div>
-                <div class="card-body" id="matchOverview">
-                    <!-- For each team, show relevant matches -->
-                    {% for t in player.teams %}
-                    <h4 class="my-3 text-muted">{{ t.name }}{% if t.league %} ({{ t.league.name }}){% endif %}</h4>
-                    {% set has_matches = false %}
-                    {% for date, matches in next_matches.items() %}
-                    <!-- Filter only matches for this team -->
-                    {% set relevant_matches = [] %}
-                    {% for match_data in matches %}
-                    {% set home_id = match_data['home_team_id'] %}
-                    {% set away_id = match_data['away_team_id'] %}
-                    {% if home_id == t.id or away_id == t.id %}
-                    {% set relevant_matches = relevant_matches + [match_data] %}
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if relevant_matches|length > 0 %}
-                    {% set has_matches = true %}
+            <div class="card shadow">
+                <div class="card-body text-center p-4">
                     <div class="mb-3">
-                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-                        <div class="row">
-                            {% for match_data in relevant_matches %}
-                            {% set match = match_data['match'] %}
-                            {% set home_team_name = match_data['home_team_name'] %}
-                            {% set opponent_team_name = match_data['opponent_name'] %}
+                        <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}" 
+                             alt="Create Profile" style="height: 150px;">
+                    </div>
+                    <h3>Get Started</h3>
+                    <p class="mb-4">Create your player profile to access team information, match scheduling, and more.</p>
+                    <form method="POST" action="{{ url_for('main.index') }}" class="d-inline">
+                        {{ onboarding_form.hidden_tag() }}
+                        <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ti ti-user-plus me-2"></i>Create Player Profile
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
-                            <!-- Determine who is home vs away for display -->
-                            {% if match_data['home_team_id'] == t.id %}
-                            {% set display_home = home_team_name %}
-                            {% set display_away = opponent_team_name %}
-                            {% else %}
-                            {% set display_home = opponent_team_name %}
-                            {% set display_away = home_team_name %}
-                            {% endif %}
-
-                            <div class="col-md-6 mb-2">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ display_home }} vs {{ display_away }}</h6>
-                                        <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
-                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
-
-                                        {% if safe_current_user.has_permission('view_match_reporting') %}
-                                        <button class="btn btn-outline-primary w-100 mb-2 edit-match-btn"
-                                                data-match-id="{{ match.id }}"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#reportMatchModal-{{ match.id }}">
-                                            {{ 'Edit Match' if match.reported else 'Report Match' }}
-                                        </button>
+    {% if player and player.teams and player.teams|length > 0 %}
+    <!-- Upcoming Matches Quick View -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Upcoming Matches</h4>
+                <div class="nav nav-pills" id="match-tabs" role="tablist">
+                    {% for t in player.teams %}
+                        <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                id="team-{{ t.id }}-tab" data-bs-toggle="pill" 
+                                data-bs-target="#team-{{ t.id }}-content" type="button" 
+                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                            {{ t.name }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="tab-content" id="match-tab-content">
+                {% for t in player.teams %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="team-{{ t.id }}-content" role="tabpanel" 
+                     aria-labelledby="team-{{ t.id }}-tab">
+                    
+                    {% set team_next_matches = team_matches.get(t.id, {}).get('next', {}) %}
+                    
+                    {% if team_next_matches|length > 0 %}
+                        {% for date, matches in team_next_matches.items() | sort %}
+                            <div class="card shadow-sm mb-3">
+                                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-calendar-event me-2"></i>
+                                        {{ date.strftime('%A, %B %d, %Y') }}
+                                    </h5>
+                                    {% if t.league %}
+                                    <span class="badge bg-primary">{{ t.league.name }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card-body p-0">
+                                    <div class="list-group list-group-flush">
+                                        {% for match_data in matches %}
+                                        {% set match = match_data['match'] %}
+                                        {% set home_team_name = match_data['home_team_name'] %}
+                                        {% set opponent_team_name = match_data['opponent_name'] %}
+                                        
+                                        {% if match_data['home_team_id'] == t.id %}
+                                            {% set is_home = true %}
+                                            {% set opponent_name = opponent_team_name %}
+                                        {% else %}
+                                            {% set is_home = false %}
+                                            {% set opponent_name = home_team_name %}
                                         {% endif %}
+                                        
+                                        <div class="list-group-item p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="match-badge {% if is_home %}bg-success{% else %}bg-info{% endif %} me-2">
+                                                            {% if is_home %}H{% else %}A{% endif %}
+                                                        </div>
+                                                        <h6 class="mb-0">
+                                                            {% if is_home %}
+                                                                <span class="text-success fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                            {% else %}
+                                                                {{ opponent_name }} vs <span class="text-success fw-bold">{{ t.name }}</span>
+                                                            {% endif %}
+                                                        </h6>
+                                                    </div>
+                                                    <div class="text-muted small">
+                                                        <i class="ti ti-clock me-1"></i>{{ match.time.strftime('%I:%M %p') }}
+                                                        <i class="ti ti-map-pin ms-2 me-1"></i>{{ match.location }}
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="rsvp-controls me-3">
+                                                        <div class="btn-group btn-group-sm" role="group">
+                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes" autocomplete="off">
+                                                            <label class="btn btn-outline-success" for="responseYes-{{ match.id }}" title="I can play">
+                                                                <i class="ti ti-check"></i>
+                                                            </label>
+                                                            
+                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseMaybe-{{ match.id }}" value="maybe" autocomplete="off">
+                                                            <label class="btn btn-outline-warning" for="responseMaybe-{{ match.id }}" title="Maybe">
+                                                                <i class="ti ti-question-mark"></i>
+                                                            </label>
+                                                            
+                                                            <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseNo-{{ match.id }}" value="no" autocomplete="off">
+                                                            <label class="btn btn-outline-danger" for="responseNo-{{ match.id }}" title="Can't play">
+                                                                <i class="ti ti-x"></i>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary btn-sm">
+                                                        Details
+                                                    </a>
+                                                    {% if safe_current_user.has_permission('view_match_reporting') %}
+                                                    <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
+                                                            data-match-id="{{ match.id }}"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#reportMatchModal-{{ match.id }}">
+                                                        <i class="ti ti-edit"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Include the Report Match Modal using the macro -->
+                                        {{ macros.render_report_match_modal(match, player_choices) }}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" 
+                                     alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                                <h5>No Upcoming Matches</h5>
+                                <p class="text-muted">There are no upcoming matches scheduled for {{ t.name }}.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 
-                                        <!-- RSVP Form -->
-                                        <h6 class="small mt-3">Will you be able to attend this match?</h6>
-                                        <div class="d-flex align-items-center justify-content-between">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes">
-                                                <label class="form-check-label" for="responseYes-{{ match.id }}">Yes</label>
+    <!-- Recent Matches -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h4 class="mb-0">Recent Matches</h4>
+                <div class="nav nav-pills" id="recent-match-tabs" role="tablist">
+                    {% for t in player.teams %}
+                        <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                id="recent-team-{{ t.id }}-tab" data-bs-toggle="pill" 
+                                data-bs-target="#recent-team-{{ t.id }}-content" type="button" 
+                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
+                            {{ t.name }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="tab-content" id="recent-match-tab-content">
+                {% for t in player.teams %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="recent-team-{{ t.id }}-content" role="tabpanel" 
+                     aria-labelledby="recent-team-{{ t.id }}-tab">
+                    
+                    {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
+                    
+                    {% if team_prev_matches|length > 0 %}
+                        <div class="card shadow-sm">
+                            <div class="list-group list-group-flush">
+                                {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
+                                    {% for match_data in matches %}
+                                    {% set match = match_data['match'] %}
+                                    {% set home_team_name = match_data['home_team_name'] %}
+                                    {% set opponent_team_name = match_data['opponent_name'] %}
+                                    
+                                    {% if match_data['home_team_id'] == t.id %}
+                                        {% set is_home = true %}
+                                        {% set opponent_name = opponent_team_name %}
+                                    {% else %}
+                                        {% set is_home = false %}
+                                        {% set opponent_name = home_team_name %}
+                                    {% endif %}
+                                    
+                                    <div class="list-group-item p-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="match-badge {% if is_home %}bg-success{% else %}bg-info{% endif %} text-white me-2">
+                                                        {% if is_home %}H{% else %}A{% endif %}
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-0">
+                                                            {% if is_home %}
+                                                                <span class="fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                            {% else %}
+                                                                {{ opponent_name }} vs <span class="fw-bold">{{ t.name }}</span>
+                                                            {% endif %}
+                                                        </h6>
+                                                        <div class="text-muted small">
+                                                            {{ date.strftime('%a, %b %d') }} · {{ match.time.strftime('%I:%M %p') }} · {{ match.location }}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseMaybe-{{ match.id }}" value="maybe">
-                                                <label class="form-check-label" for="responseMaybe-{{ match.id }}">Maybe</label>
-                                            </div>
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input rsvp-input" type="radio" name="response-{{ match.id }}" id="responseNo-{{ match.id }}" value="no">
-                                                <label class="form-check-label" for="responseNo-{{ match.id }}">No</label>
+                                            <div>
+                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-sm btn-primary">Details</a>
+                                                {% if safe_current_user.has_permission('view_match_reporting') %}
+                                                <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
+                                                        data-match-id="{{ match.id }}"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#reportMatchModal-{{ match.id }}">
+                                                    {% if match.reported %}Edit Report{% else %}Report{% endif %}
+                                                </button>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                    
+                                    <!-- Include the Report Match Modal using the macro -->
+                                    {{ macros.render_report_match_modal(match, player_choices) }}
+                                    {% endfor %}
+                                {% endfor %}
                             </div>
-
-                            <!-- Include the Report Match Modal using the macro -->
-                            {{ macros.render_report_match_modal(match, player_choices) }}
-                            {% endfor %}
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center p-4">
+                                <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" 
+                                     alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                                <h5>No Recent Matches</h5>
+                                <p class="text-muted">There are no recent matches for {{ t.name }}.</p>
+                            </div>
+                        </div>
                     {% endif %}
-                    {% endfor %}
-
-                    {% if not has_matches %}
-                    <p class="text-muted">No upcoming matches for {{ t.name }}.</p>
-                    {% endif %}
-
-                    <hr>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Previous Matches Section -->
-    {% if previous_matches and safe_current_user.has_permission('view_match_reporting') and player and player.teams and player.teams|length > 0 %}
+    <!-- Admin features - hidden but can be re-enabled if needed -->
+    {% if false and safe_current_user.has_permission('view_match_reporting') %}
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="card-title mb-0">Report Previous Matches</h5>
+                <div class="card-header bg-dark text-white">
+                    <h5 class="card-title mb-0">Debug Information</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Loop each team again -->
-                    {% for t in player.teams %}
-                    <h4 class="my-3 text-muted">{{ t.name }}{% if t.league %} ({{ t.league.name }}){% endif %}</h4>
-                    {% set has_prev_matches = false %}
-                    {% for date, matches in previous_matches.items() %}
-                    {% set relevant_prev = [] %}
-                    {% for match_data in matches %}
-                    {% if match_data['home_team_id'] == t.id or match_data['away_team_id'] == t.id %}
-                    {% set relevant_prev = relevant_prev + [match_data] %}
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if relevant_prev|length > 0 %}
-                    {% set has_prev_matches = true %}
-                    <div class="mb-3">
-                        <h6 class="text-muted">{{ date.strftime('%A, %B %d, %Y') }}</h6>
-                        <div class="row">
-                            {% for match_data in relevant_prev %}
-                            {% set match = match_data['match'] %}
-                            {% set home_team_name = match_data['home_team_name'] %}
-                            {% set opponent_team_name = match_data['opponent_name'] %}
-
-                            {% if match_data['home_team_id'] == t.id %}
-                            {% set display_home = home_team_name %}
-                            {% set display_away = opponent_team_name %}
-                            {% else %}
-                            {% set display_home = opponent_team_name %}
-                            {% set display_away = home_team_name %}
-                            {% endif %}
-
-                            <div class="col-md-6 mb-2">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6 class="card-title">{{ display_home }} vs {{ display_away }}</h6>
-                                        <p class="card-text">{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</p>
-                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary mb-2 w-100">View Match Details</a>
-
-                                        {% if safe_current_user.has_permission('view_match_reporting') %}
-                                        <button class="btn btn-outline-primary w-100 edit-match-btn"
-                                                data-match-id="{{ match.id }}"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#reportMatchModal-{{ match.id }}">
-                                            {{ 'Edit Match' if match.reported else 'Report Match' }}
-                                        </button>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Include the Report Match Modal using the macro -->
-                            {{ macros.render_report_match_modal(match, player_choices) }}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    {% if not has_prev_matches %}
-                    <p class="text-muted">No previous matches for {{ t.name }}.</p>
-                    {% endif %}
-                    <hr>
-                    {% endfor %}
+                    <!-- Debug content removed -->
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
-
 </div>
 {% endblock %}
+
 {% block custom_css %}
-<!-- Existing CSS -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
-
-<!-- Onboarding Modal CSS -->
 <style>
-    .carousel-inner {
-        position: relative;
-        padding-bottom: 60px;
+    /* Match badge styling */
+    .match-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+        font-size: 0.8rem;
     }
-
-    #carouselControls {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 1rem;
-        background: transparent !important;
-        border-top: none !important;
-        z-index: 10;
+    
+    /* Card hover effect */
+    .shadow-sm {
+        transition: all 0.2s ease;
     }
-
-    .carousel-indicators button {
-        background-color: rgba(255, 255, 255, 0.5) !important;
+    
+    .shadow-sm:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
     }
-
-    .carousel-indicators .active {
-        background-color: #fff !important;
+    
+    /* Tabs styling */
+    .nav-pills .nav-link {
+        font-size: 0.875rem;
+        padding: 0.4rem 0.8rem;
     }
-
+    
+    /* RSVP controls */
+    .rsvp-controls .btn-group label {
+        padding: 0.25rem 0.5rem;
+    }
+    
+    /* Carousel indicators position */
     .carousel-indicators {
-        position: absolute;
-        bottom: 70px;
-        margin-bottom: 0;
-    }
-
-    .onboarding-content {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 2rem 1rem;
-        padding-bottom: 100px;
-    }
-
-    .img-container {
-        max-width: 400px;
-        margin: 0 auto;
-    }
-
-    @media (max-width: 768px) {
-        .onboarding-content {
-            padding: 1rem;
-        }
+        bottom: -5px;
     }
 </style>
 {% endblock %}
+
 {% block custom_js %}
 <script>
     const showTour = {{ show_tour | tojson }};

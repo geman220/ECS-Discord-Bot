@@ -251,22 +251,47 @@ def fetch_upcoming_matches(
     grouped_matches = defaultdict(list)
     today = datetime.now().date()
 
+    # Log detailed debugging information
+    team_names = [t.name for t in teams]
+    logger.info(f"fetch_upcoming_matches called for teams: {team_names}")
+
     if not teams:
+        logger.info("No teams provided, returning empty matches")
         return grouped_matches
 
     team_ids = [t.id for t in teams]
+    logger.info(f"Team IDs: {team_ids}")
+    
     if not start_date:
         start_date = today - timedelta(weeks=4) if include_past_matches else today
     if not end_date:
         end_date = today - timedelta(days=1) if include_past_matches else today + timedelta(weeks=4)
 
+    logger.info(f"Date range: {start_date} to {end_date}, include_past_matches: {include_past_matches}")
+    
     order_by = [Match.date.asc(), Match.time.asc()] if order == 'asc' else [Match.date.desc(), Match.time.desc()]
 
+    # First, try to count all matches for these teams
+    check_query = (
+        session.query(func.count(Match.id))
+        .filter(
+            or_(
+                Match.home_team_id.in_(team_ids),
+                Match.away_team_id.in_(team_ids)
+            )
+        )
+    )
+    total_match_count = check_query.scalar()
+    logger.info(f"Total matches for teams (regardless of date): {total_match_count}")
+    
+    # Now build the actual query with date filters
+    # Using subqueries to check if teams and schedules exist
     query = (
         session.query(Match)
         .options(
             joinedload(Match.home_team).joinedload(Team.players),
-            joinedload(Match.away_team).joinedload(Team.players)
+            joinedload(Match.away_team).joinedload(Team.players),
+            joinedload(Match.schedule)
         )
         .filter(
             or_(
@@ -279,24 +304,41 @@ def fetch_upcoming_matches(
         .order_by(*order_by)
     )
 
-    if specific_day is not None:
-        query = query.filter(func.extract('dow', Match.date) == specific_day)
+    # Debug the SQL query
+    compiled_query = query.statement.compile(compile_kwargs={"literal_binds": True})
+    logger.info(f"SQL query: {compiled_query}")
 
+    # Get the matches
     matches = query.all()
+    logger.info(f"Found {len(matches)} matches after filtering")
+
+    # Log each match for debugging
+    for match in matches:
+        logger.info(f"Match: {match.id}, Date: {match.date}, Home: {match.home_team.name}, Away: {match.away_team.name}")
 
     if specific_day is not None and per_day_limit is not None:
         day_count = defaultdict(int)
         for match in matches:
             match_date = match.date
+            weekday = match_date.weekday()
+            logger.info(f"Match {match.id} on {match_date} (weekday {weekday})")
+            
             if day_count[match_date] < per_day_limit:
                 grouped_matches[match_date].append(_build_match_dict(match))
                 day_count[match_date] += 1
+                logger.info(f"Added match {match.id} to group {match_date}")
+            else:
+                logger.info(f"Skipped match {match.id} due to per_day_limit")
     else:
         if match_limit:
             matches = matches[:match_limit]
+            logger.info(f"Limited to {len(matches)} matches due to match_limit")
+        
         for match in matches:
             grouped_matches[match.date].append(_build_match_dict(match))
+            logger.info(f"Added match {match.id} to group {match.date}")
 
+    logger.info(f"Returning {sum(len(v) for v in grouped_matches.values())} matches grouped by {len(grouped_matches)} dates")
     return grouped_matches
 
 
@@ -310,15 +352,22 @@ def _build_match_dict(match):
     Returns:
         dict: A dictionary containing match and team details.
     """
-    return {
+    match_dict = {
         'match': match,
         'home_team_name': match.home_team.name,
         'opponent_name': match.away_team.name,
         'home_team_id': match.home_team_id,
-        'opponent_team_id': match.away_team_id,
+        'away_team_id': match.away_team_id,  # Fixed: renamed to away_team_id for template consistency
         'home_players': [{'id': p.id, 'name': p.name} for p in match.home_team.players],
         'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players]
     }
+    
+    # Add opponent_team_id as well for backwards compatibility
+    match_dict['opponent_team_id'] = match.away_team_id
+    
+    logger.debug(f"Built match dict for match {match.id}: home_team_id={match_dict['home_team_id']}, away_team_id={match_dict['away_team_id']}")
+    
+    return match_dict
 
 
 @main.route('/', endpoint='index', methods=['GET', 'POST'])
@@ -334,13 +383,25 @@ def index():
     try:
         # Retrieve or refresh the player profile for the current user.
         player = getattr(safe_current_user, 'player', None)
+        is_coach = False  # Initialize coach flag
+        
         if player:
+            # Get player with teams, and with coach status for teams
             player = (
                 session.query(Player)
                 .options(joinedload(Player.teams).joinedload(Team.league))
                 .filter_by(id=player.id)
                 .first()
             )
+            
+            # Check if player is a coach for any team
+            if player:
+                coach_teams = session.query(player_teams).filter(
+                    player_teams.c.player_id == player.id,
+                    player_teams.c.is_coach == True
+                ).all()
+                is_coach = len(coach_teams) > 0
+                player.is_coach = is_coach  # Add coach status as attribute to player
         else:
             player = None
 
@@ -422,25 +483,73 @@ def index():
         two_weeks_later = today + timedelta(weeks=2)
         one_week_ago = today - timedelta(weeks=1)
         yesterday = today - timedelta(days=1)
-        sunday_dow = 0
-
+        
+        # Debug teams and match relationship directly using SQL
+        if user_teams:
+            team_ids_str = ", ".join(str(t.id) for t in user_teams)
+            try:
+                # Find all matches for these teams
+                match_query = text(f"""
+                    SELECT 
+                        m.id, 
+                        m.date, 
+                        m.time, 
+                        m.location,
+                        h.id as home_team_id, 
+                        h.name as home_team_name,
+                        a.id as away_team_id, 
+                        a.name as away_team_name
+                    FROM 
+                        matches m
+                    JOIN 
+                        team h ON m.home_team_id = h.id
+                    JOIN 
+                        team a ON m.away_team_id = a.id
+                    WHERE 
+                        m.home_team_id IN ({team_ids_str}) OR m.away_team_id IN ({team_ids_str})
+                    ORDER BY 
+                        m.date, m.time
+                """)
+                
+                match_results = session.execute(match_query).fetchall()
+                
+                logger.info(f"Direct SQL query found {len(match_results)} matches for teams {[t.name for t in user_teams]}")
+                
+                # Log each match found via direct SQL
+                for match in match_results:
+                    logger.info(f"Direct SQL match: ID={match.id}, Date={match.date}, Home={match.home_team_name}, Away={match.away_team_name}")
+                
+                # Debug help - match all team IDs for template
+                logger.info(f"Team ID list for template debugging: {'; '.join([f'{t.name}: {t.id}' for t in user_teams])}")
+                
+            except Exception as e:
+                logger.error(f"Error in direct SQL query: {e}")
+        
+        # For upcoming matches - show matches from today forward
         next_matches = fetch_upcoming_matches(
             teams=user_teams,
             start_date=today,
-            end_date=two_weeks_later,
-            specific_day=sunday_dow,
-            per_day_limit=2,
+            end_date=today + timedelta(days=30),  # Look ahead a month
+            match_limit=4,  # Show up to 4 upcoming matches
             order='asc'
         )
-
+        
+        # For previous matches - show matches before today
         previous_matches = fetch_upcoming_matches(
             teams=user_teams,
-            start_date=one_week_ago,
-            end_date=yesterday,
-            match_limit=2,
+            start_date=today - timedelta(days=14),  # Look back 2 weeks
+            end_date=today - timedelta(days=1),     # Yesterday
+            match_limit=4,
             include_past_matches=True,
             order='desc'
         )
+        
+        # Debug information
+        logger.info(f"User teams: {[t.name for t in user_teams]}")
+        logger.info(f"Date range for next matches: {today} to {two_weeks_later}")
+        logger.info(f"Found {sum(len(matches) for matches in next_matches.values())} upcoming matches")
+        logger.info(f"Date range for previous matches: {one_week_ago} to {yesterday}")
+        logger.info(f"Found {sum(len(matches) for matches in previous_matches.values())} previous matches")
 
         announcements = fetch_announcements()
         player_choices_per_match = {}
@@ -465,6 +574,66 @@ def index():
                         match_data['opponent_name']: {p.id: p.name for p in away_players}
                     }
 
+        # Pre-process match data for the template
+        processed_next_matches = {}
+        processed_prev_matches = {}
+        
+        # Process team matches into team-specific collections
+        team_matches = {t.id: {'next': {}, 'prev': {}} for t in user_teams}
+        
+        # Process next matches
+        for date, matches_list in next_matches.items():
+            processed_next_matches[date] = matches_list  # Keep original structure for debug
+            
+            # Organize by team
+            for match_data in matches_list:
+                home_id = match_data['home_team_id']
+                away_id = match_data['away_team_id']
+                
+                # Add to home team if relevant
+                if home_id in team_matches:
+                    if date not in team_matches[home_id]['next']:
+                        team_matches[home_id]['next'][date] = []
+                    team_matches[home_id]['next'][date].append(match_data)
+                
+                # Add to away team if relevant
+                if away_id in team_matches:
+                    if date not in team_matches[away_id]['next']:
+                        team_matches[away_id]['next'][date] = []
+                    team_matches[away_id]['next'][date].append(match_data)
+        
+        # Process previous matches
+        for date, matches_list in previous_matches.items():
+            processed_prev_matches[date] = matches_list  # Keep original structure for debug
+            
+            # Organize by team
+            for match_data in matches_list:
+                home_id = match_data['home_team_id']
+                away_id = match_data['away_team_id']
+                
+                # Add to home team if relevant
+                if home_id in team_matches:
+                    if date not in team_matches[home_id]['prev']:
+                        team_matches[home_id]['prev'][date] = []
+                    team_matches[home_id]['prev'][date].append(match_data)
+                
+                # Add to away team if relevant
+                if away_id in team_matches:
+                    if date not in team_matches[away_id]['prev']:
+                        team_matches[away_id]['prev'][date] = []
+                    team_matches[away_id]['prev'][date].append(match_data)
+        
+        # Log what we found
+        for team_id, match_data in team_matches.items():
+            team_name = next((t.name for t in user_teams if t.id == team_id), "Unknown")
+            next_count = sum(len(matches) for matches in match_data['next'].values())
+            prev_count = sum(len(matches) for matches in match_data['prev'].values())
+            logger.info(f"Preprocessed matches for {team_name} (ID: {team_id}): {next_count} upcoming, {prev_count} previous")
+            
+            # Log dates with matches
+            logger.info(f"  Next match dates: {list(match_data['next'].keys())}")
+            logger.info(f"  Prev match dates: {list(match_data['prev'].keys())}")
+            
         return render_template(
             'index.html',
             title='Home',
@@ -474,6 +643,7 @@ def index():
             user_team=user_teams,
             next_matches=next_matches,
             previous_matches=previous_matches,
+            team_matches=team_matches,  # Add the pre-processed matches
             current_year=current_year,
             team=user_teams,
             player=player,

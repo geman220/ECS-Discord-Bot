@@ -424,10 +424,20 @@ def stop_live_reporting_route(match_id):
                 logger.warning(f"Live reporting is not running for match {match_id}")
                 return jsonify({'success': False, 'error': 'Live reporting is not running for this match'}), 400
 
+            # Update match status
             match.live_reporting_status = 'stopped'
             match.live_reporting_started = False
-
-            celery.control.revoke(match.live_reporting_task_id, terminate=True)
+            
+            # Revoke the current task if one exists
+            if match.live_reporting_task_id:
+                logger.info(f"Revoking task {match.live_reporting_task_id} for match {match_id}")
+                try:
+                    celery.control.revoke(match.live_reporting_task_id, terminate=True)
+                except Exception as revoke_error:
+                    logger.warning(f"Error revoking task {match.live_reporting_task_id}: {revoke_error}")
+                
+                # Clear the task ID to ensure no future updates attempt to process
+                match.live_reporting_task_id = None
 
             logger.info(f"Live reporting stopped for match {match_id}")
             return jsonify({'success': True, 'message': 'Live reporting stopped successfully'})

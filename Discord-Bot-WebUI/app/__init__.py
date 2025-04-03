@@ -227,17 +227,31 @@ def create_app(config_object='web_config.Config'):
     @app.context_processor
     def inject_current_pub_league_season():
         """Inject the current Pub League season into every template's context."""
-        session = app.SessionLocal()
-        try:
-            season = session.query(Season).filter_by(
-                league_type='Pub League',
-                is_current=True
-            ).first()
-        except Exception:
-            season = None
-        finally:
-            session.close()
-        return dict(current_pub_league_season=season)
+        # Use g.db_session instead of creating a new session
+        if hasattr(g, 'db_session'):
+            try:
+                season = g.db_session.query(Season).filter_by(
+                    league_type='Pub League',
+                    is_current=True
+                ).first()
+            except Exception as e:
+                logger.error(f"Error fetching pub league season: {e}", exc_info=True)
+                season = None
+            return dict(current_pub_league_season=season)
+        else:
+            # Only create a new session if no request context
+            session = app.SessionLocal()
+            try:
+                season = session.query(Season).filter_by(
+                    league_type='Pub League',
+                    is_current=True
+                ).first()
+            except Exception as e:
+                logger.error(f"Error fetching pub league season: {e}", exc_info=True)
+                season = None
+            finally:
+                session.close()
+            return dict(current_pub_league_season=season)
 
     @app.teardown_request
     def teardown_request(exception):

@@ -91,8 +91,16 @@ class RequestLifecycle:
             """Final cleanup when app context ends."""
             try:
                 if hasattr(g, 'db_session'):
-                    # db_session cleanup is handled in __init__.py teardown_request
-                    pass
+                    # Double-check that db_session is properly closed
+                    try:
+                        g.db_session.close()
+                        logger.debug("Closed db_session in teardown_appcontext as final safety check")
+                    except Exception as session_err:
+                        logger.error(f"Error closing session in teardown_appcontext: {session_err}", exc_info=True)
+                    finally:
+                        if hasattr(g, 'db_session'):
+                            delattr(g, 'db_session')
+                
                 self._template_cache.clear()
                 self._static_cache.clear()
             except Exception as e:

@@ -42,7 +42,8 @@ logger = logging.getLogger(__name__)
 def process_match_update(self, session, match_id: str, thread_id: str, competition: str,
                          last_status: Optional[str] = None,
                          last_score: Optional[str] = None,
-                         last_event_keys: Optional[list] = None) -> Dict[str, Any]:
+                         last_event_keys: Optional[list] = None,
+                         task_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Process a single live match update iteration.
 
@@ -71,6 +72,13 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         if match.live_reporting_status != 'running':
             logger.error(f"Match {match_id} not in running state")
             return {'success': False, 'message': 'Match not in running state'}
+
+        # Check if this is a duplicate task execution - ADDED CODE
+        current_task_id = self.request.id
+        if task_id and current_task_id != task_id:
+            logger.warning(f"Detected duplicate task execution for match {match_id}. "
+                          f"Expected task ID: {task_id}, Current task ID: {current_task_id}")
+            return {'success': False, 'message': 'Duplicate task execution detected'}
 
         last_event_keys = last_event_keys or []
 
@@ -124,6 +132,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
             if match:
                 match.live_reporting_status = 'completed'
                 match.live_reporting_started = False
+                match.live_reporting_task_id = None  # ADDED CODE: Clear task ID
 
             # Return the update data so that the Discord bot can use it to build the full-time embed.
             return {
@@ -147,23 +156,34 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
             match.last_update_time = datetime.utcnow()
 
         # Schedule the next update with updated parameters.
-        self.apply_async(
+        # Store the task ID to prevent duplicate executions
+        next_task = self.apply_async(
             args=[match_id, thread_id, competition],
             kwargs={
                 'last_status': new_status,
                 'last_score': new_score,
-                'last_event_keys': current_event_keys
+                'last_event_keys': current_event_keys,
+                'task_id': None  # Will be filled with the actual task ID
             },
             countdown=30,
             queue='live_reporting'
         )
+        
+        # Store the new task ID in the database
+        if match:
+            match.live_reporting_task_id = next_task.id
+            logger.info(f"Scheduled next update with task ID: {next_task.id} for match {match_id}")
+            
+        # Update the task kwargs with the actual task ID
+        next_task.kwargs['task_id'] = next_task.id
 
         return {
             'success': True,
             'message': 'Update processed',
             'status': 'running',
             'score': new_score,
-            'match_status': new_status
+            'match_status': new_status,
+            'next_task_id': next_task.id  # ADDED CODE: Return the next task ID
         }
 
     except SQLAlchemyError as e:
@@ -189,6 +209,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
       - Checks if reporting is already running.
       - Updates match status to running and records start time.
       - Triggers the initial match update task.
+      - Stores the task ID to prevent duplicate executions.
 
     Returns:
         A dictionary indicating the reporting start result.
@@ -207,12 +228,21 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             return {'success': False, 'message': f'Match {match_id} not found'}
 
         if match.live_reporting_status == 'running':
-            return {'success': False, 'message': 'Live reporting already running'}
-
+            logger.warning(f"Live reporting already running for match {match_id}")
+            # If a task ID exists but the task is no longer active, we should reset it
+            if match.live_reporting_task_id:
+                task = process_match_update.AsyncResult(match.live_reporting_task_id)
+                if not task.ready() and task.state != 'REVOKED':
+                    return {'success': False, 'message': 'Live reporting already running'}
+                logger.info(f"Task {match.live_reporting_task_id} is no longer active, restarting live reporting")
+                # Task is done or doesn't exist, we can restart
+            
         # Mark the match as running.
         match.live_reporting_started = True
         match.live_reporting_status = 'running'
         match.reporting_start_time = datetime.utcnow()
+        # Clear any previous task ID
+        match.live_reporting_task_id = None
 
         match_data = {
             'match_id': match.match_id,
@@ -222,22 +252,28 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
 
         logger.info(f"Updated match status to running for {match_id}")
 
-        # Trigger the update task asynchronously.
-        process_match_update.delay(
+        # Trigger the update task asynchronously and store its ID.
+        task = process_match_update.delay(
             match_id=str(match_data['match_id']),
             thread_id=str(match_data['thread_id']),
             competition=match_data['competition'],
             last_status=None,
             last_score=None,
-            last_event_keys=[]
+            last_event_keys=[],
+            task_id=None  # Will be set to the actual task ID
         )
+        
+        # Store the task ID to track this execution chain
+        match.live_reporting_task_id = task.id
+        logger.info(f"Started live reporting with initial task ID: {task.id}")
 
         return {
             'success': True,
             'message': 'Live reporting started successfully',
             'match_id': match_data['match_id'],
             'thread_id': match_data['thread_id'],
-            'status': 'running'
+            'status': 'running',
+            'task_id': task.id
         }
 
     except SQLAlchemyError as e:
@@ -250,6 +286,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
             if match:
                 match.live_reporting_status = 'failed'
                 match.live_reporting_started = False
+                match.live_reporting_task_id = None
             error_session.commit()
             error_session.close()
         except Exception as inner_e:
