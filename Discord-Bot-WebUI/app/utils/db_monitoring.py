@@ -141,10 +141,45 @@ class DatabaseMetrics:
             session_id for session_id, start_time in self.session_starts.items()
             if current_time - start_time > 3600  # 1 hour threshold
         ]
+        
+        # Handle orphaned sessions - they might be leaking
+        if orphaned_sessions:
+            logger.warning(
+                f"Found {len(orphaned_sessions)} orphaned database sessions that have been active for >1 hour"
+            )
+            
         for session_id in orphaned_sessions:
-            logger.warning(f"Cleaning up orphaned session {session_id}")
+            logger.warning(f"Cleaning up orphaned session {session_id} - possible session leak")
             del self.session_starts[session_id]
             DB_CONNECTIONS.dec()
+            
+    def detect_session_leaks(self) -> List[int]:
+        """
+        Detect potential database session leaks.
+        
+        Identifies sessions that have been active for more than 30 minutes,
+        which may indicate a leaked session that was not properly closed.
+        
+        Returns:
+            A list of session IDs that might be leaking.
+        """
+        current_time = time.time()
+        potential_leaks = [
+            session_id for session_id, start_time in self.session_starts.items()
+            if current_time - start_time > 1800  # 30 minutes threshold
+        ]
+        
+        if potential_leaks:
+            leak_details = [
+                f"Session {sid} active for {(current_time - self.session_starts[sid]) / 60:.1f} minutes"
+                for sid in potential_leaks
+            ]
+            logger.warning(
+                f"Potential session leaks detected: {len(potential_leaks)} sessions active >30min\n" +
+                "\n".join(leak_details)
+            )
+            
+        return potential_leaks
 
 
 # Create a global instance of the DatabaseMetrics class.

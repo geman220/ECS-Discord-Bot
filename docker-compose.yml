@@ -122,7 +122,9 @@ services:
     build:
       context: ./Discord-Bot-WebUI
       dockerfile: Dockerfile.webui
-    command: python celery_beat.py -s /tmp/celerybeat/celerybeat-schedule
+    command: >
+      sh -c "rm -f /tmp/celerybeat/celerybeat.pid &&
+      python celery_beat.py -s /tmp/celerybeat/celerybeat-schedule"
     env_file:
       - .env
     environment:

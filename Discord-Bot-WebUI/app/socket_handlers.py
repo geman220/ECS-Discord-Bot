@@ -80,7 +80,8 @@ def handle_mass_update():
     Enqueues an asynchronous task to fetch role status and emits an event
     to notify the client that the update has started.
     """
-    with managed_session() as session:
+    # Use socket_session for consistency with other socket handlers
+    with socket_session(db.engine) as session:
         task = fetch_role_status.delay()
         logger.info(f"Queued mass update, task ID: {task.id}")
         emit('mass_update_started', {'task_id': task.id})
@@ -99,7 +100,8 @@ def handle_task_status(data):
     Args:
         data (dict): Contains 'task_id' key.
     """
-    with managed_session() as session:
+    # Use socket_session for consistency with other socket handlers
+    with socket_session(db.engine) as session:
         task_id = data.get('task_id')
         if task_id:
             task = fetch_role_status.AsyncResult(task_id)
