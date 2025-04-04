@@ -42,3 +42,4 @@ yarn.lock
 *.mobileprovision
 Discord-Bot-WebUI/app/static/.webassets-cache/
 /Discord-Bot-WebUI/CLAUDE.md
+/CLAUDE.md
