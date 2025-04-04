@@ -21,7 +21,7 @@ from sqlalchemy import or_, and_, func
 from textmagic.rest import TextmagicRestClient
 from twilio.rest import Client
 
-from app.models import Player, Match, User, Availability
+from app.models import Player, Match, User, Availability, Team
 from app.core import db
 
 logger = logging.getLogger(__name__)
@@ -143,10 +143,10 @@ def send_welcome_message(phone_number):
     welcome_message = (
         "Welcome to ECS FC! You're now signed up for match notifications and reminders.\n\n"
         "Available commands:\n"
-        "- 'next match' or 'schedule': Get info about your next match(es)\n"
-        "- 'help': See all available commands\n"
-        "- 'end': Unsubscribe\n"
-        "Message & data rates may apply."
+        "- 'schedule': Get info about your upcoming matches\n"
+        "- 'yes/no/maybe': RSVP for matches\n"
+        "- 'help': See all available commands\n\n"
+        "Message & data rates may apply. Reply STOP to cancel."
     )
     return send_sms(phone_number, welcome_message)
 
@@ -267,7 +267,7 @@ def send_confirmation_sms(user):
 
     message = (
         f"Your ECS FC SMS verification code is: {confirmation_code}\n\n"
-        "Reply END to opt-out. Message & data rates may apply."
+        "Message & data rates may apply. Reply STOP to unsubscribe."
     )
     success, msg_info = send_sms(player.phone, message, user_id=user.id)
     return success, msg_info
@@ -368,7 +368,7 @@ def handle_opt_out(player):
     logger.info(f'Player {player.user_id} unsubscribed from SMS notifications')
     
     # Send final confirmation SMS - no rate limiting for this as it's a system message
-    send_sms(player.phone, "You have been unsubscribed. Reply START anytime to re-subscribe.")
+    send_sms(player.phone, "You have been unsubscribed from ECS FC messages. Reply START to re-subscribe at any time.")
     return True
 
 
@@ -397,7 +397,7 @@ def handle_re_subscribe(player):
     # Send re-subscription confirmation - no rate limiting for this system action
     success, _ = send_sms(
         player.phone, 
-        "You are re-subscribed to ECS FC notifications. Reply END to unsubscribe."
+        "You are now subscribed to ECS FC notifications. Text SCHEDULE to see upcoming matches or HELP for all commands. Reply STOP to unsubscribe."
     )
     if success:
         logger.info(f'Re-subscribe confirmation SMS sent to {player.user_id}')
@@ -545,8 +545,8 @@ def send_help_message(phone_number, user_id=None):
         "- 'yes 2' / 'no 3': RSVP for a specific match number\n"
         "- 'schedule': View upcoming matches with numbers\n"
         "- 'help': This help message\n"
-        "- 'end': Unsubscribe\n"
-        "- 'start': Re-subscribe"
+        "- 'STOP': Unsubscribe from all messages\n"
+        "- 'START': Re-subscribe to messages"
     )
     send_sms(phone_number, help_message, user_id)
     return True
@@ -864,7 +864,7 @@ def handle_incoming_text_command(phone_number, message_text):
         return jsonify({'status': 'success' if success else 'error', 'message': 'RSVP processed'})
     
     # Standard command handling
-    if cmd in ['end', 'stop', 'unsubscribe']:
+    if cmd in ['end', 'stop', 'unsubscribe', 'stopall', 'cancel', 'quit']:
         handle_opt_out(player)
         return jsonify({'status': 'success', 'message': 'Opted out'})
     elif cmd in ['start', 'subscribe']:
