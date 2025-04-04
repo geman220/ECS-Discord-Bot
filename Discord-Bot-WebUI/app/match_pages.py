@@ -87,13 +87,25 @@ def view_match(match_id):
 
     home_rsvp_data = get_rsvp_data(match.home_team)
     away_rsvp_data = get_rsvp_data(match.away_team)
+    
+    # Generate player choices dictionary for the report match modal
+    player_choices = {}
+    if match.home_team and match.away_team:
+        home_players = {str(p.id): p.name for p in match.home_team.players}
+        away_players = {str(p.id): p.name for p in match.away_team.players}
+        
+        player_choices[match.id] = {
+            match.home_team.name: home_players,
+            match.away_team.name: away_players
+        }
 
     return render_template(
         'view_match.html',
         match=match,
         schedule=schedule,
         home_rsvp_data=home_rsvp_data,
-        away_rsvp_data=away_rsvp_data
+        away_rsvp_data=away_rsvp_data,
+        player_choices=player_choices
     )
 
 
