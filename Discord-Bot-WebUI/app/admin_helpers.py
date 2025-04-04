@@ -261,13 +261,41 @@ def send_sms_message(to_phone_number: str, message_body: str) -> bool:
         True if the SMS was sent successfully, False otherwise.
     """
     try:
-        client = Client(
-            current_app.config.get('TWILIO_ACCOUNT_SID'),
-            current_app.config.get('TWILIO_AUTH_TOKEN')
-        )
+        import os
+        
+        # Get credentials directly from environment variables
+        twilio_sid = os.environ.get('TWILIO_SID') or os.environ.get('TWILIO_ACCOUNT_SID')
+        twilio_auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
+        twilio_phone_number = os.environ.get('TWILIO_PHONE_NUMBER')
+        
+        # Fall back to config if not in environment
+        if not twilio_sid:
+            twilio_sid = current_app.config.get('TWILIO_SID') or current_app.config.get('TWILIO_ACCOUNT_SID')
+        if not twilio_auth_token:
+            twilio_auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
+        if not twilio_phone_number:
+            twilio_phone_number = current_app.config.get('TWILIO_PHONE_NUMBER')
+        
+        # Clean auth token (remove any whitespace)
+        if twilio_auth_token:
+            twilio_auth_token = twilio_auth_token.strip()
+        
+        # Validate credentials exist
+        if not all([twilio_sid, twilio_auth_token, twilio_phone_number]):
+            logger.error("Missing Twilio credentials in configuration")
+            return False
+            
+        # Normalize phone number for Twilio
+        if to_phone_number and not to_phone_number.startswith('+'):
+            if len(to_phone_number) == 10:
+                to_phone_number = '+1' + to_phone_number
+            else:
+                to_phone_number = '+' + to_phone_number
+                
+        client = Client(twilio_sid, twilio_auth_token)
         message = client.messages.create(
             body=message_body,
-            from_=current_app.config.get('TWILIO_PHONE_NUMBER'),
+            from_=twilio_phone_number,
             to=to_phone_number
         )
         logger.info(f"SMS sent successfully: {message.sid}")
