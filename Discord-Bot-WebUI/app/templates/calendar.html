@@ -3,20 +3,30 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Header -->
-    <div class="card bg-primary mb-4">
-        <div class="card-body p-3 position-relative overflow-hidden">
+    <div class="card mb-4">
+        <div class="card-body p-4 position-relative">
             <div class="row align-items-center">
                 <div class="col">
-                    <h2 class="text-white mb-0">Pub League Calendar</h2>
-                    <p class="text-white-50 mb-0">View match schedule and manage referee assignments</p>
+                    <h4 class="fw-bold mb-1">
+                        <i class="ti ti-calendar me-2 text-primary"></i>
+                        Pub League Calendar
+                    </h4>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="/"><i class="ti ti-home text-muted me-1"></i> Home</a>
+                            </li>
+                            <li class="breadcrumb-item active">Calendar</li>
+                        </ol>
+                    </nav>
                 </div>
                 <div class="col-auto">
                     <div class="d-flex gap-2">
-                        <button class="btn btn-light" id="refreshScheduleBtn">
+                        <button class="btn btn-primary btn-icon-text" id="refreshScheduleBtn">
                             <i class="ti ti-refresh me-1"></i> Refresh
                         </button>
                         {% if has_permission('assign_referee') %}
-                        <button class="btn btn-light" id="toggleAssignmentMode">
+                        <button class="btn btn-outline-primary btn-icon-text" id="toggleAssignmentMode">
                             <i class="ti ti-user-check me-1"></i> Assignment Mode
                         </button>
                         {% endif %}
@@ -28,16 +38,18 @@
 
     <div class="row">
         <!-- Main Content Column -->
-        <div class="col-lg-8 col-xl-9 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="col-lg-8 col-xl-9 mb-4 mb-lg-0">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center border-bottom">
                     <h5 class="card-title mb-0">Match Schedule</h5>
-                    <div class="d-flex align-items-center">
-                        <div class="input-group me-2" style="width: 250px;">
-                            <span class="input-group-text"><i class="ti ti-search"></i></span>
-                            <input type="text" class="form-control" id="matchSearchInput" placeholder="Search matches...">
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <div class="input-group" style="width: 250px;">
+                            <span class="input-group-text border-end-0 ps-3 pe-1 bg-body">
+                                <i class="ti ti-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0 ps-1" id="matchSearchInput" placeholder="Search matches...">
                         </div>
-                        <div class="btn-group">
+                        <div class="btn-group ms-2">
                             <button type="button" class="btn btn-outline-primary btn-sm active" data-view="day" id="viewDayBtn">Day</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-view="week" id="viewWeekBtn">Week</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-view="month" id="viewMonthBtn">Month</button>
@@ -47,13 +59,13 @@
                 </div>
                 <div class="card-body p-0">
                     <!-- Custom Schedule View -->
-                    <div id="scheduleContainer" class="p-3 h-100">
+                    <div id="scheduleContainer" class="p-4 h-100">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <button class="btn btn-sm btn-outline-primary" id="prevBtn">
+                            <button class="btn btn-sm btn-icon btn-outline-primary" id="prevBtn">
                                 <i class="ti ti-chevron-left"></i>
                             </button>
-                            <h5 id="currentDateDisplay" class="mb-0">Sunday, April 7, 2024</h5>
-                            <button class="btn btn-sm btn-outline-primary" id="nextBtn">
+                            <h5 id="currentDateDisplay" class="mb-0 fw-semibold">Sunday, April 7, 2024</h5>
+                            <button class="btn btn-sm btn-icon btn-outline-primary" id="nextBtn">
                                 <i class="ti ti-chevron-right"></i>
                             </button>
                         </div>
@@ -61,10 +73,11 @@
                         <!-- Schedule content will be loaded here dynamically -->
                         <div id="scheduleContent" class="schedule-content">
                             <div class="text-center py-5">
-                                <div class="spinner-border text-primary" role="status">
+                                <div class="spinner-border spinner-border-lg text-primary mb-2" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
-                                <p class="mt-2">Loading schedule...</p>
+                                <h6 class="fw-normal text-primary mb-1">Loading schedule...</h6>
+                                <p class="text-muted small">Retrieving match data and referee assignments</p>
                             </div>
                         </div>
                     </div>
@@ -75,14 +88,19 @@
         <!-- Sidebar -->
         <div class="col-lg-4 col-xl-3">
             <!-- Quick Stats Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0">Schedule Statistics</h5>
+            <div class="card mb-4">
+                <div class="card-header border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="avatar avatar-sm me-2 bg-label-primary">
+                            <i class="ti ti-chart-pie"></i>
+                        </div>
+                        <h5 class="card-title mb-0">Schedule Statistics</h5>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <div class="row g-2">
+                    <div class="row g-3">
                         <div class="col-6">
-                            <div class="stat-card bg-label-primary">
+                            <div class="stat-card bg-label-primary shadow-sm rounded-3">
                                 <div class="stat-card-body">
                                     <h5 class="stat-card-title" id="totalMatches">0</h5>
                                     <p class="stat-card-text">Total Matches</p>
@@ -93,7 +111,7 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="stat-card bg-label-success">
+                            <div class="stat-card bg-label-success shadow-sm rounded-3">
                                 <div class="stat-card-body">
                                     <h5 class="stat-card-title" id="assignedRefs">0</h5>
                                     <p class="stat-card-text">Assigned Refs</p>
@@ -104,7 +122,7 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="stat-card bg-label-danger">
+                            <div class="stat-card bg-label-danger shadow-sm rounded-3">
                                 <div class="stat-card-body">
                                     <h5 class="stat-card-title" id="unassignedMatches">0</h5>
                                     <p class="stat-card-text">Unassigned</p>
@@ -115,7 +133,7 @@
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="stat-card bg-label-info">
+                            <div class="stat-card bg-label-info shadow-sm rounded-3">
                                 <div class="stat-card-body">
                                     <h5 class="stat-card-title" id="totalReferees">0</h5>
                                     <p class="stat-card-text">Referees</p>
@@ -130,26 +148,33 @@
             </div>
 
             <!-- Referee List Card -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="card-title mb-0 d-flex justify-content-between">
-                        <span>Available Referees</span>
-                        <span class="badge bg-white text-primary rounded-pill" id="refCount">0</span>
-                    </h5>
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm me-2 bg-label-primary">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <h5 class="card-title mb-0">Available Referees</h5>
+                        </div>
+                        <span class="badge bg-primary rounded-pill" id="refCount">0</span>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="p-3">
-                        <div class="input-group mb-3">
-                            <span class="input-group-text"><i class="ti ti-search"></i></span>
-                            <input type="text" class="form-control" id="refSearchInput" placeholder="Search referees...">
+                        <div class="input-group">
+                            <span class="input-group-text border-end-0 ps-3 pe-1 bg-body">
+                                <i class="ti ti-search text-muted"></i>
+                            </span>
+                            <input type="text" class="form-control border-start-0 ps-1" id="refSearchInput" placeholder="Search referees...">
                         </div>
                     </div>
                     <div class="referee-list" id="refereeList">
-                        <div class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary mb-2" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2">Loading referees...</p>
+                            <p class="text-primary mb-0 small fw-medium">Loading referees...</p>
                         </div>
                     </div>
                 </div>
@@ -162,41 +187,45 @@
 <div class="modal fade" id="assignRefModal" tabindex="-1" aria-labelledby="assignRefModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="assignRefModalLabel">Referee Assignment</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title" id="assignRefModalLabel">
+                    <i class="ti ti-user-check text-primary me-1"></i> Referee Assignment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="assignRefForm">
                     <input type="hidden" id="matchId" name="match_id">
                     
-                    <div class="match-detail-card mb-3">
+                    <div class="match-detail-card mb-3 bg-label-primary rounded-3">
                         <div class="match-detail-header">
                             <i class="ti ti-calendar-event me-2"></i>
                             <span id="matchDateTime">Date & Time</span>
                         </div>
                         <div class="match-detail-body">
                             <div class="match-teams mb-2">
-                                <span id="homeTeam">Home Team</span>
+                                <span id="homeTeam" class="fw-bold">Home Team</span>
                                 <span class="vs">vs</span>
-                                <span id="awayTeam">Away Team</span>
+                                <span id="awayTeam" class="fw-bold">Away Team</span>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <p class="match-location mb-0">
                                     <i class="ti ti-map-pin me-1"></i>
                                     <span id="matchLocation">Location</span>
                                 </p>
-                                <span class="badge bg-primary" id="matchDivision">Division</span>
+                                <span class="badge bg-primary rounded-pill" id="matchDivision">Division</span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="mb-3" id="currentRefereeSection">
-                        <label class="form-label text-primary fw-semibold">Current Referee</label>
-                        <div class="current-ref-container">
+                        <label class="form-label fw-semibold">Current Referee</label>
+                        <div class="current-ref-container border rounded-3">
                             <div class="current-ref-status">
-                                <i class="ti ti-user-circle current-ref-icon"></i>
-                                <span id="currentRefereeName">Unassigned</span>
+                                <div class="avatar avatar-sm me-2 bg-label-primary">
+                                    <i class="ti ti-user current-ref-icon"></i>
+                                </div>
+                                <span id="currentRefereeName" class="fw-semibold">Unassigned</span>
                             </div>
                             <button type="button" class="btn btn-outline-danger btn-sm" id="removeRefButton">
                                 <i class="ti ti-user-x me-1"></i> Remove
@@ -205,7 +234,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="refSelect" class="form-label text-primary fw-semibold">Assign Referee</label>
+                        <label for="refSelect" class="form-label fw-semibold">Assign Referee</label>
                         <select class="form-select" id="refSelect" name="ref_id" required>
                             <option value="" selected disabled>Choose a referee</option>
                         </select>
@@ -229,57 +258,63 @@
 <div class="modal fade" id="matchDetailsModal" tabindex="-1" aria-labelledby="matchDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="matchDetailsModalLabel">Match Details</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title" id="matchDetailsModalLabel">
+                    <i class="ti ti-soccer-field text-primary me-1"></i> Match Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="match-detail-full">
                     <div class="match-teams-container">
                         <div class="team home-team">
-                            <div class="team-logo">
-                                <i class="ti ti-home text-primary" style="font-size: 1.5rem;"></i>
+                            <div class="avatar avatar-lg bg-label-primary">
+                                <i class="ti ti-home"></i>
                             </div>
-                            <div class="team-name" id="detailHomeTeam">Home Team</div>
+                            <div class="team-name fw-bold" id="detailHomeTeam">Home Team</div>
                         </div>
                         <div class="match-vs">VS</div>
                         <div class="team away-team">
-                            <div class="team-logo">
-                                <i class="ti ti-plane-departure text-primary" style="font-size: 1.5rem;"></i>
+                            <div class="avatar avatar-lg bg-label-secondary">
+                                <i class="ti ti-plane-departure"></i>
                             </div>
-                            <div class="team-name" id="detailAwayTeam">Away Team</div>
+                            <div class="team-name fw-bold" id="detailAwayTeam">Away Team</div>
                         </div>
                     </div>
                     
-                    <div class="match-info-grid">
+                    <div class="match-info-grid mt-4">
                         <div class="match-info-item">
-                            <i class="ti ti-calendar"></i>
-                            <span id="detailMatchDate">Date</span>
+                            <i class="ti ti-calendar text-primary"></i>
+                            <span id="detailMatchDate" class="fw-semibold">Date</span>
                         </div>
                         <div class="match-info-item">
-                            <i class="ti ti-clock"></i>
-                            <span id="detailMatchTime">Time</span>
+                            <i class="ti ti-clock text-primary"></i>
+                            <span id="detailMatchTime" class="fw-semibold">Time</span>
                         </div>
                         <div class="match-info-item">
-                            <i class="ti ti-map-pin"></i>
-                            <span id="detailMatchLocation">Location</span>
+                            <i class="ti ti-map-pin text-primary"></i>
+                            <span id="detailMatchLocation" class="fw-semibold">Location</span>
                         </div>
                         <div class="match-info-item">
-                            <i class="ti ti-flag"></i>
-                            <span id="detailMatchDivision">Division</span>
+                            <i class="ti ti-flag text-primary"></i>
+                            <span id="detailMatchDivision" class="fw-semibold">Division</span>
                         </div>
                     </div>
                     
-                    <div class="referee-section">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="referee-title mb-0">Referee Assignment</h6>
+                    <div class="referee-section mt-4 bg-label-primary rounded-3 p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Referee Assignment</h6>
                             <button type="button" class="btn btn-sm btn-primary" id="openAssignRefBtnTop">
                                 <i class="ti ti-user-check me-1"></i> Assign Referee
                             </button>
                         </div>
                         <div class="referee-detail">
-                            <i class="ti ti-user-circle referee-icon"></i>
-                            <span id="detailMatchReferee">Unassigned</span>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar avatar-sm me-2 bg-white">
+                                    <i class="ti ti-user-circle text-primary"></i>
+                                </div>
+                                <span id="detailMatchReferee" class="fw-semibold">Unassigned</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -494,9 +529,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error loading events:', error);
             document.getElementById('scheduleContent').innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="ti ti-alert-circle me-2"></i>
-                    Failed to load schedule. Please try refreshing.
+                <div class="empty-state">
+                    <i class="ti ti-alert-triangle empty-state-icon text-danger"></i>
+                    <h5 class="empty-state-text text-danger">Failed to load schedule</h5>
+                    <p class="empty-state-subtext">There was a problem retrieving the match data</p>
+                    <button class="btn btn-sm btn-outline-danger mt-3" onclick="document.getElementById('refreshScheduleBtn').click()">
+                        <i class="ti ti-refresh me-1"></i> Try Again
+                    </button>
                 </div>
             `;
             throw error;
@@ -540,9 +579,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error('Error fetching referees:', error);
             document.getElementById('refereeList').innerHTML = `
-                <div class="alert alert-danger m-3">
-                    <i class="ti ti-alert-circle me-2"></i>
-                    Failed to load referees.
+                <div class="text-center py-4">
+                    <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-danger mb-1 fw-medium">Failed to load referees</p>
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="document.getElementById('refreshScheduleBtn').click()">
+                        <i class="ti ti-refresh me-1"></i> Retry
+                    </button>
                 </div>
             `;
             throw error;
@@ -556,8 +598,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (referees.length === 0) {
             refList.innerHTML = `
                 <div class="text-center py-4">
-                    <i class="ti ti-user-off mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
-                    <p class="text-muted">No referees available</p>
+                    <div class="avatar avatar-lg bg-label-primary mx-auto mb-2">
+                        <i class="ti ti-user-off"></i>
+                    </div>
+                    <h6 class="text-muted mb-1">No Referees Available</h6>
+                    <p class="text-muted small mb-0">No eligible referees found for the selected timeframe</p>
                 </div>
             `;
             return;
@@ -640,10 +685,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render based on current view
         if (currentViewEvents.length === 0) {
             scheduleContent.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="ti ti-calendar-off mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
-                    <h5 class="text-muted">No matches scheduled</h5>
-                    <p class="text-muted">Try a different date or view</p>
+                <div class="empty-state">
+                    <i class="ti ti-calendar-off empty-state-icon"></i>
+                    <h5 class="empty-state-text">No matches scheduled</h5>
+                    <p class="empty-state-subtext">Try a different date or view to see scheduled matches</p>
+                    <button class="btn btn-sm btn-outline-primary mt-3" onclick="document.getElementById('refreshScheduleBtn').click()">
+                        <i class="ti ti-refresh me-1"></i> Refresh Schedule
+                    </button>
                 </div>
             `;
             return;
@@ -827,10 +875,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dayEvents.length === 0) {
                 html += `
                     <div class="day-empty">
-                        <div class="text-center text-muted">
+                        <div class="avatar avatar-sm bg-label-secondary mx-auto mb-2">
                             <i class="ti ti-calendar-off"></i>
-                            <small>No matches</small>
                         </div>
+                        <small class="text-muted d-block">No matches</small>
                     </div>
                 `;
             } else {
@@ -1442,7 +1490,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function displayModalFeedback(elementId, message, type) {
         const feedbackEl = document.getElementById(elementId);
-        feedbackEl.innerHTML = `<div class="alert alert-${type} p-2 m-0" role="alert">${message}</div>`;
+        const icons = {
+            success: '<i class="ti ti-circle-check me-2"></i>',
+            danger: '<i class="ti ti-circle-x me-2"></i>',
+            warning: '<i class="ti ti-alert-triangle me-2"></i>',
+            info: '<i class="ti ti-info-circle me-2"></i>'
+        };
+        
+        feedbackEl.innerHTML = `
+            <div class="alert alert-${type} d-flex align-items-center p-2 m-0 rounded-3" role="alert">
+                ${icons[type] || ''}
+                <span class="fw-semibold small">${message}</span>
+            </div>
+        `;
     }
     
     function showToast(type, message) {
@@ -1455,13 +1515,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const toastId = 'toast-' + Date.now();
+        const icons = {
+            success: '<i class="ti ti-circle-check me-2"></i>',
+            danger: '<i class="ti ti-circle-x me-2"></i>',
+            warning: '<i class="ti ti-alert-triangle me-2"></i>',
+            info: '<i class="ti ti-info-circle me-2"></i>'
+        };
+        
         const toastHtml = `
-            <div id="${toastId}" class="toast align-items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        ${message}
+            <div id="${toastId}" class="toast shadow-lg rounded-3" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex p-3">
+                    <div class="toast-body d-flex align-items-center text-${type}">
+                        ${icons[type] || ''}
+                        <span class="fw-semibold">${message}</span>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <button type="button" class="btn-close me-2 m-auto text-${type}" data-bs-dismiss="toast" aria-label="Close"></button>
                 </div>
             </div>
         `;
@@ -1500,7 +1568,7 @@ document.addEventListener('DOMContentLoaded', () => {
 .day-schedule {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .time-slot {
@@ -1514,7 +1582,18 @@ document.addEventListener('DOMContentLoaded', () => {
     font-weight: bold;
     text-align: right;
     color: var(--bs-primary);
-    border-right: 2px solid rgba(var(--bs-primary-rgb), 0.2);
+    position: relative;
+}
+
+.time-label::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 2px;
+    background: linear-gradient(to bottom, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-primary-rgb), 0.3), rgba(var(--bs-primary-rgb), 0.1));
+    border-radius: 2px;
 }
 
 .time-events {
@@ -1535,13 +1614,15 @@ document.addEventListener('DOMContentLoaded', () => {
     grid-template-columns: repeat(7, 1fr);
     gap: 0.5rem;
     border-bottom: 1px solid rgba(0,0,0,0.1);
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
 .day-header {
     text-align: center;
     padding: 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease;
 }
 
 .day-header.today {
@@ -1560,21 +1641,28 @@ document.addEventListener('DOMContentLoaded', () => {
 .week-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 0.5rem;
+    gap: 0.75rem;
     min-height: 500px;
 }
 
 .day-column {
-    padding: 0.5rem;
-    border-radius: 0.25rem;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
     background-color: rgba(0,0,0,0.02);
     overflow-y: auto;
     max-height: 500px;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.day-column:hover {
+    background-color: rgba(0,0,0,0.03);
+    border-color: rgba(0,0,0,0.08);
 }
 
 .day-column.today {
     background-color: rgba(var(--bs-primary-rgb), 0.05);
-    border: 1px dashed rgba(var(--bs-primary-rgb), 0.3);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .day-empty {
@@ -1584,7 +1672,7 @@ document.addEventListener('DOMContentLoaded', () => {
     align-items: center;
     flex-direction: column;
     gap: 0.5rem;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 /* Month View */
@@ -1600,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', () => {
     text-align: center;
     font-weight: bold;
     color: var(--bs-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .month-grid {
@@ -1610,17 +1698,24 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .month-day {
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 0.25rem;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 0.375rem;
     height: 120px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.month-day:hover {
+    border-color: rgba(var(--bs-primary-rgb), 0.2);
+    background-color: rgba(var(--bs-primary-rgb), 0.01);
 }
 
 .month-day.today {
-    border: 2px solid var(--bs-primary);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
     background-color: rgba(var(--bs-primary-rgb), 0.05);
+    box-shadow: 0 0 0 1px rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .month-day.prev-month, .month-day.next-month {
@@ -1643,8 +1738,8 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .month-event {
-    padding: 0.25rem;
-    border-radius: 0.25rem;
+    padding: 0.375rem;
+    border-radius: 0.375rem;
     margin-bottom: 0.25rem;
     font-size: 0.8rem;
     cursor: pointer;
@@ -1653,18 +1748,34 @@ document.addEventListener('DOMContentLoaded', () => {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    background: rgba(var(--bs-primary-rgb), 0.1);
+    background: rgba(var(--bs-primary-rgb), 0.075);
     border-left: 3px solid var(--bs-primary);
+    transition: all 0.2s ease;
+}
+
+.month-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(var(--bs-primary-rgb), 0.15);
+    background: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .month-event.premier {
-    background: rgba(var(--bs-primary-rgb), 0.1);
+    background: rgba(var(--bs-primary-rgb), 0.075);
     border-left: 3px solid var(--bs-primary);
 }
 
+.month-event.premier:hover {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+}
+
 .month-event.classic {
-    background: rgba(var(--bs-success-rgb), 0.1);
+    background: rgba(var(--bs-success-rgb), 0.075);
     border-left: 3px solid var(--bs-success);
+}
+
+.month-event.classic:hover {
+    background: rgba(var(--bs-success-rgb), 0.1);
+    box-shadow: 0 2px 5px rgba(var(--bs-success-rgb), 0.15);
 }
 
 .month-event-time {
@@ -1713,11 +1824,13 @@ document.addEventListener('DOMContentLoaded', () => {
     padding: 0.25rem;
     cursor: pointer;
     background-color: rgba(var(--bs-primary-rgb), 0.05);
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
 }
 
 .month-more-events:hover {
     background-color: rgba(var(--bs-primary-rgb), 0.1);
+    transform: translateY(-1px);
 }
 
 /* List View */
@@ -1727,20 +1840,22 @@ document.addEventListener('DOMContentLoaded', () => {
 }
 
 .date-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
 }
 
 .date-group.today .date-header {
-    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.08);
     border-left: 4px solid var(--bs-primary);
 }
 
 .date-header {
     font-weight: bold;
-    padding: 0.5rem;
+    padding: 0.75rem;
     margin-bottom: 1rem;
     color: var(--bs-primary);
+    border-radius: 0.375rem 0 0 0.375rem;
     border-bottom: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    background-color: rgba(var(--bs-primary-rgb), 0.03);
 }
 
 .date-matches {
@@ -1751,19 +1866,22 @@ document.addEventListener('DOMContentLoaded', () => {
 .match-item {
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.06);
+    background-color: #fff;
 }
 
 .match-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.15);
+    border-color: rgba(var(--bs-primary-rgb), 0.2);
+    z-index: 1;
 }
 
 .match-teams {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     font-weight: bold;
 }
 
@@ -1783,6 +1901,7 @@ document.addEventListener('DOMContentLoaded', () => {
     margin: 0 1rem;
     color: var(--bs-secondary);
     font-size: 0.875rem;
+    opacity: 0.8;
 }
 
 .match-teams-compact {
@@ -1796,28 +1915,42 @@ document.addEventListener('DOMContentLoaded', () => {
     align-items: center;
     padding: 0.375rem 0.75rem;
     border-radius: 0.375rem;
-    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.075);
     color: var(--bs-primary);
+    transition: all 0.2s ease;
+}
+
+.match-item:hover .ref-badge {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
 }
 
 .ref-badge-small {
     display: flex;
     align-items: center;
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
     font-size: 0.75rem;
-    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    background-color: rgba(var(--bs-primary-rgb), 0.075);
     color: var(--bs-primary);
+    transition: all 0.2s ease;
 }
 
 .ref-assigned {
-    background-color: rgba(var(--bs-success-rgb), 0.1);
+    background-color: rgba(var(--bs-success-rgb), 0.075) !important;
     color: var(--bs-success);
 }
 
+.match-item:hover .ref-assigned {
+    background-color: rgba(var(--bs-success-rgb), 0.1) !important;
+}
+
 .ref-unassigned {
-    background-color: rgba(var(--bs-danger-rgb), 0.1);
+    background-color: rgba(var(--bs-danger-rgb), 0.075) !important;
     color: var(--bs-danger);
+}
+
+.match-item:hover .ref-unassigned {
+    background-color: rgba(var(--bs-danger-rgb), 0.1) !important;
 }
 
 /* Referee List Styling */
@@ -1828,12 +1961,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 .referee-item {
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .referee-item:hover .card {
-    transform: translateY(-2px);
-    box-shadow: 0 0.25rem 0.5rem rgba(161, 172, 184, 0.2) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 0.25rem 0.5rem rgba(161, 172, 184, 0.12);
+    border-color: rgba(var(--bs-primary-rgb), 0.2);
 }
 
 .referee-available {
@@ -1842,16 +1976,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Modal Styling */
 .match-detail-card {
-    background-color: rgba(var(--bs-primary-rgb), 0.05);
     border-radius: 0.5rem;
     overflow: hidden;
+    transition: all 0.2s ease;
+    background-color: rgba(var(--bs-primary-rgb), 0.04);
 }
 
 .match-detail-header {
     padding: 0.75rem 1rem;
-    background-color: var(--bs-primary);
     color: white;
     font-weight: 500;
+    background-color: rgba(var(--bs-primary-rgb), 0.9);
 }
 
 .match-detail-body {
@@ -1869,8 +2004,6 @@ document.addEventListener('DOMContentLoaded', () => {
     justify-content: space-between;
     background-color: white;
     padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .current-ref-status {
@@ -1886,15 +2019,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Match Details Modal */
 .match-detail-full {
-    padding: 1rem;
+    padding: 0;
 }
 
 .match-teams-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
     text-align: center;
+    padding: 0.5rem;
 }
 
 .team {
@@ -1902,22 +2036,17 @@ document.addEventListener('DOMContentLoaded', () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
-.team-logo {
-    width: 50px;
-    height: 50px;
-    background-color: rgba(var(--bs-primary-rgb), 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.avatar-lg {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
 }
 
 .team-name {
     font-size: 1.25rem;
-    font-weight: bold;
 }
 
 .match-vs {
@@ -1925,13 +2054,15 @@ document.addEventListener('DOMContentLoaded', () => {
     font-weight: bold;
     color: var(--bs-secondary);
     font-size: 1.5rem;
+    opacity: 0.7;
 }
 
 .match-info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
+    padding: 0 0.5rem;
 }
 
 .match-info-item {
@@ -1940,13 +2071,8 @@ document.addEventListener('DOMContentLoaded', () => {
     gap: 0.5rem;
 }
 
-.match-info-item i {
-    color: var(--bs-primary);
-}
-
 .referee-section {
-    background-color: rgba(var(--bs-primary-rgb), 0.05);
-    padding: 1rem;
+    padding: 1.25rem;
     border-radius: 0.5rem;
 }
 
@@ -1962,17 +2088,19 @@ document.addEventListener('DOMContentLoaded', () => {
     font-weight: 500;
 }
 
-.referee-icon {
-    color: var(--bs-primary);
-}
-
 /* Stats Card Styling */
 .stat-card {
     position: relative;
     padding: 1rem;
-    border-radius: 0.5rem;
     overflow: hidden;
     height: 100%;
+    box-shadow: 0 2px 6px rgba(var(--bs-primary-rgb), 0.08);
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(var(--bs-primary-rgb), 0.12);
 }
 
 .stat-card-body {
@@ -1998,6 +2126,56 @@ document.addEventListener('DOMContentLoaded', () => {
     right: 0.5rem;
     font-size: 1.75rem;
     opacity: 0.2;
+}
+
+/* Empty States */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    background-color: rgba(var(--bs-primary-rgb), 0.02);
+    border-radius: 0.5rem;
+    border: 1px dashed rgba(var(--bs-primary-rgb), 0.15);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: rgba(var(--bs-primary-rgb), 0.3);
+    margin-bottom: 1rem;
+}
+
+.empty-state-text {
+    color: var(--bs-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-subtext {
+    color: var(--bs-secondary);
+    font-size: 0.875rem;
+    opacity: 0.7;
+}
+
+/* Button and Icon Styling */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+}
+
+.btn-icon-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon-text i {
+    margin-right: 0.375rem;
 }
 
 /* Responsive adjustments */
@@ -2028,6 +2206,27 @@ document.addEventListener('DOMContentLoaded', () => {
     .match-vs {
         padding: 0.5rem 0;
     }
+    
+    .card-header .d-flex {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}
+
+/* Animation for day change */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#scheduleContent {
+    animation: fadeIn 0.3s ease-out;
 }
 </style>
 {% endblock %}
