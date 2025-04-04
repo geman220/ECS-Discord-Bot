@@ -8,6 +8,8 @@ function cleanupModalBackdrop() {
     // Remove any stray backdrops
     const backdrops = document.querySelectorAll('.modal-backdrop');
     backdrops.forEach(backdrop => {
+        // Fix z-index before removal to prevent flash of incorrect stacking
+        backdrop.style.zIndex = '1040'; 
         backdrop.classList.remove('show');
         backdrop.classList.add('hide');
         // Remove after transition
@@ -28,7 +30,76 @@ function cleanupModalBackdrop() {
 document.addEventListener('hidden.bs.modal', function(event) {
     // Clean up backdrops after modal is hidden
     cleanupModalBackdrop();
+    
+    // Re-enable scrolling on iOS
+    if (isIOS()) {
+        enableIOSScrolling();
+    }
 });
+
+// Check if the device is iOS
+function isIOS() {
+    return [
+        'iPad Simulator',
+        'iPhone Simulator',
+        'iPod Simulator',
+        'iPad',
+        'iPhone',
+        'iPod'
+    ].includes(navigator.platform) || 
+    // iPad on iOS 13+ detection
+    (navigator.userAgent.includes("Mac") && "ontouchend" in document);
+}
+
+// Fix for iOS specific modal scrolling issues
+function fixIOSModalScrolling() {
+    if (!isIOS()) return;
+    
+    const scrollingFix = document.createElement('style');
+    scrollingFix.textContent = `
+        body.modal-open {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .modal {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .modal-dialog {
+            margin-top: env(safe-area-inset-top, 20px);
+            margin-bottom: env(safe-area-inset-bottom, 20px);
+        }
+    `;
+    document.head.appendChild(scrollingFix);
+    console.log('iOS modal scrolling fix applied');
+}
+
+// Disable body scrolling for iOS when modal is open
+function disableIOSScrolling() {
+    if (!isIOS()) return;
+    
+    // Save current scroll position
+    const scrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.dataset.scrollPosition = scrollY;
+}
+
+// Re-enable body scrolling for iOS after modal is closed
+function enableIOSScrolling() {
+    if (!isIOS()) return;
+    
+    // Restore previous scroll position
+    const scrollY = document.body.dataset.scrollPosition || 0;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, parseInt(scrollY || '0'));
+}
 
 // Load modals if needed
 function loadModalsIfNotFound() {
@@ -51,6 +122,63 @@ function loadModalsIfNotFound() {
     });
 }
 
+// Fix for modal z-index issues
+document.addEventListener('show.bs.modal', function(event) {
+    // Check if this is a report match modal
+    if (event.target.id && event.target.id.startsWith('reportMatchModal-')) {
+        // Fix z-index on the modal
+        event.target.style.zIndex = '1050';
+        
+        // Fix backdrop z-index
+        setTimeout(function() {
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            if (backdrops) {
+                backdrops.forEach(backdrop => {
+                    // Ensure backdrop is behind the modal
+                    backdrop.style.zIndex = '1040';
+                });
+            }
+        }, 10);
+        
+        // For iOS devices, fix scrolling
+        if (isIOS()) {
+            disableIOSScrolling();
+        }
+    }
+});
+
+// Fix for mobile viewport height issues with modals
+function fixMobileViewportHeight() {
+    // First we get the viewport height and multiply it by 1% to get a value for a vh unit
+    let vh = window.innerHeight * 0.01;
+    // Then we set the value in the --vh custom property to the root of the document
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    
+    // Add a style that uses the custom property
+    const viewportFix = document.createElement('style');
+    viewportFix.textContent = `
+        /* Use a more reliable viewport height for modals on mobile */
+        @media (max-width: 767px) {
+            .modal-dialog {
+                max-height: calc(var(--vh, 1vh) * 90);
+                margin: calc(var(--vh, 1vh) * 5) auto;
+            }
+            
+            .modal-content {
+                max-height: calc(var(--vh, 1vh) * 90);
+                overflow-y: auto;
+            }
+        }
+    `;
+    document.head.appendChild(viewportFix);
+    
+    // Update viewport height on resize
+    window.addEventListener('resize', () => {
+        let vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    });
+}
+
 // Ensure buttons don't transform when clicked/released
 document.addEventListener('DOMContentLoaded', function() {
     // Target all buttons in the application
@@ -65,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add a global style to ensure buttons never transform
+    // Add a global style to ensure buttons never transform and fix modal z-index
     const styleEl = document.createElement('style');
     styleEl.textContent = `
         /* Global button fix - no transform */
@@ -80,8 +208,29 @@ document.addEventListener('DOMContentLoaded', function() {
         .waves-ripple, .waves-effect, .ripple-effect {
             transform: none !important;
         }
+        
+        /* Fix modal z-index ordering */
+        .modal-backdrop {
+            z-index: 1040 !important; 
+        }
+        
+        .modal {
+            z-index: 1050 !important;
+        }
+        
+        .modal-dialog {
+            z-index: auto !important;
+        }
     `;
     document.head.appendChild(styleEl);
     
-    console.log('Button transform override applied');
+    // Apply iOS-specific fixes
+    if (isIOS()) {
+        fixIOSModalScrolling();
+    }
+    
+    // Fix viewport height issues on mobile
+    fixMobileViewportHeight();
+    
+    console.log('Button transform and modal fixes applied');
 });
