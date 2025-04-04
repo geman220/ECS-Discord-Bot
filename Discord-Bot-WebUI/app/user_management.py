@@ -302,6 +302,92 @@ def remove_user(user_id):
     return redirect(url_for('user_management.manage_users'))
 
 
+@user_management_bp.route('/delete_user/<int:user_id>', endpoint='delete_user', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def delete_user(user_id):
+    """
+    Completely delete a user and all associated data (player, stats, records, etc.).
+    This is a permanent operation with no recovery option.
+    """
+    session = g.db_session
+    user = session.query(User).options(
+        joinedload(User.roles),
+        joinedload(User.player).joinedload(Player.teams),
+        joinedload(User.player).joinedload(Player.league),
+        joinedload(User.player).joinedload(Player.other_leagues)
+    ).get(user_id)
+    
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found.'})
+
+    username = user.username
+    
+    try:
+        # Start a transaction
+        session.begin_nested()
+        
+        # First, remove the player from any teams they're in
+        if user.player:
+            # Remove player from teams
+            user.player.teams = []
+            
+            # Get player ID before removing
+            player_id = user.player.id
+            
+            # Remove player events (goals, cards, etc.)
+            from app.models import PlayerEvent
+            player_events = session.query(PlayerEvent).filter_by(player_id=player_id).all()
+            for event in player_events:
+                session.delete(event)
+            
+            # Remove player match responses (RSVPs)
+            from app.models import Availability
+            match_responses = session.query(Availability).filter_by(player_id=player_id).all()
+            for response in match_responses:
+                session.delete(response)
+            
+            # Remove player stats
+            from app.models import PlayerSeasonStats, PlayerCareerStats
+            # Delete season stats
+            season_stats = session.query(PlayerSeasonStats).filter_by(player_id=player_id).all()
+            for stat in season_stats:
+                session.delete(stat)
+            # Delete career stats    
+            career_stats = session.query(PlayerCareerStats).filter_by(player_id=player_id).all()
+            for stat in career_stats:
+                session.delete(stat)
+            
+            # Finally, delete the player record
+            session.delete(user.player)
+        
+        # Clear roles
+        user.roles = []
+        
+        # Delete any user-specific data from other tables
+        from app.models import Feedback
+        feedbacks = session.query(Feedback).filter_by(user_id=user_id).all()
+        for feedback in feedbacks:
+            session.delete(feedback)
+        
+        # Delete the user
+        session.delete(user)
+        
+        # Commit the transaction
+        session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'User {username} has been completely deleted from the system.'
+        })
+    
+    except Exception as e:
+        # Roll back the transaction on error
+        session.rollback()
+        logger.exception(f"Error deleting user {user_id}: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error deleting user: {str(e)}'})
+
+
 @user_management_bp.route('/approve_user/<int:user_id>', endpoint='approve_user', methods=['POST'])
 @login_required
 @role_required('Global Admin')

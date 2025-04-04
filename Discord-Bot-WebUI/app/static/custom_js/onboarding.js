@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function () {
+    console.log("Onboarding script loaded");
+    
     // Core elements 
     const modalElement = document.getElementById('onboardingSlideModal');
+    console.log("Modal element found:", !!modalElement);
+    
     const carouselElement = document.getElementById('modalCarouselControls');
     const nextOrSaveButton = document.getElementById('nextOrSaveButton');
     const previousButton = document.getElementById('previousButton');
@@ -31,11 +35,17 @@ document.addEventListener('DOMContentLoaded', function () {
     //  Modal initialization
     // =====================
     if (modalElement) {
-        const onboardingModal = new bootstrap.Modal(modalElement, {
-            backdrop: 'static',
-            keyboard: false
-        });
-        onboardingModal.show();
+        console.log("Initializing onboarding modal");
+        try {
+            const onboardingModal = new bootstrap.Modal(modalElement, {
+                backdrop: 'static',
+                keyboard: false
+            });
+            onboardingModal.show();
+            console.log("Modal show() called");
+        } catch (error) {
+            console.error("Error showing modal:", error);
+        }
 
         modalElement.addEventListener('shown.bs.modal', function () {
             // Initialize Select2 dropdowns

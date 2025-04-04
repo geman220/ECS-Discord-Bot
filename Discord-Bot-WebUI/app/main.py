@@ -416,9 +416,20 @@ def index():
             .all()
         )
 
+        # Check if onboarding should be shown based on user flags and Flask session
+        # Use flask.session instead of SQLAlchemy session
+        from flask import session as flask_session
+        
+        # Use a get/delete approach to prevent infinite redirects
+        if 'force_onboarding' in flask_session and flask_session['force_onboarding']:
+            # Delete the flag from session to prevent redirect loops
+            flask_session.pop('force_onboarding', None)
+            logger.info(f"Redirecting user {safe_current_user.id} to onboarding page (force_onboarding flag)")
+            return redirect(url_for('main.onboarding'))
+            
         show_onboarding = (
-            not safe_current_user.has_completed_onboarding if player
-            else not safe_current_user.has_skipped_profile_creation
+            (not safe_current_user.has_completed_onboarding if player else 
+             not safe_current_user.has_skipped_profile_creation)
         )
         show_tour = safe_current_user.has_completed_onboarding and not safe_current_user.has_completed_tour
 
@@ -438,7 +449,34 @@ def index():
                         else:
                             handle_profile_update(player, onboarding_form)
 
+                        # Check SMS verification status for users who opted in
                         if player:
+                            # If user wants SMS but didn't verify their phone, don't complete onboarding
+                            sms_verified = request.form.get('sms_verified') == 'true'
+                            # Check if the user is already verified in the database
+                            player_already_verified = player.is_phone_verified
+                            
+                            # Get SMS notification and consent settings from form
+                            sms_notifications_enabled = request.form.get('sms_notifications') == 'y'
+                            sms_consent_given = request.form.get('sms_consent') == 'on'
+                            
+                            # Check if phone number is provided when SMS is enabled
+                            if sms_notifications_enabled and not player.phone and not request.form.get('phone'):
+                                flash('Please provide a phone number to enable SMS notifications.', 'warning')
+                                return redirect(url_for('main.onboarding'))
+                                
+                            # Check for consent when SMS notifications are enabled
+                            if sms_notifications_enabled and not sms_consent_given:
+                                flash('Please check the consent box to enable SMS notifications.', 'warning')
+                                return redirect(url_for('main.onboarding'))
+                            
+                            # Check if the phone number is verified when SMS is enabled
+                            if sms_notifications_enabled and not (sms_verified or player_already_verified):
+                                logger.warning(f"SMS notifications enabled but phone not verified for player {player.id}")
+                                flash('Please verify your phone number to complete registration with SMS notifications.', 'warning')
+                                return redirect(url_for('main.onboarding'))
+                            
+                            # Update onboarding status
                             safe_current_user.has_completed_onboarding = True
                             session.add(safe_current_user)
                             session.flush()
@@ -698,15 +736,88 @@ def mark_as_read(notification_id):
         abort(404)
     if notification.user_id != safe_current_user.id:
         abort(403)
-    try:
-        notification.read = True
-        session.add(notification)
-        flash('Notification marked as read.', 'success')
-    except Exception as e:
-        logger.error(f"Error marking notification {notification_id} as read: {str(e)}")
-        flash('An error occurred. Please try again.', 'danger')
-        raise
+    notification.is_read = True
+    session.commit()
     return redirect(url_for('main.notifications'))
+
+
+@main.route('/onboarding', methods=['GET', 'POST'])
+@login_required
+def onboarding():
+    """
+    Handle the onboarding process for newly registered users.
+    
+    This route is used specifically for users who have registered with Discord
+    and need to complete their profile information.
+    """
+    # Get database session and player
+    session = g.db_session
+    
+    # IMPORTANT: Clear any force_onboarding flag immediately to prevent redirect loops
+    from flask import session as flask_session
+    if 'force_onboarding' in flask_session:
+        logger.info(f"Clearing force_onboarding flag for user {safe_current_user.id}")
+        flask_session.pop('force_onboarding', None)
+    
+    # Get player info
+    player = getattr(safe_current_user, 'player', None)
+    
+    # If user already completed onboarding, redirect to index
+    if player and safe_current_user.has_completed_onboarding:
+        flash('Your profile is already set up!', 'info')
+        return redirect(url_for('main.index'))
+    
+    # Get the onboarding form
+    onboarding_form = get_onboarding_form(
+        player, 
+        formdata=request.form if request.method == 'POST' else None
+    )
+    
+    # Handle form submission
+    if request.method == 'POST' and onboarding_form.validate_on_submit():
+        try:
+            logger.info(f"Processing onboarding form submission for user {safe_current_user.id}")
+            
+            # Create or update player profile
+            if not player:
+                player = create_player_profile(onboarding_form)
+            else:
+                handle_profile_update(player, onboarding_form)
+            
+            # Check SMS verification if needed
+            sms_notifications = request.form.get('sms_notifications') == 'y'
+            sms_verified = request.form.get('sms_verified') == 'true'
+            already_verified = player and player.is_phone_verified
+            
+            # If SMS is enabled but not verified, show warning
+            if sms_notifications and not (sms_verified or already_verified):
+                flash('Please verify your phone number to enable SMS notifications.', 'warning')
+            else:
+                # Mark onboarding as complete
+                safe_current_user.has_completed_onboarding = True
+                session.add(safe_current_user)
+                session.commit()
+                flash('Profile created successfully!', 'success')
+                return redirect(url_for('main.index'))
+                
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error saving profile: {e}", exc_info=True)
+            flash('An error occurred. Please try again.', 'danger')
+    
+    # Get Discord invite link from session
+    discord_invite_link = flask_session.get('discord_invite_link', "https://discord.gg/weareecs")
+    needs_discord_join = flask_session.get('needs_discord_join', False)
+    
+    # Render the template
+    return render_template(
+        'onboarding.html',
+        title='Complete Your Profile',
+        onboarding_form=onboarding_form,
+        player=player,
+        discord_invite_link=discord_invite_link,
+        needs_discord_join=needs_discord_join
+    )
 
 
 @main.route('/set_tour_skipped', endpoint='set_tour_skipped', methods=['POST'])
@@ -860,6 +971,277 @@ def set_theme():
             logger.error(f"Error saving theme preference for user {current_user.id}: {e}")
     
     return jsonify({"success": True, "message": f"Theme set to {theme}"})
+
+
+@main.route('/save_phone_for_verification', methods=['POST'])
+@login_required
+def save_phone_for_verification():
+    """
+    Save the phone number temporarily for verification purposes.
+    
+    Returns:
+        JSON response with success status.
+    """
+    try:
+        phone_number = request.json.get('phone')
+        if not phone_number:
+            return jsonify({'success': False, 'message': 'Phone number is required'}), 400
+        
+        # Format phone number properly if needed
+        if not phone_number.startswith('+'):
+            if phone_number.startswith('1') and len(phone_number) == 11:
+                phone_number = '+' + phone_number
+            elif len(phone_number) == 10:
+                phone_number = '+1' + phone_number
+            else:
+                phone_number = '+' + phone_number
+        
+        # Store in session for temporary use
+        from flask import session as flask_session
+        flask_session['temp_phone_for_verification'] = phone_number
+        logger.info(f"Saved temporary phone number for verification: {phone_number} for user {safe_current_user.id}")
+        
+        # Also update user's profile phone number if player exists
+        session = g.db_session
+        player = safe_current_user.player
+        
+        if player:
+            player.phone = phone_number
+            session.add(player)
+            try:
+                session.commit()
+                logger.info(f"Updated player {player.id} phone number: {phone_number}")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error updating phone number for player {player.id}: {e}")
+                # Still continue since we saved to session
+        
+        return jsonify({'success': True, 'message': 'Phone number saved for verification'})
+    except Exception as e:
+        logger.error(f"Error saving phone for verification for user {safe_current_user.id}: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error saving phone number: {str(e)}'}), 500
+
+
+@main.route('/send_verification_code', methods=['POST'])
+@login_required
+def send_verification_code():
+    """
+    Send an SMS verification code to the user's phone number.
+    
+    Returns:
+        JSON response with success status and message.
+    """
+    from app.sms_helpers import send_confirmation_sms
+    
+    try:
+        # Get phone from request or from session
+        from flask import session as flask_session
+        phone_number = request.json.get('phone') or flask_session.get('temp_phone_for_verification')
+        
+        if not phone_number:
+            return jsonify({'success': False, 'message': 'Phone number is required'}), 400
+        
+        # Format phone number properly if needed
+        if not phone_number.startswith('+'):
+            if phone_number.startswith('1') and len(phone_number) == 11:
+                phone_number = '+' + phone_number
+            elif len(phone_number) == 10:
+                phone_number = '+1' + phone_number
+            else:
+                phone_number = '+' + phone_number
+        
+        logger.info(f"Sending verification code to phone: {phone_number} for user {safe_current_user.id}")
+        
+        # Ensure the phone number is saved in player record
+        session = g.db_session
+        player = safe_current_user.player
+        
+        if not player:
+            logger.error(f"Player profile not found for user {safe_current_user.id}")
+            return jsonify({'success': False, 'message': 'Player profile not found'}), 404
+        
+        # Update phone number
+        player.phone = phone_number
+        session.add(player)
+        try:
+            session.commit()
+            logger.info(f"Updated player {player.id} phone number to {phone_number} for verification")
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Error updating player phone number: {e}")
+            # Continue anyway to try sending the verification
+        
+        # Send verification code
+        success, message = send_confirmation_sms(safe_current_user)
+        
+        if success:
+            logger.info(f"Verification code sent successfully to user {safe_current_user.id}")
+            return jsonify({'success': True, 'message': 'Verification code sent'})
+        else:
+            logger.warning(f"Failed to send verification code to user {safe_current_user.id}: {message}")
+            return jsonify({'success': False, 'message': f'Failed to send verification code: {message}'}), 200  # Return 200 to let our error handler work
+    except Exception as e:
+        logger.error(f"Error in send_verification_code for user {safe_current_user.id}: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error sending verification code: {str(e)}'}), 500
+
+
+@main.route('/verify_sms_code', methods=['POST'])
+@login_required
+def verify_sms_code():
+    """
+    Verify the SMS code entered by the user.
+    
+    Returns:
+        JSON response with success status and message.
+    """
+    from app.sms_helpers import verify_sms_confirmation
+    
+    try:
+        code = request.json.get('code')
+        if not code:
+            return jsonify({'success': False, 'message': 'Verification code is required'})
+        
+        # Get the session code as backup
+        from flask import session as flask_session
+        session_code = flask_session.get('sms_confirmation_code')
+        logger.info(f"Found code in Flask session: {session_code}")
+        
+        # If user has no code but we have one in the session, set it
+        if not safe_current_user.sms_confirmation_code and session_code:
+            logger.info(f"Setting confirmation code from session for user {safe_current_user.id}")
+            safe_current_user.sms_confirmation_code = session_code
+            db_session = g.db_session
+            db_session.add(safe_current_user)
+            db_session.commit()
+        
+        # Verify the code
+        logger.info(f"Verifying SMS code for user {safe_current_user.id}: {code}")
+        success = verify_sms_confirmation(safe_current_user, code)
+        
+        # If verification failed but the code matches the one in session, force success
+        if not success and session_code and session_code == code:
+            logger.warning(f"Forcing success because code matches session for user {safe_current_user.id}")
+            success = True
+        
+        if success:
+            # Also update player record to show verified phone
+            session = g.db_session
+            player = safe_current_user.player
+            if player:
+                player.is_phone_verified = True
+                player.sms_consent_given = True
+                player.sms_consent_timestamp = datetime.utcnow()
+                
+                # If the player had a different phone number before, it's now verified again
+                if player.phone:
+                    logger.info(f"Phone verified for player {player.id}: {player.phone}")
+                    
+                session.add(player)
+                session.commit()
+                logger.info(f"Phone verification successful for user {safe_current_user.id}")
+                
+                # Clear the code from session
+                if 'sms_confirmation_code' in flask_session:
+                    flask_session.pop('sms_confirmation_code')
+                
+            return jsonify({'success': True, 'message': 'Phone number verified successfully'})
+        else:
+            logger.warning(f"Phone verification failed for user {safe_current_user.id}: Invalid code")
+            return jsonify({'success': False, 'message': 'Invalid verification code'})
+    except Exception as e:
+        logger.error(f"Error verifying SMS code for user {safe_current_user.id}: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error verifying code: {str(e)}'})
+
+
+@main.route('/test_sms_verification', methods=['GET'])
+@login_required
+@role_required('Global Admin')
+def test_sms_verification():
+    """
+    Test endpoint for SMS verification - only accessible by admins.
+    
+    Returns:
+        JSON response with current SMS verification status for debugging.
+    """
+    try:
+        player = safe_current_user.player
+        verification_status = {
+            'user_id': safe_current_user.id,
+            'has_player': player is not None,
+            'verification_code': safe_current_user.sms_confirmation_code,
+            'sms_notifications_enabled': safe_current_user.sms_notifications,
+            'sms_consent_timestamp': safe_current_user.sms_opt_in_timestamp,
+        }
+        
+        if player:
+            verification_status.update({
+                'player_id': player.id,
+                'player_phone': player.phone,
+                'player_phone_verified': player.is_phone_verified,
+                'sms_consent_given': player.sms_consent_given,
+                'sms_consent_timestamp': player.sms_consent_timestamp
+            })
+        
+        # Generate a test code for easy verification
+        from app.sms_helpers import generate_confirmation_code
+        test_code = safe_current_user.sms_confirmation_code or generate_confirmation_code()
+        verification_status['test_code'] = test_code
+        
+        if not safe_current_user.sms_confirmation_code:
+            safe_current_user.sms_confirmation_code = test_code
+            g.db_session.add(safe_current_user)
+            g.db_session.commit()
+            verification_status['debug_note'] = 'Created new test verification code'
+            
+        return jsonify(verification_status)
+    except Exception as e:
+        logger.error(f"Error in test_sms_verification: {e}", exc_info=True)
+        return jsonify({'error': str(e)})
+
+
+@main.route('/set_verification_code', methods=['POST'])
+@login_required
+@role_required('Global Admin')  # Restrict to admins only
+def set_verification_code():
+    """
+    ADMIN ONLY: Manually set a verification code for testing purposes.
+    
+    This endpoint allows setting the SMS verification code directly,
+    bypassing the normal SMS sending process. Useful for testing or
+    when SMS services are unavailable.
+    
+    Returns:
+        JSON response with success status.
+    """
+    try:
+        # Get the verification code from the request
+        code = request.json.get('code')
+        
+        if not code:
+            # If no code provided, generate a 6-digit code
+            from app.sms_helpers import generate_confirmation_code
+            code = generate_confirmation_code()
+            
+        # Set the confirmation code on the user
+        safe_current_user.sms_confirmation_code = code
+        safe_current_user.sms_opt_in_timestamp = datetime.utcnow()
+        
+        # Save to database
+        session = g.db_session
+        session.add(safe_current_user)
+        session.commit()
+        
+        logger.info(f"[ADMIN] Manually set verification code {code} for user {safe_current_user.id}")
+        
+        # Return the code for the user to enter
+        return jsonify({
+            'success': True, 
+            'code': code, 
+            'message': 'Verification code set successfully'
+        })
+    except Exception as e:
+        logger.error(f"Error setting verification code: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 
 @main.context_processor

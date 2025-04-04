@@ -963,6 +963,95 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
             return None
 
 
+async def invite_user_to_server(user_id: str) -> Dict[str, Any]:
+    """
+    Invite a user to the Discord server.
+    
+    Args:
+        user_id (str): The Discord user ID to invite.
+        
+    Returns:
+        Dict[str, Any]: A dictionary with the invitation result.
+    """
+    guild_id = int(os.getenv('SERVER_ID'))
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Check if user is already in the server first
+            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}"
+            member_check = await make_discord_request('GET', url, session)
+            
+            if member_check:
+                # User is already in the server
+                logger.info(f"User {user_id} is already in the server {guild_id}")
+                return {'success': True, 'message': 'User is already in the server'}
+            
+            # For development environment, we can skip actual invitation
+            # and let users join manually if needed
+            if os.getenv('FLASK_ENV') == 'development' or os.getenv('ENVIRONMENT') == 'development':
+                logger.info(f"Skipping Discord invite in development environment for user {user_id}")
+                return {
+                    'success': True,
+                    'message': 'Development mode - invite skipped'
+                }
+            
+            # Generate a server invite for the user
+            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/invites"
+            payload = {
+                "target_user_id": user_id,
+                "max_uses": 1,
+                "max_age": 86400,  # 24 hours
+                "temporary": False
+            }
+            
+            response = await make_discord_request('POST', url, session, json=payload)
+            if response and 'code' in response:
+                logger.info(f"Successfully created invite for user {user_id} to server {guild_id}")
+                return {
+                    'success': True, 
+                    'invite_code': response['code'],
+                    'message': 'Invitation sent successfully'
+                }
+            else:
+                # Return generic Discord invite link as fallback
+                invite_link = "https://discord.gg/weareecs"
+                logger.warning(f"Failed to create direct invite for user {user_id}, providing generic invite link")
+                return {
+                    'success': True,
+                    'invite_link': invite_link,
+                    'message': 'Using generic invite link as fallback'
+                }
+    except Exception as e:
+        logger.error(f"Error inviting user {user_id} to server {guild_id}: {str(e)}")
+        # Still return a partial success with the public invite link
+        return {
+            'success': True,  # Mark as success to continue registration
+            'invite_link': "https://discord.gg/weareecs",
+            'message': f'Error creating invite: {str(e)}. Using public invite as fallback.'
+        }
+
+
+async def check_user_in_server(user_id: str, session: aiohttp.ClientSession) -> bool:
+    """
+    Check if a user is already in the Discord server.
+    
+    Args:
+        user_id (str): The Discord user ID.
+        session (aiohttp.ClientSession): The HTTP session.
+        
+    Returns:
+        bool: True if the user is in the server, False otherwise.
+    """
+    guild_id = int(os.getenv('SERVER_ID'))
+    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}"
+    
+    try:
+        response = await make_discord_request('GET', url, session)
+        return response is not None
+    except Exception as e:
+        logger.error(f"Error checking if user {user_id} is in server {guild_id}: {str(e)}")
+        return False
+
+
 async def fetch_user_roles(session: Session, discord_id: str, http_session: aiohttp.ClientSession, retries: int = 3, delay: float = 0.5) -> List[str]:
     """
     Fetch the roles of a Discord member with retry logic.

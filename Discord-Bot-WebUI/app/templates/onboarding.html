@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+    /* SMS verification styles */
+    #smsVerificationSection {
+        transition: all 0.3s ease;
+    }
+    #verificationCodeInput {
+        transition: all 0.3s ease;
+    }
+    .verification-code-input {
+        letter-spacing: 2px;
+        font-weight: bold;
+        text-align: center;
+    }
+    .btn-verify {
+        transition: all 0.3s ease;
+    }
+    
+    /* Checkbox alignment fix */
+    .form-check.form-switch {
+        padding-left: 0;
+    }
+    .form-check-input[type="checkbox"] {
+        margin-left: 0;
+    }
+    .form-check-label {
+        margin-left: 1.5rem;
+    }
+    
+    /* Ensure consistent positioning of form switches */
+    .form-switch .form-check-input {
+        margin-left: 0;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Complete Your Profile</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading fw-bold mb-1">Welcome to ECS FC!</h6>
+                        <p class="mb-0">
+                            Please complete your profile information below to help us get to know you better.
+                        </p>
+                    </div>
+                    
+                    {% if needs_discord_join %}
+                    <div class="alert alert-warning mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fab fa-discord fs-1"></i>
+                            </div>
+                            <div>
+                                <h6 class="alert-heading fw-bold mb-1">Join our Discord Server!</h6>
+                                <p class="mb-2">
+                                    To fully participate in ECS FC, you need to join our Discord server. This is where match announcements, team discussions, and important notifications take place.
+                                </p>
+                                <a href="{{ discord_invite_link }}" target="_blank" rel="noopener" class="btn btn-primary">
+                                    <i class="fab fa-discord me-2"></i> Join Discord Server
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" action="{{ url_for('main.onboarding') }}" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="form_action" value="create_profile" id="form_action">
+                        {% if player %}
+                        <input type="hidden" name="playerId" id="playerId" value="{{ player.id }}">
+                        {% endif %}
+                        
+                        <!-- Personal Information Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Personal Information</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="name">Full Name</label>
+                                    {{ onboarding_form.name(class="form-control", placeholder="Your full name", required=True) }}
+                                    <div class="invalid-feedback">Please provide your name.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="email">Email</label>
+                                    {{ onboarding_form.email(class="form-control", placeholder="Your email", required=True) }}
+                                    <div class="invalid-feedback">Please provide a valid email.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="phone">Phone Number</label>
+                                    {{ onboarding_form.phone(class="form-control", placeholder="Your phone number") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="jersey_size">Jersey Size</label>
+                                    {{ onboarding_form.jersey_size(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="jersey_number">Preferred Jersey Number</label>
+                                    {{ onboarding_form.jersey_number(class="form-control", placeholder="Jersey number") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="pronouns">Preferred Pronouns</label>
+                                    {{ onboarding_form.pronouns(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Playing Preferences Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Playing Preferences</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="favorite_position">Favorite Position</label>
+                                    {{ onboarding_form.favorite_position(class="form-select select2-single") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="other_positions">Other Positions You Enjoy</label>
+                                    {{ onboarding_form.other_positions(class="form-select select2-multiple", multiple="multiple") }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="positions_not_to_play">Positions to Avoid</label>
+                                    {{ onboarding_form.positions_not_to_play(class="form-select select2-multiple", multiple="multiple") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="frequency_play_goal">Willingness to Play Goal</label>
+                                    {{ onboarding_form.frequency_play_goal(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Availability Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Availability</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="expected_weeks_available">Expected Availability (# of weeks)</label>
+                                    {{ onboarding_form.expected_weeks_available(class="form-select select2-single") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="team_swap">Willing to Switch Teams if Needed?</label>
+                                    {{ onboarding_form.team_swap(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="unavailable_dates">Unavailable Dates</label>
+                                    {{ onboarding_form.unavailable_dates(class="form-control", placeholder="List any dates you're unavailable") }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="willing_to_referee">Interested in Refereeing?</label>
+                                    {{ onboarding_form.willing_to_referee(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Picture Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Profile Picture</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label" for="profile_picture">Upload Profile Picture</label>
+                                    {{ onboarding_form.profile_picture(class="form-control", id="image") }}
+                                    <input type="hidden" name="cropped_image_data" id="cropped_image_data">
+                                </div>
+                                <div class="col-md-4" id="currentProfilePicture">
+                                    <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}" 
+                                         alt="Profile Picture" class="img-fluid rounded mt-2" style="max-height: 100px;">
+                                </div>
+                            </div>
+                            
+                            <div class="img-container mb-3 d-none">
+                                <img id="imagecan" src="" alt="Preview">
+                                <button type="button" id="cropAndSaveButton" class="btn btn-primary mt-2">
+                                    <i class="ti ti-crop me-1"></i> Crop and Save
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Additional Information Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Additional Information</h5>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="form-label" for="additional_info">Additional Information</label>
+                                    {{ onboarding_form.additional_info(class="form-control", rows="3", placeholder="Any additional information we should know") }}
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <label class="form-label" for="player_notes">Player Notes</label>
+                                    {{ onboarding_form.player_notes(class="form-control", rows="3", placeholder="Any notes about your playing style or preferences") }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Preferences Section -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Notification Preferences</h5>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch mb-2 ms-0 ps-0">
+                                        {{ onboarding_form.email_notifications(class="form-check-input ms-0", id="emailNotifications") }}
+                                        <label class="form-check-label ms-4" for="emailNotifications">Email Notifications</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch mb-2 ms-0 ps-0">
+                                        {{ onboarding_form.sms_notifications(class="form-check-input ms-0", id="smsNotifications", onchange="toggleSmsConsent(this.checked);") }}
+                                        <label class="form-check-label ms-4" for="smsNotifications">SMS Notifications</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch mb-2 ms-0 ps-0">
+                                        {{ onboarding_form.discord_notifications(class="form-check-input ms-0", id="discordNotifications") }}
+                                        <label class="form-check-label ms-4" for="discordNotifications">Discord Notifications</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="profile_visibility">Profile Visibility</label>
+                                    {{ onboarding_form.profile_visibility(class="form-select select2-single") }}
+                                </div>
+                            </div>
+                            
+                            <!-- SMS Opt-in section -->
+                            <div class="row">
+                                <div class="col-12">
+                                    <div id="smsOptInSection" class="mt-3" style="display: none;">
+                                        <div class="alert alert-light border">
+                                            <div class="form-check mb-3 ms-0 ps-0">
+                                                <input class="form-check-input ms-0" type="checkbox" id="smsConsent" name="sms_consent" onchange="toggleSmsVerification(this.checked);">
+                                                <label class="form-check-label ms-4" for="smsConsent">
+                                                    I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements. 
+                                                    Standard message and data rates may apply. You can opt out at any time by texting STOP or updating your preferences.
+                                                </label>
+                                            </div>
+                                            
+                                            <div id="smsVerificationSection" style="display: none;">
+                                                <hr>
+                                                <h6 class="mb-3">Verify Your Phone Number</h6>
+                                                <p class="small mb-3">We'll send a verification code to confirm your phone number. <strong>This step is required</strong> if you want to receive SMS notifications.</p>
+                                                
+                                                <div class="row mb-3">
+                                                    <div class="col-12">
+                                                        {% if player and player.is_phone_verified %}
+                                                        <button type="button" id="sendVerificationBtn" class="btn btn-success" disabled>
+                                                            <i class="ti ti-check me-1"></i> Phone Verified
+                                                        </button>
+                                                        {% else %}
+                                                        <button type="button" id="sendVerificationBtn" class="btn btn-primary" onclick="sendVerificationCode();">
+                                                            <i class="ti ti-send me-1"></i> Send Verification Code
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div id="verificationCodeInput" style="display: none;">
+                                                    <div class="row mb-3">
+                                                        <div class="col-md-6">
+                                                            <label for="verificationCode" class="form-label">Verification Code</label>
+                                                            <input type="text" class="form-control" id="verificationCode" placeholder="Enter 6-digit code">
+                                                        </div>
+                                                        <div class="col-md-6 d-flex align-items-end">
+                                                            <button type="button" id="verifyCodeBtn" class="btn btn-success" onclick="verifyCode();">
+                                                                <i class="ti ti-check me-1"></i> Verify Code
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row mb-3">
+                                                        <div class="col-12">
+                                                            <button type="button" id="resendCodeBtn" class="btn btn-link p-0" onclick="sendVerificationCode();">
+                                                                <i class="ti ti-refresh me-1"></i> Resend Code
+                                                            </button>
+                                                            <span id="resendTimer" class="ms-2 small text-muted"></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <input type="hidden" id="smsVerified" name="sms_verified" value="{{ 'true' if player and player.is_phone_verified else 'false' }}">
+                                                
+                                                <!-- Verification status alert -->
+                                                <div class="alert alert-warning mt-3" id="verificationRequiredAlert" style="{{ 'display: none;' if player and player.is_phone_verified else '' }}">
+                                                    <i class="ti ti-alert-triangle me-2"></i>
+                                                    <strong>Verification Required:</strong> You must verify your phone number to enable SMS notifications.
+                                                </div>
+                                                
+                                                <!-- Already verified alert -->
+                                                {% if player and player.is_phone_verified %}
+                                                <div class="alert alert-success mt-3">
+                                                    <i class="ti ti-check-circle me-2"></i>
+                                                    <strong>Phone Verified:</strong> Your phone number has already been verified.
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Save Profile</button>
+                            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/libs/select2/select2.full.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/libs/cropperjs/cropper.min.js') }}"></script>
+
+<!-- SMS verification initialization -->
+<script>
+// Initialize the page when loaded 
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Onboarding page loaded - initializing SMS verification");
+    
+    // Test that the functions exist in the global scope
+    console.log("Testing function availability:");
+    console.log("toggleSmsConsent exists:", typeof toggleSmsConsent === 'function');
+    console.log("toggleSmsVerification exists:", typeof toggleSmsVerification === 'function');
+    console.log("sendVerificationCode exists:", typeof sendVerificationCode === 'function');
+    console.log("verifyCode exists:", typeof verifyCode === 'function');
+    
+    // Check initial state
+    var smsToggle = document.getElementById('smsNotifications');
+    var smsConsent = document.getElementById('smsConsent');
+    
+    console.log("Initial state:", { 
+        smsToggle: smsToggle ? smsToggle.checked : 'not found',
+        smsConsent: smsConsent ? smsConsent.checked : 'not found'
+    });
+    
+    // If the external JS functions aren't available, define them inline as fallback
+    if (typeof toggleSmsConsent !== 'function') {
+        console.warn("SMS verification functions not found, using fallback definitions");
+        
+        // Define fallback functions
+        window.toggleSmsConsent = function(show) {
+            console.log("Fallback toggleSmsConsent:", show);
+            document.getElementById('smsOptInSection').style.display = show ? 'block' : 'none';
+            if (!show) {
+                document.getElementById('smsVerificationSection').style.display = 'none';
+            }
+        };
+        
+        window.toggleSmsVerification = function(show) {
+            console.log("Fallback toggleSmsVerification:", show);
+            document.getElementById('smsVerificationSection').style.display = show ? 'block' : 'none';
+        };
+        
+        // Manual verification function removed for production
+        
+        window.sendVerificationCode = function() {
+            console.log("Fallback sendVerificationCode");
+            var phoneInput = document.querySelector('input[name="phone"]');
+            var sendButton = document.getElementById('sendVerificationBtn');
+            var verificationCodeInput = document.getElementById('verificationCodeInput');
+            
+            if (!phoneInput || !phoneInput.value.trim()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Phone Number Required',
+                    text: 'Please enter your phone number to receive the verification code.',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Disable button during request
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Sending...';
+            
+            // Save phone and send code
+            fetch('/save_phone_for_verification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                },
+                body: JSON.stringify({ phone: phoneInput.value.trim() })
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Failed to save phone number');
+                }
+                return fetch('/send_verification_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    },
+                    body: JSON.stringify({ phone: phoneInput.value.trim() })
+                });
+            })
+            .then(function(response) { 
+                if (!response.ok) {
+                    throw new Error('Failed to send verification code');
+                }
+                return response.json(); 
+            })
+            .then(function(data) {
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
+                
+                if (data.success) {
+                    verificationCodeInput.style.display = 'block';
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Code Sent!',
+                        text: 'Verification code sent to your phone number.',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to send verification code. Please try again.',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            })
+            .catch(function(error) {
+                console.error('Error sending verification code:', error);
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while sending the verification code. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            });
+        };
+        
+        window.verifyCode = function() {
+            console.log("Fallback verifyCode");
+            var codeInput = document.getElementById('verificationCode');
+            var verifyButton = document.getElementById('verifyCodeBtn');
+            var verificationCodeInput = document.getElementById('verificationCodeInput');
+            var sendButton = document.getElementById('sendVerificationBtn');
+            var verifiedFlagInput = document.getElementById('smsVerified');
+            
+            if (!codeInput || !codeInput.value.trim()) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Code Required',
+                    text: 'Please enter the verification code sent to your phone.',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
+            // Disable button during request
+            verifyButton.disabled = true;
+            verifyButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Verifying...';
+            
+            fetch('/verify_sms_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                },
+                body: JSON.stringify({ code: codeInput.value.trim() })
+            })
+            .then(function(response) {
+                // We'll process all responses, even error ones
+                return response.json();
+            })
+            .then(function(data) {
+                verifyButton.disabled = false;
+                verifyButton.innerHTML = '<i class="ti ti-check me-1"></i> Verify Code';
+                
+                if (data.success) {
+                    // Mark as verified in hidden input
+                    verifiedFlagInput.value = 'true';
+                    
+                    // Show success message
+                    verificationCodeInput.innerHTML = '<div class="alert alert-success"><i class="ti ti-check-circle me-2"></i>Phone number verified successfully!</div>';
+                    
+                    // Update send button to show verified state
+                    sendButton.disabled = true;
+                    sendButton.classList.remove('btn-primary');
+                    sendButton.classList.add('btn-success');
+                    sendButton.innerHTML = '<i class="ti ti-check me-1"></i> Verified';
+                    
+                    // Hide warning alert if present
+                    var warningAlert = document.getElementById('verificationRequiredAlert');
+                    if (warningAlert) {
+                        warningAlert.style.display = 'none';
+                    }
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Phone Verified!',
+                        text: 'Your phone number has been successfully verified.',
+                        confirmButtonText: 'Great!'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: data.message || 'Invalid verification code. Please try again.',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            })
+            .catch(function(error) {
+                console.error('Error verifying code:', error);
+                verifyButton.disabled = false;
+                verifyButton.innerHTML = '<i class="ti ti-check me-1"></i> Verify Code';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while verifying your code. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            });
+        };
+    }
+    
+    // Set initial visibility based on checkboxes
+    if (smsToggle && smsToggle.checked) {
+        toggleSmsConsent(true);
+        
+        if (smsConsent && smsConsent.checked) {
+            toggleSmsVerification(true);
+        }
+    }
+});
+</script>
+
+{% if needs_discord_join %}
+<script>
+    // Show Discord join modal when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            Swal.fire({
+                title: 'Join our Discord Server',
+                html: `
+                    <div class="text-left">
+                        <p>To fully participate in ECS FC, you need to join our Discord server!</p>
+                        <p>This is where:</p>
+                        <ul class="text-left">
+                            <li>Match announcements are posted</li>
+                            <li>Substitution requests are made</li>
+                            <li>Team discussions happen</li>
+                            <li>Important notifications are sent</li>
+                        </ul>
+                        <p>Click the button below to join now:</p>
+                    </div>
+                `,
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: 'Join Discord Server',
+                cancelButtonText: 'Later',
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.open('{{ discord_invite_link }}', '_blank');
+                }
+            });
+        }, 500);
+    });
+</script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize select2 for multiple selection dropdowns
+        $('.select2-single').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select an option',
+            allowClear: true
+        });
+        
+        $('.select2-multiple').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select options',
+            allowClear: true
+        });
+        
+        // Form validation
+        const form = document.querySelector('form.needs-validation');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // Find first invalid input and focus
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        firstInvalid.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
+                form.classList.add('was-validated');
+            }, false);
+        }
+    });
+</script>
+{% endblock %}

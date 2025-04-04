@@ -1,0 +1,53 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block title %}Complete Registration{% endblock title %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Complete Registration with Discord</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading fw-bold mb-1">Welcome, {{ discord_username }}!</h6>
+                        <p class="mb-0">
+                            We'll register you as a substitute player for ECS FC. As a substitute player, you'll be able to fill in for matches when teams need additional players. This is a great way to join the ECS FC community and potentially join a team permanently in the future!
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Discord Integration</h6>
+                        <p>As part of the registration process:</p>
+                        <ul>
+                            <li>You'll be invited to the ECS FC Discord server (if you're not already a member)</li>
+                            <li>You'll be assigned the substitute player role</li>
+                            <li>Your Discord account will be linked to your ECS FC profile</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Account Information</h6>
+                        <p><strong>Email:</strong> {{ discord_email }}</p>
+                        <p><strong>Username:</strong> {{ discord_username }}</p>
+                    </div>
+
+                    <form method="post" action="{{ url_for('auth.register_with_discord') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the ECS FC terms and conditions
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Complete Registration</button>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock main_content %}

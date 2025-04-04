@@ -120,6 +120,20 @@ def create_app(config_object='web_config.Config'):
         engine = db.engine
         SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
         app.SessionLocal = SessionLocal
+        
+        # Ensure the SUB role exists
+        try:
+            session = SessionLocal()
+            sub_role = session.query(Role).filter_by(name='SUB').first()
+            if not sub_role:
+                logger.info("Creating SUB role in database")
+                sub_role = Role(name='SUB', description='Substitute Player')
+                session.add(sub_role)
+                session.commit()
+                logger.info("SUB role created successfully")
+            session.close()
+        except Exception as e:
+            logger.error(f"Error ensuring SUB role exists: {e}", exc_info=True)
 
     # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)
@@ -170,6 +184,11 @@ def create_app(config_object='web_config.Config'):
     if app.debug:
         app.wsgi_app = DebugMiddleware(app.wsgi_app, app)
         logger.debug("Applied DebugMiddleware")
+        
+    # Register CLI commands
+    from app.cli import build_assets, init_discord_roles
+    app.cli.add_command(build_assets)
+    app.cli.add_command(init_discord_roles)
 
     # Configure session management to use Redis.
     app.config.update({
@@ -195,11 +214,13 @@ def create_app(config_object='web_config.Config'):
     def unauthorized(error):
         logger.debug("Unauthorized access attempt")
         next_url = request.path
-        if not session.get('401_flash_shown'):
+        # Use Flask's session explicitly
+        from flask import session as flask_session
+        if '401_flash_shown' not in flask_session:
             flash('Please log in to access this page.', 'info')
-            session['401_flash_shown'] = True
+            flask_session['401_flash_shown'] = True
         if next_url != '/':
-            session['next'] = next_url
+            flask_session['next'] = next_url
         return redirect(url_for('auth.login'))
 
     @app.errorhandler(404)
