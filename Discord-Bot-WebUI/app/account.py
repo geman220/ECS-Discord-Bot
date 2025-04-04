@@ -255,12 +255,28 @@ def initiate_sms_opt_in():
     
     if not phone_number or not consent_given:
         return jsonify(success=False, message="Phone number and consent are required."), 400
+    
+    # Validate and normalize the phone number
+    phone_number = phone_number.strip()
+    # Remove any non-digit characters
+    phone_number = ''.join(filter(str.isdigit, phone_number))
+    
+    # Check if this is a valid US number (10 digits)
+    if len(phone_number) != 10:
+        return jsonify(success=False, message="Please enter a valid 10-digit US phone number."), 400
 
+    # Create or update the player record with the normalized phone number
     player = create_or_update_player(session, user.id, phone_number)
     
-    if user_is_blocked_in_textmagic(phone_number):
-        return jsonify(success=False, message="You previously un-subscribed. Please text 'START' to re-subscribe"), 400
-
+    try:
+        # Check if the user's phone is blocked
+        if user_is_blocked_in_textmagic(phone_number):
+            return jsonify(success=False, message="You previously un-subscribed. Please text 'START' to re-subscribe"), 400
+    except Exception as e:
+        logger.error(f"Error checking if phone is blocked: {e}")
+        # Continue even if the blocked check fails
+    
+    # Enable SMS notifications and send confirmation code
     user.sms_notifications = True
     success, message = send_confirmation_sms(user)
     
@@ -268,6 +284,9 @@ def initiate_sms_opt_in():
         return jsonify(success=True, message="Verification code sent. Please check your phone.")
     else:
         logger.error(f'Failed to send SMS to user {user.id}. Error: {message}')
+        # Include more details for the user if there's an authentication issue
+        if "Authenticate" in str(message):
+            return jsonify(success=False, message="SMS service is currently unavailable. Please try again later or contact support."), 500
         return jsonify(success=False, message="Failed to send verification code. Please try again."), 500
 
 
@@ -518,3 +537,39 @@ def show_2fa_qr():
     except Exception as e:
         logger.error(f"Error generating QR code: {str(e)}")
         return "Error generating QR code", 500
+
+
+@account_bp.route('/api/sms/config', methods=['GET'])
+@login_required
+def check_sms_configuration():
+    """
+    Check the SMS configuration status.
+    
+    This endpoint is available to administrators for diagnosing SMS-related issues.
+    """
+    from app.sms_helpers import check_sms_config
+    import os
+    
+    # Only allow administrators to access this endpoint
+    if not current_user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    config_status = check_sms_config()
+    
+    # Add environment variable debug info for admins
+    config_status['env_vars'] = {
+        k: "<exists>" for k, v in os.environ.items() 
+        if 'TWILIO' in k or 'TEXTMAGIC' in k
+    }
+    
+    # Add current configured values (with hidden secrets)
+    config_status['configured_values'] = {
+        'TWILIO_SID': current_app.config.get('TWILIO_SID', 'missing'),
+        'TWILIO_ACCOUNT_SID': current_app.config.get('TWILIO_ACCOUNT_SID', 'missing'),
+        'TWILIO_AUTH_TOKEN': '***hidden***' if current_app.config.get('TWILIO_AUTH_TOKEN') else 'missing',
+        'TWILIO_PHONE_NUMBER': current_app.config.get('TWILIO_PHONE_NUMBER', 'missing'),
+        'TEXTMAGIC_USERNAME': current_app.config.get('TEXTMAGIC_USERNAME', 'missing'),
+        'TEXTMAGIC_API_KEY': '***hidden***' if current_app.config.get('TEXTMAGIC_API_KEY') else 'missing'
+    }
+    
+    return jsonify(config_status)
