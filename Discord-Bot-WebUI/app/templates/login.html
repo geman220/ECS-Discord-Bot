@@ -55,13 +55,19 @@
         <!-- Login Form -->
         <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
             <div style="width: 100%; max-width: 320px; text-align: center;">
-                <h4 class="mb-1 text-primary">Welcome Back!</h4>
-                <p class="mb-4 text-muted">Your next steps await.</p>
+                <h4 class="mb-1 text-primary">Welcome to ECS FC!</h4>
+                <p class="mb-4 text-muted">Login or register to join the league.</p>
 
                 <!-- Discord Login Button -->
-                <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-block mb-3 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
+                <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
                     <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
                     Login with Discord
+                </a>
+                
+                <!-- Discord Registration Button -->
+                <a href="{{ url_for('auth.discord_register') }}" class="btn btn-outline-primary btn-block mb-3 d-flex align-items-center justify-content-center" style="border-color: #7289DA; color: #7289DA;">
+                    <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
+                    Register with Discord
                 </a>
 
                 {% if safe_current_user.is_anonymous %}
@@ -101,6 +107,13 @@
                         <span>Forgot Password</span>
                     </a>
                 </p>
+                
+                <div class="alert alert-info mt-3 text-left">
+                    <h6 class="alert-heading fw-bold mb-1">New to ECS FC?</h6>
+                    <p class="mb-0 small">
+                        Register with Discord to join as a substitute player. Subs can fill in for matches when teams need additional players - a great way to join the league!
+                    </p>
+                </div>
                 {% endif %}
             </div>
         </div>

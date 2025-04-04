@@ -87,6 +87,26 @@ def discord_login():
     discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     redirect_uri = url_for('auth.discord_callback', _external=True)
     scope = 'identify email'
+    # Set registration mode to False to indicate this is a login attempt
+    session['discord_registration_mode'] = False 
+    discord_login_url = (
+        f"{DISCORD_OAUTH2_URL}?client_id={discord_client_id}"
+        f"&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
+    )
+    return redirect(discord_login_url)
+
+
+@auth.route('/discord_register')
+def discord_register():
+    """
+    Redirect the user to Discord's OAuth2 login page for registration.
+    This uses the same OAuth2 flow but indicates registration intent
+    """
+    discord_client_id = current_app.config['DISCORD_CLIENT_ID']
+    redirect_uri = url_for('auth.discord_callback', _external=True)
+    scope = 'identify email'
+    # Set registration mode to True to indicate this is a registration attempt
+    session['discord_registration_mode'] = True
     discord_login_url = (
         f"{DISCORD_OAUTH2_URL}?client_id={discord_client_id}"
         f"&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
@@ -124,14 +144,39 @@ def discord_callback():
             flash('Unable to access Discord email.', 'danger')
             return redirect(url_for('auth.login'))
 
+        # Get registration mode from session (default to False if not set)
+        is_registration = session.get('discord_registration_mode', False)
+        
+        # Check if the user already exists
         user = db_session.query(User).filter(func.lower(User.email) == discord_email).first()
-        if not user:
-            # If user not found, route to purchase verification.
-            return redirect(url_for('auth.verify_purchase',
-                                    discord_email=discord_email,
-                                    discord_username=discord_username,
-                                    discord_id=discord_id))
+        
+        # If user exists and this is a registration attempt
+        if user and is_registration:
+            flash('An account with this email already exists. Please login instead.', 'info')
+            return redirect(url_for('auth.login'))
+            
+        # If user doesn't exist and this is a login attempt
+        if not user and not is_registration:
+            flash('No account found. Please register first.', 'info')
+            # Redirect to registration with the same Discord auth data
+            session['pending_discord_email'] = discord_email
+            session['pending_discord_id'] = discord_id
+            session['pending_discord_username'] = discord_username
+            session['discord_registration_mode'] = True
+            return redirect(url_for('auth.register_with_discord'))
+            
+        # If user doesn't exist and this is a registration attempt
+        if not user and is_registration:
+            # Store Discord info in session for registration flow
+            session['pending_discord_email'] = discord_email
+            session['pending_discord_id'] = discord_id
+            session['pending_discord_username'] = discord_username
+            
+            # Proceed to Discord registration flow
+            return redirect(url_for('auth.register_with_discord'))
 
+        # User exists and this is a login attempt - normal login flow
+        
         # Link Discord account and assign roles.
         sync_discord_for_user(user, discord_id)
 
@@ -155,6 +200,9 @@ def discord_callback():
         except Exception as e:
             logger.error(f"Error loading user theme preference: {e}")
         
+        # Clear any registration mode flag
+        session.pop('discord_registration_mode', None)
+        
         return redirect(url_for('main.index'))
 
     except Exception as e:
@@ -162,6 +210,167 @@ def discord_callback():
         flash('Authentication failed.', 'danger')
         return redirect(url_for('auth.login'))
 
+
+@auth.route('/register_with_discord', methods=['GET', 'POST'])
+@transactional
+def register_with_discord():
+    """
+    Handle the registration process for users authenticating with Discord.
+    
+    This route checks if the user is in the Discord server,
+    invites them if needed, assigns the SUB role, and creates
+    a new user account with appropriate Discord association.
+    """
+    import aiohttp
+    import asyncio
+    from app.discord_utils import assign_role_to_member, invite_user_to_server
+    from app.utils.discord_request_handler import make_discord_request
+
+    db_session = g.db_session
+    discord_email = session.get('pending_discord_email')
+    discord_id = session.get('pending_discord_id')
+    discord_username = session.get('pending_discord_username')
+    
+    if not discord_email or not discord_id:
+        flash('Missing Discord information. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    if request.method == 'GET':
+        return render_template('register_discord.html', 
+                              title='Complete Registration',
+                              discord_email=discord_email,
+                              discord_username=discord_username)
+    
+    try:
+        # Create a new event loop for async operations
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Check if user is in the Discord server
+        async def check_server_membership():
+            async with aiohttp.ClientSession() as session:
+                # Check if the user is already in the server
+                url = f"{current_app.config['BOT_API_URL']}/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
+                result = await make_discord_request('GET', url, session)
+                
+                if not result:
+                    # User is not in the server, invite them
+                    try:
+                        invite_result = await invite_user_to_server(discord_id)
+                        if invite_result.get('success'):
+                            # Store the invite link or code in the Flask session for later use
+                            from flask import session as flask_session
+                            if invite_result.get('invite_code'):
+                                invite_code = invite_result.get('invite_code')
+                                flask_session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
+                                logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
+                            elif invite_result.get('invite_link'):
+                                flask_session['discord_invite_link'] = invite_result.get('invite_link')
+                                logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
+                        else:
+                            logger.warning(f"Could not invite user to Discord server: {invite_result.get('message')}")
+                            # Continue despite invite failure - we'll show a message to the user later
+                    except Exception as e:
+                        logger.error(f"Error inviting user to Discord server: {str(e)}")
+                        # Continue despite invite failure - we'll handle Discord role assignment separately
+                
+                # Try to assign the SUB role (ID: 1357770021157212430)
+                try:
+                    sub_role_id = "1357770021157212430"
+                    await assign_role_to_member(
+                        int(current_app.config['SERVER_ID']), 
+                        discord_id, 
+                        sub_role_id, 
+                        session
+                    )
+                    logger.info(f"Successfully assigned SUB role to Discord user {discord_id}")
+                except Exception as e:
+                    logger.error(f"Error assigning SUB role to Discord user {discord_id}: {str(e)}")
+                    # Continue despite role assignment failure - registration can still proceed
+                
+                return {'success': True}
+        
+        try:
+            discord_result = loop.run_until_complete(check_server_membership())
+            loop.close()
+            
+            # Log Discord integration status but continue regardless
+            if not discord_result.get('success'):
+                logger.warning(f"Discord integration warning: {discord_result.get('message')}")
+                flash("Discord integration had some issues. You have been registered, but you may need to join the Discord server manually.", 'warning')
+        except Exception as e:
+            logger.error(f"Error with Discord server integration: {str(e)}")
+            flash("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.", 'warning')
+        
+        # Find the SUB role in database
+        sub_role = db_session.query(Role).filter_by(name='SUB').first()
+        if not sub_role:
+            # Create the role if it doesn't exist
+            sub_role = Role(name='SUB', description='Substitute Player')
+            db_session.add(sub_role)
+            db_session.flush()
+        
+        # Create the user
+        username = discord_username.split('#')[0] if '#' in discord_username else discord_username
+        # Generate a random password - user can reset it later
+        import secrets
+        import string
+        temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        
+        new_user = User(
+            username=username,
+            email=discord_email,
+            is_approved=True,  # Auto-approve Discord users
+            roles=[sub_role]   # Assign SUB role
+        )
+        new_user.set_password(temp_password)
+        db_session.add(new_user)
+        db_session.flush()
+        
+        # Create a player record linked to the user
+        player = Player(
+            name=username,
+            user_id=new_user.id,
+            discord_id=discord_id,
+            is_current_player=True
+        )
+        db_session.add(player)
+        db_session.flush()
+        
+        # Log in the user
+        login_user(new_user)
+        
+        # Clear session variables
+        session.pop('pending_discord_email', None)
+        session.pop('pending_discord_id', None)
+        session.pop('pending_discord_username', None)
+        
+        # Ensure onboarding flags are properly set to trigger the onboarding modal
+        new_user.has_completed_onboarding = False
+        new_user.has_skipped_profile_creation = False
+        new_user.has_completed_tour = False
+        db_session.add(new_user)
+        db_session.commit()  # Commit to ensure all flags are saved
+        
+        # Use flask.session to avoid confusion with SQLAlchemy session
+        from flask import session as flask_session
+        
+        # Set session flag to ensure onboarding is shown
+        flask_session['force_onboarding'] = True
+        
+        # Set Discord server invite information in the session
+        default_invite_link = "https://discord.gg/weareecs"
+        flask_session['discord_invite_link'] = default_invite_link
+        flask_session['needs_discord_join'] = True
+        
+        flash('Registration successful! Please join our Discord server and complete your profile.', 'success')
+        # Redirect to dedicated onboarding page instead of index
+        return redirect(url_for('main.onboarding'))
+        
+    except Exception as e:
+        logger.error(f"Discord registration error: {str(e)}", exc_info=True)
+        flash('Registration failed. Please try again later.', 'danger')
+        return redirect(url_for('auth.login'))
 
 @auth.route('/verify_purchase', methods=['GET'])
 @transactional

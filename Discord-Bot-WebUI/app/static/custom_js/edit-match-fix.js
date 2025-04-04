@@ -139,8 +139,88 @@ document.addEventListener('DOMContentLoaded', function() {
         if (yellowContainer) yellowContainer.innerHTML = '';
         if (redContainer) redContainer.innerHTML = '';
         
+        // Setup player choices if not already defined
+        if (typeof window.playerChoices === 'undefined') {
+            window.playerChoices = {};
+        }
+        
+        // Initialize player choices for this match
+        playerChoices[matchId] = {};
+        
+        // Add home team players
+        if (data.home_team && data.home_team.players) {
+            const homeTeamName = data.home_team.name || 'Home Team';
+            playerChoices[matchId][homeTeamName] = {};
+            data.home_team.players.forEach(player => {
+                playerChoices[matchId][homeTeamName][player.id] = player.name;
+            });
+        }
+        
+        // Add away team players
+        if (data.away_team && data.away_team.players) {
+            const awayTeamName = data.away_team.name || 'Away Team';
+            playerChoices[matchId][awayTeamName] = {};
+            data.away_team.players.forEach(player => {
+                playerChoices[matchId][awayTeamName][player.id] = player.name;
+            });
+        }
+        
+        // Check if player data is available before proceeding
+        if (Object.keys(playerChoices[matchId]).length === 0) {
+            console.error('No player data available for match:', matchId);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Match data is not loaded yet. Please try again in a moment.'
+            });
+            return;
+        }
+        
         // Populate events (using the global addEvent function)
         try {
+            // Define addEvent function if not already defined
+            if (typeof window.addEvent !== 'function') {
+                console.warn("addEvent function not found, creating it");
+                window.addEvent = function(matchId, containerId, statId = null, playerId = null, minute = null) {
+                    var containerSelector = '#' + containerId;
+                    var uniqueId = statId ? String(statId) : 'new-' + Date.now() + '-' + Math.random();
+                    var baseName = containerId.split('Container-')[0];
+                    
+                    var playerOptions = '<option value="" selected>Select a player</option>';
+                    if (playerChoices[matchId]) {
+                        for (const teamName in playerChoices[matchId]) {
+                            playerOptions += `<optgroup label="${teamName}">`;
+                            for (const pid in playerChoices[matchId][teamName]) {
+                                playerOptions += `<option value="${pid}">${playerChoices[matchId][teamName][pid]}</option>`;
+                            }
+                            playerOptions += `</optgroup>`;
+                        }
+                    }
+                    
+                    var newInputGroup = `
+                        <div class="input-group mb-2 player-event-entry" data-unique-id="${uniqueId}">
+                            <input type="hidden" name="${baseName}-stat_id[]" value="${statId ? statId : ''}">
+                            <select class="form-select" name="${baseName}-player_id[]">
+                                ${playerOptions}
+                            </select>
+                            <input type="text" class="form-control" name="${baseName}-minute[]" 
+                                placeholder="Minute (e.g., '45' or '45+2')" 
+                                value="${minute ? minute : ''}"
+                                pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
+                                title="Enter a valid minute (e.g., '45' or '45+2')">
+                            <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                        </div>
+                    `;
+                    
+                    $(containerSelector).append(newInputGroup);
+                    
+                    if (playerId) {
+                        const lastAddedEntry = $(containerSelector).children().last();
+                        lastAddedEntry.find(`select[name="${baseName}-player_id[]"]`).val(playerId);
+                    }
+                };
+            }
+            
             // Define removeEvent function if not already defined
             if (typeof window.removeEvent !== 'function') {
                 console.warn("removeEvent function not found, creating fallback");
@@ -170,40 +250,38 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add goal scorers
             if (data.goal_scorers && Array.isArray(data.goal_scorers)) {
                 data.goal_scorers.forEach(function(goal) {
-                    if (typeof window.addEvent === 'function') {
-                        window.addEvent(matchId, `goalScorersContainer-${matchId}`, goal.id, goal.player_id, goal.minute);
-                    }
+                    window.addEvent(matchId, `goalScorersContainer-${matchId}`, goal.id, goal.player_id, goal.minute);
                 });
             }
             
             // Add assist providers
             if (data.assist_providers && Array.isArray(data.assist_providers)) {
                 data.assist_providers.forEach(function(assist) {
-                    if (typeof window.addEvent === 'function') {
-                        window.addEvent(matchId, `assistProvidersContainer-${matchId}`, assist.id, assist.player_id, assist.minute);
-                    }
+                    window.addEvent(matchId, `assistProvidersContainer-${matchId}`, assist.id, assist.player_id, assist.minute);
                 });
             }
             
             // Add yellow cards
             if (data.yellow_cards && Array.isArray(data.yellow_cards)) {
                 data.yellow_cards.forEach(function(card) {
-                    if (typeof window.addEvent === 'function') {
-                        window.addEvent(matchId, `yellowCardsContainer-${matchId}`, card.id, card.player_id, card.minute);
-                    }
+                    window.addEvent(matchId, `yellowCardsContainer-${matchId}`, card.id, card.player_id, card.minute);
                 });
             }
             
             // Add red cards
             if (data.red_cards && Array.isArray(data.red_cards)) {
                 data.red_cards.forEach(function(card) {
-                    if (typeof window.addEvent === 'function') {
-                        window.addEvent(matchId, `redCardsContainer-${matchId}`, card.id, card.player_id, card.minute);
-                    }
+                    window.addEvent(matchId, `redCardsContainer-${matchId}`, card.id, card.player_id, card.minute);
                 });
             }
         } catch (error) {
             console.error('Error populating events:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error setting up the match report form. Please refresh and try again.'
+            });
+            return;
         }
         
         // Initialize and show the modal

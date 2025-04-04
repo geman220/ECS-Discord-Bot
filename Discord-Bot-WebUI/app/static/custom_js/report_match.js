@@ -12,7 +12,15 @@ $(document).ready(function () {
             }
         }
     });
+    
+    // Initialize playerChoices if not defined
+    if (typeof window.playerChoices === 'undefined') {
+        window.playerChoices = {};
+    }
 });
+
+// Ensure the playerChoices object is available globally
+window.playerChoices = window.playerChoices || {};
 
 // Function to create player options grouped by team
 function createPlayerOptions(matchId) {
@@ -198,6 +206,43 @@ $(document).on('click', '.edit-match-btn', function (e) {
                     icon: 'error',
                     title: 'Error',
                     text: 'Received invalid response format. Please try again.'
+                });
+                return;
+            }
+            
+            // Build player choices data structure for this match
+            if (!window.playerChoices) {
+                window.playerChoices = {};
+            }
+            
+            // Initialize player choices for this match
+            playerChoices[matchId] = {};
+            
+            // Add home team players
+            if (response.home_team && response.home_team.players) {
+                const homeTeamName = response.home_team.name || 'Home Team';
+                playerChoices[matchId][homeTeamName] = {};
+                response.home_team.players.forEach(player => {
+                    playerChoices[matchId][homeTeamName][player.id] = player.name;
+                });
+            }
+            
+            // Add away team players
+            if (response.away_team && response.away_team.players) {
+                const awayTeamName = response.away_team.name || 'Away Team';
+                playerChoices[matchId][awayTeamName] = {};
+                response.away_team.players.forEach(player => {
+                    playerChoices[matchId][awayTeamName][player.id] = player.name;
+                });
+            }
+            
+            // Check if player data is available
+            if (Object.keys(playerChoices[matchId]).length === 0) {
+                console.error('No player data available for match:', matchId);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Match data is not loaded yet. Please try again in a moment.'
                 });
                 return;
             }

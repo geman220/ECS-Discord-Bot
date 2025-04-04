@@ -215,12 +215,77 @@
     .avatar:hover {
         transform: scale(1.05);
     }
+    
+    /* CRITICAL: Direct dropdown menu fixes for this page */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    .card {
+        overflow: visible !important;
+    }
+    
+    .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    .tab-content {
+        overflow: visible !important;
+    }
+    
+    .tab-pane {
+        overflow: visible !important;
+    }
+    
+    table td {
+        position: relative !important;
+    }
+    
+    /* Specific fix for action column dropdowns */
+    table td:last-child .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+    }
 </style>
 <!-- Toastr CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-<!-- Custom Dropdown Menu Fix -->
-<link rel="stylesheet" href="{{ url_for('static', filename='custom_css/dropdown-menu-fix.css') }}">
 {% endblock %}
+
+<!-- Inline style for dropdown fixes -->
+<style>
+    /* CRITICAL: Direct dropdown menu fixes */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    .card {
+        overflow: visible !important;
+    }
+    
+    .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    .tab-content {
+        overflow: visible !important;
+    }
+    
+    .tab-pane {
+        overflow: visible !important;
+    }
+    
+    table td {
+        position: relative !important;
+    }
+    
+    /* Specific fix for action column dropdowns */
+    table td:last-child .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+    }
+</style>
 
 {% block main_content %}
 <!-- Page Loader -->

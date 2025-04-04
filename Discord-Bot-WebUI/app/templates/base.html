@@ -68,9 +68,7 @@
     <!-- MOST IMPORTANT: Fix for button styling - loaded last to override all other styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-fix.css') }}">
 
-    <!-- Additional scripts loaded later -->
-    <script</script>
-    
+    <!-- Additional scripts loaded in footer -->
     <!-- Button fix scripts loaded in footer -->
     
     <!-- Helpers and Misc Scripts -->
@@ -253,6 +251,10 @@
     </style>
     <!-- Mobile Responsive Fixes -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/mobile-responsive-fix.css') }}">
+    
+    <!-- Dropdown Menu Fix -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/dropdown-menu-fix.css') }}">
+    
     {% block custom_css %}
     {% endblock %}
 </head>
@@ -372,6 +374,9 @@
     
     <!-- Specific fix for edit match buttons -->
     <script src="{{ url_for('static', filename='custom_js/edit-match-fix.js') }}"></script>
+    
+    <!-- SMS Verification functionality -->
+    <script src="{{ url_for('static', filename='custom_js/sms-verification.js') }}"></script>
     
     <!-- Load modals via AJAX (after jQuery is loaded) -->
     <script>
