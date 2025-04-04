@@ -37,9 +37,17 @@
                     </div>
                     {% endif %}
                     
+                    {% if safe_current_user.has_permission('view_rsvps') %}
+                    <div class="mt-3">
+                        <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}" class="btn btn-outline-light btn-sm ecs-btn ecs-btn-sm ecs-btn-icon">
+                            <i class="ti ti-users me-1"></i>Manage RSVPs
+                        </a>
+                    </div>
+                    {% endif %}
+                    
                     {% if safe_current_user.has_permission('view_match_reporting') %}
                     <div class="mt-3 d-md-none">
-                        <button class="btn btn-light edit-match-btn w-100" data-match-id="{{ match.id }}">
+                        <button class="btn btn-light edit-match-btn w-100 ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                             <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                             {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
                         </button>
@@ -49,7 +57,7 @@
                 
                 {% if safe_current_user.has_permission('view_match_reporting') %}
                 <div class="ms-auto align-self-start mt-2 mt-sm-0 d-none d-md-block">
-                    <button class="btn btn-light edit-match-btn" data-match-id="{{ match.id }}">
+                    <button class="btn btn-light edit-match-btn ecs-btn ecs-btn-icon" data-match-id="{{ match.id }}">
                         <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                         {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
                     </button>
@@ -599,6 +607,38 @@
         min-height: 120px;
     }
     
+    /* Card theming that respects light/dark mode */
+    html[data-style="light"] .card.bg-primary {
+        background-color: var(--bs-primary) !important;
+        background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%) !important;
+    }
+    
+    html[data-style="dark"] .card.bg-primary {
+        background-color: var(--bs-primary) !important;
+        background-image: linear-gradient(45deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%) !important;
+    }
+    
+    /* Badge styling with transparency for better aesthetics */
+    .badge.bg-label-light {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+    }
+    
+    /* Improved button styling */
+    .btn.btn-outline-light {
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.5) !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        transition: all 0.2s ease-in-out;
+    }
+    
+    .btn.btn-outline-light:hover {
+        background-color: rgba(255, 255, 255, 0.15) !important;
+        border-color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
     /* Player List Styling */
     .player-list {
         max-height: 500px;
@@ -654,6 +694,13 @@
         border-radius: 50rem;
         padding-right: 0.6em;
         padding-left: 0.6em;
+    }
+    
+    /* Clean button styling */
+    .ecs-btn {
+        transform: none !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: none !important;
     }
     
     /* Responsive Adjustments */
