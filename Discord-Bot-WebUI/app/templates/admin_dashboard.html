@@ -2,22 +2,33 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Page Heading -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3">Admin Dashboard</h1>
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0">Admin Dashboard</h5>
+                    <div class="d-flex">
+                        <button class="btn btn-primary" id="refreshContainersBtn">
+                            <i class="ti ti-refresh me-1"></i> Refresh Containers
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
         <!-- Manage Roles and Permissions Section -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-secondary text-white">
-                    <h6 class="m-0">Manage Roles &amp; Permissions</h6>
+        <div class="col-xl-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Manage Roles & Permissions</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.admin_dashboard') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="action" value="update_permissions">
+
                         <div class="mb-3">
                             <label for="role_id" class="form-label">Select Role</label>
                             <select name="role_id" id="role_id" class="form-select" required>
@@ -27,6 +38,7 @@
                                 {% endfor %}
                             </select>
                         </div>
+
                         <div class="mb-3">
                             <label for="permissions" class="form-label">Assign Permissions</label>
                             <select name="permissions" id="permissions" class="form-select select2-multiple" multiple>
@@ -35,9 +47,14 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-secondary">Update Permissions</button>
+
+                        <button type="submit" class="btn btn-primary me-1">
+                            <i class="ti ti-check me-1"></i>Update Permissions
+                        </button>
                     </form>
+
                     <hr>
+
                     <h6>Current Permissions</h6>
                     <ul id="current-permissions-list" class="list-group">
                         <li class="list-group-item text-muted">Select a role to view permissions.</li>
@@ -47,15 +64,15 @@
         </div>
 
         <!-- Manage Announcements Section -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-info text-white">
-                    <h6 class="m-0">Manage Announcements</h6>
+        <div class="col-xl-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Manage Announcements</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.manage_announcements') }}">
                         {{ announcement_form.hidden_tag() }}
-                        <div class="row g-3">
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="title" class="form-label">Title</label>
                                 {{ announcement_form.title(class_="form-control", placeholder="Announcement title") }}
@@ -65,311 +82,848 @@
                                 {{ announcement_form.content(class_="form-control", placeholder="Announcement content") }}
                             </div>
                         </div>
-                        <div class="mt-3 text-end">
-                            <button type="submit" class="btn btn-info">
-                                <i class="fas fa-plus me-1"></i> Create Announcement
+                        <div class="text-end mb-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-plus me-1"></i> Create Announcement
                             </button>
                         </div>
                     </form>
+
                     <hr>
+
                     <h6>Existing Announcements</h6>
-                    <ul class="list-group" id="announcements-list">
+                    <div class="list-group" id="announcements-list">
                         {% for announcement in announcements %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>{{ announcement.title }}</strong>
-                                <p class="mb-0"><small>{{ announcement.content }}</small></p>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ announcement.title }}</h6>
+                                    <p class="mb-1 text-muted">{{ announcement.content }}</p>
+                                    <small class="text-muted">Created: {{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                </div>
+                                <div class="d-flex">
+                                    <button type="button" class="btn btn-icon btn-label-warning me-1 edit-announcement-btn" 
+                                            data-announcement-id="{{ announcement.id }}"
+                                            data-announcement-title="{{ announcement.title }}"
+                                            data-announcement-content="{{ announcement.content }}"
+                                            onclick="showEditModalGlobal('{{ announcement.id }}', '{{ announcement.title }}', '{{ announcement.content }}')">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button class="btn btn-icon btn-label-danger delete-announcement-btn" 
+                                            data-announcement-id="{{ announcement.id }}">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="btn-group">
-                                <button class="btn btn-warning btn-sm edit-announcement-btn" data-announcement-id="{{ announcement.id }}">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm delete-announcement-btn" data-announcement-id="{{ announcement.id }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </li>
+                        </div>
                         {% else %}
-                        <li class="list-group-item text-center text-muted">No announcements available.</li>
+                        <div class="list-group-item text-center text-muted">
+                            <p class="mb-0">No announcements available.</p>
+                        </div>
                         {% endfor %}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Docker Containers Status Section -->
-        <div class="col-lg-12 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-dark text-white">
-                    <h6 class="m-0">Docker Containers Status</h6>
+    <!-- Docker Containers Status Section -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Docker Containers Status</h5>
                 </div>
                 <div class="card-body">
                     <div id="dockerStatusContainer" class="row">
-                        <!-- Docker container cards will be dynamically inserted here -->
+                        <div class="col-12 text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading container status...</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block modals %}
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
 <!-- Edit Announcement Modal -->
 <div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-labelledby="editAnnouncementModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form id="editAnnouncementForm" method="POST" action="">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editAnnouncementModalLabel">Edit Announcement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editAnnouncementModalLabel">Edit Announcement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAnnouncementForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" id="edit_announcement_id" value="">
+                    
                     <div class="mb-3">
                         <label for="edit_title" class="form-label">Title</label>
-                        <input type="text" id="edit_title" name="title" class="form-control" placeholder="Announcement title" required>
+                        <input type="text" id="edit_title" name="title" class="form-control" required>
                     </div>
+                    
                     <div class="mb-3">
                         <label for="edit_content" class="form-label">Content</label>
-                        <textarea id="edit_content" name="content" class="form-control" placeholder="Announcement content" rows="3" required></textarea>
+                        <textarea id="edit_content" name="content" class="form-control" rows="3" required></textarea>
                     </div>
-                    <input type="hidden" name="announcement_id" id="edit_announcement_id">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Announcement</button>
-                </div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="updateAnnouncementBtn" class="btn btn-primary">Update Announcement</button>
+            </div>
         </div>
     </div>
 </div>
 
-{% if reset_password_form is defined %}
-<!-- Reset Password Modal (Only rendered when reset_password_form is passed) -->
-<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Docker Logs Modal -->
+<div class="modal fade" id="dockerLogsModal" tabindex="-1" aria-labelledby="dockerLogsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('admin.admin_dashboard') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="user_id" id="user_id_for_reset">
-                <input type="hidden" name="action" value="reset_password">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="resetPasswordModalLabel">Reset Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        {{ reset_password_form.password.label(class="form-label") }}
-                        {{ reset_password_form.password(class="form-control", placeholder="Enter new password") }}
-                    </div>
-                    <div class="mb-3">
-                        {{ reset_password_form.confirm_password.label(class="form-label") }}
-                        {{ reset_password_form.confirm_password(class="form-control", placeholder="Confirm new password") }}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Reset Password</button>
-                </div>
-            </form>
+            <div class="modal-header">
+                <h5 class="modal-title" id="dockerLogsModalLabel">Container Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="dockerLogsContent" class="bg-dark text-light p-3" style="max-height: 70vh; overflow-y: auto; font-size: 0.85rem;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>
-{% endif %}
 {% endblock %}
 
 {% block custom_js %}
 <script>
-  // Define the edit user URL template with a unique placeholder
-  const editUserUrlTemplate = "{{ url_for('user_management.edit_user', user_id=0) }}";
-  const editUserUrlBase = editUserUrlTemplate.slice(0, -1);
+// Global function to show edit modal (accessible from inline onclick)
+function showEditModalGlobal(announcementId, title, content) {
+    console.log('Global edit modal function called with:', {id: announcementId, title, content});
+    console.log('HTML elements available:', {
+        modalExists: !!document.getElementById('editAnnouncementModal'),
+        titleInputExists: !!document.getElementById('edit_title'),
+        contentInputExists: !!document.getElementById('edit_content'),
+        idInputExists: !!document.getElementById('edit_announcement_id')
+    });
 
-  function setUserForResetPassword(userId, username) {
-    document.getElementById('user_id_for_reset').value = userId;
-    document.getElementById('resetPasswordModalLabel').textContent = 'Reset Password for ' + username;
-  }
+    // Try to find the modal
+    let modal = document.getElementById('editAnnouncementModal');
+    
+    // If modal doesn't exist, create it dynamically
+    if (!modal) {
+        console.log('Modal not found, creating dynamically');
+        
+        // Create the modal HTML
+        const modalHTML = `
+        <div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-labelledby="editAnnouncementModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editAnnouncementModalLabel">Edit Announcement</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editAnnouncementForm">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" id="edit_announcement_id" value="">
+                            
+                            <div class="mb-3">
+                                <label for="edit_title" class="form-label">Title</label>
+                                <input type="text" id="edit_title" name="title" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="edit_content" class="form-label">Content</label>
+                                <textarea id="edit_content" name="content" class="form-control" rows="3" required></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" id="updateAnnouncementBtn" class="btn btn-primary">Update Announcement</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        
+        // Add the modal to the body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Get the newly created modal
+        modal = document.getElementById('editAnnouncementModal');
+        
+        // Add event listener to the update button
+        const updateBtn = document.getElementById('updateAnnouncementBtn');
+        if (updateBtn) {
+            updateBtn.addEventListener('click', function() {
+                const modalIdInput = document.getElementById('edit_announcement_id');
+                const modalTitleInput = document.getElementById('edit_title');
+                const modalContentInput = document.getElementById('edit_content');
+                
+                if (modalIdInput && modalTitleInput && modalContentInput) {
+                    const id = modalIdInput.value;
+                    const newTitle = modalTitleInput.value;
+                    const newContent = modalContentInput.value;
+                    
+                    if (!newTitle || !newContent) {
+                        showToast('Error', 'Title and content are required', 'danger');
+                        return;
+                    }
+                    
+                    updateAnnouncement(id, newTitle, newContent);
+                }
+            });
+        }
+    }
+    
+    // Now get the form elements
+    const titleInput = document.getElementById('edit_title');
+    const contentInput = document.getElementById('edit_content');
+    const idInput = document.getElementById('edit_announcement_id');
 
-  function debounce(func, delay) {
-    let debounceTimer;
-    return function () {
-      const context = this;
-      const args = arguments;
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => func.apply(context, args), delay);
-    };
-  }
+    if (!titleInput || !contentInput || !idInput) {
+        console.error('Form fields not found even after creating modal');
+        showToast('Error', 'Could not prepare the edit form', 'danger');
+        return false;
+    }
 
-  // Announcement buttons event delegation
-  document.getElementById('announcements-list').addEventListener('click', function (event) {
-    const deleteButton = event.target.closest('.delete-announcement-btn');
-    if (deleteButton) {
-      const announcementId = deleteButton.getAttribute('data-announcement-id');
-      if (!announcementId) return alert('Announcement ID is missing.');
-      if (confirm('Are you sure you want to delete this announcement?')) {
-        const deleteUrl = `/admin/announcements/${announcementId}/delete`;
-        fetch(deleteUrl, { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}' }})
+    // Fill the modal with data
+    titleInput.value = title || '';
+    contentInput.value = content || '';
+    idInput.value = announcementId;
+    console.log('Form populated with data');
+
+    // Show the modal using various methods
+    console.log('Attempting to show modal with bootstrap version:', typeof bootstrap !== 'undefined' ? bootstrap.version : 'not available');
+    
+    try {
+        // Method 1: Bootstrap 5 native
+        if (typeof bootstrap !== 'undefined') {
+            console.log('Using Bootstrap 5 modal method');
+            try {
+                // Check if modal is already initialized
+                let bsModal = bootstrap.Modal.getInstance(modal);
+                if (!bsModal) {
+                    console.log('Creating new Bootstrap modal instance');
+                    bsModal = new bootstrap.Modal(modal);
+                } else {
+                    console.log('Using existing Bootstrap modal instance');
+                }
+                bsModal.show();
+                console.log('Modal shown with Bootstrap 5');
+                
+                // Setup update button handler
+                setupUpdateButton();
+                
+                return true;
+            } catch (bsErr) {
+                console.error('Bootstrap modal failed:', bsErr);
+            }
+        }
+        
+        // Method 2: jQuery fallback
+        if (typeof $ !== 'undefined') {
+            console.log('Using jQuery modal method');
+            try {
+                $(modal).modal('show');
+                console.log('Modal shown with jQuery');
+                
+                // Setup update button handler
+                setupUpdateButton();
+                
+                return true;
+            } catch (jqErr) {
+                console.error('jQuery modal failed:', jqErr);
+            }
+        }
+        
+        // Method 3: Direct manipulation
+        console.log('Using direct DOM manipulation modal method');
+        modal.style.display = 'block';
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
+        
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+        
+        console.log('Modal shown with direct DOM manipulation');
+        
+        // Setup update button handler
+        setupUpdateButton();
+        
+        return true;
+    } catch (err) {
+        console.error('All methods to show modal failed:', err);
+        showToast('Error', 'Could not open the edit form', 'danger');
+        return false;
+    }
+    
+    // Helper function to set up the update button
+    function setupUpdateButton() {
+        const updateBtn = document.getElementById('updateAnnouncementBtn');
+        if (updateBtn) {
+            updateBtn.onclick = function() {
+                const id = idInput.value;
+                const newTitle = titleInput.value;
+                const newContent = contentInput.value;
+                
+                if (!newTitle || !newContent) {
+                    showToast('Error', 'Title and content are required', 'danger');
+                    return;
+                }
+                
+                updateAnnouncement(id, newTitle, newContent);
+            };
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize elements when DOM is loaded
+    initializePage();
+});
+
+function initializePage() {
+    try {
+        // Initialize Select2 if available
+        if (window.$ && $.fn.select2) {
+            $('.select2-multiple').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+        }
+    } catch (e) {
+        console.error('Error initializing Select2:', e);
+    }
+
+    // Set up role permissions change handler
+    setupRolePermissions();
+    
+    // Set up announcement edit/delete handlers
+    setupAnnouncementHandlers();
+    
+    // Set up Docker container handlers
+    setupDockerContainers();
+    
+    // Fetch initial Docker status
+    fetchDockerStatus();
+}
+
+// Announcement Management Functions
+function setupAnnouncementHandlers() {
+    // Simple function to show the edit modal
+    function showEditModal(announcementId, title, content) {
+        // Get modal elements
+        const modal = document.getElementById('editAnnouncementModal');
+        const titleInput = document.getElementById('edit_title');
+        const contentInput = document.getElementById('edit_content');
+        const idInput = document.getElementById('edit_announcement_id');
+
+        if (!modal) {
+            console.error('Modal element not found');
+            showToast('Error', 'Could not find the edit modal', 'danger');
+            return false;
+        }
+
+        if (!titleInput || !contentInput || !idInput) {
+            console.error('Modal form fields not found');
+            showToast('Error', 'Required form fields are missing', 'danger');
+            return false;
+        }
+
+        // Fill the modal with data
+        titleInput.value = title || '';
+        contentInput.value = content || '';
+        idInput.value = announcementId;
+
+        // Different methods to show the modal
+        try {
+            // Method 1: Bootstrap 5 native
+            if (typeof bootstrap !== 'undefined') {
+                // Check if modal is already initialized
+                let bsModal = bootstrap.Modal.getInstance(modal);
+                if (!bsModal) {
+                    bsModal = new bootstrap.Modal(modal);
+                }
+                bsModal.show();
+                console.log('Modal shown with Bootstrap 5');
+                return true;
+            } 
+            
+            // Method 2: jQuery fallback
+            if (typeof $ !== 'undefined') {
+                $(modal).modal('show');
+                console.log('Modal shown with jQuery');
+                return true;
+            }
+            
+            // Method 3: Direct manipulation
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // Create backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+            
+            console.log('Modal shown with direct DOM manipulation');
+            return true;
+        } catch (err) {
+            console.error('All methods to show modal failed:', err);
+            showToast('Error', 'Could not open the edit form', 'danger');
+            return false;
+        }
+    }
+    
+    // Setup direct click handlers for all edit buttons
+    document.querySelectorAll('.edit-announcement-btn').forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            console.log('Edit button clicked');
+            
+            const announcementId = this.getAttribute('data-announcement-id');
+            const title = this.getAttribute('data-announcement-title');
+            const content = this.getAttribute('data-announcement-content');
+            
+            if (!announcementId) {
+                console.error('Missing announcement ID');
+                return;
+            }
+            
+            showEditModal(announcementId, title, content);
+        });
+    });
+    
+    // Manual click handler for edit buttons
+    const editBtns = document.getElementsByClassName('edit-announcement-btn');
+    for (let i = 0; i < editBtns.length; i++) {
+        editBtns[i].onclick = function() {
+            const id = this.getAttribute('data-announcement-id');
+            const title = this.getAttribute('data-announcement-title');
+            const content = this.getAttribute('data-announcement-content');
+            
+            console.log('Manual click handler fired');
+            showEditModal(id, title, content);
+            return false;
+        };
+    }
+    
+    // Setup delete button handlers
+    document.querySelectorAll('.delete-announcement-btn').forEach(btn => {
+        btn.addEventListener('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const announcementId = this.getAttribute('data-announcement-id');
+            if (!announcementId) return;
+
+            Swal.fire({
+                title: 'Delete Announcement',
+                text: 'Are you sure you want to delete this announcement?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    deleteAnnouncement(announcementId);
+                }
+            });
+        });
+    });
+
+    // Setup update button using event delegation
+    document.addEventListener('click', function(event) {
+        const updateBtn = event.target.closest('#updateAnnouncementBtn');
+        if (updateBtn) {
+            const editAnnouncementIdInput = document.getElementById('edit_announcement_id');
+            const editTitleInput = document.getElementById('edit_title');
+            const editContentInput = document.getElementById('edit_content');
+            
+            if (!editAnnouncementIdInput || !editTitleInput || !editContentInput) {
+                console.error('Missing form elements');
+                showToast('Error', 'Form elements not found', 'danger');
+                return;
+            }
+            
+            const announcementId = editAnnouncementIdInput.value;
+            const title = editTitleInput.value;
+            const content = editContentInput.value;
+
+            if (!title || !content) {
+                showToast('Error', 'Title and content are required', 'danger');
+                return;
+            }
+
+            updateAnnouncement(announcementId, title, content);
+        }
+    });
+}
+
+function updateAnnouncement(id, title, content) {
+    fetch(`/admin/announcements/${id}/edit`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ title, content })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close the modal
+            const modalElement = document.getElementById('editAnnouncementModal');
+            if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) modalInstance.hide();
+            }
+            
+            showToast('Success', 'Announcement updated successfully', 'success');
+            
+            // Update the UI
+            const listItem = document.querySelector(`[data-announcement-id="${id}"]`).closest('.list-group-item');
+            if (listItem) {
+                const titleEl = listItem.querySelector('h6');
+                const contentEl = listItem.querySelector('p');
+                const editBtn = listItem.querySelector('.edit-announcement-btn');
+                
+                if (titleEl) titleEl.textContent = title;
+                if (contentEl) contentEl.textContent = content;
+                if (editBtn) {
+                    editBtn.setAttribute('data-announcement-title', title);
+                    editBtn.setAttribute('data-announcement-content', content);
+                }
+            }
+        } else {
+            showToast('Error', data.error || 'Failed to update announcement', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating announcement:', error);
+        showToast('Error', 'An unexpected error occurred', 'danger');
+    });
+}
+
+function deleteAnnouncement(id) {
+    fetch(`/admin/announcements/${id}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the announcement from the UI
+            const listItem = document.querySelector(`[data-announcement-id="${id}"]`).closest('.list-group-item');
+            if (listItem) listItem.remove();
+            
+            showToast('Success', 'Announcement deleted successfully', 'success');
+            
+            // If no announcements left, show the empty message
+            if (document.querySelectorAll('#announcements-list .list-group-item').length === 0) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'list-group-item text-center text-muted';
+                emptyMsg.innerHTML = '<p class="mb-0">No announcements available.</p>';
+                document.getElementById('announcements-list').appendChild(emptyMsg);
+            }
+        } else {
+            showToast('Error', data.error || 'Failed to delete announcement', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting announcement:', error);
+        showToast('Error', 'An unexpected error occurred', 'danger');
+    });
+}
+
+// Role Permissions Functions
+function setupRolePermissions() {
+    const roleSelect = document.getElementById('role_id');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function() {
+            let roleId = this.value;
+            if (roleId) {
+                fetch(`{{ url_for("admin.get_role_permissions") }}?role_id=${roleId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const permissionsSelect = document.getElementById('permissions');
+                        if (permissionsSelect) {
+                            // Clear and set new selections
+                            Array.from(permissionsSelect.options).forEach(option => {
+                                option.selected = data.permissions.includes(parseInt(option.value));
+                            });
+                            
+                            // Trigger select2 update if available
+                            if (window.$ && $.fn.select2) {
+                                $(permissionsSelect).trigger('change');
+                            }
+                        }
+                        
+                        // Update current permissions list
+                        const currentPermissionsList = document.getElementById('current-permissions-list');
+                        if (currentPermissionsList) {
+                            currentPermissionsList.innerHTML = '';
+                            
+                            if (data.permissions.length > 0) {
+                                data.permissions.forEach(function(permissionId) {
+                                    const optionEl = document.querySelector(`#permissions option[value="${permissionId}"]`);
+                                    const permissionName = optionEl ? optionEl.textContent.trim() : `Permission ID ${permissionId}`;
+                                    
+                                    const li = document.createElement('li');
+                                    li.className = 'list-group-item';
+                                    li.textContent = permissionName;
+                                    currentPermissionsList.appendChild(li);
+                                });
+                            } else {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item text-muted';
+                                li.textContent = 'No permissions assigned.';
+                                currentPermissionsList.appendChild(li);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching permissions:', error);
+                        showToast('Error', 'Failed to load permissions for the selected role', 'danger');
+                    });
+            } else {
+                // Clear permissions if no role is selected
+                const permissionsSelect = document.getElementById('permissions');
+                if (permissionsSelect) {
+                    Array.from(permissionsSelect.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    
+                    // Trigger select2 update if available
+                    if (window.$ && $.fn.select2) {
+                        $(permissionsSelect).trigger('change');
+                    }
+                }
+                
+                // Reset permissions list
+                const currentPermissionsList = document.getElementById('current-permissions-list');
+                if (currentPermissionsList) {
+                    currentPermissionsList.innerHTML = '<li class="list-group-item text-muted">No permissions assigned.</li>';
+                }
+            }
+        });
+        
+        // Trigger change if a value is already selected
+        if (roleSelect.value) {
+            roleSelect.dispatchEvent(new Event('change'));
+        }
+    }
+}
+
+// Docker Container Functions
+function setupDockerContainers() {
+    // Refresh containers button
+    const refreshBtn = document.getElementById('refreshContainersBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...`;
+            fetchDockerStatus();
+            setTimeout(() => {
+                this.disabled = false;
+                this.innerHTML = `<i class="ti ti-refresh me-1"></i> Refresh Containers`;
+            }, 2000);
+        });
+    }
+    
+    // Docker container events
+    const dockerContainer = document.getElementById('dockerStatusContainer');
+    if (dockerContainer) {
+        dockerContainer.addEventListener('click', function(event) {
+            const logsBtn = event.target.closest('.view-logs-btn');
+            if (logsBtn) {
+                fetchDockerLogs(logsBtn.getAttribute('data-container-id'));
+            }
+            
+            const manageBtn = event.target.closest('.manage-container-btn');
+            if (manageBtn) {
+                manageContainer(
+                    manageBtn.getAttribute('data-container-id'), 
+                    manageBtn.getAttribute('data-action')
+                );
+            }
+        });
+    }
+}
+
+function fetchDockerStatus() {
+    const containerDiv = document.getElementById('dockerStatusContainer');
+    if (!containerDiv) return;
+    
+    containerDiv.innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading container status...</p>
+        </div>
+    `;
+    
+    fetch(`{{ url_for("admin.docker_status") }}?timestamp=${Date.now()}`)
         .then(response => response.json())
         .then(data => {
-          if (data.success) {
-            deleteButton.closest('li').remove();
-            showToast('Success', 'Announcement deleted.', 'success');
-          } else { alert('Failed to delete announcement: ' + (data.error || 'Unknown error')); }
-        })
-        .catch(error => { console.error('Error deleting announcement:', error); alert('Failed to delete announcement.'); });
-      }
-    }
-    const editButton = event.target.closest('.edit-announcement-btn');
-    if (editButton) {
-      const announcementId = editButton.getAttribute('data-announcement-id');
-      if (!announcementId) return alert('Announcement ID is missing.');
-      const editForm = document.getElementById('editAnnouncementForm');
-      const editUrlTemplate = "{{ url_for('admin.edit_announcement', announcement_id=0) }}";
-      editForm.action = editUrlTemplate.slice(0, -1) + announcementId;
-      new bootstrap.Modal(document.getElementById('editAnnouncementModal')).show();
-    }
-  });
-
-  // Manage Roles and Permissions - load permissions on role change
-  $('#role_id').change(function () {
-    let roleId = $(this).val();
-    if (roleId) {
-      $.ajax({
-        url: '{{ url_for("admin.get_role_permissions") }}',
-        type: 'GET',
-        data: { role_id: roleId },
-        success: function (data) {
-          $('#permissions').val(data.permissions).trigger('change');
-          let currentPermissionsList = $('#current-permissions-list').empty();
-          if (data.permissions.length > 0) {
-            data.permissions.forEach(function (permissionId) {
-              let permissionName = $('#permissions option[value="' + permissionId + '"]').text().trim();
-              currentPermissionsList.append('<li class="list-group-item">' + (permissionName || ('Permission ID ' + permissionId)) + '</li>');
+            let html = '';
+            data.forEach(container => {
+                const name = container.name.trim() || 'Unknown';
+                const statusClass = container.status === 'running' ? 'success' : 'danger';
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 border-${statusClass}">
+                            <div class="card-header bg-${statusClass} bg-opacity-25 d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">${name}</h5>
+                                <span class="badge bg-${statusClass}">${container.status.charAt(0).toUpperCase() + container.status.slice(1)}</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-1"><strong>Image:</strong> ${container.image}</p>
+                                <p class="mb-3"><strong>ID:</strong> ${container.id.substring(0, 12)}</p>
+                                <div class="d-flex justify-content-end">
+                                    <button class="btn btn-outline-primary btn-sm me-2 view-logs-btn" data-container-id="${container.id}">
+                                        <i class="ti ti-file-text me-1"></i> Logs
+                                    </button>
+                                    ${container.status === 'running' ? `
+                                        <button class="btn btn-outline-danger btn-sm me-2 manage-container-btn" data-container-id="${container.id}" data-action="stop">
+                                            <i class="ti ti-square me-1"></i> Stop
+                                        </button>
+                                        <button class="btn btn-outline-warning btn-sm manage-container-btn" data-container-id="${container.id}" data-action="restart">
+                                            <i class="ti ti-refresh me-1"></i> Restart
+                                        </button>
+                                    ` : `
+                                        <button class="btn btn-outline-success btn-sm manage-container-btn" data-container-id="${container.id}" data-action="start">
+                                            <i class="ti ti-player-play me-1"></i> Start
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
             });
-          } else {
-            currentPermissionsList.append('<li class="list-group-item text-muted">No permissions assigned.</li>');
-          }
-        },
-        error: function () { alert('Failed to load permissions for the selected role.'); }
-      });
-    } else {
-      $('#permissions').val([]).trigger('change');
-      $('#current-permissions-list').empty().append('<li class="list-group-item text-muted">No permissions assigned.</li>');
-    }
-  });
-  if ($('#role_id').val()) $('#role_id').trigger('change');
+            containerDiv.innerHTML = html || '<div class="col-12 text-center"><p>No containers found</p></div>';
+        })
+        .catch(error => {
+            console.error('Error fetching Docker status:', error);
+            containerDiv.innerHTML = '<div class="col-12"><div class="alert alert-danger">Failed to load Docker containers. Please try refreshing.</div></div>';
+        });
+}
 
-  // Docker Containers Status
-  async function fetchDockerStatus() {
+async function fetchDockerLogs(containerId) {
+    const logsContent = document.getElementById('dockerLogsContent');
+    if (!logsContent) return;
+    
     try {
-      const response = await fetch(`{{ url_for("admin.docker_status") }}?timestamp=${Date.now()}`);
-      const data = await response.json();
-      let html = '';
-      data.forEach(container => {
-        const name = container.name.trim() || 'Unknown';
-        const statusClass = container.status === 'running' ? 'success' : 'danger';
-        html += `
-          <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 border-${statusClass}">
-              <div class="card-header bg-${statusClass} text-white d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">${name}</h5>
-                <span class="badge bg-light text-${statusClass}">${container.status.charAt(0).toUpperCase() + container.status.slice(1)}</span>
-              </div>
-              <div class="card-body">
-                <p class="mb-1"><strong>Image:</strong> ${container.image}</p>
-                <p class="mb-3"><strong>ID:</strong> ${container.id}</p>
-                <div class="d-flex justify-content-end">
-                  <button class="btn btn-info btn-sm me-2 view-logs-btn" data-container-id="${container.id}">
-                    <i class="fas fa-file-alt me-1"></i> Logs
-                  </button>
-                  ${container.status === 'running' ? `
-                    <button class="btn btn-danger btn-sm me-2 manage-container-btn" data-container-id="${container.id}" data-action="stop">
-                      <i class="fas fa-stop me-1"></i> Stop
-                    </button>
-                    <button class="btn btn-warning btn-sm manage-container-btn" data-container-id="${container.id}" data-action="restart">
-                      <i class="fas fa-sync-alt me-1"></i> Restart
-                    </button>
-                  ` : `
-                    <button class="btn btn-success btn-sm manage-container-btn" data-container-id="${container.id}" data-action="start">
-                      <i class="fas fa-play me-1"></i> Start
-                    </button>
-                  `}
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      document.getElementById('dockerStatusContainer').innerHTML = html;
+        logsContent.textContent = 'Loading logs...';
+        const response = await fetch(`/admin/view_logs/${containerId}`);
+        const data = await response.json();
+        logsContent.textContent = data.error ? data.error : data.logs;
+        
+        const modal = document.getElementById('dockerLogsModal');
+        if (modal) {
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
     } catch (error) {
-      console.error('Error fetching Docker status:', error);
-      document.getElementById('dockerStatusContainer').innerHTML = '<p class="text-danger">Failed to load Docker containers.</p>';
+        console.error('Error fetching Docker logs:', error);
+        logsContent.textContent = 'Error loading logs.';
+        
+        const modal = document.getElementById('dockerLogsModal');
+        if (modal) {
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
     }
-  }
-  async function fetchDockerLogs(containerId) {
-    try {
-      const response = await fetch(`/admin/view_logs/${containerId}`);
-      const data = await response.json();
-      document.getElementById('dockerLogsContent').textContent = data.error ? data.error : data.logs;
-      new bootstrap.Modal(document.getElementById('dockerLogsModal')).show();
-    } catch (error) {
-      console.error('Error fetching Docker logs:', error);
-      document.getElementById('dockerLogsContent').textContent = 'Error loading logs.';
-      new bootstrap.Modal(document.getElementById('dockerLogsModal')).show();
-    }
-  }
-  async function manageContainer(containerId, action) {
+}
+
+async function manageContainer(containerId, action) {
     const btn = document.querySelector(`button.manage-container-btn[data-container-id="${containerId}"][data-action="${action}"]`);
-    if (btn) { btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...`; btn.disabled = true; }
+    let originalHTML = '';
+    
+    if (btn) {
+        originalHTML = btn.innerHTML;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...`;
+        btn.disabled = true;
+    }
+    
     try {
-      const response = await fetch(`/admin/container/${containerId}/${action}`, {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': '{{ csrf_token() }}',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      });
-      if (response.ok) {
-        fetchDockerStatus();
-        showToast('Success', `Container ${action}ed successfully.`, 'success');
-      } else {
-        const errorData = await response.json();
-        alert('Failed: ' + (errorData.error || 'Unknown error'));
-        if (btn) { btn.innerHTML = `${action.charAt(0).toUpperCase() + action.slice(1)}`; btn.disabled = false; }
-      }
+        const response = await fetch(`/admin/container/${containerId}/${action}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        });
+        
+        if (response.ok) {
+            fetchDockerStatus();
+            showToast('Success', `Container ${action}ed successfully`, 'success');
+        } else {
+            const errorData = await response.json();
+            showToast('Error', errorData.error || `Failed to ${action} container`, 'danger');
+            if (btn) {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
     } catch (error) {
-      console.error(`Error during ${action}:`, error);
-      if (btn) { btn.innerHTML = `${action.charAt(0).toUpperCase() + action.slice(1)}`; btn.disabled = false; }
-      alert(`Failed to perform ${action}`);
+        console.error(`Error during ${action}:`, error);
+        showToast('Error', `Failed to ${action} container`, 'danger');
+        if (btn) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
     }
-  }
-  document.getElementById('dockerStatusContainer').addEventListener('click', function(event) {
-    const logsBtn = event.target.closest('.view-logs-btn');
-    if (logsBtn) fetchDockerLogs(logsBtn.getAttribute('data-container-id'));
-    const manageBtn = event.target.closest('.manage-container-btn');
-    if (manageBtn) manageContainer(manageBtn.getAttribute('data-container-id'), manageBtn.getAttribute('data-action'));
-  });
-  window.onload = function () { fetchDockerStatus(); };
-  function showToast(title, message, type) {
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-      container = document.createElement('div');
-      container.id = 'toastContainer';
-      container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-      document.body.appendChild(container);
-    }
+}
+
+// Utility Functions
+function showToast(title, message, type) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    
+    const toastId = 'toast-' + Date.now();
     const toastHTML = `
-      <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="d-flex">
-          <div class="toast-body"><strong>${title}:</strong> ${message}</div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div id="${toastId}" class="toast align-items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}:</strong> ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
         </div>
-      </div>
     `;
     container.insertAdjacentHTML('beforeend', toastHTML);
-    const toastElem = container.querySelector('.toast:last-child');
-    new bootstrap.Toast(toastElem).show();
-  }
+    
+    const toastElement = document.getElementById(toastId);
+    if (toastElement) {
+        const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
+        toast.show();
+        
+        // Remove toast from DOM after hiding
+        toastElement.addEventListener('hidden.bs.toast', function () {
+            toastElement.remove();
+        });
+    }
+}
 </script>
 {% endblock %}

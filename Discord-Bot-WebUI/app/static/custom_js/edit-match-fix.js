@@ -141,6 +141,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Populate events (using the global addEvent function)
         try {
+            // Define removeEvent function if not already defined
+            if (typeof window.removeEvent !== 'function') {
+                console.warn("removeEvent function not found, creating fallback");
+                window.removeEvent = function(button) {
+                    var eventEntry = button.closest('.player-event-entry') || button.closest('.input-group');
+                    
+                    if (!eventEntry) {
+                        console.error("Could not find identifiable element");
+                        return;
+                    }
+                    
+                    var uniqueId = eventEntry.getAttribute('data-unique-id');
+                    var statId = eventEntry.querySelector('input[name$="-stat_id[]"]')?.value;
+                    
+                    console.log("Removing event:", {
+                        uniqueId: uniqueId,
+                        statId: statId,
+                        element: eventEntry
+                    });
+                    
+                    // Add a class to hide but keep in DOM until save
+                    eventEntry.classList.add('to-be-removed');
+                    eventEntry.style.display = 'none';
+                };
+            }
+            
             // Add goal scorers
             if (data.goal_scorers && Array.isArray(data.goal_scorers)) {
                 data.goal_scorers.forEach(function(goal) {
