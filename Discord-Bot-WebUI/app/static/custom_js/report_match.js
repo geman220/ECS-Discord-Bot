@@ -44,6 +44,22 @@ function getContainerId(eventType, matchId) {
     return containerId;
 }
 
+// Function to collect stat IDs that have been marked for removal
+function collectRemovedStatIds(matchId, eventType) {
+    let containerId = getContainerId(eventType, matchId);
+    let baseName = containerId.split('Container-')[0];
+    let removedIds = [];
+    
+    $(`#${containerId}`).find('.player-event-entry.to-be-removed').each(function() {
+        const statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
+        if (statId && statId.trim() !== '') {
+            removedIds.push(statId);
+        }
+    });
+    
+    return removedIds;
+}
+
 // Function to add a new event entry
 function addEvent(matchId, containerId, statId = null, playerId = null, minute = null) {
     var containerSelector = '#' + containerId;
@@ -87,7 +103,30 @@ function addEvent(matchId, containerId, statId = null, playerId = null, minute =
 
 // Function to remove an event entry
 function removeEvent(button) {
-    const eventEntry = $(button).closest('.input-group');
+    // Get the parent event entry element
+    const eventEntry = $(button).closest('.player-event-entry');
+    
+    if (!eventEntry.length) {
+        console.error("Could not find identifiable element");
+        Swal.fire({
+            title: 'Error',
+            text: 'Could not find the event to remove. Please try again.',
+            icon: 'error'
+        });
+        return;
+    }
+    
+    // Get the unique ID from the data attribute
+    const uniqueId = eventEntry.data('unique-id');
+    const statId = eventEntry.find('input[name$="-stat_id[]"]').val();
+    
+    // Log info for debugging
+    console.log("Removing event:", {
+        uniqueId: uniqueId,
+        statId: statId,
+        element: eventEntry
+    });
+    
     Swal.fire({
         title: 'Are you sure?',
         text: "Do you want to remove this event entry?",
@@ -98,12 +137,18 @@ function removeEvent(button) {
         confirmButtonText: 'Yes, remove it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            eventEntry.remove();
-            Swal.fire(
-                'Removed!',
-                'The event entry has been removed.',
-                'success'
-            );
+            // Mark as removed but keep in DOM until save
+            eventEntry.addClass('to-be-removed');
+            eventEntry.hide();
+            
+            // Show a brief message
+            Swal.fire({
+                title: 'Removed!',
+                text: 'The event entry has been removed. Save your changes to apply.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
     });
 }
@@ -173,6 +218,11 @@ $(document).on('click', '.edit-match-btn', function (e) {
             const yellow_cards = response.yellow_cards || [];
             const red_cards = response.red_cards || [];
 
+            // Ensure initialEvents is defined - Fix for the initialization issue
+            if (!window.initialEvents) {
+                window.initialEvents = {};
+            }
+            
             // Update initialEvents with default empty arrays if needed
             initialEvents[matchId] = {
                 goals: goal_scorers.map(goal => ({
@@ -345,38 +395,139 @@ $(document).on('submit', '.report-match-form', function (e) {
     e.stopPropagation();
 
     var matchId = $(this).data('match-id');
+    console.log(`Submitting form for Match ID: ${matchId}`);
 
-    // Check if initialEvents[matchId] is defined
+    // Ensure initialEvents is properly defined
+    if (typeof initialEvents === 'undefined') {
+        window.initialEvents = {};
+    }
+    
+    // Initialize the match data if it doesn't exist
     if (!initialEvents[matchId]) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Match data is not loaded yet. Please try again.'
-        });
-        return;
+        console.log(`Initializing empty data for match ${matchId}`);
+        initialEvents[matchId] = {
+            goals: [],
+            assists: [],
+            yellowCards: [],
+            redCards: []
+        };
     }
 
+    // Get final events (excludes items marked for removal)
     let finalGoals = getFinalEvents(matchId, 'goal_scorers');
     let finalAssists = getFinalEvents(matchId, 'assist_providers');
     let finalYellowCards = getFinalEvents(matchId, 'yellow_cards');
     let finalRedCards = getFinalEvents(matchId, 'red_cards');
 
+    // Get initial events (what was loaded from server)
     let initialGoals = initialEvents[matchId].goals || [];
     let initialAssists = initialEvents[matchId].assists || [];
     let initialYellowCards = initialEvents[matchId].yellowCards || [];
     let initialRedCards = initialEvents[matchId].redCards || [];
 
+    // Also get any specifically removed events (those with to-be-removed class)
+    let removedGoalIds = collectRemovedStatIds(matchId, 'goal_scorers');
+    let removedAssistIds = collectRemovedStatIds(matchId, 'assist_providers');
+    let removedYellowCardIds = collectRemovedStatIds(matchId, 'yellow_cards');
+    let removedRedCardIds = collectRemovedStatIds(matchId, 'red_cards');
+
+    console.log("Removed event IDs:", {
+        goals: removedGoalIds,
+        assists: removedAssistIds,
+        yellowCards: removedYellowCardIds,
+        redCards: removedRedCardIds
+    });
+
+    // Events to add: in final but not in initial
     let goalsToAdd = finalGoals.filter(goal => !eventExists(goal, initialGoals));
-    let goalsToRemove = initialGoals.filter(goal => !eventExists(goal, finalGoals));
-
     let assistsToAdd = finalAssists.filter(assist => !eventExists(assist, initialAssists));
-    let assistsToRemove = initialAssists.filter(assist => !eventExists(assist, finalAssists));
-
     let yellowCardsToAdd = finalYellowCards.filter(card => !eventExists(card, initialYellowCards));
-    let yellowCardsToRemove = initialYellowCards.filter(card => !eventExists(card, finalYellowCards));
-
     let redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialRedCards));
-    let redCardsToRemove = initialRedCards.filter(card => !eventExists(card, finalRedCards));
+
+    // Create events to remove directly from removed IDs
+    let goalsToRemove = [];
+    let assistsToRemove = [];
+    let yellowCardsToRemove = [];
+    let redCardsToRemove = [];
+    
+    // Add explicitly removed items (items with to-be-removed class)
+    if (removedYellowCardIds.length > 0) {
+        // Find the actual events from initialYellowCards based on IDs
+        removedYellowCardIds.forEach(id => {
+            const card = initialYellowCards.find(c => c.stat_id === id);
+            if (card) {
+                yellowCardsToRemove.push(card);
+            } else {
+                // If not found, create a minimal object with the ID
+                yellowCardsToRemove.push({ stat_id: id });
+            }
+        });
+    }
+    
+    if (removedGoalIds.length > 0) {
+        removedGoalIds.forEach(id => {
+            const goal = initialGoals.find(g => g.stat_id === id);
+            if (goal) {
+                goalsToRemove.push(goal);
+            } else {
+                goalsToRemove.push({ stat_id: id });
+            }
+        });
+    }
+    
+    if (removedAssistIds.length > 0) {
+        removedAssistIds.forEach(id => {
+            const assist = initialAssists.find(a => a.stat_id === id);
+            if (assist) {
+                assistsToRemove.push(assist);
+            } else {
+                assistsToRemove.push({ stat_id: id });
+            }
+        });
+    }
+    
+    if (removedRedCardIds.length > 0) {
+        removedRedCardIds.forEach(id => {
+            const card = initialRedCards.find(c => c.stat_id === id);
+            if (card) {
+                redCardsToRemove.push(card);
+            } else {
+                redCardsToRemove.push({ stat_id: id });
+            }
+        });
+    }
+    
+    // Also add items that were in initial but missing from final (normal removal logic)
+    initialGoals.forEach(goal => {
+        if (!eventExists(goal, finalGoals) && !goalsToRemove.some(g => g.stat_id === goal.stat_id)) {
+            goalsToRemove.push(goal);
+        }
+    });
+    
+    initialAssists.forEach(assist => {
+        if (!eventExists(assist, finalAssists) && !assistsToRemove.some(a => a.stat_id === assist.stat_id)) {
+            assistsToRemove.push(assist);
+        }
+    });
+    
+    initialYellowCards.forEach(card => {
+        if (!eventExists(card, finalYellowCards) && !yellowCardsToRemove.some(c => c.stat_id === card.stat_id)) {
+            yellowCardsToRemove.push(card);
+        }
+    });
+    
+    initialRedCards.forEach(card => {
+        if (!eventExists(card, finalRedCards) && !redCardsToRemove.some(c => c.stat_id === card.stat_id)) {
+            redCardsToRemove.push(card);
+        }
+    });
+    
+    console.log("Events to add/remove:", {
+        goalsToAdd, goalsToRemove,
+        assistsToAdd, assistsToRemove,
+        yellowCardsToAdd, yellowCardsToRemove,
+        redCardsToAdd, redCardsToRemove
+    });
 
     // Confirmation before submitting
     Swal.fire({
@@ -400,11 +551,18 @@ function getFinalEvents(matchId, eventType) {
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
 
-    $(`#${containerId}`).find('.player-event-entry').each(function () {
+    // Only get visible entries (exclude ones marked for removal)
+    $(`#${containerId}`).find('.player-event-entry:not(.to-be-removed)').each(function () {
         let statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
         let playerId = $(this).find(`select[name="${baseName}-player_id[]"]`).val();
         let minute = $(this).find(`input[name="${baseName}-minute[]"]`).val();
         let uniqueId = $(this).attr('data-unique-id');
+
+        // Skip entries without player_id (which is required)
+        if (!playerId) {
+            console.warn(`Skipping entry without player_id: uniqueId=${uniqueId}, statId=${statId}`);
+            return;
+        }
 
         // Convert values to strings or null
         statId = statId ? String(statId) : null;
@@ -413,18 +571,30 @@ function getFinalEvents(matchId, eventType) {
 
         events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
     });
+    
+    console.log(`Final ${eventType} events:`, events);
     return events;
 }
 
 // Function to check if an event exists in an array
 function eventExists(event, eventsArray) {
+    // Special case - if element is marked for removal with to-be-removed class
+    if (event.element && event.element.classList && event.element.classList.contains('to-be-removed')) {
+        return false; // Treat as non-existent if marked for removal
+    }
+    
+    // If both have stat_id, compare them (for existing events)
     if (event.stat_id) {
-        // Compare based on stat_id for existing events
-        return eventsArray.some(e => String(e.stat_id) === String(event.stat_id));
-    } else {
-        // Compare based on unique_id for new events
+        return eventsArray.some(e => e.stat_id && String(e.stat_id) === String(event.stat_id));
+    } 
+    // For new events or when comparing by unique_id
+    else if (event.unique_id) {
         return eventsArray.some(e => String(e.unique_id) === String(event.unique_id));
     }
+    
+    // If we get here, we have no reliable way to compare - log this
+    console.warn("Event comparison failed - no stat_id or unique_id:", event);
+    return false;
 }
 
 // Function to send the AJAX request to update stats

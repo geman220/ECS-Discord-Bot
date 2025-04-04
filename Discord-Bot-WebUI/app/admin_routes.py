@@ -286,7 +286,7 @@ def manage_announcements():
     )
 
 
-@admin_bp.route('/admin/announcements/<int:announcement_id>/edit', endpoint='edit_announcement', methods=['PUT'])
+@admin_bp.route('/admin/announcements/<int:announcement_id>/edit', endpoint='edit_announcement', methods=['PUT', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def edit_announcement(announcement_id):
@@ -294,21 +294,43 @@ def edit_announcement(announcement_id):
     Update the title and content of an existing announcement.
     """
     session = g.db_session
-    data = request.get_json()
-    if not data or not data.get('title') or not data.get('content'):
-        return jsonify({'error': 'Title and content are required.'}), 400
+    
+    # Handle both PUT (JSON) and POST (form) requests
+    if request.method == 'PUT':
+        data = request.get_json()
+        title = data.get('title') if data else None
+        content = data.get('content') if data else None
+    else:  # POST
+        title = request.form.get('title')
+        content = request.form.get('content')
+    
+    if not title or not content:
+        if request.method == 'PUT':
+            return jsonify({'error': 'Title and content are required.'}), 400
+        else:
+            flash('Title and content are required.', 'danger')
+            return redirect(url_for('admin.admin_dashboard'))
 
     announcement = session.query(Announcement).get(announcement_id)
     if not announcement:
-        abort(404)
+        if request.method == 'PUT':
+            return jsonify({'error': 'Announcement not found.'}), 404
+        else:
+            flash('Announcement not found.', 'danger')
+            return redirect(url_for('admin.admin_dashboard'))
 
-    announcement.title = data['title']
-    announcement.content = data['content']
+    announcement.title = title
+    announcement.content = content
     session.commit()
-    return jsonify({'success': True})
+    
+    if request.method == 'PUT':
+        return jsonify({'success': True})
+    else:
+        flash('Announcement updated successfully.', 'success')
+        return redirect(url_for('admin.admin_dashboard'))
 
 
-@admin_bp.route('/admin/announcements/<int:announcement_id>/delete', endpoint='delete_announcement', methods=['DELETE'])
+@admin_bp.route('/admin/announcements/<int:announcement_id>/delete', endpoint='delete_announcement', methods=['DELETE', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
 def delete_announcement(announcement_id):
@@ -318,12 +340,20 @@ def delete_announcement(announcement_id):
     session = g.db_session
     announcement = session.query(Announcement).get(announcement_id)
     if not announcement:
-        abort(404)
+        if request.method == 'DELETE':
+            return jsonify({'error': 'Announcement not found.'}), 404
+        else:
+            flash('Announcement not found.', 'danger')
+            return redirect(url_for('admin.admin_dashboard'))
 
     session.delete(announcement)
     session.commit()
-    flash('Announcement deleted successfully.', 'success')
-    return jsonify({'success': True})
+    
+    if request.method == 'DELETE':
+        return jsonify({'success': True})
+    else:
+        flash('Announcement deleted successfully.', 'success')
+        return redirect(url_for('admin.admin_dashboard'))
 
 
 @admin_bp.route('/admin/announcements/reorder', endpoint='reorder_announcements', methods=['POST'])
