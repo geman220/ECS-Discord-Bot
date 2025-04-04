@@ -2,85 +2,263 @@
 {% block title %}Submit Feedback{% endblock %}
 {% block main_content %}
 
-<div class="container mt-5">
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">Feedback System</h2>
+                    <p class="text-muted">Submit suggestions, report issues, or request features</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
-        <div class="col-md-6">
-            <h2 class="mb-4">Submit New Feedback</h2>
-
-            <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
-                {{ form.hidden_tag() }}
-
-                {% if not safe_current_user.is_authenticated %}
-                <div class="mb-3">
-                    {{ form.name.label(class="form-label") }}
-                    {{ form.name(class="form-control", placeholder="Your Name") }}
+        <!-- Submit Feedback Form -->
+        <div class="col-lg-5 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-message-plus me-2"></i>Submit New Feedback
+                        </h5>
+                    </div>
                 </div>
-                {% endif %}
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('feedback.submit_feedback') }}">
+                        {{ form.hidden_tag() }}
 
-                <div class="mb-3">
-                    {{ form.category.label(class="form-label") }}
-                    {{ form.category(class="form-select") }}
+                        {% if not safe_current_user.is_authenticated %}
+                        <div class="mb-3">
+                            {{ form.name.label(class="form-label") }}
+                            {{ form.name(class="form-control", placeholder="Your Name") }}
+                            {% for error in form.name.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            {{ form.category.label(class="form-label") }}
+                            {{ form.category(class="form-select") }}
+                            {% for error in form.category.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.title.label(class="form-label") }}
+                            {{ form.title(class="form-control", placeholder="Brief summary of your feedback") }}
+                            {% for error in form.title.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.description.label(class="form-label") }}
+                            {{ form.description(class="form-control", rows="6", placeholder="Please provide detailed information...") }}
+                            {% for error in form.description.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
                 </div>
-
-                <div class="mb-3">
-                    {{ form.title.label(class="form-label") }}
-                    {{ form.title(class="form-control") }}
-                </div>
-
-                <div class="mb-3">
-                    {{ form.description.label(class="form-label") }}
-                    {{ form.description(class="form-control", rows="5") }}
-                </div>
-
-                {{ form.submit(class="btn btn-primary") }}
-            </form>
+            </div>
         </div>
 
-        <div class="col-md-6">
-            <h2 class="mb-4">Your Feedbacks</h2>
-
-            <div class="input-group mb-3">
-                <form method="GET" class="w-100">
-                    <input type="text" name="q" class="form-control" placeholder="Search feedbacks..." value="{{ search_query }}">
-                </form>
-            </div>
-
-            {% for feedback in feedbacks %}
-            <div class="card mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">{{ feedback.title }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">{{ feedback.category }}</h6>
-                    <p class="card-text">{{ feedback.description[:100] }}...</p>
-                    <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}" class="card-link">View Details</a>
+        <!-- Your Feedbacks -->
+        <div class="col-lg-7 col-md-12">
+            <div class="card mb-4">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-messages me-2"></i>Your Feedback History
+                        </h5>
+                        <div class="d-flex">
+                            <form method="GET" class="d-flex">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="q" class="form-control" placeholder="Search..." value="{{ search_query }}">
+                                    <button class="btn btn-outline-primary" type="submit">
+                                        <i class="ti ti-search"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
+                <div class="card-body p-0">
+                    <div class="feedback-list">
+                        {% if feedbacks %}
+                            {% for feedback in feedbacks %}
+                            <div class="p-3 border-bottom feedback-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">
+                                        <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}" class="text-body">
+                                            {{ feedback.title }}
+                                        </a>
+                                    </h6>
+                                    <div class="d-flex gap-1">
+                                        {% if feedback.status == 'Open' %}
+                                        <span class="badge bg-label-primary">{{ feedback.status }}</span>
+                                        {% elif feedback.status == 'In Progress' %}
+                                        <span class="badge bg-label-info">{{ feedback.status }}</span>
+                                        {% elif feedback.status == 'Closed' %}
+                                        <span class="badge bg-label-secondary">{{ feedback.status }}</span>
+                                        {% else %}
+                                        <span class="badge bg-label-dark">{{ feedback.status }}</span>
+                                        {% endif %}
+                                        
+                                        <span class="badge bg-label-secondary">{{ feedback.category }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-muted small mb-2">
+                                    <i class="ti ti-calendar me-1"></i>
+                                    {{ feedback.created_at.strftime('%b %d, %Y') }}
+                                    {% if feedback.replies %}
+                                    <span class="ms-2">
+                                        <i class="ti ti-messages me-1"></i>
+                                        {{ feedback.replies|length }} {{ 'replies' if feedback.replies|length != 1 else 'reply' }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-muted small mb-2">{{ feedback.description|truncate(100) }}</p>
+                                <div class="mt-2">
+                                    <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="ti ti-eye me-1"></i>View Details
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="p-4 text-center">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon mb-3">
+                                        <i class="ti ti-message-circle-off"></i>
+                                    </div>
+                                    <p class="empty-state-message">No feedback submissions found.</p>
+                                    <p class="text-muted">Submit your first feedback to get started!</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if feedbacks and feedbacks.pages > 1 %}
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if feedbacks.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=feedbacks.prev_num, q=search_query) }}" aria-label="Previous">
+                                    <i class="ti ti-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% set start_page = [1, feedbacks.page - 2]|max %}
+                            {% set end_page = [feedbacks.pages, feedbacks.page + 2]|min %}
+                            
+                            {% if start_page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=1, q=search_query) }}">1</a>
+                            </li>
+                            {% if start_page > 2 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                            {% endif %}
+
+                            {% for page_num in range(start_page, end_page + 1) %}
+                            <li class="page-item {% if page_num == feedbacks.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=page_num, q=search_query) }}">{{ page_num }}</a>
+                            </li>
+                            {% endfor %}
+
+                            {% if end_page < feedbacks.pages %}
+                            {% if end_page < feedbacks.pages - 1 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=feedbacks.pages, q=search_query) }}">{{ feedbacks.pages }}</a>
+                            </li>
+                            {% endif %}
+
+                            {% if feedbacks.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=feedbacks.next_num, q=search_query) }}" aria-label="Next">
+                                    <i class="ti ti-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
-            {% endfor %}
-
-            {% if feedbacks.pages > 1 %}
-            <nav aria-label="Page navigation">
-                <ul class="pagination">
-                    {% if feedbacks.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=feedbacks.prev_num, q=search_query) }}">Previous</a>
-                    </li>
-                    {% endif %}
-
-                    {% for page_num in range(1, feedbacks.pages + 1) %}
-                    <li class="page-item {% if page_num == feedbacks.page %}active{% endif %}">
-                        <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=page_num, q=search_query) }}">{{ page_num }}</a>
-                    </li>
-                    {% endfor %}
-
-                    {% if feedbacks.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('feedback.submit_feedback', page=feedbacks.next_num, q=search_query) }}">Next</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Feedback item styling */
+    .feedback-list {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .feedback-item {
+        transition: background-color 0.2s ease;
+    }
+    
+    .feedback-item:hover {
+        background-color: var(--bs-body-bg);
+    }
+    
+    /* Empty State Styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--bs-secondary);
+    }
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--bs-secondary);
+    }
+    
+    .empty-state-message {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 767.98px) {
+        .card-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .card-header .d-flex > div {
+            margin-top: 0.75rem;
+            width: 100%;
+        }
+        
+        .card-header .input-group {
+            width: 100%;
+        }
+    }
+</style>
 {% endblock %}
