@@ -230,28 +230,21 @@ window.adminSetVerificationCode = function() {
 
 // Initialize when page loads - using a light initialization that respects existing inline handlers
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("SMS verification script loaded");
-    console.info("Admin: For manual verification, use `adminSetVerificationCode()` in the console");
+    // Silently initialize without console logs
     
     // Get initial state
     var smsToggle = document.getElementById('smsNotifications');
     var smsConsent = document.getElementById('smsConsent');
     
     if (smsToggle && smsConsent) {
-        console.log("Found SMS form elements");
-        
         // Setup initial state if elements exist
         // Note: We don't add event listeners here since they are already set with inline onchange/onclick
         if (smsToggle.checked) {
-            console.log("Initial SMS toggle is checked, showing consent section");
             toggleSmsConsent(true);
             
             if (smsConsent.checked) {
-                console.log("Initial SMS consent is checked, showing verification section");
                 toggleSmsVerification(true);
             }
         }
-    } else {
-        console.log("SMS verification elements not found on this page");
     }
 });

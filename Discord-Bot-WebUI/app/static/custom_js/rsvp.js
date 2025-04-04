@@ -130,8 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 .filter(id => id && id !== 'undefined' && id.trim() !== '')
             )];
             
-            console.log(`Found ${matchIds.length} matches for RSVP status loading`);
-            
             // For each valid match ID, fetch the status
             matchIds.forEach(matchId => {
                 if (!matchId || matchId === 'undefined') {
@@ -151,7 +149,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error(`HTTP error ${response.status}`);
                     }
                     return response.text().then(text => {
-                        console.log(`Raw status response for match ${matchId}:`, text);
                         try {
                             return JSON.parse(text);
                         } catch (e) {
