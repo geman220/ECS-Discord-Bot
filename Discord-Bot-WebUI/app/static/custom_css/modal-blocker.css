@@ -1,0 +1,70 @@
+/* Modal interaction blocker CSS */
+
+/* Full-screen blocker to prevent any interaction with background elements */
+.interaction-blocker {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 5000; /* Extremely high z-index */
+  background-color: rgba(0, 0, 0, 0.5);
+  pointer-events: all;
+}
+
+/* Make the modal itself visible above the blocker */
+.match-report-modal {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 90% !important;
+  max-width: 800px !important;
+  z-index: 5001 !important; /* Above the blocker */
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  background-color: white !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Ensure modal content is visible and interactive */
+.match-report-modal * {
+  position: relative;
+  z-index: 5002 !important; /* Even higher to ensure interaction */
+}
+
+/* Hide Bootstrap modals and backdrops to prevent conflicts */
+.modal-backdrop.fade.show {
+  display: none !important;
+}
+
+.modal.fade.show:not(.match-report-modal) {
+  display: none !important;
+}
+
+/* Prevent body scrolling while modal is open */
+body.modal-blocked {
+  overflow: hidden !important;
+  position: fixed;
+  width: 100%;
+}
+
+/* Basic animation for opening/closing */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.fade-in {
+  animation: fadeIn 0.2s forwards;
+}
+
+.fade-out {
+  animation: fadeOut 0.2s forwards;
+}

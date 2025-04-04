@@ -108,9 +108,7 @@
                                                 {% endif %}
                                                 {% if safe_current_user.has_permission('view_match_reporting') %}
                                                 <button class="btn btn-sm {% if match.reported %}btn-warning{% else %}btn-primary{% endif %} edit-match-btn"
-                                                        data-match-id="{{ match.id }}"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#reportMatchModal-{{ match.id }}"
+                                                        data-match-id="{{ match.id }}" 
                                                         aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}">
                                                     {{ 'Edit' if match.reported else 'Report' }}
                                                 </button>
@@ -118,8 +116,7 @@
                                             </div>
                                         </li>
 
-                                        {# Correct Macro Call with Only Required Parameters #}
-                                        {{ macros.render_report_match_modal(match, player_choices) }}
+                                        {# Modal will be rendered once at the bottom of the page #}
 
                                         {% endfor %}
                                     </ul>
@@ -217,7 +214,9 @@
 
 {% block custom_js %}
 <script>
-    var playerChoices = {{ player_choices | tojson | safe }};
+    // Make player choices globally available for our fix script
+    window.playerChoices = {{ player_choices | tojson | safe }};
+    var playerChoices = window.playerChoices;
 </script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
 <script>
@@ -241,4 +240,6 @@
         {% endfor %}
     {% endfor %}
 </script>
+
+<!-- Modals are loaded via AJAX by base.html -->
 {% endblock %}

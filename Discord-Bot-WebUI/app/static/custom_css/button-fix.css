@@ -1,0 +1,54 @@
+/* 
+ * Button Fix CSS
+ * Prevents buttons from changing size when clicked
+ * Keeps all transform effects disabled 
+ */
+
+/* Global fix for all button elements */
+button, 
+.btn, 
+.ecs-btn, 
+[class*="btn-"], 
+a.btn, 
+a.ecs-btn, 
+a[class*="btn-"],
+.edit-match-btn {
+    transform: none !important;
+    transition: color 0.15s ease-in-out, 
+               background-color 0.15s ease-in-out, 
+               border-color 0.15s ease-in-out !important;
+}
+
+/* Fix for touch-active state */
+.touch-active {
+    opacity: 0.9 !important;
+    transform: none !important;
+}
+
+/* Fixed waves ripple effect */
+.waves-ripple,
+.waves-effect,
+.ripple-effect,
+.waves-rippling {
+    transform: none !important;
+    opacity: 0.5;
+}
+
+/* Ensure all button states retain their size */
+button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
+button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
+button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus,
+button.active, .btn.active, .ecs-btn.active, [class*="btn-"].active {
+    transform: none !important;
+}
+
+/* Special fix for edit match buttons */
+.edit-match-btn {
+    cursor: pointer !important;
+    transform: none !important;
+}
+
+/* Scale reset for all scaled elements */
+* {
+    transform-origin: initial !important;
+}

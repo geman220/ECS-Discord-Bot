@@ -1,0 +1,60 @@
+/* 
+ * Button Size Fix
+ * 
+ * This CSS addresses the issue where buttons change size when clicked
+ * while preserving the ripple effect animation.
+ */
+
+/* 
+ * 1. Override all button transformations that change size
+ * 2. Target both Bootstrap (.btn) and ECS (.ecs-btn) buttons
+ * 3. Target all interactive states (normal, hover, active, focus)
+ */
+
+/* Base button selectors */
+.btn, 
+.ecs-btn,
+button.btn, 
+button.ecs-btn,
+.btn.waves-effect,
+.ecs-btn.waves-effect {
+    /* Prevent any transform that would resize the button */
+    transform: none !important;
+    /* Allow color/background transitions but not size */
+    transition-property: color, background-color, border-color !important;
+}
+
+/* Button interaction states */
+.btn:hover, .btn:active, .btn:focus, .btn.active,
+.ecs-btn:hover, .ecs-btn:active, .ecs-btn:focus, .ecs-btn.active,
+button.btn:hover, button.btn:active, button.btn:focus, button.btn.active,
+button.ecs-btn:hover, button.ecs-btn:active, button.ecs-btn:focus, button.ecs-btn.active {
+    /* Prevent any transform on interaction */
+    transform: none !important;
+}
+
+/* 
+ * Ensure waves ripple effect still works properly 
+ * without affecting the button's dimensions
+ */
+.waves-effect .waves-ripple {
+    /* These transforms only affect the ripple animation */
+    transition-property: opacity, transform !important;
+    transform-origin: center !important;
+}
+
+/* 
+ * Additional specificity for buttons with multiple classes 
+ * that might have transforms
+ */
+[class*="btn"].waves-effect,
+[class*="btn-"].waves-effect {
+    transform: none !important;
+}
+
+/* Specific override for touch active state on mobile */
+@media (hover: none) {
+    .btn:active, .ecs-btn:active {
+        transform: none !important;
+    }
+}

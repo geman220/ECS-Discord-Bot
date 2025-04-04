@@ -230,8 +230,7 @@
                                                     {% if safe_current_user.has_permission('view_match_reporting') %}
                                                     <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
                                                             data-match-id="{{ match.id }}"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#reportMatchModal-{{ match.id }}">
+                                                            type="button">
                                                         <i class="ti ti-edit"></i>
                                                     </button>
                                                     {% endif %}
@@ -239,8 +238,7 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Include the Report Match Modal using the macro -->
-                                        {{ macros.render_report_match_modal(match, player_choices) }}
+                                        <!-- Modals moved to bottom of page -->
                                         {% endfor %}
                                     </div>
                                 </div>
@@ -330,8 +328,7 @@
                                                 {% if safe_current_user.has_permission('view_match_reporting') %}
                                                 <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
                                                         data-match-id="{{ match.id }}"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#reportMatchModal-{{ match.id }}">
+                                                        type="button">
                                                     {% if match.reported %}Edit Report{% else %}Report{% endif %}
                                                 </button>
                                                 {% endif %}
@@ -339,8 +336,7 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Include the Report Match Modal using the macro -->
-                                    {{ macros.render_report_match_modal(match, player_choices) }}
+                                    <!-- Modals are loaded via AJAX by base.html -->
                                     {% endfor %}
                                 {% endfor %}
                             </div>
@@ -442,6 +438,19 @@
         bottom: -5px;
     }
     
+    /* Remove all custom modal styling to avoid conflicts */
+    
+    /* Prevent buttons from growing too large when clicked */
+    .btn {
+        transition: none !important;
+        transform: none !important;
+    }
+    
+    .btn:active, .btn.active, .btn:focus {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+    
     /* Mobile adaptations */
     @media (max-width: 767.98px) {
         .card-header .card-title {
@@ -452,9 +461,11 @@
             padding: 0.25rem 0.5rem;
         }
         
-        /* Touch-friendly controls */
+        /* Touch-friendly controls - fixed to prevent growing */
         .btn-group > .btn {
-            padding: 0.5rem 0.75rem;
+            padding: 0.4rem 0.6rem;
+            min-height: 36px;
+            max-height: 36px;
         }
         
         /* Adjust spacing on mobile */
@@ -515,7 +526,9 @@
 {% block custom_js %}
 <script>
     const showTour = {{ show_tour | tojson }};
-    const playerChoices = {{ player_choices | tojson }};
+    // Make player choices globally available for our fix script
+    window.playerChoices = {{ player_choices | tojson }};
+    const playerChoices = window.playerChoices;
     
     // Fix iOS 100vh issue
     function setViewportHeight() {
@@ -622,4 +635,6 @@
 {% if player %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>
 {% endif %}
+
+<!-- Modals are loaded via AJAX by base.html -->
 {% endblock %}

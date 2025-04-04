@@ -35,17 +35,22 @@
     // Make controls more touch-friendly
     setupTouchFriendlyControls: function() {
       if ('ontouchstart' in window) {
-        // Add active state to buttons to improve feedback
-        const touchElements = document.querySelectorAll('button, .btn, a.nav-link, .card');
-        touchElements.forEach(el => {
-          el.addEventListener('touchstart', function() {
-            this.classList.add('touch-active');
-          }, {passive: true});
-          
-          el.addEventListener('touchend', function() {
-            this.classList.remove('touch-active');
-          }, {passive: true});
-        });
+        // Only apply opacity effect on mobile (no transform scaling)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+          // Simple opacity feedback on mobile without scaling
+          const touchElements = document.querySelectorAll('button, .btn, a.nav-link, .card');
+          touchElements.forEach(el => {
+            el.addEventListener('touchstart', function() {
+              this.style.opacity = '0.9';
+            }, {passive: true});
+            
+            el.addEventListener('touchend', function() {
+              this.style.opacity = '1';
+            }, {passive: true});
+          });
+        }
         
         // Make form elements bigger on mobile
         if (window.innerWidth < 768) {

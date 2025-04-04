@@ -269,7 +269,14 @@ def teams_overview():
 def report_match(match_id):
     session = g.db_session
     logger.info(f"Starting report_match for Match ID: {match_id}")
-    match = session.query(Match).get(match_id)
+    match = (
+        session.query(Match)
+        .options(
+            joinedload(Match.home_team).joinedload(Team.players),
+            joinedload(Match.away_team).joinedload(Team.players)
+        )
+        .get(match_id)
+    )
     if not match:
         flash('Match not found.', 'danger')
         return redirect(url_for('teams.teams_overview'))
@@ -283,6 +290,40 @@ def report_match(match_id):
                 PlayerEventType.RED_CARD: 'red_cards'
             }
 
+            # Ensure we have team names
+            home_team_name = match.home_team.name if match.home_team else "Home Team"
+            away_team_name = match.away_team.name if match.away_team else "Away Team"
+            
+            # Update match properties (for UI display purposes only)
+            match.home_team_name = home_team_name
+            match.away_team_name = away_team_name
+            
+            # Prepare team data with players
+            home_team_data = {
+                'name': home_team_name,
+                'id': match.home_team_id,
+                'players': []
+            }
+            
+            away_team_data = {
+                'name': away_team_name,
+                'id': match.away_team_id,
+                'players': []
+            }
+            
+            # Add player data if available
+            if match.home_team and match.home_team.players:
+                home_team_data['players'] = [
+                    {'id': player.id, 'name': player.name}
+                    for player in match.home_team.players
+                ]
+            
+            if match.away_team and match.away_team.players:
+                away_team_data['players'] = [
+                    {'id': player.id, 'name': player.name}
+                    for player in match.away_team.players
+                ]
+            
             data = {
                 'goal_scorers': [],
                 'assist_providers': [],
@@ -290,7 +331,12 @@ def report_match(match_id):
                 'red_cards': [],
                 'home_team_score': match.home_team_score or 0,
                 'away_team_score': match.away_team_score or 0,
-                'notes': match.notes or ''
+                'notes': match.notes or '',
+                'home_team_name': home_team_name,
+                'away_team_name': away_team_name,
+                'home_team': home_team_data,
+                'away_team': away_team_data,
+                'reported': match.reported
             }
 
             for event_type, field_name in event_mapping.items():

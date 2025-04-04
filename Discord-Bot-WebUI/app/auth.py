@@ -144,6 +144,17 @@ def discord_callback():
         # Log in the user normally.
         user.last_login = datetime.utcnow()
         login_user(user)
+        
+        # Set theme from user preferences if available
+        try:
+            player = Player.query.get(user.id)
+            if player and hasattr(player, 'preferences') and player.preferences:
+                if 'theme' in player.preferences:
+                    session['theme'] = player.preferences['theme']
+                    logger.debug(f"Set theme to {player.preferences['theme']} from user preferences")
+        except Exception as e:
+            logger.error(f"Error loading user theme preference: {e}")
+        
         return redirect(url_for('main.index'))
 
     except Exception as e:
@@ -251,6 +262,16 @@ def login():
                 sync_discord_for_user(user)
                 login_user(user, remember=form.remember.data)
                 logger.debug(f"User {user.id} logged in successfully")
+                
+                # Set theme from user preferences if available
+                try:
+                    player = Player.query.get(user.id)
+                    if player and hasattr(player, 'preferences') and player.preferences:
+                        if 'theme' in player.preferences:
+                            session['theme'] = player.preferences['theme']
+                            logger.debug(f"Set theme to {player.preferences['theme']} from user preferences")
+                except Exception as e:
+                    logger.error(f"Error loading user theme preference: {e}")
 
                 next_page = request.args.get('next')
                 if next_page and next_page.startswith('/') and not next_page.startswith('//') and not next_page.startswith('/login'):
@@ -303,6 +324,17 @@ def verify_2fa_login():
             login_user(user, remember=session.get('remember_me', False))
             session.pop('pending_2fa_user_id', None)
             session.pop('remember_me', None)
+            
+            # Set theme from user preferences if available
+            try:
+                player = Player.query.get(user.id)
+                if player and hasattr(player, 'preferences') and player.preferences:
+                    if 'theme' in player.preferences:
+                        session['theme'] = player.preferences['theme']
+                        logger.debug(f"Set theme to {player.preferences['theme']} from user preferences")
+            except Exception as e:
+                logger.error(f"Error loading user theme preference: {e}")
+            
             return redirect(url_for('main.index'))
 
         flash('Invalid 2FA token.', 'danger')

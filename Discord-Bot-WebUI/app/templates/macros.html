@@ -1,27 +1,31 @@
 {% macro render_report_match_modal(match, player_choices) %}
-<div class="modal fade"
+<div class="modal fade ecs-modal"
      id="reportMatchModal-{{ match.id }}"
      tabindex="-1"
      role="dialog"
      aria-labelledby="reportMatchModalLabel-{{ match.id }}"
-     aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-        <div class="modal-content">
+     aria-hidden="true"
+     data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered ecs-modal-dialog ecs-modal-lg ecs-modal-dialog-centered" role="document">
+        <div class="modal-content ecs-modal-content">
             <!-- Modal Header -->
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="reportMatchModalLabel-{{ match.id }}">
+            <div class="modal-header bg-primary text-white ecs-modal-header">
+                <h5 class="modal-title ecs-modal-title" id="reportMatchModalLabel-{{ match.id }}">
                     <i data-feather="edit" class="me-2"></i>
-                    {{ 'Edit' if match.reported else 'Report' }} Match: {{ match.home_team_name }} vs {{ match.away_team_name }}
+                    {{ 'Edit' if match.reported else 'Report' }} Match: 
+                    <span class="home-team-name">{{ match.home_team.name if match.home_team else match.home_team_name }}</span> 
+                    vs 
+                    <span class="away-team-name">{{ match.away_team.name if match.away_team else match.away_team_name }}</span>
                 </h5>
                 <button type="button"
-                        class="btn-close btn-close-white"
+                        class="btn-close btn-close-white ecs-modal-close"
                         data-bs-dismiss="modal"
                         aria-label="Close"></button>
             </div>
 
             <!-- Modal Body -->
             <form id="reportMatchForm-{{ match.id }}" class="report-match-form" data-match-id="{{ match.id }}" action="{{ url_for('teams.report_match', match_id=match.id) }}" method="POST" novalidate>
-                <div class="modal-body">
+                <div class="modal-body ecs-modal-body">
                     <!-- CSRF Token -->
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -175,7 +179,7 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="modal-footer">
+                <div class="modal-footer ecs-modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="submit" class="btn btn-primary" id="submitBtn-{{ match.id }}">
                         {{ 'Save Changes' if match.reported else 'Submit Report' }}

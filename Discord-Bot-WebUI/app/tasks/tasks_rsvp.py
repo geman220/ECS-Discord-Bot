@@ -82,8 +82,6 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             else:
                 availability.response = new_response
                 availability.responded_at = datetime.utcnow()
-                availability.last_update = datetime.utcnow()
-                availability.update_count = (availability.update_count or 0) + 1
         else:
             if new_response != 'no_response':
                 availability = Availability(
@@ -91,9 +89,7 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                     player_id=player_id,
                     response=new_response,
                     discord_id=discord_id,
-                    responded_at=datetime.utcnow(),
-                    last_update=datetime.utcnow(),
-                    update_count=1
+                    responded_at=datetime.utcnow()
                 )
                 session.add(availability)
 
