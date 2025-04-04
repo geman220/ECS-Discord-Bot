@@ -145,7 +145,7 @@ def send_welcome_message(phone_number):
         "Available commands:\n"
         "- 'schedule': Get info about your upcoming matches\n"
         "- 'yes/no/maybe': RSVP for matches\n"
-        "- 'help': See all available commands\n\n"
+        "- 'info': See all available commands\n\n"
         "Message & data rates may apply. Reply STOP to cancel."
     )
     return send_sms(phone_number, welcome_message)
@@ -540,11 +540,11 @@ def send_help_message(phone_number, user_id=None):
         bool: True after sending the help message.
     """
     help_message = (
-        "Available commands:\n"
+        "ECS FC SMS Commands:\n"
         "- 'yes' / 'no' / 'maybe': RSVP for your next match\n"
         "- 'yes 2' / 'no 3': RSVP for a specific match number\n"
         "- 'schedule': View upcoming matches with numbers\n"
-        "- 'help': This help message\n"
+        "- 'info' or 'commands': This help message\n"
         "- 'STOP': Unsubscribe from all messages\n"
         "- 'START': Re-subscribe to messages"
     )
@@ -870,7 +870,7 @@ def handle_incoming_text_command(phone_number, message_text):
     elif cmd in ['start', 'subscribe']:
         handle_re_subscribe(player)
         return jsonify({'status': 'success', 'message': 'Re-subscribed'})
-    elif cmd in ['help']:
+    elif cmd in ['help', 'info', 'commands', 'cmd', 'cmds']:
         send_help_message(phone_number, user_id)
         return jsonify({'status': 'success', 'message': 'Help sent'})
     elif cmd in ['next match', 'schedule']:
@@ -925,7 +925,7 @@ def handle_incoming_text_command(phone_number, message_text):
         # Unrecognized command fallback.
         send_sms(
             phone_number, 
-            "Sorry, I didn't recognize that command. Reply HELP for options, or YES/NO/MAYBE to RSVP for your next match.", 
+            "Sorry, I didn't recognize that command. Reply INFO for command options, or YES/NO/MAYBE to RSVP for your next match.", 
             user_id
         )
         return jsonify({'status': 'success', 'message': 'Unrecognized command'})
