@@ -8,9 +8,9 @@
     <div class="card bg-primary mb-4">
         <div class="card-body p-0 position-relative overflow-hidden">
             <div class="d-flex match-header-wrapper p-4">
-                <div class="match-info text-white z-1">
+                <div class="match-info text-white z-1 w-100">
                     <h1 class="display-6 fw-bold mb-2">{{ match.home_team.name }} vs {{ match.away_team.name }}</h1>
-                    <div class="hstack gap-2 mb-2">
+                    <div class="d-flex flex-wrap gap-2 mb-2">
                         <div class="badge bg-label-light fs-6">
                             <i class="ti ti-calendar me-1"></i>{{ match.date.strftime('%A, %B %d, %Y') }}
                         </div>
@@ -36,10 +36,19 @@
                         </h4>
                     </div>
                     {% endif %}
+                    
+                    {% if safe_current_user.has_permission('view_match_reporting') %}
+                    <div class="mt-3 d-md-none">
+                        <button class="btn btn-light edit-match-btn w-100" data-match-id="{{ match.id }}">
+                            <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
+                            {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 {% if safe_current_user.has_permission('view_match_reporting') %}
-                <div class="ms-auto align-self-start">
+                <div class="ms-auto align-self-start mt-2 mt-sm-0 d-none d-md-block">
                     <button class="btn btn-light edit-match-btn" data-match-id="{{ match.id }}">
                         <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %} me-1"></i>
                         {% if match.reported %}Edit Report{% else %}Report Match{% endif %}
@@ -59,7 +68,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-3 bg-label-primary">
                                     <i class="ti ti-map-pin"></i>
@@ -71,7 +80,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-3 bg-label-info">
                                     <i class="ti ti-calendar"></i>
@@ -83,7 +92,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-12 col-sm-6 col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="avatar avatar-sm me-3 bg-label-success">
                                     <i class="ti ti-clock"></i>
@@ -118,8 +127,251 @@
 
     <!-- Team Rosters Row -->
     <div class="row">
-        <!-- Home Team Card -->
-        <div class="col-lg-6 mb-4">
+        <!-- Mobile Team Tabs (visible on mobile only) -->
+        <div class="col-12 d-md-none mb-4">
+            <div class="card">
+                <div class="card-header border-bottom p-0">
+                    <ul class="nav nav-tabs card-header-tabs nav-fill" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="home-team-tab" data-bs-toggle="tab" data-bs-target="#home-team-content" type="button" role="tab" aria-controls="home-team-content" aria-selected="true">
+                                {{ match.home_team.name }} <span class="badge bg-label-primary">Home</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="away-team-tab" data-bs-toggle="tab" data-bs-target="#away-team-content" type="button" role="tab" aria-controls="away-team-content" aria-selected="false">
+                                {{ match.away_team.name }} <span class="badge bg-label-info">Away</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-0">
+                    <div class="tab-content">
+                        <!-- Home Team Tab Content (Mobile) -->
+                        <div class="tab-pane fade show active p-3" id="home-team-content" role="tabpanel" aria-labelledby="home-team-tab">
+                            <!-- RSVP Summary -->
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="fw-bold mb-0">RSVP Summary</h6>
+                                {% if safe_current_user.has_permission('view_team_record') %}
+                                <span class="badge bg-primary">
+                                    Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- RSVP Summary Cards -->
+                            <div class="row mb-4 g-2">
+                                <div class="col-6 col-sm-3 mb-2">
+                                    <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-check fs-4 text-success"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ home_rsvp_data['available'] | length }}</span>
+                                                <span class="small">Yes</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3 mb-2">
+                                    <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-question-mark fs-4 text-warning"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ home_rsvp_data['maybe'] | length }}</span>
+                                                <span class="small">Maybe</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3">
+                                    <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-x fs-4 text-danger"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ home_rsvp_data['not_available'] | length }}</span>
+                                                <span class="small">No</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3">
+                                    <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-minus fs-4 text-secondary"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ home_rsvp_data['no_response'] | length }}</span>
+                                                <span class="small">???</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Player List -->
+                            <h6 class="fw-bold mb-2">Team Roster</h6>
+                            <div class="player-list-mobile">
+                                {% for player in match.home_team.players %}
+                                <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                       class="d-flex align-items-center text-decoration-none">
+                                        <div class="avatar avatar-sm me-2">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                 alt="{{ player.name }}" class="rounded-circle">
+                                            {% if player.is_coach %}
+                                            <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                            {% endif %}
+                                            {% if player.is_ref %}
+                                            <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="player-details">
+                                            <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                        </div>
+                                    </a>
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
+                                    <div class="player-status ms-auto">
+                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                        {% if availability %}
+                                            {% if availability.response == 'yes' %}
+                                            <span class="badge bg-success">
+                                                <i class="ti ti-check"></i>
+                                            </span>
+                                            {% elif availability.response == 'no' %}
+                                            <span class="badge bg-danger">
+                                                <i class="ti ti-x"></i>
+                                            </span>
+                                            {% elif availability.response == 'maybe' %}
+                                            <span class="badge bg-warning">
+                                                <i class="ti ti-question-mark"></i>
+                                            </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="ti ti-minus"></i>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Away Team Tab Content (Mobile) -->
+                        <div class="tab-pane fade p-3" id="away-team-content" role="tabpanel" aria-labelledby="away-team-tab">
+                            <!-- RSVP Summary -->
+                            <div class="d-flex justify-content-between mb-3">
+                                <h6 class="fw-bold mb-0">RSVP Summary</h6>
+                                {% if safe_current_user.has_permission('view_team_record') %}
+                                <span class="badge bg-primary">
+                                    Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- RSVP Summary Cards -->
+                            <div class="row mb-4 g-2">
+                                <div class="col-6 col-sm-3 mb-2">
+                                    <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-check fs-4 text-success"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ away_rsvp_data['available'] | length }}</span>
+                                                <span class="small">Yes</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3 mb-2">
+                                    <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-question-mark fs-4 text-warning"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ away_rsvp_data['maybe'] | length }}</span>
+                                                <span class="small">Maybe</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3">
+                                    <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-x fs-4 text-danger"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ away_rsvp_data['not_available'] | length }}</span>
+                                                <span class="small">No</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-sm-3">
+                                    <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
+                                        <div class="d-flex align-items-center justify-content-around">
+                                            <i class="ti ti-minus fs-4 text-secondary"></i>
+                                            <div class="d-flex flex-column ms-2">
+                                                <span class="fw-bold fs-4">{{ away_rsvp_data['no_response'] | length }}</span>
+                                                <span class="small">???</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Player List -->
+                            <h6 class="fw-bold mb-2">Team Roster</h6>
+                            <div class="player-list-mobile">
+                                {% for player in match.away_team.players %}
+                                <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                       class="d-flex align-items-center text-decoration-none">
+                                        <div class="avatar avatar-sm me-2">
+                                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                 alt="{{ player.name }}" class="rounded-circle">
+                                            {% if player.is_coach %}
+                                            <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                            {% endif %}
+                                            {% if player.is_ref %}
+                                            <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="player-details">
+                                            <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                        </div>
+                                    </a>
+                                    {% if safe_current_user.has_permission('view_rsvps') %}
+                                    <div class="player-status ms-auto">
+                                        {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+                                        {% if availability %}
+                                            {% if availability.response == 'yes' %}
+                                            <span class="badge bg-success">
+                                                <i class="ti ti-check"></i>
+                                            </span>
+                                            {% elif availability.response == 'no' %}
+                                            <span class="badge bg-danger">
+                                                <i class="ti ti-x"></i>
+                                            </span>
+                                            {% elif availability.response == 'maybe' %}
+                                            <span class="badge bg-warning">
+                                                <i class="ti ti-question-mark"></i>
+                                            </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                <i class="ti ti-minus"></i>
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Team Cards (visible on md screens and up) -->
+        <div class="col-lg-6 mb-4 d-none d-md-block">
             <div class="card h-100">
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
@@ -139,7 +391,7 @@
                 <div class="card-body">
                     <!-- RSVP Summary Cards -->
                     <div class="row mb-4">
-                        <div class="col-3">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
                             <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ home_rsvp_data['available'] | length }}</span>
@@ -147,7 +399,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
                             <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ home_rsvp_data['maybe'] | length }}</span>
@@ -155,7 +407,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3">
                             <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ home_rsvp_data['not_available'] | length }}</span>
@@ -163,7 +415,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3">
                             <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ home_rsvp_data['no_response'] | length }}</span>
@@ -179,7 +431,7 @@
                         <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom">
                             <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
                                class="d-flex align-items-center text-decoration-none">
-                                <div class="avatar avatar-md me-3">
+                                <div class="avatar avatar-md me-2 me-sm-3">
                                     <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
                                          alt="{{ player.name }}" class="rounded-circle">
                                     {% if player.is_coach %}
@@ -190,32 +442,32 @@
                                     {% endif %}
                                 </div>
                                 <div class="player-details">
-                                    <h6 class="mb-0">{{ player.name }}</h6>
-                                    <small class="text-muted">
+                                    <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
+                                    <small class="text-muted d-block text-truncate">
                                         {% if player.favorite_position %}Position: {{ player.favorite_position }}{% endif %}
                                     </small>
                                 </div>
                             </a>
                             {% if safe_current_user.has_permission('view_rsvps') %}
-                            <div class="player-status">
+                            <div class="player-status ms-auto ps-1">
                                 {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
                                 {% if availability %}
                                     {% if availability.response == 'yes' %}
-                                    <span class="badge bg-success">
-                                        <i class="ti ti-check me-1"></i> Available
+                                    <span class="badge bg-success d-inline-flex align-items-center">
+                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Available</span>
                                     </span>
                                     {% elif availability.response == 'no' %}
-                                    <span class="badge bg-danger">
-                                        <i class="ti ti-x me-1"></i> Not Available
+                                    <span class="badge bg-danger d-inline-flex align-items-center">
+                                        <i class="ti ti-x me-1"></i><span class="d-none d-sm-inline">Not Available</span>
                                     </span>
                                     {% elif availability.response == 'maybe' %}
-                                    <span class="badge bg-warning">
-                                        <i class="ti ti-question-mark me-1"></i> Maybe
+                                    <span class="badge bg-warning d-inline-flex align-items-center">
+                                        <i class="ti ti-question-mark me-1"></i><span class="d-none d-sm-inline">Maybe</span>
                                     </span>
                                     {% endif %}
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        <i class="ti ti-minus me-1"></i> No Response
+                                    <span class="badge bg-secondary d-inline-flex align-items-center">
+                                        <i class="ti ti-minus me-1"></i><span class="d-none d-sm-inline">No Response</span>
                                     </span>
                                 {% endif %}
                             </div>
@@ -227,8 +479,8 @@
             </div>
         </div>
 
-        <!-- Away Team Card -->
-        <div class="col-lg-6 mb-4">
+        <!-- Away Team Card (Desktop) -->
+        <div class="col-lg-6 mb-4 d-none d-md-block">
             <div class="card h-100">
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
@@ -248,7 +500,7 @@
                 <div class="card-body">
                     <!-- RSVP Summary Cards -->
                     <div class="row mb-4">
-                        <div class="col-3">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
                             <div class="card bg-success bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ away_rsvp_data['available'] | length }}</span>
@@ -256,7 +508,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3 mb-2 mb-md-0">
                             <div class="card bg-warning bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ away_rsvp_data['maybe'] | length }}</span>
@@ -264,7 +516,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3">
                             <div class="card bg-danger bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ away_rsvp_data['not_available'] | length }}</span>
@@ -272,7 +524,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-3">
+                        <div class="col-6 col-md-3">
                             <div class="card bg-secondary bg-opacity-10 text-center p-2 h-100">
                                 <div class="d-flex flex-column">
                                     <span class="fw-bold fs-4">{{ away_rsvp_data['no_response'] | length }}</span>
@@ -288,7 +540,7 @@
                         <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom">
                             <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
                                class="d-flex align-items-center text-decoration-none">
-                                <div class="avatar avatar-md me-3">
+                                <div class="avatar avatar-md me-2 me-sm-3">
                                     <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
                                          alt="{{ player.name }}" class="rounded-circle">
                                     {% if player.is_coach %}
@@ -299,32 +551,32 @@
                                     {% endif %}
                                 </div>
                                 <div class="player-details">
-                                    <h6 class="mb-0">{{ player.name }}</h6>
-                                    <small class="text-muted">
+                                    <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
+                                    <small class="text-muted d-block text-truncate">
                                         {% if player.favorite_position %}Position: {{ player.favorite_position }}{% endif %}
                                     </small>
                                 </div>
                             </a>
                             {% if safe_current_user.has_permission('view_rsvps') %}
-                            <div class="player-status">
+                            <div class="player-status ms-auto ps-1">
                                 {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
                                 {% if availability %}
                                     {% if availability.response == 'yes' %}
-                                    <span class="badge bg-success">
-                                        <i class="ti ti-check me-1"></i> Available
+                                    <span class="badge bg-success d-inline-flex align-items-center">
+                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Available</span>
                                     </span>
                                     {% elif availability.response == 'no' %}
-                                    <span class="badge bg-danger">
-                                        <i class="ti ti-x me-1"></i> Not Available
+                                    <span class="badge bg-danger d-inline-flex align-items-center">
+                                        <i class="ti ti-x me-1"></i><span class="d-none d-sm-inline">Not Available</span>
                                     </span>
                                     {% elif availability.response == 'maybe' %}
-                                    <span class="badge bg-warning">
-                                        <i class="ti ti-question-mark me-1"></i> Maybe
+                                    <span class="badge bg-warning d-inline-flex align-items-center">
+                                        <i class="ti ti-question-mark me-1"></i><span class="d-none d-sm-inline">Maybe</span>
                                     </span>
                                     {% endif %}
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        <i class="ti ti-minus me-1"></i> No Response
+                                    <span class="badge bg-secondary d-inline-flex align-items-center">
+                                        <i class="ti ti-minus me-1"></i><span class="d-none d-sm-inline">No Response</span>
                                     </span>
                                 {% endif %}
                             </div>
@@ -377,6 +629,33 @@
         border: 2px solid var(--bs-body-bg);
     }
     
+    /* Match Styling */
+    .match-detail-card {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .match-detail-card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* RSVP Summary Counter */
+    .rsvp-counter {
+        transition: transform 0.2s ease;
+    }
+    
+    .rsvp-counter:hover {
+        transform: scale(1.05);
+    }
+    
+    /* Badge Pills */
+    .badge-pill {
+        border-radius: 50rem;
+        padding-right: 0.6em;
+        padding-left: 0.6em;
+    }
+    
     /* Responsive Adjustments */
     @media (max-width: 768px) {
         .match-header-wrapper {
@@ -385,6 +664,98 @@
         
         .match-info .badge {
             font-size: 0.7rem;
+        }
+        
+        .player-item {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        
+        .player-details h6 {
+            font-size: 0.8rem;
+        }
+        
+        .player-details small {
+            font-size: 0.7rem;
+        }
+        
+        .player-status .badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .avatar-md img {
+            width: 30px;
+            height: 30px;
+        }
+        
+        .card-body {
+            padding: 1rem 0.5rem;
+        }
+        
+        /* Enhance report modal for mobile */
+        #reportMatchModal .modal-dialog {
+            margin: 10px;
+            max-width: calc(100% - 20px);
+        }
+        
+        #reportMatchModal .input-group {
+            flex-wrap: wrap;
+        }
+        
+        #reportMatchModal .input-group > * {
+            width: 100%;
+            margin-bottom: 5px;
+            border-radius: 0.375rem !important;
+        }
+        
+        /* Increase touch targets */
+        #reportMatchModal .btn {
+            min-height: 44px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .match-info h1 {
+            font-size: 1.5rem;
+        }
+        
+        .match-info .badge {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .player-status {
+            margin-left: auto;
+        }
+        
+        .player-details {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Better column management on phone */
+        .col-3 {
+            width: 50%;
+            margin-bottom: 10px;
+        }
+        
+        /* Ensure inputs are large enough for touch */
+        input, select, textarea, button {
+            font-size: 16px !important; /* Prevent iOS zoom */
+            min-height: 44px;
+        }
+        
+        /* Force form elements to stay visible */
+        .form-control, .form-select {
+            z-index: auto !important;
+        }
+        
+        /* Ensure buttons are big enough */
+        .btn {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.9rem;
         }
     }
 </style>
@@ -416,6 +787,56 @@
                     console.error('Failed to load match modals');
                 }
             });
+        }
+        
+        // Mobile swipe navigation between team tabs
+        const tabContent = document.querySelector('.tab-content');
+        if (tabContent && window.innerWidth < 768) {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            tabContent.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            tabContent.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const homeTab = document.getElementById('home-team-tab');
+                const awayTab = document.getElementById('away-team-tab');
+                
+                if (!homeTab || !awayTab) return;
+                
+                // Detect left or right swipe (minimum 50px to trigger)
+                if (touchEndX < touchStartX - 50) {
+                    // Swiped left - go to away team
+                    if (homeTab.classList.contains('active')) {
+                        new bootstrap.Tab(awayTab).show();
+                    }
+                }
+                
+                if (touchEndX > touchStartX + 50) {
+                    // Swiped right - go to home team
+                    if (awayTab.classList.contains('active')) {
+                        new bootstrap.Tab(homeTab).show();
+                    }
+                }
+            }
+            
+            // Add visual swipe hint that fades out after 5 seconds
+            const swipeHint = document.createElement('div');
+            swipeHint.className = 'text-center text-muted small fst-italic mt-2';
+            swipeHint.innerHTML = '<i class="ti ti-arrow-left me-1"></i> Swipe between teams <i class="ti ti-arrow-right ms-1"></i>';
+            swipeHint.style.opacity = '0.7';
+            tabContent.appendChild(swipeHint);
+            
+            setTimeout(() => {
+                swipeHint.style.transition = 'opacity 1s ease';
+                swipeHint.style.opacity = '0';
+            }, 5000);
         }
     });
 </script>

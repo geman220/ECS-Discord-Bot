@@ -453,6 +453,12 @@
     
     // Add dark mode toggle if it doesn't exist
     addDarkModeToggle: function() {
+      // DISABLED: Don't add the toggle at all since there's already one in the navbar.html
+      return;
+      
+      // This function has been disabled to prevent duplicate dark mode toggles
+      // The following code is kept for reference only
+      /*
       const existingToggle = document.querySelector('.style-switcher-toggle');
       if (existingToggle) {
         return; // Don't duplicate if it already exists
@@ -476,6 +482,7 @@
         
         // Add click event to toggle dark mode
         toggleItem.querySelector('a').addEventListener('click', () => {
+      */
           const html = document.documentElement;
           const currentStyle = html.getAttribute('data-style') || 'light';
           const newStyle = currentStyle === 'dark' ? 'light' : 'dark';

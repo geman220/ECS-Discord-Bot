@@ -32,41 +32,45 @@
     <!-- Welcome Header -->
     <div class="row mb-3">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    {% if player %}
-                    <h2 class="text-primary mb-0">Welcome, {{ player.name }}!</h2>
-                    <p class="text-muted">
-                        {% if player.teams and player.teams|length > 0 %}
-                            {% set unique_leagues = (
-                            player.teams
-                            |selectattr('league')
-                            |map(attribute='league')
-                            |map(attribute='name')
-                            |unique
-                            |list
-                            ) %}
-                            You are playing in {{ unique_leagues|join(', ') }} league(s)
-                        {% else %}
-                            You are not currently assigned to a team
+            <div class="card welcome-header">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            {% if player %}
+                            <h2 class="text-primary mb-1">Welcome, {{ player.name }}!</h2>
+                            <p class="text-muted mb-2">
+                                {% if player.teams and player.teams|length > 0 %}
+                                    {% set unique_leagues = (
+                                    player.teams
+                                    |selectattr('league')
+                                    |map(attribute='league')
+                                    |map(attribute='name')
+                                    |unique
+                                    |list
+                                    ) %}
+                                    You are playing in {{ unique_leagues|join(', ') }} league(s)
+                                {% else %}
+                                    You are not currently assigned to a team
+                                {% endif %}
+                            </p>
+                            {% else %}
+                            <h2 class="text-primary mb-1">Welcome!</h2>
+                            <p class="text-muted mb-2">Please create your player profile to get started</p>
+                            {% endif %}
+                        </div>
+                        {% if player %}
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                     alt="Profile" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                            </div>
+                            <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="ti ti-user-circle me-1"></i> My Profile
+                            </a>
+                        </div>
                         {% endif %}
-                    </p>
-                    {% else %}
-                    <h2 class="text-primary mb-0">Welcome!</h2>
-                    <p class="text-muted">Please create your player profile to get started</p>
-                    {% endif %}
-                </div>
-                {% if player %}
-                <div class="d-flex align-items-center">
-                    <div class="me-3">
-                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
-                             alt="Profile" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
                     </div>
-                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-outline-primary btn-sm">
-                        <i class="ti ti-user-circle me-1"></i> My Profile
-                    </a>
                 </div>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -186,7 +190,7 @@
                                         {% endif %}
                                         
                                         <div class="list-group-item p-3">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <div class="d-flex align-items-center">
                                                         <div class="match-badge {% if is_home %}bg-success{% else %}bg-info{% endif %} me-2">
@@ -200,14 +204,14 @@
                                                             {% endif %}
                                                         </h6>
                                                     </div>
-                                                    <div class="text-muted small">
+                                                    <div class="text-muted small mt-1">
                                                         <i class="ti ti-clock me-1"></i>{{ match.time.strftime('%I:%M %p') }}
                                                         <i class="ti ti-map-pin ms-2 me-1"></i>{{ match.location }}
                                                     </div>
                                                 </div>
-                                                <div class="d-flex align-items-center">
-                                                    <div class="rsvp-controls me-3">
-                                                        <div class="btn-group btn-group-sm" role="group">
+                                                <div class="d-flex align-items-center mt-3 mt-md-0">
+                                                    <div class="rsvp-controls me-2">
+                                                        <div class="btn-group" role="group">
                                                             <input type="radio" class="btn-check rsvp-input" name="response-{{ match.id }}" id="responseYes-{{ match.id }}" value="yes" autocomplete="off">
                                                             <label class="btn btn-outline-success" for="responseYes-{{ match.id }}" title="I can play">
                                                                 <i class="ti ti-check"></i>
@@ -224,16 +228,18 @@
                                                             </label>
                                                         </div>
                                                     </div>
-                                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary btn-sm">
-                                                        Details
-                                                    </a>
-                                                    {% if safe_current_user.has_permission('view_match_reporting') %}
-                                                    <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
-                                                            data-match-id="{{ match.id }}"
-                                                            type="button">
-                                                        <i class="ti ti-edit"></i>
-                                                    </button>
-                                                    {% endif %}
+                                                    <div>
+                                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary">
+                                                            Details
+                                                        </a>
+                                                        {% if safe_current_user.has_permission('view_match_reporting') %}
+                                                        <button class="btn btn-outline-secondary ms-1 edit-match-btn"
+                                                                data-match-id="{{ match.id }}"
+                                                                type="button">
+                                                            <i class="ti ti-edit"></i>
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -317,19 +323,19 @@
                                                                 {{ opponent_name }} vs <span class="fw-bold">{{ t.name }}</span>
                                                             {% endif %}
                                                         </h6>
-                                                        <div class="text-muted small">
+                                                        <div class="text-muted small mt-1">
                                                             {{ date.strftime('%a, %b %d') }} · {{ match.time.strftime('%I:%M %p') }} · {{ match.location }}
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-sm btn-primary">Details</a>
+                                            <div class="mt-3 mt-md-0">
+                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary">Details</a>
                                                 {% if safe_current_user.has_permission('view_match_reporting') %}
-                                                <button class="btn btn-outline-secondary btn-sm ms-1 edit-match-btn"
+                                                <button class="btn btn-outline-secondary ms-1 edit-match-btn"
                                                         data-match-id="{{ match.id }}"
                                                         type="button">
-                                                    {% if match.reported %}Edit Report{% else %}Report{% endif %}
+                                                    <i class="ti ti-edit"></i>
                                                 </button>
                                                 {% endif %}
                                             </div>
@@ -464,8 +470,8 @@
         /* Touch-friendly controls - fixed to prevent growing */
         .btn-group > .btn {
             padding: 0.4rem 0.6rem;
-            min-height: 36px;
-            max-height: 36px;
+            min-height: 44px;
+            max-height: 44px;
         }
         
         /* Adjust spacing on mobile */
@@ -480,6 +486,102 @@
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             margin-bottom: 1rem;
+            scrollbar-width: none; /* Firefox */
+            position: relative;
+            z-index: 1;
+        }
+        
+        .nav-pills::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Edge */
+        }
+        
+        .nav-pills:after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, var(--bs-body-bg) 80%);
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        /* Better match-item layout for mobile */
+        .list-group-item {
+            padding: 0.75rem 0.5rem !important;
+        }
+        
+        .list-group-item .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .list-group-item .d-flex > div:first-child {
+            margin-bottom: 0.5rem;
+            width: 100%;
+        }
+        
+        .list-group-item .d-flex > div:last-child {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        /* RSVP controls on mobile - bigger touch targets */
+        .rsvp-controls {
+            width: 65%;
+        }
+        
+        .rsvp-controls .btn-group {
+            width: 100%;
+        }
+        
+        .rsvp-controls .btn-group label {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            min-height: 44px;
+        }
+        
+        /* Button enhancements for mobile */
+        .btn {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-sm {
+            min-height: 38px;
+        }
+        
+        /* Improved welcome header for mobile */
+        .welcome-header h2 {
+            font-size: 1.5rem;
+        }
+        
+        .welcome-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .welcome-header .d-flex > div:last-child {
+            margin-top: 0.75rem;
+            align-self: flex-start;
+        }
+        
+        /* Improved tab styling on mobile */
+        .nav-link {
+            padding: 0.75rem 1rem;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 2px;
+            border-radius: 0.25rem;
         }
     }
     
@@ -548,8 +650,95 @@
         tabContainers.forEach(container => {
             if (window.innerWidth < 768) {
                 container.classList.add('small-tabs', 'overflow-auto', 'flex-nowrap');
+                
+                // Add scroll indicators to let users know they can scroll
+                const navWidth = container.scrollWidth;
+                const containerWidth = container.clientWidth;
+                
+                if (navWidth > containerWidth) {
+                    // Add scroll indicator element
+                    const indicator = document.createElement('div');
+                    indicator.className = 'text-center text-muted small fst-italic mt-1 mb-2';
+                    indicator.innerHTML = '<i class="ti ti-chevron-left"></i> Swipe for more teams <i class="ti ti-chevron-right"></i>';
+                    container.parentNode.insertBefore(indicator, container.nextSibling);
+                    
+                    // Fade out after a few seconds
+                    setTimeout(() => {
+                        indicator.style.transition = 'opacity 1s ease';
+                        indicator.style.opacity = '0.5';
+                    }, 3000);
+                }
+                
+                // Add touch swipe to navigate between tabs on mobile
+                let touchStartX = 0;
+                let touchEndX = 0;
+                const tabPanes = container.closest('.tab-content') || 
+                                 document.querySelector(container.getAttribute('aria-controls')) ||
+                                 document.querySelector('.tab-content');
+                
+                if (tabPanes) {
+                    tabPanes.addEventListener('touchstart', function(e) {
+                        touchStartX = e.changedTouches[0].screenX;
+                    }, {passive: true});
+                    
+                    tabPanes.addEventListener('touchend', function(e) {
+                        touchEndX = e.changedTouches[0].screenX;
+                        handleSwipeNav(container);
+                    }, {passive: true});
+                    
+                    function handleSwipeNav(tabContainer) {
+                        // Get all tabs and find active tab index
+                        const tabs = Array.from(tabContainer.querySelectorAll('.nav-link'));
+                        const activeIndex = tabs.findIndex(tab => tab.classList.contains('active'));
+                        
+                        // Minimum 50px swipe to trigger navigation
+                        if (touchEndX < touchStartX - 50 && activeIndex < tabs.length - 1) {
+                            // Swipe left - go to next tab
+                            tabs[activeIndex + 1].click();
+                        } else if (touchEndX > touchStartX + 50 && activeIndex > 0) {
+                            // Swipe right - go to previous tab
+                            tabs[activeIndex - 1].click();
+                        }
+                    }
+                }
             }
         });
+        
+        // Improve lists on mobile
+        if (window.innerWidth < 768) {
+            // Make any button-group controls easier to tap
+            const btnGroups = document.querySelectorAll('.btn-group');
+            btnGroups.forEach(group => {
+                const labels = group.querySelectorAll('label.btn');
+                labels.forEach(label => {
+                    label.style.minHeight = '44px';
+                    label.style.minWidth = '44px';
+                    label.style.display = 'flex';
+                    label.style.alignItems = 'center';
+                    label.style.justifyContent = 'center';
+                });
+            });
+            
+            // Auto-scroll active tabs into view
+            document.querySelectorAll('[data-bs-toggle="pill"]').forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', function() {
+                    // Scroll this tab into view if it's not fully visible
+                    const container = this.closest('.nav-pills');
+                    if (container) {
+                        const tabRect = this.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        
+                        if (tabRect.right > containerRect.right || tabRect.left < containerRect.left) {
+                            this.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'nearest',
+                                inline: 'center'
+                            });
+                        }
+                    }
+                });
+            });
+        }
         
         // Handle any modals better on mobile
         const allModals = document.querySelectorAll('.modal');

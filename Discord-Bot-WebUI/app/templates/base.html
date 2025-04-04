@@ -251,6 +251,8 @@
                 background-color: rgba(255, 255, 255, 0.7);
             }
     </style>
+    <!-- Mobile Responsive Fixes -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/mobile-responsive-fix.css') }}">
     {% block custom_css %}
     {% endblock %}
 </head>
@@ -682,6 +684,9 @@
     
     <!-- Simple report match modal fix -->
     <script src="{{ url_for('static', filename='custom_js/simple-report-fix.js') }}"></script>
+    
+    <!-- Mobile menu fix for iOS and other mobile devices -->
+    <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
     
     <!-- Initialize buttons consistently -->
     <script>
