@@ -30,6 +30,9 @@
     <!-- ECS Design System CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
     
+    <!-- Force reload CSS with timestamp to prevent caching -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}?v={{ range(1, 1000000) | random }}" />
+    
     <!-- Include our dedicated modal fix CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-z-fix.css') }}" />
 

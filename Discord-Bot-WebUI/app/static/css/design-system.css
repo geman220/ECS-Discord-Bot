@@ -5,6 +5,58 @@
  * It defines the core components, colors, typography, and patterns used throughout.
  */
 
+/* Card styling with theme compatibility */
+html[data-style="light"] .card.bg-primary {
+  background-color: var(--bs-primary) !important;
+  background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%) !important;
+}
+
+html[data-style="dark"] .card.bg-primary {
+  background-color: var(--bs-primary) !important;
+  background-image: linear-gradient(45deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%) !important;
+}
+
+/* Improved button styling */
+.ecs-btn {
+  transform: none !important;
+  transition: all 0.2s ease-in-out !important;
+  box-shadow: none !important;
+  transform-style: flat !important;
+  cursor: pointer !important;
+}
+
+.ecs-btn-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ecs-btn-sm {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+  border-radius: 0.2rem !important;
+}
+
+/* Badge styling improvements */
+.badge.bg-label-light {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Button outline styling */
+.btn.btn-outline-light {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.btn.btn-outline-light:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
 :root {
   /* Primary Color Palette */
   --ecs-primary: #696cff;
