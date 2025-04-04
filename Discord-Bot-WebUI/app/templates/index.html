@@ -3,17 +3,20 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Onboarding Modal -->
+    <!-- Enhanced Onboarding Modal -->
     {% if show_onboarding %}
-    <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true">
+    <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content shadow-lg border-0">
                 <!-- Modal Header -->
-                <div class="modal-header border-bottom-0">
+                <div class="modal-header bg-light border-bottom-0 py-3">
+                    <h5 class="modal-title fw-bold" id="onboardingModalLabel">
+                        <i class="ti ti-user-circle me-2 text-primary"></i>Player Profile Setup
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <!-- Modal Body -->
-                <div class="modal-body">
+                <div class="modal-body p-0">
                     {% include 'onboarding_modal_content.html' %}
                 </div>
             </div>
