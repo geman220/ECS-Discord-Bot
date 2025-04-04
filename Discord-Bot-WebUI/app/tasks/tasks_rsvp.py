@@ -207,20 +207,42 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
         failed_count = 0
         results = []
         
-        batch_size = 50
+        # Process messages in batches with rate limiting
+        # This staggered approach ensures we don't overload the Discord API
+        batch_size = 4  # Only process 4 messages in each batch
+        stagger_seconds = 30  # Wait 30 seconds between batches
+        
+        logger.info(f"Processing {len(messages_data)} messages with rate limiting: "
+                    f"batch size {batch_size}, {stagger_seconds}s between batches")
+        
         for i in range(0, len(messages_data), batch_size):
             batch = messages_data[i:i + batch_size]
-            for message_data in batch:
+            batch_num = i // batch_size
+            
+            logger.info(f"Processing batch {batch_num + 1} of {(len(messages_data) + batch_size - 1) // batch_size}")
+            
+            for j, message_data in enumerate(batch):
                 try:
                     if not message_data['match_id']:
                         logger.warning(f"Skipping message {message_data['id']} - no match associated")
                         continue
 
-                    # Queue each message for sending.
+                    # Add a small delay (5 seconds) between messages in the same batch
+                    individual_delay = j * 5
+                    # Add larger delay (30 seconds) between batches
+                    batch_delay = batch_num * stagger_seconds
+                    total_delay = batch_delay + individual_delay
+                    
+                    # Queue each message for sending with appropriate delay
                     send_availability_message.apply_async(
                         kwargs={'scheduled_message_id': message_data['id']},
-                        countdown=5 * (i // batch_size),
+                        countdown=total_delay,
                         expires=3600
+                    )
+                    
+                    logger.info(
+                        f"Queued message {message_data['id']} (batch {batch_num + 1}, position {j + 1}) "
+                        f"with {total_delay}s delay"
                     )
 
                     msg = session.query(ScheduledMessage).get(message_data['id'])
@@ -484,6 +506,103 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error cleaning up stale RSVPs: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_rsvp.schedule_weekly_match_availability', max_retries=3, queue='discord')
+def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
+    """
+    Schedule availability messages for matches occurring in the next week on Sundays.
+    
+    This task runs every Monday to:
+      - Find all Sunday matches for the upcoming week
+      - Schedule RSVP messages for each match without existing scheduled messages
+      - Set send time to 9 AM on Monday for maximum visibility
+      - Create ScheduledMessage records in the database
+      - Schedules messages with varying countdown times to prevent rate limiting
+      
+    Returns:
+        A dictionary summarizing the number of messages scheduled and match count.
+        
+    Raises:
+        Retries the task on errors with exponential backoff.
+    """
+    try:
+        # Get today (should be Monday when scheduled) and next Sunday
+        today = datetime.utcnow().date()
+        days_until_sunday = (6 - today.weekday()) % 7  # 6 is Sunday's weekday number
+        next_sunday = today + timedelta(days=days_until_sunday)
+        
+        logger.info(f"Scheduling for Sunday matches on {next_sunday}")
+        
+        # Find all matches scheduled for next Sunday
+        sunday_matches = session.query(Match).options(
+            joinedload(Match.scheduled_messages)
+        ).filter(
+            Match.date == next_sunday
+        ).all()
+        
+        logger.info(f"Found {len(sunday_matches)} matches scheduled for next Sunday")
+        
+        # Prepare data for each match
+        matches_data = [{
+            'id': match.id,
+            'date': match.date,
+            'home_team': match.home_team.name if hasattr(match, 'home_team') else "Unknown",
+            'away_team': match.away_team.name if hasattr(match, 'away_team') else "Unknown",
+            'has_message': any(msg for msg in match.scheduled_messages)
+        } for match in sunday_matches]
+        
+        # Schedule messages for matches without existing scheduled messages
+        scheduled_count = 0
+        
+        # Batch size for sending to avoid overloading Discord API
+        # This staggered approach ensures no more than 4 messages are sent per minute
+        batch_size = 4
+        stagger_minutes = 1
+        
+        for i, match_data in enumerate(matches_data):
+            if not match_data['has_message']:
+                # Calculate staggered send time
+                # Base time is 9:00 AM, then stagger by batch
+                batch_number = i // batch_size
+                batch_minutes_offset = batch_number * stagger_minutes
+                
+                # Set initial timestamp as 9:00 AM
+                base_send_time = datetime.combine(today, datetime.min.time()) + timedelta(hours=9)
+                
+                # Add the batch offset for staggered sending
+                send_time = base_send_time + timedelta(minutes=batch_minutes_offset)
+                
+                scheduled_message = ScheduledMessage(
+                    match_id=match_data['id'],
+                    scheduled_send_time=send_time,
+                    status='PENDING'
+                )
+                session.add(scheduled_message)
+                scheduled_count += 1
+                logger.info(
+                    f"Scheduled availability message for match {match_data['id']} "
+                    f"({match_data['home_team']} vs {match_data['away_team']}) "
+                    f"at {send_time} (batch {batch_number+1})"
+                )
+        
+        result = {
+            "success": True,
+            "message": f"Scheduled {scheduled_count} availability messages for Sunday matches",
+            "scheduled_count": scheduled_count,
+            "total_matches": len(matches_data),
+            "sunday_date": next_sunday.isoformat(),
+            "batches": (scheduled_count + batch_size - 1) // batch_size
+        }
+        logger.info(f"{result['message']} in {result['batches']} batches")
+        return result
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error scheduling weekly match availability: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error scheduling weekly match availability: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
 

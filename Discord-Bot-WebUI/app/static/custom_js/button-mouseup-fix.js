@@ -11,5 +11,5 @@ document.addEventListener('DOMContentLoaded', function() {
         button.style.transform = 'none';
     });
     
-    console.log('Simple button fix applied');
+    // Button fix applied successfully
 });

@@ -11,12 +11,14 @@ All routes are protected by login and role requirements.
 """
 
 import logging
+import time
+import requests
 from datetime import datetime, timedelta
 
 from celery.result import AsyncResult
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, jsonify, abort, g
+    request, jsonify, abort, g, current_app
 )
 from sqlalchemy import func
 from flask_login import login_required
@@ -37,7 +39,7 @@ from app.forms import (
 from app.models import (
     Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Feedback, FeedbackReply, Note, Team, Match,
-    Player
+    Player, Availability, User
 )
 from app.tasks.tasks_core import (
     schedule_season_availability,
@@ -432,10 +434,13 @@ def force_send_message(message_id):
 @role_required('Global Admin')
 def schedule_next_week():
     """
-    Initiate the scheduling task for the next week.
+    Initiate the scheduling task specifically for the next week's Sunday matches.
+    Schedules RSVP messages to be sent on Monday mornings.
     """
-    task = schedule_season_availability.delay()
-    flash('Next week scheduling task has been initiated.', 'success')
+    from app.tasks.tasks_rsvp import schedule_weekly_match_availability
+    
+    task = schedule_weekly_match_availability.delay()
+    flash('Next week\'s Sunday matches scheduling task has been initiated.', 'success')
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
@@ -456,6 +461,253 @@ def rsvp_status(match_id):
         abort(404)
     rsvp_data = get_rsvp_status_data(match, session=session)
     return render_template('admin/rsvp_status.html', title='RSVP Status', match=match, rsvps=rsvp_data)
+
+
+@admin_bp.route('/admin/send_custom_sms', methods=['POST'], endpoint='send_custom_sms')
+@login_required
+@role_required('Global Admin')
+def send_custom_sms():
+    """
+    Send a custom SMS message to a player.
+    
+    Expects:
+    - player_id: ID of the player to message
+    - phone: Phone number to send to
+    - message: The message content
+    - match_id: Optional - ID of the match for context
+    """
+    session = g.db_session
+    player_id = request.form.get('player_id')
+    phone = request.form.get('phone')
+    message = request.form.get('message')
+    match_id = request.form.get('match_id')
+    
+    if not player_id or not phone or not message:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        flash('Phone number and message are required.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    player = session.query(Player).get(player_id)
+    if not player:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Player not found'}), 404
+        flash('Player not found.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    # Check if user has SMS notifications enabled
+    user = player.user
+    if not user or not user.sms_notifications:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'SMS notifications are disabled for this user'}), 403
+        flash('SMS notifications are disabled for this user.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    # Send the SMS
+    from app.sms_helpers import send_sms
+    success, result = send_sms(phone, message, user_id=user.id)
+    
+    if success:
+        # Log the SMS
+        logger.info(f"Admin {safe_current_user.id} sent SMS to player {player_id}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': True, 'message': 'SMS sent successfully'})
+        flash('SMS sent successfully.', 'success')
+    else:
+        logger.error(f"Failed to send SMS to player {player_id}: {result}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': f'Failed to send SMS: {result}'})
+        flash(f'Failed to send SMS: {result}', 'danger')
+    
+    if match_id:
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    return redirect(url_for('admin.admin_dashboard'))
+
+
+@admin_bp.route('/admin/send_discord_dm', methods=['POST'], endpoint='send_discord_dm')
+@login_required
+@role_required('Global Admin')
+def send_discord_dm():
+    """
+    Send a Discord DM to a player using the bot.
+    
+    Expects:
+    - player_id: ID of the player to message
+    - message: The message content
+    - match_id: Optional - ID of the match for context
+    """
+    session = g.db_session
+    player_id = request.form.get('player_id')
+    message = request.form.get('message')
+    match_id = request.form.get('match_id')
+    
+    if not player_id or not message:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        flash('Player ID and message are required.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    player = session.query(Player).get(player_id)
+    if not player or not player.discord_id:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Player not found or no Discord ID'}), 404
+        flash('Player not found or has no Discord ID.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    # Check if user has Discord notifications enabled
+    user = player.user
+    if not user or not user.discord_notifications:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Discord notifications are disabled for this user'}), 403
+        flash('Discord notifications are disabled for this user.', 'danger')
+        if match_id:
+            return redirect(url_for('admin.rsvp_status', match_id=match_id))
+        return redirect(url_for('admin.admin_dashboard'))
+    
+    # Send the Discord DM using the bot API
+    payload = {
+        "message": message,
+        "discord_id": player.discord_id
+    }
+    
+    bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'
+    
+    try:
+        response = requests.post(bot_api_url, json=payload, timeout=10)
+        if response.status_code == 200:
+            logger.info(f"Admin {safe_current_user.id} sent Discord DM to player {player_id}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'Discord DM sent successfully'})
+            flash('Discord DM sent successfully.', 'success')
+        else:
+            logger.error(f"Failed to send Discord DM to player {player_id}: {response.text}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Failed to send Discord DM'})
+            flash('Failed to send Discord DM.', 'danger')
+    except Exception as e:
+        logger.error(f"Error contacting Discord bot: {str(e)}")
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': f'Error contacting Discord bot: {str(e)}'})
+        flash(f'Error contacting Discord bot: {str(e)}', 'danger')
+    
+    if match_id:
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    return redirect(url_for('admin.admin_dashboard'))
+
+
+@admin_bp.route('/admin/update_rsvp', methods=['POST'], endpoint='update_rsvp')
+@login_required
+@role_required('Global Admin')
+def update_rsvp():
+    """
+    Update a player's RSVP status for a match.
+    
+    Expects:
+    - player_id: ID of the player
+    - match_id: ID of the match
+    - response: The RSVP response ('yes', 'no', 'maybe', 'no_response')
+    """
+    from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task, notify_frontend_of_rsvp_change_task
+    
+    session = g.db_session
+    player_id = request.form.get('player_id')
+    match_id = request.form.get('match_id')
+    response = request.form.get('response')
+    
+    if not player_id or not match_id or not response:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        flash('Player ID, match ID, and response are required.', 'danger')
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    
+    # Check if the player and match exist
+    player = session.query(Player).get(player_id)
+    match = session.query(Match).get(match_id)
+    if not player or not match:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': 'Player or match not found'}), 404
+        flash('Player or match not found.', 'danger')
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    
+    # If clearing the response
+    if response == 'no_response':
+        try:
+            # Delete the RSVP record
+            availability = session.query(Availability).filter_by(
+                player_id=player_id, 
+                match_id=match_id
+            ).first()
+            
+            if availability:
+                session.delete(availability)
+                session.commit()
+                logger.info(f"Admin {safe_current_user.id} cleared RSVP for player {player_id}, match {match_id}")
+                
+                # Notify Discord and frontend of the change
+                notify_discord_of_rsvp_change_task.delay(match_id=match_id)
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': True, 'message': 'RSVP cleared successfully'})
+                flash('RSVP cleared successfully.', 'success')
+            else:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({'success': True, 'message': 'No RSVP found to clear'})
+                flash('No RSVP found to clear.', 'info')
+        except Exception as e:
+            logger.error(f"Error clearing RSVP: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': f'Error clearing RSVP: {str(e)}'})
+            flash(f'Error clearing RSVP: {str(e)}', 'danger')
+    else:
+        try:
+            # Update or create the availability record
+            availability = session.query(Availability).filter_by(
+                match_id=match_id,
+                player_id=player_id
+            ).first()
+            
+            old_response = availability.response if availability else None
+            
+            if availability:
+                availability.response = response
+                availability.responded_at = datetime.utcnow()
+            else:
+                availability = Availability(
+                    match_id=match_id,
+                    player_id=player_id,
+                    response=response,
+                    discord_id=player.discord_id,
+                    responded_at=datetime.utcnow()
+                )
+                session.add(availability)
+            
+            session.commit()
+            logger.info(f"Admin {safe_current_user.id} updated RSVP for player {player_id}, match {match_id} to {response}")
+            
+            # Notify Discord and frontend of the change
+            notify_discord_of_rsvp_change_task.delay(match_id=match_id)
+            notify_frontend_of_rsvp_change_task.delay(match_id=match_id, player_id=player_id, response=response)
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'RSVP updated successfully'})
+            flash('RSVP updated successfully.', 'success')
+        except Exception as e:
+            logger.error(f"Error updating RSVP: {str(e)}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': f'Error updating RSVP: {str(e)}'})
+            flash(f'Error updating RSVP: {str(e)}', 'danger')
+    
+    return redirect(url_for('admin.rsvp_status', match_id=match_id))
 
 
 @admin_bp.route('/admin/reports', endpoint='admin_reports')

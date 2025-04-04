@@ -63,20 +63,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle closing modals - ensure full backdrop cleanup
     document.addEventListener('hidden.bs.modal', function(event) {
-        console.log("Modal hidden event triggered");
+        // Clean up when modal is hidden
         cleanupModalBackdrop();
     });
     
     // Handle ESC key for modals
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && document.querySelector('.modal.show')) {
-            console.log("ESC key pressed while modal is open");
+            // Handle ESC key while modal is open
             setTimeout(cleanupModalBackdrop, 300);
         }
     });
     
-    // Log message when script loads
-    console.log('Simple modal fix script loaded');
+    // Script initialization complete
     
     // Button size fix - removes any transforms directly via JavaScript
     function fixButtonSizes() {

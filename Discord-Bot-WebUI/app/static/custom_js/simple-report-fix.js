@@ -74,7 +74,7 @@ function fixIOSModalScrolling() {
         }
     `;
     document.head.appendChild(scrollingFix);
-    console.log('iOS modal scrolling fix applied');
+    // iOS modal scrolling fix applied
 }
 
 // Disable body scrolling for iOS when modal is open
@@ -111,7 +111,7 @@ function loadModalsIfNotFound() {
             success: function(modalContent) {
                 // Append modal content to the bottom of the body
                 $('body').append(modalContent);
-                console.log('Modals loaded dynamically');
+                // Modals loaded dynamically
                 resolve(true);
             },
             error: function(err) {
@@ -232,5 +232,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fix viewport height issues on mobile
     fixMobileViewportHeight();
     
-    console.log('Button transform and modal fixes applied');
+    // Button transform and modal fixes successfully applied
 });

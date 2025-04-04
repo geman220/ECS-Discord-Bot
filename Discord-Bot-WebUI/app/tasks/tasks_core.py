@@ -160,8 +160,20 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             home_team_name = match.home_team.name
             away_team_name = match.away_team.name
 
+        # Extract team IDs
+        if hasattr(match, 'home_team') and hasattr(match, 'away_team'):
+            home_team_id = match.home_team.id
+            away_team_id = match.away_team.id
+        else:
+            # For MLS matches, we need to handle differently
+            # Default to None if not available
+            home_team_id = getattr(match, 'home_team_id', None)
+            away_team_id = getattr(match, 'away_team_id', None)
+
         message_data = {
             "match_id": match.id,
+            "home_team_id": home_team_id,
+            "away_team_id": away_team_id,
             "home_channel_id": home_channel_id,
             "away_channel_id": away_channel_id,
             "match_date": match_date_str,
