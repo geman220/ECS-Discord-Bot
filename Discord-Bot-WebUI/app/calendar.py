@@ -144,8 +144,11 @@ def get_refs():
         refs = session_db.query(Player).filter_by(is_ref=True).all()
         ref_list = []
         for ref in refs:
+            # Get the team IDs this referee is associated with
+            ref_team_ids = [team.id for team in ref.teams]
+            
             # Exclude refs who are players on the match teams
-            if ref.team_id not in [match.home_team_id, match.away_team_id]:
+            if match.home_team_id not in ref_team_ids and match.away_team_id not in ref_team_ids:
                 matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
                     Match.date == match.date
                 ).count()
@@ -167,7 +170,7 @@ def get_refs():
 
 @calendar_bp.route('/calendar/assign_ref', endpoint='assign_ref', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Manager', 'Pub League Coach'])
 def assign_ref():
     """
     Assign a referee to a match.
@@ -208,12 +211,16 @@ def assign_ref():
             logger.error(f"Referee already assigned to match {conflicting_match.id} at the same time.")
             return jsonify({'error': 'Referee is already assigned to another match at this time.'}), 400
 
-        if ref.team_id in [match.home_team_id, match.away_team_id]:
+        # Get the team IDs this referee is associated with
+        ref_team_ids = [team.id for team in ref.teams]
+        
+        if match.home_team_id in ref_team_ids or match.away_team_id in ref_team_ids:
             logger.error(f"Referee {ref.name} is a player on one of the teams.")
             return jsonify({'error': 'Referee is on one of the teams in this match.'}), 400
 
         logger.info(f"Assigning Referee {ref.name} (ID: {ref_id}) to Match ID {match_id}")
         match.ref = ref
+        session_db.commit()
 
         return jsonify({'message': 'Referee assigned successfully.'}), 200
 
@@ -268,7 +275,7 @@ def available_refs():
 
 @calendar_bp.route('/calendar/remove_ref', endpoint='remove_ref', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Manager', 'Pub League Coach'])
 def remove_ref():
     """
     Remove the referee assignment from a match.
@@ -307,7 +314,7 @@ def remove_ref():
 
 @calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Manager', 'Pub League Coach'])
 def calendar_view():
     """
     Render the calendar view page.

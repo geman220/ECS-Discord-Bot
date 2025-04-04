@@ -2,171 +2,311 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Page Heading -->
-    <h1 class="h3 mb-4 text-gray-800">Teams Overview</h1>
-
-    <!-- Classic League Teams -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">
-                <i class="bx bx-football"></i> Classic Division Teams
-            </h6>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">Teams Overview</h2>
+                    <p class="text-muted">View all teams across our leagues</p>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
+    </div>
+
+    <!-- Tabs for different leagues -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <ul class="nav nav-pills mb-3" id="league-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="classic-tab" data-bs-toggle="pill" data-bs-target="#classic-teams" 
+                            type="button" role="tab" aria-controls="classic-teams" aria-selected="true">
+                        <i class="ti ti-ball-football me-1"></i>Classic Division
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="premier-tab" data-bs-toggle="pill" data-bs-target="#premier-teams" 
+                            type="button" role="tab" aria-controls="premier-teams" aria-selected="false">
+                        <i class="ti ti-trophy me-1"></i>Premier Division
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ecsfc-tab" data-bs-toggle="pill" data-bs-target="#ecsfc-teams" 
+                            type="button" role="tab" aria-controls="ecsfc-teams" aria-selected="false">
+                        <i class="ti ti-shield me-1"></i>ECS FC Division
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tab Content for Teams -->
+    <div class="tab-content" id="league-tab-content">
+        <!-- Classic League Teams -->
+        <div class="tab-pane fade show active" id="classic-teams" role="tabpanel" aria-labelledby="classic-tab">
+            <div class="row g-3">
                 {% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
                 {% if classic_teams %}
-                {% for team in classic_teams %}
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2 text-center">
-                                    <h5 class="card-title text-primary mb-1">{{ team.name }}</h5>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="bx bx-calendar"></i> {{ team.league.season.name }}
-                                    </p>
-                                    <p class="card-text text-muted mb-3">
-                                        <i class="bx bx-user"></i> {{ team.players | length }} Players
-                                    </p>
-                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-primary btn-sm">
-                                        <i class="bx bx-show"></i> View Team
-                                    </a>
+                    {% for team in classic_teams %}
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card h-100 team-card">
+                            <div class="card-body position-relative">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-md bg-primary me-3 d-flex align-items-center justify-content-center">
+                                        <i class="ti ti-users text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
+                                        <p class="card-text text-muted small mb-0">
+                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="team-meta mb-3">
+                                    <div class="d-flex align-items-center text-muted">
+                                        <div class="me-3">
+                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+                                        </div>
+                                        <div>
+                                            <i class="ti ti-trophy me-1"></i>{{ team.league.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-primary w-100">
+                                    <i class="ti ti-eye me-1"></i>View Team
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center p-4">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon mb-3">
+                                        <i class="ti ti-ball-football"></i>
+                                    </div>
+                                    <p class="empty-state-message">No Classic Division teams available.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="col-12">
-                    <p class="text-muted text-center">No Classic Division teams available.</p>
-                </div>
                 {% endif %}
             </div>
         </div>
-    </div>
-
-    <!-- Premier League Teams -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-success">
-                <i class="bx bx-trophy"></i> Premier Division Teams
-            </h6>
-        </div>
-        <div class="card-body">
-            <div class="row">
+        
+        <!-- Premier League Teams -->
+        <div class="tab-pane fade" id="premier-teams" role="tabpanel" aria-labelledby="premier-tab">
+            <div class="row g-3">
                 {% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}
                 {% if premier_teams %}
-                {% for team in premier_teams %}
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card border-left-success shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2 text-center">
-                                    <h5 class="card-title text-success mb-1">{{ team.name }}</h5>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="bx bx-calendar"></i> {{ team.league.season.name }}
-                                    </p>
-                                    <p class="card-text text-muted mb-3">
-                                        <i class="bx bx-user"></i> {{ team.players | length }} Players
-                                    </p>
-                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-success btn-sm">
-                                        <i class="bx bx-show"></i> View Team
-                                    </a>
+                    {% for team in premier_teams %}
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card h-100 team-card">
+                            <div class="card-body position-relative">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-md bg-success me-3 d-flex align-items-center justify-content-center">
+                                        <i class="ti ti-users text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
+                                        <p class="card-text text-muted small mb-0">
+                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="team-meta mb-3">
+                                    <div class="d-flex align-items-center text-muted">
+                                        <div class="me-3">
+                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+                                        </div>
+                                        <div>
+                                            <i class="ti ti-trophy me-1"></i>{{ team.league.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-success w-100">
+                                    <i class="ti ti-eye me-1"></i>View Team
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center p-4">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon mb-3">
+                                        <i class="ti ti-trophy"></i>
+                                    </div>
+                                    <p class="empty-state-message">No Premier Division teams available.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="col-12">
-                    <p class="text-muted text-center">No Premier Division teams available.</p>
-                </div>
                 {% endif %}
             </div>
         </div>
-    </div>
-
-    <!-- ECS FC Teams -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-warning">
-                <i class="bx bx-shield"></i> ECS FC Division Teams
-            </h6>
-        </div>
-        <div class="card-body">
-            <div class="row">
+        
+        <!-- ECS FC Teams -->
+        <div class="tab-pane fade" id="ecsfc-teams" role="tabpanel" aria-labelledby="ecsfc-tab">
+            <div class="row g-3">
                 {% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
                 {% if ecs_fc_teams %}
-                {% for team in ecs_fc_teams %}
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card border-left-warning shadow h-100 py-2">
-                        <div class="card-body">
-                            <div class="row no-gutters align-items-center">
-                                <div class="col mr-2 text-center">
-                                    <h5 class="card-title text-warning mb-1">{{ team.name }}</h5>
-                                    <p class="card-text text-muted mb-2">
-                                        <i class="bx bx-calendar"></i> {{ team.league.season.name }}
-                                    </p>
-                                    <p class="card-text text-muted mb-3">
-                                        <i class="bx bx-user"></i> {{ team.players | length }} Players
-                                    </p>
-                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-warning btn-sm">
-                                        <i class="bx bx-show"></i> View Team
-                                    </a>
+                    {% for team in ecs_fc_teams %}
+                    <div class="col-xl-4 col-md-6">
+                        <div class="card h-100 team-card">
+                            <div class="card-body position-relative">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="avatar avatar-md bg-warning me-3 d-flex align-items-center justify-content-center">
+                                        <i class="ti ti-users text-white"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-0">{{ team.name }}</h5>
+                                        <p class="card-text text-muted small mb-0">
+                                            <i class="ti ti-calendar-event me-1"></i>{{ team.league.season.name }}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="team-meta mb-3">
+                                    <div class="d-flex align-items-center text-muted">
+                                        <div class="me-3">
+                                            <i class="ti ti-users me-1"></i>{{ team.players | length }} Players
+                                        </div>
+                                        <div>
+                                            <i class="ti ti-shield me-1"></i>{{ team.league.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="btn btn-warning w-100">
+                                    <i class="ti ti-eye me-1"></i>View Team
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body text-center p-4">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon mb-3">
+                                        <i class="ti ti-shield"></i>
+                                    </div>
+                                    <p class="empty-state-message">No ECS FC Division teams available.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="col-12">
-                    <p class="text-muted text-center">No ECS FC Division teams available.</p>
-                </div>
                 {% endif %}
             </div>
         </div>
     </div>
-
 </div>
 {% endblock %}
+
 {% block custom_css %}
 <style>
-    /* Custom Card Borders */
-    .border-left-primary {
-        border-left: .25rem solid #4e73df !important;
+    /* Team Card Styling */
+    .team-card {
+        transition: all 0.2s ease;
+        border: none;
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.12);
     }
-
-    .border-left-warning {
-        border-left: .25rem solid #f6c23e !important;
+    
+    .team-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1.5rem rgba(161, 172, 184, 0.2);
     }
-
-    .border-left-success {
-        border-left: .25rem solid #1cc88a !important;
+    
+    /* Avatar & Icon Styling */
+    .avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
     }
-
-    /* Centering Text */
-    .text-center {
-        text-align: center;
+    
+    /* Empty State Styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--bs-secondary);
     }
-
-    /* Adjust Icon Sizes */
-    .card-title i {
-        margin-right: 5px;
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--bs-secondary);
     }
-
-    .card-text i {
-        margin-right: 5px;
+    
+    .empty-state-message {
+        font-size: 0.875rem;
     }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .card-body .row.no-gutters {
+    
+    /* Responsive Styling for Nav Pills */
+    @media (max-width: 767.98px) {
+        .nav-pills {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .nav-pills .nav-link {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.875rem;
+        }
+        
+        .team-meta {
             flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .team-meta > div {
+            width: 100%;
         }
     }
 </style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get saved active tab from localStorage if available
+        const activeTabId = localStorage.getItem('teamOverviewActiveTab');
+        if (activeTabId) {
+            const tabElement = document.getElementById(activeTabId);
+            if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+        
+        // Save active tab to localStorage when changed
+        const tabs = document.querySelectorAll('#league-tabs button');
+        tabs.forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                localStorage.setItem('teamOverviewActiveTab', event.target.id);
+            });
+        });
+        
+        // Mobile optimization - make tabs scrollable on small screens
+        if (window.innerWidth < 768) {
+            const tabContainer = document.querySelector('#league-tabs');
+            if (tabContainer) {
+                tabContainer.classList.add('overflow-auto', 'flex-nowrap');
+            }
+        }
+    });
+</script>
 {% endblock %}
