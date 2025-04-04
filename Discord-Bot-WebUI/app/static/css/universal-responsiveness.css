@@ -1,0 +1,646 @@
+/**
+ * Universal Responsiveness CSS
+ * 
+ * This file provides global responsive fixes that work across all screen sizes
+ * and devices. It uses a mobile-first approach and prevents desktop layouts
+ * from being affected by mobile optimizations.
+ */
+
+/* Base design system variables */
+:root {
+  /* Core sizing variables */
+  --input-height: 44px;
+  --button-height: 48px;
+  --border-radius: 0.375rem;
+  --touch-target-size: 44px;
+  --nav-item-height: 48px;
+  --card-spacing: 1rem;
+  --modal-spacing: 0.75rem;
+  --safe-area-top: env(safe-area-inset-top, 0);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0);
+  --safe-area-left: env(safe-area-inset-left, 0);
+  --safe-area-right: env(safe-area-inset-right, 0);
+  
+  /* Animation speeds */
+  --transition-speed: 0.15s;
+  
+  /* Z-index hierarchy */
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-modal-dialog: 1051;
+  --z-index-dropdown: 1052;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+  --z-index-toast: 1080;
+  --z-index-sidebar: 1090;
+  --z-index-sidebar-toggle: 1095;
+}
+
+/* Global fixes for all devices */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none; /* Prevents pull-to-refresh in some browsers */
+}
+
+/* Global form elements fix */
+input, 
+select, 
+textarea, 
+.form-control, 
+.form-select {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+  min-height: var(--input-height);
+  border-radius: var(--border-radius);
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  appearance: none;
+  transition: border-color var(--transition-speed) ease, 
+              box-shadow var(--transition-speed) ease;
+}
+
+/* Enhance form labels */
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Fix form select arrows */
+.form-select {
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
+}
+
+/* Improve checkboxes and radios */
+.form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  margin-right: 0.5rem;
+}
+
+/* Global button improvements */
+button, 
+.btn, 
+[class*="btn-"] {
+  min-height: var(--button-height);
+  border-radius: var(--border-radius);
+  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--transition-speed) ease-in-out, 
+              background-color var(--transition-speed) ease-in-out,
+              border-color var(--transition-speed) ease-in-out,
+              opacity var(--transition-speed) ease-in-out;
+}
+
+/* Fix button icon alignment */
+button i, 
+.btn i, 
+[class*="btn-"] i {
+  vertical-align: middle;
+  line-height: 1;
+  margin-right: 0.375rem;
+  font-size: 1.1em;
+}
+
+/* Remove transform effects that cause mobile issues */
+button:active, 
+.btn:active, 
+[class*="btn-"]:active {
+  transform: none !important;
+}
+
+/* Fix card layout */
+.card {
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  margin-bottom: var(--card-spacing);
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+  padding: 1rem;
+}
+
+.card-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Fix modal layout */
+.modal {
+  z-index: var(--z-index-modal) !important;
+}
+
+.modal-backdrop {
+  z-index: var(--z-index-modal-backdrop) !important;
+}
+
+.modal-dialog {
+  z-index: var(--z-index-modal-dialog) !important;
+  margin: 1.75rem auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - 3.5rem);
+}
+
+.modal-content {
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: var(--modal-spacing) var(--modal-spacing);
+  align-items: center;
+}
+
+.modal-header .btn-close {
+  font-size: 1.25rem;
+  padding: 0.5rem;
+  margin: -0.5rem -0.5rem -0.5rem auto;
+  background-color: transparent;
+  border: 0;
+  opacity: 0.5;
+  min-height: unset;
+}
+
+.modal-title {
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.modal-body {
+  padding: var(--modal-spacing);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  padding: var(--modal-spacing);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Enhance tables */
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  vertical-align: top;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Fix dropdowns */
+.dropdown-menu {
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  z-index: var(--z-index-dropdown);
+  padding: 0.5rem 0;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  min-height: var(--touch-target-size);
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-item:active,
+.dropdown-item:focus {
+  outline: none;
+}
+
+/* Fix nav tabs */
+.nav-tabs,
+.nav-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.nav-tabs::-webkit-scrollbar,
+.nav-pills::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.nav-tabs .nav-link,
+.nav-pills .nav-link {
+  min-height: var(--nav-item-height);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 0.5rem 1rem;
+}
+
+/* Fix alert messages */
+.alert {
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Fix toasts */
+.toast {
+  z-index: var(--z-index-toast);
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+}
+
+/* Sidebar improvements */
+.layout-menu {
+  z-index: var(--z-index-sidebar) !important;
+}
+
+.layout-overlay {
+  z-index: calc(var(--z-index-sidebar) - 10) !important;
+}
+
+.layout-menu-toggle {
+  z-index: var(--z-index-sidebar-toggle) !important;
+}
+
+/* Select2 fixes */
+.select2-container--bootstrap-5 .select2-selection {
+  min-height: var(--input-height) !important;
+  font-size: 16px !important;
+  border-radius: var(--border-radius) !important;
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+  padding-top: 0.25rem !important;
+}
+
+.select2-container--bootstrap-5 .select2-dropdown {
+  border-radius: var(--border-radius) !important;
+  z-index: var(--z-index-dropdown) !important;
+}
+
+.select2-container--bootstrap-5 .select2-results__option {
+  min-height: var(--touch-target-size) !important;
+  padding: 0.5rem 1rem !important;
+}
+
+/* Datepicker fixes */
+.flatpickr-calendar {
+  z-index: calc(var(--z-index-dropdown) + 1) !important;
+}
+
+.flatpickr-day {
+  min-height: var(--touch-target-size) !important;
+  line-height: var(--touch-target-size) !important;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 767.98px) {
+  :root {
+    --card-spacing: 0.75rem;
+    --modal-spacing: 0.75rem;
+  }
+  
+  /* Better spacing for mobile */
+  .container-p-y {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+  
+  /* More compact cards */
+  .card-header {
+    padding: 0.75rem;
+  }
+  
+  .card-body {
+    padding: 0.75rem;
+  }
+  
+  .card-footer {
+    padding: 0.75rem;
+  }
+  
+  /* Better modal sizing */
+  .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+  
+  /* Stack input groups vertically */
+  .input-group {
+    flex-wrap: wrap;
+  }
+  
+  .input-group > .form-control,
+  .input-group > .form-select {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+    border-radius: var(--border-radius) !important;
+  }
+  
+  .input-group > .btn {
+    flex: 0 0 auto;
+    width: auto;
+    border-radius: var(--border-radius) !important;
+  }
+  
+  /* Improve tables on mobile */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Fix modal footer buttons */
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .modal-footer > .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    margin-left: 0 !important;
+  }
+  
+  /* Make buttons stack better */
+  .d-flex .btn + .btn {
+    margin-left: 0.5rem;
+  }
+  
+  /* Improve layout for input groups */
+  .input-group-prepend,
+  .input-group-append {
+    display: flex;
+    width: 100%;
+  }
+  
+  /* Make form labels clearer */
+  .form-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  
+  /* Better select2 on mobile */
+  .select2-container {
+    width: 100% !important;
+  }
+  
+  /* Fix fixed positioning for iOS */
+  .position-fixed {
+    position: absolute !important;
+  }
+  
+  /* Fix bottom navigation spacing */
+  .content-footer {
+    padding: 1rem 0.75rem !important;
+  }
+}
+
+/* Tablet specific adjustments */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  /* Make modals more reasonably sized */
+  .modal-dialog.modal-lg {
+    max-width: 90%;
+  }
+  
+  /* Better table spacing */
+  .table th, 
+  .table td {
+    padding: 0.75rem;
+  }
+}
+
+/* Desktop-only adjustments - won't affect mobile */
+@media (hover: hover) and (pointer: fine) {
+  /* Remove transform effects completely for desktop */
+  button, 
+  .btn, 
+  [class*="btn-"] {
+    transform: none !important;
+    transition: background-color var(--transition-speed) ease-in-out, 
+              color var(--transition-speed) ease-in-out,
+              border-color var(--transition-speed) ease-in-out,
+              opacity var(--transition-speed) ease-in-out !important;
+  }
+  
+  button:active, 
+  .btn:active, 
+  [class*="btn-"]:active,
+  button:hover, 
+  .btn:hover, 
+  [class*="btn-"]:hover {
+    transform: none !important;
+  }
+  
+  /* Better hover effects for desktop */
+  .btn:hover {
+    opacity: 0.9;
+  }
+  
+  /* More appropriate modal sizing */
+  .modal-dialog {
+    min-height: auto;
+  }
+}
+
+/* Fix for iPhone notches and dynamic island */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar-fixed {
+    padding-top: var(--safe-area-top);
+  }
+  
+  .layout-wrapper {
+    padding-left: var(--safe-area-left);
+    padding-right: var(--safe-area-right);
+  }
+  
+  .content-footer {
+    padding-bottom: calc(1rem + var(--safe-area-bottom));
+  }
+}
+
+/* Dark mode adjustments for form controls */
+html[data-style="dark"] input,
+html[data-style="dark"] select,
+html[data-style="dark"] textarea,
+html[data-style="dark"] .form-control,
+html[data-style="dark"] .form-select {
+  background-color: var(--vz-body-bg, #2a2a2a) !important;
+  border-color: var(--vz-border-color, #444) !important;
+  color: var(--vz-body-color, #fff) !important;
+}
+
+/* Dark mode Select2 adjustments */
+html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,
+html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option {
+  background-color: var(--vz-body-bg, #2a2a2a) !important;
+  color: var(--vz-body-color, #fff) !important;
+}
+
+html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single,
+html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--multiple {
+  background-color: var(--vz-body-bg, #2a2a2a) !important;
+  border-color: var(--vz-border-color, #444) !important;
+  color: var(--vz-body-color, #fff) !important;
+}
+
+/* Fix z-index conflicts with modals and dropdowns */
+.select2-container--open {
+  z-index: calc(var(--z-index-modal-dialog) + 10) !important;
+}
+
+/* Ensure dropdowns appear above other elements */
+.dropdown-menu.show {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Fix for toast containers */
+.toast-container {
+  z-index: var(--z-index-toast) !important;
+}
+
+/* Fix modal backdrop overlay issues */
+body.modal-open {
+  overflow: hidden;
+  padding-right: 0 !important; /* Prevents layout shift */
+}
+
+/* Remove ghost click delay on mobile devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Datatables mobile improvements */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  min-height: var(--touch-target-size);
+  min-width: var(--touch-target-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0.25rem;
+}
+
+/* Fix for avatar sizing */
+.avatar img {
+  object-fit: cover;
+}
+
+.avatar-sm img {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.avatar-md img {
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.avatar-lg img {
+  width: 64px !important;
+  height: 64px !important;
+}
+
+/* Improve accessibility for clickable elements */
+[role="button"],
+a,
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer;
+}
+
+/* Fix sticky headers */
+.sticky-top {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+/* Fix sticky footers */
+.sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 1020;
+}
+
+/* Fix badge display */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  border-radius: 50rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Fix autocomplete dropdown */
+.ui-autocomplete {
+  z-index: calc(var(--z-index-dropdown) + 5) !important;
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: var(--border-radius);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.ui-menu-item {
+  min-height: var(--touch-target-size);
+  padding: 0.5rem !important;
+}
+
+/* Improve scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+html[data-style="dark"] ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+html[data-style="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}

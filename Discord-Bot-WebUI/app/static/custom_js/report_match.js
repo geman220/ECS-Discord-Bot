@@ -17,8 +17,6 @@ $(document).ready(function () {
     if (typeof window.playerChoices === 'undefined') {
         window.playerChoices = {};
     }
-
-    console.log("Match reporting system initialized");
     
     // Setup edit match buttons when available
     setupEditMatchButtons();
@@ -263,9 +261,7 @@ function setupEditMatchButtons() {
     const editButtons = document.querySelectorAll('.edit-match-btn');
     
     if (editButtons.length > 0) {
-        console.log(`Found ${editButtons.length} edit match buttons to fix`);
-        
-        // Manually fix each button
+        // Silently fix each button
         editButtons.forEach(function(button) {
             // Get the match ID
             const matchId = button.getAttribute('data-match-id');
