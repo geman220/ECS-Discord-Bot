@@ -4,120 +4,209 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4">
-        <span class="text-muted fw-light">System /</span> Task Monitor
-    </h4>
-
-    <!-- Task Status Summary Card -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Task Status Summary</h5>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="text-primary mb-1">System Monitoring</h2>
+                    <p class="text-muted">Track scheduled tasks and system status</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">Last Updated: <span id="lastUpdated"></span></span>
+                    <button type="button" id="refreshButton" class="btn btn-icon btn-outline-primary btn-sm">
+                        <i class="ti ti-refresh"></i>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <!-- Total Scheduled Tasks -->
-                <div class="col-md-3">
-                    <div class="card bg-label-primary text-center">
-                        <div class="card-body">
-                            <h6>Total Scheduled Tasks</h6>
-                            <h2 id="totalTasks">0</h2>
+    </div>
+
+    <!-- System Health Overview -->
+    <div class="row">
+        <!-- Workers Status -->
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Celery Workers</h5>
+                            <small class="text-muted">Background task processors</small>
+                        </div>
+                        <div class="card-icon">
+                            <span class="badge bg-label-success rounded-pill">Online</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mt-3 gap-2">
+                        <div class="progress flex-grow-1" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <small class="text-success fw-semibold">100%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Redis Status -->
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Redis</h5>
+                            <small class="text-muted">Task queue and cache</small>
+                        </div>
+                        <div class="card-icon">
+                            <span id="redisConnectionStatus" class="badge bg-label-success rounded-pill">Connected</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <span class="badge bg-label-info rounded-pill mb-2">
+                            <i class="ti ti-database me-1"></i><span id="redisKeysCount">0</span> Keys
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduled Tasks -->
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Scheduled Tasks</h5>
+                            <small class="text-muted">Upcoming tasks</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-calendar-stats fs-3 text-primary"></i>
+                        </div>
+                    </div>
+                    <h3 class="mt-2 pt-1 mb-0" id="totalTasks">0</h3>
+                    <span class="badge bg-label-primary mb-0">
+                        <i class="ti ti-clock me-1"></i>Pending: <span id="pendingTasks">0</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Status -->
+        <div class="col-xl-3 col-lg-6 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Task Status</h5>
+                            <small class="text-muted">Execution results</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-report fs-3 text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <span class="badge bg-label-success rounded-pill">
+                            <i class="ti ti-check me-1"></i>Success: <span id="successfulTasks">0</span>
+                        </span>
+                        <span class="badge bg-label-danger rounded-pill">
+                            <i class="ti ti-x me-1"></i>Failed: <span id="failedTasks">0</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Actions Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Admin Actions</h5>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-xl-3 col-md-6">
+                            <button type="button" id="revokeAllButton" class="btn btn-danger btn-sm w-100">
+                                <i class="ti ti-trash me-1"></i>Revoke All Tasks
+                            </button>
+                        </div>
+                        <div class="col-xl-3 col-md-6">
+                            <a href="{{ url_for('monitoring.db_monitoring') }}" class="btn btn-primary btn-sm w-100">
+                                <i class="ti ti-database me-1"></i>Database Monitoring
+                            </a>
+                        </div>
+                        <div class="col-xl-3 col-md-6">
+                            <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="fetchData()">
+                                <i class="ti ti-refresh me-1"></i>Refresh Data
+                            </button>
                         </div>
                     </div>
                 </div>
-                <!-- Pending Tasks -->
-                <div class="col-md-3">
-                    <div class="card bg-label-warning text-center">
-                        <div class="card-body">
-                            <h6>Pending Tasks</h6>
-                            <h2 id="pendingTasks">0</h2>
-                        </div>
-                    </div>
-                </div>
-                <!-- Successful Tasks -->
-                <div class="col-md-3">
-                    <div class="card bg-label-success text-center">
-                        <div class="card-body">
-                            <h6>Successful Tasks</h6>
-                            <h2 id="successfulTasks">0</h2>
-                        </div>
-                    </div>
-                </div>
-                <!-- Failed Tasks -->
-                <div class="col-md-3">
-                    <div class="card bg-label-danger text-center">
-                        <div class="card-body">
-                            <h6>Failed Tasks</h6>
-                            <h2 id="failedTasks">0</h2>
-                        </div>
-                    </div>
-                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading and Error States -->
+    <div id="loadingSpinner" class="d-flex justify-content-center align-items-center py-4 mb-4" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <div id="errorAlert" class="alert alert-danger mb-4" style="display: none;">
+        <div class="d-flex">
+            <i class="ti ti-alert-circle me-2"></i>
+            <div>
+                <h6 class="alert-heading mb-1">Error</h6>
+                <span id="errorMessage"></span>
             </div>
         </div>
     </div>
 
     <!-- Scheduled Tasks Card -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Scheduled Tasks</h5>
-            <div class="d-flex align-items-center">
-                <small class="text-muted me-2">Last Updated: <span id="lastUpdated"></span></small>
-                <button type="button" id="refreshButton" class="btn btn-icon btn-outline-primary btn-sm me-2">
-                    <i class="ti ti-refresh"></i>
-                </button>
-                <button type="button" id="revokeAllButton" class="btn btn-danger btn-sm">
-                    Revoke All Tasks
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            <!-- Loading Spinner -->
-            <div id="loadingSpinner" class="d-flex justify-content-center align-items-center py-4" style="display: none;">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-
-            <!-- Error Alert -->
-            <div id="errorAlert" class="alert alert-danger" style="display: none;">
-                <div class="d-flex">
-                    <i class="ti ti-alert-circle me-2"></i>
-                    <div>
-                        <h6 class="alert-heading mb-1">Error</h6>
-                        <span id="errorMessage"></span>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Scheduled Tasks</h5>
                     </div>
                 </div>
-            </div>
-
-            <!-- Tasks Accordion -->
-            <div id="tasksAccordion" class="accordion">
-                <!-- Tasks will be populated here -->
+                <div class="card-body p-0">
+                    <!-- Tasks Accordion -->
+                    <div id="tasksAccordion" class="accordion accordion-flush">
+                        <!-- Tasks will be populated here -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Redis Task Entries Card -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Redis Task Entries</h5>
-            <span id="redisConnectionStatus" class="badge bg-success">Connected</span>
-        </div>
-        <div class="card-body">
-            <!-- Redis Keys Table -->
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Key</th>
-                            <th>Task ID</th>
-                            <th>Status</th>
-                            <th>TTL</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="redisKeysTable">
-                        <!-- Redis keys will be populated here -->
-                    </tbody>
-                </table>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-database me-2"></i>Redis Task Entries</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Key</th>
+                                <th>Task ID</th>
+                                <th>Status</th>
+                                <th>Countdown</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="redisKeysTable">
+                            <!-- Redis keys will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -133,18 +222,131 @@
                 <div class="modal-body">
                     <p id="taskActionMessage"></p>
                     <div class="alert alert-warning">
-                        <i class="ti ti-alert-triangle me-2"></i>
-                        This action cannot be undone.
+                        <div class="d-flex">
+                            <i class="ti ti-alert-triangle me-2"></i>
+                            <div>This action cannot be undone.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger" id="confirmTaskAction">Confirm</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Status badges */
+    .badge.rounded-pill {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Task accordion styling */
+    .accordion-button:not(.collapsed) {
+        color: var(--bs-primary);
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+    }
+    
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0, 0, 0, 0.125);
+    }
+    
+    /* Section styling */
+    .card-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Empty state styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        color: var(--bs-secondary);
+        margin-bottom: 1rem;
+    }
+    
+    /* Timeline for tasks */
+    .match-timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .match-timeline:before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0.75rem;
+        height: 100%;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    
+    .match-timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+    
+    .match-timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    
+    .timeline-point {
+        position: absolute;
+        left: -2rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    /* Status colors for timeline */
+    .status-pending {
+        background-color: var(--bs-warning);
+    }
+    
+    .status-success {
+        background-color: var(--bs-success);
+    }
+    
+    .status-failure {
+        background-color: var(--bs-danger);
+    }
+    
+    .status-unknown {
+        background-color: var(--bs-info);
+    }
+    
+    /* Media queries for responsive design */
+    @media (max-width: 767.98px) {
+        .match-timeline {
+            padding-left: 1.5rem;
+        }
+        
+        .timeline-point {
+            left: -1.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            font-size: 0.75rem;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block custom_js %}
@@ -169,21 +371,90 @@
 
     // Utility: Format ISO date string into local date/time string
     function formatLocalDate(isoDate) {
+        if (!isoDate) return 'N/A';
         const d = new Date(isoDate);
         return d.toLocaleString();
     }
 
-    // New function: Create match details HTML (if provided)
+    // Format relative time
+    function formatRelativeTime(isoDate) {
+        if (!isoDate) return 'N/A';
+        
+        const now = new Date();
+        const date = new Date(isoDate);
+        const diffMs = date - now;
+        const diffSec = Math.floor(diffMs / 1000);
+        
+        if (diffSec < 0) {
+            // In the past
+            const absDiff = Math.abs(diffSec);
+            if (absDiff < 60) return 'Just now';
+            if (absDiff < 3600) return `${Math.floor(absDiff / 60)} minutes ago`;
+            if (absDiff < 86400) return `${Math.floor(absDiff / 3600)} hours ago`;
+            return `${Math.floor(absDiff / 86400)} days ago`;
+        } else {
+            // In the future
+            if (diffSec < 60) return 'In less than a minute';
+            if (diffSec < 3600) return `In ${Math.floor(diffSec / 60)} minutes`;
+            if (diffSec < 86400) return `In ${Math.floor(diffSec / 3600)} hours`;
+            return `In ${Math.floor(diffSec / 86400)} days`;
+        }
+    }
+
+    // Create match details HTML
     function createMatchDetails(details) {
         return `
         <div class="card mb-3">
+            <div class="card-header border-bottom">
+                <h6 class="card-title mb-0">Match Details</h6>
+            </div>
             <div class="card-body">
-                <h6>Match Details</h6>
-                <p><strong>Opponent:</strong> ${details.opponent}</p>
-                <p><strong>Match Time:</strong> ${formatLocalDate(details.date_time)}</p>
-                <p><strong>Thread Scheduled:</strong> ${details.thread_creation_time ? formatLocalDate(details.thread_creation_time) : 'N/A'}</p>
-                <p><strong>Live Reporting Status:</strong> ${details.live_reporting_status}</p>
-                <p><strong>Live Reporting Scheduled:</strong> ${details.live_reporting_scheduled ? 'Yes' : 'No'}</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-primary me-2">
+                                <i class="ti ti-users"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Opponent</span>
+                                <p class="text-muted mb-0">${details.opponent}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-info me-2">
+                                <i class="ti ti-calendar"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Match Time</span>
+                                <p class="text-muted mb-0">${formatLocalDate(details.date_time)}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-warning me-2">
+                                <i class="ti ti-message-circle"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Thread Creation</span>
+                                <p class="text-muted mb-0">${details.thread_creation_time ? formatLocalDate(details.thread_creation_time) : 'Not scheduled'}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar avatar-sm bg-label-success me-2">
+                                <i class="ti ti-message-report"></i>
+                            </div>
+                            <div>
+                                <span class="fw-medium">Live Reporting</span>
+                                <p class="text-muted mb-0">${details.live_reporting_scheduled ? 'Scheduled' : 'Not scheduled'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>`;
     }
@@ -204,6 +475,7 @@
     const tasksAccordion = document.getElementById('tasksAccordion');
     const redisConnectionStatus = document.getElementById('redisConnectionStatus');
     const redisKeysTable = document.getElementById('redisKeysTable');
+    const redisKeysCount = document.getElementById('redisKeysCount');
     const refreshButton = document.getElementById('refreshButton');
     const revokeAllButton = document.getElementById('revokeAllButton');
 
@@ -264,7 +536,8 @@
             Object.values(tasks.matches).forEach(match => {
                 ['thread_task', 'reporting_task'].forEach(taskType => {
                     const task = match[taskType];
-                    if (task && task.status) {
+                    if (task) {
+                        // Count all tasks, even those with null status
                         counts.total++;
                         updateTaskCount(counts, task.status);
                     }
@@ -276,6 +549,8 @@
     }
 
     function updateTaskCount(counts, status) {
+        if (!status) return; // Skip if status is null
+        
         switch (status) {
             case 'PENDING':
                 counts.pending++;
@@ -287,6 +562,8 @@
                 counts.failed++;
                 break;
             default:
+                // Count unknown statuses as pending for the summary
+                counts.pending++;
                 break;
         }
     }
@@ -297,8 +574,12 @@
 
         if (!tasks.matches || Object.keys(tasks.matches).length === 0) {
             tasksAccordion.innerHTML = `
-            <div class="alert alert-info">
-                No scheduled tasks found.
+            <div class="empty-state py-5">
+                <div class="empty-state-icon">
+                    <i class="ti ti-calendar-off"></i>
+                </div>
+                <h6 class="mt-1">No Scheduled Tasks</h6>
+                <p class="text-muted">There are currently no tasks scheduled in the system.</p>
             </div>`;
             return;
         }
@@ -314,22 +595,38 @@
         // If additional match details exist, display them in the header
         let headerText = `Match ${matchId}`;
         if (matchData.match_details) {
-            headerText += ` - ${matchData.match_details.opponent} (${formatLocalDate(matchData.match_details.date_time)})`;
+            headerText = `Match: ${matchData.match_details.opponent}`;
         }
+        
         const div = document.createElement('div');
         div.className = 'accordion-item';
         div.innerHTML = `
         <h2 class="accordion-header">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#match-${matchId}">
-                ${headerText}
-                ${getStatusBadges(matchData)}
+                <div class="d-flex align-items-center flex-grow-1">
+                    <div class="avatar avatar-sm bg-label-primary me-2">
+                        <i class="ti ti-soccer-field"></i>
+                    </div>
+                    <div>
+                        <span class="fw-medium">${headerText}</span>
+                        <div class="d-flex align-items-center gap-1 mt-1">
+                            ${getStatusBadges(matchData)}
+                        </div>
+                    </div>
+                </div>
             </button>
         </h2>
         <div id="match-${matchId}" class="accordion-collapse collapse">
             <div class="accordion-body">
-                ${createTaskDetails(matchData)}
-                ${matchData.match_details ? createMatchDetails(matchData.match_details) : ''}
+                <div class="row">
+                    <div class="col-xl-6 col-lg-12 mb-4">
+                        ${createTaskDetails(matchData)}
+                    </div>
+                    <div class="col-xl-6 col-lg-12">
+                        ${matchData.match_details ? createMatchDetails(matchData.match_details) : ''}
+                    </div>
+                </div>
             </div>
         </div>`;
         return div;
@@ -339,15 +636,17 @@
     function getStatusBadges(matchData) {
         let badges = '';
 
-        if (matchData.thread_task && matchData.thread_task.status) {
-            badges += `<span class="badge bg-${getStatusColor(matchData.thread_task.status)} ms-2">
-            Thread: ${matchData.thread_task.status}
+        if (matchData.thread_task) {
+            const status = matchData.thread_task.status || 'UNKNOWN';
+            badges += `<span class="badge bg-label-${getStatusColor(status)}">
+            <i class="ti ti-message-circle me-1"></i>Thread: ${status}
         </span>`;
         }
 
-        if (matchData.reporting_task && matchData.reporting_task.status) {
-            badges += `<span class="badge bg-${getStatusColor(matchData.reporting_task.status)} ms-2">
-            Reporting: ${matchData.reporting_task.status}
+        if (matchData.reporting_task) {
+            const status = matchData.reporting_task.status || 'UNKNOWN';
+            badges += `<span class="badge bg-label-${getStatusColor(status)}">
+            <i class="ti ti-report me-1"></i>Reporting: ${status}
         </span>`;
         }
 
@@ -356,6 +655,8 @@
 
     // Get appropriate color for status
     function getStatusColor(status) {
+        if (!status) return 'secondary';
+        
         switch (status) {
             case 'SUCCESS':
                 return 'success';
@@ -363,6 +664,8 @@
                 return 'warning';
             case 'FAILURE':
                 return 'danger';
+            case 'UNKNOWN':
+                return 'info';
             default:
                 return 'secondary';
         }
@@ -370,71 +673,102 @@
 
     // Create detailed task information for tasks
     function createTaskDetails(matchData) {
-        let html = '';
+        let html = '<div class="match-timeline">';
 
         if (matchData.thread_task) {
-            html += createTaskSection('Thread Creation Task', matchData.thread_task);
+            html += createTaskSection('Thread Creation Task', matchData.thread_task, 'message-circle');
         }
 
         if (matchData.reporting_task) {
-            html += createTaskSection('Live Reporting Task', matchData.reporting_task);
+            html += createTaskSection('Live Reporting Task', matchData.reporting_task, 'report');
         }
 
+        html += '</div>';
         return html;
     }
 
     // Create a section for an individual task
-    function createTaskSection(title, task) {
+    function createTaskSection(title, task, icon) {
+        // Default status if null
+        const status = task.status || 'UNKNOWN';
+        
+        // Set task type based on title
+        const taskType = title.toLowerCase().includes('thread') ? 'thread' : 'reporting';
+        
+        // Ensure task has match_id by examining key or match_key
+        let matchId = '';
+        if (task.match_key) {
+            // Extract match ID from key format like "match_scheduler:12345:thread"
+            const parts = task.match_key.split(':');
+            if (parts.length >= 2) {
+                matchId = parts[1];
+            }
+        }
+        
+        // Get match ID from parent object if not found in key
+        if (!matchId && task.match_id) {
+            matchId = task.match_id;
+        }
+        
+        const statusIconMap = {
+            'PENDING': 'clock',
+            'SUCCESS': 'check',
+            'FAILURE': 'x',
+            'UNKNOWN': 'help'
+        };
+        
+        const statusIcon = statusIconMap[status] || 'help';
+        const statusClass = status.toLowerCase();
+        
+        // Store task type and match ID for use in the buttons
+        task.task_type = taskType;
+        task.match_id = matchId;
+        
         return `
-        <div class="card mb-3">
-            <div class="card-header">
-                <h5 class="mb-0">${title}</h5>
+        <div class="match-timeline-item">
+            <div class="timeline-point status-${statusClass}">
+                <i class="ti ti-${statusIcon} text-white"></i>
             </div>
-            <div class="card-body">
-                <dl class="row">
-                    <dt class="col-sm-3">Task ID</dt>
-                    <dd class="col-sm-9">${task.id || 'N/A'}</dd>
-
-                    <dt class="col-sm-3">Status</dt>
-                    <dd class="col-sm-9">
-                        <span class="badge bg-${getStatusColor(task.status)}">
-                            ${task.status}
-                        </span>
-                    </dd>
-
-                    ${task.info ? `
-                    <dt class="col-sm-3">Info</dt>
-                    <dd class="col-sm-9">${task.info}</dd>
-                    ` : ''}
-                </dl>
-                <dl class="row">
-                    <dt class="col-sm-3">Countdown</dt>
-                    <dd class="col-sm-9">${task.ttl !== null ? secondsToHMS(task.ttl) : 'N/A'}</dd>
-                </dl>
-
-                <div class="btn-group">
-                    <button class="btn btn-danger btn-sm" onclick="revokeTask('${task.id}', '${task.match_key}')">
-                        Revoke Task
-                    </button>
-                    <button class="btn btn-warning btn-sm" onclick="rescheduleTask('${task.id}', '${task.match_key}')">
-                        Reschedule
-                    </button>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="ti ti-${icon} me-1"></i>${title}
+                    </h6>
+                    <span class="badge bg-${getStatusColor(status)}">
+                        ${status}
+                    </span>
                 </div>
-            </div>
-        </div>`;
-    }
-
-    // New function: Create match details section
-    function createMatchDetails(details) {
-        return `
-        <div class="card mb-3">
-            <div class="card-body">
-                <h6>Match Details</h6>
-                <p><strong>Opponent:</strong> ${details.opponent}</p>
-                <p><strong>Match Time:</strong> ${formatLocalDate(details.date_time)}</p>
-                <p><strong>Thread Scheduled:</strong> ${details.thread_creation_time ? formatLocalDate(details.thread_creation_time) : 'N/A'}</p>
-                <p><strong>Live Reporting Status:</strong> ${details.live_reporting_status}</p>
-                <p><strong>Live Reporting Scheduled:</strong> ${details.live_reporting_scheduled ? 'Yes' : 'No'}</p>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Task ID</small>
+                            <span class="d-block text-truncate" style="max-width: 200px;">${task.id || 'N/A'}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Countdown</small>
+                            <span>${task.ttl !== null ? secondsToHMS(task.ttl) : 'N/A'}</span>
+                        </div>
+                        ${task.info ? `
+                        <div class="col-md-12">
+                            <small class="text-muted d-block">Info</small>
+                            <span>${task.info}</span>
+                        </div>
+                        ` : ''}
+                        <!-- Hidden details for debugging -->
+                        <div class="col-md-12">
+                            <small class="text-muted d-block">Redis Key</small>
+                            <span class="d-block text-truncate" style="max-width: 100%;">match_scheduler:${matchId}:${taskType}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-sm btn-danger" onclick="revokeTask('${task.id || ''}', 'match_scheduler:${matchId}:${taskType}')">
+                            <i class="ti ti-trash me-1"></i>Revoke
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="rescheduleTask('${task.id || ''}', 'match_scheduler:${matchId}:${taskType}')">
+                            <i class="ti ti-refresh me-1"></i>Reschedule
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>`;
     }
@@ -442,11 +776,18 @@
     // Update Redis keys table
     function updateRedisKeysTable(redis) {
         redisKeysTable.innerHTML = '';
+        redisKeysCount.textContent = redis.total || 0;
 
         if (!redis.keys || Object.keys(redis.keys).length === 0) {
             redisKeysTable.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center">No Redis keys found.</td>
+                <td colspan="5" class="text-center py-4">
+                    <div class="empty-state">
+                        <i class="ti ti-database-off empty-state-icon"></i>
+                        <h6 class="mt-1">No Redis Keys</h6>
+                        <p class="text-muted">No task entries found in Redis.</p>
+                    </div>
+                </td>
             </tr>`;
             return;
         }
@@ -463,6 +804,7 @@
         let stored = data.value || 'N/A';
         let taskId = stored;
         let eta = null;
+        
         // Attempt to parse the stored value as JSON to extract task ID and ETA
         try {
             const obj = JSON.parse(stored);
@@ -483,15 +825,19 @@
 
         const taskStatus = data.task_status ? data.task_status.status : 'N/A';
         tr.innerHTML = `
-        <td>${key}</td>
-        <td>${taskId || 'N/A'}</td>
+        <td>
+            <span class="d-block text-truncate" style="max-width: 200px;">${key}</span>
+        </td>
+        <td>
+            <span class="d-block text-truncate" style="max-width: 150px;">${taskId || 'N/A'}</span>
+        </td>
         <td>
             <span class="badge bg-${getStatusColor(taskStatus)}">${taskStatus}</span>
         </td>
         <td>${countdown}</td>
         <td>
-            <button class="btn btn-danger btn-sm" onclick="revokeTask('${taskId}', '${key}')">
-                Revoke Task
+            <button class="btn btn-sm btn-icon btn-danger" onclick="revokeTask('${taskId || ''}', '${key || ''}')" data-bs-toggle="tooltip" title="Revoke Task">
+                <i class="ti ti-trash"></i>
             </button>
         </td>`;
         return tr;
@@ -501,7 +847,7 @@
     function updateRedisStatus(redis) {
         const status = redis.total > 0 ? 'Connected' : 'No Keys';
         const color = redis.total > 0 ? 'success' : 'warning';
-        redisConnectionStatus.className = `badge bg-${color}`;
+        redisConnectionStatus.className = `badge bg-label-${color} rounded-pill`;
         redisConnectionStatus.textContent = status;
     }
 
@@ -514,15 +860,28 @@
     // Task actions
     async function revokeTask(taskId, key) {
         if (!confirm('Are you sure you want to revoke this task?')) return;
+        
+        // Check if we have either taskId or key
+        if (!taskId && !key) {
+            showError('Cannot revoke task: Missing both task ID and key');
+            return;
+        }
 
         try {
+            // Prepare payload - only include non-empty values
+            const payload = {};
+            if (taskId) payload.task_id = taskId;
+            if (key) payload.key = key;
+            
+            console.log('Revoking task with payload:', payload);
+            
             const response = await fetch('{{ url_for("monitoring.revoke_task") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ task_id: taskId, key: key })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -540,14 +899,27 @@
     async function rescheduleTask(taskId, key) {
         if (!confirm('Are you sure you want to reschedule this task?')) return;
 
+        // Check if we have either taskId or key
+        if (!taskId && !key) {
+            showError('Cannot reschedule task: Missing both task ID and key');
+            return;
+        }
+
         try {
+            // Prepare payload - only include non-empty values
+            const payload = {};
+            if (taskId) payload.task_id = taskId;
+            if (key) payload.key = key;
+            
+            console.log('Rescheduling task with payload:', payload);
+            
             const response = await fetch('{{ url_for("monitoring.reschedule_task") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ task_id: taskId, key: key })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -591,8 +963,16 @@
     // Refresh Button
     refreshButton.addEventListener('click', fetchData);
 
-    // Initial fetch and setup refresh interval
+    // Initialize tooltips
     document.addEventListener('DOMContentLoaded', () => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: { show: 300, hide: 100 }
+            });
+        });
+        
+        // Initial fetch and setup refresh interval
         fetchData();
         setInterval(fetchData, 10000); // Refresh every 10 seconds
     });

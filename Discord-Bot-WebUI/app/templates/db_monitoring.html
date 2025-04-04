@@ -3,52 +3,153 @@
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="fw-bold py-3 mb-4">
-        <span class="text-muted fw-light">System /</span> Database Monitor
-    </h4>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="text-primary mb-1">Database Monitoring</h2>
+                    <p class="text-muted">Track database connections and pool health</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button id="refreshBtn" type="button" class="btn btn-icon btn-outline-primary btn-sm">
+                        <i class="ti ti-refresh"></i>
+                    </button>
+                    <a href="{{ url_for('monitoring.monitor_dashboard') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="ti ti-arrow-left me-1"></i>Back to Task Monitor
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div id="alertContainer"></div>
 
-    <!-- Connection Pool Statistics -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Connection Pool Statistics</h5>
+    <!-- Connection Pool Statistics Dashboard -->
+    <div class="row">
+        <!-- Pool Size -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Pool Size</h5>
+                            <small class="text-muted">Connection capacity</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-database fs-3 text-primary"></i>
+                        </div>
+                    </div>
+                    <h2 class="mt-2 mb-0" id="poolSize">-</h2>
+                    <div class="mt-1">
+                        <span class="badge bg-label-primary">
+                            <i class="ti ti-maximize me-1"></i>Max: <span id="maxPoolSize">-</span>
+                        </span>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="poolSizeProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-3">
-                    <div class="card bg-label-primary">
-                        <div class="card-body">
-                            <h6>Pool Size</h6>
-                            <h2 id="poolSize">-</h2>
-                            <small>Configured Max: <span id="maxPoolSize">-</span></small>
+
+        <!-- Active Connections -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Active Connections</h5>
+                            <small class="text-muted">Working connections</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-activity fs-3 text-info"></i>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-label-info">
-                        <div class="card-body">
-                            <h6>Active Connections</h6>
-                            <h2 id="activeConnections">-</h2>
-                            <small>Total Checkouts: <span id="totalCheckouts">-</span></small>
-                        </div>
+                    <h2 class="mt-2 mb-0" id="activeConnections">-</h2>
+                    <div class="mt-1">
+                        <span class="badge bg-label-info">
+                            <i class="ti ti-exchange me-1"></i>Checkouts: <span id="totalCheckouts">-</span>
+                        </span>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="activeConnectionsProgress" class="progress-bar bg-info" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-label-warning">
-                        <div class="card-body">
-                            <h6>Leaked Connections</h6>
-                            <h2 id="leakedConnections">-</h2>
-                            <small>Total Idle: <span id="idleConnections">-</span></small>
+            </div>
+        </div>
+
+        <!-- Leaked Connections -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Leaked Connections</h5>
+                            <small class="text-muted">Orphaned resources</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-droplet fs-3 text-warning"></i>
                         </div>
                     </div>
+                    <h2 class="mt-2 mb-0" id="leakedConnections">-</h2>
+                    <div class="mt-1">
+                        <span class="badge bg-label-warning">
+                            <i class="ti ti-coffee me-1"></i>Idle: <span id="idleConnections">-</span>
+                        </span>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="leakedConnectionsProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-label-danger">
-                        <div class="card-body">
-                            <h6>Idle Transactions</h6>
-                            <h2 id="idleTransactions">-</h2>
-                            <small>Connection Age: <span id="oldestConnectionAge">-</span></small>
+            </div>
+        </div>
+
+        <!-- Idle Transactions -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="card-info">
+                            <h5 class="mb-0">Idle Transactions</h5>
+                            <small class="text-muted">Stalled operations</small>
+                        </div>
+                        <div class="card-icon">
+                            <i class="ti ti-alert-triangle fs-3 text-danger"></i>
+                        </div>
+                    </div>
+                    <h2 class="mt-2 mb-0" id="idleTransactions">-</h2>
+                    <div class="mt-1">
+                        <span class="badge bg-label-danger">
+                            <i class="ti ti-clock me-1"></i>Oldest: <span id="oldestConnectionAge">-</span>
+                        </span>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="idleTransactionsProgress" class="progress-bar bg-danger" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Admin Actions</h5>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <button id="forceCleanup" class="btn btn-primary btn-sm w-100">
+                                <i class="ti ti-clear-all me-1"></i>Force Connection Cleanup
+                            </button>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <button id="refreshDashboardBtn" class="btn btn-outline-primary btn-sm w-100" onclick="refreshDashboard()">
+                                <i class="ti ti-refresh me-1"></i>Refresh Statistics
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -57,54 +158,75 @@
     </div>
 
     <!-- Active Connections -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Active Connections</h5>
-            <button id="forceCleanup" class="btn btn-primary btn-sm">
-                Force Cleanup
-            </button>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>PID</th>
-                            <th>Age</th>
-                            <th>State</th>
-                            <th>Source</th>
-                            <th>Tx Age</th>
-                            <th>Query Start</th>
-                            <th>Tx Start</th>
-                            <th>Query</th>
-                            <th>Stack Trace</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activeConnectionsTable"></tbody>
-                </table>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-plug-connected me-2"></i>Active Connections</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>PID</th>
+                                <th>Age</th>
+                                <th>State</th>
+                                <th>Source</th>
+                                <th>Tx Age</th>
+                                <th>Query Start</th>
+                                <th>Tx Start</th>
+                                <th>Query</th>
+                                <th>Stack</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeConnectionsTable">
+                            <tr>
+                                <td colspan="10" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Leaked Connections -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Leaked Connections</h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>PID</th>
-                            <th>Transaction Name</th>
-                            <th>Stack Trace</th>
-                            <th>Leaked Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leakedConnectionsTable"></tbody>
-                </table>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-plug-connected-x me-2"></i>Leaked Connections</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>PID</th>
+                                <th>Transaction Name</th>
+                                <th>Leaked Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leakedConnectionsTable">
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -115,11 +237,16 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Stack Trace</h5>
+                <h5 class="modal-title">
+                    <i class="ti ti-stack me-2"></i>Stack Trace
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <pre class="stack-trace-content"></pre>
+                <pre class="stack-trace-content p-3 bg-body-tertiary rounded"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -130,45 +257,149 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">SQL Query</h5>
+                <h5 class="modal-title">
+                    <i class="ti ti-sql me-2"></i>SQL Query
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <pre class="query-content"></pre>
+                <pre class="query-content p-3 bg-body-tertiary rounded"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
+{% block custom_css %}
+<style>
+    /* Card styles */
+    .card-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Table badge styles */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    /* Progress bar animation */
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+    
+    /* Pre formatting for code/stack traces */
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 500px;
+        overflow-y: auto;
+        margin-bottom: 0;
+    }
+    
+    /* Empty state styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        color: var(--bs-secondary);
+        margin-bottom: 1rem;
+    }
+    
+    /* Status badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block custom_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         refreshDashboard();
-        setInterval(refreshDashboard, 5000);
+        setInterval(refreshDashboard, 10000);
+        
         document.getElementById('forceCleanup').addEventListener('click', handleForceCleanup);
+        document.getElementById('refreshBtn').addEventListener('click', refreshDashboard);
+        document.getElementById('refreshDashboardBtn').addEventListener('click', refreshDashboard);
     });
 
     async function refreshDashboard() {
         try {
+            // Show loading indicators
+            showLoadingState();
+            
             const [statsResponse, connectionsResponse] = await Promise.all([
-                fetch('/monitoring/db/stats'),
-                fetch('/monitoring/db/connections')
+                fetch('{{ url_for("monitoring.connection_stats") }}'),
+                fetch('{{ url_for("monitoring.check_connections") }}')
             ]);
+            
             const statsData = await statsResponse.json();
             const connectionsData = await connectionsResponse.json();
+            
             if (statsData.success) {
                 updateStats(statsData.stats);
+            } else {
+                showAlert('Failed to fetch statistics: ' + (statsData.error || 'Unknown error'), 'danger');
             }
+            
             if (connectionsData.success) {
                 updateTables(connectionsData.connections);
+            } else {
+                showAlert('Failed to fetch connections: ' + (connectionsData.error || 'Unknown error'), 'danger');
             }
         } catch (error) {
             showAlert('Error refreshing dashboard: ' + error.message, 'danger');
+            
+            // Show empty states instead of loading spinners
+            showEmptyStates();
         }
+    }
+    
+    function showLoadingState() {
+        // Keep the spinner for the tables, but it's already in the HTML
+    }
+    
+    function showEmptyStates() {
+        document.getElementById('activeConnectionsTable').innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4">
+                    <div class="empty-state">
+                        <i class="ti ti-database-off empty-state-icon"></i>
+                        <h6 class="mt-1">No Connection Data</h6>
+                        <p class="text-muted">Unable to retrieve active connections information.</p>
+                    </div>
+                </td>
+            </tr>`;
+            
+        document.getElementById('leakedConnectionsTable').innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center py-4">
+                    <div class="empty-state">
+                        <i class="ti ti-plug-connected-x empty-state-icon"></i>
+                        <h6 class="mt-1">No Leaked Connections</h6>
+                        <p class="text-muted">Unable to retrieve leaked connections information.</p>
+                    </div>
+                </td>
+            </tr>`;
     }
 
     function updateStats(stats) {
+        // Update stat values
         document.getElementById('poolSize').textContent = stats.current_pool_size;
         document.getElementById('maxPoolSize').textContent = stats.max_pool_size;
         document.getElementById('activeConnections').textContent = stats.active_connections;
@@ -177,61 +408,123 @@
         document.getElementById('idleConnections').textContent = stats.idle_connections;
         document.getElementById('idleTransactions').textContent = stats.idle_transactions;
         document.getElementById('oldestConnectionAge').textContent = formatDuration(stats.oldest_connection_age);
+        
+        // Update progress bars
+        const poolPercent = (stats.current_pool_size / stats.max_pool_size) * 100;
+        document.getElementById('poolSizeProgress').style.width = `${poolPercent}%`;
+        document.getElementById('poolSizeProgress').setAttribute('aria-valuenow', poolPercent);
+        
+        const activePercent = (stats.active_connections / stats.max_pool_size) * 100;
+        document.getElementById('activeConnectionsProgress').style.width = `${activePercent}%`;
+        document.getElementById('activeConnectionsProgress').setAttribute('aria-valuenow', activePercent);
+        
+        const leakedPercent = stats.leaked_connections > 0 ? 
+            (stats.leaked_connections / stats.max_pool_size) * 100 : 0;
+        document.getElementById('leakedConnectionsProgress').style.width = `${leakedPercent}%`;
+        document.getElementById('leakedConnectionsProgress').setAttribute('aria-valuenow', leakedPercent);
+        
+        const idlePercent = stats.idle_transactions > 0 ? 
+            (stats.idle_transactions / stats.max_pool_size) * 100 : 0;
+        document.getElementById('idleTransactionsProgress').style.width = `${idlePercent}%`;
+        document.getElementById('idleTransactionsProgress').setAttribute('aria-valuenow', idlePercent);
     }
 
     function updateTables(connections) {
         const activeConnections = connections.filter(conn => !conn.leaked);
         const leakedConnections = connections.filter(conn => conn.leaked);
-        document.getElementById('activeConnectionsTable').innerHTML = activeConnections.map(conn => `
-            <tr>
-                <td>${conn.pid}</td>
-                <td>${formatDuration(conn.age)}</td>
-                <td><span class="badge bg-${getStateColor(conn.state)}">${conn.state}</span></td>
-                <td>${escapeHtml(conn.usename)}@${escapeHtml(conn.client_addr || 'local')}</td>
-                <td>${formatDuration(conn.transaction_age)}</td>
-                <td>${conn.query_start ? new Date(conn.query_start).toLocaleTimeString() : '-'}</td>
-                <td>${conn.xact_start ? new Date(conn.xact_start).toLocaleTimeString() : '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')">
-                        View Query
-                    </button>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
-                        View
-                    </button>
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-danger" onclick="terminateConnection(${conn.pid})">
-                        Terminate
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+        
+        // Active connections table
+        if (activeConnections.length === 0) {
+            document.getElementById('activeConnectionsTable').innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-4">
+                        <div class="empty-state">
+                            <i class="ti ti-database-off empty-state-icon"></i>
+                            <h6 class="mt-1">No Active Connections</h6>
+                            <p class="text-muted">There are currently no active database connections.</p>
+                        </div>
+                    </td>
+                </tr>`;
+        } else {
+            document.getElementById('activeConnectionsTable').innerHTML = activeConnections.map(conn => `
+                <tr>
+                    <td><span class="fw-medium">${conn.pid}</span></td>
+                    <td>${formatDuration(conn.age)}</td>
+                    <td><span class="badge bg-label-${getStateColor(conn.state)}">${conn.state}</span></td>
+                    <td>${escapeHtml(conn.usename || 'unknown')}@${escapeHtml(conn.client_addr || 'local')}</td>
+                    <td>${formatDuration(conn.transaction_age)}</td>
+                    <td>${conn.query_start ? new Date(conn.query_start).toLocaleTimeString() : '-'}</td>
+                    <td>${conn.xact_start ? new Date(conn.xact_start).toLocaleTimeString() : '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-icon btn-outline-primary" onclick="showQuery(${conn.pid}, '${escapeJs(conn.query)}')" data-bs-toggle="tooltip" title="View Query">
+                            <i class="ti ti-code"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-icon btn-outline-info" onclick="showStackTrace('${conn.pid}')" data-bs-toggle="tooltip" title="View Stack Trace">
+                            <i class="ti ti-stack"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-icon btn-outline-danger" onclick="terminateConnection(${conn.pid})" data-bs-toggle="tooltip" title="Terminate Connection">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
 
-        document.getElementById('leakedConnectionsTable').innerHTML = leakedConnections.map(conn => `
-            <tr>
-                <td>${conn.pid}</td>
-                <td>${escapeHtml(conn.transaction_name || '-')}</td>
-                <td>
-                    <button class="btn btn-sm btn-info" onclick="showStackTrace('${conn.pid}')">
-                        View
-                    </button>
-                </td>
-                <td>${formatDuration(conn.leaked_duration)}</td>
-            </tr>
-        `).join('');
+        // Leaked connections table
+        if (leakedConnections.length === 0) {
+            document.getElementById('leakedConnectionsTable').innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center py-4">
+                        <div class="empty-state">
+                            <i class="ti ti-check-circle empty-state-icon text-success"></i>
+                            <h6 class="mt-1">No Leaked Connections</h6>
+                            <p class="text-muted">There are currently no leaked database connections.</p>
+                        </div>
+                    </td>
+                </tr>`;
+        } else {
+            document.getElementById('leakedConnectionsTable').innerHTML = leakedConnections.map(conn => `
+                <tr>
+                    <td><span class="fw-medium">${conn.pid}</span></td>
+                    <td>${escapeHtml(conn.transaction_name || '-')}</td>
+                    <td>${formatDuration(conn.leaked_duration)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-icon btn-outline-info me-1" onclick="showStackTrace('${conn.pid}')" data-bs-toggle="tooltip" title="View Stack Trace">
+                            <i class="ti ti-stack"></i>
+                        </button>
+                        <button class="btn btn-sm btn-icon btn-outline-danger" onclick="terminateConnection(${conn.pid})" data-bs-toggle="tooltip" title="Terminate Connection">
+                            <i class="ti ti-x"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Initialize tooltips
+        initializeTooltips();
     }
 
     async function handleForceCleanup() {
         try {
-            const response = await fetch('/monitoring/db/cleanup', { method: 'POST' });
+            const response = await fetch('{{ url_for("monitoring.cleanup_connections") }}', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+            
             const data = await response.json();
+            
             if (data.success) {
                 showAlert(data.message, 'success');
                 refreshDashboard();
             } else {
-                showAlert('Cleanup failed: ' + data.error, 'danger');
+                showAlert('Cleanup failed: ' + (data.error || 'Unknown error'), 'danger');
             }
         } catch (error) {
             showAlert('Error during cleanup: ' + error.message, 'danger');
@@ -240,30 +533,20 @@
 
     async function showStackTrace(pid) {
         try {
-            const response = await fetch(`/monitoring/db/connections/${pid}/stack`);
+            const response = await fetch(`{{ url_for("monitoring.get_stack_trace", pid=0) }}`.replace('/0/', `/${pid}/`));
             const data = await response.json();
+            
             if (data.success) {
                 const modal = document.getElementById('stackTraceModal');
                 // Use data.details.stack_trace instead of data.stack_trace
-                modal.querySelector('.stack-trace-content').textContent = data.details.stack_trace || 'No stack trace captured';
+                modal.querySelector('.stack-trace-content').textContent = data.details?.stack_trace || 'No stack trace captured';
                 new bootstrap.Modal(modal).show();
             } else {
-                showAlert('Failed to fetch stack trace: ' + data.error, 'danger');
+                showAlert('Failed to fetch stack trace: ' + (data.error || 'Unknown error'), 'danger');
             }
         } catch (error) {
             showAlert('Error fetching stack trace: ' + error.message, 'danger');
         }
-    }
-
-    function escapeJs(unsafe) {
-        if (typeof unsafe !== 'string') return '';
-        return unsafe
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/"/g, '\\"')
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t');
     }
 
     function showQuery(pid, query) {
@@ -282,18 +565,24 @@
         if (!confirm('Are you sure you want to terminate this connection?')) {
             return;
         }
+        
         try {
-            const response = await fetch('/monitoring/db/terminate', {
+            const response = await fetch('{{ url_for("monitoring.terminate_connection") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
                 body: JSON.stringify({ pid })
             });
+            
             const data = await response.json();
+            
             if (data.success) {
                 showAlert(`Connection ${pid} terminated successfully`, 'success');
                 refreshDashboard();
             } else {
-                showAlert('Termination failed: ' + data.error, 'danger');
+                showAlert('Termination failed: ' + (data.error || 'Unknown error'), 'danger');
             }
         } catch (error) {
             showAlert('Error terminating connection: ' + error.message, 'danger');
@@ -305,16 +594,42 @@
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
         alert.innerHTML = `
-            ${message}
+            <div class="d-flex">
+                <i class="ti ti-${getAlertIcon(type)} me-2"></i>
+                <div>
+                    ${message}
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
         alertContainer.appendChild(alert);
         setTimeout(() => alert.remove(), 5000);
     }
+    
+    function getAlertIcon(type) {
+        const icons = {
+            'success': 'circle-check',
+            'danger': 'alert-circle',
+            'warning': 'alert-triangle',
+            'info': 'info-circle'
+        };
+        return icons[type] || 'info-circle';
+    }
 
     function formatDuration(seconds) {
         if (!seconds) return '-';
-        return `${Math.floor(seconds)}s`;
+        
+        if (seconds < 60) {
+            return `${Math.floor(seconds)}s`;
+        } else if (seconds < 3600) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}m ${remainingSeconds}s`;
+        } else {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${hours}h ${minutes}m`;
+        }
     }
 
     function getStateColor(state) {
@@ -335,6 +650,26 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
+    }
+
+    function escapeJs(unsafe) {
+        if (typeof unsafe !== 'string') return '';
+        return unsafe
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r')
+            .replace(/\t/g, '\\t');
+    }
+    
+    function initializeTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: { show: 300, hide: 100 }
+            });
+        });
     }
 </script>
 {% endblock %}
