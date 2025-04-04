@@ -217,50 +217,107 @@ async def post_availability_message(message_data: Dict[str, Any]) -> Optional[Tu
     """
     bot_api_url = "http://discord-bot:5001/api/post_availability"
     
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(bot_api_url, json=message_data, timeout=30) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(
-                        "Failed to post availability message",
-                        extra={
-                            'status': response.status,
-                            'error': error_text,
-                            'message_data': {k: v for k, v in message_data.items()}
-                        }
-                    )
-                    return None
-                
-                result = await response.json()
-                
+    # Retry parameters
+    max_retries = 3
+    initial_backoff = 5  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            async with aiohttp.ClientSession() as session:
                 logger.info(
-                    "Posted availability message successfully",
-                    extra={
-                        'message_data': {k: v for k, v in message_data.items()},
-                        'message_ids': {
-                            'home': result.get('home_message_id'),
-                            'away': result.get('away_message_id')
-                        }
-                    }
+                    f"Sending availability message (attempt {attempt+1}/{max_retries})",
+                    extra={'match_id': message_data.get('match_id')}
                 )
                 
-                return result.get('home_message_id'), result.get('away_message_id')
-                
-    except aiohttp.ClientError as e:
-        logger.error(
-            "Discord API error posting availability message",
-            extra={'message_data': message_data},
-            exc_info=True
-        )
-        return None
-    except Exception as e:
-        logger.error(
-            "Error posting availability message",
-            extra={'message_data': message_data},
-            exc_info=True
-        )
-        return None
+                timeout = 30 * (attempt + 1)  # Increase timeout for each retry
+                async with session.post(bot_api_url, json=message_data, timeout=timeout) as response:
+                    if response.status == 429:  # Rate limited
+                        error_text = await response.text()
+                        retry_after = response.headers.get('Retry-After', initial_backoff * (2 ** attempt))
+                        try:
+                            retry_after = int(retry_after)
+                        except (ValueError, TypeError):
+                            retry_after = initial_backoff * (2 ** attempt)
+                        
+                        logger.warning(
+                            f"Discord rate limit hit, retrying after {retry_after}s",
+                            extra={
+                                'status': response.status,
+                                'retry_after': retry_after,
+                                'attempt': attempt + 1,
+                                'match_id': message_data.get('match_id')
+                            }
+                        )
+                        await asyncio.sleep(retry_after)
+                        continue
+                        
+                    elif response.status != 200:
+                        error_text = await response.text()
+                        if attempt < max_retries - 1:
+                            backoff = initial_backoff * (2 ** attempt)
+                            logger.warning(
+                                f"Failed to post availability message, retrying in {backoff}s",
+                                extra={
+                                    'status': response.status,
+                                    'error': error_text,
+                                    'attempt': attempt + 1,
+                                    'match_id': message_data.get('match_id')
+                                }
+                            )
+                            await asyncio.sleep(backoff)
+                            continue
+                        else:
+                            logger.error(
+                                "Failed to post availability message after all retries",
+                                extra={
+                                    'status': response.status,
+                                    'error': error_text,
+                                    'match_id': message_data.get('match_id')
+                                }
+                            )
+                            return None
+                    
+                    result = await response.json()
+                    
+                    logger.info(
+                        "Posted availability message successfully",
+                        extra={
+                            'match_id': message_data.get('match_id'),
+                            'message_ids': {
+                                'home': result.get('home_message_id'),
+                                'away': result.get('away_message_id')
+                            }
+                        }
+                    )
+                    
+                    return result.get('home_message_id'), result.get('away_message_id')
+                    
+        except aiohttp.ClientError as e:
+            if attempt < max_retries - 1:
+                backoff = initial_backoff * (2 ** attempt)
+                logger.warning(
+                    f"Discord API error, retrying in {backoff}s",
+                    extra={
+                        'error': str(e),
+                        'attempt': attempt + 1,
+                        'match_id': message_data.get('match_id')
+                    }
+                )
+                await asyncio.sleep(backoff)
+            else:
+                logger.error(
+                    "Discord API error after all retries",
+                    extra={'match_id': message_data.get('match_id')},
+                    exc_info=True
+                )
+                return None
+    
+    # If we get here, all retries failed
+    logger.error(
+        f"Failed to post availability message after {max_retries} attempts",
+        extra={'match_id': message_data.get('match_id')}
+    )
+    return None
 
 
 async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:

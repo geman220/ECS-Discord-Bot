@@ -1,0 +1,76 @@
+/* Dropdown menu fix for DataTables and cards */
+
+/* Global dropdown menu fixes */
+.dropdown-menu {
+  z-index: 9999 !important; /* Very high z-index to go above all other elements */
+  position: absolute !important; /* Absolute positioning to break out of container */
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2) !important; /* Clear shadow to stand out */
+  transform: none !important; /* Override any transform position */
+}
+
+/* Force all parent containers to have visible overflow */
+.dataTables_wrapper,
+.table-responsive,
+.tab-content,
+.tab-pane,
+.card-body,
+.card,
+table,
+tbody,
+tr,
+td,
+.dropdown {
+  overflow: visible !important;
+}
+
+/* Specific fix for DataTables */
+div.dataTables_wrapper {
+  position: static !important;
+}
+
+/* Fix for Bootstrap popper positioning */
+.dropdown-menu[data-popper-placement] {
+  position: absolute !important;
+}
+
+/* Make dropdowns wider for better usability */
+.dropdown-menu-end {
+  max-height: 80vh;
+  overflow-y: auto;
+  min-width: 12rem !important;
+}
+
+/* Fix for nested containers that might have transform */
+body, html {
+  overflow-x: hidden;
+}
+
+/* Fix positioning of dropdown items */
+.dropdown-item {
+  position: relative;
+  z-index: 10000 !important;
+}
+
+/* Fix for waves effect */
+.waves-effect {
+  z-index: auto !important;
+  position: relative !important;
+}
+
+/* Additional fix for Popper.js transform */
+[data-popper-reference-hidden] {
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Fix for dropdown toggle button */
+.dropdown-toggle {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure action column is wide enough for menu */
+table th:last-child,
+table td:last-child {
+  min-width: 120px !important;
+}

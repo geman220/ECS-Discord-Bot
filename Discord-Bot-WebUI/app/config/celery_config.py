@@ -170,6 +170,14 @@ class CeleryConfig:
                 'expires': 270
             }
         },
+        'schedule-weekly-match-availability': {
+            'task': 'app.tasks.tasks_rsvp.schedule_weekly_match_availability',
+            'schedule': crontab(day_of_week='1', hour=8, minute=0),  # Every Monday at 8:00 AM
+            'options': {
+                'queue': 'discord',
+                'expires': 3600
+            }
+        },
         'monitor-scheduled-tasks': {
             'task': 'app.tasks.tasks_live_reporting.verify_scheduled_tasks',
             'schedule': crontab(minute='*/5'),  # Run every 5 minutes

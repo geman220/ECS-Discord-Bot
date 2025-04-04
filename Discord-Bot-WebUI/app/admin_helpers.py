@@ -388,7 +388,7 @@ def handle_permissions_update(role_id: int, permission_ids: List[int], session=N
 # RSVP Management Helpers
 # --------------------
 
-def get_rsvp_status_data(match: Match) -> List[Dict[str, Any]]:
+def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
     """
     Retrieve RSVP status data for a match.
 
@@ -397,6 +397,7 @@ def get_rsvp_status_data(match: Match) -> List[Dict[str, Any]]:
 
     Args:
         match: The Match object.
+        session: (Optional) A SQLAlchemy session to use for the query.
 
     Returns:
         A sorted list of dictionaries containing RSVP status data.

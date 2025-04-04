@@ -147,19 +147,29 @@ def verify_availability_data(match_id: int, team_id: Optional[int] = None, sessi
         for avail in all_availabilities:
             player = session.query(Player).get(avail.player_id)
             if player:
-                logger.debug(f"  Player {player.name} (ID: {player.id}, Team: {player.team_id}): {avail.response}")
+                team_ids = [team.id for team in player.teams]
+                logger.debug(f"  Player {player.name} (ID: {player.id}, Teams: {team_ids}): {avail.response}")
 
         if team_id:
-            team_players = session.query(Player).filter_by(team_id=team_id).all()
+            # Use the player_teams association table to find players on a team
+            from app.models import player_teams
+            team_players = (session.query(Player)
+                           .join(player_teams)
+                           .filter(player_teams.c.team_id == team_id)
+                           .all())
+            
             logger.debug(f"Players on team {team_id}:")
             for player in team_players:
                 logger.debug(f"  {player.name} (ID: {player.id})")
 
+            # Use the player_teams association to filter availabilities by team
             team_availabilities = (session.query(Availability)
-                                   .join(Player)
-                                   .filter(Availability.match_id == match_id,
-                                           Player.team_id == team_id)
-                                   .all())
+                                  .join(Player)
+                                  .join(player_teams)
+                                  .filter(Availability.match_id == match_id,
+                                          player_teams.c.team_id == team_id)
+                                  .all())
+            
             logger.debug(f"Availabilities for team {team_id}:")
             for avail in team_availabilities:
                 player = session.query(Player).get(avail.player_id)
@@ -189,32 +199,25 @@ def get_match_rsvp_data(match_id, team_id=None, session=None):
         base_count = session.query(Availability).filter(Availability.match_id == match_id).count()
         logger.debug(f"Total availability records for match {match_id}: {base_count}")
 
+        # Start with the basic query
         query = session.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
-        all_avail = query.with_entities(
-            Availability.response, 
-            Player.name,
-            Player.id,
-            Player.team_id
-        ).all()
-        logger.debug(f"All availabilities before team filter: {all_avail}")
-
+        
+        # If a team_id is provided, use the player_teams association table to filter by team
         if team_id:
-            query = query.filter(Player.team_id == team_id)
-            filtered_avail = query.with_entities(
-                Availability.response, 
-                Player.name,
-                Player.id,
-                Player.team_id
-            ).all()
-            logger.debug(f"Filtered availabilities for team {team_id}: {filtered_avail}")
+            from app.models import player_teams
+            query = query.join(player_teams, Player.id == player_teams.c.player_id).filter(player_teams.c.team_id == team_id)
+            logger.debug(f"Filtering by team_id: {team_id}")
 
+        # Get the availability records
         availability_records = query.with_entities(
             Availability.response, 
             Player.name,
             Player.id
         ).all()
-        logger.debug(f"Final availability records: {availability_records}")
+        
+        logger.debug(f"Retrieved {len(availability_records)} availability records")
 
+        # Organize data by response type
         rsvp_data = {'yes': [], 'no': [], 'maybe': []}
         for response, player_name, player_id in availability_records:
             logger.debug(f"Processing record: response={response}, player={player_name}, id={player_id}")

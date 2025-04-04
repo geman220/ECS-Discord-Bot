@@ -398,31 +398,56 @@ def get_match_and_team_id_from_message():
                     'error': 'Invalid result format'
                 }), 500
 
-            status = result.get('status')
-            if status == 'success':
-                data = result.get('data')
-                if not data:
-                    logger.error("No data in success response")
-                    return jsonify({
-                        'status': 'error',
-                        'error': 'No data in response'
-                    }), 500
-                return jsonify(result), 200
-
-            elif status == 'error':
-                error_msg = result.get('message', 'Unknown error')
-                logger.error(f"Task returned error: {error_msg}")
-                if 'not found' in error_msg.lower():
-                    return jsonify(result), 404
+            # Check for 'success' key as per fetch_match_and_team_id_task implementation
+            if 'success' in result:
+                if result['success']:
+                    # Format the response to match API expectations
+                    response = {
+                        'status': 'success',
+                        'data': {
+                            'match_id': result.get('match_id'),
+                            'team_id': result.get('team_id')
+                        }
+                    }
+                    return jsonify(response), 200
                 else:
-                    return jsonify(result), 500
-
+                    error_msg = result.get('message', 'Unknown error')
+                    logger.error(f"Task returned error: {error_msg}")
+                    
+                    response = {
+                        'status': 'error',
+                        'error': error_msg
+                    }
+                    
+                    if 'not found' in error_msg.lower():
+                        return jsonify(response), 404
+                    else:
+                        return jsonify(response), 500
             else:
-                logger.error(f"Unknown status in result: {status}")
-                return jsonify({
-                    'status': 'error',
-                    'error': 'Unknown response status'
-                }), 500
+                # Legacy format check (status key)
+                status = result.get('status')
+                if status == 'success':
+                    data = result.get('data')
+                    if not data:
+                        logger.error("No data in success response")
+                        return jsonify({
+                            'status': 'error',
+                            'error': 'No data in response'
+                        }), 500
+                    return jsonify(result), 200
+                elif status == 'error':
+                    error_msg = result.get('message', 'Unknown error')
+                    logger.error(f"Task returned error: {error_msg}")
+                    if 'not found' in error_msg.lower():
+                        return jsonify(result), 404
+                    else:
+                        return jsonify(result), 500
+                else:
+                    logger.error(f"Unknown status in result: {status}")
+                    return jsonify({
+                        'status': 'error', 
+                        'error': 'Unknown response status'
+                    }), 500
 
         except TimeoutError:
             logger.error("Task timed out")
@@ -459,8 +484,17 @@ def is_user_on_team():
         return jsonify({'error': 'Missing required fields'}), 400
 
     player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+    
+    # Check if player exists and if they're on the specified team
+    is_team_member = False
+    if player:
+        # Use the teams relationship to check if the player is on the team
+        team_ids = [team.id for team in player.teams]
+        is_team_member = int(team_id) in team_ids
+        logger.debug(f"Player {player.id} teams: {team_ids}, checking team_id: {team_id}, is_member: {is_team_member}")
+    
     return jsonify({
-        'is_team_member': bool(player and player.team_id == team_id)
+        'is_team_member': is_team_member
     }), 200
 
 

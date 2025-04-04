@@ -235,5 +235,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    console.log('Edit match button fix initialized');
+    // Edit match button fixes initialized successfully
 });

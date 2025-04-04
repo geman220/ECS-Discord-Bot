@@ -11,10 +11,10 @@ if (window.ECSDesignSystem && typeof window.ECSDesignSystem.addRippleEffect === 
     
     // Replace with empty function
     window.ECSDesignSystem.addRippleEffect = function() {
-        console.log('Custom ripple effect disabled');
+        // Disabled ripple effect
     };
     
-    console.log('Custom ripple effect disabler initialized');
+    // Debug logging disabled
 } else {
     // Wait for ECSDesignSystem to load
     document.addEventListener('DOMContentLoaded', function() {
@@ -24,10 +24,10 @@ if (window.ECSDesignSystem && typeof window.ECSDesignSystem.addRippleEffect === 
             
             // Replace with empty function
             window.ECSDesignSystem.addRippleEffect = function() {
-                console.log('Custom ripple effect disabled');
+                // Disabled ripple effect
             };
             
-            console.log('Custom ripple effect disabler initialized (delayed)');
+            // Debug logging disabled
         }
     });
 }
