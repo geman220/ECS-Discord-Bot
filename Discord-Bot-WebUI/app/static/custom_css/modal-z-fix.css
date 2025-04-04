@@ -1,0 +1,108 @@
+/* 
+ * MODAL Z-INDEX FIX - SINGLE SOURCE OF TRUTH
+ * Ensures proper modal display and z-index hierarchy
+ */
+
+/* Modal backdrop is just above base content */
+.modal-backdrop {
+  z-index: 1040 !important;
+}
+
+/* Modal is above the backdrop */
+.modal {
+  z-index: 1050 !important;
+}
+
+/* Dropdown menus need to be above the modal */
+.dropdown-menu,
+.select2-dropdown {
+  z-index: 1060 !important;
+}
+
+/* Toast alerts should also be above modals */
+.toast-container {
+  z-index: 1080 !important;
+}
+
+/* SweetAlert2 dialogs are always on top */
+.swal2-container {
+  z-index: 2000 !important;
+}
+
+/* 
+ * Special fix for modal container to ensure
+ * modals are only rendered once in the DOM
+ */
+#reportMatchModal-container {
+  position: relative;
+  z-index: 1050;
+}
+
+/* Fix for iOS safari */
+@media (max-width: 767.98px) {
+  body.modal-open {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Fix for modal backdrop hiding */
+.modal-backdrop.hide {
+  opacity: 0 !important;
+  display: none !important;
+  z-index: -1 !important;
+}
+
+/* Fix for modal open body styles */
+body:not(.modal-open) .modal-backdrop {
+  opacity: 0 !important;
+  display: none !important;
+  z-index: -1 !important;
+}
+
+/* Special fix for report match modals */
+[id^="reportMatchModal-"] .modal-dialog {
+  margin: 1.75rem auto;
+  transform: none !important;
+}
+
+/* Modal dialog should not transform */
+.modal-dialog {
+  transform: none !important;
+}
+
+/* Fix for modal content */
+.modal-content {
+  overflow: visible !important;
+}
+
+/* Fix for select2 dropdown in modals */
+.select2-container {
+  z-index: 1060 !important;
+}
+
+/* Fix for modals to ensure they appear in the center */
+.modal.show .modal-dialog-centered {
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 3.5rem);
+  margin: 1.75rem auto;
+}
+
+/* Special fix for the report match modal to ensure visibility */
+[id^="reportMatchModal-"].show,
+[id^="reportMatchModal-"].modal.show {
+  display: block !important;
+  opacity: 1 !important;
+}
+
+/* Prevent background scroll when modal is open */
+.modal-open {
+  overflow: hidden;
+}
+
+/* Fix for multiple modal backdrops */
+.modal-backdrop + .modal-backdrop {
+  display: none !important;
+}

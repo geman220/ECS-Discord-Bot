@@ -34,20 +34,36 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
         discord_id (optional): Discord ID, if available.
 
     Returns:
-        bool: True if the update is successful, False otherwise.
+        tuple: (success, message) where success is a boolean and message is a string.
     """
-    if response not in ['yes', 'no', 'maybe']:
-        return False
+    if response not in ['yes', 'no', 'maybe', 'no_response']:
+        return False, f"Invalid response: {response}. Must be 'yes', 'no', 'maybe', or 'no_response'."
 
     session = g.db_session
     try:
+        # First verify match exists
+        match = session.query(Match).get(match_id)
+        if not match:
+            logger.error(f"Match {match_id} not found")
+            return False, f"Match {match_id} not found"
+            
+        # Then verify player exists
+        player = session.query(Player).get(player_id)
+        if not player:
+            logger.error(f"Player {player_id} not found")
+            return False, f"Player {player_id} not found"
+        
+        # Update or create availability record
         availability = session.query(Availability).filter_by(
             match_id=match_id, player_id=player_id
         ).first()
+        
         if availability:
             # Update existing RSVP.
             availability.response = response
             availability.responded_at = datetime.utcnow()
+            logger.info(f"Updated RSVP for player {player_id} to {response} for match {match_id}")
+            return True, f"RSVP updated to {response}"
         else:
             # Create new RSVP.
             availability = Availability(
@@ -58,10 +74,12 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
                 responded_at=datetime.utcnow()
             )
             session.add(availability)
-        return True
+            logger.info(f"Created new RSVP for player {player_id} with response {response} for match {match_id}")
+            return True, f"RSVP set to {response}"
     except Exception as e:
-        logger.error(f"Error updating RSVP for player {player_id}: {e}", exc_info=True)
-        return False
+        error_msg = f"Error updating RSVP for player {player_id}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return False, error_msg
 
 
 def get_next_matches(team_id, limit=2):

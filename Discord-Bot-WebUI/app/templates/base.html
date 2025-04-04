@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="light" data-content="wide">
+<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-content="wide">
 
 <head>
     <meta charset="utf-8" />
@@ -26,6 +26,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" class="template-customizer-core-css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" class="template-customizer-theme-css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
+    
+    <!-- ECS Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}" />
+    
+    <!-- Include our dedicated modal fix CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-z-fix.css') }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -58,7 +64,15 @@
 
     <!-- Jquery CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    
+    <!-- MOST IMPORTANT: Fix for button styling - loaded last to override all other styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-fix.css') }}">
 
+    <!-- Additional scripts loaded later -->
+    <script</script>
+    
+    <!-- Button fix scripts loaded in footer -->
+    
     <!-- Helpers and Misc Scripts -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/template-customizer.js') }}"></script>
@@ -66,16 +80,15 @@
 
     <!-- CSRF Token for Forms -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- Load modals via AJAX (moved to bottom of page after jQuery is loaded) -->
 
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/vendor/libs/shepherd/shepherd.css') }}">
 
     <!-- Flatpickr JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
-        /* Ensure SweetAlert2 overlays everything */
-        .swal2-container {
-            z-index: 99999 !important;
-        }
+        /* Leave SweetAlert2 to our modal-z-fix.css */
         
         /* Better mobile experience */
         @media (max-width: 767.98px) {
@@ -136,10 +149,10 @@
             height: calc(var(--vh, 1vh) * 100);
         }
         
-        /* Touch active state */
+        /* Touch active state - removed transform effect completely */
         .touch-active {
-            transform: scale(0.98);
             opacity: 0.9;
+            transform: none !important;
         }
         
         /* Ensure proper background for dropdown in dark mode */
@@ -207,7 +220,7 @@
             top: 70px; /* Adjust this based on your navbar's height */
             left: 50%;
             transform: translateX(-50%);
-            z-index: 1050; /* Ensure it stays above other content */
+            /* z-index managed by modal-z-fix.css */
             width: 100%;
             max-width: 500px;
             padding: 1rem;
@@ -260,7 +273,7 @@
                 <!-- / Navbar -->
                 <!-- Flash Toast Container -->
                 <div class="content-wrapper">
-                    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+                    <div class="toast-container position-fixed top-0 end-0 p-3"><!-- z-index managed by modal-z-fix.css -->
                         <div id="flash-toast-container" style="width: 100%; max-width: 500px;">
                             {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
@@ -324,7 +337,12 @@
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
+    <!-- Waves library is included but disabled -->
     <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
+    <!-- Simple Waves disabler -->
+    <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}"></script>
+    <!-- Custom ripple effect disabler for any other ripple implementations -->
+    <script src="{{ url_for('static', filename='custom_js/custom-ripple-disabler.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
@@ -332,6 +350,49 @@
     <!-- Responsive JS helper -->
     <script src="{{ url_for('static', filename='js/responsive-helper.js') }}"></script>
     
+    <!-- ECS Design System JS -->
+    <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
+    
+    <!-- Report Match JS -->
+    <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
+    
+    <!-- Simple Modal Fix -->
+    <script src="{{ url_for('static', filename='custom_js/simple-modal-fix.js') }}"></script>
+    
+    <!-- Modal Repair - fixes any issues with modals from button fixes -->
+    <script src="{{ url_for('static', filename='custom_js/modal-repair.js') }}"></script>
+    
+    <!-- Button Diagnostic - helps debug button size issues -->
+    <script src="{{ url_for('static', filename='custom_js/button-diagnostic.js') }}"></script>
+    
+    <!-- Button Mouseup Fix - prevents buttons from expanding on release -->
+    <script src="{{ url_for('static', filename='custom_js/button-mouseup-fix.js') }}"></script>
+    
+    <!-- Specific fix for edit match buttons -->
+    <script src="{{ url_for('static', filename='custom_js/edit-match-fix.js') }}"></script>
+    
+    <!-- Load modals via AJAX (after jQuery is loaded) -->
+    <script>
+        $(document).ready(function() {
+            if ($('.edit-match-btn').length > 0) {
+                $.ajax({
+                    url: '/modals/render_modals',
+                    method: 'GET',
+                    success: function(response) {
+                        // Append modals to the body
+                        $('body').append(response);
+                        console.log('Modals loaded successfully');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading modals:', error);
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <!-- No JavaScript needed for z-index - CSS handles it! -->
+
     <!-- Other JS files -->
     <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
 
@@ -371,6 +432,14 @@
     <!-- Global Scripts -->
     <!-- Toast Auto Dismiss and Progress Bar -->
     <script>
+        // Initialize theme from localStorage or default to light
+        (function() {
+            const storedTheme = localStorage.getItem('template-style');
+            if (storedTheme) {
+                document.documentElement.setAttribute('data-style', storedTheme);
+            }
+        })();
+        
         document.addEventListener('DOMContentLoaded', function () {
             const toastElList = [].slice.call(document.querySelectorAll('#flash-toast-container .toast'));
             toastElList.forEach(function (toastEl) {
@@ -584,5 +653,71 @@
     <!-- Custom JS for specific pages -->
     {% block custom_js %}
     {% endblock %}
+    
+    <!-- Desktop-specific button fix -->
+    <style>
+        /* Desktop override for buttons */
+        @media (hover: hover) and (pointer: fine) {
+            /* Desktop devices with mouse */
+            button, .btn, .ecs-btn, [class*="btn-"] {
+                transform: none !important;
+                transition: background-color 0.15s ease-in-out, 
+                           color 0.15s ease-in-out,
+                           border-color 0.15s ease-in-out !important;
+            }
+            
+            button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
+            button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
+            button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus {
+                transform: none !important;
+            }
+            
+            /* Never apply scaling on desktop */
+            .touch-active {
+                transform: none !important;
+                opacity: 0.9;
+            }
+        }
+    </style>
+    
+    <!-- Simple report match modal fix -->
+    <script src="{{ url_for('static', filename='custom_js/simple-report-fix.js') }}"></script>
+    
+    <!-- Initialize buttons consistently -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply to all devices
+            const buttons = document.querySelectorAll('button, .btn, .ecs-btn, [class*="btn-"], .edit-match-btn');
+            buttons.forEach(button => {
+                // Override transform property 
+                button.style.transform = 'none';
+                
+                // Ensure proper cursor
+                if (!button.disabled) {
+                    button.style.cursor = 'pointer';
+                }
+            });
+            
+            console.log('Button transform override applied');
+            
+            // Clean up any stray modal backdrops
+            const cleanupBackdrops = function() {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                if (backdrops.length > 0) {
+                    backdrops.forEach(backdrop => {
+                        if (backdrop.parentNode) {
+                            backdrop.parentNode.removeChild(backdrop);
+                        }
+                    });
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }
+            };
+            
+            // Run initial cleanup
+            cleanupBackdrops();
+        });
+    </script>
 </body>
 </html>

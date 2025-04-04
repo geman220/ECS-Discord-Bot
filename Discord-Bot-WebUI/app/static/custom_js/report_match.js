@@ -83,8 +83,6 @@ function addEvent(matchId, containerId, statId = null, playerId = null, minute =
     if (typeof feather !== 'undefined' && feather) {
         feather.replace();
     }
-
-    console.log(`Added new event entry to ${containerId}:`, newInputGroup);
 }
 
 // Function to remove an event entry
@@ -111,29 +109,63 @@ function removeEvent(button) {
 }
 
 // Define initialEvents as an object to store initial events per matchId
-let initialEvents = {};
+var initialEvents = initialEvents || {};
 
 // Event handler for opening the modal and loading match data
-$(document).on('click', '.edit-match-btn', function () {
-    const matchId = $(this).data('match-id');
+$(document).on('click', '.edit-match-btn', function (e) {
+    // Prevent any default action or propagation
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Get match ID either from data attribute or fallback to attribute
+    const matchId = $(this).data('match-id') || $(this).attr('data-match-id');
     console.log(`Fetching data for Match ID: ${matchId}`);
 
     if (!matchId) {
         console.error("Match ID is not defined!");
         return;
     }
+    
+    // Show a loading indicator using SweetAlert
+    Swal.fire({
+        title: 'Loading...',
+        text: 'Fetching match data',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     $.ajax({
         url: `/teams/report_match/${matchId}`,
         type: 'GET',
+        timeout: 15000, // 15 second timeout
         success: function (response) {
             console.log(`Received response for Match ID: ${matchId}`, response);
+            
+            // Close loading indicator
+            Swal.close();
+            
+            // Validate that we received a proper response
+            if (!response || typeof response !== 'object') {
+                console.error('Invalid response format:', response);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Received invalid response format. Please try again.'
+                });
+                return;
+            }
 
             // Set default values if response fields are null/undefined
             $('#home_team_score-' + matchId).val(response.home_team_score != null ? response.home_team_score : 0);
             $('#away_team_score-' + matchId).val(response.away_team_score != null ? response.away_team_score : 0);
             $('#match_notes-' + matchId).val(response.notes || '');
             $('#submitBtn-' + matchId).prop('disabled', false);
+            
+            // Update the team name labels in the modal
+            $('label[for="home_team_score-' + matchId + '"]').text((response.home_team_name || 'Home Team') + ' Score');
+            $('label[for="away_team_score-' + matchId + '"]').text((response.away_team_name || 'Away Team') + ' Score');
 
             // Initialize arrays if they don't exist in the response
             const goal_scorers = response.goal_scorers || [];
@@ -193,15 +225,116 @@ $(document).on('click', '.edit-match-btn', function () {
             });
 
             // Show the modal after populating it
-            $('#reportMatchModal-' + matchId).modal('show');
+            const modalId = 'reportMatchModal-' + matchId;
+            const modalElement = document.getElementById(modalId);
+            
+            // Check if the modal exists and is in the correct container
+            if (modalElement) {
+                try {
+                    // Look for existing modal instance and dispose it if needed to prevent duplicates
+                    const existingModalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (existingModalInstance) {
+                        existingModalInstance.dispose();
+                    }
+                    
+                    // Create a new modal instance
+                    const bsModal = new bootstrap.Modal(modalElement, {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    
+                    // Update modal title to show correct match info
+                    const modalTitle = modalElement.querySelector('.modal-title');
+                    if (modalTitle) {
+                        const homeTeamName = response.home_team_name || 'Home Team';
+                        const awayTeamName = response.away_team_name || 'Away Team';
+                        const reportType = response.reported ? 'Edit' : 'Report';
+                        modalTitle.innerHTML = `<i data-feather="edit" class="me-2"></i>${reportType} Match: ${homeTeamName} vs ${awayTeamName}`;
+                        // Re-initialize Feather icons if they exist
+                        if (typeof feather !== 'undefined') {
+                            feather.replace();
+                        }
+                    }
+                    
+                    // Show the modal
+                    bsModal.show();
+                } catch (error) {
+                    console.error('Error showing modal:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'There was a problem showing the form. Please try again.'
+                    });
+                }
+            } else {
+                console.error(`Modal element #${modalId} not found`);
+                
+                // Try to load modals first, then retry
+                $.ajax({
+                    url: '/modals/render_modals',
+                    method: 'GET',
+                    success: function(modalContent) {
+                        $('body').append(modalContent);
+                        console.log('Modals loaded dynamically');
+                        
+                        // Now try to find the modal again
+                        const reloadedModal = document.getElementById(modalId);
+                        if (reloadedModal) {
+                            // Create a new modal instance
+                            const bsModal = new bootstrap.Modal(reloadedModal);
+                            bsModal.show();
+                        } else {
+                            // Alert user if modal still wasn't found
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Could not find match reporting form. Please try refreshing the page.'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load the modal. Please refresh the page and try again.'
+                        });
+                    }
+                });
+            }
         },
         error: function (xhr, status, error) {
             console.error(`Error fetching match data: ${error}`);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to load match data. Please try again later.'
-            });
+            console.error('Status:', status);
+            console.error('Response:', xhr.responseText);
+            
+            // Check for timeout
+            if (status === 'timeout') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Timeout',
+                    text: 'The request took too long to complete. Please try again.'
+                });
+            } 
+            // Check for server errors
+            else if (xhr.status >= 500) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'The server encountered an error processing your request. Please try again later.'
+                });
+            }
+            // Other errors
+            else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to load match data. Please try again later.'
+                });
+            }
+        },
+        // Always close the loader even on error
+        complete: function() {
+            Swal.close();
         }
     });
 });
@@ -278,14 +411,6 @@ function getFinalEvents(matchId, eventType) {
         playerId = playerId ? String(playerId) : null;
         minute = minute ? String(minute) : null;
 
-        // Add detailed debugging statements
-        console.log('Event Entry:', {
-            uniqueId: uniqueId,
-            statId: statId,
-            playerId: playerId,
-            minute: minute
-        });
-
         events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
     });
     return events;
@@ -293,13 +418,6 @@ function getFinalEvents(matchId, eventType) {
 
 // Function to check if an event exists in an array
 function eventExists(event, eventsArray) {
-    console.log('Comparing events:', {
-        eventStatId: event.stat_id,
-        arrayStatIds: eventsArray.map(e => e.stat_id),
-        eventUniqueId: event.unique_id,
-        arrayUniqueIds: eventsArray.map(e => e.unique_id)
-    });
-
     if (event.stat_id) {
         // Compare based on stat_id for existing events
         return eventsArray.some(e => String(e.stat_id) === String(event.stat_id));
@@ -342,9 +460,7 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                     'success'
                 ).then(() => {
                     // Close the modal
-                    const modalElement = document.getElementById(`reportMatchModal-${matchId}`);
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    modal.hide();
+                    $(`#reportMatchModal-${matchId}`).modal('hide');
 
                     // Reload the page to reflect changes
                     location.reload();

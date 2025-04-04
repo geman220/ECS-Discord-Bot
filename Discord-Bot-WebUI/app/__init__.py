@@ -290,6 +290,8 @@ def init_blueprints(app):
     from app.help import help_bp
     from app.search import search_bp
     from app.API.predictions import predictions_api
+    from app.design_routes import design as design_bp
+    from app.modals import modals as modals_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -314,6 +316,8 @@ def init_blueprints(app):
     app.register_blueprint(monitoring_bp)
     app.register_blueprint(help_bp, url_prefix='/help')
     app.register_blueprint(search_bp)
+    app.register_blueprint(design_bp, url_prefix='/design')
+    app.register_blueprint(modals_bp, url_prefix='/modals')
 
 def init_context_processors(app):
     """

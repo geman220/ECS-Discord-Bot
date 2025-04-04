@@ -19,9 +19,9 @@ from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, render_template, redirect, url_for, abort, request, flash,
-    jsonify, g
+    jsonify, g, session
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func, text
 from werkzeug.utils import secure_filename
@@ -822,3 +822,57 @@ def update_application():
         return jsonify({"success": True, "message": "Update initiated", "output": result.stdout})
     except subprocess.CalledProcessError as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@main.route('/set-theme', methods=['POST'])
+def set_theme():
+    """
+    Set the user's theme preference.
+
+    This endpoint allows users to toggle between light and dark themes.
+    The preference is stored in the session and persists between page loads.
+
+    Returns:
+        JSON: A JSON response indicating success or failure of the operation.
+    """
+    data = request.get_json()
+    if not data or 'theme' not in data:
+        return jsonify({"success": False, "message": "Theme not provided"}), 400
+    
+    theme = data['theme']
+    if theme not in ['light', 'dark']:
+        return jsonify({"success": False, "message": "Invalid theme"}), 400
+    
+    # Store theme in session
+    session['theme'] = theme
+    
+    # If user is logged in, store preference in their profile
+    if current_user.is_authenticated:
+        try:
+            user = Player.query.get(current_user.id)
+            if user and hasattr(user, 'preferences'):
+                # Use preferences JSON field if it exists
+                preferences = user.preferences or {}
+                preferences['theme'] = theme
+                user.preferences = preferences
+                db.session.commit()
+        except Exception as e:
+            logger.error(f"Error saving theme preference for user {current_user.id}: {e}")
+    
+    return jsonify({"success": True, "message": f"Theme set to {theme}"})
+
+
+@main.context_processor
+def inject_theme():
+    """
+    Inject the current theme into all templates.
+
+    This function makes the current theme available to all templates,
+    allowing them to adjust their styling accordingly.
+
+    Returns:
+        dict: A dictionary containing the current theme.
+    """
+    # Get theme from session, default to light
+    theme = session.get('theme', 'light')
+    return {'current_theme': theme}

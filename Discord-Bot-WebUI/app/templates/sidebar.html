@@ -270,6 +270,16 @@
             </a>
         </li>
         {% endif %}
+        
+        <!-- Design System Guide - Only Global Admins -->
+        {% if 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'design.design_guide' }}">
+            <a class="menu-link" href="{{ url_for('design.design_guide') }}">
+                <i data-feather="layout" class="menu-icon"></i>
+                <div>Design System</div>
+            </a>
+        </li>
+        {% endif %}
 
         <!-- Feedback - Only Global Admins -->
         {% if 'Global Admin' in user_roles %}
