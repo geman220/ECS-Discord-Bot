@@ -334,14 +334,16 @@ function setupAndShowModal(matchId, data) {
     const modal = document.getElementById(modalId);
     
     if (!modal) {
-        console.error(`Modal #${modalId} not found, loading modals`);
+        console.log(`Modal #${modalId} not found, generating one dynamically`);
         
-        // Try to load modals
+        // First try to load all modals
         $.ajax({
             url: '/modals/render_modals',
             method: 'GET',
             success: function(modalContent) {
-                $('body').append(modalContent);
+                // Append to the container if it exists, otherwise to body
+                const container = document.getElementById('reportMatchModal-container') || document.body;
+                $(container).append(modalContent);
                 console.log('Modals loaded dynamically');
                 
                 // Now try to find the modal again
@@ -349,23 +351,185 @@ function setupAndShowModal(matchId, data) {
                 if (modalRecheck) {
                     populateModal(modalRecheck, data);
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Could not load the match reporting form. Please try refreshing the page.'
-                    });
+                    // Still not found - create a new one just for this match
+                    createDynamicModal(matchId, data);
                 }
             },
             error: function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Failed to load modals. Please refresh the page and try again.'
-                });
+                // Create a dynamic modal for just this match if loading all fails
+                createDynamicModal(matchId, data);
             }
         });
     } else {
         populateModal(modal, data);
+    }
+}
+
+// Function to create a dynamic modal for a specific match when needed
+function createDynamicModal(matchId, data) {
+    console.log(`Creating a dynamic modal for match ${matchId}`);
+    
+    // Create the container if it doesn't exist
+    let container = document.getElementById('reportMatchModal-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'reportMatchModal-container';
+        container.className = 'modal-container';
+        document.body.appendChild(container);
+    }
+    
+    // Create a basic modal structure
+    const modalHtml = `
+    <div class="modal fade ecs-modal" 
+         id="reportMatchModal-${matchId}" 
+         tabindex="-1" 
+         role="dialog"
+         aria-labelledby="reportMatchModalLabel-${matchId}" 
+         aria-hidden="true"
+         data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg modal-dialog-centered ecs-modal-dialog ecs-modal-lg ecs-modal-dialog-centered" role="document">
+            <div class="modal-content ecs-modal-content">
+                <!-- Modal Header -->
+                <div class="modal-header bg-primary text-white ecs-modal-header">
+                    <h5 class="modal-title ecs-modal-title" id="reportMatchModalLabel-${matchId}">
+                        <i data-feather="edit" class="me-2"></i>
+                        ${'Edit' ? data.reported : 'Report'} Match: 
+                        <span class="home-team-name">${data.home_team_name || 'Home Team'}</span>
+                        vs
+                        <span class="away-team-name">${data.away_team_name || 'Away Team'}</span>
+                    </h5>
+                    <button type="button" 
+                            class="btn-close btn-close-white ecs-modal-close" 
+                            data-bs-dismiss="modal" 
+                            aria-label="Close"></button>
+                </div>
+
+                <!-- Modal Body -->
+                <form id="reportMatchForm-${matchId}" class="report-match-form" data-match-id="${matchId}" action="/teams/report_match/${matchId}" method="POST" novalidate>
+                    <div class="modal-body ecs-modal-body">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="${$('input[name="csrf_token"]').val()}">
+
+                        <!-- Home and Away Team Scores -->
+                        <div class="row mb-4">
+                            <!-- Home Team Score -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="home_team_score-${matchId}" class="form-label">${data.home_team_name || 'Home Team'} Score</label>
+                                    <input type="number"
+                                           min="0"
+                                           class="form-control"
+                                           id="home_team_score-${matchId}"
+                                           name="home_team_score"
+                                           value="${data.home_team_score || 0}"
+                                           required />
+                                </div>
+                            </div>
+                            <!-- Away Team Score -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="away_team_score-${matchId}" class="form-label">${data.away_team_name || 'Away Team'} Score</label>
+                                    <input type="number"
+                                           min="0"
+                                           class="form-control"
+                                           id="away_team_score-${matchId}"
+                                           name="away_team_score"
+                                           value="${data.away_team_score || 0}"
+                                           required />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Goal Scorers -->
+                        <div class="mb-4">
+                            <label class="form-label">Goal Scorers</label>
+                            <div class="card p-3 border-1 shadow-sm">
+                                <div id="goalScorersContainer-${matchId}" class="mb-2">
+                                    <!-- Goal scorers will be added here dynamically -->
+                                </div>
+                                <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('${matchId}', 'goalScorersContainer-${matchId}')">
+                                    <i data-feather="plus" class="me-1"></i> Add Goal Scorer
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Assist Providers -->
+                        <div class="mb-4">
+                            <label class="form-label">Assist Providers</label>
+                            <div class="card p-3 border-1 shadow-sm">
+                                <div id="assistProvidersContainer-${matchId}" class="mb-2">
+                                    <!-- Assist providers will be added here dynamically -->
+                                </div>
+                                <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('${matchId}', 'assistProvidersContainer-${matchId}')">
+                                    <i data-feather="plus" class="me-1"></i> Add Assist Provider
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Yellow Cards -->
+                        <div class="mb-4">
+                            <label class="form-label">Yellow Cards</label>
+                            <div class="card p-3 border-1 shadow-sm">
+                                <div id="yellowCardsContainer-${matchId}" class="mb-2">
+                                    <!-- Yellow cards will be added here dynamically -->
+                                </div>
+                                <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('${matchId}', 'yellowCardsContainer-${matchId}')">
+                                    <i data-feather="plus" class="me-1"></i> Add Yellow Card
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Red Cards -->
+                        <div class="mb-4">
+                            <label class="form-label">Red Cards</label>
+                            <div class="card p-3 border-1 shadow-sm">
+                                <div id="redCardsContainer-${matchId}" class="mb-2">
+                                    <!-- Red cards will be added here dynamically -->
+                                </div>
+                                <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('${matchId}', 'redCardsContainer-${matchId}')">
+                                    <i data-feather="plus" class="me-1"></i> Add Red Card
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Match Notes -->
+                        <div class="mb-4">
+                            <label class="form-label" for="match_notes-${matchId}">Match Notes</label>
+                            <textarea class="form-control" id="match_notes-${matchId}" name="match_notes" rows="3">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="modal-footer ecs-modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn-${matchId}">
+                            ${data.reported ? 'Save Changes' : 'Submit Report'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>`;
+    
+    // Add the modal to the container
+    container.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Now process the modal
+    const modal = document.getElementById(`reportMatchModal-${matchId}`);
+    if (modal) {
+        // Initialize feather icons if available
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+        
+        // Populate the modal with the data
+        populateModal(modal, data);
+    } else {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to create the match modal. Please refresh the page and try again.'
+        });
     }
 }
 

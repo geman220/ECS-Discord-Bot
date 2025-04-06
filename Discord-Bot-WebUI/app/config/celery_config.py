@@ -153,6 +153,30 @@ class CeleryConfig:
                 'expires': 330  # Task expires after 5.5 minutes
             }
         },
+        'check-for-session-leaks': {
+            'task': 'app.tasks.monitoring_tasks.check_for_session_leaks',
+            'schedule': crontab(minute='*/15'),
+            'options': {
+                'queue': 'celery',
+                'expires': 840
+            }
+        },
+        'monitor-redis-connections': {
+            'task': 'app.tasks.monitoring_tasks.monitor_redis_connections',
+            'schedule': crontab(minute='*/10'),
+            'options': {
+                'queue': 'celery',
+                'expires': 540
+            }
+        },
+        'clean-zombie-tasks': {
+            'task': 'app.utils.task_monitor.clean_zombie_tasks',
+            'schedule': crontab(minute='*/15'),
+            'options': {
+                'queue': 'celery',
+                'expires': 840
+            }
+        },
         # Core Tasks
         'schedule-season-availability': {
             'task': 'app.tasks.tasks_core.schedule_season_availability',

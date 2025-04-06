@@ -1,0 +1,35 @@
+/* 
+ * Modal Close Button Fix
+ * Created: April 4, 2025
+ * 
+ * Fixes issues with close button (X) appearance in modals with dark headers
+ */
+
+/* Fix for white close button in dark headers */
+.btn-close-white.ecs-modal-close {
+  /* Force the white SVG filter */
+  filter: invert(1) grayscale(100%) brightness(200%) !important;
+  /* Ensure the SVG background is visible and remove competing styles */
+  background-color: transparent !important;
+  background-image: url("data:image/svg+xml,%3Csvg width='19' height='18' viewBox='0 0 19 18' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 4.5L5 13.5' stroke='%23ffffff' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M14 4.5L5 13.5' stroke='white' stroke-opacity='0.2' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 4.5L14 13.5' stroke='%23ffffff' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 4.5L14 13.5' stroke='white' stroke-opacity='0.2' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E%0A") !important;
+  opacity: 0.75 !important;
+}
+
+/* Hover state for better visibility */
+.btn-close-white.ecs-modal-close:hover {
+  opacity: 1 !important;
+}
+
+/* 
+ * Fix for generic close buttons to ensure consistent display
+ * across all modal types
+ */
+.btn-close.ecs-modal-close {
+  box-sizing: content-box;
+  width: 0.75rem;
+  height: 0.75rem;
+  padding: 0.25rem;
+  background: transparent var(--bs-btn-close-bg) center/0.75rem auto no-repeat;
+  border: 0;
+  border-radius: 0.375rem;
+}

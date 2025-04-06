@@ -12,6 +12,7 @@ for live matches.
 
 import logging
 from datetime import datetime
+import ipaddress
 
 import aiohttp
 import requests
@@ -38,6 +39,55 @@ logger = logging.getLogger(__name__)
 
 match_api = Blueprint('match_api', __name__)
 csrf.exempt(match_api)
+
+
+@match_api.before_request
+def limit_remote_addr():
+    """
+    Restrict API access to allowed hosts and mobile devices.
+    
+    This function allows access from:
+    1. Specific hosts in the allowed_hosts list
+    2. IP ranges using CIDR notation (e.g., local network)
+    3. Mobile devices with valid API key
+    """
+    allowed_hosts = [
+        # Server and development hosts
+        '127.0.0.1:5000', 
+        'localhost:5000', 
+        'webui:5000',
+        '192.168.1.112:5000',
+        
+        # Mobile development
+        '10.0.2.2:5000',      # Android emulator default
+        '192.168.1.0/24',     # Local network (allows any IP in this range)
+        '192.168.0.0/24',     # Alternative local network
+    ]
+    
+    # Check if host is in the allowed hosts list (direct match)
+    if request.host in allowed_hosts:
+        return
+    
+    # Check IP ranges (CIDR notation)
+    client_ip = request.host.split(':')[0]  # Remove port if present
+    for allowed in allowed_hosts:
+        if '/' in allowed:  # This is a CIDR notation
+            try:
+                network = ipaddress.ip_network(allowed)
+                if ipaddress.ip_address(client_ip) in network:
+                    return
+            except (ValueError, ipaddress.AddressValueError):
+                # Skip invalid IP addresses or networks
+                continue
+    
+    # Check for API key in headers (for mobile app)
+    api_key = request.headers.get('X-API-Key')
+    if api_key and api_key == current_app.config.get('MOBILE_API_KEY', 'ecs-soccer-mobile-key'):
+        return
+    
+    # If we get here, access is denied
+    logger.warning(f"API access denied for host: {request.host}")
+    return "Access Denied", 403
 
 
 async def process_live_match_updates(match_id, thread_id, match_data, last_status=None, last_score=None, last_event_keys=None):

@@ -35,9 +35,30 @@ def configure_celery(app):
     Returns:
         Celery: The configured Celery instance.
     """
+    # Configure Redis client with connection pool settings
+    redis_socket_options = {
+        'socket_timeout': 5,
+        'socket_connect_timeout': 5,
+        'retry_on_timeout': True,
+        'health_check_interval': 30
+    }
+    
     celery.conf.update(
         broker_url=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
         result_backend=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
+        redis_socket_timeout=5,
+        redis_socket_connect_timeout=5,
+        redis_retry_on_timeout=True,
+        broker_transport_options={
+            'visibility_timeout': 3600,  # 1 hour
+            'socket_timeout': 5,
+            'socket_connect_timeout': 5,
+            'max_connections': 20
+        },
+        result_backend_transport_options={
+            'socket_timeout': 5,
+            'socket_connect_timeout': 5
+        },
         task_serializer='json',
         accept_content=['json'],
         result_serializer='json',

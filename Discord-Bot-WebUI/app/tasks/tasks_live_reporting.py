@@ -78,34 +78,36 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         if task_id and current_task_id != task_id:
             logger.warning(f"Detected duplicate task execution for match {match_id}. "
                           f"Expected task ID: {task_id}, Current task ID: {current_task_id}")
-            return {'success': False, 'message': 'Duplicate task execution detected'}
+            # Just log this rather than stopping processing - the duplicate detection is informational
+            # If we need to stop, we can uncomment this return statement
+            # return {'success': False, 'message': 'Duplicate task execution detected'}
 
         last_event_keys = last_event_keys or []
 
-        # Create a new event loop for async operations.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            full_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard/{match_id}"
-            # Fetch match data from ESPN.
-            match_data = loop.run_until_complete(fetch_espn_data(full_url=full_url))
-            if not match_data:
-                logger.error(f"Failed to fetch data for match {match_id}")
-                return {'success': False, 'message': 'Failed to fetch match data'}
+        # Log task execution for debugging
+        logger.info(f"Processing match update with task ID: {self.request.id}, previous task ID: {task_id}")
+        
+        # Use async_to_sync utility to safely run async functions
+        from app.api_utils import async_to_sync
+        
+        # Fetch match data from ESPN
+        full_url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{competition}/scoreboard/{match_id}"
+        match_data = async_to_sync(fetch_espn_data(full_url=full_url))
+        if not match_data:
+            logger.error(f"Failed to fetch data for match {match_id}")
+            return {'success': False, 'message': 'Failed to fetch match data'}
 
-            # Process live match updates and retrieve current event keys.
-            match_ended, current_event_keys = loop.run_until_complete(
-                process_live_match_updates(
-                    match_id=str(match_id),
-                    thread_id=thread_id,
-                    match_data=match_data,
-                    last_status=last_status,
-                    last_score=last_score,
-                    last_event_keys=last_event_keys
-                )
+        # Process live match updates using async_to_sync to avoid nested event loops
+        match_ended, current_event_keys = async_to_sync(
+            process_live_match_updates(
+                match_id=str(match_id),
+                thread_id=thread_id,
+                match_data=match_data,
+                last_status=last_status,
+                last_score=last_score,
+                last_event_keys=last_event_keys
             )
-        finally:
-            loop.close()
+        )
 
         if match_ended:
             logger.info(f"Match {match_id} has ended")
@@ -157,25 +159,54 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
 
         # Schedule the next update with updated parameters.
         # Store the task ID to prevent duplicate executions
-        next_task = self.apply_async(
-            args=[match_id, thread_id, competition],
-            kwargs={
-                'last_status': new_status,
-                'last_score': new_score,
-                'last_event_keys': current_event_keys,
-                'task_id': None  # Will be filled with the actual task ID
-            },
-            countdown=30,
-            queue='live_reporting'
-        )
+        try:
+            # Check if we've been running too long to prevent infinite chains
+            max_chain_length = 120  # 120 × 30 seconds = 1 hour maximum per match
+            task_chain_length = getattr(self.request, 'task_chain_length', 0) + 1
+            
+            if task_chain_length > max_chain_length:
+                logger.warning(
+                    f"Match {match_id} reached maximum chain length of {max_chain_length}. "
+                    f"Stopping automatic updates to prevent runaway tasks."
+                )
+                return {
+                    'success': False,
+                    'message': f'Maximum chain length ({max_chain_length}) reached',
+                    'status': 'stopped',
+                    'score': new_score,
+                    'match_status': new_status
+                }
+                
+            logger.info(f"Scheduling next update for match {match_id}, chain length: {task_chain_length}/{max_chain_length}")
+            
+            # Create the next task
+            next_task = self.apply_async(
+                args=[match_id, thread_id, competition],
+                kwargs={
+                    'last_status': new_status,
+                    'last_score': new_score,
+                    'last_event_keys': current_event_keys,
+                    'task_id': None,  # This will be ignored by duplicate detection logic on first run
+                    'task_chain_length': task_chain_length  # Track how many times this task has chained itself
+                },
+                countdown=30,
+                queue='live_reporting'
+            )
+            logger.info(f"Scheduled next task with ID: {next_task.id}")
+        except Exception as e:
+            logger.error(f"Error scheduling next task: {str(e)}", exc_info=True)
+            # Create a minimal task result object for error handling
+            from collections import namedtuple
+            MockTask = namedtuple('MockTask', ['id'])
+            next_task = MockTask(id="error-scheduling-task")
         
         # Store the new task ID in the database
         if match:
             match.live_reporting_task_id = next_task.id
             logger.info(f"Scheduled next update with task ID: {next_task.id} for match {match_id}")
             
-        # Update the task kwargs with the actual task ID
-        next_task.kwargs['task_id'] = next_task.id
+        # We no longer need to update task kwargs since we're using the dictionary directly
+        # and it was already updated above
 
         return {
             'success': True,

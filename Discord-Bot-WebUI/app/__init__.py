@@ -278,6 +278,37 @@ def create_app(config_object='web_config.Config'):
     def teardown_request(exception):
         from app.core.session_manager import cleanup_request
         cleanup_request(exception)
+        
+    @app.teardown_appcontext
+    def teardown_appcontext(exception):
+        # Clean up any Redis connection pools on app context teardown
+        from app.utils.redis_manager import RedisManager
+        redis_manager = RedisManager()
+        redis_manager.shutdown()
+        
+    # Register a function to gracefully shutdown when a worker terminates
+    def worker_shutdown_cleanup():
+        """
+        Perform cleanup operations when a worker shuts down.
+        This ensures proper resource release for Celery workers.
+        """
+        logger.info("Running worker shutdown cleanup")
+        
+        # Clean up Redis connections
+        from app.utils.redis_manager import RedisManager
+        redis_manager = RedisManager()
+        redis_manager.shutdown()
+        
+        # Clean up any orphaned database sessions
+        from app.db_management import db_manager
+        try:
+            db_manager.cleanup_orphaned_sessions()
+        except Exception as e:
+            logger.error(f"Error cleaning up orphaned sessions: {e}", exc_info=True)
+            
+    # Register the worker shutdown handler with Celery
+    from app.core import celery
+    celery.conf.worker_shutdown = worker_shutdown_cleanup
 
     return app
 
