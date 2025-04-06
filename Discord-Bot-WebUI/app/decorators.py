@@ -214,6 +214,7 @@ def admin_or_owner_required(func):
 def jwt_role_required(roles):
     """
     Decorator to ensure that the current JWT-authenticated user has one of the required roles.
+    Global Admin users are always allowed regardless of specified roles.
     
     Returns JSON with 403 if the user lacks the required roles.
 
@@ -242,6 +243,11 @@ def jwt_role_required(roles):
                 return jsonify({"msg": "User not found"}), 404
 
             user_roles = [role.name for role in user.roles]
+            
+            # Global Admin always has access
+            if 'Global Admin' in user_roles:
+                return f(*args, **kwargs)
+                
             if not any(role in user_roles for role in roles):
                 return jsonify({
                     "msg": f"Access denied: Required roles: {', '.join(roles)}"
@@ -338,6 +344,7 @@ async def async_session_context():
     Asynchronous session context manager for async operations.
 
     If within a request context, uses g.db_session; otherwise, creates a new session.
+    Properly commits or rolls back the session in all execution paths.
     
     Yields:
         A database session.
@@ -351,7 +358,21 @@ async def async_session_context():
 
     try:
         yield session
+        # Commit changes if this is our own session
+        if new_session:
+            try:
+                session.commit()
+            except Exception as e:
+                logger.error(f"Error committing async session: {e}", exc_info=True)
+                session.rollback()
+                raise
+    except Exception:
+        # Ensure rollback on exceptions
+        if new_session:
+            session.rollback()
+        raise
     finally:
+        # Always close if we created this session
         if new_session:
             session.close()
 
@@ -378,32 +399,66 @@ def celery_task(**task_kwargs):
         def wrapped(self, *args, **kwargs):
             app = celery.flask_app
             with app.app_context():
+                # Import session tracking utilities
+                from app.utils.task_monitor import register_session_start, register_session_end
+                
+                # Create a unique session ID for tracking
+                import uuid
+                session_id = str(uuid.uuid4())
+                
+                # Get stack trace for debugging orphaned sessions
+                import traceback
+                stack_trace = ''.join(traceback.format_stack())
+                
+                # Track session creation
+                register_session_start(session_id, self.request.id, stack_trace)
+                
+                # Create the session
                 session = app.SessionLocal()
                 try:
                     if asyncio.iscoroutinefunction(f):
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            result = loop.run_until_complete(f(self, session, *args, **kwargs))
-                        finally:
-                            loop.close()
+                        # Use a smarter approach to avoid nested event loop issues
+                        from app.api_utils import async_to_sync
+                        result = async_to_sync(f(self, session, *args, **kwargs))
                     else:
                         result = f(self, session, *args, **kwargs)
+                    
+                    # Commit the session
                     session.commit()
+                    
+                    # Record successful completion
+                    register_session_end(session_id, 'committed')
                     return result
                 except Exception as e:
+                    # Roll back on error
                     session.rollback()
+                    
+                    # Record error in session tracking
+                    register_session_end(session_id, 'error-rollback')
+                    
                     logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
                     raise
                 finally:
+                    # Always close the session
                     session.close()
+                    
+                    # Ensure session is marked as closed even if register_session_end wasn't reached
+                    try:
+                        register_session_end(session_id, 'closed')
+                    except Exception as e:
+                        logger.error(f"Failed to register session end: {str(e)}")
+                        
         return wrapped
     return celery_task_decorator
 
 
 def async_task(**task_kwargs):
     """
-    Decorator for asynchronous Celery tasks with explicit session handling.
+    Decorator for asynchronous Celery tasks with improved session handling.
+
+    Ensures that sessions are properly committed or rolled back in all execution
+    paths, including error paths. Also provides better error reporting and task
+    retry capability.
 
     Args:
         **task_kwargs: Keyword arguments for Celery task configuration.
@@ -413,25 +468,57 @@ def async_task(**task_kwargs):
     """
     def async_task_decorator(f):
         task_name = task_kwargs.pop('name', None) or f'app.tasks.{f.__module__}.{f.__name__}'
-        base_task = celery.task(name=task_name, **task_kwargs)(f)
-
+        # Add bind=True for better task control
+        task_kwargs['bind'] = True
+        max_retries = task_kwargs.pop('max_retries', 3)
+        
+        # Create the base Celery task
+        @celery.task(name=task_name, max_retries=max_retries, **task_kwargs)
+        @wraps(f)
+        def task_wrapper(self, *args, **kwargs):
+            """Wrapper function that runs the async task in a new event loop"""
+            app = celery.flask_app
+            
+            with app.app_context():
+                # Use the new async_to_sync utility for safe async execution
+                from app.api_utils import async_to_sync
+                
+                # Define the actual async execution function
+                async def execute_async():
+                    session = app.SessionLocal()
+                    try:
+                        # Execute the task with session and args
+                        result = await f(session, *args, **kwargs)
+                        # Commit changes on success
+                        session.commit()
+                        return result
+                    except SQLAlchemyError as e:
+                        # Roll back on database errors and retry the task
+                        session.rollback()
+                        logger.error(f"Database error in {task_name}: {e}", exc_info=True)
+                        raise self.retry(exc=e, countdown=60, max_retries=max_retries)
+                    except Exception as e:
+                        # Roll back on any other errors
+                        session.rollback()
+                        logger.error(f"Error in {task_name}: {e}", exc_info=True)
+                        raise
+                    finally:
+                        # Always close the session
+                        session.close()
+                
+                # Use the safe async execution utility
+                return async_to_sync(execute_async())
+        
+        # Create an async wrapper that has the same interface for local calls
         @wraps(f)
         async def wrapped(*args, **kwargs):
-            app = celery.flask_app
-            async_session = app.SessionLocal()
-            try:
-                result = await f(async_session, *args, **kwargs)
-                async_session.commit()
-                return result
-            except Exception as e:
-                async_session.rollback()
-                logger.error(f"Async task {task_name} failed: {str(e)}", exc_info=True)
-                raise
-            finally:
-                async_session.close()
-
-        # Expose the delay and apply_async methods from the base task.
-        wrapped.delay = base_task.delay
-        wrapped.apply_async = base_task.apply_async
+            async with async_session_context() as session:
+                return await f(session, *args, **kwargs)
+        
+        # Expose Celery task methods on our wrapper
+        wrapped.delay = task_wrapper.delay
+        wrapped.apply_async = task_wrapper.apply_async
+        wrapped.name = task_name
         return wrapped
+    
     return async_task_decorator

@@ -69,6 +69,11 @@ def exchange_discord_code(code: str, redirect_uri: str, code_verifier: str) -> D
     try:
         discord_client_id = current_app.config['DISCORD_CLIENT_ID']
         discord_client_secret = current_app.config['DISCORD_CLIENT_SECRET']
+        
+        # Log the parameters being used for troubleshooting
+        logger.debug(f"Discord token exchange parameters: client_id={discord_client_id}, redirect_uri={redirect_uri}")
+        logger.debug(f"Code verifier length: {len(code_verifier) if code_verifier else 'None'}")
+        
         data = {
             'client_id': discord_client_id,
             'client_secret': discord_client_secret,
@@ -78,11 +83,20 @@ def exchange_discord_code(code: str, redirect_uri: str, code_verifier: str) -> D
             'code_verifier': code_verifier,
         }
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        
+        logger.debug(f"Sending token exchange request to Discord with data: {data}")
         response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
+        
+        if not response.ok:
+            logger.error(f"Discord token exchange error: {response.status_code} {response.text}")
+        
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
         logger.error(f"Discord token exchange failed: {str(e)}")
+        # Log the response if it exists
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Error response: {e.response.status_code}, {e.response.text}")
         raise
 
 
@@ -109,17 +123,17 @@ def get_discord_user_data(access_token: str) -> Dict:
         raise
 
 
-def process_discord_user(user_data: Dict) -> User:
+def process_discord_user(session, user_data: Dict) -> User:
     """
     Process Discord user data and create or update a local User record.
 
     Args:
+        session: The database session to use
         user_data (Dict): The user data obtained from Discord.
 
     Returns:
         User: The created or updated User instance.
     """
-    session = g.db_session
     email = user_data.get('email', '').lower()
     discord_id = user_data.get('id')
 
@@ -345,18 +359,18 @@ def get_team_players_availability(match: Match, players: List[Player], session=N
     } for player in players]
 
 
-def get_match_events(match: Match) -> Dict[str, int]:
+def get_match_events(match: Match) -> Dict:
     """
-    Get summary statistics of events for a match.
+    Get match events with detailed information.
 
     Args:
         match (Match): The match instance.
 
     Returns:
-        Dict[str, int]: A dictionary with counts of yellow and red cards for home and away teams.
+        Dict: A dictionary with card counts and detailed events array including player information.
     """
     events = match.events  # Assumes events are already loaded.
-    return {
+    result = {
         'home_yellow_cards': sum(1 for event in events
                                  if event.event_type == PlayerEventType.YELLOW_CARD 
                                  and event.player.primary_team_id == match.home_team_id),
@@ -368,8 +382,21 @@ def get_match_events(match: Match) -> Dict[str, int]:
                               and event.player.primary_team_id == match.home_team_id),
         'away_red_cards': sum(1 for event in events
                               if event.event_type == PlayerEventType.RED_CARD 
-                              and event.player.primary_team_id == match.away_team_id)
+                              and event.player.primary_team_id == match.away_team_id),
+        'events': [
+            {
+                'id': event.id,
+                'player_id': event.player_id,
+                'player_name': event.player.name if event.player else 'Unknown Player',
+                'match_id': event.match_id,
+                'minute': event.minute,
+                'event_type': event.event_type.name if event.event_type else None,
+                'team': 'home' if (event.player and event.player.primary_team_id == match.home_team_id) else 'away'
+            }
+            for event in events
+        ]
     }
+    return result
 
 
 def get_player_availability(match: Match, player: Player, session=None) -> Optional[Dict]:
@@ -395,7 +422,8 @@ def get_player_availability(match: Match, player: Player, session=None) -> Optio
 
 
 def build_matches_query(team_id: Optional[int], player: Optional[Player], 
-                        upcoming: bool = False, session=None) -> Query:
+                        upcoming: bool = False, completed: bool = False, 
+                        all_teams: bool = False, session=None) -> Query:
     """
     Build a SQLAlchemy query for matches based on filters.
 
@@ -403,6 +431,8 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         team_id (Optional[int]): Filter by a specific team ID.
         player (Optional[Player]): Filter by player's team if team_id is not provided.
         upcoming (bool): If True, only include matches scheduled in the future.
+        completed (bool): If True, only include matches that have already been played.
+        all_teams (bool): If True, include matches for all player's teams, not just primary.
         session: The database session (defaults to g.db_session).
 
     Returns:
@@ -412,17 +442,37 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         session = g.db_session
 
     query = session.query(Match)
+    
     if team_id:
+        # Filter by specific team ID provided
         query = query.filter(
             or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
         )
-    elif player and player.primary_team_id:
-        query = query.filter(
-            or_(Match.home_team_id == player.primary_team_id, Match.away_team_id == player.primary_team_id)
-        )
+    elif player:
+        if all_teams and player.teams:
+            # Get all teams the player is on
+            player_team_ids = [team.id for team in player.teams]
+            if player_team_ids:
+                # Filter matches for any of the player's teams
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(player_team_ids),
+                        Match.away_team_id.in_(player_team_ids)
+                    )
+                )
+        elif player.primary_team_id:
+            # Filter by primary team only
+            query = query.filter(
+                or_(Match.home_team_id == player.primary_team_id, Match.away_team_id == player.primary_team_id)
+            )
 
+    # Filter by match date
+    current_time = datetime.utcnow()
+    
     if upcoming:
-        query = query.filter(Match.date >= datetime.utcnow())
+        query = query.filter(Match.date >= current_time)
+    elif completed:
+        query = query.filter(Match.date < current_time)
 
     return query
 

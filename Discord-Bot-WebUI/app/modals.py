@@ -18,10 +18,29 @@ def render_all_modals():
     """Renders a partial template with all modals for the logged-in user's matches."""
     # Import already done at the module level
 
+    # Check if specific match IDs were requested
+    requested_ids = request.args.get('match_ids')
+    match_id_list = []
+    
+    if requested_ids:
+        try:
+            # Parse comma-separated list of match IDs
+            match_id_list = [int(id.strip()) for id in requested_ids.split(',') if id.strip().isdigit()]
+            current_app.logger.info(f"Requested specific match IDs: {match_id_list}")
+        except Exception as e:
+            current_app.logger.error(f"Error parsing match IDs: {e}")
+    
     # Create choices dictionary for all matches the user might have access to
     with managed_session() as session:
-        # Get all matches
-        matches = session.query(Match).all()
+        # Get matches based on request
+        if match_id_list:
+            # Get specific matches if IDs were provided
+            matches = session.query(Match).filter(Match.id.in_(match_id_list)).all()
+            current_app.logger.info(f"Found {len(matches)} matches for requested IDs")
+        else:
+            # Otherwise get all matches (default behavior)
+            matches = session.query(Match).all()
+            current_app.logger.info(f"Returning all {len(matches)} matches")
         
         # Generate player choices for each match
         player_choices = {}
@@ -37,6 +56,12 @@ def render_all_modals():
                     home_team.name: home_players,
                     away_team.name: away_players
                 }
+            else:
+                # Even for matches without fully loaded teams, create a minimal entry
+                # This ensures the modal can be generated, even if player lists might be empty
+                placeholder = {"Players Unavailable": {0: "No players available"}}
+                player_choices[match.id] = placeholder
+                current_app.logger.warning(f"Match {match.id} missing team data, using placeholder")
         
         # Render the modals template
         return render_template('modals/match_modals.html', 

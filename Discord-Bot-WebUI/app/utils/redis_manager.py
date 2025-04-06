@@ -40,6 +40,17 @@ class RedisManager:
         """
         if self._client is None:
             self._initialize_client()
+            
+    def shutdown(self):
+        """
+        Close the Redis client connection pool and release resources.
+        
+        This should be called during application shutdown.
+        """
+        if self._client and hasattr(self._client, 'connection_pool'):
+            logger.info("Closing Redis connection pool")
+            self._client.connection_pool.disconnect()
+            self._client = None
 
     def _initialize_client(self):
         """
@@ -47,6 +58,7 @@ class RedisManager:
 
         Attempts to create a Redis client using environment variables (or default values)
         and pings the server to verify connectivity. Retries up to 3 times on failure.
+        Uses a connection pool with proper configuration to manage connections efficiently.
         """
         max_retries = 3
         retry_count = 0
@@ -58,16 +70,22 @@ class RedisManager:
                 redis_port = int(os.getenv('REDIS_PORT', '6379'))
                 redis_db = int(os.getenv('REDIS_DB', '0'))
 
-                # Create the Redis client with connection and timeout settings.
-                self._client = Redis(
+                # Create a Redis connection pool with proper settings
+                from redis import ConnectionPool
+                pool = ConnectionPool(
                     host=redis_host,
                     port=redis_port,
                     db=redis_db,
                     socket_timeout=5,
                     socket_connect_timeout=5,
                     decode_responses=True,
-                    health_check_interval=30
+                    health_check_interval=30,
+                    max_connections=20
                 )
+
+                # Create the Redis client using the connection pool
+                self._client = Redis(connection_pool=pool)
+                
                 # Test the connection by pinging the server.
                 self._client.ping()
                 logger.info(f"Redis connection established to {redis_host}:{redis_port}")
@@ -91,3 +109,41 @@ class RedisManager:
         if self._client is None or not self._client.ping():
             self._initialize_client()
         return self._client
+        
+    def get_connection_stats(self):
+        """
+        Get statistics about the Redis connection pool.
+        
+        Returns:
+            dict: A dictionary containing connection pool statistics
+        """
+        stats = {
+            'connection_pool': False,
+            'in_use': 0,
+            'created': 0,
+            'max': 0,
+            'utilization_percent': 0
+        }
+        
+        if self._client and hasattr(self._client, 'connection_pool'):
+            pool = self._client.connection_pool
+            stats['connection_pool'] = True
+            
+            # Check current connections vs max connections
+            if hasattr(pool, '_in_use_connections') and hasattr(pool, '_available_connections'):
+                in_use = len(pool._in_use_connections)
+                created = len(pool._available_connections) + in_use
+                max_conn = pool.max_connections if hasattr(pool, 'max_connections') else 0
+                
+                stats.update({
+                    'in_use': in_use,
+                    'created': created,
+                    'max': max_conn,
+                    'utilization_percent': (in_use / max_conn * 100) if max_conn else 0
+                })
+                
+                # Log warning if too many connections are in use
+                if max_conn and in_use > max_conn * 0.8:  # 80% of max connections
+                    logger.warning(f"Redis connection pool nearing capacity: {in_use}/{max_conn} connections in use")
+        
+        return stats

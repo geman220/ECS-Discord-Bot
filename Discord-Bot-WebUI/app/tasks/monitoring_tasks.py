@@ -3,8 +3,10 @@
 """
 Monitoring Tasks
 
-This module defines a Celery task to collect detailed database statistics,
-create a DBMonitoringSnapshot instance from those statistics, and store it in the database.
+This module defines Celery tasks for monitoring system health, including:
+- Collecting detailed database statistics
+- Checking for potential database session leaks
+- Monitoring Redis connection pool usage
 """
 
 import logging
@@ -15,6 +17,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
+from app.utils.redis_manager import RedisManager
 
 # Configure logger for this module.
 logger = logging.getLogger(__name__)
@@ -183,3 +186,48 @@ def check_for_session_leaks():
             raise
         finally:
             session.close()
+
+
+@celery.task(name='app.tasks.monitoring_tasks.monitor_redis_connections')
+def monitor_redis_connections():
+    """
+    Monitor Redis connection usage and detect potential leaks.
+    
+    This task:
+    - Retrieves the current Redis connection pool statistics
+    - Logs warnings if connection usage is approaching capacity
+    - Returns detailed statistics for monitoring
+    
+    Returns:
+        Dict with Redis connection pool statistics
+    """
+    logger.info("Starting Redis connection monitoring task")
+    
+    app = celery.flask_app
+    
+    with app.app_context():
+        try:
+            redis_manager = RedisManager()
+            
+            # Get connection pool stats
+            stats = redis_manager.get_connection_stats()
+            
+            # Log warning if connection pool usage is high
+            if stats.get('max', 0) > 0 and stats.get('in_use', 0) > stats['max'] * 0.8:
+                logger.warning(
+                    f"Redis connection pool nearing capacity: "
+                    f"{stats['in_use']}/{stats['max']} connections in use "
+                    f"({stats['utilization_percent']:.1f}%)"
+                )
+            
+            # Log normal status
+            logger.info(
+                f"Redis connection pool stats: {stats['in_use']} in use, "
+                f"{stats['created']} created, {stats['max']} max"
+            )
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error monitoring Redis connections: {e}", exc_info=True)
+            raise

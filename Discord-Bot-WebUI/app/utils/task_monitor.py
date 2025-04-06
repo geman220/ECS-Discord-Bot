@@ -3,195 +3,373 @@
 """
 Task Monitor Module
 
-This module defines the TaskMonitor class, which provides methods to retrieve the status
-of Celery tasks and to verify and monitor scheduled tasks for match scheduling and live reporting.
-It interacts with Redis to store and retrieve task IDs and reschedule tasks if necessary.
-A global instance of TaskMonitor is created for convenience.
+This module provides utilities for monitoring Celery tasks and their lifecycle.
+It helps detect and handle zombie tasks (tasks that are stuck in a running state),
+manages stale tasks, and provides insights into task execution patterns.
 """
 
 import logging
-from typing import Dict, Any
+import time
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+
+from celery.states import STARTED, PENDING, RETRY, FAILURE, SUCCESS, REVOKED
 from celery.result import AsyncResult
-from flask import g
+
 from app.core import celery
-from app.models import MLSMatch
 from app.utils.redis_manager import RedisManager
-from app.tasks.tasks_live_reporting import force_create_mls_thread_task, start_live_reporting
 
 logger = logging.getLogger(__name__)
 
 
 class TaskMonitor:
-    """Monitor and manage Celery tasks for match scheduling and live reporting."""
+    """
+    A class for monitoring and managing Celery tasks.
+    
+    This class provides functionality to track task states, detect zombie tasks,
+    and clean up task-related resources. It uses Redis for persistent state tracking.
+    """
     
     def __init__(self):
-        # Initialize Redis client from the RedisManager singleton.
+        """Initialize the TaskMonitor with Redis-backed storage."""
         self.redis = RedisManager().client
-        
-    def get_task_status(self, task_id: str) -> Dict[str, Any]:
-        """
-        Retrieve detailed status information of a Celery task.
-        
-        Args:
-            task_id: The Celery task ID.
-        
-        Returns:
-            A dictionary containing task status details such as status, whether it is ready,
-            if it succeeded or failed, and any available task info.
-        """
-        try:
-            result = AsyncResult(task_id, app=celery)
-            status = {
-                'id': task_id,
-                'status': result.status,
-                'successful': result.successful() if result.ready() else None,
-                'failed': result.failed() if result.ready() else None,
-                'ready': result.ready(),
-                'info': str(result.info) if result.info else None
-            }
-            
-            # Include ETA if available.
-            if hasattr(result, 'eta') and result.eta:
-                status['eta'] = result.eta.isoformat()
-                
-            return status
-        except Exception as e:
-            logger.error(f"Error getting task status for {task_id}: {str(e)}")
-            return {
-                'id': task_id,
-                'status': 'ERROR',
-                'error': str(e)
-            }
+        self.task_prefix = "task_monitor:"
+        self.zombie_threshold = 3600  # 1 hour
     
-    def verify_scheduled_tasks(self, match_id: str, session=None) -> Dict[str, Any]:
+    def register_task_start(self, task_id: str, task_name: str) -> None:
         """
-        Verify and potentially repair scheduled tasks for a given match.
-
-        Retrieves scheduled task IDs from Redis and checks their statuses.
-        If a task has failed or returned an error, it reschedules the task.
-
+        Register a task as started.
+        
         Args:
-            match_id: The ID of the match (as a string).
-            session: An optional database session; if not provided, attempts to use g.db_session.
-
-        Returns:
-            A dictionary summarizing the status of thread and reporting tasks.
+            task_id: The ID of the task.
+            task_name: The name of the task.
         """
-        if session is None:
-            # Use g.db_session if available.
-            session = getattr(g, 'db_session', None)
-            if session is None:
-                logger.error("No database session available in verify_scheduled_tasks.")
-                return {'success': False, 'message': 'No session available'}
-
-        try:
-            match = get_match(session, match_id)
-            if not match:
-                return {'success': False, 'message': 'Match not found'}
+        key = f"{self.task_prefix}{task_id}"
+        
+        # Store task information
+        task_info = {
+            "task_id": task_id,
+            "task_name": task_name,
+            "start_time": time.time(),
+            "status": STARTED
+        }
+        
+        # Set expiration to avoid leaking memory
+        self.redis.hmset(key, task_info)
+        self.redis.expire(key, 86400)  # 24 hours
+        logger.debug(f"Registered task start: {task_id} ({task_name})")
+    
+    def register_task_completion(self, task_id: str, status: str) -> None:
+        """
+        Register a task as completed (or failed).
+        
+        Args:
+            task_id: The ID of the task.
+            status: The final status of the task.
+        """
+        key = f"{self.task_prefix}{task_id}"
+        
+        # Update task information
+        if self.redis.exists(key):
+            self.redis.hset(key, "status", status)
+            self.redis.hset(key, "end_time", time.time())
+            self.redis.expire(key, 86400)  # 24 hours after completion
+            logger.debug(f"Registered task completion: {task_id} ({status})")
+        else:
+            logger.warning(f"Attempted to update unknown task: {task_id}")
+    
+    def detect_zombie_tasks(self) -> List[Dict[str, Any]]:
+        """
+        Detect tasks that have been running for too long.
+        
+        Returns:
+            A list of dictionaries containing information about zombie tasks.
+        """
+        current_time = time.time()
+        zombie_tasks = []
+        
+        # Find keys with the task prefix
+        keys = self.redis.keys(f"{self.task_prefix}*")
+        
+        for key in keys:
+            task_info = self.redis.hgetall(key)
             
-            # Define Redis keys for scheduled thread and reporting tasks.
-            thread_key = f"match_scheduler:{match_id}:thread"
-            reporting_key = f"match_scheduler:{match_id}:reporting"
+            # Skip if not in STARTED state
+            if task_info.get("status") != STARTED:
+                continue
             
-            thread_task_id = self.redis.get(thread_key)
-            reporting_task_id = self.redis.get(reporting_key)
-            
-            # Check the thread creation task status.
-            thread_status = None
-            if thread_task_id:
-                thread_task_id = thread_task_id.decode('utf-8')
-                thread_status = self.get_task_status(thread_task_id)
+            # Check if task has been running too long
+            start_time = float(task_info.get("start_time", 0))
+            if current_time - start_time > self.zombie_threshold:
+                task_id = task_info.get("task_id")
+                task_name = task_info.get("task_name")
                 
-                # If the task failed or returned an error, reschedule it.
-                if thread_status.get('failed') or thread_status.get('status') == 'ERROR':
-                    logger.warning(f"Thread task {thread_task_id} failed or error, rescheduling")
-                    new_thread_task = force_create_mls_thread_task.apply_async(
-                        args=[match_id],
-                        eta=match.thread_creation_time
-                    )
-                    self.redis.setex(thread_key, 172800, new_thread_task.id)  # 48 hours
-                    thread_status = self.get_task_status(new_thread_task.id)
-            
-            # Check the live reporting task status.
-            reporting_status = None
-            if reporting_task_id:
-                reporting_task_id = reporting_task_id.decode('utf-8')
-                reporting_status = self.get_task_status(reporting_task_id)
+                # Try to get the current state from Celery
+                task_result = AsyncResult(task_id)
+                current_status = task_result.state
                 
-                # If the task failed or returned an error, reschedule it.
-                if reporting_status.get('failed') or reporting_status.get('status') == 'ERROR':
-                    logger.warning(f"Reporting task {reporting_task_id} failed or error, rescheduling")
-                    new_reporting_task = start_live_reporting.apply_async(
-                        args=[str(match_id)],
-                        eta=match.date_time
-                    )
-                    self.redis.setex(reporting_key, 172800, new_reporting_task.id)  # 48 hours
-                    reporting_status = self.get_task_status(new_reporting_task.id)
+                # If the task is still running according to Celery, it's a zombie
+                if current_status == STARTED:
+                    zombie_tasks.append({
+                        "task_id": task_id,
+                        "task_name": task_name,
+                        "runtime": current_time - start_time,
+                        "start_time": datetime.fromtimestamp(start_time).isoformat()
+                    })
+                else:
+                    # Update our records if Celery has a different status
+                    self.register_task_completion(task_id, current_status)
+        
+        return zombie_tasks
+    
+    def clean_up_zombie_tasks(self) -> int:
+        """
+        Terminate zombie tasks and clean up related resources.
+        
+        Returns:
+            The number of tasks terminated.
+        """
+        zombies = self.detect_zombie_tasks()
+        terminated = 0
+        
+        for zombie in zombies:
+            task_id = zombie["task_id"]
+            logger.warning(f"Terminating zombie task: {task_id} ({zombie['task_name']})")
             
-            return {
-                'success': True,
-                'match_id': match_id,
-                'thread_task': {
-                    'id': thread_task_id,
-                    'status': thread_status
-                },
-                'reporting_task': {
-                    'id': reporting_task_id,
-                    'status': reporting_status
+            try:
+                # Revoke and terminate the task
+                celery.control.revoke(task_id, terminate=True)
+                
+                # Update our records
+                self.register_task_completion(task_id, REVOKED)
+                terminated += 1
+            except Exception as e:
+                logger.error(f"Failed to terminate task {task_id}: {e}", exc_info=True)
+        
+        return terminated
+    
+    def get_task_stats(self, time_window: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Get statistics about tasks.
+        
+        Args:
+            time_window: Optional time window in seconds to limit statistics.
+                         If None, all available data is used.
+        
+        Returns:
+            A dictionary containing task statistics.
+        """
+        stats = {
+            "total": 0,
+            "running": 0,
+            "completed": 0,
+            "failed": 0,
+            "pending": 0,
+            "by_name": {}
+        }
+        
+        current_time = time.time()
+        min_time = current_time - time_window if time_window else 0
+        
+        # Find keys with the task prefix
+        keys = self.redis.keys(f"{self.task_prefix}*")
+        
+        for key in keys:
+            task_info = self.redis.hgetall(key)
+            start_time = float(task_info.get("start_time", 0))
+            
+            # Skip if outside the time window
+            if start_time < min_time:
+                continue
+            
+            task_name = task_info.get("task_name", "unknown")
+            status = task_info.get("status", PENDING)
+            
+            # Update overall stats
+            stats["total"] += 1
+            
+            if status == STARTED:
+                stats["running"] += 1
+            elif status in (SUCCESS, REVOKED):
+                stats["completed"] += 1
+            elif status == FAILURE:
+                stats["failed"] += 1
+            else:
+                stats["pending"] += 1
+            
+            # Update per-task stats
+            if task_name not in stats["by_name"]:
+                stats["by_name"][task_name] = {
+                    "total": 0,
+                    "running": 0,
+                    "completed": 0,
+                    "failed": 0,
+                    "avg_runtime": 0,
+                    "longest_runtime": 0
                 }
-            }
             
-        except Exception as e:
-            logger.error(f"Error verifying scheduled tasks: {str(e)}")
-            return {
-                'success': False,
-                'message': str(e)
-            }
-    
-    def monitor_all_matches(self, session=None) -> Dict[str, Any]:
-        """
-        Monitor all scheduled matches and their associated tasks.
-
-        Retrieves all matches with scheduled live reporting or thread creation tasks,
-        verifies their task statuses, and returns a summary.
-
-        Args:
-            session: An optional database session; if not provided, attempts to use g.db_session.
-
-        Returns:
-            A dictionary with a summary of monitored matches, including total count and details.
-        """
-        if session is None:
-            session = getattr(g, 'db_session', None)
-            if session is None:
-                logger.error("No database session available in monitor_all_matches.")
-                return {'success': False, 'message': 'No session available'}
-
-        try:
-            # Query matches that either have scheduled live reporting or a defined thread creation time.
-            matches = session.query(MLSMatch).filter(
-                (MLSMatch.live_reporting_scheduled == True) |
-                (MLSMatch.thread_creation_time.isnot(None))
-            ).all()
+            task_stats = stats["by_name"][task_name]
+            task_stats["total"] += 1
             
-            results = {}
-            for match in matches:
-                # Verify scheduled tasks for each match.
-                match_status = self.verify_scheduled_tasks(str(match.id), session=session)
-                results[str(match.id)] = match_status
-            
-            return {
-                'success': True,
-                'matches': results,
-                'total_matches': len(results)
-            }
-        except Exception as e:
-            logger.error(f"Error monitoring matches: {str(e)}")
-            return {
-                'success': False,
-                'message': str(e)
-            }
+            if status == STARTED:
+                task_stats["running"] += 1
+                runtime = current_time - start_time
+                task_stats["longest_runtime"] = max(task_stats["longest_runtime"], runtime)
+            elif status in (SUCCESS, REVOKED):
+                task_stats["completed"] += 1
+                if "end_time" in task_info:
+                    runtime = float(task_info["end_time"]) - start_time
+                    # Update running average
+                    task_stats["avg_runtime"] = (
+                        (task_stats["avg_runtime"] * (task_stats["completed"] - 1) + runtime)
+                        / task_stats["completed"]
+                    )
+            elif status == FAILURE:
+                task_stats["failed"] += 1
+        
+        return stats
 
 
-# Create a global instance of TaskMonitor for convenient access.
+# Initialize a global TaskMonitor instance
 task_monitor = TaskMonitor()
+
+# Track sessions by their ID to identify leaks
+session_tracking = {}
+
+def register_session_start(session_id, source_task, stack_trace):
+    """Register the start of a database session for tracking purposes"""
+    session_tracking[session_id] = {
+        'start_time': datetime.now(),
+        'task_id': source_task,
+        'stack_trace': stack_trace,
+        'status': 'open'
+    }
+    
+def register_session_end(session_id, status='closed'):
+    """Register the end of a database session"""
+    if session_id in session_tracking:
+        session_tracking[session_id]['status'] = status
+        session_tracking[session_id]['end_time'] = datetime.now()
+        
+        # Calculate session lifetime
+        lifetime = session_tracking[session_id]['end_time'] - session_tracking[session_id]['start_time'] 
+        
+        # If this was a long session, log it
+        if lifetime.total_seconds() > 60:  # sessions lasting over 1 minute
+            logger.warning(
+                f"Long-lived session detected: {session_id}, "
+                f"Duration: {lifetime.total_seconds():.1f}s, "
+                f"Task: {session_tracking[session_id]['task_id']}"
+            )
+    else:
+        logger.warning(f"Attempted to end untracked session: {session_id}")
+        
+def get_open_sessions(age_threshold_seconds=3600):
+    """Get all sessions that have been open too long"""
+    now = datetime.now()
+    old_sessions = []
+    
+    for session_id, info in session_tracking.items():
+        if info['status'] == 'open':
+            age = (now - info['start_time']).total_seconds()
+            if age > age_threshold_seconds:
+                old_sessions.append({
+                    'session_id': session_id,
+                    'age_seconds': age,
+                    'task_id': info['task_id'],
+                    'stack_trace': info['stack_trace']
+                })
+    
+    return old_sessions
+
+
+# Define Celery task hooks for automatic monitoring
+@celery.signals.before_task_publish.connect
+def task_publish_handler(sender=None, headers=None, **kwargs):
+    """
+    Celery signal handler for task publication.
+    This records the initial task state.
+    """
+    task_id = headers.get('id')
+    if task_id:
+        task_monitor.register_task_start(task_id, sender)
+
+
+@celery.signals.task_success.connect
+def task_success_handler(sender=None, **kwargs):
+    """
+    Celery signal handler for task success.
+    This records successful task completion.
+    """
+    task_id = sender.request.id
+    if task_id:
+        task_monitor.register_task_completion(task_id, SUCCESS)
+
+
+@celery.signals.task_failure.connect
+def task_failure_handler(sender=None, task_id=None, **kwargs):
+    """
+    Celery signal handler for task failure.
+    This records failed task completion.
+    """
+    if task_id:
+        task_monitor.register_task_completion(task_id, FAILURE)
+
+
+@celery.signals.task_revoked.connect
+def task_revoked_handler(request=None, **kwargs):
+    """
+    Celery signal handler for task revocation.
+    This records revoked task status.
+    """
+    if request and request.id:
+        task_monitor.register_task_completion(request.id, REVOKED)
+
+
+# Celery scheduled task to clean up zombie tasks
+@celery.task(name='app.utils.task_monitor.clean_zombie_tasks')
+def clean_zombie_tasks():
+    """
+    Periodic task to detect and clean up zombie tasks.
+    
+    Returns:
+        A dictionary with clean-up results.
+    """
+    logger.info("Running zombie task cleanup")
+    
+    # Detect zombies first
+    zombies = task_monitor.detect_zombie_tasks()
+    logger.info(f"Found {len(zombies)} zombie tasks")
+    
+    # Clean them up
+    terminated = task_monitor.clean_up_zombie_tasks()
+    logger.info(f"Terminated {terminated} zombie tasks")
+    
+    # Check for orphaned database sessions
+    old_sessions = get_open_sessions(age_threshold_seconds=1800)  # 30 minutes
+    if old_sessions:
+        logger.warning(f"Found {len(old_sessions)} orphaned database sessions:")
+        for idx, session in enumerate(old_sessions):
+            logger.warning(
+                f"Session {idx+1}: ID={session['session_id']}, "
+                f"Age={session['age_seconds']/60:.1f} minutes, "
+                f"Task={session['task_id']}"
+            )
+            
+            # Log the full stack trace for the first few orphaned sessions
+            if idx < 3:  # Only log details for first 3 sessions to avoid log spam
+                logger.warning(f"Stack trace for session {session['session_id']}:\n{session['stack_trace']}")
+    
+    return {
+        "zombie_count": len(zombies),
+        "terminated": terminated,
+        "orphaned_sessions": len(old_sessions),
+        "zombies": [
+            {
+                "task_id": z["task_id"],
+                "task_name": z["task_name"],
+                "runtime_hours": round(z["runtime"] / 3600, 2)
+            }
+            for z in zombies
+        ]
+    }

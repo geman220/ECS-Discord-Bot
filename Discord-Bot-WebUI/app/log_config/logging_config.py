@@ -19,6 +19,9 @@ LOGGING_CONFIG = {
         },
         'simple': {
             'format': '%(asctime)s [%(levelname)s] %(message)s'
+        },
+        'focused': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s - %(message)s'
         }
     },
 
@@ -26,65 +29,99 @@ LOGGING_CONFIG = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'detailed',
-            'level': 'DEBUG',
+            'formatter': 'simple',  # Changed to simple for less verbose console output
+            'level': 'INFO',        # Changed from DEBUG to INFO to reduce noise
         },
         'db_file': {
             'class': 'logging.FileHandler',
             'filename': 'db_operations.log',
             'formatter': 'detailed',
+            'level': 'INFO',        # Only log important DB operations
         },
         'requests_file': {
             'class': 'logging.FileHandler',
             'filename': 'requests.log',
             'formatter': 'detailed',
+            'level': 'INFO',        # Only log main request information
         },
         'auth_file': {
             'class': 'logging.FileHandler',
             'filename': 'auth.log',
             'formatter': 'detailed',
+        },
+        'session_tracking': {
+            'class': 'logging.FileHandler',
+            'filename': 'session_tracking.log',
+            'formatter': 'focused',
+            'level': 'INFO',
+        },
+        'errors_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'errors.log',
+            'formatter': 'detailed',
+            'level': 'WARNING',     # Only log actual errors
         }
     },
 
     # Loggers define logging behavior for specific modules or components.
     'loggers': {
         'sqlalchemy.engine': {
-            'handlers': ['db_file', 'console'],
-            'level': 'INFO',
+            'handlers': ['db_file'],
+            'level': 'WARNING',     # Changed from INFO to WARNING to log only errors
             'propagate': False
         },
         'app.db_management': {
-            'handlers': ['db_file', 'console'],
-            'level': 'DEBUG',
+            'handlers': ['db_file', 'errors_file'],
+            'level': 'INFO',        # Changed from DEBUG to INFO
+            'propagate': False
+        },
+        'app.database.pool': {
+            'handlers': ['db_file', 'errors_file', 'session_tracking'],
+            'level': 'INFO',        # Important to track connection lifecycle
+            'propagate': False
+        },
+        'app.utils.task_monitor': {
+            'handlers': ['console', 'session_tracking'],
+            'level': 'INFO',
             'propagate': False
         },
         'app.request': {
-            'handlers': ['requests_file', 'console'],
-            'level': 'DEBUG',
+            'handlers': ['requests_file'],
+            'level': 'INFO',        # Changed from DEBUG to INFO 
             'propagate': False
         },
         'app.main': {
             'handlers': ['console', 'requests_file'],
-            'level': 'DEBUG',
+            'level': 'INFO',        # Changed from DEBUG to INFO
             'propagate': False
         },
         'app.auth': {
             'handlers': ['console', 'auth_file'],
-            'level': 'DEBUG',
+            'level': 'INFO',        # Changed from DEBUG to INFO
             'propagate': False
         },
         'app.core': {
             'handlers': ['console', 'requests_file'],
-            'level': 'DEBUG',
+            'level': 'INFO',        # Changed from DEBUG to INFO
+            'propagate': False
+        },
+        'app.core.session_manager': {
+            'handlers': ['session_tracking', 'errors_file'],
+            'level': 'INFO',
             'propagate': False
         },
         'flask_login': {
-            'handlers': ['console', 'auth_file'],
-            'level': 'DEBUG',
+            'handlers': ['auth_file'],
+            'level': 'INFO',        # Changed from DEBUG to INFO
             'propagate': False
         },
         'werkzeug': {
-            'handlers': ['console', 'requests_file'],
+            'handlers': ['requests_file'],
+            'level': 'WARNING',     # Changed from INFO to WARNING to reduce HTTP noise
+            'propagate': False
+        },
+        'app.tasks': {
+            'handlers': ['console', 'session_tracking'],
             'level': 'INFO',
             'propagate': False
         }
@@ -92,7 +129,7 @@ LOGGING_CONFIG = {
 
     # The root logger catches all messages not handled by other loggers.
     'root': {
-        'handlers': ['console'],
-        'level': 'DEBUG',
+        'handlers': ['console', 'errors_file'],
+        'level': 'INFO',            # Changed from DEBUG to INFO
     }
 }

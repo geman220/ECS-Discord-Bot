@@ -1,6 +1,16 @@
 MODAL FIX CHANGELOG
 ====================
 
+Version 1.1 - April 4, 2025
+---------------------------
+
+CLOSE BUTTON FIX:
+
+1. Fixed issue with modal close buttons (X) not displaying properly in dark header modals:
+   - The btn-close-white class wasn't correctly applying the white X SVG
+   - Added specific CSS rule to handle btn-close-white + ecs-modal-close combination
+   - Ensured SVG background image shows correctly with proper filter
+
 Version 1.0 - April 3, 2025
 ---------------------------
 

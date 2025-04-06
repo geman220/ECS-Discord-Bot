@@ -191,6 +191,7 @@ async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str
 def async_to_sync(coroutine: Any) -> Any:
     """
     Convert an async coroutine to a synchronous function call.
+    Safely handles nested event loop scenarios.
     
     Args:
         coroutine: The async coroutine to execute.
@@ -198,12 +199,27 @@ def async_to_sync(coroutine: Any) -> Any:
     Returns:
         Any: The result of the coroutine execution.
     """
-    loop = asyncio.new_event_loop()
     try:
-        asyncio.set_event_loop(loop)
-        return loop.run_until_complete(coroutine)
-    finally:
-        loop.close()
+        # Check if there's already a running event loop in this thread
+        running_loop = asyncio.get_running_loop()
+        
+        # If we detect we're in a running loop already, use a threadsafe approach
+        if running_loop and running_loop.is_running():
+            import threading
+            import concurrent.futures
+            
+            # Run the coroutine in a separate thread with its own event loop
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(lambda: asyncio.run(coroutine))
+                return future.result()
+    except RuntimeError:
+        # No running event loop - we can create our own
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            return loop.run_until_complete(coroutine)
+        finally:
+            loop.close()
 
 
 def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:

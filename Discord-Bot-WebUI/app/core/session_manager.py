@@ -57,11 +57,42 @@ def cleanup_request(exception=None):
     :param exception: An optional exception that occurred during the request.
     """
     if hasattr(g, 'db_session'):
+        # Generate a session ID for logging
+        session_id = id(g.db_session)
+        
+        # Get the request details for logging
+        from flask import request
+        endpoint = getattr(request, 'endpoint', 'unknown')
+        url = getattr(request, 'url', 'unknown')
+        
+        # Track if we're doing cleanup in an error state
+        status = 'normal'
+        if exception:
+            status = 'exception'
+        
         try:
+            logger.debug(f"Cleaning up request session {session_id} for {endpoint} (URL: {url})")
+            
             if exception:
+                logger.debug(f"Rolling back session {session_id} due to exception: {exception}")
                 g.db_session.rollback()
             else:
+                logger.debug(f"Committing session {session_id}")
                 g.db_session.commit()
+                
+        except Exception as e:
+            status = 'cleanup-error'
+            logger.error(f"Error during session cleanup for {session_id}: {e}", exc_info=True)
+            # Try to roll back in case commit failed
+            try:
+                g.db_session.rollback()
+            except:
+                pass
         finally:
-            g.db_session.close()
-            delattr(g, 'db_session')
+            try:
+                logger.debug(f"Closing session {session_id} (status: {status})")
+                g.db_session.close()
+            except Exception as e:
+                logger.error(f"Error closing session {session_id}: {e}", exc_info=True)
+            finally:
+                delattr(g, 'db_session')

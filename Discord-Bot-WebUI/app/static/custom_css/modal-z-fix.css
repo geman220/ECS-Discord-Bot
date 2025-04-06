@@ -106,3 +106,21 @@ body:not(.modal-open) .modal-backdrop {
 .modal-backdrop + .modal-backdrop {
   display: none !important;
 }
+
+/* 
+ * Close Button Fix for Dark Headers
+ * 
+ * This fixes the issue where close buttons (X) in modals with dark headers
+ * aren't properly displaying the white X icon.
+ */
+.btn-close-white.ecs-modal-close {
+  /* Force the white SVG filter */
+  filter: invert(1) grayscale(100%) brightness(200%) !important;
+  /* Ensure the SVG background is visible */
+  background-color: transparent !important;
+  opacity: 0.8 !important;
+}
+
+.btn-close-white.ecs-modal-close:hover {
+  opacity: 1 !important;
+}

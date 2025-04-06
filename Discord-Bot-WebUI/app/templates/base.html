@@ -35,6 +35,9 @@
     
     <!-- Include our dedicated modal fix CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-z-fix.css') }}" />
+    
+    <!-- Close button fix for modals with dark headers -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-close-fix.css') }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -387,13 +390,45 @@
     <!-- Load modals via AJAX (after jQuery is loaded) -->
     <script>
         $(document).ready(function() {
+            // Only load modals if edit buttons exist on the page
             if ($('.edit-match-btn').length > 0) {
+                // First, collect all match IDs from all edit buttons
+                const matchIds = [];
+                $('.edit-match-btn').each(function() {
+                    const matchId = $(this).data('match-id');
+                    if (matchId && !matchIds.includes(matchId)) {
+                        matchIds.push(matchId);
+                    }
+                });
+                
+                console.log('Found match IDs for modals:', matchIds);
+                
+                // Load all modals, sending the list of match IDs we need
                 $.ajax({
                     url: '/modals/render_modals',
                     method: 'GET',
+                    data: { match_ids: matchIds.join(',') },
                     success: function(response) {
-                        // Append modals to the body
-                        $('body').append(response);
+                        // Create or find a modal container
+                        let container = document.getElementById('reportMatchModal-container');
+                        if (!container) {
+                            container = document.createElement('div');
+                            container.id = 'reportMatchModal-container';
+                            container.className = 'modal-container';
+                            document.body.appendChild(container);
+                        }
+                        
+                        // Append modals to the container
+                        $(container).append(response);
+                        
+                        // After loading, verify that all needed modals exist
+                        setTimeout(function() {
+                            matchIds.forEach(function(id) {
+                                if (!document.getElementById(`reportMatchModal-${id}`)) {
+                                    console.warn(`Modal for match ID ${id} not found, will be created on demand`);
+                                }
+                            });
+                        }, 500);
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading modals:', error);
