@@ -3,9 +3,13 @@
 """
 Match Pages Module
 
-This module defines the blueprint endpoints for viewing match details and managing RSVP responses.
-It provides routes to display match information, including RSVP breakdown for home and away teams,
-and endpoints to update or fetch RSVP status for a match.
+This module defines the blueprint endpoints for viewing match details, managing RSVP responses,
+and live match reporting.
+
+It provides routes to:
+1. Display match information, including RSVP breakdown for home and away teams
+2. Update or fetch RSVP status for a match
+3. Enable live match reporting with multi-user synchronization
 """
 
 import logging
@@ -18,6 +22,7 @@ from sqlalchemy.orm import joinedload
 from app.models import Match, Availability, Player, Team
 from app.tasks.tasks_rsvp import update_rsvp
 from app.utils.user_helpers import safe_current_user
+from app.database.db_models import ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
 
 # Get the logger for this module
 logger = logging.getLogger(__name__)
@@ -341,3 +346,98 @@ def get_rsvp_status(match_id):
     except Exception as e:
         logger.exception(f"Error fetching RSVP status: {str(e)}")
         return jsonify({'response': 'no_response', 'error': str(e)})
+
+
+@match_pages.route('/matches/<int:match_id>/live-report', methods=['GET'])
+@login_required
+def live_report_match(match_id):
+    """
+    Live match reporting interface with multi-user collaboration.
+    
+    This interface allows multiple coaches to report on the same match simultaneously
+    with synchronized match state (score, timer, events) but team-specific player shifts.
+    
+    Args:
+        match_id: ID of the match to report
+        
+    Returns:
+        Rendered live reporting template
+    """
+    session = g.db_session
+    
+    # Get match with team data preloaded
+    match = session.query(Match).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    ).get(match_id)
+    
+    if not match:
+        logger.warning(f"Match not found for live reporting: {match_id}")
+        return redirect(url_for('main.index'))
+    
+    # Check if user is authorized to report on this match
+    player = safe_current_user.player if hasattr(safe_current_user, 'player') else None
+    if not player:
+        logger.warning(f"User {safe_current_user.id} has no player profile, cannot report")
+        return redirect(url_for('match_pages.view_match', match_id=match_id))
+    
+    # Get team IDs that the user is associated with
+    user_teams = player.teams
+    user_team_ids = [team.id for team in user_teams]
+    
+    # Check if user is part of either team in the match
+    if match.home_team_id not in user_team_ids and match.away_team_id not in user_team_ids:
+        logger.warning(f"User {safe_current_user.id} not authorized to report match {match_id}")
+        return redirect(url_for('match_pages.view_match', match_id=match_id))
+    
+    # Determine which team the user is reporting for (prioritize coach team)
+    reporting_team_id = None
+    
+    # Check if user is a coach for either team
+    for team_id in [match.home_team_id, match.away_team_id]:
+        if team_id in user_team_ids:
+            # Query player_teams association table to check if player is coach
+            stmt = """
+                SELECT is_coach FROM player_teams 
+                WHERE player_id = :player_id AND team_id = :team_id
+            """
+            result = session.execute(stmt, {
+                'player_id': player.id, 
+                'team_id': team_id
+            }).fetchone()
+            
+            if result and result[0]:  # is_coach is True
+                reporting_team_id = team_id
+                break
+    
+    # If not a coach, use any team the player is on
+    if not reporting_team_id:
+        if match.home_team_id in user_team_ids:
+            reporting_team_id = match.home_team_id
+        elif match.away_team_id in user_team_ids:
+            reporting_team_id = match.away_team_id
+    
+    # Get player lists for both teams
+    home_players = []
+    for player in match.home_team.players:
+        home_players.append({
+            'id': player.id,
+            'name': player.name
+        })
+    
+    away_players = []
+    for player in match.away_team.players:
+        away_players.append({
+            'id': player.id,
+            'name': player.name
+        })
+    
+    logger.info(f"User {safe_current_user.id} reporting match {match_id} for team {reporting_team_id}")
+    
+    return render_template(
+        'live_reporting.html',
+        match=match,
+        home_players=home_players,
+        away_players=away_players,
+        team_id=reporting_team_id
+    )

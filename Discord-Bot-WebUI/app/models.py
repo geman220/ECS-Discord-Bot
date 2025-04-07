@@ -466,7 +466,7 @@ class Player(db.Model):
     def current_teams(self):
         """Return a list of tuples containing teams and associated coach status."""
         return [
-            (team, assoc.is_coach) for team, assoc in db.session.query(Team, player_teams.c.is_coach)
+            (team, is_coach) for team, is_coach in db.session.query(Team, player_teams.c.is_coach)
             .join(player_teams)
             .filter(player_teams.c.player_id == self.id)
         ]
@@ -693,6 +693,14 @@ class Match(db.Model):
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedule.id'), nullable=False)
     events = db.relationship('PlayerEvent', back_populates='match', lazy=True, cascade="all, delete-orphan")
 
+    # Team verification fields
+    home_team_verified = db.Column(db.Boolean, default=False)
+    home_team_verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    home_team_verified_at = db.Column(db.DateTime, nullable=True)
+    away_team_verified = db.Column(db.Boolean, default=False)
+    away_team_verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    away_team_verified_at = db.Column(db.DateTime, nullable=True)
+
     home_team = db.relationship('Team', foreign_keys=[home_team_id], backref='home_matches')
     away_team = db.relationship('Team', foreign_keys=[away_team_id], backref='away_matches')
     schedule = db.relationship('Schedule', back_populates='matches')
@@ -700,6 +708,8 @@ class Match(db.Model):
     ref_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
     ref = db.relationship('Player', backref='assigned_matches')
     scheduled_messages = db.relationship('ScheduledMessage', back_populates='match')
+    home_verifier = db.relationship('User', foreign_keys=[home_team_verified_by], backref=db.backref('home_verified_matches', lazy='dynamic'))
+    away_verifier = db.relationship('User', foreign_keys=[away_team_verified_by], backref=db.backref('away_verified_matches', lazy='dynamic'))
 
     def to_dict(self, include_teams=False, include_events=False):
         data = {
@@ -715,6 +725,9 @@ class Match(db.Model):
             'schedule_id': self.schedule_id,
             'ref_id': self.ref_id,
             'reported': self.reported,
+            'home_team_verified': self.home_team_verified,
+            'away_team_verified': self.away_team_verified,
+            'fully_verified': self.fully_verified,
         }
         if include_teams:
             data['home_team'] = self.home_team.to_dict()
@@ -730,6 +743,24 @@ class Match(db.Model):
             self.home_team_score is not None and
             self.away_team_score is not None
         )
+        
+    @property
+    def fully_verified(self):
+        """Determine if the match has been verified by both teams."""
+        return self.home_team_verified and self.away_team_verified
+        
+    def get_verification_status(self):
+        """Get a detailed verification status for the match."""
+        return {
+            'reported': self.reported,
+            'home_team_verified': self.home_team_verified,
+            'away_team_verified': self.away_team_verified,
+            'fully_verified': self.fully_verified,
+            'home_verifier': self.home_verifier.username if self.home_verifier else None,
+            'away_verifier': self.away_verifier.username if self.away_verifier else None,
+            'home_verified_at': self.home_team_verified_at.isoformat() if self.home_team_verified_at else None,
+            'away_verified_at': self.away_team_verified_at.isoformat() if self.away_team_verified_at else None,
+        }
 
     def get_opponent_name(self, player):
         player_team_ids = [team.id for team in player.teams]

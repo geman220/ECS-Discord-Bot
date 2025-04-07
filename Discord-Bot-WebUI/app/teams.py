@@ -22,18 +22,20 @@ from flask import (
 )
 from flask_login import login_required
 from flask_wtf.csrf import validate_csrf, CSRFError
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.orm import selectinload, joinedload
 from PIL import Image
 from io import BytesIO
 
 from app.models import (
     Team, Player, League, Season, Match, Standings,
-    PlayerEventType, PlayerEvent, PlayerTeamSeason
+    PlayerEventType, PlayerEvent, PlayerTeamSeason, User,
+    PlayerSeasonStats, player_teams
 )
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events
 from app.utils.user_helpers import safe_current_user
+from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
@@ -324,6 +326,24 @@ def report_match(match_id):
                     for player in match.away_team.players
                 ]
             
+            # Determine the user's team affiliations
+            current_user_id = safe_current_user.id
+            current_user = session.query(User).get(current_user_id)
+            current_user_player = None
+            if current_user.player:
+                current_user_player = current_user.player
+                
+            # Determine which team the current user is affiliated with
+            user_team_ids = []
+            is_admin = current_user.has_role('admin')
+            
+            if current_user_player:
+                user_team_ids = [team.id for team in current_user_player.teams]
+            
+            # Determine if the user can verify for either team
+            can_verify_home = is_admin or match.home_team_id in user_team_ids
+            can_verify_away = is_admin or match.away_team_id in user_team_ids
+            
             data = {
                 'goal_scorers': [],
                 'assist_providers': [],
@@ -336,7 +356,14 @@ def report_match(match_id):
                 'away_team_name': away_team_name,
                 'home_team': home_team_data,
                 'away_team': away_team_data,
-                'reported': match.reported
+                'reported': match.reported,
+                'home_team_verified': match.home_team_verified,
+                'away_team_verified': match.away_team_verified,
+                'fully_verified': match.fully_verified,
+                'can_verify_home': can_verify_home,
+                'can_verify_away': can_verify_away,
+                'user_team_ids': user_team_ids,
+                'is_admin': is_admin
             }
 
             for event_type, field_name in event_mapping.items():
@@ -387,11 +414,51 @@ def report_match(match_id):
         process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
         process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
 
+        # Handle team verification
+        current_user_id = safe_current_user.id
+        current_user = session.query(User).get(current_user_id)
+        
+        # Get user's player and their team associations
+        current_user_player = None
+        if current_user.player:
+            current_user_player = current_user.player
+            
+        user_team_ids = []
+        is_admin = current_user.has_role('admin')
+        
+        if current_user_player:
+            user_team_ids = [team.id for team in current_user_player.teams]
+            
+        # Check if the user wants to verify for a team
+        verify_home = data.get('verify_home_team', False)
+        verify_away = data.get('verify_away_team', False)
+        
+        now = datetime.utcnow()
+        
+        # Handle home team verification
+        if verify_home and (is_admin or match.home_team_id in user_team_ids):
+            match.home_team_verified = True
+            match.home_team_verified_by = current_user_id
+            match.home_team_verified_at = now
+            logger.info(f"Home team verified for Match ID {match_id} by User ID {current_user_id}")
+            
+        # Handle away team verification    
+        if verify_away and (is_admin or match.away_team_id in user_team_ids):
+            match.away_team_verified = True
+            match.away_team_verified_by = current_user_id
+            match.away_team_verified_at = now
+            logger.info(f"Away team verified for Match ID {match_id} by User ID {current_user_id}")
+
         update_standings(session, match, old_home_score, old_away_score)
         session.commit()
         
         logger.info(f"Match ID {match_id} reported successfully.")
-        return jsonify({'success': True}), 200
+        return jsonify({
+            'success': True,
+            'home_team_verified': match.home_team_verified,
+            'away_team_verified': match.away_team_verified,
+            'fully_verified': match.fully_verified
+        }), 200
 
     else:
         return jsonify({'success': False, 'message': 'Method not allowed.'}), 405
@@ -445,6 +512,300 @@ def view_standings():
         classic_standings=classic_standings,
         premier_stats=premier_stats,
         classic_stats=classic_stats
+    )
+
+
+@teams_bp.route('/season-overview', endpoint='season_overview')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_overview():
+    """
+    Display a comprehensive overview of the current season for Pub League and Global Admins.
+    
+    Shows detailed stats for each division:
+    - Team standings
+    - Top scorers (Golden Boot)
+    - Top assisters (Silver Boot)
+    - Yellow/Red cards
+    - All goal scorers across the league
+    """
+    session = g.db_session
+    
+    # Get the current Pub League season
+    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    if not season:
+        flash('No current season found.', 'warning')
+        return redirect(url_for('home.index'))
+    
+    # Define a function to get all leagues for a season
+    def get_leagues(season_id):
+        return (
+            session.query(League)
+            .filter(League.season_id == season_id)
+            .all()
+        )
+    
+    # Get all leagues for the current season
+    leagues = get_leagues(season.id)
+    league_map = {league.name: league for league in leagues}
+    
+    # Get standings for each division
+    def get_standings(league_name):
+        return (
+            session.query(Standings)
+            .join(Team)
+            .join(League)
+            .filter(
+                Standings.season_id == season.id,
+                Team.id == Standings.team_id,
+                League.id == Team.league_id,
+                League.name == league_name
+            )
+            .order_by(
+                Standings.points.desc(),
+                Standings.goal_difference.desc(),
+                Standings.goals_for.desc()
+            )
+            .all()
+        )
+    
+    premier_standings = get_standings('Premier')
+    classic_standings = get_standings('Classic')
+    
+    # Get top scorers for each division (Golden Boot)
+    def get_top_scorers(league_name, limit=10):
+        league = league_map.get(league_name)
+        if not league:
+            return []
+        
+        return (
+            session.query(
+                Player, 
+                func.sum(PlayerSeasonStats.goals).label('total_goals')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .filter(
+                PlayerSeasonStats.season_id == season.id,
+                Team.league_id == league.id,
+                PlayerSeasonStats.goals > 0
+            )
+            .group_by(Player.id)
+            .order_by(func.sum(PlayerSeasonStats.goals).desc())
+            .limit(limit)
+            .all()
+        )
+    
+    # Get top assisters for each division (Silver Boot)
+    def get_top_assisters(league_name, limit=10):
+        league = league_map.get(league_name)
+        if not league:
+            return []
+        
+        return (
+            session.query(
+                Player, 
+                func.sum(PlayerSeasonStats.assists).label('total_assists')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .filter(
+                PlayerSeasonStats.season_id == season.id,
+                Team.league_id == league.id,
+                PlayerSeasonStats.assists > 0
+            )
+            .group_by(Player.id)
+            .order_by(func.sum(PlayerSeasonStats.assists).desc())
+            .limit(limit)
+            .all()
+        )
+    
+    # Get yellow cards for each division
+    def get_yellow_cards(league_name, limit=10):
+        league = league_map.get(league_name)
+        if not league:
+            return []
+        
+        return (
+            session.query(
+                Player, 
+                func.sum(PlayerSeasonStats.yellow_cards).label('total_yellow_cards')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .filter(
+                PlayerSeasonStats.season_id == season.id,
+                Team.league_id == league.id,
+                PlayerSeasonStats.yellow_cards > 0
+            )
+            .group_by(Player.id)
+            .order_by(func.sum(PlayerSeasonStats.yellow_cards).desc())
+            .limit(limit)
+            .all()
+        )
+    
+    # Get red cards for each division
+    def get_red_cards(league_name, limit=10):
+        league = league_map.get(league_name)
+        if not league:
+            return []
+        
+        return (
+            session.query(
+                Player, 
+                func.sum(PlayerSeasonStats.red_cards).label('total_red_cards')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .filter(
+                PlayerSeasonStats.season_id == season.id,
+                Team.league_id == league.id,
+                PlayerSeasonStats.red_cards > 0
+            )
+            .group_by(Player.id)
+            .order_by(func.sum(PlayerSeasonStats.red_cards).desc())
+            .limit(limit)
+            .all()
+        )
+    
+    # Get all goal scorers across the league
+    def get_all_goal_scorers(season_id, league_name=None):
+        query = (
+            session.query(
+                Player,
+                Team,
+                League.name.label('league_name'),
+                func.sum(PlayerSeasonStats.goals).label('total_goals')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .join(League, Team.league_id == League.id)
+            .filter(
+                PlayerSeasonStats.season_id == season_id,
+                League.season_id == season_id,
+                PlayerSeasonStats.goals > 0
+            )
+        )
+        
+        if league_name:
+            query = query.filter(League.name == league_name)
+            
+        return (
+            query.group_by(Player.id, Team.id, League.name)
+            .order_by(
+                League.name,
+                func.sum(PlayerSeasonStats.goals).desc()
+            )
+            .all()
+        )
+        
+    # Get all assist providers across the league
+    def get_all_assist_providers(season_id, league_name=None):
+        query = (
+            session.query(
+                Player,
+                Team,
+                League.name.label('league_name'),
+                func.sum(PlayerSeasonStats.assists).label('total_assists')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .join(League, Team.league_id == League.id)
+            .filter(
+                PlayerSeasonStats.season_id == season_id,
+                League.season_id == season_id,
+                PlayerSeasonStats.assists > 0
+            )
+        )
+        
+        if league_name:
+            query = query.filter(League.name == league_name)
+            
+        return (
+            query.group_by(Player.id, Team.id, League.name)
+            .order_by(
+                League.name,
+                func.sum(PlayerSeasonStats.assists).desc()
+            )
+            .all()
+        )
+    
+    # Get all player events (goals, assists, cards)
+    def get_player_events(season_id):
+        return (
+            session.query(
+                PlayerEvent,
+                Player,
+                Match,
+                Team
+            )
+            .join(Player, PlayerEvent.player_id == Player.id)
+            .join(Match, PlayerEvent.match_id == Match.id)
+            .join(Team, or_(Match.home_team_id == Team.id, Match.away_team_id == Team.id))
+            .join(League, Team.league_id == League.id)
+            .filter(
+                League.season_id == season_id
+            )
+            .order_by(
+                Match.date.desc(),
+                PlayerEvent.event_type
+            )
+            .all()
+        )
+    
+    # Get all team stats
+    premier_top_scorers = get_top_scorers('Premier')
+    premier_top_assisters = get_top_assisters('Premier')
+    premier_yellow_cards = get_yellow_cards('Premier')
+    premier_red_cards = get_red_cards('Premier')
+    
+    classic_top_scorers = get_top_scorers('Classic')
+    classic_top_assisters = get_top_assisters('Classic')
+    classic_yellow_cards = get_yellow_cards('Classic')
+    classic_red_cards = get_red_cards('Classic')
+    
+    # Get all league stats
+    all_goal_scorers = get_all_goal_scorers(season.id)
+    all_assist_providers = get_all_assist_providers(season.id)
+    
+    # Get division-specific all league stats
+    premier_all_goal_scorers = get_all_goal_scorers(season.id, 'Premier')
+    premier_all_assist_providers = get_all_assist_providers(season.id, 'Premier')
+    classic_all_goal_scorers = get_all_goal_scorers(season.id, 'Classic')
+    classic_all_assist_providers = get_all_assist_providers(season.id, 'Classic')
+    
+    # Populate team stats for the template
+    premier_team_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
+    classic_team_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
+    
+    return render_template(
+        'season_overview.html',
+        title='Season Overview',
+        season=season,
+        premier_standings=premier_standings,
+        classic_standings=classic_standings,
+        premier_team_stats=premier_team_stats,
+        classic_team_stats=classic_team_stats,
+        premier_top_scorers=premier_top_scorers,
+        premier_top_assisters=premier_top_assisters,
+        premier_yellow_cards=premier_yellow_cards,
+        premier_red_cards=premier_red_cards,
+        classic_top_scorers=classic_top_scorers,
+        classic_top_assisters=classic_top_assisters,
+        classic_yellow_cards=classic_yellow_cards,
+        classic_red_cards=classic_red_cards,
+        all_goal_scorers=all_goal_scorers,
+        all_assist_providers=all_assist_providers,
+        premier_all_goal_scorers=premier_all_goal_scorers,
+        premier_all_assist_providers=premier_all_assist_providers,
+        classic_all_goal_scorers=classic_all_goal_scorers,
+        classic_all_assist_providers=classic_all_assist_providers
     )
 
 @teams_bp.route('/upload_team_kit/<int:team_id>', methods=['POST'])

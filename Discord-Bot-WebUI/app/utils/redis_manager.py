@@ -47,9 +47,14 @@ class RedisManager:
         
         This should be called during application shutdown.
         """
-        if self._client and hasattr(self._client, 'connection_pool'):
-            logger.info("Closing Redis connection pool")
-            self._client.connection_pool.disconnect()
+        try:
+            if self._client and hasattr(self._client, 'connection_pool'):
+                logger.info("Closing Redis connection pool")
+                self._client.connection_pool.disconnect()
+                self._client = None
+        except Exception as e:
+            logger.error(f"Error shutting down Redis connection pool: {e}")
+            # Still set client to None to force re-initialization on next use
             self._client = None
 
     def _initialize_client(self):
@@ -94,7 +99,10 @@ class RedisManager:
                 retry_count += 1
                 logger.error(f"Redis connection attempt {retry_count} failed: {str(e)}")
                 if retry_count == max_retries:
-                    raise
+                    # Instead of raising, just log and set client to None
+                    logger.error(f"Failed to connect to Redis after {max_retries} attempts")
+                    self._client = None
+                    break
 
     @property
     def client(self) -> Redis:

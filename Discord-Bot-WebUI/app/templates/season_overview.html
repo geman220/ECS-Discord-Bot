@@ -1,0 +1,1218 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="text-primary mb-1">Season Overview: {{ season.name }}</h2>
+                    <p class="text-muted">Comprehensive season statistics and analytics</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Divisions -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <ul class="nav nav-pills mb-3" id="division-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="premier-tab" data-bs-toggle="pill" data-bs-target="#premier" 
+                            type="button" role="tab" aria-controls="premier" aria-selected="true">
+                        <i class="ti ti-trophy me-1"></i>Premier Division
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="classic-tab" data-bs-toggle="pill" data-bs-target="#classic" 
+                            type="button" role="tab" aria-controls="classic" aria-selected="false">
+                        <i class="ti ti-ball-football me-1"></i>Classic Division
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="all-stats-tab" data-bs-toggle="pill" data-bs-target="#all-stats" 
+                            type="button" role="tab" aria-controls="all-stats" aria-selected="false">
+                        <i class="ti ti-chart-bar me-1"></i>All League Stats
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="divisionTabsContent">
+        <!-- Premier Division Tab -->
+        <div class="tab-pane fade show active" id="premier" role="tabpanel" aria-labelledby="premier-tab">
+            <!-- Premier Division Stats -->
+            <div class="row">
+                <!-- Standings Card -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Premier Division Standings</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width: 5%;">#</th>
+                                        <th style="width: 25%;">Team</th>
+                                        <th class="text-center">P</th>
+                                        <th class="text-center">W</th>
+                                        <th class="text-center">D</th>
+                                        <th class="text-center">L</th>
+                                        <th class="text-center">GF</th>
+                                        <th class="text-center">GA</th>
+                                        <th class="text-center">GD</th>
+                                        <th class="text-center">Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for standing in premier_standings %}
+                                    {% set stats = premier_team_stats[standing.team.id] %}
+                                    <tr>
+                                        <td class="text-center fw-bold">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm bg-success me-2 d-flex align-items-center justify-content-center">
+                                                    <span class="team-initial text-white">{{ standing.team.name[0] }}</span>
+                                                </div>
+                                                <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                                   class="team-name">
+                                                    {{ standing.team.name }}
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">{{ standing.played }}</td>
+                                        <td class="text-center">{{ standing.wins }}</td>
+                                        <td class="text-center">{{ standing.draws }}</td>
+                                        <td class="text-center">{{ standing.losses }}</td>
+                                        <td class="text-center">{{ standing.goals_for }}</td>
+                                        <td class="text-center">{{ standing.goals_against }}</td>
+                                        <td class="text-center">{{ standing.goal_difference }}</td>
+                                        <td class="text-center fw-bold">{{ standing.points }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if premier_standings|length == 0 %}
+                                    <tr>
+                                        <td colspan="10" class="text-center p-4">
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon mb-3">
+                                                    <i class="ti ti-trophy"></i>
+                                                </div>
+                                                <p class="empty-state-message">No standings data available for Premier Division.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards Row -->
+                <div class="row mb-4">
+                    <!-- Top Scorers Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-award text-warning me-2"></i>Golden Boot
+                                </h5>
+                                <span class="badge bg-label-warning">Premier Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Goals</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, goals in premier_top_scorers %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ goals }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if premier_top_scorers|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No goal data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Assisters Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-award text-secondary me-2"></i>Silver Boot
+                                </h5>
+                                <span class="badge bg-label-secondary">Premier Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Assists</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, assists in premier_top_assisters %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ assists }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if premier_top_assisters|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No assist data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Disciplinary Records Row -->
+                <div class="row mb-4">
+                    <!-- Yellow Cards Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-cards text-warning me-2"></i>Yellow Cards
+                                </h5>
+                                <span class="badge bg-label-warning">Premier Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Cards</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, yellow_cards in premier_yellow_cards %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ yellow_cards }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if premier_yellow_cards|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No yellow card data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Red Cards Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-cards text-danger me-2"></i>Red Cards
+                                </h5>
+                                <span class="badge bg-label-danger">Premier Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Cards</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, red_cards in premier_red_cards %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ red_cards }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if premier_red_cards|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No red card data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Classic Division Tab -->
+        <div class="tab-pane fade" id="classic" role="tabpanel" aria-labelledby="classic-tab">
+            <!-- Classic Division Stats -->
+            <div class="row">
+                <!-- Standings Card -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Classic Division Standings</h5>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width: 5%;">#</th>
+                                        <th style="width: 25%;">Team</th>
+                                        <th class="text-center">P</th>
+                                        <th class="text-center">W</th>
+                                        <th class="text-center">D</th>
+                                        <th class="text-center">L</th>
+                                        <th class="text-center">GF</th>
+                                        <th class="text-center">GA</th>
+                                        <th class="text-center">GD</th>
+                                        <th class="text-center">Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for standing in classic_standings %}
+                                    {% set stats = classic_team_stats[standing.team.id] %}
+                                    <tr>
+                                        <td class="text-center fw-bold">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm bg-primary me-2 d-flex align-items-center justify-content-center">
+                                                    <span class="team-initial text-white">{{ standing.team.name[0] }}</span>
+                                                </div>
+                                                <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+                                                   class="team-name">
+                                                    {{ standing.team.name }}
+                                                </a>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">{{ standing.played }}</td>
+                                        <td class="text-center">{{ standing.wins }}</td>
+                                        <td class="text-center">{{ standing.draws }}</td>
+                                        <td class="text-center">{{ standing.losses }}</td>
+                                        <td class="text-center">{{ standing.goals_for }}</td>
+                                        <td class="text-center">{{ standing.goals_against }}</td>
+                                        <td class="text-center">{{ standing.goal_difference }}</td>
+                                        <td class="text-center fw-bold">{{ standing.points }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if classic_standings|length == 0 %}
+                                    <tr>
+                                        <td colspan="10" class="text-center p-4">
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon mb-3">
+                                                    <i class="ti ti-ball-football"></i>
+                                                </div>
+                                                <p class="empty-state-message">No standings data available for Classic Division.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Stats Cards Row -->
+                <div class="row mb-4">
+                    <!-- Top Scorers Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-award text-warning me-2"></i>Golden Boot
+                                </h5>
+                                <span class="badge bg-label-warning">Classic Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Goals</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, goals in classic_top_scorers %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ goals }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if classic_top_scorers|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No goal data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Assisters Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-award text-secondary me-2"></i>Silver Boot
+                                </h5>
+                                <span class="badge bg-label-secondary">Classic Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Assists</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, assists in classic_top_assisters %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ assists }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if classic_top_assisters|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No assist data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Disciplinary Records Row -->
+                <div class="row mb-4">
+                    <!-- Yellow Cards Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-cards text-warning me-2"></i>Yellow Cards
+                                </h5>
+                                <span class="badge bg-label-warning">Classic Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Cards</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, yellow_cards in classic_yellow_cards %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ yellow_cards }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if classic_yellow_cards|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No yellow card data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Red Cards Card -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ti ti-cards text-danger me-2"></i>Red Cards
+                                </h5>
+                                <span class="badge bg-label-danger">Classic Division</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Player</th>
+                                            <th>Team</th>
+                                            <th class="text-center">Cards</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for player, red_cards in classic_red_cards %}
+                                        <tr>
+                                            <td>{{ loop.index }}</td>
+                                            <td>
+                                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                    {{ player.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                                            <td class="text-center fw-bold">{{ red_cards }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if classic_red_cards|length == 0 %}
+                                        <tr>
+                                            <td colspan="4" class="text-center p-3">
+                                                <p class="mb-0 text-muted">No red card data available</p>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- All League Stats -->
+        <div class="tab-pane fade" id="all-stats" role="tabpanel" aria-labelledby="all-stats-tab">
+            <!-- Subtabs for divisions -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <ul class="nav nav-tabs mb-3" id="all-stats-tabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="all-combined-tab" data-bs-toggle="tab" data-bs-target="#all-combined" 
+                                    type="button" role="tab" aria-controls="all-combined" aria-selected="true">
+                                <i class="ti ti-cards me-1"></i>Combined
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-premier-tab" data-bs-toggle="tab" data-bs-target="#all-premier" 
+                                    type="button" role="tab" aria-controls="all-premier" aria-selected="false">
+                                <i class="ti ti-trophy me-1"></i>Premier Only
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="all-classic-tab" data-bs-toggle="tab" data-bs-target="#all-classic" 
+                                    type="button" role="tab" aria-controls="all-classic" aria-selected="false">
+                                <i class="ti ti-ball-football me-1"></i>Classic Only
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tab content for All Stats -->
+            <div class="tab-content" id="all-stats-tabsContent">
+                <!-- Combined Stats -->
+                <div class="tab-pane fade show active" id="all-combined" role="tabpanel" aria-labelledby="all-combined-tab">
+                    <div class="row mb-4">
+                        <!-- All Goal Scorers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-ball-football me-2"></i>All Goal Scorers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="allGoalScorersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="allGoalScorersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th>Division</th>
+                                                <th class="text-center">Goals</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, goals in all_goal_scorers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ league_name }}</td>
+                                                <td class="text-center fw-bold">{{ goals }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if all_goal_scorers|length == 0 %}
+                                            <tr>
+                                                <td colspan="5" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-ball-football"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No goal scorer data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- All Assist Providers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-hand-finger me-2"></i>All Assist Providers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="allAssistProvidersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="allAssistProvidersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th>Division</th>
+                                                <th class="text-center">Assists</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, assists in all_assist_providers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ league_name }}</td>
+                                                <td class="text-center fw-bold">{{ assists }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if all_assist_providers|length == 0 %}
+                                            <tr>
+                                                <td colspan="5" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-hand-finger"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No assist provider data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Premier Division Only Stats -->
+                <div class="tab-pane fade" id="all-premier" role="tabpanel" aria-labelledby="all-premier-tab">
+                    <div class="row mb-4">
+                        <!-- Premier Division Goal Scorers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-ball-football me-2"></i>Premier Division Goal Scorers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="premierGoalScorersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="premierGoalScorersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th class="text-center">Goals</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, goals in premier_all_goal_scorers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-center fw-bold">{{ goals }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if premier_all_goal_scorers|length == 0 %}
+                                            <tr>
+                                                <td colspan="4" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-ball-football"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No Premier Division goal scorer data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Premier Division Assist Providers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-hand-finger me-2"></i>Premier Division Assist Providers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="premierAssistProvidersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="premierAssistProvidersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th class="text-center">Assists</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, assists in premier_all_assist_providers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-center fw-bold">{{ assists }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if premier_all_assist_providers|length == 0 %}
+                                            <tr>
+                                                <td colspan="4" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-hand-finger"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No Premier Division assist provider data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Classic Division Only Stats -->
+                <div class="tab-pane fade" id="all-classic" role="tabpanel" aria-labelledby="all-classic-tab">
+                    <div class="row mb-4">
+                        <!-- Classic Division Goal Scorers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-ball-football me-2"></i>Classic Division Goal Scorers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="classicGoalScorersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="classicGoalScorersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th class="text-center">Goals</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, goals in classic_all_goal_scorers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-center fw-bold">{{ goals }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if classic_all_goal_scorers|length == 0 %}
+                                            <tr>
+                                                <td colspan="4" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-ball-football"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No Classic Division goal scorer data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Classic Division Assist Providers Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-hand-finger me-2"></i>Classic Division Assist Providers
+                                    </h5>
+                                    
+                                    <!-- Search Input -->
+                                    <div class="search-box">
+                                        <div class="input-group input-group-merge">
+                                            <span class="input-group-text" id="basic-addon-search"><i class="ti ti-search"></i></span>
+                                            <input type="text" class="form-control table-search" data-table="classicAssistProvidersTable" placeholder="Search..." aria-label="Search">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="classicAssistProvidersTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th class="text-center">Assists</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player, team, league_name, assists in classic_all_assist_providers %}
+                                            <tr>
+                                                <td>{{ loop.index }}</td>
+                                                <td>
+                                                    <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="fw-semibold">
+                                                        {{ player.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{{ url_for('teams.team_details', team_id=team.id) }}">
+                                                        {{ team.name }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-center fw-bold">{{ assists }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                            {% if classic_all_assist_providers|length == 0 %}
+                                            <tr>
+                                                <td colspan="4" class="text-center p-4">
+                                                    <div class="empty-state">
+                                                        <div class="empty-state-icon mb-3">
+                                                            <i class="ti ti-hand-finger"></i>
+                                                        </div>
+                                                        <p class="empty-state-message">No Classic Division assist provider data available.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="mb-3">Legend</h6>
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">P:</span>
+                            <span class="text-muted">Played</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">W:</span>
+                            <span class="text-muted">Won</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">D:</span>
+                            <span class="text-muted">Drawn</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">L:</span>
+                            <span class="text-muted">Lost</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">GF:</span>
+                            <span class="text-muted">Goals For</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">GA:</span>
+                            <span class="text-muted">Goals Against</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">GD:</span>
+                            <span class="text-muted">Goal Difference</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">Pts:</span>
+                            <span class="text-muted">Points</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Table header styling */
+    .table thead th {
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    /* Team styling */
+    .team-name {
+        font-weight: 500;
+        text-decoration: none;
+        color: var(--bs-body-color);
+    }
+    
+    .team-name:hover {
+        color: var(--bs-primary);
+    }
+    
+    /* Avatar styling */
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .team-initial {
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
+    
+    /* Empty State Styling */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        color: var(--bs-secondary);
+    }
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        color: var(--bs-secondary);
+    }
+    
+    .empty-state-message {
+        font-size: 0.875rem;
+    }
+    
+    /* Badge styling */
+    .badge.bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+        color: #696cff !important;
+    }
+    
+    .badge.bg-label-success {
+        background-color: rgba(40, 199, 111, 0.16) !important;
+        color: #28c76f !important;
+    }
+    
+    .badge.bg-label-warning {
+        background-color: rgba(255, 159, 67, 0.16) !important;
+        color: #ff9f43 !important;
+    }
+    
+    .badge.bg-label-danger {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    .badge.bg-label-secondary {
+        background-color: rgba(108, 117, 125, 0.16) !important;
+        color: #6c757d !important;
+    }
+    
+    /* Responsive Styling for Nav Pills */
+    @media (max-width: 767.98px) {
+        .nav-pills {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .nav-pills .nav-link {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.875rem;
+        }
+        
+        .table thead th {
+            font-size: 0.75rem;
+        }
+    }
+    
+    /* Table hover effect */
+    .table-hover tbody tr:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.05);
+    }
+</style>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: { show: 300, hide: 100 }
+            });
+        });
+        
+        // Get saved active tab from localStorage if available
+        const activeTabId = localStorage.getItem('seasonOverviewActiveTab');
+        if (activeTabId) {
+            const tabElement = document.getElementById(activeTabId);
+            if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+        
+        // Save active tab to localStorage when changed
+        const mainTabs = document.querySelectorAll('#division-tabs button');
+        mainTabs.forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                localStorage.setItem('seasonOverviewActiveTab', event.target.id);
+            });
+        });
+        
+        const allStatsTabs = document.querySelectorAll('#all-stats-tabs button');
+        allStatsTabs.forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                localStorage.setItem('seasonOverviewAllStatsTab', event.target.id);
+            });
+        });
+        
+        // Load saved tab state
+        const savedAllStatsTab = localStorage.getItem('seasonOverviewAllStatsTab');
+        if (savedAllStatsTab) {
+            const tabElement = document.getElementById(savedAllStatsTab);
+            if (tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+        }
+        
+        // Mobile optimization - make tabs scrollable on small screens
+        if (window.innerWidth < 768) {
+            const mainTabContainer = document.querySelector('#division-tabs');
+            if (mainTabContainer) {
+                mainTabContainer.classList.add('overflow-auto', 'flex-nowrap');
+            }
+            
+            const allStatsTabContainer = document.querySelector('#all-stats-tabs');
+            if (allStatsTabContainer) {
+                allStatsTabContainer.classList.add('overflow-auto', 'flex-nowrap');
+            }
+        }
+        
+        // Generic search functionality for all tables
+        const searchInputs = document.querySelectorAll('.table-search');
+        searchInputs.forEach(function(searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchValue = this.value.toLowerCase();
+                const tableId = this.getAttribute('data-table');
+                const table = document.getElementById(tableId);
+                if (!table) return;
+                
+                const rows = table.querySelectorAll('tbody tr');
+                
+                rows.forEach(function(row) {
+                    let matchFound = false;
+                    // Loop through all cells in the row except the first (index) and last (stats) columns
+                    for (let i = 1; i < row.cells.length - 1; i++) {
+                        const cellText = row.cells[i].textContent.toLowerCase();
+                        if (cellText.includes(searchValue)) {
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                    
+                    row.style.display = matchFound ? '' : 'none';
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
