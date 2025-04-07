@@ -36,10 +36,10 @@ logger = logging.getLogger(__name__)
 )
 def schedule_season_availability(self, session) -> Dict[str, Any]:
     """
-    Schedule availability messages for matches occurring in the next week (Pub League example).
+    Schedule availability messages for matches occurring in the next 90 days (entire season).
 
     The task:
-      - Determines the current date range (today through 7 days ahead).
+      - Determines the current date range (today through 90 days ahead).
       - Retrieves matches scheduled in that date range.
       - For each match without a scheduled message, calculates a send time (9 AM on a computed date).
       - Creates a ScheduledMessage record in the database.
@@ -53,9 +53,10 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
     """
     try:
         start_date = datetime.utcnow().date()
-        end_date = start_date + timedelta(days=7)
+        # For "entire season", look at the next 90 days instead of just 7
+        end_date = start_date + timedelta(days=90)
 
-        # Query matches within the next week along with any associated scheduled messages
+        # Query matches within the next 90 days along with any associated scheduled messages
         matches = session.query(Match).options(
             joinedload(Match.scheduled_messages)
         ).filter(
@@ -87,7 +88,7 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
                 logger.info(f"Scheduled availability message for match {match_data['id']} at {send_time}")
 
         result = {
-            "message": f"Scheduled {scheduled_count} availability messages for the next week.",
+            "message": f"Scheduled {scheduled_count} availability messages for matches in the next 90 days.",
             "scheduled_count": scheduled_count,
             "total_matches": len(matches_data),
             "start_date": start_date.isoformat(),

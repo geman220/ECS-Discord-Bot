@@ -2,6 +2,11 @@
 
 {% block title %}Scheduled Availability Messages{% endblock %}
 
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdn.datatables.net/plug-ins/1.10.25/sorting/datetime-moment.js"></script>
+{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header with Breadcrumb -->
@@ -95,13 +100,26 @@
                             <form action="{{ url_for('admin.schedule_next_week') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="ti ti-calendar-plus me-1"></i> Schedule Sunday Matches
+                                    <i class="ti ti-calendar-plus me-1"></i> Schedule This Sunday
+                                </button>
+                            </form>
+                            <form action="{{ url_for('admin.process_scheduled_messages') }}" method="post" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="ti ti-send me-1"></i> Send Pending Messages
                                 </button>
                             </form>
                             <form action="{{ url_for('admin.schedule_season') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-outline-secondary">
-                                    <i class="ti ti-calendar me-1"></i> Schedule Entire Season
+                                    <i class="ti ti-calendar me-1"></i> Schedule Future Sundays
+                                </button>
+                            </form>
+                            <form action="{{ url_for('admin.cleanup_old_messages_route') }}" method="post" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="days_old" value="7">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    <i class="ti ti-trash me-1"></i> Clean Up Old Messages
                                 </button>
                             </form>
                         </div>
@@ -164,14 +182,14 @@
                                 </div>
                             </td>
                             <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-semibold">{{ message.match.date.strftime('%a, %b %d') }}</span>
+                                <div class="d-flex flex-column" data-sort="{{ message.match.date.strftime('%Y-%m-%d') }}T{{ message.match.time.strftime('%H:%M:%S') }}">
+                                    <span class="fw-semibold">{{ message.match.date.strftime('%a, %b %d, %Y') }}</span>
                                     <small class="text-muted">{{ message.match.time.strftime('%I:%M %p') }}</small>
                                 </div>
                             </td>
                             <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-semibold">{{ message.scheduled_send_time.strftime('%a, %b %d') }}</span>
+                                <div class="d-flex flex-column" data-sort="{{ message.scheduled_send_time.strftime('%Y-%m-%dT%H:%M:%S') }}">
+                                    <span class="fw-semibold">{{ message.scheduled_send_time.strftime('%a, %b %d, %Y') }}</span>
                                     <small class="text-muted">{{ message.scheduled_send_time.strftime('%I:%M %p') }}</small>
                                 </div>
                             </td>
@@ -189,12 +207,18 @@
                                         </button>
                                     </form>
                                     <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" 
-                                       class="btn btn-sm btn-icon btn-primary"
+                                       class="btn btn-sm btn-icon btn-primary me-1"
                                        data-bs-toggle="tooltip" 
                                        data-bs-placement="top" 
                                        title="View RSVPs">
                                         <i class="ti ti-list-check"></i>
                                     </a>
+                                    <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="delete-message-form">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-icon btn-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Message">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -304,11 +328,60 @@
 
 {% block custom_js %}
 <script>
+// Add datetime sorting capability
+$.fn.dataTable.moment = function(format) {
+    var types = $.fn.dataTable.ext.type;
+    
+    // Add type detection
+    types.detect.unshift(function(d) {
+        // Strip HTML tags if present
+        if (d && typeof d === 'string') {
+            // If there's a data-sort attribute, use that instead
+            if ($(d).attr('data-sort')) {
+                return 'moment-' + format;
+            }
+        }
+        return null;
+    });
+    
+    // Add sorting method
+    types.order['moment-' + format + '-pre'] = function(d) {
+        if (d && typeof d === 'string') {
+            // Check if there's a data-sort attribute
+            var dataSort = $(d).attr('data-sort');
+            if (dataSort) {
+                return new Date(dataSort).getTime();
+            }
+        }
+        return 0;
+    };
+};
+
 $(document).ready(function() {
+    // Initialize moment-based date sorting
+    $.fn.dataTable.moment('YYYY-MM-DD');
+    
     // Initialize tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Add confirmation for message deletion
+    $('.delete-message-form').on('submit', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to delete this message?')) {
+            this.submit();
+        }
+    });
+    
+    // Add confirmation for bulk cleanup
+    $('form[action$="cleanup_old_messages_route"]').on('submit', function(e) {
+        e.preventDefault();
+        const days = $(this).find('input[name="days_old"]').val();
+        if (confirm(`Are you sure you want to delete all sent and failed messages older than ${days} days?`)) {
+            this.submit();
+        }
     });
     
     // Initialize DataTable
@@ -355,6 +428,30 @@ $(document).ready(function() {
                         exportOptions: { columns: [0, 1, 2, 3] }
                     }
                 ]
+            }
+        ],
+        columnDefs: [
+            {
+                targets: 1, // Match Date column
+                type: 'date',
+                render: function(data, type, row) {
+                    if (type === 'sort') {
+                        // Extract the ISO date from the data-sort attribute
+                        return $(data).attr('data-sort');
+                    }
+                    return data;
+                }
+            },
+            {
+                targets: 2, // Scheduled Send column
+                type: 'date',
+                render: function(data, type, row) {
+                    if (type === 'sort') {
+                        // Extract the ISO date from the data-sort attribute
+                        return $(data).attr('data-sort');
+                    }
+                    return data;
+                }
             }
         ],
         order: [[2, 'asc']] // Sort by scheduled send time

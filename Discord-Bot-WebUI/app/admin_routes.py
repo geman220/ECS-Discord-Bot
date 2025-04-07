@@ -387,10 +387,10 @@ def reorder_announcements():
 @role_required('Global Admin')
 def schedule_season():
     """
-    Initiate the task to schedule season availability.
+    Initiate the task to schedule season availability for all future Sunday matches.
     """
     task = schedule_season_availability.delay()
-    flash('Season scheduling task has been initiated.', 'success')
+    flash('Future Sundays scheduling task has been initiated - this will schedule all matches for the next 90 days.', 'success')
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
@@ -440,7 +440,86 @@ def schedule_next_week():
     from app.tasks.tasks_rsvp import schedule_weekly_match_availability
     
     task = schedule_weekly_match_availability.delay()
-    flash('Next week\'s Sunday matches scheduling task has been initiated.', 'success')
+    flash('This Sunday\'s match scheduling task has been initiated.', 'success')
+    return redirect(url_for('admin.view_scheduled_messages'))
+
+
+@admin_bp.route('/admin/process_scheduled_messages', endpoint='process_scheduled_messages', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def process_scheduled_messages_route():
+    """
+    Immediately process all pending scheduled messages.
+    This forces the system to send out any pending RSVP messages right away.
+    """
+    from app.tasks.tasks_rsvp import process_scheduled_messages
+    
+    task = process_scheduled_messages.delay()
+    flash('Processing and sending all pending messages - check status in a few minutes.', 'success')
+    return redirect(url_for('admin.view_scheduled_messages'))
+
+
+@admin_bp.route('/admin/cleanup_old_messages', endpoint='cleanup_old_messages_route', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def cleanup_old_messages_route():
+    """
+    Clean up old scheduled messages that have already been sent or failed.
+    By default, removes messages older than 7 days.
+    """
+    days_old = request.form.get('days_old', 7, type=int)
+    session = g.db_session
+    
+    try:
+        # Direct implementation without using Celery
+        cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+        
+        # Get count first for messaging
+        total_messages = session.query(ScheduledMessage).filter(
+            ScheduledMessage.scheduled_send_time < cutoff_date,
+            ScheduledMessage.status.in_(['SENT', 'FAILED'])
+        ).count()
+        
+        # Delete the old messages
+        deleted_count = session.query(ScheduledMessage).filter(
+            ScheduledMessage.scheduled_send_time < cutoff_date,
+            ScheduledMessage.status.in_(['SENT', 'FAILED'])
+        ).delete(synchronize_session=False)
+        
+        session.commit()
+        
+        if deleted_count > 0:
+            flash(f'Successfully deleted {deleted_count} old messages.', 'success')
+        else:
+            flash(f'No messages found older than {days_old} days with status SENT or FAILED.', 'info')
+            
+        logger.info(f"Admin {safe_current_user.id} manually cleaned up {deleted_count} old messages")
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up old messages: {str(e)}", exc_info=True)
+        flash(f'Error cleaning up old messages: {str(e)}', 'danger')
+        session.rollback()
+    
+    return redirect(url_for('admin.view_scheduled_messages'))
+
+
+@admin_bp.route('/admin/delete_message/<int:message_id>', endpoint='delete_message', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def delete_message(message_id):
+    """
+    Delete a specific scheduled message.
+    """
+    session = g.db_session
+    message = session.query(ScheduledMessage).get(message_id)
+    
+    if not message:
+        flash('Message not found.', 'danger')
+    else:
+        match_info = f"{message.match.home_team.name} vs {message.match.away_team.name}" if message.match else "Unknown match"
+        session.delete(message)
+        flash(f'Message for {match_info} has been deleted.', 'success')
+    
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
