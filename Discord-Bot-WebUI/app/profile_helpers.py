@@ -46,7 +46,7 @@ def handle_coach_status_update(player, user):
             logger.debug(f"Queueing Discord role update for player {player.id}")
             discord_task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
             if discord_task:
-                logger.info(f"Discord role update task queued for player {player.id}")
+                logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_coach else 'remove'} coach roles.")
             else:
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 

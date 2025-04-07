@@ -4,7 +4,8 @@
 Command Line Interface (CLI) Module
 
 This module defines CLI commands for the Flask application. In particular,
-it provides a command to build and minify static assets.
+it provides commands to build and minify static assets, initialize Discord roles,
+and synchronize player coach flags with Discord roles.
 """
 
 import click
@@ -74,3 +75,101 @@ def init_discord_roles():
         click.echo(f"Error initializing Discord roles: {str(e)}")
         db.session.rollback()
         raise
+
+@click.command()
+@with_appcontext
+def sync_coach_roles():
+    """
+    Sync player is_coach flags with Discord coach roles.
+    
+    This command checks all players with Discord IDs and ensures that:
+    1. Players with Discord coach roles have is_coach=True in the database
+    2. Players without Discord coach roles have is_coach=False in the database
+    
+    After updating the database, it triggers a full role sync for each player.
+    """
+    import asyncio
+    import aiohttp
+    import re
+    from app.models import Player
+    from app.utils.discord_request_handler import make_discord_request
+    from app.tasks.tasks_discord import assign_roles_to_player_task
+    from web_config import Config
+
+    click.echo("Syncing coach roles between database and Discord...")
+    
+    # Create event loop for async operations
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    # Function to get all player Discord roles
+    async def get_player_roles():
+        players = Player.query.filter(Player.discord_id.isnot(None)).all()
+        click.echo(f"Found {len(players)} players with Discord IDs")
+        
+        role_pattern = re.compile(r'.*COACH$')
+        guild_id = current_app.config['SERVER_ID']
+        player_roles = {}
+        
+        async with aiohttp.ClientSession() as session:
+            for player in players:
+                url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
+                try:
+                    response = await make_discord_request('GET', url, session)
+                    roles = []
+                    if isinstance(response, list):
+                        roles = response
+                    elif response and 'roles' in response:
+                        if isinstance(response['roles'], list):
+                            roles = response['roles']
+                        elif isinstance(response['roles'], dict):
+                            roles = list(response['roles'].values())
+                    
+                    # Check if any role ends with "COACH"
+                    has_coach_role = any(role_pattern.match(role) for role in roles if isinstance(role, str))
+                    player_roles[player.id] = {
+                        'player': player,
+                        'has_coach_role': has_coach_role,
+                        'roles': roles
+                    }
+                    click.echo(f"Player {player.name} {'has' if has_coach_role else 'does not have'} coach role")
+                except Exception as e:
+                    click.echo(f"Error getting roles for player {player.name}: {str(e)}")
+        
+        return player_roles
+    
+    try:
+        # Get player roles
+        player_roles = loop.run_until_complete(get_player_roles())
+        
+        # Update player is_coach flag based on Discord roles
+        from flask_sqlalchemy import SQLAlchemy
+        db = SQLAlchemy(current_app)
+        updated_players = 0
+        
+        for player_id, data in player_roles.items():
+            player = data['player']
+            has_coach_role = data['has_coach_role']
+            
+            if player.is_coach != has_coach_role:
+                player.is_coach = has_coach_role
+                updated_players += 1
+                click.echo(f"Updated player {player.name} is_coach to {has_coach_role}")
+        
+        if updated_players > 0:
+            db.session.commit()
+            click.echo(f"Updated is_coach flag for {updated_players} players")
+        else:
+            click.echo("No players needed is_coach flag updates")
+        
+        # Trigger role sync for all players to ensure Discord roles match database
+        for player_id in player_roles:
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+        
+        click.echo("Role sync initiated for all players")
+        
+    except Exception as e:
+        click.echo(f"Error syncing coach roles: {str(e)}")
+        raise
+    finally:
+        loop.close()

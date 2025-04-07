@@ -278,11 +278,18 @@
                             <div class="small">Discord ID: {{ safe_current_user.player.discord_id }}</div>
                         </div>
                     </div>
-                    <form id="unlinkDiscordForm" action="{{ url_for('account.unlink_discord') }}" method="POST">
-                        <button type="submit" class="btn btn-outline-danger">
-                            <i class="ti ti-link-off me-2"></i>Disconnect Discord
-                        </button>
-                    </form>
+                    <div class="d-flex gap-2">
+                        <form id="syncDiscordRolesForm" action="{{ url_for('auth.sync_discord_roles') }}" method="POST">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-refresh me-2"></i>Sync Discord Roles
+                            </button>
+                        </form>
+                        <form id="unlinkDiscordForm" action="{{ url_for('account.unlink_discord') }}" method="POST">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="ti ti-link-off me-2"></i>Disconnect Discord
+                            </button>
+                        </form>
+                    </div>
                     {% else %}
                     <div class="alert alert-warning d-flex align-items-center mb-3">
                         <i class="ti ti-alert-triangle me-2"></i>

@@ -684,6 +684,30 @@ def logout():
 
 
 # ----------------------------------------------------------------------
+# Role Management Routes
+# ----------------------------------------------------------------------
+@auth.route('/sync_discord_roles', methods=['POST'])
+@login_required
+@transactional
+def sync_discord_roles():
+    """
+    Force a full sync of Discord roles for the currently logged-in user.
+    This will properly add and remove roles based on the user's current status.
+    """
+    user = safe_current_user
+    if not user or not user.player or not user.player.discord_id:
+        flash('No Discord account linked to your profile.', 'warning')
+        return redirect(url_for('main.index'))
+    
+    # Trigger a complete role sync (not just adding roles)
+    assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+    logger.info(f"Triggered complete Discord role sync for player {user.player.id}")
+    
+    flash('Discord roles sync requested. Changes should take effect within a minute.', 'success')
+    return redirect(url_for('main.index'))
+
+
+# ----------------------------------------------------------------------
 # Error Handlers
 # ----------------------------------------------------------------------
 @auth.errorhandler(404)
