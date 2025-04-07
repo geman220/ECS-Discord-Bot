@@ -14,11 +14,15 @@ It also provides a function to configure Celery with the Flask application conte
 from flask_sqlalchemy import SQLAlchemy
 from flask_socketio import SocketIO
 from celery import Celery
+from celery import signals
 
 # Initialize core components
 db = SQLAlchemy()
 socketio = SocketIO()
 celery = Celery('app')
+
+# Make signals accessible from celery object
+celery.signals = signals
 
 
 def configure_celery(app):
