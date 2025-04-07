@@ -11,6 +11,7 @@ checking the Discord API connection, and handling Discord-related errors.
 
 import logging
 import aiohttp
+import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple
 
@@ -22,6 +23,7 @@ async def update_availability_embed(match_id: int) -> Dict[str, Any]:
     Update the availability embed in Discord for a given match.
 
     Sends a POST request to the Discord bot API to update the embed for the match.
+    Uses a configurable retry mechanism to handle temporary failures.
 
     Args:
         match_id: The ID of the match.
@@ -31,47 +33,77 @@ async def update_availability_embed(match_id: int) -> Dict[str, Any]:
         and, in case of failure, an error message and status code.
     """
     bot_api_url = f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
-
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(bot_api_url, timeout=10) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(
-                        f"Failed to update Discord embed",
-                        extra={
-                            'match_id': match_id,
-                            'status': response.status,
-                            'error': error_text
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(bot_api_url, timeout=10 * (attempt + 1)) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.warning(
+                                f"Failed to update Discord embed (attempt {attempt+1}/{max_retries})",
+                                extra={
+                                    'match_id': match_id,
+                                    'status': response.status,
+                                    'error': error_text
+                                }
+                            )
+                            
+                            # If not the last attempt, retry
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(retry_delay * (attempt + 1))
+                                continue
+                            
+                            # Last attempt failed, return error
+                            return {
+                                'success': False,
+                                'message': error_text,
+                                'status_code': response.status
+                            }
+                        
+                        logger.info(
+                            f"Successfully updated Discord embed",
+                            extra={'match_id': match_id}
+                        )
+                        return {
+                            'success': True,
+                            'message': "Discord embed updated successfully",
+                            'timestamp': datetime.utcnow().isoformat()
                         }
-                    )
-                    return {
-                        'success': False,
-                        'message': error_text,
-                        'status_code': response.status
-                    }
+            except aiohttp.ClientError as e:
+                logger.warning(
+                    f"Discord API error updating embed (attempt {attempt+1}/{max_retries})",
+                    extra={'match_id': match_id, 'error': str(e)}
+                )
                 
-                logger.info(
-                    f"Successfully updated Discord embed",
-                    extra={'match_id': match_id}
+                # If not the last attempt, retry
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay * (attempt + 1))
+                    continue
+                
+                # Last attempt failed, log and return error
+                logger.error(
+                    f"Discord API error updating embed after {max_retries} attempts",
+                    extra={'match_id': match_id, 'error': str(e)},
+                    exc_info=True
                 )
                 return {
-                    'success': True,
-                    'message': "Discord embed updated successfully",
-                    'timestamp': datetime.utcnow().isoformat()
+                    'success': False,
+                    'message': str(e),
+                    'error_type': 'discord_api_error'
                 }
                 
-    except aiohttp.ClientError as e:
-        logger.error(
-            f"Discord API error updating embed",
-            extra={'match_id': match_id, 'error': str(e)},
-            exc_info=True
-        )
+        # This return should not be reached due to the loop structure,
+        # but included as a safety measure
         return {
             'success': False,
-            'message': str(e),
-            'error_type': 'discord_api_error'
+            'message': "All retry attempts failed",
+            'error_type': 'retry_exhausted'
         }
+                
     except Exception as e:
         logger.error(
             f"Unexpected error updating Discord embed",
@@ -190,6 +222,8 @@ async def _update_discord_rsvp_async(data: Dict[str, Any]) -> Dict[str, Any]:
 async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
     """
     Asynchronously notify Discord of RSVP changes for a match.
+    This function ensures both Discord embeds and reactions are up-to-date
+    with the latest RSVP data from the database.
 
     Args:
         match_id: The ID of the match.
@@ -197,11 +231,26 @@ async def _notify_discord_async(match_id: int) -> Dict[str, Any]:
     Returns:
         A dictionary with the notification result and a timestamp.
     """
-    result = await update_availability_embed(match_id)
+    # First update the embed for the match
+    embed_result = await update_availability_embed(match_id)
+    
+    # Log the operation in detail
+    notification_time = datetime.utcnow().isoformat()
+    
+    if not embed_result.get('success', False):
+        logger.error(f"Failed to update Discord embed for match {match_id}: {embed_result.get('message', 'Unknown error')}")
+        return {
+            'success': False,
+            'message': f"Failed to update Discord embed: {embed_result.get('message', 'Unknown error')}",
+            'notification_time': notification_time
+        }
+    
+    logger.info(f"Successfully notified Discord of RSVP changes for match {match_id}")
     return {
-        'success': result['success'],
-        'message': result['message'],
-        'notification_time': datetime.utcnow().isoformat()
+        'success': True,
+        'message': "Discord notified successfully of RSVP changes",
+        'notification_time': notification_time,
+        'details': embed_result.get('message', 'Discord embed updated successfully')
     }
 
 
@@ -341,74 +390,113 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
             'error_type': 'validation_error'
         }
 
-    start_time = datetime.utcnow()
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(bot_api_url, json=request_data, timeout=30) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    logger.error(
-                        "Failed to update Discord RSVP",
+    # Ensure discord_id is a string
+    request_data['discord_id'] = str(request_data['discord_id'])
+    
+    # Max retries and backoff
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        start_time = datetime.utcnow()
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Increase timeout for each retry
+                timeout = 30 * (attempt + 1)
+                async with session.post(bot_api_url, json=request_data, timeout=timeout) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logger.warning(
+                            f"Failed to update Discord RSVP (attempt {attempt+1}/{max_retries})",
+                            extra={
+                                'status': response.status,
+                                'error': error_text,
+                                'match_id': request_data.get('match_id'),
+                                'discord_id': request_data.get('discord_id')
+                            }
+                        )
+                        
+                        # If not the last attempt, retry
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(retry_delay * (attempt + 1))
+                            continue
+                            
+                        # Last attempt failed
+                        return {
+                            'success': False,
+                            'message': f"Failed to update Discord RSVP: {error_text}",
+                            'error_type': 'discord_api_error',
+                            'status_code': response.status
+                        }
+                        
+                    duration = (datetime.utcnow() - start_time).total_seconds()
+                    logger.info(
+                        "Discord RSVP update successful",
                         extra={
-                            'status': response.status,
-                            'error': error_text,
                             'match_id': request_data.get('match_id'),
-                            'discord_id': request_data.get('discord_id')
+                            'discord_id': request_data.get('discord_id'),
+                            'duration': duration,
+                            'new_response': request_data.get('new_response')
                         }
                     )
                     return {
-                        'success': False,
-                        'message': f"Failed to update Discord RSVP: {error_text}",
-                        'error_type': 'discord_api_error',
-                        'status_code': response.status
+                        'success': True,
+                        'message': "Discord RSVP updated successfully",
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'duration': duration
                     }
-                duration = (datetime.utcnow() - start_time).total_seconds()
-                logger.info(
-                    "Discord RSVP update successful",
-                    extra={
-                        'match_id': request_data.get('match_id'),
-                        'discord_id': request_data.get('discord_id'),
-                        'duration': duration,
-                        'new_response': request_data.get('new_response')
-                    }
-                )
-                return {
-                    'success': True,
-                    'message': "Discord RSVP updated successfully",
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'duration': duration
-                }
-    except aiohttp.ClientError as e:
-        error_msg = f"Discord API error: {str(e)}"
-        logger.error(
-            "Discord API error updating RSVP",
-            extra={
-                'match_id': request_data.get('match_id'),
-                'discord_id': request_data.get('discord_id'),
-                'error': str(e)
-            },
-            exc_info=True
-        )
-        return {
-            'success': False,
-            'message': error_msg,
-            'error_type': 'discord_api_error'
-        }
-    except Exception as e:
-        error_msg = f"Error updating Discord RSVP: {str(e)}"
-        logger.error(
-            "Unexpected error updating RSVP",
-            extra={
-                'match_id': request_data.get('match_id'),
-                'discord_id': request_data.get('discord_id')
-            },
-            exc_info=True
-        )
-        return {
-            'success': False,
-            'message': error_msg,
-            'error_type': 'unexpected_error'
-        }
+        except aiohttp.ClientError as e:
+            error_msg = f"Discord API error: {str(e)}"
+            logger.error(
+                "Discord API error updating RSVP",
+                extra={
+                    'match_id': request_data.get('match_id'),
+                    'discord_id': request_data.get('discord_id'),
+                    'error': str(e)
+                },
+                exc_info=True
+            )
+            
+            # If not the last attempt, retry
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay * (attempt + 1))
+                continue
+            
+            # Last attempt failed
+            return {
+                'success': False,
+                'message': error_msg,
+                'error_type': 'discord_api_error'
+            }
+        except Exception as e:
+            error_msg = f"Error updating Discord RSVP: {str(e)}"
+            logger.error(
+                "Unexpected error updating RSVP",
+                extra={
+                    'match_id': request_data.get('match_id'),
+                    'discord_id': request_data.get('discord_id')
+                },
+                exc_info=True
+            )
+            
+            # If not the last attempt, retry
+            if attempt < max_retries - 1:
+                await asyncio.sleep(retry_delay * (attempt + 1))
+                continue
+            
+            # Last attempt failed
+            return {
+                'success': False,
+                'message': error_msg,
+                'error_type': 'unexpected_error'
+            }
+    
+    # This should not be reached due to the loop structure
+    return {
+        'success': False,
+        'message': "All retry attempts failed",
+        'error_type': 'retry_exhausted'
+    }
 
 
 async def check_discord_connection() -> Dict[str, Any]:

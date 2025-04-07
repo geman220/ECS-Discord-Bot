@@ -38,8 +38,9 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
     This task:
       - Retrieves the Player record and current Availability for the match.
       - Updates or creates the Availability record based on the new response.
-      - If a discord_id is provided, schedules a task to update the Discord RSVP.
+      - If a discord_id is provided or can be found in the player record, schedules a task to update the Discord RSVP.
       - Schedules a task to notify the frontend of the RSVP change.
+      - Always triggers notify_discord_of_rsvp_change_task to update the Discord embed.
 
     Args:
         session: Database session.
@@ -93,7 +94,12 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 )
                 session.add(availability)
 
-        # Schedule Discord RSVP update if a discord_id is provided.
+        # Get the player's discord_id if not provided
+        if not discord_id and player.discord_id:
+            discord_id = player.discord_id
+            logger.debug(f"Using player's discord_id: {discord_id}")
+
+        # Schedule Discord RSVP update if discord_id is available
         if discord_id:
             update_discord_rsvp_task.apply_async(kwargs={
                 "match_id": match_id,
@@ -101,6 +107,13 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 "new_response": new_response,
                 "old_response": old_response
             }, countdown=5)
+        else:
+            logger.info(f"No Discord ID available for player {player_id}, skipping Discord reaction update")
+
+        # Always notify Discord to update the embed with the latest RSVPs
+        notify_discord_of_rsvp_change_task.apply_async(kwargs={
+            "match_id": match_id
+        }, countdown=3)
 
         # Notify frontend of the RSVP change.
         notify_frontend_of_rsvp_change_task.apply_async(kwargs={
@@ -332,7 +345,7 @@ def notify_frontend_of_rsvp_change_task(self, session, match_id: int, player_id:
         }
 
 
-@celery_task(name='app.tasks.tasks_rsvp.update_discord_rsvp', max_retries=3, retry_backoff=True, queue='discord')
+@celery_task(name='app.tasks.tasks_rsvp.update_discord_rsvp', max_retries=5, retry_backoff=True, queue='discord')
 def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_response: str, old_response: Optional[str] = None) -> Dict[str, Any]:
     """
     Update Discord RSVP status by communicating with the Discord API.
@@ -354,6 +367,11 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
         Retries the task on SQLAlchemy or general errors.
     """
     try:
+        # Ensure discord_id is a string
+        if discord_id is not None and not isinstance(discord_id, str):
+            discord_id = str(discord_id)
+            logger.debug(f"Converted discord_id to string: {discord_id}")
+        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -363,13 +381,28 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
                 'new_response': new_response,
                 'old_response': old_response
             }
+            
+            logger.info(f"Sending Discord RSVP update for match {match_id}, user {discord_id}, response {new_response}")
             result = loop.run_until_complete(_update_discord_rsvp_async(data))
             
+            # Update availability record with sync status
             availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
             if availability:
                 availability.discord_sync_status = 'synced' if result['success'] else 'failed'
                 availability.last_sync_attempt = datetime.utcnow()
                 availability.sync_error = None if result['success'] else result.get('message')
+                logger.info(f"Updated sync status for availability record: {availability.discord_sync_status}")
+
+            # If update failed and we're not on the last retry, try again
+            if not result['success'] and self.request.retries < self.max_retries - 1:
+                logger.warning(f"Discord RSVP update failed, will retry: {result.get('message', 'Unknown error')}")
+                raise self.retry(countdown=min(2 ** self.request.retries * 10, 300))  # Exponential backoff with max 5 minutes
+
+            # After updating reaction, also make sure embed is updated
+            if not result['success']:
+                logger.warning(f"Discord reaction update failed, will trigger embed update to ensure consistency")
+                # Trigger embed update, but don't wait for it
+                notify_discord_of_rsvp_change_task.delay(match_id)
 
             return {
                 'success': result['success'],

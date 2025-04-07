@@ -268,16 +268,41 @@ def update_availability_web():
         logger.error("Missing required data")
         return jsonify({"error": "Invalid data"}), 400
 
+    # Get the player record to check for discord_id
+    session_db = g.db_session
+    player = session_db.query(Player).get(data['player_id'])
+    discord_id = None
+    
+    if player:
+        discord_id = player.discord_id
+        logger.info(f"Found player with discord_id: {discord_id}")
+    
+    # Update RSVP in the database
     success, message = update_rsvp(
         data['match_id'],
         data['player_id'],
         data['response'],
-        session=g.db_session
+        discord_id=discord_id,
+        session=session_db
     )
 
-    if success:
-        return jsonify({"message": message}), 200
-    return jsonify({"error": "Failed to update availability"}), 500
+    if not success:
+        logger.error("Failed to update availability")
+        return jsonify({"error": "Failed to update availability"}), 500
+    
+    # Always notify Discord of the change to update embeds
+    notify_discord_of_rsvp_change_task.delay(data['match_id'])
+    
+    # If we have a discord_id, also update the reaction
+    if discord_id:
+        try:
+            # Instead of creating a new task, make sure the existing update_rsvp task will handle this
+            # The changes in tasks_rsvp.py will take care of updating the Discord reaction
+            logger.info(f"Discord ID found, update will include Discord reaction for user {discord_id}")
+        except Exception as e:
+            logger.error(f"Error queueing Discord reaction update: {str(e)}")
+    
+    return jsonify({"message": message}), 200
 
 
 @availability_bp.route('/sync_match_rsvps/<int:match_id>', methods=['POST'], endpoint='sync_match_rsvps')

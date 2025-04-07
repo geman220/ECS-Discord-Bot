@@ -299,75 +299,149 @@ def create_team_embed(match_request: AvailabilityRequest, rsvp_data, team_type='
     return embed
 
 async def update_embed_for_message(message_id: str, channel_id: str, match_id: int, team_id: int, bot: commands.Bot):
+    """
+    Enhanced version of update_embed_for_message with better error handling.
+    """
     logger.debug(f"Updating embed for message_id={message_id}, channel_id={channel_id}, match_id={match_id}, team_id={team_id}")
     
     try:
         # Fetch the channel directly
-        channel = await bot.fetch_channel(channel_id)
+        channel = bot.get_channel(int(channel_id))
         if not channel:
-            logger.error(f"Channel with ID {channel_id} not found.")
-            return
+            try:
+                channel = await bot.fetch_channel(int(channel_id))
+            except discord.NotFound:
+                logger.error(f"Channel with ID {channel_id} not found.")
+                return False
+            except discord.Forbidden:
+                logger.error(f"Bot doesn't have permission to access channel {channel_id}.")
+                return False
 
         # Fetch the message directly in the channel
-        message = await channel.fetch_message(message_id)
-        if not message:
-            logger.error(f"Message with ID {message_id} not found.")
-            return
+        try:
+            message = await channel.fetch_message(int(message_id))
+        except discord.NotFound:
+            logger.error(f"Message with ID {message_id} not found in channel {channel_id}.")
+            return False
+        except discord.Forbidden:
+            logger.error(f"Bot doesn't have permission to access message {message_id} in channel {channel_id}.")
+            return False
 
-        # Fetch team-specific RSVP data with enhanced logging
-        logger.debug(f"Fetching RSVP data for match {match_id} and team {team_id}")
-        api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}"
+        # Fetch team-specific RSVP data with retry logic
+        rsvp_data = None
+        max_retries = 3
         
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api_url) as response:
-                if response.status == 200:
-                    rsvp_data = await response.json()
-                    logger.debug(f"Successfully fetched RSVP data for match {match_id} and team {team_id}: {rsvp_data}")
+        for attempt in range(max_retries):
+            try:
+                api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}"
+                logger.debug(f"Fetching RSVP data (attempt {attempt+1}/{max_retries}) from {api_url}")
+                
+                async with aiohttp.ClientSession() as session:
+                    timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
+                    async with session.get(api_url, timeout=timeout) as response:
+                        if response.status == 200:
+                            rsvp_data = await response.json()
+                            logger.debug(f"Successfully fetched RSVP data for match {match_id} and team {team_id}")
+                            break  # Success, exit retry loop
+                        else:
+                            error_text = await response.text()
+                            logger.error(f"Failed to fetch RSVP data (attempt {attempt+1}/{max_retries}): {error_text}")
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                                continue
+                            else:
+                                return False
+            except Exception as e:
+                logger.error(f"Error fetching RSVP data (attempt {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
                 else:
-                    logger.error(f"Failed to fetch RSVP data: {await response.text()}")
-                    return
+                    return False
+        
+        if not rsvp_data:
+            logger.error(f"Failed to fetch RSVP data for match {match_id} and team {team_id} after {max_retries} attempts")
+            return False
 
         # Fetch the match data for team names
-        logger.debug(f"Fetching match data for match {match_id}")
-        match_data = await fetch_match_data(match_id)
-        if not match_data:
-            logger.error(f"Failed to fetch match data for match {match_id}")
-            return
+        match_data = None
+        for attempt in range(max_retries):
+            try:
+                api_url = f"http://webui:5000/api/get_match_request/{match_id}"
+                logger.debug(f"Fetching match data (attempt {attempt+1}/{max_retries}) from {api_url}")
+                
+                async with aiohttp.ClientSession() as session:
+                    timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
+                    async with session.get(api_url, timeout=timeout) as response:
+                        if response.status == 200:
+                            match_data = await response.json()
+                            logger.debug(f"Successfully fetched match data for match {match_id}")
+                            break  # Success, exit retry loop
+                        else:
+                            error_text = await response.text()
+                            logger.error(f"Failed to fetch match data (attempt {attempt+1}/{max_retries}): {error_text}")
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                                continue
+                            else:
+                                # We can still proceed without match data
+                                logger.warning(f"Will update embed without match metadata")
+                                break
+            except Exception as e:
+                logger.error(f"Error fetching match data (attempt {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    # We can still proceed without match data
+                    logger.warning(f"Will update embed without match metadata due to error: {e}")
+                    break
 
         # Determine if this is the home or away team
-        is_home_team = team_id == match_data['home_team_id']
-        team_name = match_data['home_team_name'] if is_home_team else match_data['away_team_name']
-        opponent_name = match_data['away_team_name'] if is_home_team else match_data['home_team_name']
+        is_home_team = False
+        team_name = "Team"
+        opponent_name = "Opponent"
+        match_date = "TBD"
+        match_time = "TBD"
+        
+        if match_data:
+            is_home_team = team_id == match_data.get('home_team_id')
+            team_name = match_data.get('home_team_name', "Home Team") if is_home_team else match_data.get('away_team_name', "Away Team")
+            opponent_name = match_data.get('away_team_name', "Away Team") if is_home_team else match_data.get('home_team_name', "Home Team")
+            match_date = match_data.get('match_date', "TBD")
+            match_time = match_data.get('match_time', "TBD")
 
         # Create the embed
         embed = discord.Embed(
             title=f"{team_name} vs {opponent_name}",
-            description=f"Date: {match_data['match_date']}\nTime: {match_data['match_time']}",
+            description=f"Date: {match_date}\nTime: {match_time}",
             color=0x00ff00
         )
 
         # Add fields for each RSVP status with proper player lists
         for status in ['yes', 'no', 'maybe']:
             players = rsvp_data.get(status, [])
-            player_names = ', '.join([player['player_name'] for player in players]) or "None"
+            player_names = ', '.join([player.get('player_name', 'Unknown') for player in players]) or "None"
             emoji = get_emoji_for_response(status)
             embed.add_field(
                 name=f"{emoji} {status.capitalize()} ({len(players)})",
                 value=player_names,
                 inline=False
             )
-            logger.debug(f"Added {status} field with {len(players)} players: {player_names}")
+            logger.debug(f"Added {status} field with {len(players)} players")
 
         # Update the message with the new embed
-        await message.edit(embed=embed)
-        logger.info(f"Successfully updated embed for message {message_id} in channel {channel_id}")
+        try:
+            await message.edit(embed=embed)
+            logger.info(f"Successfully updated embed for message {message_id} in channel {channel_id}")
+            return True
+        except discord.HTTPException as e:
+            logger.error(f"Error updating message {message_id}: {e}")
+            return False
 
-    except discord.NotFound:
-        logger.error(f"Message or channel not found: message_id={message_id}, channel_id={channel_id}")
-    except discord.Forbidden:
-        logger.error(f"Bot lacks permission to update message: message_id={message_id}, channel_id={channel_id}")
     except Exception as e:
         logger.exception(f"Error updating embed: {e}")
+        return False
 
 async def fetch_match_request_data(match_id: int):
     try:
@@ -1271,62 +1345,108 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @app.post("/api/update_availability_embed/{match_id}")
-async def update_availability_embed(match_id: int, bot: commands.Bot = Depends(get_bot)):
-    session = await get_session()  # Ensure session is initialized
-
+async def update_availability_embed(match_id: str, bot: commands.Bot = Depends(get_bot)):
+    """
+    Updates the Discord embed for a match with current RSVP data.
+    Enhanced with better error handling and retry logic.
+    
+    Args:
+        match_id: The ID of the match to update.
+        
+    Returns:
+        A JSON response indicating success or failure.
+    """
+    logger.info(f"Received request to update availability embed for match {match_id}")
+    
     try:
-        api_url = f"http://webui:5000/api/get_message_ids/{match_id}"
-        logger.info(f"Fetching message IDs for match {match_id} from {api_url}")
-
-        # Use the initialized session
-        async with session.get(api_url) as response:
-            response_text = await response.text()
-            logger.debug(f"Received response status: {response.status}, content: {response_text}")
-
-            if response.status == 200:
-                try:
-                    data = json.loads(response_text)
-                    logger.info(f"Received message IDs for match {match_id}: {data}")
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSON decoding error: {e}")
-                    raise HTTPException(status_code=500, detail="Invalid JSON response from WebUI")
-
-                if not data:
-                    logger.error(f"Received empty data for match {match_id}")
-                    raise HTTPException(status_code=500, detail="Empty data received from WebUI")
-
-                # Extract and log IDs
-                home_message_id = data.get('home_message_id')
-                home_channel_id = data.get('home_channel_id')
-                home_team_id = data.get('home_team_id')
-                away_message_id = data.get('away_message_id')
-                away_channel_id = data.get('away_channel_id')
-                away_team_id = data.get('away_team_id')
-
-                logger.debug(
-                    f"IDs - home_message_id: {home_message_id}, home_channel_id: {home_channel_id}, "
-                    f"home_team_id: {home_team_id}, away_message_id: {away_message_id}, "
-                    f"away_channel_id: {away_channel_id}, away_team_id: {away_team_id}"
-                )
-
-            elif response.status == 404:
-                logger.error(f"No scheduled message found for match {match_id}")
-                raise HTTPException(status_code=404, detail="No scheduled message found")
-
-            else:
-                logger.error(f"Failed to fetch message IDs for match {match_id}: {response.status} - {response_text}")
-                raise HTTPException(status_code=response.status, detail="Failed to fetch message IDs")
-
-        # Update embeds
-        await update_embed_for_message(home_message_id, home_channel_id, match_id, home_team_id, bot)
-        await update_embed_for_message(away_message_id, away_channel_id, match_id, away_team_id, bot)
-
-        logger.info(f"Successfully updated availability embeds for match {match_id}")
-        return {"status": "success"}
-
+        # Fetch message data with retry logic
+        max_retries = 3
+        message_data = None
+        
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
+                    api_url = f"http://webui:5000/api/get_message_ids/{match_id}"
+                    
+                    logger.debug(f"Fetching message IDs (attempt {attempt+1}/{max_retries}) from {api_url}")
+                    async with session.get(api_url, timeout=timeout) as response:
+                        response_text = await response.text()
+                        
+                        if response.status == 200:
+                            try:
+                                message_data = json.loads(response_text)
+                                logger.debug(f"Successfully fetched message data: {message_data}")
+                                break  # Success, exit retry loop
+                            except json.JSONDecodeError:
+                                logger.error(f"Invalid JSON response: {response_text}")
+                                if attempt < max_retries - 1:
+                                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                                    continue
+                                else:
+                                    return {"status": "error", "message": "Invalid JSON response from WebUI"}
+                        elif response.status == 404:
+                            logger.warning(f"No scheduled message found for match {match_id}")
+                            return {"status": "warning", "message": "No scheduled message found"}
+                        else:
+                            logger.error(f"Failed to fetch message IDs (attempt {attempt+1}/{max_retries}): {response.status} - {response_text}")
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                                continue
+                            else:
+                                return {"status": "error", "message": f"Failed to fetch message IDs: {response.status}"}
+            except aiohttp.ClientError as e:
+                logger.error(f"API error fetching message IDs (attempt {attempt+1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    continue
+                else:
+                    return {"status": "error", "message": f"API error: {str(e)}"}
+        
+        if not message_data:
+            logger.error(f"Failed to fetch message data for match {match_id} after {max_retries} attempts")
+            return {"status": "error", "message": "Failed to fetch message data"}
+        
+        # Extract message IDs and check if they exist
+        home_message_id = message_data.get('home_message_id')
+        home_channel_id = message_data.get('home_channel_id')
+        home_team_id = message_data.get('home_team_id')
+        away_message_id = message_data.get('away_message_id')
+        away_channel_id = message_data.get('away_channel_id')
+        away_team_id = message_data.get('away_team_id')
+        
+        logger.debug(f"Extracted IDs - home: {home_message_id}/{home_channel_id}/{home_team_id}, "
+                    f"away: {away_message_id}/{away_channel_id}/{away_team_id}")
+        
+        if not (home_message_id and home_channel_id or away_message_id and away_channel_id):
+            logger.warning(f"No valid message IDs found for match {match_id}")
+            return {"status": "warning", "message": "No valid message IDs found"}
+        
+        # Update home and away embeds in parallel
+        tasks = []
+        
+        if home_message_id and home_channel_id and home_team_id:
+            tasks.append(update_embed_for_message(
+                home_message_id, home_channel_id, match_id, home_team_id, bot
+            ))
+        
+        if away_message_id and away_channel_id and away_team_id:
+            tasks.append(update_embed_for_message(
+                away_message_id, away_channel_id, match_id, away_team_id, bot
+            ))
+        
+        if tasks:
+            # Run updates in parallel
+            await asyncio.gather(*tasks, return_exceptions=True)
+            logger.info(f"Updated availability embeds for match {match_id}")
+            return {"status": "success", "message": "Embeds updated successfully"}
+        else:
+            logger.warning(f"No embed updates performed for match {match_id}")
+            return {"status": "warning", "message": "No embed updates performed"}
+        
     except Exception as e:
-        logger.exception(f"Error updating availability embed for match {match_id}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logger.exception(f"Error updating availability embed for match {match_id}: {e}")
+        return {"status": "error", "message": f"Internal error: {str(e)}"}
 
 def store_message_ids_in_web_ui(match_id, home_message_id, away_message_id, home_channel_id, away_channel_id):
     api_url = "http://webui:5000/api/store_message_ids"
@@ -1567,7 +1687,17 @@ async def update_message_with_reactions(
                 logger.error(f"Failed to fetch RSVP data: {await response.text()}")
 
 @app.post("/api/update_user_reaction")
-async def update_discord_rsvp(request: dict, bot: commands.Bot = Depends(get_bot)):
+async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bot)):
+    """
+    Updates a user's reaction on Discord messages.
+    Enhanced with better error handling and retry logic.
+    
+    Args:
+        request: A dictionary containing match_id, discord_id, new_response, and optional old_response.
+        
+    Returns:
+        A JSON response indicating success or failure.
+    """
     logger.debug(f"User reaction endpoint hit with request data: {request}")
 
     match_id = request.get("match_id")
@@ -1575,51 +1705,173 @@ async def update_discord_rsvp(request: dict, bot: commands.Bot = Depends(get_bot
     new_response = request.get("new_response")
     old_response = request.get("old_response")
 
-    if not all([match_id, user_id]):
-        logger.error(f"Missing required fields: match_id={match_id}, user_id={user_id}")
+    if not all([match_id, user_id, new_response]):
+        logger.error(f"Missing required fields: match_id={match_id}, user_id={user_id}, new_response={new_response}")
         raise HTTPException(status_code=400, detail="Missing required fields")
+
+    # Ensure discord_id is a string
+    if not isinstance(user_id, str):
+        user_id = str(user_id)
+        logger.debug(f"Converted user_id to string: {user_id}")
 
     try:
         # Fetch message IDs from the web API
         logger.debug(f"Fetching message IDs for match_id {match_id}")
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"http://webui:5000/api/get_message_ids/{match_id}") as response:
-                if response.status != 200:
-                    logger.error(f"Failed to fetch message IDs for match {match_id}: {await response.text()}")
-                    raise HTTPException(status_code=404, detail="Message IDs not found")
-                message_data = await response.json()
+            # Retry mechanism
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
+                    async with session.get(f"http://webui:5000/api/get_message_ids/{match_id}", 
+                                        timeout=timeout) as response:
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.error(f"Failed to fetch message IDs (attempt {attempt+1}/{max_retries}): {error_text}")
+                            
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                                continue
+                            else:
+                                raise HTTPException(status_code=404, detail="Message IDs not found")
+                            
+                        message_data = await response.json()
+                        logger.debug(f"Message data received: {message_data}")
+                        break  # Success, exit retry loop
+                except aiohttp.ClientError as e:
+                    logger.error(f"API error fetching message IDs (attempt {attempt+1}/{max_retries}): {e}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                        continue
+                    else:
+                        raise HTTPException(status_code=500, detail=f"API error: {str(e)}")
 
-        logger.debug(f"Message data received: {message_data}")
+        # Map responses to emojis
+        response_emoji = {
+            'yes': '👍',
+            'no': '👎',
+            'maybe': '🤷',
+            'no_response': None
+        }
+        
+        new_emoji = response_emoji.get(new_response)
+        old_emoji = response_emoji.get(old_response) if old_response else None
+        
+        logger.debug(f"Emoji mapping: new={new_emoji}, old={old_emoji}")
 
-        # Update home team message
-        await update_message_with_reactions(
-            bot=bot,
-            message_id=message_data['home_message_id'],
-            channel_id=message_data['home_channel_id'],
-            team_id=message_data['home_team_id'],
-            match_id=match_id,
-            user_id=user_id,
-            new_response=new_response,
-            old_response=old_response
-        )
-
-        # Update away team message
-        await update_message_with_reactions(
-            bot=bot,
-            message_id=message_data['away_message_id'],
-            channel_id=message_data['away_channel_id'],
-            team_id=message_data['away_team_id'],
-            match_id=match_id,
-            user_id=user_id,
-            new_response=new_response,
-            old_response=old_response
-        )
-
-        return {"status": "success"}
+        # Process each message (home and away) if available
+        success = True
+        errors = []
+        processed_messages = 0
+        
+        # Helper function to handle reaction updates
+        async def process_message_reactions(channel_id, message_id, user_id, new_emoji, old_emoji):
+            if not channel_id or not message_id:
+                logger.debug(f"Skipping message due to missing IDs: channel={channel_id}, message={message_id}")
+                return True, None  # Skip but don't count as error
+                
+            try:
+                channel = bot.get_channel(int(channel_id))
+                if not channel:
+                    logger.error(f"Channel {channel_id} not found")
+                    return False, f"Channel {channel_id} not found"
+                    
+                try:
+                    message = await channel.fetch_message(int(message_id))
+                except discord.NotFound:
+                    logger.error(f"Message {message_id} not found in channel {channel_id}")
+                    return False, f"Message {message_id} not found"
+                    
+                # Get user object
+                try:
+                    user = await bot.fetch_user(int(user_id))
+                except discord.NotFound:
+                    logger.error(f"User {user_id} not found")
+                    return False, f"User {user_id} not found"
+                
+                # Remove old reactions if needed
+                valid_emojis = ['👍', '👎', '🤷']
+                for reaction in message.reactions:
+                    if str(reaction.emoji) in valid_emojis:
+                        try:
+                            # Check if user has this reaction
+                            users = [u async for u in reaction.users()]
+                            if user in users and (old_emoji is None or str(reaction.emoji) != new_emoji):
+                                await reaction.remove(user)
+                                logger.debug(f"Removed reaction {reaction.emoji} from user {user_id}")
+                        except Exception as e:
+                            logger.error(f"Error removing reaction {reaction.emoji}: {e}")
+                
+                # Add new reaction if needed
+                if new_emoji:
+                    try:
+                        await message.add_reaction(new_emoji)
+                        logger.debug(f"Added reaction {new_emoji} for user {user_id}")
+                    except Exception as e:
+                        logger.error(f"Error adding reaction {new_emoji}: {e}")
+                        return False, f"Failed to add reaction: {str(e)}"
+                
+                # Also update the embed
+                try:
+                    team_id = message_data.get('home_team_id') if channel_id == message_data.get('home_channel_id') else message_data.get('away_team_id')
+                    if team_id:
+                        await update_embed_for_message(message_id, channel_id, match_id, team_id, bot)
+                except Exception as e:
+                    logger.warning(f"Non-critical error updating embed: {e}")
+                    # Don't fail the operation just because embed update failed
+                
+                return True, None
+            except Exception as e:
+                logger.error(f"Error processing message reactions: {e}")
+                return False, str(e)
+        
+        # Process home message
+        if message_data.get('home_message_id') and message_data.get('home_channel_id'):
+            home_success, home_error = await process_message_reactions(
+                message_data['home_channel_id'],
+                message_data['home_message_id'],
+                user_id,
+                new_emoji,
+                old_emoji
+            )
+            
+            if not home_success:
+                success = False
+                errors.append(f"Home: {home_error}")
+            else:
+                processed_messages += 1
+        
+        # Process away message
+        if message_data.get('away_message_id') and message_data.get('away_channel_id'):
+            away_success, away_error = await process_message_reactions(
+                message_data['away_channel_id'],
+                message_data['away_message_id'],
+                user_id,
+                new_emoji,
+                old_emoji
+            )
+            
+            if not away_success:
+                success = False
+                errors.append(f"Away: {away_error}")
+            else:
+                processed_messages += 1
+        
+        if processed_messages == 0:
+            logger.warning("No messages were processed")
+            return {"status": "warning", "message": "No messages were processed"}
+            
+        if success:
+            logger.info(f"Successfully updated reactions for user {user_id} in match {match_id}")
+            return {"status": "success", "message": "Reactions updated successfully"}
+        else:
+            error_msg = "; ".join(errors)
+            logger.error(f"Failed to update reactions: {error_msg}")
+            return {"status": "error", "message": f"Failed to update reactions: {error_msg}"}
 
     except Exception as e:
-        logger.error(f"Error updating Discord RSVP: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to update Discord RSVP: {str(e)}")
+        logger.exception(f"Unexpected error updating user reactions: {e}")
+        return {"status": "error", "message": f"Internal error: {str(e)}"}
 
 async def process_user_reaction_update(request_data: dict, bot: commands.Bot):
     try:
