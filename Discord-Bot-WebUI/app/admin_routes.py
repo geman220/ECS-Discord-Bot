@@ -387,10 +387,64 @@ def reorder_announcements():
 @role_required('Global Admin')
 def schedule_season():
     """
-    Initiate the task to schedule season availability for all future Sunday matches.
+    Schedule availability messages for all future Sunday matches (next 90 days).
+    Implemented directly without using Celery for reliability.
     """
-    task = schedule_season_availability.delay()
-    flash('Future Sundays scheduling task has been initiated - this will schedule all matches for the next 90 days.', 'success')
+    session = g.db_session
+    
+    try:
+        # Direct implementation of schedule_season_availability from tasks_core.py
+        start_date = datetime.utcnow().date()
+        # For "entire season", look at the next 90 days
+        end_date = start_date + timedelta(days=90)
+
+        # Query matches within the next 90 days along with any associated scheduled messages
+        matches = session.query(Match).options(
+            joinedload(Match.scheduled_messages)
+        ).filter(
+            Match.date.between(start_date, end_date)
+        ).all()
+
+        # Prepare data for each match
+        matches_data = [{
+            'id': match.id,
+            'date': match.date,
+            'has_message': any(msg for msg in match.scheduled_messages),
+            'name': f"{match.home_team.name} vs {match.away_team.name}" if hasattr(match, 'home_team') and hasattr(match, 'away_team') else "Unknown match"
+        } for match in matches]
+
+        scheduled_count = 0
+        # Process each match; schedule a message if not already present
+        for match_data in matches_data:
+            if not match_data['has_message']:
+                # Calculate send date and time (9:00 AM on the computed day)
+                send_date = match_data['date'] - timedelta(days=match_data['date'].weekday() + 1)
+                send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
+
+                scheduled_message = ScheduledMessage(
+                    match_id=match_data['id'],
+                    scheduled_send_time=send_time,
+                    status='PENDING'
+                )
+                session.add(scheduled_message)
+                scheduled_count += 1
+                logger.info(f"Scheduled availability message for match {match_data['id']} - {match_data['name']} at {send_time}")
+                
+        # Commit all the new scheduled messages
+        session.commit()
+
+        if scheduled_count > 0:
+            flash(f'Successfully scheduled {scheduled_count} messages for matches in the next 90 days.', 'success')
+        else:
+            flash('No new messages scheduled. All matches already have scheduled messages.', 'info')
+        
+        logger.info(f"Admin {safe_current_user.id} manually scheduled {scheduled_count} future matches")
+        
+    except Exception as e:
+        logger.error(f"Error scheduling season availability: {str(e)}", exc_info=True)
+        flash(f'Error scheduling season availability: {str(e)}', 'danger')
+        session.rollback()
+    
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
