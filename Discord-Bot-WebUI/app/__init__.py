@@ -283,9 +283,14 @@ def create_app(config_object='web_config.Config'):
     @app.teardown_appcontext
     def teardown_appcontext(exception):
         # Clean up any Redis connection pools on app context teardown
-        from app.utils.redis_manager import RedisManager
-        redis_manager = RedisManager()
-        redis_manager.shutdown()
+        try:
+            from app.utils.redis_manager import RedisManager
+            redis_manager = RedisManager()
+            redis_manager.shutdown()
+        except Exception as e:
+            # Just log errors but don't propagate them during teardown
+            app.logger.error(f"Error in teardown_appcontext: {e}")
+            pass
         
     # Register a function to gracefully shutdown when a worker terminates
     def worker_shutdown_cleanup():

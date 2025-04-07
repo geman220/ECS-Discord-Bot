@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}Match Verification Dashboard{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold py-3 mb-2">
+                <i class="ti ti-clipboard-check me-2 text-primary"></i>Match Verification Dashboard
+            </h2>
+            <div class="text-muted">
+                Verify match reports and confirm game results for {{ current_season.name if current_season else "Current Season" }}
+            </div>
+        </div>
+    </div>
+    
+    {% if is_coach %}
+    <div class="alert alert-info mb-4">
+        <div class="d-flex">
+            <i class="ti ti-info-circle fs-3 me-2"></i>
+            <div>
+                <h6 class="alert-heading mb-1">Coach Verification</h6>
+                <p class="mb-0">As a coach, you can verify match reports for your team. This confirms the match score and statistics are correct.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filters Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-filter me-2"></i>Filter Matches
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true">
+                            <i class="ti ti-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="collapse show" id="filterCollapse">
+                    <div class="card-body">
+                        <form method="GET" action="{{ url_for('admin.match_verification_dashboard') }}" class="row g-3">
+                            <!-- Week Filter -->
+                            <div class="col-md-4">
+                                <label for="week" class="form-label">Week</label>
+                                <select id="week" name="week" class="form-select">
+                                    <option value="">All Weeks</option>
+                                    {% for week_item in weeks %}
+                                    <option value="{{ week_item }}" {% if current_week == week_item %}selected{% endif %}>{{ week_item }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- League Filter -->
+                            <div class="col-md-4">
+                                <label for="league_id" class="form-label">League</label>
+                                <select id="league_id" name="league_id" class="form-select">
+                                    <option value="">All Leagues</option>
+                                    {% for league in leagues %}
+                                    <option value="{{ league.id }}" {% if current_league_id|int == league.id %}selected{% endif %}>{{ league.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Verification Status Filter -->
+                            <div class="col-md-4">
+                                <label for="verification_status" class="form-label">Verification Status</label>
+                                <select id="verification_status" name="verification_status" class="form-select">
+                                    <option value="all" {% if current_verification_status == 'all' %}selected{% endif %}>All Matches</option>
+                                    <option value="unverified" {% if current_verification_status == 'unverified' %}selected{% endif %}>Needs Verification</option>
+                                    <option value="partially_verified" {% if current_verification_status == 'partially_verified' %}selected{% endif %}>Partially Verified</option>
+                                    <option value="fully_verified" {% if current_verification_status == 'fully_verified' %}selected{% endif %}>Fully Verified</option>
+                                    <option value="not_reported" {% if current_verification_status == 'not_reported' %}selected{% endif %}>Not Reported</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Filter Buttons -->
+                            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+                                <a href="{{ url_for('admin.match_verification_dashboard') }}" class="btn btn-outline-secondary">
+                                    <i class="ti ti-refresh me-1"></i> Reset Filters
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="ti ti-filter me-1"></i> Apply Filters
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-primary-subtle rounded-3 me-3">
+                        <i class="ti ti-soccer-field fs-3 text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Total Matches</h5>
+                        <h3 class="fw-bold mb-0">{{ matches|length }}</h3>
+                        <p class="text-muted mb-0 small">Current season</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-success-subtle rounded-3 me-3">
+                        <i class="ti ti-check fs-3 text-success"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Fully Verified</h5>
+                        <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_verified', 'defined')|selectattr('home_team_verified')|selectattr('away_team_verified', 'defined')|selectattr('away_team_verified')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">Both teams verified</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-warning-subtle rounded-3 me-3">
+                        <i class="ti ti-clock fs-3 text-warning"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Partially Verified</h5>
+                        <h3 class="fw-bold mb-0">{{ matches|selectattr('home_team_score', 'defined')|selectattr('away_team_score', 'defined')|rejectattr('home_team_verified')|rejectattr('away_team_verified')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">One team verified</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="avatar avatar-lg bg-danger-subtle rounded-3 me-3">
+                        <i class="ti ti-alert-triangle fs-3 text-danger"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Not Reported</h5>
+                        <h3 class="fw-bold mb-0">{{ matches|rejectattr('home_team_score', 'defined')|list|length + matches|rejectattr('away_team_score', 'defined')|list|length }}</h3>
+                        <p class="text-muted mb-0 small">Needs initial report</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matches Table Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header border-bottom py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="ti ti-list me-2"></i>Match List
+                        </h5>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="ti ti-download me-1"></i> Export
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="ti ti-file-spreadsheet me-1"></i> Export to Excel</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="ti ti-file-csv me-1"></i> Export to CSV</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover ecs-table ecs-table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', 
+                                        week=current_week, 
+                                        league_id=current_league_id, 
+                                        verification_status=current_verification_status, 
+                                        sort_by='date', 
+                                        sort_order='asc' if sort_by == 'date' and sort_order == 'desc' else 'desc') }}" 
+                                        class="sortable-column {{ 'active' if sort_by == 'date' else '' }} {{ sort_order if sort_by == 'date' else '' }}">
+                                        Date
+                                        <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'date' and sort_order == 'asc' else 'descending' }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', 
+                                        week=current_week, 
+                                        league_id=current_league_id, 
+                                        verification_status=current_verification_status, 
+                                        sort_by='week', 
+                                        sort_order='asc' if sort_by == 'week' and sort_order == 'desc' else 'desc') }}" 
+                                        class="sortable-column {{ 'active' if sort_by == 'week' else '' }} {{ sort_order if sort_by == 'week' else '' }}">
+                                        Week
+                                        <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'week' and sort_order == 'asc' else 'descending' }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', 
+                                        week=current_week, 
+                                        league_id=current_league_id, 
+                                        verification_status=current_verification_status, 
+                                        sort_by='home_team', 
+                                        sort_order='asc' if sort_by == 'home_team' and sort_order == 'desc' else 'desc') }}" 
+                                        class="sortable-column {{ 'active' if sort_by == 'home_team' else '' }} {{ sort_order if sort_by == 'home_team' else '' }}">
+                                        Home Team
+                                        <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'home_team' and sort_order == 'asc' else 'descending' }}"></i>
+                                    </a>
+                                </th>
+                                <th>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', 
+                                        week=current_week, 
+                                        league_id=current_league_id, 
+                                        verification_status=current_verification_status, 
+                                        sort_by='away_team', 
+                                        sort_order='asc' if sort_by == 'away_team' and sort_order == 'desc' else 'desc') }}" 
+                                        class="sortable-column {{ 'active' if sort_by == 'away_team' else '' }} {{ sort_order if sort_by == 'away_team' else '' }}">
+                                        Away Team
+                                        <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'away_team' and sort_order == 'asc' else 'descending' }}"></i>
+                                    </a>
+                                </th>
+                                <th>Score</th>
+                                <th>
+                                    <a href="{{ url_for('admin.match_verification_dashboard', 
+                                        week=current_week, 
+                                        league_id=current_league_id, 
+                                        verification_status=current_verification_status, 
+                                        sort_by='status', 
+                                        sort_order='asc' if sort_by == 'status' and sort_order == 'desc' else 'desc') }}" 
+                                        class="sortable-column {{ 'active' if sort_by == 'status' else '' }} {{ sort_order if sort_by == 'status' else '' }}">
+                                        Status
+                                        <i class="sort-icon ti ti-sort-{{ 'ascending' if sort_by == 'status' and sort_order == 'asc' else 'descending' }}"></i>
+                                    </a>
+                                </th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if matches %}
+                                {% for match in matches %}
+                                <tr>
+                                    <td class="fw-semibold">{{ match.date.strftime('%m/%d/%Y') }}</td>
+                                    <td>{{ match.schedule.week if match.schedule else 'Unknown' }}</td>
+                                    <td>
+                                        {{ match.home_team.name }}
+                                        {% if match.home_team_verified %}
+                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ match.home_verifier.username if match.home_verifier else 'Unknown' }} 
+                                        at {{ match.home_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.home_team_verified_at else 'Unknown' }}">
+                                            <i class="ti ti-check me-1"></i>Verified
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-label-warning" data-bs-toggle="tooltip" title="Not verified">
+                                            <i class="ti ti-clock me-1"></i>Pending
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ match.away_team.name }}
+                                        {% if match.away_team_verified %}
+                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ match.away_verifier.username if match.away_verifier else 'Unknown' }} 
+                                        at {{ match.away_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.away_team_verified_at else 'Unknown' }}">
+                                            <i class="ti ti-check me-1"></i>Verified
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-label-warning" data-bs-toggle="tooltip" title="Not verified">
+                                            <i class="ti ti-clock me-1"></i>Pending
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if match.home_team_score is not none and match.away_team_score is not none %}
+                                            <span class="fw-bold">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                                        {% else %}
+                                            <span class="badge bg-label-danger">Not reported</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if match.home_team_score is none or match.away_team_score is none %}
+                                            <span class="badge bg-label-danger">Not reported</span>
+                                        {% elif match.home_team_verified and match.away_team_verified %}
+                                            <span class="badge bg-label-success">Fully verified</span>
+                                        {% elif match.home_team_verified or match.away_team_verified %}
+                                            <span class="badge bg-label-warning">Partially verified</span>
+                                        {% else %}
+                                            <span class="badge bg-label-warning">Needs verification</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end position-relative" style="overflow: visible;">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow ecs-btn ecs-btn-sm ecs-btn-icon" type="button" id="matchActions{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="ti ti-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="matchActions{{ match.id }}" style="z-index: 9999; position: absolute;">
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}">
+                                                        <i class="ti ti-home me-1"></i> View Home Team
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}">
+                                                        <i class="ti ti-plane-departure me-1"></i> View Away Team
+                                                    </a>
+                                                </li>
+                                                {% if match.home_team_score is not none and match.away_team_score is not none %}
+                                                <div class="dropdown-divider"></div>
+                                                <!-- Verification actions -->
+                                                
+                                                {% if not match.home_team_verified and (not is_coach or match.home_team_id in verifiable_teams) %}
+                                                <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="dropdown-item-form">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="team" value="home">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="ti ti-check me-1"></i> Verify Home Team
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                
+                                                {% if not match.away_team_verified and (not is_coach or match.away_team_id in verifiable_teams) %}
+                                                <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="dropdown-item-form">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="team" value="away">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="ti ti-check me-1"></i> Verify Away Team
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                
+                                                {% if (not match.home_team_verified or not match.away_team_verified) and not is_coach %}
+                                                <!-- Only admins can verify both teams at once -->
+                                                <form method="POST" action="{{ url_for('admin.admin_verify_match', match_id=match.id) }}" class="dropdown-item-form">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="team" value="both">
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="ti ti-checks me-1"></i> Verify Both Teams
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="d-flex flex-column align-items-center">
+                                            <i class="ti ti-search fs-1 text-muted mb-2"></i>
+                                            <h6 class="mb-1">No matches found</h6>
+                                            <p class="text-muted small mb-0">Try adjusting your filters to see more results</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Badge styling */
+    .badge {
+        font-weight: normal;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .badge.bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+        color: #696cff !important;
+    }
+    
+    .badge.bg-label-success {
+        background-color: rgba(40, 199, 111, 0.16) !important;
+        color: #28c76f !important;
+    }
+    
+    .badge.bg-label-warning {
+        background-color: rgba(255, 159, 67, 0.16) !important;
+        color: #ff9f43 !important;
+    }
+    
+    .badge.bg-label-danger {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    /* Table header styling */
+    .table-light th {
+        font-weight: 500;
+        color: #566a7f;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Sortable columns */
+    .sortable-column {
+        display: flex;
+        align-items: center;
+        color: inherit;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
+    .sortable-column:hover {
+        color: #696cff;
+        text-decoration: none;
+    }
+    
+    .sortable-column.active {
+        color: #696cff;
+        font-weight: 600;
+    }
+    
+    .sort-icon {
+        font-size: 1rem;
+        margin-left: 0.25rem;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    
+    .sortable-column:hover .sort-icon,
+    .sortable-column.active .sort-icon {
+        opacity: 1;
+    }
+    
+    /* Card styling */
+    .card {
+        border-radius: 0.5rem;
+        border: 0;
+        overflow: visible !important;
+    }
+    
+    .card .card-header {
+        background-color: transparent;
+    }
+    
+    /* Dropdown form fix */
+    .dropdown-item-form {
+        display: block;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .dropdown-item-form .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        clear: both;
+        font-weight: 400;
+        text-align: inherit;
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+    }
+    
+    .dropdown-item-form .dropdown-item:hover, 
+    .dropdown-item-form .dropdown-item:focus {
+        color: #16181b;
+        text-decoration: none;
+        background-color: #f8f9fa;
+    }
+    
+    /* Avatar styling */
+    .avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+    }
+    
+    .bg-primary-subtle {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+    }
+    
+    .bg-success-subtle {
+        background-color: rgba(40, 199, 111, 0.16) !important;
+    }
+    
+    .bg-warning-subtle {
+        background-color: rgba(255, 159, 67, 0.16) !important;
+    }
+    
+    .bg-danger-subtle {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+    }
+    
+    /* Table overflow fixes */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    /* Dropdown menu positioning */
+    .dropdown-menu {
+        z-index: 9999 !important;
+        position: absolute !important;
+    }
+    
+    table td {
+        position: relative !important;
+    }
+    
+    table td:last-child .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+    }
+    
+    /* Row hover effect */
+    .table-hover tbody tr:hover {
+        background-color: rgba(67, 89, 113, 0.04);
+    }
+    
+    /* Action button styling */
+    .btn-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 2rem;
+        width: 2rem;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // Fix dropdown positioning
+    document.querySelectorAll('.dropdown-toggle').forEach(toggleBtn => {
+        toggleBtn.addEventListener('click', function() {
+            // Close any other open dropdowns
+            document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                if (menu !== this.nextElementSibling) {
+                    menu.classList.remove('show');
+                }
+            });
+            
+            // Ensure the dropdown menu is positioned correctly
+            setTimeout(() => {
+                const dropdown = this.closest('.dropdown');
+                const menu = dropdown.querySelector('.dropdown-menu');
+                
+                if (menu && menu.classList.contains('show')) {
+                    // Make sure the menu is in the viewport
+                    const rect = menu.getBoundingClientRect();
+                    if (rect.right > window.innerWidth) {
+                        menu.style.left = 'auto';
+                        menu.style.right = '0';
+                    }
+                    if (rect.bottom > window.innerHeight) {
+                        menu.style.top = 'auto';
+                        menu.style.bottom = '0';
+                    }
+                    
+                    // Ensure the menu has highest z-index
+                    menu.style.zIndex = '10000';
+                }
+            }, 10);
+        });
+    });
+});
+</script>
+{% endblock main_content %}

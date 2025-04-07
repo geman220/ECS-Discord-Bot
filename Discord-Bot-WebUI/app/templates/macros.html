@@ -176,6 +176,11 @@
                         <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
                         <textarea class="form-control" id="match_notes-{{ match.id }}" name="match_notes" rows="3">{{ match.notes }}</textarea>
                     </div>
+                    
+                    <!-- Verification Section (will be populated by JavaScript) -->
+                    <div id="verificationSection-{{ match.id }}" class="mb-4 verification-section border-top pt-4 mt-4">
+                        <!-- This will be populated by report_match.js -->
+                    </div>
                 </div>
 
                 <!-- Modal Footer -->

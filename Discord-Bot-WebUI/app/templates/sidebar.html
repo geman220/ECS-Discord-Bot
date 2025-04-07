@@ -186,6 +186,26 @@
             </ul>
         </li>
         {% endif %}
+        
+        <!-- Season Overview - Only Pub League Admin and Global Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'teams.season_overview' }}">
+            <a class="menu-link" href="{{ url_for('teams.season_overview') }}">
+                <i class="ti ti-trophy menu-icon"></i>
+                <div>Season Overview</div>
+            </a>
+        </li>
+        {% endif %}
+        
+        <!-- Match Verification - Pub League Admin / Global Admin / Team Coach -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Team Coach' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_verification_dashboard' }}">
+            <a class="menu-link" href="{{ url_for('admin.match_verification_dashboard') }}">
+                <i class="ti ti-clipboard-check menu-icon"></i>
+                <div>Match Verification</div>
+            </a>
+        </li>
+        {% endif %}
 
         <!-- Player Database Management - Only Pub League Admin and Global Admin -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}

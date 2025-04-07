@@ -10,8 +10,7 @@ ensures proper session management.
 """
 
 from flask import current_app, g
-from app.models import Player, PlayerSeasonStats, PlayerEventType
-from app.teams_helpers import current_season_id
+from app.models import Player, PlayerSeasonStats, PlayerEventType, Season
 import logging
 
 logger = logging.getLogger(__name__)
@@ -113,3 +112,16 @@ def log_current_stats(season_stats, career_stats):
         f"Current Career Stats: Goals: {career_stats.goals}, Assists: {career_stats.assists}, "
         f"Yellow Cards: {career_stats.yellow_cards}, Red Cards: {career_stats.red_cards}"
     )
+
+
+def current_season_id():
+    """
+    Get the current season ID.
+    
+    Returns:
+        int: The ID of the current season or None if not found.
+    """
+    session = g.db_session
+    current_season = session.query(Season).filter_by(is_current=True).first()
+    logger.info(f"Current season: {current_season.id if current_season else None}")
+    return current_season.id if current_season else None

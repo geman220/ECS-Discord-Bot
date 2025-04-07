@@ -671,6 +671,9 @@ function populateModal(modal, data) {
         window.addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute);
     });
     
+    // Add verification checkboxes if they're not already there
+    updateVerificationSection(modal, matchId, data);
+    
     // Initialize and show the modal safely
     try {
         // Check if Bootstrap is available
@@ -722,6 +725,129 @@ function populateModal(modal, data) {
             title: 'Error',
             text: 'Could not show match edit form. Please refresh and try again.'
         });
+    }
+}
+
+// Function to update or add the verification section to the modal
+function updateVerificationSection(modal, matchId, data) {
+    try {
+        console.log("Updating verification section with data:", {
+            matchId: matchId,
+            data: data
+        });
+        
+        // Look for existing verification section, create if not found
+        let verificationSection = modal.querySelector(`#verificationSection-${matchId}`);
+        
+        if (!verificationSection) {
+            // Create verification section just before the Modal Footer
+            const modalBody = modal.querySelector('.modal-body');
+            
+            if (!modalBody) {
+                console.error('Modal body not found');
+                return;
+            }
+            
+            console.log("Creating verification section");
+            verificationSection = document.createElement('div');
+            verificationSection.id = `verificationSection-${matchId}`;
+            verificationSection.className = 'mb-4 verification-section border-top pt-4 mt-4';
+            modalBody.appendChild(verificationSection);
+        }
+        
+        // Get verification data from match data
+        const homeTeamVerified = data.home_team_verified || false;
+        const awayTeamVerified = data.away_team_verified || false;
+        
+        // Check if user can verify each team (from data API)
+        const canVerifyHome = data.can_verify_home || false;
+        const canVerifyAway = data.can_verify_away || false;
+        
+        console.log("Verification status:", {
+            homeTeamVerified, 
+            awayTeamVerified,
+            canVerifyHome,
+            canVerifyAway
+        });
+        
+        // Set up the HTML for the verification section
+        let verificationHTML = `
+            <h5 class="mb-3">Match Verification</h5>
+            <div class="alert ${homeTeamVerified && awayTeamVerified ? 'alert-success' : 'alert-warning'} mb-3">
+                <div class="d-flex align-items-center">
+                    <i class="fa ${homeTeamVerified && awayTeamVerified ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2 fs-3"></i>
+                    <div>
+                        <p class="mb-0">
+                            ${homeTeamVerified && awayTeamVerified 
+                                ? 'This match has been verified by both teams.' 
+                                : 'This match requires verification from both teams to be complete.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-2 ${homeTeamVerified ? 'border-success' : 'border-warning'}">
+                        <div class="card-body">
+                            <h6 class="card-title d-flex align-items-center">
+                                <i class="fa ${homeTeamVerified ? 'fa-check text-success' : 'fa-clock text-warning'} me-2"></i>
+                                ${data.home_team_name || 'Home Team'}
+                            </h6>
+                            <p class="card-text small mb-2">
+                                ${homeTeamVerified 
+                                    ? `Verified by ${data.home_verifier || 'Unknown'} 
+                                       ${data.home_team_verified_at ? 'on ' + new Date(data.home_team_verified_at).toLocaleString() : ''}` 
+                                    : 'Not verified yet'}
+                            </p>
+                            ${!homeTeamVerified && canVerifyHome 
+                                ? `<div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" id="verifyHomeTeam-${matchId}" name="verify_home_team" required>
+                                    <label class="form-check-label" for="verifyHomeTeam-${matchId}">
+                                        Verify for Home Team <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="text-muted small">You must verify that this score and statistics are correct</div>
+                                </div>` 
+                                : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-2 ${awayTeamVerified ? 'border-success' : 'border-warning'}">
+                        <div class="card-body">
+                            <h6 class="card-title d-flex align-items-center">
+                                <i class="fa ${awayTeamVerified ? 'fa-check text-success' : 'fa-clock text-warning'} me-2"></i>
+                                ${data.away_team_name || 'Away Team'}
+                            </h6>
+                            <p class="card-text small mb-2">
+                                ${awayTeamVerified 
+                                    ? `Verified by ${data.away_verifier || 'Unknown'} 
+                                       ${data.away_team_verified_at ? 'on ' + new Date(data.away_team_verified_at).toLocaleString() : ''}` 
+                                    : 'Not verified yet'}
+                            </p>
+                            ${!awayTeamVerified && canVerifyAway 
+                                ? `<div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="true" id="verifyAwayTeam-${matchId}" name="verify_away_team" required>
+                                    <label class="form-check-label" for="verifyAwayTeam-${matchId}">
+                                        Verify for Away Team <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="text-muted small">You must verify that this score and statistics are correct</div>
+                                </div>` 
+                                : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        console.log("Setting verification HTML");
+        // Update the verification section HTML
+        verificationSection.innerHTML = verificationHTML;
+        
+        console.log("Verification section updated successfully");
+    } catch (error) {
+        console.error("Error updating verification section:", error);
     }
 }
 
@@ -783,6 +909,25 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
     const homeTeamScore = $('#home_team_score-' + matchId).val();
     const awayTeamScore = $('#away_team_score-' + matchId).val();
     const notes = $('#match_notes-' + matchId).val();
+    
+    // Get verification checkboxes status
+    const verifyHomeTeam = $(`#verifyHomeTeam-${matchId}`).is(':checked');
+    const verifyAwayTeam = $(`#verifyAwayTeam-${matchId}`).is(':checked');
+    
+    // Check if the required checkbox is present and not checked
+    const homeTeamCheckbox = $(`#verifyHomeTeam-${matchId}`);
+    const awayTeamCheckbox = $(`#verifyAwayTeam-${matchId}`);
+    
+    if ((homeTeamCheckbox.length > 0 && homeTeamCheckbox.prop('required') && !verifyHomeTeam) ||
+        (awayTeamCheckbox.length > 0 && awayTeamCheckbox.prop('required') && !verifyAwayTeam)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Verification Required',
+            text: 'Please verify the match results by checking the verification box before submitting.',
+            confirmButtonText: 'OK'
+        });
+        return; // Stop submission
+    }
 
     $.ajax({
         url: `/teams/report_match/${matchId}`,
@@ -800,14 +945,31 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             yellow_cards_to_add: yellowCardsToAdd,
             yellow_cards_to_remove: yellowCardsToRemove,
             red_cards_to_add: redCardsToAdd,
-            red_cards_to_remove: redCardsToRemove
+            red_cards_to_remove: redCardsToRemove,
+            verify_home_team: verifyHomeTeam,
+            verify_away_team: verifyAwayTeam
         }),
         success: function (response) {
             if (response.success) {
+                // Determine message based on verification status
+                let successMessage = 'Your match report has been submitted successfully.';
+                
+                if (response.home_team_verified && response.away_team_verified) {
+                    successMessage = 'Match report submitted and fully verified by both teams.';
+                } else if (response.home_team_verified || response.away_team_verified) {
+                    successMessage = 'Match report submitted and verified by one team.';
+                    
+                    if (verifyHomeTeam || verifyAwayTeam) {
+                        successMessage += ' Thank you for verifying!';
+                    } else {
+                        successMessage += ' The other team still needs to verify.';
+                    }
+                }
+                
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: 'Your match report has been submitted successfully.'
+                    text: successMessage
                 }).then(() => {
                     // Close the modal
                     try {

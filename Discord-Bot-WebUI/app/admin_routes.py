@@ -22,7 +22,7 @@ from flask import (
 )
 from sqlalchemy import func
 from flask_login import login_required
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, aliased
 
 from app.admin_helpers import (
     get_filtered_users, handle_user_action, get_container_data,
@@ -39,8 +39,9 @@ from app.forms import (
 from app.models import (
     Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Feedback, FeedbackReply, Note, Team, Match,
-    Player, Availability, User
+    Player, Availability, User, Schedule, Season, League
 )
+from sqlalchemy import and_, or_, func, desc
 from app.tasks.tasks_core import (
     schedule_season_availability,
     send_availability_message_task
@@ -1311,6 +1312,8 @@ def get_task_status():
     return jsonify(task_status)
 
 
+
+
 @admin_bp.route('/admin/sms_status', methods=['GET'])
 @login_required
 @role_required('Global Admin')
@@ -1370,3 +1373,317 @@ def sms_rate_limit_status():
             'window_seconds': SMS_RATE_LIMIT_WINDOW
         }
     })
+
+
+@admin_bp.route('/admin/match_verification', endpoint='match_verification_dashboard')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Team Coach'])
+def match_verification_dashboard():
+    """
+    Display the match verification dashboard.
+    
+    Shows the verification status of matches, highlighting those that need attention
+    by showing which teams have verified their reports.
+    
+    Coaches can only see matches for their teams, while admins can see all matches.
+    """
+    session = g.db_session
+    logger.info("Starting match verification dashboard load")
+    
+    try:
+        # Get the current PUB LEAGUE season
+        current_season = session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
+        if not current_season:
+            logger.warning("No current Pub League season found")
+            flash("No current Pub League season found. Contact an administrator.", "warning")
+            return render_template('admin/match_verification.html', 
+                                  title='Match Verification Dashboard',
+                                  matches=[], 
+                                  is_coach=False)
+                                  
+        # First join with Schedule to get all matches
+        query = session.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.home_verifier),
+            joinedload(Match.away_verifier),
+            joinedload(Match.schedule)
+        )
+        
+        # Get all schedule IDs from current season instead of filtering directly
+        schedule_ids = session.query(Schedule.id).filter(Schedule.season_id == current_season.id).all()
+        schedule_ids = [s[0] for s in schedule_ids]
+        
+        # Then filter matches by those schedule IDs if there are any
+        if schedule_ids:
+            query = query.filter(Match.schedule_id.in_(schedule_ids))
+            logger.info(f"Filtering matches by {len(schedule_ids)} schedules from season {current_season.id}")
+        else:
+            logger.warning(f"No schedules found for season {current_season.id}, will return no matches")
+        
+        # Process request filters
+        current_week = request.args.get('week')
+        current_league_id = request.args.get('league_id')
+        current_verification_status = request.args.get('verification_status', 'all')
+        
+        # Filter by week if specified
+        if current_week:
+            query = query.join(Schedule, Match.schedule_id == Schedule.id).filter(Schedule.week == current_week)
+            logger.info(f"Filtering by week: {current_week}")
+            
+        # Filter by league if specified (needs to join through teams)
+        if current_league_id:
+            league_id = int(current_league_id)
+            logger.info(f"Filtering by league_id: {league_id}")
+            # Use subquery to avoid duplicate alias errors
+            league_teams = session.query(Team.id).filter(Team.league_id == league_id).subquery()
+            query = query.filter(or_(
+                Match.home_team_id.in_(league_teams),
+                Match.away_team_id.in_(league_teams)
+            ))
+            
+        # Filter by verification status
+        if current_verification_status == 'unverified':
+            query = query.filter(Match.home_team_score != None, Match.away_team_score != None, 
+                                ~(Match.home_team_verified & Match.away_team_verified))
+            logger.info("Filtering by unverified matches")
+        elif current_verification_status == 'partially_verified':
+            query = query.filter(Match.home_team_score != None, Match.away_team_score != None,
+                                or_(Match.home_team_verified, Match.away_team_verified),
+                                ~(Match.home_team_verified & Match.away_team_verified))
+            logger.info("Filtering by partially verified matches")
+        elif current_verification_status == 'fully_verified':
+            query = query.filter(Match.home_team_verified, Match.away_team_verified)
+            logger.info("Filtering by fully verified matches")
+        elif current_verification_status == 'not_reported':
+            query = query.filter(or_(Match.home_team_score == None, Match.away_team_score == None))
+            logger.info("Filtering by not reported matches")
+            
+        # Basic info for debugging
+        total_match_count = query.count()
+        logger.info(f"Total matches found for current season: {total_match_count}")
+        
+        # Check if the user is a coach (to limit matches to their teams)
+        is_coach = safe_current_user.has_role('Team Coach') and not (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin'))
+        
+        if is_coach and hasattr(safe_current_user, 'player') and safe_current_user.player:
+            # For coaches, get their teams
+            coach_teams = []
+            try:
+                # Get teams the user coaches
+                for team, is_team_coach in safe_current_user.player.get_current_teams(with_coach_status=True):
+                    if is_team_coach:
+                        coach_teams.append(team.id)
+            except Exception as e:
+                logger.error(f"Error getting coach teams: {str(e)}")
+                # Fallback - use all teams the user is on
+                coach_teams = [team.id for team in safe_current_user.player.teams]
+            
+            # Filter to user's teams only if they're a coach
+            query = query.filter(
+                (Match.home_team_id.in_(coach_teams)) | 
+                (Match.away_team_id.in_(coach_teams))
+            )
+        
+        # Get the sort parameters
+        sort_by = request.args.get('sort_by', 'week')
+        sort_order = request.args.get('sort_order', 'asc')
+        
+        # Apply sorting based on parameters
+        if sort_by == 'date':
+            query = query.order_by(Match.date.desc() if sort_order == 'desc' else Match.date)
+        elif sort_by == 'week':
+            # Need to join with Schedule to sort by week
+            query = query.join(Schedule, Match.schedule_id == Schedule.id)
+            if sort_order == 'desc':
+                query = query.order_by(desc(Schedule.week))
+            else:
+                query = query.order_by(Schedule.week)
+        elif sort_by == 'home_team':
+            home_team_alias = aliased(Team)
+            query = query.join(home_team_alias, Match.home_team_id == home_team_alias.id)
+            query = query.order_by(home_team_alias.name.desc() if sort_order == 'desc' else home_team_alias.name)
+        elif sort_by == 'away_team':
+            away_team_alias = aliased(Team)
+            query = query.join(away_team_alias, Match.away_team_id == away_team_alias.id)
+            query = query.order_by(away_team_alias.name.desc() if sort_order == 'desc' else away_team_alias.name)
+        elif sort_by == 'status':
+            # Sort by verification status
+            if sort_order == 'desc':
+                # Fully verified first, then partially, then unverified, then not reported
+                query = query.order_by(
+                    (Match.home_team_verified & Match.away_team_verified).desc(),
+                    (Match.home_team_verified | Match.away_team_verified).desc(),
+                    (Match.home_team_score != None).desc()
+                )
+            else:
+                # Not reported first, then unverified, then partially, then fully verified
+                query = query.order_by(
+                    (Match.home_team_score != None),
+                    (Match.home_team_verified | Match.away_team_verified),
+                    (Match.home_team_verified & Match.away_team_verified)
+                )
+        else:
+            # Default to week ordering
+            query = query.join(Schedule, Match.schedule_id == Schedule.id)
+            query = query.order_by(Schedule.week)
+        
+        # Execute the query with a limit to ensure it loads
+        matches = query.limit(100).all()
+        logger.debug(f"Found {len(matches)} matches for verification")
+        
+        # Log out how many matches were found
+        logger.info(f"Found {len(matches)} matches for verification display")
+        
+        # Get actual weeks for filtering UI from the schedules in the current season
+        weeks = []
+        if current_season:
+            # Get distinct weeks from schedules in the current season
+            weeks_query = session.query(Schedule.week).filter(
+                Schedule.season_id == current_season.id
+            ).distinct().order_by(Schedule.week)
+            weeks = [week[0] for week in weeks_query]
+            
+            # Get leagues for the current season
+            leagues = session.query(League).filter(
+                League.season_id == current_season.id
+            ).all()
+        
+        # Simplified verifiable teams logic
+        verifiable_teams = {}
+        if hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for team in safe_current_user.player.teams:
+                verifiable_teams[team.id] = team.name
+        
+        # Get the current sorting parameters to pass to template
+        sort_by = request.args.get('sort_by', 'week')
+        sort_order = request.args.get('sort_order', 'asc')
+        
+        logger.info("Rendering match verification template")
+        return render_template(
+            'admin/match_verification.html',
+            title='Match Verification Dashboard',
+            matches=matches,
+            weeks=weeks,
+            leagues=leagues,
+            current_week=current_week,
+            current_league_id=int(current_league_id) if current_league_id else None,
+            current_verification_status=current_verification_status,
+            current_season=current_season,
+            verifiable_teams=verifiable_teams,
+            is_coach=is_coach,
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+    except Exception as e:
+        # Debugging exception
+        logger.error(f"Error in match verification dashboard: {str(e)}", exc_info=True)
+        # Return a more detailed error message with HTML formatting for easier reading
+        error_html = f"""
+        <h1>Error in Match Verification Dashboard</h1>
+        <p>An error occurred while loading the verification dashboard:</p>
+        <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; color: #721c24;">
+        {str(e)}
+        </pre>
+        <p>Please check the application logs for more details.</p>
+        <a href="{url_for('admin.admin_dashboard')}" class="btn btn-primary">Return to Dashboard</a>
+        """
+        return error_html
+
+
+@admin_bp.route('/admin/verify_match/<int:match_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Team Coach'])
+def admin_verify_match(match_id):
+    """
+    Allow an admin or coach to verify a match.
+    
+    - Admins can verify for any team
+    - Coaches can only verify for their own team
+    """
+    session = g.db_session
+    match = session.query(Match).get(match_id)
+    
+    if not match:
+        flash('Match not found.', 'danger')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    # First check if the match has been reported
+    if not match.reported:
+        flash('Match has not been reported yet and cannot be verified.', 'warning')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    team_to_verify = request.form.get('team', None)
+    if not team_to_verify or team_to_verify not in ['home', 'away', 'both']:
+        flash('Invalid team specified.', 'danger')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    # Check permissions for coaches
+    is_admin = safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')
+    is_coach = safe_current_user.has_role('Team Coach')
+    
+    can_verify_home = is_admin
+    can_verify_away = is_admin
+    
+    # If user is a coach and not an admin, check if they coach either team
+    if is_coach and not is_admin and hasattr(safe_current_user, 'player') and safe_current_user.player:
+        coach_teams = []
+        
+        try:
+            # Get teams the user coaches using the get_current_teams method
+            for team, is_team_coach in safe_current_user.player.get_current_teams(with_coach_status=True):
+                if is_team_coach:
+                    coach_teams.append(team.id)
+        except Exception as e:
+            logger.error(f"Error getting coach teams for verification: {str(e)}")
+            # Fallback approach - get teams the user coaches directly from the database
+            try:
+                coach_teams_results = session.execute("""
+                    SELECT team_id FROM player_teams 
+                    WHERE player_id = :player_id AND is_coach = TRUE
+                """, {"player_id": safe_current_user.player.id}).fetchall()
+                coach_teams = [r[0] for r in coach_teams_results]
+            except Exception as inner_e:
+                logger.error(f"Error in fallback coach teams query: {str(inner_e)}")
+        
+        # Check if they coach the home or away team
+        can_verify_home = match.home_team_id in coach_teams
+        can_verify_away = match.away_team_id in coach_teams
+    
+    # Validate the requested verification against permissions
+    if team_to_verify == 'home' and not can_verify_home:
+        flash('You do not have permission to verify for the home team.', 'danger')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    if team_to_verify == 'away' and not can_verify_away:
+        flash('You do not have permission to verify for the away team.', 'danger')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    if team_to_verify == 'both' and not (can_verify_home and can_verify_away):
+        flash('You do not have permission to verify for both teams.', 'danger')
+        return redirect(url_for('admin.match_verification_dashboard'))
+    
+    # Proceed with verification
+    now = datetime.utcnow()
+    user_id = safe_current_user.id
+    
+    if (team_to_verify == 'home' or team_to_verify == 'both') and can_verify_home:
+        match.home_team_verified = True
+        match.home_team_verified_by = user_id
+        match.home_team_verified_at = now
+    
+    if (team_to_verify == 'away' or team_to_verify == 'both') and can_verify_away:
+        match.away_team_verified = True
+        match.away_team_verified_by = user_id
+        match.away_team_verified_at = now
+    
+    session.commit()
+    
+    # Customize the flash message based on what was verified
+    if team_to_verify == 'both':
+        flash('Match has been verified for both teams.', 'success')
+    else:
+        team_name = match.home_team.name if team_to_verify == 'home' else match.away_team.name
+        flash(f'Match has been verified for {team_name}.', 'success')
+    
+    return redirect(url_for('admin.match_verification_dashboard'))
