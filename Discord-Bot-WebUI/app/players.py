@@ -415,7 +415,11 @@ def player_profile(player_id):
             elif is_admin and 'update_ref_status' in request.form:
                 return handle_ref_status_update(player, user)
             elif form.validate_on_submit() and 'update_profile' in request.form:
-                return handle_profile_update(form, player, user)
+                if is_player or is_admin:
+                    return handle_profile_update(form, player, user)
+                else:
+                    flash('You do not have permission to update this profile.', 'danger')
+                    return redirect(url_for('players.player_profile', player_id=player.id))
             elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
                 return handle_season_stats_update(player, season_stats_form, season.id)
             elif is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
