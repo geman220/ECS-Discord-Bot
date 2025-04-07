@@ -186,9 +186,10 @@ def create_app(config_object='web_config.Config'):
         logger.debug("Applied DebugMiddleware")
         
     # Register CLI commands
-    from app.cli import build_assets, init_discord_roles
+    from app.cli import build_assets, init_discord_roles, sync_coach_roles
     app.cli.add_command(build_assets)
     app.cli.add_command(init_discord_roles)
+    app.cli.add_command(sync_coach_roles)
 
     # Configure session management to use Redis.
     app.config.update({

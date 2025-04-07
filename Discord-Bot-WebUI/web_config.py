@@ -18,8 +18,9 @@ class Config:
     MATCH_CHANNEL_ID = os.getenv('MATCH_CHANNEL_ID')
     
     # Security settings
-    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
     PREFERRED_URL_SCHEME = 'https'
     
     # Mobile API settings
