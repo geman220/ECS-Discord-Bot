@@ -599,29 +599,44 @@ def handle_next_match_request(player):
     Returns:
         bool: True after processing the request.
     """
-    # Normalize the phone number to ensure consistent format with database storage
-    normalized_phone = player.phone
-    if normalized_phone.startswith('+1'):
-        normalized_phone = normalized_phone[2:]
-    elif normalized_phone.startswith('+'):
-        normalized_phone = normalized_phone[1:]
+    logger.info(f"Processing schedule request for player ID {player.id}, name: {player.name}, phone: {player.phone}")
     
-    next_matches_by_team = get_next_match(normalized_phone)
+    # Get player teams for logging
+    teams = []
+    if player.primary_team:
+        teams.append(player.primary_team)
+    for team in player.teams:
+        if team not in teams:
+            teams.append(team)
+    logger.info(f"Player has {len(teams)} teams: {[t.name for t in teams]}")
+    
+    # Don't normalize phone in handle_next_match_request - that's already handled in get_next_match
+    next_matches_by_team = get_next_match(player.phone)
     user_id = player.user_id if player.user else None
+    
+    logger.info(f"Found {len(next_matches_by_team)} team entries with matches")
     
     if not next_matches_by_team:
         message = "You don't have any upcoming matches scheduled."
+        logger.info("No matches found for player")
     else:
         message_parts = []
         # Create a flat list of all matches for numbered references
         all_matches = []
         for entry in next_matches_by_team:
-            for match in entry['matches']:
-                all_matches.append((entry['team'], match))
+            team = entry['team']
+            matches = entry['matches']
+            logger.info(f"Team {team.name} has {len(matches)} upcoming matches")
+            for match in matches:
+                all_matches.append((team, match))
         
+        logger.info(f"Total of {len(all_matches)} upcoming matches for player")
         message_parts.append(f"You have {len(all_matches)} upcoming matches:")
         
         for i, (team, match) in enumerate(all_matches, 1):
+            match_id = match.get('id')
+            logger.info(f"Processing match #{i}: ID={match_id}, Date={match['date']}, Time={match['time']}")
+            
             # Add the match with a global number
             message_parts.append(
                 f"Match #{i}: {match['date']} at {match['time']}\n"
@@ -632,13 +647,15 @@ def handle_next_match_request(player):
             # Check if player has already responded to this match
             avail = g.db_session.query(Availability).filter_by(
                 player_id=player.id, 
-                match_id=match.get('id')
+                match_id=match_id
             ).first()
             
             if avail:
+                logger.info(f"Player has RSVP'd for match {match_id}: {avail.response}")
                 message_parts.append(f"Your RSVP: {avail.response.upper()}")
                 message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to change.")
             else:
+                logger.info(f"No RSVP found for match {match_id}")
                 message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to RSVP.")
             
             # Add a separator between matches
@@ -647,8 +664,17 @@ def handle_next_match_request(player):
                     
         message = "\n".join(message_parts)
     
-    send_sms(player.phone, message, user_id)
-    return True
+    logger.info(f"Sending schedule SMS to {player.phone}, message length: {len(message)}")
+    # For debugging, log first 100 chars of message
+    logger.info(f"Message preview: {message[:100]}...")
+    
+    result, message_id = send_sms(player.phone, message, user_id)
+    if result:
+        logger.info(f"Successfully sent schedule SMS with ID {message_id}")
+        return True
+    else:
+        logger.error(f"Failed to send schedule SMS: {message_id}")
+        return False
 
 
 def send_help_message(phone_number, user_id=None):
