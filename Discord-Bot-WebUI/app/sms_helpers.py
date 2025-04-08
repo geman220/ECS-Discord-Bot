@@ -643,10 +643,9 @@ def handle_next_match_request(player):
     logger.info(f"Found {len(next_matches_by_team)} team entries with matches")
     
     if not next_matches_by_team:
-        message = "You don't have any upcoming matches scheduled."
+        message = "No matches scheduled."
         logger.info("No matches found for player")
     else:
-        message_parts = []
         # Create a flat list of all matches for numbered references
         all_matches = []
         for entry in next_matches_by_team:
@@ -657,86 +656,102 @@ def handle_next_match_request(player):
                 all_matches.append((team, match))
         
         logger.info(f"Total of {len(all_matches)} upcoming matches for player")
-        message_parts.append(f"ECSFC Schedule: {len(all_matches)} upcoming matches")
+        
+        # Since we had issues with the formatted message, use a very simple format
+        # that's less likely to trigger carrier filtering
+        simple_message_parts = [f"ECS FC: You have {len(all_matches)} upcoming matches:"]
         
         for i, (team, match) in enumerate(all_matches, 1):
             match_id = match.get('id')
-            logger.info(f"Processing match #{i}: ID={match_id}, Date={match['date']}, Time={match['time']}")
-            
-            # Simplify match formatting to make it more compact
-            match_parts = [
-                f"MATCH {i}: {match['date']}",
-                f"{match['time']} - {team.name} vs {match['opponent']}"
-            ]
-            
-            # Only add location if it's not TBD
-            if match['location'] != 'TBD':
-                match_parts.append(f"Location: {match['location']}")
-            
-            message_parts.append(" | ".join(match_parts))
-            
-            # Check if player has already responded to this match
+            # Find RSVP status if any
             avail = g.db_session.query(Availability).filter_by(
-                player_id=player.id, 
-                match_id=match_id
+                player_id=player.id, match_id=match_id
             ).first()
             
-            if avail:
-                logger.info(f"Player has RSVP'd for match {match_id}: {avail.response}")
-                message_parts.append(f"RSVP: {avail.response.upper()}")
-            else:
-                logger.info(f"No RSVP found for match {match_id}")
-                message_parts.append("No RSVP yet")
-                
-            # Add RSVP instructions
-            message_parts.append(f"Text YES {i}, NO {i}, or MAYBE {i}")
+            rsvp_status = avail.response.upper() if avail else "None"
             
-            # Add a cleaner separator between matches
-            if i < len(all_matches):
-                message_parts.append("--")
-                    
-        message = "\n".join(message_parts)
+            # Super simplified format
+            match_line = (
+                f"Match {i}: {match['date']} {match['time']} - "
+                f"{team.name} vs {match['opponent']} - "
+                f"RSVP: {rsvp_status}"
+            )
+            simple_message_parts.append(match_line)
         
-        # Add a help reminder at the end of the message
-        message += "\n\nText INFO for more commands."
+        # Add RSVP instructions at the end
+        simple_message_parts.append("To RSVP, text YES/NO/MAYBE followed by match number.")
+        
+        # Join with simple newlines, no fancy formatting
+        message = "\n".join(simple_message_parts)
     
     logger.info(f"Sending schedule SMS to {player.phone}, message length: {len(message)}")
-    # Log entire message for debugging
     logger.info(f"Complete message: {message}")
     
-    # Split message into multiple SMS if needed
-    max_sms_length = 1500  # Conservative SMS length
-    if len(message) > max_sms_length:
-        logger.info(f"Message exceeds max length, splitting into multiple messages")
-        
-        # Send a simplified message that won't get split
-        simplified_message = (
-            f"ECSFC Schedule: You have {len(all_matches)} upcoming matches.\n"
-            f"Due to message length limitations, please check your upcoming matches "
-            f"on the ECS FC website at portal.ecsfc.com or text INFO for help."
-        )
-        
-        result, message_id = send_sms(player.phone, simplified_message, user_id)
-        if result:
-            logger.info(f"Successfully sent simplified schedule SMS with ID {message_id}")
-            return True
-        else:
-            logger.error(f"Failed to send simplified schedule SMS: {message_id}")
-            return False
-    
-    # Send normal message - make sure we include a from name for better deliverability
-    result, message_id = send_sms(player.phone, message, user_id)
-    if result:
-        logger.info(f"Successfully sent schedule SMS with ID {message_id}")
-        
-        # Send a test follow-up message to see if there's an issue with this specific message
-        test_message = "This is a test follow-up to the schedule message. If you received this but not the schedule, please let us know."
-        send_sms(player.phone, test_message, user_id)
-        
+    # Send using SMS fragments for very reliable delivery
+    success = send_schedule_in_chunks(player.phone, message, user_id)
+    if success:
+        logger.info(f"Successfully sent schedule SMS in chunks")
         return True
     else:
-        logger.error(f"Failed to send schedule SMS: {message_id}")
+        logger.error(f"Failed to send chunked schedule SMS")
         return False
+    
+def send_schedule_in_chunks(phone_number, full_message, user_id=None):
+    """
+    Breaks a long message into smaller parts and sends them separately.
+    
+    Args:
+        phone_number: The recipient's phone number
+        full_message: The complete message to send
+        user_id: Optional user ID for rate limiting
+        
+    Returns:
+        bool: True if all chunks were sent successfully
+    """
+    # Super conservative chunk size to ensure delivery
+    chunk_size = 140  # Standard SMS size
+    
+    # Split the message by newlines first
+    lines = full_message.split('\n')
+    
+    # Group lines into chunks
+    chunks = []
+    current_chunk = []
+    current_length = 0
+    
+    for line in lines:
+        if current_length + len(line) + 1 > chunk_size and current_chunk:  # +1 for newline
+            chunks.append('\n'.join(current_chunk))
+            current_chunk = [line]
+            current_length = len(line)
+        else:
+            current_chunk.append(line)
+            current_length += len(line) + 1  # +1 for newline
+    
+    if current_chunk:
+        chunks.append('\n'.join(current_chunk))
+    
+    # If we have multiple chunks, add part numbers
+    if len(chunks) > 1:
+        for i in range(len(chunks)):
+            chunks[i] = f"({i+1}/{len(chunks)}) {chunks[i]}"
+    
+    # Send each chunk with a small delay between them
+    success = True
+    for i, chunk in enumerate(chunks):
+        logger.info(f"Sending chunk {i+1}/{len(chunks)}, length: {len(chunk)}")
+        result, msg_id = send_sms(phone_number, chunk, user_id)
+        if not result:
+            logger.error(f"Failed to send chunk {i+1}: {msg_id}")
+            success = False
+            break
+        
+        # Small delay between chunks to prevent carrier throttling
+        if i < len(chunks) - 1:
+            import time
+            time.sleep(1.0)  # 1 second delay
+    
+    return success
 
 
 def send_help_message(phone_number, user_id=None):
