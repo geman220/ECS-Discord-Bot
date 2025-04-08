@@ -25,6 +25,8 @@ class Config:
     
     # Mobile API settings
     MOBILE_API_KEY = os.getenv('MOBILE_API_KEY', 'ecs-soccer-mobile-key')
+    # Set MOBILE_APP_ALLOWED_NETWORKS='' in production to allow access from any IP with valid API key
+    # For local development, restrict to local networks
     MOBILE_APP_ALLOWED_NETWORKS = os.getenv('MOBILE_APP_ALLOWED_NETWORKS', '192.168.1.0/24,192.168.0.0/24')
     WEBUI_BASE_URL = os.getenv('WEBUI_BASE_URL', 'https://ecs-soccer.org')
     
