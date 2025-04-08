@@ -57,43 +57,45 @@ def limit_remote_addr():
     Restrict API access to allowed hosts and mobile devices.
     
     This function allows access from:
-    1. Specific hosts in the allowed_hosts list
-    2. IP ranges using CIDR notation (e.g., local network)
-    3. Mobile devices with valid API key
+    1. Mobile devices with valid API key (from any IP)
+    2. Specific development hosts
+    3. IP ranges using CIDR notation (from config)
     """
-    allowed_hosts = [
-        # Server and development hosts
+    # First, check for API key in headers (for mobile app)
+    # This allows access from any IP if the API key is valid
+    api_key = request.headers.get('X-API-Key')
+    if api_key and api_key == current_app.config.get('MOBILE_API_KEY', 'ecs-soccer-mobile-key'):
+        return
+    
+    # Development hosts that are always allowed
+    allowed_dev_hosts = [
         '127.0.0.1:5000', 
         'localhost:5000', 
         'webui:5000', 
         '192.168.1.112:5000',
-        
-        # Mobile development
         '10.0.2.2:5000',      # Android emulator default
-        '192.168.1.0/24',     # Local network (allows any IP in this range)
-        '192.168.0.0/24',     # Alternative local network
     ]
     
-    # Check if host is in the allowed hosts list (direct match)
-    if request.host in allowed_hosts:
+    # Check if host is in the allowed development hosts list
+    if request.host in allowed_dev_hosts:
         return
     
+    # Get allowed networks from configuration
+    allowed_networks_str = current_app.config.get('MOBILE_APP_ALLOWED_NETWORKS', '')
+    allowed_networks = [net.strip() for net in allowed_networks_str.split(',') if net.strip()]
+    
     # Check IP ranges (CIDR notation)
-    client_ip = request.host.split(':')[0]  # Remove port if present
-    for allowed in allowed_hosts:
-        if '/' in allowed:  # This is a CIDR notation
+    if allowed_networks:
+        client_ip = request.host.split(':')[0]  # Remove port if present
+        for network_cidr in allowed_networks:
             try:
-                network = ipaddress.ip_network(allowed)
+                network = ipaddress.ip_network(network_cidr)
                 if ipaddress.ip_address(client_ip) in network:
                     return
             except (ValueError, ipaddress.AddressValueError):
                 # Skip invalid IP addresses or networks
+                logger.warning(f"Invalid network CIDR in config: {network_cidr}")
                 continue
-    
-    # Check for API key in headers (for mobile app)
-    api_key = request.headers.get('X-API-Key')
-    if api_key and api_key == current_app.config.get('MOBILE_API_KEY', 'ecs-soccer-mobile-key'):
-        return
     
     # If we get here, access is denied
     logger.warning(f"API access denied for host: {request.host}")
