@@ -551,14 +551,8 @@ def index():
                 
                 match_results = session.execute(match_query).fetchall()
                 
-                logger.info(f"Direct SQL query found {len(match_results)} matches for teams {[t.name for t in user_teams]}")
-                
-                # Log each match found via direct SQL
-                for match in match_results:
-                    logger.info(f"Direct SQL match: ID={match.id}, Date={match.date}, Home={match.home_team_name}, Away={match.away_team_name}")
-                
-                # Debug help - match all team IDs for template
-                logger.info(f"Team ID list for template debugging: {'; '.join([f'{t.name}: {t.id}' for t in user_teams])}")
+                # Only log basic info about SQL query results at debug level
+                logger.debug(f"Found {len(match_results)} matches for user teams")
                 
             except Exception as e:
                 logger.error(f"Error in direct SQL query: {e}")
@@ -582,11 +576,8 @@ def index():
             order='desc'
         )
         
-        # Debug information
-        logger.info(f"User teams: {[t.name for t in user_teams]}")
-        logger.info(f"Date range for next matches: {today} to {two_weeks_later}")
-        logger.info(f"Found {sum(len(matches) for matches in next_matches.values())} upcoming matches")
-        logger.info(f"Date range for previous matches: {one_week_ago} to {yesterday}")
+        # Basic debug info at debug level only
+        logger.debug(f"Found {sum(len(matches) for matches in next_matches.values())} upcoming matches for index page")
         logger.info(f"Found {sum(len(matches) for matches in previous_matches.values())} previous matches")
 
         announcements = fetch_announcements()

@@ -688,10 +688,51 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
             expected_roles = await get_expected_roles(session, player)
             expected_normalized = {normalize_name(r) for r in expected_roles}
             managed_normalized = {normalize_name(r) for r in app_managed}
+            
+            # Identify coach roles in current Discord roles
+            coach_roles = [r for r in current_roles if "COACH" in r.upper()]
+            coach_role_names = {normalize_name(r) for r in coach_roles}
+            
+            # Log role information for debugging
+            logger.info(f"Player {player.id} ({player.name}) Discord role update:")
+            logger.info(f"Current roles: {current_roles}")
+            logger.info(f"Expected roles: {expected_roles}")
+            logger.info(f"Coach roles found: {coach_roles}")
+            logger.info(f"Player is_coach flag: {player.is_coach}")
+            
+            # Synchronize database is_coach with Discord coach roles
+            has_discord_coach_role = bool(coach_roles)
+            
+            # If there's a mismatch between database and Discord, update the database
+            if has_discord_coach_role and not player.is_coach:
+                logger.info(f"Player {player.id} has Discord coach role but database flag is False - updating database")
+                player.is_coach = True
+                session.add(player)
+                session.commit()
+                # Update expected roles since player.is_coach has changed
+                expected_roles = await get_expected_roles(session, player)
+                expected_normalized = {normalize_name(r) for r in expected_roles}
+            # We don't remove coach status if it exists in the database but not in Discord
+            # That will be handled by the normal role sync mechanism
 
             to_add = [r for r in expected_roles if normalize_name(r) not in current_normalized]
-            to_remove = [r for r in current_roles
+            
+            # Just remove the duplicate to_add line since we already have it above
+            # We want to keep the one that follows our database is_coach update
+            
+            # When force_update is true or if player.is_coach is false, allow coach roles to be removed
+            # Otherwise, preserve them
+            if force_update:
+                to_remove = [r for r in current_roles
                          if normalize_name(r) in managed_normalized and normalize_name(r) not in expected_normalized]
+            else:
+                to_remove = [r for r in current_roles
+                         if normalize_name(r) in managed_normalized 
+                         and normalize_name(r) not in expected_normalized 
+                         and (not "COACH" in r.upper() or not player.is_coach)]
+                
+            logger.info(f"Roles to add: {to_add}")
+            logger.info(f"Roles to remove: {to_remove}")
 
             for role_name in to_add:
                 role_id = await get_or_create_role(guild_id, role_name, http_session)
@@ -750,6 +791,22 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if not any(role.startswith(prefix) for prefix in app_role_prefixes):
             roles.append(role)
 
+    # Get the player's Flask application roles
+    user_roles = []
+    if player.user and player.user.roles:
+        user_roles = [role.name for role in player.user.roles]
+        logger.info(f"Player {player.id} has Flask roles: {user_roles}")
+
+    # Check if the player has the "Pub League Coach" role in the Flask app
+    has_coach_role_in_flask = "Pub League Coach" in user_roles
+    
+    # Determine if the player should have coach status based on both database is_coach and Flask role
+    should_have_coach_status = player.is_coach or has_coach_role_in_flask
+    
+    # Log determination for debugging
+    logger.info(f"Player {player.id} has database is_coach={player.is_coach}, Flask 'Pub League Coach'={has_coach_role_in_flask}")
+    logger.info(f"Final determination - should have coach status: {should_have_coach_status}")
+
     # Determine leagues associated with the player
     leagues_for_user = set()
     if player.league_id:
@@ -768,11 +825,11 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     for league_name in leagues_for_user:
         if league_name == "PREMIER":
             roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-            if player.is_coach:
+            if should_have_coach_status:
                 roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
         elif league_name == "CLASSIC":
             roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-            if player.is_coach:
+            if should_have_coach_status:
                 roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
 
     # Append team-based roles using normalized role names
@@ -869,6 +926,10 @@ async def process_single_player_update(session: Session, player: Player, only_ad
             logger.warning(f"Player '{player.name}' does not have a Discord ID.")
             return {'success': False, 'message': 'No Discord ID associated with player', 'error': 'no_discord_id'}
 
+        # Log important information for debugging
+        logger.info(f"Processing Discord role update for player {player.id} ({player.name}), only_add={only_add}")
+        logger.info(f"Player is_coach: {player.is_coach}")
+        
         force = not only_add
         result = await update_player_roles(session, player, force_update=force)
         if result.get('success'):

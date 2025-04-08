@@ -525,9 +525,20 @@ def get_next_match(phone_number):
     Returns:
         list: A list of dictionaries, each containing team and match details.
     """
+    # Normalize phone number for consistent database lookup
+    if phone_number and phone_number.startswith('+1'):
+        normalized_phone = phone_number[2:]
+    elif phone_number and phone_number.startswith('+'):
+        normalized_phone = phone_number[1:]
+    else:
+        normalized_phone = phone_number
+    
+    logger.info(f"Looking up player with phone number: {normalized_phone}")
+    
     session = g.db_session
-    player = session.query(Player).filter_by(phone=phone_number).first()
+    player = session.query(Player).filter_by(phone=normalized_phone).first()
     if not player:
+        logger.warning(f"No player found with phone number: {normalized_phone}")
         return []
 
     # Collect teams from primary and many-to-many relationships.
@@ -588,7 +599,14 @@ def handle_next_match_request(player):
     Returns:
         bool: True after processing the request.
     """
-    next_matches_by_team = get_next_match(player.phone)
+    # Normalize the phone number to ensure consistent format with database storage
+    normalized_phone = player.phone
+    if normalized_phone.startswith('+1'):
+        normalized_phone = normalized_phone[2:]
+    elif normalized_phone.startswith('+'):
+        normalized_phone = normalized_phone[1:]
+    
+    next_matches_by_team = get_next_match(normalized_phone)
     user_id = player.user_id if player.user else None
     
     if not next_matches_by_team:
@@ -728,6 +746,9 @@ def get_upcoming_match_for_player(player, within_days=7):
     session = g.db_session
     current_date = datetime.utcnow().date()
     future_date = current_date + timedelta(days=within_days)
+    
+    # Debugging: log player information
+    logger.info(f"Getting upcoming matches for player ID: {player.id}, phone: {player.phone}")
     
     # Collect all teams the player belongs to
     teams = []
@@ -922,9 +943,21 @@ def handle_incoming_text_command(phone_number, message_text):
         A JSON response indicating the status and message.
     """
     session = g.db_session
-    player = session.query(Player).filter_by(phone=phone_number).first()
+    
+    # Normalize phone number - strip +1 prefix if present for consistent database lookup
+    if phone_number and phone_number.startswith('+1'):
+        normalized_phone = phone_number[2:]
+    elif phone_number and phone_number.startswith('+'):
+        normalized_phone = phone_number[1:]
+    else:
+        normalized_phone = phone_number
+    
+    logger.info(f"Incoming SMS from number: {phone_number}, normalized to: {normalized_phone}")
+    
+    player = session.query(Player).filter_by(phone=normalized_phone).first()
     if not player:
         # Unknown phone number: notify the sender.
+        logger.warning(f"No player found with phone number: {normalized_phone}")
         send_sms(phone_number, "We couldn't match your phone number to a user.")
         return jsonify({'status': 'error', 'message': 'Unknown user phone'})
 

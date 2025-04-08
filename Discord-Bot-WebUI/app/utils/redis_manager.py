@@ -49,7 +49,7 @@ class RedisManager:
         """
         try:
             if self._client and hasattr(self._client, 'connection_pool'):
-                logger.info("Closing Redis connection pool")
+                logger.debug("Closing Redis connection pool")
                 self._client.connection_pool.disconnect()
                 self._client = None
         except Exception as e:
@@ -93,7 +93,7 @@ class RedisManager:
                 
                 # Test the connection by pinging the server.
                 self._client.ping()
-                logger.info(f"Redis connection established to {redis_host}:{redis_port}")
+                logger.debug(f"Redis connection established to {redis_host}:{redis_port}")
                 break
             except Exception as e:
                 retry_count += 1
