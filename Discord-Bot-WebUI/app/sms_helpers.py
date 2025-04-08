@@ -153,7 +153,7 @@ def send_welcome_message(phone_number):
 
 def send_sms(phone_number, message, user_id=None, status_callback=None):
     """
-    Send an SMS using Twilio with rate limiting.
+    Send an SMS using Twilio with rate limiting and content filtering.
 
     Args:
         phone_number (str): The recipient's phone number.
@@ -166,6 +166,10 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         tuple: (success (bool), message SID or error string).
     """
     import os
+    
+    # Always censor profanity to ensure SMS deliverability
+    # This prevents carrier filtering for profane content
+    clean_message = censor_profanity(message)
     
     # Apply rate limiting if user_id is provided
     if user_id is not None:
@@ -209,7 +213,13 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         
         # Add sender ID to improve deliverability
         # This prepends "ECSFC: " to the message to identify the sender
-        prefixed_message = "ECSFC: " + message
+        prefixed_message = "ECSFC: " + clean_message
+        
+        # Check message length and truncate if necessary to prevent carrier issues
+        max_sms_length = 1500  # Conservative limit
+        if len(prefixed_message) > max_sms_length:
+            logger.warning(f"SMS message exceeds length limit ({len(prefixed_message)} chars), truncating")
+            prefixed_message = prefixed_message[:max_sms_length - 3] + "..."
         
         # Create message params
         message_params = {
@@ -252,7 +262,19 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
             error_msg = f"Twilio authentication failed. Please check credentials. Error: {e}"
             current_app.logger.error(error_msg)
             return False, error_msg
+        
+        # Check for common error codes from Twilio
+        error_code = None
+        if hasattr(e, 'code'):
+            error_code = e.code
+        elif hasattr(e, 'args') and len(e.args) > 0 and isinstance(e.args[0], dict) and 'code' in e.args[0]:
+            error_code = e.args[0]['code']
             
+        if error_code:
+            logger.error(f"Twilio error code: {error_code}")
+            if error_code in [30003, 30004, 30005, 30006]:
+                logger.error("Message rejected by carrier - likely contains filtered content")
+                
         return False, str(e)
 
 
@@ -612,6 +634,79 @@ def get_next_match(phone_number):
     return matches_by_team
 
 
+def censor_profanity(text):
+    """
+    Censors profanity in a string to avoid carrier filtering.
+    
+    Args:
+        text (str): The text to censor
+        
+    Returns:
+        str: The censored text
+    """
+    import re
+    
+    # Comprehensive list of words to censor (add more as needed)
+    profanity_list = [
+        # Common profanity
+        'shit', 'crap', 'ass', 'damn', 'hell', 'fuck', 'bitch', 
+        'bastard', 'dick', 'cock', 'pussy', 'cunt', 'whore',
+        
+        # Additional offensive terms
+        'asshole', 'bullshit', 'fag', 'retard', 'slut', 'twat',
+        'wank', 'piss', 'nigger', 'spic', 'dyke', 'homo', 'queer',
+        
+        # Common variations - lexical equivalents
+        'f*ck', 'f**k', 'sh*t', 'sh!t', 's***', 'a$$', 'a**',
+        'b!tch', 'b*tch', 'd*ck', 'p*ssy', 'c*nt', 'f***',
+        
+        # Words that might trigger filters
+        'sex', 'nude', 'porn', 'viagra', 'cialis', 'casino',
+        'gambling', 'lottery', 'weed', 'marijuana', 'drugs'
+    ]
+    
+    # Case-insensitive replacement
+    censored = text
+    
+    # First pass: direct word replacement
+    for word in profanity_list:
+        # Keep first letter, replace rest with asterisks
+        replacement = word[0] + '*' * (len(word) - 1)
+        
+        # Use regex for case-insensitive replacement of whole words
+        pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+        censored = pattern.sub(replacement, censored)
+    
+    # Second pass: check for words with deliberate obfuscation 
+    # (like sh1t, f_ck, etc.)
+    common_obfuscations = {
+        r'[fs]\W*[h_]\W*[i1!]\W*[t+]': 's***',  # shit variations
+        r'f\W*[u_]\W*[c_]\W*[k_]': 'f***',      # fuck variations
+        r'a\W*[s$]\W*[s$](?:hole)?': 'a**',     # ass/asshole variations
+        r'b\W*[i!1]\W*[t+]\W*[c_]\W*h': 'b***', # bitch variations
+        r'c\W*[u_]\W*n\W*[t+]': 'c***',         # cunt variations
+    }
+    
+    for pattern_str, replacement in common_obfuscations.items():
+        pattern = re.compile(pattern_str, re.IGNORECASE)
+        censored = pattern.sub(replacement, censored)
+    
+    # Third pass: check for suspicious sequences that might be carrier filtered
+    filter_triggers = [
+        # Common filter triggers in SMS
+        'buy now', 'click here', 'free offer', 'limited time', 
+        'special offer', 'discount', 'best price', 'winner',
+        'urgent', 'act now', 'cash prize', 'congratulations',
+        'claim your', 'prize', 'winner', 'won', 'free gift',
+    ]
+    
+    # Just log suspicious content rather than censoring marketing language
+    for trigger in filter_triggers:
+        if re.search(r'\b' + re.escape(trigger) + r'\b', censored, re.IGNORECASE):
+            logger.warning(f"SMS contains potential filter trigger: '{trigger}'")
+    
+    return censored
+
 def handle_next_match_request(player):
     """
     Handle an SMS request for upcoming match information.
@@ -643,7 +738,7 @@ def handle_next_match_request(player):
     logger.info(f"Found {len(next_matches_by_team)} team entries with matches")
     
     if not next_matches_by_team:
-        message = "No matches scheduled."
+        message = "You don't have any upcoming matches scheduled."
         logger.info("No matches found for player")
     else:
         # Create a flat list of all matches for numbered references
@@ -657,43 +752,59 @@ def handle_next_match_request(player):
         
         logger.info(f"Total of {len(all_matches)} upcoming matches for player")
         
-        # Since we had issues with the formatted message, use a very simple format
-        # that's less likely to trigger carrier filtering
-        simple_message_parts = [f"ECS FC: You have {len(all_matches)} upcoming matches:"]
+        # Build a cleaner, formatted message but censor any profanity
+        message_parts = []
+        message_parts.append(f"ECSFC Schedule: {len(all_matches)} upcoming matches")
         
         for i, (team, match) in enumerate(all_matches, 1):
             match_id = match.get('id')
-            # Find RSVP status if any
+            
+            # Censor team names to avoid filtering
+            team_name = censor_profanity(team.name)
+            opponent_name = censor_profanity(match['opponent'])
+            
+            # Add the match details
+            message_parts.append(
+                f"Match #{i}: {match['date']} at {match['time']}\n"
+                f"{team_name} vs {opponent_name}\n"
+                f"Location: {match['location']}"
+            )
+            
+            # Check RSVP status
             avail = g.db_session.query(Availability).filter_by(
-                player_id=player.id, match_id=match_id
+                player_id=player.id, 
+                match_id=match_id
             ).first()
             
-            rsvp_status = avail.response.upper() if avail else "None"
+            if avail:
+                message_parts.append(f"Your RSVP: {avail.response.upper()}")
+                message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to change.")
+            else:
+                message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to RSVP.")
             
-            # Super simplified format
-            match_line = (
-                f"Match {i}: {match['date']} {match['time']} - "
-                f"{team.name} vs {match['opponent']} - "
-                f"RSVP: {rsvp_status}"
-            )
-            simple_message_parts.append(match_line)
+            # Add a separator between matches
+            if i < len(all_matches):
+                message_parts.append("-")
+                
+        # Add a help reminder at the end
+        message_parts.append("Text INFO for more commands.")
         
-        # Add RSVP instructions at the end
-        simple_message_parts.append("To RSVP, text YES/NO/MAYBE followed by match number.")
-        
-        # Join with simple newlines, no fancy formatting
-        message = "\n".join(simple_message_parts)
+        # Join with newlines
+        message = "\n".join(message_parts)
+    
+    # Ensure entire message is censored
+    message = censor_profanity(message)
     
     logger.info(f"Sending schedule SMS to {player.phone}, message length: {len(message)}")
     logger.info(f"Complete message: {message}")
     
-    # Send using SMS fragments for very reliable delivery
-    success = send_schedule_in_chunks(player.phone, message, user_id)
-    if success:
-        logger.info(f"Successfully sent schedule SMS in chunks")
+    # Send in a single message now that we've censored profanity
+    result, message_id = send_sms(player.phone, message, user_id)
+    if result:
+        logger.info(f"Successfully sent schedule SMS with ID {message_id}")
         return True
     else:
-        logger.error(f"Failed to send chunked schedule SMS")
+        logger.error(f"Failed to send schedule SMS: {message_id}")
         return False
     
 def send_schedule_in_chunks(phone_number, full_message, user_id=None):
