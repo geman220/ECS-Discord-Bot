@@ -67,62 +67,82 @@ LOGGING_CONFIG = {
     'loggers': {
         'sqlalchemy.engine': {
             'handlers': ['db_file'],
-            'level': 'WARNING',     # Changed from INFO to WARNING to log only errors
+            'level': 'WARNING',     # Only log SQL errors, not queries
             'propagate': False
         },
         'app.db_management': {
             'handlers': ['db_file', 'errors_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO
+            'level': 'WARNING',     # Reduced from INFO to WARNING
             'propagate': False
         },
         'app.database.pool': {
             'handlers': ['db_file', 'errors_file', 'session_tracking'],
-            'level': 'INFO',        # Important to track connection lifecycle
+            'level': 'WARNING',     # Reduced noise but keep important connection errors
             'propagate': False
         },
         'app.utils.task_monitor': {
             'handlers': ['console', 'session_tracking'],
-            'level': 'INFO',
+            'level': 'WARNING',     # Reduced from INFO to WARNING
             'propagate': False
         },
         'app.request': {
             'handlers': ['requests_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO 
+            'level': 'WARNING',     # Only log request problems
             'propagate': False
         },
         'app.main': {
             'handlers': ['console', 'requests_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO
+            'level': 'WARNING',     # Reduced debug output
+            'propagate': False
+        },
+        'app.match_pages': {
+            'handlers': ['requests_file'],
+            'level': 'WARNING',     # Reduce RSVP checking noise
+            'propagate': False
+        },
+        'app.availability_api_helpers': {
+            'handlers': ['requests_file'],
+            'level': 'WARNING',     # Reduce availability API noise
             'propagate': False
         },
         'app.auth': {
             'handlers': ['console', 'auth_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO
+            'level': 'INFO',        # Keep auth at INFO for security monitoring
             'propagate': False
         },
         'app.core': {
             'handlers': ['console', 'requests_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO
+            'level': 'WARNING',     # Reduced from INFO to WARNING
             'propagate': False
         },
         'app.core.session_manager': {
             'handlers': ['session_tracking', 'errors_file'],
-            'level': 'INFO',
+            'level': 'WARNING',     # Reduced session noise
             'propagate': False
         },
         'flask_login': {
             'handlers': ['auth_file'],
-            'level': 'INFO',        # Changed from DEBUG to INFO
+            'level': 'WARNING',     # Reduced login noise
             'propagate': False
         },
         'werkzeug': {
             'handlers': ['requests_file'],
-            'level': 'WARNING',     # Changed from INFO to WARNING to reduce HTTP noise
+            'level': 'ERROR',       # Further reduced HTTP noise - only errors
             'propagate': False
         },
         'app.tasks': {
             'handlers': ['console', 'session_tracking'],
-            'level': 'INFO',
+            'level': 'WARNING',     # Reduced task noise
+            'propagate': False
+        },
+        'app.lifecycle': {
+            'handlers': ['console'],
+            'level': 'WARNING',     # Reduce request performance logging
+            'propagate': False
+        },
+        'app.redis_manager': {
+            'handlers': ['console'],
+            'level': 'WARNING',     # Reduce Redis connection noise 
             'propagate': False
         }
     },
@@ -130,6 +150,6 @@ LOGGING_CONFIG = {
     # The root logger catches all messages not handled by other loggers.
     'root': {
         'handlers': ['console', 'errors_file'],
-        'level': 'INFO',            # Changed from DEBUG to INFO
+        'level': 'WARNING',         # Changed from INFO to WARNING to reduce general noise
     }
 }

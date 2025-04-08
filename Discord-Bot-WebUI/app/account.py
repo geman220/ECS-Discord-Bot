@@ -28,6 +28,9 @@ import logging
 import requests
 import pyotp
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 logger = logging.getLogger(__name__)
 
 account_bp = Blueprint('account', __name__)
@@ -492,16 +495,18 @@ def incoming_sms_webhook():
     """
     Webhook endpoint for processing incoming SMS commands.
 
-    Retrieves the sender's phone number and message body, normalizes the phone number,
-    and passes the command to a helper function for processing.
+    Retrieves the sender's phone number and message body, and passes the command
+    to a helper function for processing. Maintains the original phone number format
+    to ensure consistent handling throughout the application.
     """
     session = g.db_session
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip()
 
-    if sender_number.startswith('+1'):
-        sender_number = sender_number[2:]
-
+    # We now keep the original phone number format for consistent handling
+    # Phone number normalization is done in handle_incoming_text_command
+    
+    logger.info(f"Incoming SMS webhook received from: {sender_number}, message: {message_text}")
     return handle_incoming_text_command(sender_number, message_text)
 
 

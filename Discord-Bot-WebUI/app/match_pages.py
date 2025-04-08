@@ -332,15 +332,13 @@ def get_rsvp_status(match_id):
             return jsonify({'response': 'no_response'})
 
         player_id = safe_current_user.player.id
-        logger.debug(f"Checking availability for player {player_id} and match {match_id}")
-        
+        # Query without detailed logging
         availability = session.query(Availability).filter_by(match_id=match_id, player_id=player_id).first()
 
         if availability:
-            logger.debug(f"Found availability status: {availability.response}")
             return jsonify({'response': availability.response})
         else:
-            logger.debug(f"No availability record found, returning 'no_response'")
+            return jsonify({'response': 'no_response'})
             return jsonify({'response': 'no_response'})
             
     except Exception as e:

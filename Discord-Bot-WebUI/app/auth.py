@@ -71,7 +71,26 @@ def sync_discord_for_user(user: User, discord_id: Optional[str] = None):
         db_session.add(user.player)
         logger.info(f"Linked discord_id={discord_id} to player {user.player.id}")
 
-    # Trigger the Celery task to sync roles (only adds our roles)
+    # Trigger the Celery task to sync roles (only adds roles, never removes them at login)
+    # Log additional diagnostic information
+    if user.player.is_coach:
+        logger.info(f"Player {user.player.id} has is_coach=True")
+    
+    # Look for Flask "Pub League Coach" role
+    pub_league_coach_role = False
+    for role in user.roles:
+        if role.name == "Pub League Coach":
+            pub_league_coach_role = True
+            logger.info(f"Player {user.player.id} has Flask role 'Pub League Coach'")
+            break
+            
+    # Additional diagnostics for coach-related roles
+    if user.player.is_coach and not pub_league_coach_role:
+        logger.warning(f"Player {user.player.id} has is_coach=True but missing Flask 'Pub League Coach' role")
+    elif not user.player.is_coach and pub_league_coach_role:
+        logger.warning(f"Player {user.player.id} has Flask 'Pub League Coach' role but is_coach=False")
+    
+    # Only add roles at login, never remove them
     assign_roles_to_player_task.delay(player_id=user.player.id, only_add=True)
     logger.info(f"Triggered Discord role sync for player {user.player.id} (only_add=True)")
 
