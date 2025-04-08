@@ -151,7 +151,7 @@ def send_welcome_message(phone_number):
     return send_sms(phone_number, welcome_message)
 
 
-def send_sms(phone_number, message, user_id=None):
+def send_sms(phone_number, message, user_id=None, status_callback=None):
     """
     Send an SMS using Twilio with rate limiting.
 
@@ -160,6 +160,7 @@ def send_sms(phone_number, message, user_id=None):
         message (str): The message to send.
         user_id (int, optional): The user ID for rate limiting. If None, no rate limiting is applied
                                 (for system messages only).
+        status_callback (str, optional): URL for Twilio to send status updates to.
 
     Returns:
         tuple: (success (bool), message SID or error string).
@@ -205,18 +206,43 @@ def send_sms(phone_number, message, user_id=None):
     
     try:
         client = Client(twilio_sid, twilio_auth_token)
-        msg = client.messages.create(
-            body=message,
-            from_=twilio_phone_number,
-            to=phone_number
-        )
+        
+        # Add sender ID to improve deliverability
+        # This prepends "ECSFC: " to the message to identify the sender
+        prefixed_message = "ECSFC: " + message
+        
+        # Create message params
+        message_params = {
+            'body': prefixed_message,
+            'from_': twilio_phone_number,
+            'to': phone_number,
+        }
+        
+        # Add status callback if provided
+        callback_url = status_callback or current_app.config.get('TWILIO_STATUS_CALLBACK')
+        if callback_url:
+            message_params['status_callback'] = callback_url
+            logger.info(f"Using status callback URL: {callback_url}")
+            
+        # Add optional messaging service SID if available
+        messaging_service_sid = os.environ.get('TWILIO_MESSAGING_SERVICE_SID') or current_app.config.get('TWILIO_MESSAGING_SERVICE_SID')
+        if messaging_service_sid:
+            # If using a messaging service, we don't specify the from_ parameter
+            message_params.pop('from_', None)
+            message_params['messaging_service_sid'] = messaging_service_sid
+            logger.info(f"Using messaging service SID: {messaging_service_sid}")
+        
+        # Send message with enhanced parameters
+        msg = client.messages.create(**message_params)
         
         # Track the SMS send if rate limiting is enabled for this message
         if user_id is not None:
             track_sms_send(user_id)
             
-        # Log successful send
+        # Log successful send with more details
         logger.info(f"SMS sent successfully to {phone_number} with ID {msg.sid}")
+        logger.info(f"SMS details: Length={len(prefixed_message)}, First 50 chars: '{prefixed_message[:50]}...'")
+        
         return True, msg.sid
     except Exception as e:
         current_app.logger.error(f"Failed to send SMS: {e}")
@@ -631,18 +657,23 @@ def handle_next_match_request(player):
                 all_matches.append((team, match))
         
         logger.info(f"Total of {len(all_matches)} upcoming matches for player")
-        message_parts.append(f"You have {len(all_matches)} upcoming matches:")
+        message_parts.append(f"ECSFC Schedule: {len(all_matches)} upcoming matches")
         
         for i, (team, match) in enumerate(all_matches, 1):
             match_id = match.get('id')
             logger.info(f"Processing match #{i}: ID={match_id}, Date={match['date']}, Time={match['time']}")
             
-            # Add the match with a global number
-            message_parts.append(
-                f"Match #{i}: {match['date']} at {match['time']}\n"
-                f"{team.name} vs {match['opponent']}\n"
-                f"Location: {match['location']}"
-            )
+            # Simplify match formatting to make it more compact
+            match_parts = [
+                f"MATCH {i}: {match['date']}",
+                f"{match['time']} - {team.name} vs {match['opponent']}"
+            ]
+            
+            # Only add location if it's not TBD
+            if match['location'] != 'TBD':
+                match_parts.append(f"Location: {match['location']}")
+            
+            message_parts.append(" | ".join(match_parts))
             
             # Check if player has already responded to this match
             avail = g.db_session.query(Availability).filter_by(
@@ -652,25 +683,56 @@ def handle_next_match_request(player):
             
             if avail:
                 logger.info(f"Player has RSVP'd for match {match_id}: {avail.response}")
-                message_parts.append(f"Your RSVP: {avail.response.upper()}")
-                message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to change.")
+                message_parts.append(f"RSVP: {avail.response.upper()}")
             else:
                 logger.info(f"No RSVP found for match {match_id}")
-                message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to RSVP.")
+                message_parts.append("No RSVP yet")
+                
+            # Add RSVP instructions
+            message_parts.append(f"Text YES {i}, NO {i}, or MAYBE {i}")
             
-            # Add a separator between matches
+            # Add a cleaner separator between matches
             if i < len(all_matches):
-                message_parts.append("---")
+                message_parts.append("--")
                     
         message = "\n".join(message_parts)
+        
+        # Add a help reminder at the end of the message
+        message += "\n\nText INFO for more commands."
     
     logger.info(f"Sending schedule SMS to {player.phone}, message length: {len(message)}")
-    # For debugging, log first 100 chars of message
-    logger.info(f"Message preview: {message[:100]}...")
+    # Log entire message for debugging
+    logger.info(f"Complete message: {message}")
     
+    # Split message into multiple SMS if needed
+    max_sms_length = 1500  # Conservative SMS length
+    if len(message) > max_sms_length:
+        logger.info(f"Message exceeds max length, splitting into multiple messages")
+        
+        # Send a simplified message that won't get split
+        simplified_message = (
+            f"ECSFC Schedule: You have {len(all_matches)} upcoming matches.\n"
+            f"Due to message length limitations, please check your upcoming matches "
+            f"on the ECS FC website at portal.ecsfc.com or text INFO for help."
+        )
+        
+        result, message_id = send_sms(player.phone, simplified_message, user_id)
+        if result:
+            logger.info(f"Successfully sent simplified schedule SMS with ID {message_id}")
+            return True
+        else:
+            logger.error(f"Failed to send simplified schedule SMS: {message_id}")
+            return False
+    
+    # Send normal message - make sure we include a from name for better deliverability
     result, message_id = send_sms(player.phone, message, user_id)
     if result:
         logger.info(f"Successfully sent schedule SMS with ID {message_id}")
+        
+        # Send a test follow-up message to see if there's an issue with this specific message
+        test_message = "This is a test follow-up to the schedule message. If you received this but not the schedule, please let us know."
+        send_sms(player.phone, test_message, user_id)
+        
         return True
     else:
         logger.error(f"Failed to send schedule SMS: {message_id}")
