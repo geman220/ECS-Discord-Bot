@@ -503,10 +503,14 @@ def incoming_sms_webhook():
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip()
 
-    # We now keep the original phone number format for consistent handling
-    # Phone number normalization is done in handle_incoming_text_command
-    
+    # Log FULL request data for debugging SMS issues
     logger.info(f"Incoming SMS webhook received from: {sender_number}, message: {message_text}")
+    logger.info(f"Full SMS request data: {request.form}")
+    
+    # Make sure command works regardless of case
+    if message_text.lower() == 'schedule':
+        logger.info(f"Processing 'schedule' command for {sender_number}")
+    
     return handle_incoming_text_command(sender_number, message_text)
 
 

@@ -105,6 +105,11 @@ LOGGING_CONFIG = {
             'level': 'WARNING',     # Reduce availability API noise
             'propagate': False
         },
+        'app.sms_helpers': {
+            'handlers': ['console', 'requests_file'],
+            'level': 'INFO',        # Keep SMS at INFO for debugging message issues
+            'propagate': False
+        },
         'app.auth': {
             'handlers': ['console', 'auth_file'],
             'level': 'INFO',        # Keep auth at INFO for security monitoring
