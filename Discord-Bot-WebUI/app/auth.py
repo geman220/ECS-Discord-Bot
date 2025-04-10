@@ -155,7 +155,9 @@ def discord_callback():
             redirect_uri=url_for('auth.discord_callback', _external=True)
         )
         user_data = get_discord_user_data(token_data['access_token'])
-        discord_email = user_data.get('email', '').lower()
+        # Safely handle potentially None email values
+        discord_email = user_data.get('email')
+        discord_email = discord_email.lower() if discord_email else ''
         discord_id = user_data.get('id')
         discord_username = user_data.get('username', 'Discord User')
 
@@ -633,28 +635,22 @@ def register():
     return render_template('register.html', title='Register', form=form)
 
 
-@auth.route('/forgot_password', methods=['GET', 'POST'])
+@auth.route('/forgot_password', methods=['GET'])
 def forgot_password():
     """
-    Handle forgot password requests.
-
-    If an account exists for the given email, send a reset email.
+    Display information about the Discord login system.
+    
+    This page provides guidance for users who are trying to reset their password,
+    redirecting them to Discord for authentication issues since we only use Discord login.
     """
     if safe_current_user.is_authenticated:
         return redirect(url_for('main.index'))
 
-    form = ForgotPasswordForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user:
-            token = generate_reset_token(user)
-            if token and send_reset_email(user.email, token):
-                flash('Password reset instructions sent to your email.', 'info')
-                return redirect(url_for('auth.login'))
-        flash('No account found with that email.', 'danger')
-        return redirect(url_for('auth.forgot_password'))
-
-    return render_template('forgot_password.html', title='Forgot Password', form=form)
+    # Create a blank form just to satisfy the template structure
+    from flask_wtf import FlaskForm
+    dummy_form = FlaskForm()
+    
+    return render_template('forgot_password.html', title='Login Help', form=dummy_form)
 
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
