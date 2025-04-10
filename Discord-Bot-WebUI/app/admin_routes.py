@@ -385,7 +385,7 @@ def reorder_announcements():
 
 @admin_bp.route('/admin/schedule_season', endpoint='schedule_season', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def schedule_season():
     """
     Schedule availability messages for all future Sunday matches (next 90 days).
@@ -451,7 +451,7 @@ def schedule_season():
 
 @admin_bp.route('/admin/scheduled_messages', endpoint='view_scheduled_messages')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def view_scheduled_messages():
     """
     View a list of scheduled messages.
@@ -463,7 +463,7 @@ def view_scheduled_messages():
 
 @admin_bp.route('/admin/force_send/<int:message_id>', endpoint='force_send_message', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def force_send_message(message_id):
     """
     Force-send a scheduled message immediately.
@@ -486,7 +486,7 @@ def force_send_message(message_id):
 
 @admin_bp.route('/admin/schedule_next_week', endpoint='schedule_next_week', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def schedule_next_week():
     """
     Initiate the scheduling task specifically for the next week's Sunday matches.
@@ -501,7 +501,7 @@ def schedule_next_week():
 
 @admin_bp.route('/admin/process_scheduled_messages', endpoint='process_scheduled_messages', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def process_scheduled_messages_route():
     """
     Immediately process all pending scheduled messages.
@@ -516,7 +516,7 @@ def process_scheduled_messages_route():
 
 @admin_bp.route('/admin/cleanup_old_messages', endpoint='cleanup_old_messages_route', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def cleanup_old_messages_route():
     """
     Clean up old scheduled messages that have already been sent or failed.
@@ -560,7 +560,7 @@ def cleanup_old_messages_route():
 
 @admin_bp.route('/admin/delete_message/<int:message_id>', endpoint='delete_message', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def delete_message(message_id):
     """
     Delete a specific scheduled message.
@@ -584,7 +584,7 @@ def delete_message(message_id):
 
 @admin_bp.route('/admin/rsvp_status/<int:match_id>', endpoint='rsvp_status')
 @login_required
-@role_required(['Global Admin', 'Pub League Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def rsvp_status(match_id):
     """
     Display RSVP status details for a specific match.
@@ -599,7 +599,7 @@ def rsvp_status(match_id):
 
 @admin_bp.route('/admin/send_custom_sms', methods=['POST'], endpoint='send_custom_sms')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def send_custom_sms():
     """
     Send a custom SMS message to a player.
@@ -666,7 +666,7 @@ def send_custom_sms():
 
 @admin_bp.route('/admin/send_discord_dm', methods=['POST'], endpoint='send_discord_dm')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def send_discord_dm():
     """
     Send a Discord DM to a player using the bot.
@@ -741,7 +741,7 @@ def send_discord_dm():
 
 @admin_bp.route('/admin/update_rsvp', methods=['POST'], endpoint='update_rsvp')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def update_rsvp():
     """
     Update a player's RSVP status for a match.
@@ -846,7 +846,7 @@ def update_rsvp():
 
 @admin_bp.route('/admin/reports', endpoint='admin_reports')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def admin_reports():
     """
     Render the admin reports view, including filtering and pagination
@@ -886,7 +886,7 @@ def admin_reports():
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>', endpoint='view_feedback', methods=['GET', 'POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def view_feedback(feedback_id):
     """
     View and update feedback details. Supports updating feedback,
@@ -952,7 +952,7 @@ def view_feedback(feedback_id):
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>/close', endpoint='close_feedback', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def close_feedback(feedback_id):
     """
     Close the feedback and notify the user via email.
@@ -978,7 +978,7 @@ def close_feedback(feedback_id):
 
 @admin_bp.route('/admin/feedback/<int:feedback_id>/delete', endpoint='delete_feedback', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Admin'])
 def delete_feedback(feedback_id):
     """
     Permanently delete a feedback entry.
@@ -1593,7 +1593,7 @@ def match_verification_dashboard():
 
 @admin_bp.route('/admin/verify_match/<int:match_id>', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def admin_verify_match(match_id):
     """
     Allow an admin or coach to verify a match.
