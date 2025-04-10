@@ -21,6 +21,10 @@ def handle_coach_status_update(player, user):
     """
     Update a player's coach status and enqueue a Discord role update task.
 
+    This function updates both the global is_coach flag on the player
+    and also updates the is_coach status in the player_teams association table
+    for all teams the player is associated with.
+
     Args:
         player: The player object whose coach status is to be updated.
         user: The associated user object (not used directly here).
@@ -36,10 +40,22 @@ def handle_coach_status_update(player, user):
         is_coach = 'is_coach' in request.form
         logger.debug(f"Received is_coach: {is_coach}")
 
+        # Update the global coach flag
         player.is_coach = is_coach
         player.discord_needs_update = True
 
         session = g.db_session
+        
+        # Update coach status in the player_teams association table for all teams
+        from app.models import player_teams
+        from sqlalchemy import text
+        
+        # Update all team relationships for this player to have the same coach status
+        session.execute(
+            text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
+            {"is_coach": is_coach, "player_id": player.id}
+        )
+        
         session.commit()  # Commit changes first
 
         if player.discord_id:

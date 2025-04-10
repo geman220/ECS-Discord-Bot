@@ -117,6 +117,22 @@ def test_connection():
     }), 200
 
 
+@mobile_api.route('/ping', endpoint='ping', methods=['GET'])
+def ping():
+    """
+    Simple ping endpoint for connectivity testing.
+    
+    Returns:
+        JSON response with status and timestamp
+    """
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.utcnow().isoformat(),
+        'server': 'ECS Soccer API',
+        'version': current_app.config.get('VERSION', '1.0')
+    }), 200
+
+
 @mobile_api.route('/get_discord_auth_url', endpoint='get_discord_auth_url', methods=['GET'])
 def get_discord_auth_url():
     """
@@ -517,11 +533,11 @@ def get_team_players(team_id: int):
     # Build detailed player list with role information
     detailed_players = []
     for player in players:
-        # Get coach status for this specific team
+        # Get coach status for this specific team - this is the correct way to determine coach status
         is_coach = session_db.query(player_teams.c.is_coach).filter(
             player_teams.c.player_id == player.id,
             player_teams.c.team_id == team_id
-        ).scalar() or False
+        ).scalar() or False  # Use the team-specific coach relationship
         
         profile_picture_url = player.profile_picture_url
         if profile_picture_url:
@@ -536,7 +552,7 @@ def get_team_players(team_id: int):
             "id": player.id,
             "name": player.name,
             "jersey_number": player.jersey_number,
-            "is_coach": is_coach,
+            "is_coach": is_coach,  # This is from the team-specific relationship
             "is_ref": player.is_ref,
             "is_current_player": player.is_current_player,
             "favorite_position": player.favorite_position,

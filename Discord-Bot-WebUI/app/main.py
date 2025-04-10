@@ -401,7 +401,8 @@ def index():
                     player_teams.c.is_coach == True
                 ).all()
                 is_coach = len(coach_teams) > 0
-                player.is_coach = is_coach  # Add coach status as attribute to player
+                # Don't modify the database column, use a temporary attribute instead
+                player._temp_is_coach = is_coach
         else:
             player = None
 
@@ -663,6 +664,9 @@ def index():
             logger.info(f"  Next match dates: {list(match_data['next'].keys())}")
             logger.info(f"  Prev match dates: {list(match_data['prev'].keys())}")
             
+        # Pass the temporary coach status to the template
+        is_coach = getattr(player, '_temp_is_coach', player.is_coach if player else False)
+        
         return render_template(
             'index.html',
             title='Home',
@@ -676,6 +680,7 @@ def index():
             current_year=current_year,
             team=user_teams,
             player=player,
+            is_coach=is_coach,  # Pass the calculated is_coach value separately
             is_linked_to_discord=(player.discord_id is not None if player else False),
             discord_server_link="https://discord.gg/weareecs",
             show_onboarding=show_onboarding,
