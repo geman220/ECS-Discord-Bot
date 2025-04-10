@@ -584,7 +584,7 @@ def delete_message(message_id):
 
 @admin_bp.route('/admin/rsvp_status/<int:match_id>', endpoint='rsvp_status')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin', 'Pub League Coach'])
 def rsvp_status(match_id):
     """
     Display RSVP status details for a specific match.
@@ -1377,7 +1377,7 @@ def sms_rate_limit_status():
 
 @admin_bp.route('/admin/match_verification', endpoint='match_verification_dashboard')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Team Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def match_verification_dashboard():
     """
     Display the match verification dashboard.
@@ -1464,7 +1464,7 @@ def match_verification_dashboard():
         logger.info(f"Total matches found for current season: {total_match_count}")
         
         # Check if the user is a coach (to limit matches to their teams)
-        is_coach = safe_current_user.has_role('Team Coach') and not (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin'))
+        is_coach = safe_current_user.has_role('Pub League Coach') and not (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin'))
         
         if is_coach and hasattr(safe_current_user, 'player') and safe_current_user.player:
             # For coaches, get their teams
@@ -1593,7 +1593,7 @@ def match_verification_dashboard():
 
 @admin_bp.route('/admin/verify_match/<int:match_id>', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Team Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def admin_verify_match(match_id):
     """
     Allow an admin or coach to verify a match.
@@ -1620,7 +1620,7 @@ def admin_verify_match(match_id):
     
     # Check permissions for coaches
     is_admin = safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')
-    is_coach = safe_current_user.has_role('Team Coach')
+    is_coach = safe_current_user.has_role('Pub League Coach')
     
     can_verify_home = is_admin
     can_verify_away = is_admin
