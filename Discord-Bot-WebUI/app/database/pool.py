@@ -207,9 +207,9 @@ ENGINE_OPTIONS = {
     'connect_args': {
         'connect_timeout': 3,
         'options': (
-            '-c statement_timeout=10000 '
-            '-c idle_in_transaction_session_timeout=10000 '
-            '-c lock_timeout=5000'
+            '-c statement_timeout=5000 '
+            '-c idle_in_transaction_session_timeout=5000 '
+            '-c lock_timeout=2000'
         )
     },
     'echo': False,

@@ -126,15 +126,49 @@ class DatabaseManager:
         Schedule periodic metadata cleanup (if needed for maintenance).
         """
         def cleanup():
-            logger.info("Running scheduled metadata cleanup")
-            now = time.time()
-            stale_pids = [pid for pid, meta in transaction_metadata.items()
-                          if (now - meta.get('start_time', now).timestamp()) > 3600]
-            for pid in stale_pids:
-                clear_transaction_details(pid)
-                logger.debug(f"Cleared stale transaction metadata for PID {pid}")
+            try:
+                logger.info("Running scheduled metadata cleanup")
+                now = time.time()
+                
+                # Find stale transactions (older than 30 minutes)
+                stale_pids = [pid for pid, meta in transaction_metadata.items()
+                            if (now - meta.get('start_time', now).timestamp()) > 1800]
+                
+                # Find very old transactions (older than 60 minutes)
+                very_old_pids = [pid for pid in stale_pids 
+                              if (now - transaction_metadata[pid].get('start_time', now).timestamp()) > 3600]
+                
+                # Log information about stale transactions
+                if stale_pids:
+                    logger.warning(f"Found {len(stale_pids)} stale transactions. Cleaning up...")
+                    for pid in stale_pids:
+                        metadata = transaction_metadata.get(pid, {})
+                        age_seconds = now - metadata.get('start_time', now).timestamp()
+                        stack_trace = metadata.get('stack_trace', 'No stack trace available')
+                        logger.warning(f"Stale transaction (PID: {pid}, Age: {age_seconds:.1f}s): {stack_trace}")
+                        
+                        # For very old transactions, try to kill them in the database
+                        if pid in very_old_pids:
+                            logger.warning(f"Attempting to terminate very old connection {pid}")
+                            try:
+                                with self._engine.connect() as conn:
+                                    conn.execute(text("SELECT pg_terminate_backend(:pid)"), {"pid": pid})
+                            except Exception as e:
+                                logger.error(f"Failed to terminate connection {pid}: {e}")
+                        
+                        # Clear the metadata
+                        clear_transaction_details(pid)
+                        logger.info(f"Cleared stale transaction metadata for PID {pid}")
+                
+                # Schedule next cleanup
+                eventlet.spawn_after(60, cleanup)  # Run cleanup every minute instead of 5 minutes
+            except Exception as e:
+                logger.error(f"Error in transaction metadata cleanup: {e}", exc_info=True)
+                # Even if we have an error, try again later
+                eventlet.spawn_after(60, cleanup)
 
-        eventlet.spawn_after(300, cleanup)
+        # Start the first cleanup after 60 seconds
+        eventlet.spawn_after(60, cleanup)
 
     def check_for_leaked_connections(self):
         """

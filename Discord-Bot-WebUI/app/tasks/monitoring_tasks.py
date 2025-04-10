@@ -61,26 +61,59 @@ def collect_db_stats():
 
             # Import db_manager here to avoid circular dependencies.
             from app.db_management import db_manager
+            
+            try:
+                # Collect detailed statistics from the database.
+                stats = {}
+                if hasattr(db_manager, 'get_detailed_stats'):
+                    stats = db_manager.get_detailed_stats()
+                else:
+                    # Fallback if the method doesn't exist
+                    logger.warning("db_manager.get_detailed_stats method not found, using basic stats")
+                    stats = {
+                        'pool_stats': db_manager.get_pool_stats() if hasattr(db_manager, 'get_pool_stats') else {},
+                        'active_connections': 0,
+                        'long_running_transactions': [],
+                        'recent_events': [],
+                        'session_monitor': {}
+                    }
+                    
+                    # Collect basic connection stats
+                    conn_stats = session.execute(text("""
+                        SELECT COUNT(*) as total_connections,
+                               COUNT(*) FILTER (WHERE state = 'active') as active_connections,
+                               COUNT(*) FILTER (WHERE state = 'idle in transaction') as idle_transactions
+                        FROM pg_stat_activity
+                    """)).fetchone()
+                    
+                    if conn_stats:
+                        stats['active_connections'] = conn_stats.active_connections
+                        stats['pool_stats']['total_connections'] = conn_stats.total_connections
+                        stats['pool_stats']['idle_transactions'] = conn_stats.idle_transactions
+                
+                logger.info("Collected database stats")
 
-            # Collect detailed statistics from the database.
-            stats = db_manager.get_detailed_stats()
-            logger.info("Collected database stats")
+                # Create a snapshot instance with the collected stats.
+                snapshot = DBMonitoringSnapshot(
+                    timestamp=datetime.utcnow(),
+                    pool_stats=stats.get('pool_stats', {}),
+                    active_connections=stats.get('active_connections', 0),
+                    long_running_transactions=stats.get('long_running_transactions', []),
+                    recent_events=stats.get('recent_events', []),
+                    session_monitor=stats.get('session_monitor', {})
+                )
+                logger.info("Created DBMonitoringSnapshot instance")
 
-            # Create a snapshot instance with the collected stats.
-            snapshot = DBMonitoringSnapshot(
-                timestamp=datetime.utcnow(),
-                pool_stats=stats.get('pool_stats'),
-                active_connections=stats.get('active_connections'),
-                long_running_transactions=stats.get('long_running_transactions'),
-                recent_events=stats.get('recent_events'),
-                session_monitor=stats.get('session_monitor')
-            )
-            logger.info("Created DBMonitoringSnapshot instance")
-
-            # Save the snapshot to the database.
-            session.add(snapshot)
-            session.commit()
-            logger.info("Database stats collected and saved successfully")
+                # Save the snapshot to the database.
+                session.add(snapshot)
+                session.commit()
+                logger.info("Database stats collected and saved successfully")
+            except AttributeError as attr_err:
+                logger.error(f"Missing attribute in db_manager: {attr_err}")
+                session.rollback()
+            except Exception as stats_err:
+                logger.error(f"Error collecting database stats: {stats_err}", exc_info=True)
+                session.rollback()
 
         except SQLAlchemyError as e:
             logger.error(f"Database error collecting DB stats: {e}", exc_info=True)
@@ -91,7 +124,10 @@ def collect_db_stats():
             session.rollback()
             raise
         finally:
-            session.close()
+            try:
+                session.close()
+            except Exception as close_err:
+                logger.error(f"Error closing session: {close_err}")
 
 
 @celery.task(name='app.tasks.monitoring_tasks.check_for_session_leaks')

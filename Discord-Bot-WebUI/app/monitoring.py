@@ -223,7 +223,9 @@ def get_redis_keys():
         JSON response with key details including value, TTL, and task status.
     """
     try:
-        redis_client = RedisManager().client
+        # Use Redis manager with persistent connection
+        redis_manager = RedisManager()
+        redis_client = redis_manager.client
         scheduler_keys = redis_client.keys('match_scheduler:*')
         result = {}
         for key in scheduler_keys:
