@@ -34,10 +34,26 @@ def socket_session(engine):
     try:
         # Set a local statement timeout of 5 seconds.
         session.execute(text("SET LOCAL statement_timeout = '5s'"))
+        session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '10s'"))
         yield session
-        session.commit()
+        try:
+            session.commit()
+        except Exception as commit_error:
+            logger.warning(f"Error committing session in socket_session: {commit_error}")
+            try:
+                session.rollback()
+            except Exception as rollback_error:
+                logger.error(f"Error during rollback: {rollback_error}")
+            raise
     except Exception:
-        session.rollback()
+        try:
+            session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"Error during rollback: {rollback_error}")
         raise
     finally:
-        session.close()
+        try:
+            if session:
+                session.close()
+        except Exception as close_error:
+            logger.error(f"Error closing session: {close_error}")

@@ -79,36 +79,41 @@ def create_app(config_object='web_config.Config'):
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY must be set')
 
-    # Initialize Redis clients: one for general use and one for session storage.
-    redis_client = redis.from_url(
-        app.config['REDIS_URL'],
-        decode_responses=True,
-        socket_timeout=5,
-        socket_connect_timeout=5,
-        socket_keepalive=True,
-        health_check_interval=30,
-        retry_on_timeout=True,
-        max_connections=10
-    )
-    session_redis = redis.from_url(
-        app.config['REDIS_URL'],
+    # Initialize Redis clients using RedisManager for persistent connections
+    from app.utils.redis_manager import RedisManager
+    
+    # Initialize a single Redis manager for the application
+    redis_manager = RedisManager()
+    app.redis = redis_manager.client
+    
+    # Create a dedicated connection pool for Flask sessions that doesn't use decode_responses
+    from redis import ConnectionPool, Redis
+    redis_url = app.config['REDIS_URL']
+    session_pool = ConnectionPool.from_url(
+        redis_url,
         decode_responses=False,
         socket_timeout=5,
         socket_connect_timeout=5,
         socket_keepalive=True,
-        health_check_interval=30,
+        health_check_interval=15,
         retry_on_timeout=True,
-        max_connections=10
+        max_connections=20
     )
+    session_redis = Redis(connection_pool=session_pool)
+    
+    # Test connections once during startup
     try:
-        redis_client.ping()
+        app.redis.ping()
         session_redis.ping()
-        logger.info("Redis connection successful")
-    except redis.ConnectionError as e:
-        logger.error(f"Redis connection failed: {str(e)}")
-        raise
-
-    app.redis = redis_client
+        logger.info("Redis connections established successfully")
+    except Exception as e:
+        logger.error(f"Redis connection failed: {e}")
+        # Continue anyway - the Redis manager will handle reconnection attempts
+    
+    # Register shutdown handler to properly close Redis connections
+    @app.teardown_appcontext
+    def shutdown_redis_connections(exception=None):
+        redis_manager.shutdown()
 
     # Configure database settings.
     configure_db_settings(app)

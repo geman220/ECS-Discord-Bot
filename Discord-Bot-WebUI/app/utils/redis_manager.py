@@ -45,17 +45,27 @@ class RedisManager:
         """
         Close the Redis client connection pool and release resources.
         
-        This should be called during application shutdown.
+        This should be called during application shutdown, not during regular requests.
         """
+        # Only actually close the connection pool during application shutdown
+        import os
+        
         try:
             if self._client and hasattr(self._client, 'connection_pool'):
-                logger.debug("Closing Redis connection pool")
-                self._client.connection_pool.disconnect()
-                self._client = None
+                # Check if this is actual application shutdown or just a request ending
+                is_app_shutdown = os.environ.get('FLASK_APP_SHUTTING_DOWN') == 'true'
+                
+                if is_app_shutdown:
+                    logger.info("Application shutdown: Closing Redis connection pool")
+                    self._client.connection_pool.disconnect()
+                    self._client = None
+                else:
+                    # For normal requests, don't close the connection pool
+                    logger.debug("Maintaining persistent Redis connection pool")
+                    return
         except Exception as e:
-            logger.error(f"Error shutting down Redis connection pool: {e}")
-            # Still set client to None to force re-initialization on next use
-            self._client = None
+            logger.error(f"Error in Redis connection pool management: {e}")
+            # Don't set client to None during normal operation
 
     def _initialize_client(self):
         """
@@ -67,6 +77,7 @@ class RedisManager:
         """
         max_retries = 3
         retry_count = 0
+        import time
 
         while retry_count < max_retries:
             try:
@@ -81,11 +92,12 @@ class RedisManager:
                     host=redis_host,
                     port=redis_port,
                     db=redis_db,
-                    socket_timeout=5,
-                    socket_connect_timeout=5,
+                    socket_timeout=2,  # Reduced from 5 to detect problems faster
+                    socket_connect_timeout=2,  # Reduced from 5 to fail faster
                     decode_responses=True,
-                    health_check_interval=30,
-                    max_connections=20
+                    health_check_interval=15,  # More frequent health checks
+                    max_connections=30,  # Increased to handle more connections
+                    retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
                 # Create the Redis client using the connection pool
@@ -97,7 +109,10 @@ class RedisManager:
                 break
             except Exception as e:
                 retry_count += 1
-                logger.error(f"Redis connection attempt {retry_count} failed: {str(e)}")
+                logger.error(f"Redis connection attempt {retry_count} failed: {e}")
+                # Add a small delay between retries to prevent hammering the Redis server
+                if retry_count < max_retries:
+                    time.sleep(0.5)
                 if retry_count == max_retries:
                     # Instead of raising, just log and set client to None
                     logger.error(f"Failed to connect to Redis after {max_retries} attempts")
@@ -114,8 +129,39 @@ class RedisManager:
         Returns:
             A Redis client instance.
         """
-        if self._client is None or not self._client.ping():
-            self._initialize_client()
+        try:
+            if self._client is None:
+                self._initialize_client()
+            elif not hasattr(self._client, 'ping'):
+                logger.warning("Redis client has no ping method, reinitializing")
+                self._initialize_client()
+            else:
+                try:
+                    # Try ping but catch failures to prevent cascading errors
+                    self._client.ping()
+                except Exception as e:
+                    logger.warning(f"Redis ping failed, reinitializing connection: {e}")
+                    # Explicitly clean up old client if it exists
+                    if hasattr(self._client, 'connection_pool') and hasattr(self._client.connection_pool, 'disconnect'):
+                        try:
+                            self._client.connection_pool.disconnect()
+                        except:
+                            pass
+                    self._initialize_client()
+        except Exception as e:
+            logger.error(f"Error getting Redis client: {e}")
+            # Create an emergency fallback - a dummy Redis client that does nothing
+            from types import SimpleNamespace
+            if self._client is None:
+                self._client = SimpleNamespace()
+                # Add dummy methods that won't crash the application
+                self._client.ping = lambda: False
+                self._client.get = lambda key: None
+                self._client.set = lambda key, value, **kwargs: False
+                self._client.delete = lambda key: 0
+                self._client.keys = lambda pattern: []
+                logger.error("Created dummy Redis client that will silently fail")
+        
         return self._client
         
     def get_connection_stats(self):
