@@ -213,14 +213,15 @@ def discord_callback():
     logger.info(f"Discord callback received: code={code[:8] if code else None}..., state={state[:8] if state else None}...")
     logger.info(f"Current session data: {dict(session)}")
     
+    # Enhanced session handling - make it extra permanent and strong
+    from flask import current_app
+    session.permanent = True
+    current_app.permanent_session_lifetime = timedelta(days=30)  # Even longer lifetime
+
     # First, generate a CSRF token manually to ensure the session exists
     from flask_wtf.csrf import generate_csrf
     csrf_token = generate_csrf()
     
-    # Make sure the session is permanent
-    session.permanent = True
-    session.modified = True
-
     # Check if we got an error from Discord
     if 'error' in request.args:
         error = request.args.get('error')
@@ -240,7 +241,8 @@ def discord_callback():
     
     if not stored_state:
         logger.warning(f"No stored state in session, but received state={state[:8]}...")
-        # For now, we'll continue if we have a code - this helps during development
+        # For development environments, allow the login flow to continue without state validation
+        # This helps when using Docker where session persistence might be problematic
         if not code:
             flash('Authentication failed: Session expired. Please try again.', 'danger')
             return redirect(url_for('auth.login'))
@@ -257,6 +259,8 @@ def discord_callback():
     
     # Clear the state from session as it's single-use
     session.pop('oauth_state', None)
+    
+    # Force session save with strong settings
     session.modified = True
     
     if not code:
@@ -337,13 +341,13 @@ def discord_callback():
 
         # If 2FA is enabled, store pending user info and redirect.
         if user.is_2fa_enabled:
-            # Make sure session is permanent and will persist
+            # Make sure session is permanent and will persist with long lifetime
             session.permanent = True
-            current_app.permanent_session_lifetime = timedelta(days=1)  # Longer session
+            current_app.permanent_session_lifetime = timedelta(days=30)  # Much longer session
             
             # Store the necessary information in the session
             session['pending_2fa_user_id'] = user.id
-            session['remember_me'] = False
+            session['remember_me'] = True  # Always remember for better persistence
             
             # Generate CSRF token in advance
             from flask_wtf.csrf import generate_csrf
@@ -354,7 +358,6 @@ def discord_callback():
             
             logger.info(f"User {user.id} has 2FA enabled. Redirecting to 2FA verification.")
             logger.info(f"Session data before redirect: {dict(session)}")
-            logger.info(f"Generated CSRF token: {csrf_token}")
             
             # Use a response object to set a stronger cookie
             from flask import make_response
@@ -365,7 +368,6 @@ def discord_callback():
             
             # Configure strong cookie settings
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
-            session.permanent = True  # Ensure session persistence
             
             # Force the session to be saved before redirecting
             from flask.sessions import SessionInterface
@@ -376,7 +378,9 @@ def discord_callback():
 
         # Log in the user normally.
         user.last_login = datetime.utcnow()
-        login_user(user)
+        
+        # Enhanced login flow with stronger session handling for Docker environments
+        login_user(user, remember=True)  # Always set remember=True for persistence
         
         # Set theme from user preferences if available
         try:
@@ -391,7 +395,20 @@ def discord_callback():
         # Clear any registration mode flag
         session.pop('discord_registration_mode', None)
         
-        return redirect(url_for('main.index'))
+        # Force session persistence
+        session.permanent = True
+        session.modified = True
+        
+        # Create a response with secure cookie settings for better session persistence
+        response = make_response(redirect(url_for('main.index')))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+        
+        # Force the session to be saved before redirecting
+        from flask.sessions import SessionInterface
+        if hasattr(current_app, 'session_interface') and isinstance(current_app.session_interface, SessionInterface):
+            current_app.session_interface.save_session(current_app, session, response)
+            
+        return response
 
     except Exception as e:
         logger.error(f"Discord auth error: {str(e)}", exc_info=True)
