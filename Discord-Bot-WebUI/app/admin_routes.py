@@ -816,11 +816,17 @@ def update_rsvp():
                 availability.response = response
                 availability.responded_at = datetime.utcnow()
             else:
+                # If discord_id is null but it's required, add a fallback value
+                discord_id = player.discord_id
+                if discord_id is None:
+                    # Use a placeholder value if discord_id is required but not available
+                    discord_id = "admin_added"
+                
                 availability = Availability(
                     match_id=match_id,
                     player_id=player_id,
                     response=response,
-                    discord_id=player.discord_id,
+                    discord_id=discord_id,
                     responded_at=datetime.utcnow()
                 )
                 session.add(availability)

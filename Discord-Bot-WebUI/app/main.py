@@ -1254,3 +1254,57 @@ def inject_theme():
     # Get theme from session, default to light
     theme = session.get('theme', 'light')
     return {'current_theme': theme}
+
+
+@main.context_processor
+def inject_static_file_versions():
+    """
+    Inject static file versioning function into templates.
+    
+    This function makes a file_version function available in templates
+    that can be used to add cache-busting version parameters to static file URLs.
+    
+    Returns:
+        dict: A dictionary containing the file_version function.
+    """
+    from app.extensions import file_versioning
+    
+    def file_version(filepath, method='mtime'):
+        """Generate a versioned URL for a static file to bust browser caches."""
+        try:
+            version = file_versioning.get_version(filepath, method)
+            return f"{url_for('static', filename=filepath)}?v={version}"
+        except Exception as e:
+            logger.error(f"Error generating version for {filepath}: {str(e)}")
+            # Fallback to a random version to ensure cache busting
+            import random
+            return f"{url_for('static', filename=filepath)}?v={random.randint(1, 1000000)}"
+    
+    return {'file_version': file_version}
+
+
+@main.context_processor
+def inject_static_file_versions():
+    """
+    Inject static file versioning function into templates.
+    
+    This function makes a file_version function available in templates
+    that can be used to add cache-busting version parameters to static file URLs.
+    
+    Returns:
+        dict: A dictionary containing the file_version function.
+    """
+    from app.extensions import file_versioning
+    
+    def file_version(filepath, method='mtime'):
+        """Generate a versioned URL for a static file to bust browser caches."""
+        try:
+            version = file_versioning.get_version(filepath, method)
+            return f"{url_for('static', filename=filepath)}?v={version}"
+        except Exception as e:
+            logger.error(f"Error generating version for {filepath}: {str(e)}")
+            # Fallback to a random version to ensure cache busting
+            import random
+            return f"{url_for('static', filename=filepath)}?v={random.randint(1, 1000000)}"
+    
+    return {'file_version': file_version}

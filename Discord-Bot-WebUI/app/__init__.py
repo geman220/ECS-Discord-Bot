@@ -448,6 +448,36 @@ def init_context_processors(app):
             'has_permission': has_permission,
             'is_admin': is_admin
         }
+    
+    @app.context_processor
+    def inject_file_versioning():
+        """
+        Add a file versioning function to templates for cache busting.
+        
+        This function allows templates to use {{ asset_version('path/to/file.js') }}
+        to generate URLs with automatic version parameters based on file modification time.
+        """
+        import random
+        import os
+        from app.extensions import file_versioning
+        
+        def asset_version(filename):
+            """
+            Generate a versioned URL for a static file to bust browser caches.
+            
+            Uses a timestamp-based version from the file_versioning helper.
+            """
+            try:
+                # Return the URL with version parameter
+                from flask import url_for
+                version = file_versioning.get_version(filename, 'mtime')
+                return f"{url_for('static', filename=filename)}?v={version}"
+            except Exception as e:
+                logger.error(f"Error generating version for {filename}: {str(e)}")
+                # Fallback to a random version
+                return f"{url_for('static', filename=filename)}?v={random.randint(1, 1000000)}"
+        
+        return {'asset_version': asset_version}
 
 def install_error_handlers(app):
     """
