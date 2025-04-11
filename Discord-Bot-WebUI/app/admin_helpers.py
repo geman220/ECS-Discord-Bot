@@ -402,7 +402,10 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
     Returns:
         A sorted list of dictionaries containing RSVP status data.
     """
-    players_with_availability = db.session.query(Player, Availability).\
+    if session is None:
+        session = db.session
+        
+    players_with_availability = session.query(Player, Availability).\
         outerjoin(
             Availability,
             (Player.id == Availability.player_id) & (Availability.match_id == match.id)
@@ -410,14 +413,15 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         filter(
             (Player.primary_team_id == match.home_team_id) | (Player.primary_team_id == match.away_team_id)
         ).\
-        options(joinedload(Player.primary_team)).\
+        options(joinedload(Player.primary_team), joinedload(Player.user)).\
         all()
 
     rsvp_data = [{
         'player': player,
         'team': player.primary_team,
         'response': availability.response if availability else 'No Response',
-        'responded_at': availability.responded_at if availability else None
+        'responded_at': availability.responded_at if availability else None,
+        'discord_synced': availability.discord_id is not None if availability else False
     } for player, availability in players_with_availability]
 
     return sorted(rsvp_data, key=lambda x: (x['team'].name, x['player'].name))
