@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 800);
   
+  // Load substitutes for the assign sub modal
+  if (document.getElementById('assignSubModalRSVP')) {
+    loadAvailableSubs();
+  }
+  
   // Initialize when jQuery is ready
   if (window.jQuery) {
     jQuery(function($) {
@@ -152,6 +157,16 @@ function bindEventHandlers() {
     // Using jQuery with defensive programming
     if (window.jQuery) {
       var $ = window.jQuery;
+      
+      // Initialize tooltips
+      if (window.bootstrap) {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: { show: 200, hide: 100 }
+            });
+        });
+      }
       
       // SMS Modal handling
       $('.send-sms-btn').on('click', function() {
@@ -463,5 +478,142 @@ function bindTabHandlers() {
     }
   } catch (e) {
     console.error("Error binding tab handlers:", e);
+  }
+}
+
+/**
+ * Load available substitutes for the assign sub modal
+ */
+function loadAvailableSubs() {
+  try {
+    if (window.jQuery) {
+      var $ = window.jQuery;
+      
+      // Check if the assign sub modal exists
+      if ($('#assignSubModalRSVP').length === 0) {
+        return;
+      }
+      
+      // When the modal is shown, fetch available subs
+      $('#assignSubModalRSVP').on('shown.bs.modal', function() {
+        var subPlayerSelect = $('#subPlayerRSVP');
+        
+        // Clear existing options except the default
+        subPlayerSelect.find('option:not(:first)').remove();
+        subPlayerSelect.append('<option value="loading" disabled>Loading available substitutes...</option>');
+        
+        // Fetch available subs using AJAX
+        fetch('/admin/subs/available')
+          .then(response => {
+            if (!response.ok) {
+              throw new Error('Network response was not ok');
+            }
+            return response.json();
+          })
+          .then(data => {
+            // Get subs array from response
+            var subData = data.subs || [];
+            
+            // Clear loading option
+            subPlayerSelect.find('option[value="loading"]').remove();
+            
+            // Add subs to select
+            if (subData.length > 0) {
+              subData.forEach(function(sub) {
+                subPlayerSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+              });
+            } else {
+              subPlayerSelect.append('<option value="" disabled>No available substitutes found</option>');
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching substitutes:', error);
+            subPlayerSelect.find('option[value="loading"]').remove();
+            subPlayerSelect.append('<option value="" disabled>Error loading substitutes</option>');
+            
+            // Show error toast if toastr is available
+            if (window.toastr) {
+              toastr.error('Failed to load available substitutes. Please try again.');
+            }
+          });
+      });
+      
+      // Handle form submission for assigning subs
+      $('#assignSubFormRSVP').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = new FormData(this);
+        var submitBtn = $(this).find('button[type="submit"]');
+        var originalText = submitBtn.html();
+        
+        // Disable button and show loading
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Assigning...');
+        
+        fetch(this.action, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Show success message
+            if (window.Swal) {
+              Swal.fire({
+                title: 'Success!',
+                text: data.message || 'Substitute assigned successfully.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(() => {
+                // Reload the page to show the updated RSVP list
+                window.location.reload();
+              });
+            } else if (window.toastr) {
+              toastr.success(data.message || 'Substitute assigned successfully.');
+              setTimeout(() => window.location.reload(), 1500);
+            } else {
+              alert('Substitute assigned successfully.');
+              window.location.reload();
+            }
+            
+            // Hide modal
+            if (window.bootstrap && document.getElementById('assignSubModalRSVP')) {
+              var modal = bootstrap.Modal.getInstance(document.getElementById('assignSubModalRSVP'));
+              modal.hide();
+            }
+          } else {
+            // Show error message
+            if (window.Swal) {
+              Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to assign substitute.',
+                icon: 'error'
+              });
+            } else if (window.toastr) {
+              toastr.error(data.message || 'Failed to assign substitute.');
+            } else {
+              alert('Error: ' + (data.message || 'Failed to assign substitute.'));
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error assigning substitute:', error);
+          if (window.toastr) {
+            toastr.error('An error occurred while assigning the substitute.');
+          } else {
+            alert('An error occurred while assigning the substitute.');
+          }
+        })
+        .finally(() => {
+          // Re-enable button
+          submitBtn.prop('disabled', false).html(originalText);
+        });
+      });
+    }
+  } catch (e) {
+    console.error("Error loading available subs:", e);
   }
 }

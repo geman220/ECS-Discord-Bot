@@ -8,10 +8,12 @@ This module provides various helper functions for:
   - Filtering and retrieving users based on dynamic criteria.
   - Handling user actions (approve, remove, reset password).
   - Interacting with Docker containers (e.g., retrieving container data and managing containers).
+  - Managing substitute players and substitute requests.
   - Sending SMS messages using Twilio.
   - Managing announcements (create/update).
   - Retrieving role permissions and updating role permissions.
   - Managing RSVP data for matches.
+  - Managing temporary substitute assignments.
   - Gathering match statistics.
   - Performing system health checks (database, Redis, Celery, Docker, and task status).
   - Determining initial expected roles for a player.
@@ -21,13 +23,13 @@ import logging
 import docker
 import requests
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from twilio.rest import Client
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 from flask import current_app
 
-from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission
+from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, SubRequest, Schedule
 from app.discord_utils import get_expected_roles
 from app.core import db
 
@@ -394,6 +396,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
 
     Joins the Player and Availability tables to collect each player's RSVP response,
     their team, and the response timestamp, and returns the results sorted by team and player name.
+    Also includes temporary subs assigned to each team for this match.
 
     Args:
         match: The Match object.
@@ -405,6 +408,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
     if session is None:
         session = db.session
         
+    # Get regular team players with their availability
     players_with_availability = session.query(Player, Availability).\
         outerjoin(
             Availability,
@@ -421,10 +425,39 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         'team': player.primary_team,
         'response': availability.response if availability else 'No Response',
         'responded_at': availability.responded_at if availability else None,
-        'discord_synced': availability.discord_id is not None if availability else False
+        'discord_synced': availability.discord_id is not None if availability else False,
+        'is_temp_sub': False
     } for player, availability in players_with_availability]
+    
+    # Get temporary subs assigned to this match
+    sub_assignments = session.query(TemporarySubAssignment).filter(
+        TemporarySubAssignment.match_id == match.id
+    ).options(
+        joinedload(TemporarySubAssignment.player),
+        joinedload(TemporarySubAssignment.team),
+        joinedload(TemporarySubAssignment.player).joinedload(Player.user)
+    ).all()
+    
+    # Add temporary subs to the result
+    for assignment in sub_assignments:
+        # Sub availability (if they explicitly RSVP'd to the match)
+        sub_availability = session.query(Availability).filter(
+            Availability.player_id == assignment.player_id,
+            Availability.match_id == match.id
+        ).first()
+        
+        rsvp_data.append({
+            'player': assignment.player,
+            'team': assignment.team,
+            'response': sub_availability.response if sub_availability else 'Yes',  # Default subs to Yes
+            'responded_at': sub_availability.responded_at if sub_availability else assignment.created_at,
+            'discord_synced': sub_availability.discord_id is not None if sub_availability else False,
+            'is_temp_sub': True,
+            'assignment_id': assignment.id,
+            'assigned_by': assignment.assigner.username if hasattr(assignment, 'assigner') else 'Unknown'
+        })
 
-    return sorted(rsvp_data, key=lambda x: (x['team'].name, x['player'].name))
+    return sorted(rsvp_data, key=lambda x: (x['team'].name, x['is_temp_sub'], x['player'].name))
 
 
 # --------------------
@@ -591,7 +624,7 @@ def get_initial_expected_roles(player: Player) -> List[str]:
     """
     Determine the expected roles for a player for initial page load.
 
-    Based on the player's team and league information, as well as their role (coach or referee),
+    Based on the player's team and league information, as well as their role (coach, referee, sub),
     constructs a list of expected role strings.
 
     Args:
@@ -600,8 +633,9 @@ def get_initial_expected_roles(player: Player) -> List[str]:
     Returns:
         A list of expected role strings.
     """
+    roles = []
+    
     if player.primary_team:
-        roles = []
         role_suffix = 'Coach' if player.is_coach else 'Player'
         roles.append(f"ECS-FC-PL-{player.primary_team.name}-{role_suffix}")
         if player.primary_team.league:
@@ -614,9 +648,416 @@ def get_initial_expected_roles(player: Player) -> List[str]:
             league_role = league_map.get(player.primary_team.league.name)
             if league_role:
                 roles.append(league_role)
-                
-        if player.is_ref:
-            roles.append('Referee')
+    
+    if player.is_ref:
+        roles.append('Referee')
+    
+    if player.is_sub:
+        roles.append('Substitute')
             
-        return roles
-    return []
+    return roles
+
+
+# --------------------
+# Temporary Sub Management Helpers
+# --------------------
+
+def get_available_subs(session=None) -> List[Dict[str, Any]]:
+    """
+    Retrieve a list of players marked as substitutes.
+    
+    Args:
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A list of dictionaries containing sub player information.
+    """
+    if session is None:
+        session = db.session
+        
+    subs = session.query(Player).filter(
+        Player.is_sub == True,
+        Player.is_current_player == True
+    ).options(
+        joinedload(Player.user),
+        joinedload(Player.primary_team)
+    ).all()
+    
+    return [{
+        'id': sub.id,
+        'name': sub.name,
+        'primary_team_id': sub.primary_team_id,
+        'primary_team_name': sub.primary_team.name if sub.primary_team else None,
+        'profile_picture_url': sub.profile_picture_url,
+        'discord_id': sub.discord_id,
+        'phone': sub.phone,
+        'email': sub.user.email if sub.user else None
+    } for sub in subs]
+
+
+def get_match_subs(match_id: int, session=None) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Retrieve all temporary subs assigned to a specific match, organized by team.
+    
+    Args:
+        match_id: The ID of the match.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A dictionary with team IDs as keys and lists of sub information as values.
+    """
+    if session is None:
+        session = db.session
+        
+    sub_assignments = session.query(TemporarySubAssignment).filter(
+        TemporarySubAssignment.match_id == match_id
+    ).options(
+        joinedload(TemporarySubAssignment.player),
+        joinedload(TemporarySubAssignment.team),
+        joinedload(TemporarySubAssignment.assigner)
+    ).all()
+    
+    # Organize by team
+    subs_by_team = {}
+    for assignment in sub_assignments:
+        team_id = assignment.team_id
+        if team_id not in subs_by_team:
+            subs_by_team[team_id] = []
+            
+        subs_by_team[team_id].append({
+            'id': assignment.id,
+            'player_id': assignment.player_id,
+            'player_name': assignment.player.name,
+            'team_id': assignment.team_id,
+            'team_name': assignment.team.name,
+            'assigned_by': assignment.assigner.username,
+            'created_at': assignment.created_at,
+            'profile_picture_url': assignment.player.profile_picture_url
+        })
+    
+    return subs_by_team
+
+
+def assign_sub_to_team(match_id: int, player_id: int, team_id: int, user_id: int, session=None) -> Tuple[bool, str]:
+    """
+    Assign a substitute player to a team for a specific match.
+    
+    Args:
+        match_id: The ID of the match.
+        player_id: The ID of the player to assign as a sub.
+        team_id: The ID of the team to which the player will be assigned.
+        user_id: The ID of the user making the assignment.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A tuple of (success: bool, message: str)
+    """
+    if session is None:
+        session = db.session
+        
+    try:
+        # Check if player is marked as a substitute
+        player = session.query(Player).get(player_id)
+        if not player:
+            return False, "Player not found"
+            
+        if not player.is_sub:
+            return False, "Player is not marked as a substitute"
+            
+        # Check if match exists and belongs to the team
+        match = session.query(Match).get(match_id)
+        if not match:
+            return False, "Match not found"
+            
+        if match.home_team_id != team_id and match.away_team_id != team_id:
+            return False, "Team is not part of this match"
+            
+        # Check if sub is already assigned to this match
+        existing_assignment = session.query(TemporarySubAssignment).filter(
+            TemporarySubAssignment.match_id == match_id,
+            TemporarySubAssignment.player_id == player_id
+        ).first()
+        
+        if existing_assignment:
+            return False, "Player is already assigned as a sub for this match"
+            
+        # Create the assignment
+        sub_assignment = TemporarySubAssignment(
+            match_id=match_id,
+            player_id=player_id,
+            team_id=team_id,
+            assigned_by=user_id,
+            created_at=datetime.utcnow()
+        )
+        
+        session.add(sub_assignment)
+        session.commit()
+        logger.info(f"Assigned player {player_id} as a sub for team {team_id} in match {match_id} by user {user_id}")
+        
+        return True, "Sub assigned successfully"
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error assigning sub: {str(e)}")
+        return False, f"Error: {str(e)}"
+
+
+def remove_sub_assignment(assignment_id: int, user_id: int, session=None) -> Tuple[bool, str]:
+    """
+    Remove a temporary sub assignment.
+    
+    Args:
+        assignment_id: The ID of the assignment to remove.
+        user_id: The ID of the user performing the removal.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A tuple of (success: bool, message: str)
+    """
+    if session is None:
+        session = db.session
+        
+    try:
+        assignment = session.query(TemporarySubAssignment).get(assignment_id)
+        if not assignment:
+            return False, "Assignment not found"
+            
+        # Keep track of info for logging
+        match_id = assignment.match_id
+        player_id = assignment.player_id
+        team_id = assignment.team_id
+        
+        session.delete(assignment)
+        session.commit()
+        
+        logger.info(f"Removed sub assignment of player {player_id} for team {team_id} in match {match_id} by user {user_id}")
+        return True, "Sub assignment removed successfully"
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error removing sub assignment: {str(e)}")
+        return False, f"Error: {str(e)}"
+
+
+def get_player_active_sub_assignments(player_id: int, session=None) -> List[Dict[str, Any]]:
+    """
+    Get all active sub assignments for a player (matches that haven't occurred yet).
+    
+    Args:
+        player_id: The ID of the player.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A list of dictionaries containing assignment information.
+    """
+    if session is None:
+        session = db.session
+        
+    current_date = datetime.utcnow().date()
+    
+    assignments = session.query(TemporarySubAssignment).join(
+        Match, TemporarySubAssignment.match_id == Match.id
+    ).filter(
+        TemporarySubAssignment.player_id == player_id,
+        Match.date >= current_date
+    ).options(
+        joinedload(TemporarySubAssignment.match),
+        joinedload(TemporarySubAssignment.team),
+        joinedload(TemporarySubAssignment.assigner)
+    ).all()
+    
+    return [{
+        'id': assignment.id,
+        'match_id': assignment.match_id,
+        'match_date': assignment.match.date,
+        'match_time': assignment.match.time,
+        'match_location': assignment.match.location,
+        'team_id': assignment.team_id,
+        'team_name': assignment.team.name,
+        'assigned_by': assignment.assigner.username,
+        'created_at': assignment.created_at,
+        'home_team_name': assignment.match.home_team.name,
+        'away_team_name': assignment.match.away_team.name
+    } for assignment in assignments]
+
+
+def cleanup_old_sub_assignments(session=None) -> Tuple[int, str]:
+    """
+    Clean up sub assignments for matches that occurred in the past.
+    This should be run automatically via a scheduled task every Monday.
+    
+    Args:
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A tuple of (count_deleted: int, message: str)
+    """
+    if session is None:
+        session = db.session
+        
+    try:
+        current_date = datetime.utcnow().date()
+        
+        # Find all assignments for matches that have already occurred
+        old_assignments = session.query(TemporarySubAssignment).join(
+            Match, TemporarySubAssignment.match_id == Match.id
+        ).filter(
+            Match.date < current_date
+        ).all()
+        
+        if not old_assignments:
+            return 0, "No old assignments found"
+        
+        # Delete the assignments
+        count = len(old_assignments)
+        for assignment in old_assignments:
+            session.delete(assignment)
+            
+        session.commit()
+        logger.info(f"Cleaned up {count} old sub assignments")
+        
+        return count, f"Successfully removed {count} old sub assignments"
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error cleaning up old sub assignments: {str(e)}")
+        return 0, f"Error: {str(e)}"
+
+
+def get_sub_requests(filters=None, session=None):
+    """
+    Retrieve sub requests based on provided filters.
+    
+    Args:
+        filters: A dictionary of filter criteria (match_id, team_id, status, etc.).
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A SQLAlchemy query object for SubRequest objects that match the filters.
+    """
+    if session is None:
+        session = db.session
+        
+    query = session.query(SubRequest).options(
+        joinedload(SubRequest.match),
+        joinedload(SubRequest.team),
+        joinedload(SubRequest.requester),
+        joinedload(SubRequest.fulfiller)
+    )
+    
+    if filters:
+        if filters.get('match_id'):
+            query = query.filter(SubRequest.match_id == filters['match_id'])
+        if filters.get('team_id'):
+            query = query.filter(SubRequest.team_id == filters['team_id'])
+        if filters.get('status'):
+            if filters['status'] != 'ALL':
+                query = query.filter(SubRequest.status == filters['status'])
+        if filters.get('week'):
+            query = query.join(Match, SubRequest.match_id == Match.id)\
+                         .join(Schedule, Match.schedule_id == Schedule.id)\
+                         .filter(Schedule.week == filters['week'])
+    
+    return query
+
+
+def create_sub_request(match_id, team_id, requested_by, notes=None, session=None):
+    """
+    Create a new sub request.
+    
+    Args:
+        match_id: The ID of the match.
+        team_id: The ID of the team.
+        requested_by: The ID of the user making the request.
+        notes: (Optional) Additional notes for the request.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A tuple of (success: bool, message: str, request_id: int)
+    """
+    if session is None:
+        session = db.session
+        
+    try:
+        # Check if the match exists
+        match = session.query(Match).get(match_id)
+        if not match:
+            return False, "Match not found", None
+            
+        # Check if the team is part of this match
+        if match.home_team_id != team_id and match.away_team_id != team_id:
+            return False, "Team is not part of this match", None
+            
+        # Check if there's already a request for this match and team
+        existing_request = session.query(SubRequest).filter(
+            SubRequest.match_id == match_id,
+            SubRequest.team_id == team_id
+        ).first()
+        
+        if existing_request:
+            return False, "A sub request already exists for this team and match", None
+            
+        # Create the request
+        sub_request = SubRequest(
+            match_id=match_id,
+            team_id=team_id,
+            requested_by=requested_by,
+            notes=notes,
+            status='PENDING',
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        session.add(sub_request)
+        session.flush()  # Get the ID without committing
+        
+        request_id = sub_request.id
+        session.commit()
+        logger.info(f"Created sub request {request_id} for match {match_id}, team {team_id} by user {requested_by}")
+        
+        return True, "Sub request created successfully", request_id
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error creating sub request: {str(e)}")
+        return False, f"Error: {str(e)}", None
+
+
+def update_sub_request_status(request_id, status, fulfilled_by=None, session=None):
+    """
+    Update the status of a sub request.
+    
+    Args:
+        request_id: The ID of the request.
+        status: The new status (PENDING, APPROVED, DECLINED, FULFILLED).
+        fulfilled_by: (Optional) The ID of the user who fulfilled the request.
+        session: (Optional) A SQLAlchemy session to use for the query.
+        
+    Returns:
+        A tuple of (success: bool, message: str)
+    """
+    if session is None:
+        session = db.session
+        
+    try:
+        sub_request = session.query(SubRequest).get(request_id)
+        if not sub_request:
+            return False, "Sub request not found"
+            
+        # Update the status
+        sub_request.status = status
+        sub_request.updated_at = datetime.utcnow()
+        
+        # If the request is being fulfilled, update the fulfiller
+        if status == 'FULFILLED' and fulfilled_by:
+            sub_request.fulfilled_by = fulfilled_by
+        
+        session.commit()
+        logger.info(f"Updated sub request {request_id} status to {status}")
+        
+        return True, "Sub request updated successfully"
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error updating sub request: {str(e)}")
+        return False, f"Error: {str(e)}"

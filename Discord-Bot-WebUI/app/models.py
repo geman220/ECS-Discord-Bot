@@ -5,7 +5,7 @@ Database Models Module
 
 This module defines the SQLAlchemy ORM models used throughout the application.
 It includes models for users, roles, permissions, leagues, seasons, teams, players,
-matches, notifications, feedback, and various statistical and history tracking entities.
+matches, notifications, feedback, temporary substitutes, and various statistical and history tracking entities.
 """
 
 import logging
@@ -416,6 +416,7 @@ class Player(db.Model):
     jersey_number = db.Column(db.Integer, nullable=True)
     is_coach = db.Column(db.Boolean, default=False)
     is_ref = db.Column(db.Boolean, default=False)
+    is_sub = db.Column(db.Boolean, default=False)
     discord_id = db.Column(db.String(100), unique=True)
     needs_manual_review = db.Column(db.Boolean, default=False)
     linked_primary_player_id = db.Column(db.Integer, nullable=True)
@@ -693,6 +694,7 @@ class Match(db.Model):
     notes = db.Column(db.Text, nullable=True)
     schedule_id = db.Column(db.Integer, db.ForeignKey('schedule.id'), nullable=False)
     events = db.relationship('PlayerEvent', back_populates='match', lazy=True, cascade="all, delete-orphan")
+    # Relationship with temporary sub assignments defined in TemporarySubAssignment model
 
     # Team verification fields
     home_team_verified = db.Column(db.Boolean, default=False)
@@ -1234,3 +1236,56 @@ class Prediction(db.Model):
 
     def __repr__(self):
         return f"<Prediction {self.match_id} by {self.discord_user_id}>"
+
+
+class TemporarySubAssignment(db.Model):
+    """Model representing a temporary substitute assignment for a match."""
+    __tablename__ = 'temporary_sub_assignments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Define relationships
+    match = db.relationship('Match', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
+    player = db.relationship('Player', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
+    team = db.relationship('Team', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
+    assigner = db.relationship('User', backref=db.backref('assigned_subs', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('match_id', 'player_id', name='uq_temp_sub_match_player'),
+    )
+    
+    def __repr__(self):
+        return f"<TemporarySubAssignment: {self.player_id} for {self.team_id} in match {self.match_id}>"
+
+
+class SubRequest(db.Model):
+    """Model representing a substitute request from a coach."""
+    __tablename__ = 'sub_requests'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), default='PENDING')  # PENDING, APPROVED, DECLINED, FULFILLED
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    fulfilled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Define relationships
+    match = db.relationship('Match', backref=db.backref('sub_requests', lazy='dynamic'))
+    team = db.relationship('Team', backref=db.backref('sub_requests', lazy='dynamic'))
+    requester = db.relationship('User', foreign_keys=[requested_by], backref=db.backref('requested_subs', lazy='dynamic'))
+    fulfiller = db.relationship('User', foreign_keys=[fulfilled_by], backref=db.backref('fulfilled_sub_requests', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('match_id', 'team_id', name='uq_sub_req_match_team'),
+    )
+    
+    def __repr__(self):
+        return f"<SubRequest: {self.team_id} in match {self.match_id}, status: {self.status}>"

@@ -520,7 +520,8 @@ def register_with_discord():
             name=username,
             user_id=new_user.id,
             discord_id=discord_id,
-            is_current_player=True
+            is_current_player=True,
+            is_sub=True  # Set is_sub flag since SUB role is assigned
         )
         db_session.add(player)
         db_session.flush()
