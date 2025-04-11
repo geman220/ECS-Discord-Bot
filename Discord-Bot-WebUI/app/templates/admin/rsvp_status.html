@@ -26,14 +26,27 @@
         justify-content: center;
         height: 38px;
         width: 38px;
-        background-color: #f0f2f4;
         overflow: hidden;
+        border-radius: 50%;
     }
     
     .avatar img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+        border-radius: 50%;
+    }
+    
+    /* Override the default background color for avatars */
+    .avatar.avatar-sm, 
+    .avatar.avatar-md {
+        background-color: transparent !important;
+    }
+    
+    /* Add a subtle shadow to avatars for better visual separation */
+    .avatar.avatar-sm img, 
+    .avatar.avatar-md img {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .avatar-sm {
@@ -457,9 +470,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2">
+                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -582,9 +595,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2">
+                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -695,9 +708,9 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="avatar avatar-sm me-2">
+                                                    <div class="avatar avatar-sm me-2" style="background-color: transparent;">
                                                         {% if rsvp['player'].profile_picture_url %}
-                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle">
+                                                            <img src="{{ rsvp['player'].profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
                                                         {% else %}
                                                             <div class="avatar-initial rounded-circle bg-label-secondary">
                                                                 {{ rsvp['player'].name[:1]|upper }}
@@ -934,7 +947,7 @@
 <!-- External dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-<!-- Custom scripts with proper error handling -->
-<script src="{{ url_for('static', filename='custom_js/design-system-override.js') }}"></script>
-<script src="{{ url_for('static', filename='custom_js/rsvp-unified.js') }}"></script>
+<!-- Custom scripts with proper asset versioning for cache busting -->
+<script src="{{ asset_version('custom_js/design-system-override.js') }}"></script>
+<script src="{{ asset_version('custom_js/rsvp-unified.js') }}"></script>
 {% endblock %}

@@ -10,6 +10,9 @@ initialization and cleanup for Celery worker processes.
 """
 
 import logging
+import os
+import time
+import hashlib
 from flask import current_app
 from celery.signals import worker_process_init, worker_process_shutdown
 from app.core import db, celery
@@ -101,3 +104,70 @@ def cleanup_worker_process(**kwargs):
     """
     if hasattr(db, 'engine'):
         db.engine.dispose()
+
+# File versioning cache system for static assets
+class StaticFileVersioning:
+    """
+    Helper class to manage static file versioning for cache busting.
+    Provides a version parameter based on file modification time or content hash.
+    """
+    def __init__(self):
+        self.version_cache = {}
+        self.last_cache_clear = time.time()
+        self.cache_lifetime = 3600  # 1 hour
+        
+    def get_version(self, filepath, method='mtime'):
+        """
+        Returns a version string for the given file path.
+        
+        Args:
+            filepath (str): Path to the static file, relative to the static folder
+            method (str): Versioning method - 'mtime' for modification time or 'hash' for content hash
+            
+        Returns:
+            str: Version string (timestamp or hash)
+        """
+        current_time = time.time()
+        
+        # Clear cache periodically to avoid memory issues on long-running servers
+        if current_time - self.last_cache_clear > self.cache_lifetime:
+            self.version_cache = {}
+            self.last_cache_clear = current_time
+            
+        # Check if version is already cached
+        cache_key = f"{filepath}:{method}"
+        if cache_key in self.version_cache:
+            return self.version_cache[cache_key]
+            
+        # Get the absolute path to the file
+        static_folder = current_app.static_folder
+        full_path = os.path.join(static_folder, filepath)
+        
+        # Get version based on method
+        version = None
+        try:
+            if os.path.exists(full_path):
+                if method == 'mtime':
+                    # Use file modification time
+                    version = str(int(os.path.getmtime(full_path)))
+                elif method == 'hash':
+                    # Use a hash of the file content
+                    with open(full_path, 'rb') as f:
+                        content = f.read()
+                        version = hashlib.md5(content).hexdigest()[:8]
+                else:
+                    # Fallback to current timestamp
+                    version = str(int(time.time()))
+            else:
+                # File doesn't exist, use current timestamp
+                version = str(int(time.time()))
+        except Exception as e:
+            logger.error(f"Error generating version for {filepath}: {str(e)}")
+            version = str(int(time.time()))
+            
+        # Cache the version
+        self.version_cache[cache_key] = version
+        return version
+        
+# Initialize the static file versioning helper
+file_versioning = StaticFileVersioning()

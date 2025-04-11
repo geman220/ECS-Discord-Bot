@@ -210,45 +210,82 @@ function bindEventHandlers() {
             return;
           }
           
-          if (confirm('Are you sure you want to update this player\'s RSVP status?')) {
-            var formData = new FormData();
-            var csrfToken = $('input[name="csrf_token"]').val() || '';
-            
-            formData.append('csrf_token', csrfToken);
-            formData.append('player_id', playerId);
-            formData.append('match_id', matchId);
-            formData.append('response', response);
-            
-            // Simple fetch with traditional function syntax
-            fetch('/admin/update_rsvp', {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            })
-            .then(function(response) { 
-              return response.json(); 
-            })
-            .then(function(data) {
-              if (data.success) {
-                if (window.toastr) {
-                  toastr.success('RSVP updated successfully.');
+          // Use SweetAlert2 instead of the native confirm dialog
+          Swal.fire({
+            title: 'Update RSVP Status?',
+            text: 'Are you sure you want to update this player\'s RSVP status?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, update it',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#696cff',
+            customClass: {
+              confirmButton: 'btn btn-primary',
+              cancelButton: 'btn btn-outline-secondary'
+            },
+            buttonsStyling: false
+          }).then((result) => {
+            if (result.isConfirmed) {
+              var formData = new FormData();
+              var csrfToken = $('input[name="csrf_token"]').val() || '';
+              
+              formData.append('csrf_token', csrfToken);
+              formData.append('player_id', playerId);
+              formData.append('match_id', matchId);
+              formData.append('response', response);
+              
+              // Show loading state
+              Swal.fire({
+                title: 'Updating...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                  Swal.showLoading();
                 }
-                window.location.reload();
-              } else {
-                if (window.toastr) {
-                  toastr.error(data.message || 'Error updating RSVP.');
+              });
+              
+              // Simple fetch with improved error handling
+              fetch('/admin/update_rsvp', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest'
                 }
-              }
-            })
-            .catch(function(error) {
-              console.error('Error:', error);
-              if (window.toastr) {
-                toastr.error('An error occurred while updating RSVP.');
-              }
-            });
-          }
+              })
+              .then(function(response) {
+                if (!response.ok) {
+                  throw new Error('Network response was not ok');
+                }
+                return response.json(); 
+              })
+              .then(function(data) {
+                if (data.success) {
+                  Swal.fire({
+                    title: 'Success!',
+                    text: 'RSVP updated successfully.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                  }).then(() => {
+                    window.location.reload();
+                  });
+                } else {
+                  Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Error updating RSVP.',
+                    icon: 'error'
+                  });
+                }
+              })
+              .catch(function(error) {
+                console.error('Error:', error);
+                Swal.fire({
+                  title: 'Error',
+                  text: 'An error occurred while updating RSVP. Please try again.',
+                  icon: 'error'
+                });
+              });
+            }
+          });
         } catch (e) {
           console.error("Error handling RSVP update:", e);
         }
