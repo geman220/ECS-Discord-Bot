@@ -70,6 +70,9 @@
     
     <!-- MOST IMPORTANT: Fix for button styling - loaded last to override all other styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-fix.css') }}">
+    
+    <!-- Fix for DataTables pagination in dark mode -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/paginate-dark-fix.css') }}?v={{ range(1, 1000000) | random }}">
 
     <!-- Additional scripts loaded in footer -->
     <!-- Button fix scripts loaded in footer -->
