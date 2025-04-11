@@ -2,60 +2,203 @@
 
 {% block main_content %}
 <style>
-    /* Consistent styling for 2FA verification page */
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background-color: #00539F;
+    /* Modern styling for 2FA verification page */
+    :root {
+        --primary-color: #00539F;
+        --primary-light: rgba(0, 83, 159, 0.1);
+        --primary-hover: #0066CC;
+        --accent-color: #50C878; /* Emerald green */
+        --box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+        --border-radius: 12px;
+        --animation-duration: 0.8s;
     }
 
     .authentication-wrapper {
-        height: 100%;
+        min-height: 100vh;
         width: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, #f5f5f5 0%, #ecf6ff 100%);
     }
 
     .authentication-inner {
         width: 100%;
-        max-width: 400px;
+        max-width: 420px;
         background-color: white;
-        padding: 20px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-radius: 8px;
+        padding: 2.5rem;
+        box-shadow: var(--box-shadow);
+        border-radius: var(--border-radius);
         text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
-    .waves-button-input {
-        background-color: #00539F !important;
-        color: white !important;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-size: 16px;
+    .authentication-inner:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .accent-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
+        height: 6px;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
     }
 
-        .waves-button-input:hover {
-            background-color: #004080 !important;
-        }
+    .auth-title {
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+    }
+
+    .auth-subtitle {
+        color: #666;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    .auth-icon {
+        margin-bottom: 1.5rem;
+        display: inline-block;
+    }
+
+    .auth-icon i {
+        font-size: 3rem;
+        color: var(--primary-color);
+        animation: pulse var(--animation-duration) infinite alternate;
+    }
+
+    .token-input {
+        padding: 1rem;
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+        text-align: center;
+        font-weight: 600;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        transition: all 0.3s;
+        background-color: #fafafa;
+    }
+
+    .token-input:focus {
+        border-color: var(--primary-color);
+        background-color: white;
+        box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .verify-btn {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 1rem;
+        width: 100%;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .verify-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+
+    .help-text {
+        margin-top: 1.5rem;
+        font-size: 0.875rem;
+        color: #777;
+    }
+
+    /* Animation keyframes */
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.1); }
+    }
+
+    /* Digit input animation */
+    .token-input.animate {
+        animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
 </style>
 
 <div class="authentication-wrapper">
     <div class="authentication-inner">
-        <h4 class="mb-3 text-primary">Two-Factor Authentication</h4>
-        <p class="mb-4 text-muted">Please enter the 6-digit code from your authenticator app.</p>
-        <form method="POST" action="{{ url_for('auth.verify_2fa_login') }}">
-            {{ form.csrf_token }}  <!-- Add the CSRF token explicitly -->
-            <div class="mb-3">
-                {{ form.token(class="form-control form-control-lg", placeholder="123456") }}
+        <div class="accent-bar"></div>
+        
+        <div class="auth-icon">
+            <i class="ti ti-shield-lock"></i>
+        </div>
+        
+        <h2 class="auth-title">Two-Factor Authentication</h2>
+        <p class="auth-subtitle">Please enter the 6-digit code from your authenticator app to verify your identity</p>
+        
+        <form method="POST" action="{{ url_for('auth.verify_2fa_login', user_id=user_id) }}" id="twoFactorForm">
+            <!-- Hidden input to always carry the user_id throughout the form submission -->
+            <input type="hidden" name="user_id" value="{{ user_id }}">
+            <!-- No CSRF token needed as the route is exempted -->
+            <div class="mb-4">
+                <input type="text" name="token" class="form-control token-input" 
+                       placeholder="• • • • • •" maxlength="6" autocomplete="off" 
+                       inputmode="numeric" autofocus pattern="[0-9]{6}" required>
             </div>
-            <div class="d-grid gap-2">
-                <input type="submit" class="btn waves-button-input" value="Verify">
+            
+            <div class="d-grid">
+                <button type="submit" class="btn verify-btn">
+                    <i class="ti ti-check me-2"></i> Verify and Continue
+                </button>
             </div>
         </form>
-        <!-- Removed Resend Code Link -->
+        
+        <p class="help-text">
+            Having trouble? <a href="{{ url_for('auth.login') }}" class="text-primary">Return to login</a>
+        </p>
     </div>
 </div>
+
+<script>
+    // Add animation to the input when user enters an invalid code
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for error messages
+        const hasError = document.querySelector('.alert-danger');
+        if (hasError) {
+            const input = document.querySelector('.token-input');
+            input.classList.add('animate');
+            setTimeout(() => {
+                input.classList.remove('animate');
+            }, 500);
+        }
+        
+        // Auto-focus input
+        const tokenInput = document.querySelector('.token-input');
+        if (tokenInput) {
+            setTimeout(() => {
+                tokenInput.focus();
+            }, 500);
+        }
+        
+        // Make sure form submission uses POST to the current URL with query params
+        const form = document.getElementById('twoFactorForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Get the current URL with query params
+                const currentUrl = window.location.href;
+                form.action = currentUrl;
+            });
+        }
+    });
+</script>
 {% endblock %}

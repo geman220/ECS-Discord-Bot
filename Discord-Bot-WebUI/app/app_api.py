@@ -137,13 +137,18 @@ def ping():
 def get_discord_auth_url():
     """
     Generate and return a Discord OAuth2 authorization URL for mobile app.
+    Uses the combined login+authorize URL pattern that works reliably.
     
     Optional query parameters:
         redirect_uri: The URI to redirect to after authorization
+        force_consent: If true, will add force_verify=true to ensure Discord shows auth page
         
     Returns:
-        JSON with Discord authorization URL and PKCE code verifier
+        JSON with Discord authorization URL, PKCE code verifier, and state parameter
     """
+    from app.auth_helpers import generate_oauth_state
+    from urllib.parse import quote
+    
     # Default to mobile app scheme if no redirect_uri provided
     default_redirect = 'ecs-fc-scheme://auth'
     redirect_uri = request.args.get('redirect_uri', default_redirect)
@@ -151,27 +156,40 @@ def get_discord_auth_url():
     # Generate PKCE codes for enhanced security
     code_verifier, code_challenge = generate_pkce_codes()
     
-    # Store code verifier in session for later verification
+    # Generate state parameter for CSRF protection
+    state_value = generate_oauth_state()
+    
+    # Store both code verifier and state in session for later verification
     session['code_verifier'] = code_verifier
+    session['oauth_state'] = state_value
     
-    # Discord OAuth2 parameters
-    params = {
-        'client_id': current_app.config['DISCORD_CLIENT_ID'],
-        'redirect_uri': redirect_uri,
-        'response_type': 'code',
-        'scope': 'identify email guilds',
-        'code_challenge': code_challenge,
-        'code_challenge_method': 'S256',
-        'prompt': 'consent'
-    }
+    # Discord client ID
+    discord_client_id = current_app.config['DISCORD_CLIENT_ID']
     
-    # Build the authorization URL
-    discord_auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
+    # Prepare parameters for the combined login+authorize URL
+    quoted_redirect_uri = quote(redirect_uri)
+    quoted_scope = quote('identify email guilds')
     
-    # Return the URL and code verifier to the mobile app
+    # Use the direct login+authorize URL pattern that works more reliably
+    discord_login_url = (
+        f"https://discord.com/login?redirect_to=%2Foauth2%2Fauthorize"
+        f"%3Fclient_id%3D{discord_client_id}"
+        f"%26redirect_uri%3D{quoted_redirect_uri}"
+        f"%26response_type%3Dcode"
+        f"%26scope%3D{quoted_scope}"
+        f"%26code_challenge%3D{code_challenge}"
+        f"%26code_challenge_method%3DS256"
+        f"%26state%3D{state_value}"
+    )
+    
+    # Log the complete URL for debugging
+    logger.debug(f"Generated combined login+auth URL for mobile app: {discord_login_url}")
+    
+    # Return the URL, code verifier, and state to the mobile app
     return jsonify({
-        'auth_url': discord_auth_url,
-        'code_verifier': code_verifier
+        'auth_url': discord_login_url,
+        'code_verifier': code_verifier,
+        'state': state_value
     }), 200
 
 
@@ -184,6 +202,7 @@ def discord_callback():
         code: The authorization code from Discord
         redirect_uri: The redirect URI used in the auth request
         code_verifier: The PKCE code verifier
+        state: The state parameter from the original auth request
         
     Returns:
         JSON with JWT access token on success
@@ -201,6 +220,20 @@ def discord_callback():
             
         redirect_uri = data.get('redirect_uri')
         
+        # Verify the state parameter to prevent CSRF attacks
+        received_state = data.get('state')
+        stored_state = session.get('oauth_state')
+        
+        if not received_state:
+            return jsonify({"msg": "Missing state parameter from original authorization request"}), 400
+            
+        if not stored_state or received_state != stored_state:
+            logger.warning(f"OAuth state mismatch: received {received_state[:8]}..., stored {stored_state[:8] if stored_state else None}...")
+            return jsonify({"msg": "Invalid or expired state parameter"}), 400
+            
+        # Clear the state from session as it's single-use
+        session.pop('oauth_state', None)
+        
         # The code_verifier MUST be the same one used in the original authorization request
         code_verifier = data.get('code_verifier')
         if not code_verifier:
@@ -209,10 +242,8 @@ def discord_callback():
         if not code:
             return jsonify({"msg": "Missing authorization code"}), 400
             
-# Line deleted - redundant check is now handled above
-        
         # Log the data we're using for the OAuth exchange
-        logger.info(f"Discord callback data - code length: {len(code) if code else 0}, redirect_uri: {redirect_uri}")
+        logger.info(f"Discord callback data - code length: {len(code) if code else 0}, redirect_uri: {redirect_uri}, state verified: true")
         
         # Exchange the authorization code for an access token
         token_data = exchange_discord_code(code, redirect_uri, code_verifier)
