@@ -54,6 +54,11 @@ document.addEventListener('DOMContentLoaded', function() {
             language: {
               search: "",
               searchPlaceholder: "Search players..."
+            },
+            drawCallback: function() {
+              // Rebind event handlers to rows after DataTable redraws
+              bindEventHandlers();
+              fixDropdownsAndOverflow();
             }
           };
           
