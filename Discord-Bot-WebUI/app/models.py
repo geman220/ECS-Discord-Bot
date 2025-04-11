@@ -456,6 +456,7 @@ class Player(db.Model):
     discord_last_verified = db.Column(DateTime)
     discord_needs_update = db.Column(Boolean, default=False)
     discord_roles_synced = db.Column(db.Boolean, default=False)
+    last_sync_attempt = db.Column(db.DateTime, nullable=True)
     season_assignments = relationship(
         'PlayerTeamSeason',
         back_populates='player',

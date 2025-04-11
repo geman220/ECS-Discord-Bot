@@ -135,13 +135,14 @@ def send_reset_confirmation_email(to_email):
     logger.info(f"Sent reset confirmation email to {to_email}")
 
 
-def exchange_discord_code(code, redirect_uri):
+def exchange_discord_code(code, redirect_uri, code_verifier=None):
     """
     Exchange a Discord authorization code for an access token.
 
     Args:
         code (str): The authorization code received from Discord.
         redirect_uri (str): The redirect URI used in the OAuth flow.
+        code_verifier (str, optional): The PKCE code verifier for mobile flows.
 
     Returns:
         dict: JSON response containing the access token and related data.
@@ -157,11 +158,27 @@ def exchange_discord_code(code, redirect_uri):
         'redirect_uri': redirect_uri,
         'scope': 'identify email'
     }
+    
+    # Add code verifier if provided (for PKCE flow)
+    if code_verifier:
+        data['code_verifier'] = code_verifier
+    
     headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
-    response = requests.post(DISCORD_TOKEN_URL, data=data, headers=headers)
-    response.raise_for_status()
-    return response.json()
+    logger.info(f"Sending token request to Discord with redirect_uri={redirect_uri}")
+    
+    try:
+        response = requests.post(DISCORD_TOKEN_URL, data=data, headers=headers)
+        response.raise_for_status()
+        token_data = response.json()
+        logger.info(f"Successfully exchanged code for token: access_token={token_data.get('access_token', '')[:10]}...")
+        return token_data
+    except requests.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Discord token request failed: Status {e.response.status_code}, Response: {e.response.text}")
+        else:
+            logger.error(f"Discord token request failed: {str(e)}")
+        return None
 
 
 def get_discord_user_data(access_token):
@@ -172,14 +189,33 @@ def get_discord_user_data(access_token):
         access_token (str): The access token for Discord.
 
     Returns:
-        dict: JSON response containing user data.
-
-    Raises:
-        requests.RequestException: If the request fails.
+        dict: JSON response containing user data or None if request fails.
     """
     headers = {'Authorization': f'Bearer {access_token}'}
-    response = requests.get(DISCORD_API_URL, headers=headers)
-    response.raise_for_status()
-    user_data = response.json()
-    logger.info("Successfully fetched Discord user data")
-    return user_data
+    
+    try:
+        logger.info(f"Fetching user data from Discord with token {access_token[:10]}...")
+        response = requests.get(DISCORD_API_URL, headers=headers)
+        response.raise_for_status()
+        user_data = response.json()
+        logger.info(f"Successfully fetched Discord user data: id={user_data.get('id')}, username={user_data.get('username')}")
+        return user_data
+    except requests.RequestException as e:
+        if hasattr(e, 'response') and e.response is not None:
+            logger.error(f"Discord user data request failed: Status {e.response.status_code}, Response: {e.response.text}")
+        else:
+            logger.error(f"Discord user data request failed: {str(e)}")
+        return None
+
+def generate_oauth_state():
+    """
+    Generate a secure random token for OAuth state parameter.
+    
+    Returns:
+        str: A URL-safe base64-encoded random token.
+    """
+    import secrets
+    import base64
+    # Generate 32 bytes of random data and convert to URL-safe base64
+    random_bytes = secrets.token_bytes(32)
+    return base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')

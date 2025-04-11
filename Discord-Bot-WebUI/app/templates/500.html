@@ -1,21 +1,143 @@
+  {% extends "base_unauthenticated.html" %}
 
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>500 - Server Error</title>
-                <style>
-                    .error-page { text-align: center; padding: 50px; }
-                    .btn { display: inline-block; padding: 10px 20px; 
-                          background: #007bff; color: white; text-decoration: none; 
-                          border-radius: 5px; margin-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <div class="error-page">
-                    <h1>500 - Server Error</h1>
-                    <p>An internal server error occurred.</p>
-                    <a href="/" class="btn">Return Home</a>
-                </div>
-            </body>
-            </html>
-        
+  {% block main_content %}
+  <style>
+      .error-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f5f7fa 0%, #e4edf9 100%);
+      }
+
+      .error-container {
+          max-width: 550px;
+          padding: 3rem;
+          text-align: center;
+          background-color: white;
+          border-radius: 16px;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      }
+
+      .error-code {
+          font-size: 8rem;
+          font-weight: 800;
+          line-height: 1;
+          background: linear-gradient(90deg, #8e0000, #d44);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin-bottom: 1rem;
+      }
+
+      .error-title {
+          font-size: 1.75rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: #333;
+      }
+
+      .error-message {
+          font-size: 1.1rem;
+          margin-bottom: 2rem;
+          color: #666;
+      }
+
+      .error-joke {
+          background-color: #f8f9fa;
+          padding: 1.5rem;
+          border-radius: 10px;
+          margin-bottom: 2rem;
+          font-style: italic;
+          color: #555;
+          font-size: 1.1rem;
+          position: relative;
+          border-left: 4px solid #8e0000;
+      }
+
+      .error-joke:before {
+          content: '"';
+          font-size: 3rem;
+          position: absolute;
+          top: -10px;
+          left: 10px;
+          color: rgba(142, 0, 0, 0.1);
+      }
+
+      .home-button {
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          background-color: #8e0000;
+          color: white;
+          border-radius: 8px;
+          transition: all 0.3s;
+          text-decoration: none;
+          display: inline-block;
+          box-shadow: 0 4px 10px rgba(142, 0, 0, 0.2);
+      }
+
+      .home-button:hover {
+          background-color: #aa0000;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 15px rgba(142, 0, 0, 0.3);
+          color: white;
+      }
+
+      .illustration {
+          max-width: 250px;
+          margin: 0 auto 2rem;
+          animation: float 4s ease-in-out infinite;
+      }
+
+      @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+          100% { transform: translateY(0px); }
+      }
+  </style>
+
+  <div class="error-page">
+      <div class="error-container">
+          <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" alt="500 Illustration"
+  class="illustration">
+
+          <h1 class="error-code">500</h1>
+          <h2 class="error-title">Server Error</h2>
+          <p class="error-message">Our server got a red card and had to leave the field.</p>
+
+          <div class="error-joke" id="jokeContainer">
+              <span id="jokeText">Our server just went down faster than a player in the penalty box!</span>
+          </div>
+
+          <a href="{{ url_for('main.index') }}" class="home-button">
+              <i class="ti ti-home me-2"></i> Back to Home
+          </a>
+      </div>
+  </div>
+
+  <script>
+      // Rotating soccer jokes themed around server errors
+      const jokes = [
+          "Our server just went down faster than a player in the penalty box!",
+          "500 Error: Our server got a straight red card from the referee.",
+          "Looks like our server pulled a hamstring. We're sending in a substitute page.",
+          "Our application is taking a hydration break. Should be back on the pitch soon!",
+          "Our server's defending worse than the Sounders against LAFC in 2019.",
+          "500 Error: The server is stuck in traffic trying to get to Lumen Field.",
+          "The server is experiencing Seattle weather - unexpected downtime.",
+          "Looks like our database connection is about as reliable as Seattle sunshine.",
+          "Our server just missed an open goal. Even Jordan Morris wouldn't have missed that one!",
+          "500: This page is as broken as the Sounders' passing in the final third.",
+          "Our server is taking a longer break than halftime at a Sounders match.",
+          "Our code got caught offside. We're waiting for VAR to make a decision.",
+          "500 Error: The server got confused like a midfielder in a high press.",
+          "Our database just got nutmegged by an unexpected query."
+      ];
+
+      // Choose a random joke
+      document.addEventListener('DOMContentLoaded', function() {
+          const jokeText = document.getElementById('jokeText');
+          const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+          jokeText.textContent = randomJoke;
+      });
+  </script>
+  {% endblock main_content %}

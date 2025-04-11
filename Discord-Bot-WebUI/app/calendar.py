@@ -29,7 +29,7 @@ calendar_bp = Blueprint('calendar', __name__)
 
 @calendar_bp.route('/calendar/events', endpoint='get_schedule', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
 def get_schedule():
     """
     Retrieve a schedule of match events for the current season.
@@ -121,7 +121,7 @@ def get_schedule():
 
 @calendar_bp.route('/calendar/refs', endpoint='get_refs', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
 def get_refs():
     """
     Retrieve a list of referees available for a specific match.
@@ -231,7 +231,7 @@ def assign_ref():
 
 @calendar_bp.route('/calendar/available_refs', endpoint='available_refs', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
 def available_refs():
     """
     Retrieve available referees for a specified date range.
@@ -275,7 +275,7 @@ def available_refs():
 
 @calendar_bp.route('/calendar/remove_ref', endpoint='remove_ref', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Manager', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
 def remove_ref():
     """
     Remove the referee assignment from a match.
@@ -314,7 +314,7 @@ def remove_ref():
 
 @calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Manager', 'Pub League Coach'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
 def calendar_view():
     """
     Render the calendar view page.

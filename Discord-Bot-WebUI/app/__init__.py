@@ -184,6 +184,29 @@ def create_app(config_object='web_config.Config'):
 
     # Apply ProxyFix to handle reverse proxy headers.
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    
+    # Create a session persistence middleware
+    class SessionPersistenceMiddleware:
+        def __init__(self, app, flask_app):
+            self.app = app
+            self.flask_app = flask_app
+            self.logger = logging.getLogger(__name__)
+            
+        def __call__(self, environ, start_response):
+            def session_aware_start_response(status, headers, exc_info=None):
+                # Process the session before sending the response
+                if hasattr(self.flask_app, 'session_interface') and 'flask.session' in environ:
+                    session = environ['flask.session']
+                    if session and session.modified:
+                        self.logger.debug(f"Ensuring session is persisted in middleware: {session.sid if hasattr(session, 'sid') else 'unknown'}")
+                        session.permanent = True
+                return start_response(status, headers, exc_info)
+            
+            return self.app(environ, session_aware_start_response)
+    
+    # Apply session persistence middleware
+    app.wsgi_app = SessionPersistenceMiddleware(app.wsgi_app, app)
+    logger.debug("Applied SessionPersistenceMiddleware")
 
     # Apply DebugMiddleware in debug mode.
     if app.debug:
