@@ -159,6 +159,9 @@ def create_user():
         # Assign roles to the user
         roles = session.query(Role).filter(Role.name.in_(form.roles.data)).all()
         user.roles.extend(roles)
+        
+        # Check if SUB role is assigned
+        has_sub_role = any(role.name == 'SUB' for role in roles)
 
         # Create player profile if league is specified
         if form.league_id.data and form.league_id.data != '0':
@@ -169,7 +172,8 @@ def create_user():
                 user_id=user.id,
                 league_id=form.league_id.data,
                 primary_league_id=form.league_id.data,
-                is_current_player=form.is_current_player.data
+                is_current_player=form.is_current_player.data,
+                is_sub=has_sub_role  # Set is_sub flag based on SUB role
             )
 
             # Assign team to the player if provided
@@ -236,6 +240,9 @@ def edit_user(user_id):
         # Update user roles
         new_roles = session.query(Role).filter(Role.id.in_(form.roles.data)).all()
         user.roles = new_roles
+        
+        # Check if SUB role is assigned
+        has_sub_role = any(role.name == 'SUB' for role in new_roles)
 
         # Update player information if available
         if user.player:
@@ -243,6 +250,7 @@ def edit_user(user_id):
             user.player.league_id = league_id if league_id != 0 else None
             user.player.primary_league_id = league_id if league_id != 0 else None
             user.player.is_current_player = form.is_current_player.data
+            user.player.is_sub = has_sub_role  # Update is_sub flag based on SUB role
 
             # Update team assignment
             if form.team_id.data and form.team_id.data != 0:

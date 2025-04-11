@@ -341,6 +341,16 @@
                             <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
                                 <i class="ti ti-eye me-1"></i> View Match Page
                             </a>
+                            {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                            <button type="button" class="btn btn-success ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#assignSubModalRSVP">
+                                <i class="ti ti-user-plus me-1"></i> Assign Substitute
+                            </button>
+                            {% endif %}
+                            {% if current_user.has_role('Pub League Coach') or current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                            <button type="button" class="btn btn-warning ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#requestSubModal">
+                                <i class="ti ti-hand-stop me-1"></i> Request Substitute
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -480,7 +490,14 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="d-flex flex-column">
-                                                        <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                            {% if rsvp['is_temp_sub'] %}
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                                <i class="ti ti-replace me-1"></i>SUB
+                                                            </span>
+                                                            {% endif %}
+                                                        </div>
                                                         <small class="text-muted">
                                                             {% if rsvp['player'].phone %}
                                                                 <i class="ti ti-phone-call me-1"></i>{{ rsvp['player'].phone }}
@@ -570,6 +587,28 @@
                                                         <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
+                                                        
+                                                        {% if rsvp['is_temp_sub'] %}
+                                                        <!-- Sub Management Options -->
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                            <button type="submit" class="dropdown-item text-danger">
+                                                                <i class="ti ti-user-minus me-1"></i> Remove Sub Assignment
+                                                            </button>
+                                                        </form>
+                                                        {% else %}
+                                                        <!-- Add as Sub Option -->
+                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
+                                                            <i class="ti ti-user-plus me-1"></i> Manage Substitutes
+                                                        </a>
+                                                        {% endif %}
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </td>
@@ -605,7 +644,14 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="d-flex flex-column">
-                                                        <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                            {% if rsvp['is_temp_sub'] %}
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                                <i class="ti ti-replace me-1"></i>SUB
+                                                            </span>
+                                                            {% endif %}
+                                                        </div>
                                                         <small class="text-muted">
                                                             {% if rsvp['player'].phone %}
                                                                 <i class="ti ti-phone-call me-1"></i>{{ rsvp['player'].phone }}
@@ -683,6 +729,28 @@
                                                         <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
+                                                        
+                                                        {% if rsvp['is_temp_sub'] %}
+                                                        <!-- Sub Management Options -->
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                            <button type="submit" class="dropdown-item text-danger">
+                                                                <i class="ti ti-user-minus me-1"></i> Remove Sub Assignment
+                                                            </button>
+                                                        </form>
+                                                        {% else %}
+                                                        <!-- Add as Sub Option -->
+                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
+                                                            <i class="ti ti-user-plus me-1"></i> Manage Substitutes
+                                                        </a>
+                                                        {% endif %}
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </td>
@@ -718,7 +786,14 @@
                                                         {% endif %}
                                                     </div>
                                                     <div class="d-flex flex-column">
-                                                        <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="fw-semibold">{{ rsvp['player'].name }}</span>
+                                                            {% if rsvp['is_temp_sub'] %}
+                                                            <span class="badge bg-label-info ms-2" data-bs-toggle="tooltip" title="Temporary substitute assigned by {{ rsvp['assigned_by'] }}">
+                                                                <i class="ti ti-replace me-1"></i>SUB
+                                                            </span>
+                                                            {% endif %}
+                                                        </div>
                                                         <small class="text-muted">
                                                             {% if rsvp['player'].phone %}
                                                                 <i class="ti ti-phone-call me-1"></i>{{ rsvp['player'].phone }}
@@ -796,6 +871,28 @@
                                                         <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
+                                                        
+                                                        {% if rsvp['is_temp_sub'] %}
+                                                        <!-- Sub Management Options -->
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                            <input type="hidden" name="redirect_to" value="rsvp_status">
+                                                            <button type="submit" class="dropdown-item text-danger">
+                                                                <i class="ti ti-user-minus me-1"></i> Remove Sub Assignment
+                                                            </button>
+                                                        </form>
+                                                        {% else %}
+                                                        <!-- Add as Sub Option -->
+                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        <div class="dropdown-divider"></div>
+                                                        <h6 class="dropdown-header">Sub Management</h6>
+                                                        <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
+                                                            <i class="ti ti-user-plus me-1"></i> Manage Substitutes
+                                                        </a>
+                                                        {% endif %}
+                                                        {% endif %}
                                                     </div>
                                                 </div>
                                             </td>
@@ -935,6 +1032,177 @@
                     </button>
                     <button type="submit" class="btn btn-indigo">
                         <i class="ti ti-send me-1"></i>Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Sub Modal -->
+<div class="modal fade" id="assignSubModalRSVP" tabindex="-1" aria-labelledby="assignSubModalRSVPLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="assignSubModalRSVPLabel">
+                    <i class="ti ti-user-plus me-2"></i>Assign Substitute
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignSubFormRSVP" action="{{ url_for('admin.assign_sub') }}" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <input type="hidden" name="redirect_to" value="rsvp_status">
+                    
+                    <div class="row mb-4">
+                        <!-- Match Info -->
+                        <div class="col-12 mb-4">
+                            <div class="alert alert-info">
+                                <div class="d-flex align-items-center">
+                                    <i class="ti ti-info-circle me-2 fs-3"></i>
+                                    <div>
+                                        <h5 class="alert-heading mb-1">Match Information</h5>
+                                        <p class="mb-0">{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="subPlayerRSVP" class="form-label fw-semibold">Substitute Player</label>
+                            <select class="form-select" id="subPlayerRSVP" name="player_id" required>
+                                <option value="" selected disabled>Select a substitute player...</option>
+                                <!-- AJAX will populate this -->
+                                <option value="loading" disabled>Loading available substitutes...</option>
+                            </select>
+                            <div class="form-text mt-2">
+                                <i class="ti ti-info-circle me-1"></i> Only players marked as substitutes will appear here.
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="subTeamRSVP" class="form-label fw-semibold">Team</label>
+                            <select class="form-select" id="subTeamRSVP" name="team_id" required>
+                                <option value="" selected disabled>Select a team for this match...</option>
+                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="ti ti-user-plus me-1"></i>Assign Substitute
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Sub List Modal -->
+<div class="modal fade" id="viewSubsModal" tabindex="-1" aria-labelledby="viewSubsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="viewSubsModalLabel">
+                    <i class="ti ti-users me-2"></i>Available Substitutes
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="subListContainer" class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Primary Team</th>
+                                <th>Contact</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subListTableBody">
+                            <!-- AJAX will populate this -->
+                            <tr>
+                                <td colspan="4" class="text-center py-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="mt-2">Loading available substitutes...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Sub Modal -->
+<div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title" id="requestSubModalLabel">
+                    <i class="ti ti-hand-stop me-2"></i>Request Substitute
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="requestSubForm" action="{{ url_for('admin.request_sub') }}" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <div class="d-flex align-items-center">
+                                <i class="ti ti-info-circle me-2 fs-3"></i>
+                                <div>
+                                    <h5 class="alert-heading mb-1">Match Information</h5>
+                                    <p class="mb-0">{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="team_id" class="form-label fw-semibold">Team Needing Substitute</label>
+                        <select class="form-select" id="team_id" name="team_id" required>
+                            <option value="" selected disabled>Select team...</option>
+                            {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                            {% else %}
+                                {% for team, is_coach in current_user.player.get_current_teams(with_coach_status=True) %}
+                                    {% if is_coach and (team.id == match.home_team_id or team.id == match.away_team_id) %}
+                                        <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label fw-semibold">Additional Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add any details about why you need a sub or specific requirements..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="ti ti-hand-stop me-1"></i>Request Substitute
                     </button>
                 </div>
             </form>

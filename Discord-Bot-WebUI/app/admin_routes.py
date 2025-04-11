@@ -28,7 +28,11 @@ from app.admin_helpers import (
     get_filtered_users, handle_user_action, get_container_data,
     manage_docker_container, get_container_logs, send_sms_message,
     handle_announcement_update, get_role_permissions_data,
-    get_rsvp_status_data, handle_permissions_update
+    get_rsvp_status_data, handle_permissions_update,
+    get_available_subs, get_match_subs, assign_sub_to_team,
+    remove_sub_assignment, get_player_active_sub_assignments,
+    cleanup_old_sub_assignments, get_sub_requests, create_sub_request,
+    update_sub_request_status
 )
 from app.decorators import role_required
 from app.email import send_email
@@ -39,7 +43,8 @@ from app.forms import (
 from app.models import (
     Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Feedback, FeedbackReply, Note, Team, Match,
-    Player, Availability, User, Schedule, Season, League
+    Player, Availability, User, Schedule, Season, League,
+    TemporarySubAssignment, SubRequest
 )
 from sqlalchemy import and_, or_, func, desc
 from app.tasks.tasks_core import (
@@ -1318,6 +1323,228 @@ def get_task_status():
     return jsonify(task_status)
 
 
+@admin_bp.route('/admin/sub_requests', endpoint='manage_sub_requests')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def manage_sub_requests():
+    """
+    Display the sub request dashboard for admins.
+    
+    Shows all upcoming matches grouped by week and flags any teams that need substitutes.
+    Also displays a card view of pending sub requests for quick action.
+    """
+    session = g.db_session
+    
+    # Get filter parameters
+    show_requested = request.args.get('show_requested', 'all')
+    week = request.args.get('week')
+    
+    # Get all weeks for the filter dropdown
+    current_season = session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
+    weeks = []
+    if current_season:
+        weeks_query = session.query(Schedule.week).filter(
+            Schedule.season_id == current_season.id
+        ).distinct().order_by(Schedule.week)
+        weeks = [str(week_row[0]) for week_row in weeks_query]
+    
+    # Get upcoming matches (for the next 30 days)
+    today = datetime.now().date()
+    thirty_days_ahead = today + timedelta(days=30)
+    
+    match_query = session.query(Match).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team),
+        joinedload(Match.schedule)
+    ).filter(
+        Match.date >= today,
+        Match.date <= thirty_days_ahead
+    )
+    
+    # Filter by week if specified
+    if week:
+        match_query = match_query.join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            Schedule.week == week
+        )
+    
+    # Order by date, then time
+    upcoming_matches = match_query.order_by(
+        Match.date,
+        Match.time
+    ).all()
+    
+    # Get all sub requests
+    sub_requests = session.query(SubRequest).options(
+        joinedload(SubRequest.match),
+        joinedload(SubRequest.team),
+        joinedload(SubRequest.requester),
+        joinedload(SubRequest.fulfiller)
+    ).filter(
+        SubRequest.match_id.in_([match.id for match in upcoming_matches])
+    ).order_by(
+        SubRequest.created_at.desc()
+    ).all()
+    
+    # Order by date, then time
+    upcoming_matches = match_query.order_by(
+        Match.date,
+        Match.time
+    ).all()
+    
+    # Organize sub requests by match and team for easier access
+    requested_teams_by_match = {}
+    for match in upcoming_matches:
+        requested_teams_by_match[match.id] = {}
+    
+    for req in sub_requests:
+        if req.match_id in requested_teams_by_match:
+            requested_teams_by_match[req.match_id][req.team_id] = req
+    
+    # Filter matches based on whether they have requests or not
+    filtered_matches = []
+    for match in upcoming_matches:
+        has_requests = match.id in requested_teams_by_match and requested_teams_by_match[match.id]
+        
+        if show_requested == 'all':
+            filtered_matches.append(match)
+        elif show_requested == 'requested' and has_requests:
+            filtered_matches.append(match)
+        elif show_requested == 'not_requested' and not has_requests:
+            filtered_matches.append(match)
+    
+    upcoming_matches = filtered_matches
+    
+    # Get available subs for each request
+    available_subs = get_available_subs(session=session)
+    
+    return render_template(
+        'admin/manage_sub_requests.html',
+        title='Manage Sub Requests',
+        sub_requests=sub_requests,
+        upcoming_matches=upcoming_matches,
+        requested_teams_by_match=requested_teams_by_match,
+        available_subs=available_subs,
+        show_requested=show_requested,
+        current_week=week,
+        weeks=weeks
+    )
+
+
+@admin_bp.route('/admin/sub_requests/<int:request_id>', methods=['POST'], endpoint='update_sub_request')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def update_sub_request(request_id):
+    """
+    Update a sub request's status.
+    
+    Handles fulfilling a sub request by assigning a player.
+    """
+    session = g.db_session
+    
+    action = request.form.get('action')
+    player_id = request.form.get('player_id')  # For fulfillment
+    
+    if not action or action != 'fulfill':
+        flash('Invalid action.', 'danger')
+        return redirect(url_for('admin.manage_sub_requests'))
+    
+    if not player_id:
+        flash('Player ID is required for fulfillment.', 'danger')
+        return redirect(url_for('admin.manage_sub_requests'))
+    
+    # Get the sub request
+    sub_request = session.query(SubRequest).options(
+        joinedload(SubRequest.match),
+        joinedload(SubRequest.team)
+    ).get(request_id)
+    
+    if not sub_request:
+        flash('Sub request not found.', 'danger')
+        return redirect(url_for('admin.manage_sub_requests'))
+    
+    # Directly fulfill the request - no intermediate approval step
+    fulfill_success, fulfill_message = assign_sub_to_team(
+        match_id=sub_request.match_id,
+        team_id=sub_request.team_id,
+        player_id=player_id,
+        user_id=safe_current_user.id,
+        session=session
+    )
+    
+    if fulfill_success:
+        # Update the sub request status
+        success, message = update_sub_request_status(
+            request_id=request_id,
+            status='FULFILLED',
+            fulfilled_by=safe_current_user.id,
+            session=session
+        )
+    else:
+        success = False
+        message = fulfill_message
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'danger')
+    
+    return redirect(url_for('admin.manage_sub_requests'))
+
+
+@admin_bp.route('/admin/request_sub', methods=['POST'], endpoint='request_sub')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def request_sub():
+    """
+    Create a new sub request.
+    
+    Coaches can request subs for their teams, and admins can request for any team.
+    """
+    session = g.db_session
+    
+    match_id = request.form.get('match_id', type=int)
+    team_id = request.form.get('team_id', type=int)
+    notes = request.form.get('notes')
+    
+    if not match_id or not team_id:
+        flash('Missing required fields for sub request.', 'danger')
+        return redirect(request.referrer or url_for('main.index'))
+    
+    # Check permissions for coaches
+    if safe_current_user.has_role('Pub League Coach') and not (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')):
+        # Verify that the user is a coach for this team
+        is_coach = False
+        if hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for team, coach_status in safe_current_user.player.get_current_teams(with_coach_status=True):
+                if team.id == team_id and coach_status:
+                    is_coach = True
+                    break
+        
+        if not is_coach:
+            flash('You are not authorized to request subs for this team.', 'danger')
+            return redirect(request.referrer or url_for('main.index'))
+    
+    # Create the sub request
+    success, message, request_id = create_sub_request(
+        match_id=match_id,
+        team_id=team_id,
+        requested_by=safe_current_user.id,
+        notes=notes,
+        session=session
+    )
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'danger')
+    
+    # Determine where to redirect
+    if 'rsvp_status' in request.referrer:
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    else:
+        return redirect(url_for('admin.manage_sub_requests'))
 
 
 @admin_bp.route('/admin/sms_status', methods=['GET'])
@@ -1379,6 +1606,216 @@ def sms_rate_limit_status():
             'window_seconds': SMS_RATE_LIMIT_WINDOW
         }
     })
+
+
+# -----------------------------------------------------------
+# Temporary Sub Management
+# -----------------------------------------------------------
+
+@admin_bp.route('/admin/subs', endpoint='manage_subs')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def manage_subs():
+    """
+    Display a list of all available substitutes and their assignments.
+    
+    This page shows all players marked as substitutes and allows admins to
+    manage their team assignments for matches.
+    """
+    session = g.db_session
+    
+    # Get all available subs
+    subs = get_available_subs(session=session)
+    
+    # Get all upcoming matches in chronological order
+    upcoming_matches = session.query(Match).filter(
+        Match.date >= datetime.utcnow().date()
+    ).order_by(
+        Match.date, Match.time
+    ).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    ).all()
+    
+    # Get teams for assignment
+    teams = session.query(Team).all()
+    
+    return render_template(
+        'admin/manage_subs.html',
+        title='Manage Substitutes',
+        subs=subs,
+        upcoming_matches=upcoming_matches,
+        teams=teams
+    )
+
+
+@admin_bp.route('/admin/subs/assign', methods=['POST'], endpoint='assign_sub')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def assign_sub():
+    """
+    Assign a substitute to a team for a specific match.
+    """
+    session = g.db_session
+    
+    player_id = request.form.get('player_id', type=int)
+    match_id = request.form.get('match_id', type=int)
+    team_id = request.form.get('team_id', type=int)
+    
+    if not all([player_id, match_id, team_id]):
+        flash('Missing required fields for sub assignment.', 'danger')
+        return redirect(url_for('admin.manage_subs'))
+    
+    success, message = assign_sub_to_team(
+        match_id=match_id,
+        player_id=player_id,
+        team_id=team_id,
+        user_id=safe_current_user.id,
+        session=session
+    )
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'danger')
+    
+    # If AJAX request, return JSON response
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': success, 'message': message})
+    
+    # Get redirect location - could be RSVP status page or manage subs page
+    redirect_to = request.form.get('redirect_to', 'manage_subs')
+    if redirect_to == 'rsvp_status':
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    else:
+        return redirect(url_for('admin.manage_subs'))
+
+
+@admin_bp.route('/admin/subs/remove/<int:assignment_id>', methods=['POST'], endpoint='remove_sub')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def remove_sub(assignment_id):
+    """
+    Remove a substitute assignment.
+    """
+    session = g.db_session
+    
+    # Get the assignment to determine the match_id for potential redirect
+    assignment = session.query(TemporarySubAssignment).get(assignment_id)
+    if not assignment:
+        flash('Assignment not found.', 'danger')
+        return redirect(url_for('admin.manage_subs'))
+    
+    match_id = assignment.match_id
+    
+    success, message = remove_sub_assignment(
+        assignment_id=assignment_id,
+        user_id=safe_current_user.id,
+        session=session
+    )
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'danger')
+    
+    # If AJAX request, return JSON response
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': success, 'message': message})
+    
+    # Get redirect location - could be RSVP status page or manage subs page
+    redirect_to = request.form.get('redirect_to', 'manage_subs')
+    if redirect_to == 'rsvp_status':
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
+    else:
+        return redirect(url_for('admin.manage_subs'))
+
+
+@admin_bp.route('/admin/subs/match/<int:match_id>', methods=['GET'], endpoint='get_match_subs_route')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def get_match_subs_route(match_id):
+    """
+    Get all subs assigned to a specific match, organized by team.
+    
+    Returns a JSON response for AJAX requests or redirects to the RSVP status page.
+    """
+    session = g.db_session
+    
+    subs_by_team = get_match_subs(match_id=match_id, session=session)
+    
+    # If AJAX request, return JSON response
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'subs_by_team': subs_by_team
+        })
+    
+    return redirect(url_for('admin.rsvp_status', match_id=match_id))
+
+
+@admin_bp.route('/admin/subs/available', methods=['GET'], endpoint='get_available_subs_api')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_available_subs_api():
+    """
+    Get all available substitutes as JSON.
+    
+    Returns a JSON response for AJAX requests.
+    """
+    session = g.db_session
+    
+    subs = get_available_subs(session=session)
+    
+    return jsonify({
+        'success': True,
+        'subs': subs
+    })
+
+
+@admin_bp.route('/admin/subs/player/<int:player_id>', methods=['GET'], endpoint='get_player_subs')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_player_subs(player_id):
+    """
+    Get all active sub assignments for a player.
+    
+    Returns a JSON response for AJAX requests.
+    """
+    session = g.db_session
+    
+    assignments = get_player_active_sub_assignments(player_id=player_id, session=session)
+    
+    # If AJAX request, return JSON response
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'assignments': assignments
+        })
+    
+    return redirect(url_for('admin.manage_subs'))
+
+
+@admin_bp.route('/admin/subs/cleanup', methods=['POST'], endpoint='cleanup_subs')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def cleanup_subs():
+    """
+    Clean up sub assignments for matches that occurred in the past.
+    
+    This should be run automatically via a scheduled task every Monday,
+    but can also be triggered manually by an admin.
+    """
+    session = g.db_session
+    
+    count, message = cleanup_old_sub_assignments(session=session)
+    
+    if count > 0:
+        flash(message, 'success')
+    else:
+        flash(message, 'info')
+    
+    return redirect(url_for('admin.manage_subs'))
 
 
 @admin_bp.route('/admin/match_verification', endpoint='match_verification_dashboard')

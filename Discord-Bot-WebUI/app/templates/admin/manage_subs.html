@@ -1,0 +1,692 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Substitutes{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Card hover effect */
+    .shadow-sm {
+        transition: all 0.2s ease;
+    }
+    
+    .shadow-sm:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        padding: 0.4rem 0.65rem;
+        font-weight: 500;
+    }
+    
+    /* Avatar styling */
+    .avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 38px;
+        width: 38px;
+        overflow: hidden;
+        border-radius: 50%;
+    }
+    
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+    }
+    
+    /* Override the default background color for avatars */
+    .avatar.avatar-sm, 
+    .avatar.avatar-md {
+        background-color: transparent !important;
+    }
+    
+    /* Add a subtle shadow to avatars for better visual separation */
+    .avatar.avatar-sm img, 
+    .avatar.avatar-md img {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .avatar-sm {
+        height: 30px;
+        width: 30px;
+    }
+    
+    .avatar-md {
+        height: 42px;
+        width: 42px;
+    }
+    
+    .avatar-initial {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    
+    .avatar-sm .avatar-initial {
+        font-size: 0.9rem;
+    }
+    
+    .avatar-md .avatar-initial {
+        font-size: 1.3rem;
+    }
+    
+    /* Label backgrounds */
+    .bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+        color: #696cff !important;
+    }
+    
+    .bg-label-indigo {
+        background-color: rgba(80, 102, 235, 0.16) !important;
+        color: #5066eb !important;
+    }
+    
+    .bg-label-success {
+        background-color: rgba(113, 221, 55, 0.16) !important;
+        color: #71dd37 !important;
+    }
+    
+    .bg-label-warning {
+        background-color: rgba(255, 171, 0, 0.16) !important;
+        color: #ffab00 !important;
+    }
+    
+    .bg-label-danger {
+        background-color: rgba(255, 62, 29, 0.16) !important;
+        color: #ff3e1d !important;
+    }
+    
+    .bg-label-info {
+        background-color: rgba(3, 195, 236, 0.16) !important;
+        color: #03c3ec !important;
+    }
+    
+    .bg-label-secondary {
+        background-color: rgba(133, 146, 163, 0.16) !important;
+        color: #8592a3 !important;
+    }
+    
+    /* Mobile adaptations */
+    @media (max-width: 767.98px) {
+        .flex-column-mobile {
+            flex-direction: column !important;
+        }
+        
+        .w-100-mobile {
+            width: 100% !important;
+        }
+        
+        .mb-mobile-3 {
+            margin-bottom: 1rem !important;
+        }
+    }
+    
+    /* Page loader */
+    #page-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        transition: opacity 0.5s ease-out;
+    }
+    
+    #page-loader.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 5px solid #696cff;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+    }
+    
+    @keyframes rotation {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    
+    /* CRITICAL: Direct dropdown menu fixes for this page */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    .card {
+        overflow: visible !important;
+    }
+    
+    .dropdown-menu {
+        z-index: 99999 !important;
+        position: absolute !important;
+    }
+    
+    .tab-content {
+        overflow: visible !important;
+    }
+    
+    .tab-pane {
+        overflow: visible !important;
+    }
+    
+    table td {
+        position: relative !important;
+    }
+    
+    /* Specific fix for action column dropdowns */
+    table td:last-child .dropdown-menu {
+        right: 0 !important;
+        left: auto !important;
+    }
+    
+    /* Scrollable assignment list */
+    .assignment-list {
+        max-height: 350px;
+        overflow-y: auto;
+    }
+    
+    /* Tag-like styling for assignments */
+    .assignment-item {
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
+    }
+    
+    .assignment-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.2) !important;
+    }
+    
+    /* Badge Pill */
+    .badge-pill {
+        border-radius: 50rem;
+    }
+</style>
+<!-- Toastr CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+{% endblock %}
+
+{% block main_content %}
+<!-- Page Loader -->
+<div id="page-loader">
+    <span class="loader-spinner"></span>
+</div>
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">Admin / </span> Manage Substitutes
+    </h4>
+
+    <!-- Sub Management Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Substitute Player Pool</h5>
+                    <div>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignSubModal">
+                            <i class="ti ti-user-plus me-1"></i> Assign Substitute
+                        </button>
+                        <form action="{{ url_for('admin.cleanup_subs') }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="ti ti-trash me-1"></i> Clean Up Old Assignments
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="subsTable" class="table table-striped table-hover border-top">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Primary Team</th>
+                                    <th>Contact Info</th>
+                                    <th>Current Assignments</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in subs %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar avatar-sm me-2" style="background-color: transparent;">
+                                                {% if sub.profile_picture_url %}
+                                                    <img src="{{ sub.profile_picture_url }}" alt="Avatar" class="rounded-circle" style="object-fit: cover; border: 1px solid rgba(255,255,255,0.3);">
+                                                {% else %}
+                                                    <div class="avatar-initial rounded-circle bg-label-secondary">
+                                                        {{ sub.name[:1]|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-semibold">{{ sub.name }}</span>
+                                                <small class="text-muted">ID: {{ sub.id }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if sub.primary_team_name %}
+                                            <span class="badge bg-primary">{{ sub.primary_team_name }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No Primary Team</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex flex-column">
+                                            {% if sub.phone %}
+                                                <span><i class="ti ti-phone me-1"></i> {{ sub.phone }}</span>
+                                            {% endif %}
+                                            {% if sub.email %}
+                                                <span><i class="ti ti-mail me-1"></i> {{ sub.email }}</span>
+                                            {% endif %}
+                                            {% if sub.discord_id %}
+                                                <span><i class="ti ti-brand-discord me-1"></i> Connected</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="assignments-container" data-player-id="{{ sub.id }}">
+                                            <div class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-primary load-assignments-btn" data-player-id="{{ sub.id }}">
+                                                <i class="ti ti-calendar-stats me-1"></i> View Assignments
+                                            </button>
+                                            <div class="assignments-list mt-2" style="display: none;"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button type="button" class="btn btn-sm btn-icon btn-outline-secondary dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                                <i class="ti ti-dots-vertical"></i>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-end">
+                                                <a class="dropdown-item" href="{{ url_for('players.player_profile', player_id=sub.id) }}">
+                                                    <i class="ti ti-user me-1"></i> View Profile
+                                                </a>
+                                                <a class="dropdown-item assign-sub-btn" href="javascript:void(0);" data-player-id="{{ sub.id }}" data-player-name="{{ sub.name }}">
+                                                    <i class="ti ti-user-plus me-1"></i> Assign to Match
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Sub Modal -->
+<div class="modal fade" id="assignSubModal" tabindex="-1" aria-labelledby="assignSubModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="assignSubModalLabel">
+                    <i class="ti ti-user-plus me-2"></i>Assign Substitute
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="assignSubForm" action="{{ url_for('admin.assign_sub') }}" method="POST">
+                <div class="modal-body p-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="subPlayer" class="form-label fw-semibold">Substitute Player</label>
+                            <select class="form-select" id="subPlayer" name="player_id" required>
+                                <option value="" selected disabled>Select a substitute player...</option>
+                                {% for sub in subs %}
+                                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="subMatch" class="form-label fw-semibold">Match</label>
+                            <select class="form-select" id="subMatch" name="match_id" required>
+                                <option value="" selected disabled>Select a match...</option>
+                                {% for match in upcoming_matches %}
+                                <option value="{{ match.id }}">{{ match.date.strftime('%a, %b %d') }} - {{ match.home_team.name }} vs {{ match.away_team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="subTeam" class="form-label fw-semibold">Team</label>
+                        <select class="form-select" id="subTeam" name="team_id" required disabled>
+                            <option value="" selected disabled>Select a team for this match...</option>
+                        </select>
+                        <div class="form-text mt-2">
+                            <i class="ti ti-info-circle me-1"></i> First select a match to see the available teams.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="ti ti-user-plus me-1"></i>Assign Substitute
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Assignments Modal -->
+<div class="modal fade" id="viewAssignmentsModal" tabindex="-1" aria-labelledby="viewAssignmentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="viewAssignmentsModalLabel">
+                    <i class="ti ti-calendar me-2"></i>Sub Assignments for <span id="assignmentsPlayerName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="assignmentsList" class="assignment-list">
+                    <!-- Dynamic content -->
+                    <div class="text-center py-4 d-none" id="assignmentsLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading assignments...</p>
+                    </div>
+                    <div class="text-center py-4 d-none" id="assignmentsEmpty">
+                        <div class="avatar avatar-md mx-auto mb-3">
+                            <div class="avatar-initial rounded-circle bg-label-secondary">
+                                <i class="ti ti-calendar-off"></i>
+                            </div>
+                        </div>
+                        <p>No active assignments found.</p>
+                    </div>
+                    <div id="assignmentsContent"></div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<!-- External dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hide page loader
+        const pageLoader = document.getElementById('page-loader');
+        if (pageLoader) {
+            setTimeout(() => {
+                pageLoader.classList.add('hidden');
+            }, 300);
+        }
+        
+        // Initialize DataTable for subs
+        if ($.fn.DataTable && document.getElementById('subsTable')) {
+            const table = $('#subsTable').DataTable({
+                responsive: true,
+                lengthMenu: [10, 25, 50],
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+                language: {
+                    search: "",
+                    searchPlaceholder: "Search substitutes...",
+                    lengthMenu: "_MENU_ per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ subs",
+                    infoEmpty: "No substitutes found",
+                    infoFiltered: "(filtered from _MAX_ total subs)",
+                    zeroRecords: "No matching substitutes found"
+                },
+                columnDefs: [
+                    { orderable: false, targets: [3, 4] }
+                ]
+            });
+        }
+        
+        // Match selection updates team options
+        $('#subMatch').on('change', function() {
+            const matchId = $(this).val();
+            const teamSelect = $('#subTeam');
+            
+            if (!matchId) {
+                teamSelect.html('<option value="" selected disabled>Select a team for this match...</option>');
+                teamSelect.prop('disabled', true);
+                return;
+            }
+            
+            // Find match in the upcoming_matches array
+            fetch(`/admin/subs/match/${matchId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const match = {{ upcoming_matches|tojson|safe }}.find(m => m.id == matchId);
+                        if (match) {
+                            teamSelect.html('<option value="" selected disabled>Select a team for this match...</option>');
+                            teamSelect.append(`<option value="${match.home_team_id}">${match.home_team.name}</option>`);
+                            teamSelect.append(`<option value="${match.away_team_id}">${match.away_team.name}</option>`);
+                            teamSelect.prop('disabled', false);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching match data:', error);
+                    toastr.error('Failed to load teams for this match.');
+                });
+        });
+        
+        // Assign Sub Form Submit
+        $('#assignSubForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = $(this).find('button[type="submit"]');
+            
+            // Disable button and show loading
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Assigning...');
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: new URLSearchParams(formData),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toastr.success(data.message);
+                    $('#assignSubModal').modal('hide');
+                    
+                    // Reset form
+                    this.reset();
+                    $('#subTeam').prop('disabled', true).html('<option value="" selected disabled>Select a team for this match...</option>');
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    toastr.error(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error assigning sub:', error);
+                toastr.error('An error occurred while trying to assign the sub.');
+            })
+            .finally(() => {
+                // Re-enable button
+                submitBtn.prop('disabled', false);
+                submitBtn.html('<i class="ti ti-user-plus me-1"></i>Assign Substitute');
+            });
+        });
+        
+        // Load assignments button
+        $('.load-assignments-btn').on('click', function() {
+            const playerId = $(this).data('player-id');
+            const container = $(`.assignments-container[data-player-id="${playerId}"]`);
+            const spinner = container.find('.spinner-border');
+            const btn = container.find('.load-assignments-btn');
+            const list = container.find('.assignments-list');
+            
+            // Check if already loaded
+            if (list.is(':visible')) {
+                list.slideUp();
+                btn.find('i').removeClass('ti-calendar-minus').addClass('ti-calendar-stats');
+                return;
+            }
+            
+            // Show spinner, hide button
+            spinner.removeClass('d-none');
+            btn.prop('disabled', true);
+            
+            // Fetch assignments
+            fetch(`/admin/subs/player/${playerId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        if (data.assignments.length > 0) {
+                            // Build assignment list HTML
+                            let html = '<div class="list-group">';
+                            data.assignments.forEach(a => {
+                                const matchDate = new Date(a.match_date);
+                                const formattedDate = matchDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                                
+                                html += `
+                                <div class="list-group-item list-group-item-action assignment-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <span class="fw-semibold">${a.home_team_name} vs ${a.away_team_name}</span>
+                                        <small class="badge bg-primary">${formattedDate}</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small class="text-muted">
+                                            <i class="ti ti-users me-1"></i> ${a.team_name}
+                                        </small>
+                                        <button class="btn btn-sm btn-outline-danger remove-assignment-btn" 
+                                                data-assignment-id="${a.id}" 
+                                                data-bs-toggle="tooltip" 
+                                                title="Remove assignment">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>`;
+                            });
+                            html += '</div>';
+                            list.html(html);
+                            
+                            // Initialize tooltips
+                            $('[data-bs-toggle="tooltip"]').tooltip();
+                            
+                            // Set up remove buttons
+                            list.find('.remove-assignment-btn').on('click', function() {
+                                const assignmentId = $(this).data('assignment-id');
+                                removeAssignment(assignmentId, $(this).closest('.assignment-item'));
+                            });
+                        } else {
+                            list.html('<div class="alert alert-info">No active assignments found.</div>');
+                        }
+                        
+                        // Show list, update button
+                        list.slideDown();
+                        btn.find('i').removeClass('ti-calendar-stats').addClass('ti-calendar-minus');
+                        btn.html('<i class="ti ti-calendar-minus me-1"></i> Hide Assignments');
+                    } else {
+                        toastr.error('Failed to load assignments.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading assignments:', error);
+                    toastr.error('An error occurred while loading assignments.');
+                })
+                .finally(() => {
+                    // Hide spinner, enable button
+                    spinner.addClass('d-none');
+                    btn.prop('disabled', false);
+                });
+        });
+        
+        // Direct assign sub button (from the dropdown)
+        $('.assign-sub-btn').on('click', function() {
+            const playerId = $(this).data('player-id');
+            const playerName = $(this).data('player-name');
+            
+            // Set player in form and open modal
+            $('#subPlayer').val(playerId);
+            $('#assignSubModalLabel').html(`<i class="ti ti-user-plus me-2"></i>Assign ${playerName} as Substitute`);
+            $('#assignSubModal').modal('show');
+        });
+        
+        // Function to remove assignment
+        function removeAssignment(assignmentId, element) {
+            if (!confirm('Are you sure you want to remove this sub assignment?')) {
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('csrf_token', '{{ csrf_token() }}');
+            
+            fetch(`/admin/subs/remove/${assignmentId}`, {
+                method: 'POST',
+                body: new URLSearchParams(formData),
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    toastr.success(data.message);
+                    element.fadeOut(300, function() {
+                        $(this).remove();
+                        
+                        // Check if there are any assignments left
+                        const list = element.closest('.assignments-list');
+                        if (list.find('.assignment-item').length === 0) {
+                            list.html('<div class="alert alert-info">No active assignments found.</div>');
+                        }
+                    });
+                } else {
+                    toastr.error(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error removing assignment:', error);
+                toastr.error('An error occurred while trying to remove the assignment.');
+            });
+        }
+    });
+</script>
+{% endblock %}

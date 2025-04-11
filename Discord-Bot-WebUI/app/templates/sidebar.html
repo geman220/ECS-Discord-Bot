@@ -206,6 +206,16 @@
             </a>
         </li>
         {% endif %}
+        
+        <!-- Sub Requests - Pub League Admin / Global Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.manage_sub_requests' }}">
+            <a class="menu-link" href="{{ url_for('admin.manage_sub_requests') }}">
+                <i class="ti ti-hand-stop menu-icon"></i>
+                <div>Sub Requests</div>
+            </a>
+        </li>
+        {% endif %}
 
         <!-- Player Database Management - Only Pub League Admin and Global Admin -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
