@@ -1,7 +1,11 @@
 /**
- * RSVP Unified Script - v2.0
+ * RSVP Unified Script - v2.1
  * This is a completely rewritten version of the RSVP page JavaScript
  * designed to be extremely stable and avoid any syntax errors.
+ * 
+ * Updates in v2.1:
+ * - Added fallback solutions for team selection in sub request modal
+ * - Fixed issue with Pub League Coaches not being able to request subs
  */
 
 // Wait for DOM content to be fully loaded
@@ -24,6 +28,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load substitutes for the assign sub modal
   if (document.getElementById('assignSubModalRSVP')) {
     loadAvailableSubs();
+  }
+  
+  // Emergency fix for the request sub modal - ensure team options are available
+  if (document.getElementById('requestSubModal')) {
+    fixTeamOptions();
   }
   
   // Initialize when jQuery is ready
@@ -615,5 +624,194 @@ function loadAvailableSubs() {
     }
   } catch (e) {
     console.error("Error loading available subs:", e);
+  }
+}
+
+/**
+ * Fix team options in the request sub modal for Pub League Coaches
+ * This function provides a client-side fallback that ensures the team selection
+ * dropdown shows the teams that a coach is associated with for a match.
+ */
+function fixTeamOptions() {
+  try {
+    // Get required DOM elements
+    var requestSubModal = document.getElementById('requestSubModal');
+    var teamSelect = document.getElementById('team_id');
+    
+    if (!requestSubModal || !teamSelect) {
+      return;
+    }
+    
+    // First check if the team select already has options (other than the default placeholder)
+    if (teamSelect.options.length > 1) {
+      console.log("Team options already present, no fix needed");
+      return;
+    } else {
+      console.log("Team select has no options, applying fix");
+    }
+    
+    // Get match information from the page
+    var matchInfoText = document.querySelector('#requestSubModal .alert-info .mb-0');
+    if (!matchInfoText) {
+      console.log("Could not find match info text");
+      return;
+    }
+    
+    var matchText = matchInfoText.textContent || '';
+    var matchParts = matchText.split(' vs ');
+    
+    if (matchParts.length < 2) {
+      console.log("Could not parse match text:", matchText);
+      return;
+    }
+    
+    var homeTeamName = matchParts[0].trim();
+    var awayTeamName = matchParts[1].split(' - ')[0].trim();
+    console.log("Parsed team names:", homeTeamName, awayTeamName);
+    
+    // Get team IDs from the modal data attributes
+    var homeTeamId = requestSubModal.dataset.homeTeamId;
+    var awayTeamId = requestSubModal.dataset.awayTeamId;
+    
+    // If data attributes are available, use them to add options immediately
+    if (homeTeamId && awayTeamId) {
+      console.log("Found team IDs in data attributes:", homeTeamId, awayTeamId);
+      
+      // For coaches, we need to determine which team they coach
+      var isAdmin = false;
+      var userRoles = document.body.dataset.userRoles || '';
+      
+      if (userRoles.includes('Global Admin') || userRoles.includes('Pub League Admin')) {
+        isAdmin = true;
+      }
+      
+      // Always add both teams for admins
+      if (isAdmin) {
+        var homeOption = document.createElement('option');
+        homeOption.value = homeTeamId;
+        homeOption.text = homeTeamName;
+        teamSelect.appendChild(homeOption);
+        
+        var awayOption = document.createElement('option');
+        awayOption.value = awayTeamId;
+        awayOption.text = awayTeamName;
+        teamSelect.appendChild(awayOption);
+        
+        console.log("Added both team options for admin");
+        return;
+      } else {
+        // For coaches, try to determine which team they coach
+        // This is the most aggressive approach - just add both teams and let the server validate
+        var homeOption = document.createElement('option');
+        homeOption.value = homeTeamId;
+        homeOption.text = homeTeamName;
+        teamSelect.appendChild(homeOption);
+        
+        var awayOption = document.createElement('option');
+        awayOption.value = awayTeamId;
+        awayOption.text = awayTeamName;
+        teamSelect.appendChild(awayOption);
+        
+        console.log("Added both team options as fallback");
+        return;
+      }
+    }
+    
+    // If we didn't have data attributes, try to find team IDs in other ways
+    console.log("Data attributes not found, trying alternate methods");
+    
+    // Try to find team IDs from other parts of the page
+    var assignSubForm = document.getElementById('assignSubFormRSVP');
+    if (assignSubForm) {
+      var subTeamSelect = document.getElementById('subTeamRSVP');
+      if (subTeamSelect && subTeamSelect.options.length > 1) {
+        // Copy options from the assign sub form
+        for (var i = 1; i < subTeamSelect.options.length; i++) {
+          var option = subTeamSelect.options[i];
+          var newOption = document.createElement('option');
+          newOption.value = option.value;
+          newOption.text = option.text;
+          teamSelect.appendChild(newOption);
+        }
+        console.log("Copied options from assign sub form");
+        return; // Successfully added options, no need to continue
+      }
+    }
+    
+    // Extract match ID from the form
+    var matchIdInput = document.querySelector('#requestSubForm input[name="match_id"]');
+    var matchId = matchIdInput ? matchIdInput.value : '';
+    
+    if (!matchId) {
+      console.log("Could not find match ID");
+      return;
+    }
+    
+    console.log("Making request to find match details for match ID:", matchId);
+    
+    // Make a direct request to get match data
+    fetch('/admin/rsvp_status/' + matchId)
+      .then(response => {
+        if (!response.ok) {
+          console.log("Response not OK:", response.status);
+          return null;
+        }
+        return response.text();
+      })
+      .then(html => {
+        if (!html) return;
+        
+        console.log("Received HTML response, parsing for team data");
+        
+        // Create a temporary element to parse the HTML
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Look for team IDs in the page content
+        var teamOptions = tempDiv.querySelectorAll('#subTeamRSVP option');
+        if (teamOptions.length > 1) {
+          // Copy options to our select
+          for (var i = 1; i < teamOptions.length; i++) {
+            var option = teamOptions[i];
+            var newOption = document.createElement('option');
+            newOption.value = option.value;
+            newOption.text = option.text;
+            teamSelect.appendChild(newOption);
+          }
+          console.log("Added options from parsed HTML response");
+        } else {
+          // Last resort: create options based on the match text we parsed earlier
+          console.log("Creating options based on parsed match text");
+          
+          // Just add both teams as options and let the server handle validation
+          var homeOption = document.createElement('option');
+          homeOption.value = "home_team";  // Use placeholder values
+          homeOption.text = homeTeamName;
+          teamSelect.appendChild(homeOption);
+          
+          var awayOption = document.createElement('option');
+          awayOption.value = "away_team";  // Use placeholder values
+          awayOption.text = awayTeamName;
+          teamSelect.appendChild(awayOption);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching match details:', error);
+        
+        // Last resort fallback: create options with placeholder values
+        console.log("Error occurred, creating fallback options");
+        
+        var homeOption = document.createElement('option');
+        homeOption.value = "home_team";  // Use placeholder values
+        homeOption.text = homeTeamName;
+        teamSelect.appendChild(homeOption);
+        
+        var awayOption = document.createElement('option');
+        awayOption.value = "away_team";  // Use placeholder values
+        awayOption.text = awayTeamName;
+        teamSelect.appendChild(awayOption);
+      });
+  } catch (e) {
+    console.error("Error fixing team options:", e);
   }
 }

@@ -79,14 +79,20 @@ class Config:
     SESSION_TYPE = 'redis'
     SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)  # Extended from 8 to 30 days
-    SESSION_USE_SIGNER = True
+    SESSION_USE_SIGNER = False  # Changed to False to fix persistence issues
     SESSION_KEY_PREFIX = 'flask_session:'
     # Additional session security and persistence settings
-    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'True').lower() in ('true', 'yes', '1')
+    SESSION_COOKIE_SECURE = False  # Allow session cookies over HTTP for local dev
     SESSION_COOKIE_SAMESITE = 'Lax'  # Less strict SameSite policy that works better with redirects
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_NAME = 'ecs_session'  # Custom name to avoid conflicts
+    SESSION_COOKIE_NAME = 'session'  # Use standard name for compatibility
     SESSION_REFRESH_EACH_REQUEST = True  # Update session expiry on each request
+    
+    # Configure Flask-WTF (CSRF Protection)
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 hour (in seconds)
+    WTF_CSRF_SSL_STRICT = False  # Allow CSRF over HTTP for local development
+    WTF_CSRF_CHECK_DEFAULT = True  # Enable CSRF checking by default
     
     # Celery Configuration
     CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0')

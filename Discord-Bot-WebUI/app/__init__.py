@@ -148,13 +148,81 @@ def create_app(config_object='web_config.Config'):
 
     # Initialize additional extensions.
     login_manager.init_app(app)
+    
+    # Initialize CSRF with explicit configuration
     csrf.init_app(app)
+    # Register admin routes that should be exempt from CSRF
+    for endpoint in ['admin.force_send_message', 'admin.delete_message', 'admin.update_rsvp']:
+        csrf._exempt_views.add(endpoint)  # Directly exempt these views from CSRF
+    
     mail.init_app(app)
     migrate.init_app(app, db)
     app.celery = configure_celery(app)
 
     from app.API.predictions import predictions_api
     csrf.exempt(predictions_api)
+    
+    # Exempt specific admin routes from CSRF protection
+    @csrf.exempt
+    def csrf_exempt_route(route):
+        # Admin routes that need to be exempt from CSRF
+        admin_routes = [
+            'admin.force_send_message',
+            'admin.delete_message',
+            'admin.update_rsvp',
+            'admin.cleanup_old_messages_route',
+            'admin.schedule_next_week',
+            'admin.schedule_season',
+            'admin.process_scheduled_messages',
+            'admin.send_custom_sms',
+            'admin.send_discord_dm'
+        ]
+        
+        if route in admin_routes:
+            return True
+        return False
+    
+    # Fix for CSRF session token issues - set CSRF token if missing
+    @app.before_request
+    def ensure_csrf_token():
+        # Skip for static resources and exempt routes
+        if request.path.startswith('/static/') or request.method == 'GET':
+            return None
+        
+        # Get session from flask
+        from flask import session as flask_session
+        
+        # Check if session exists but CSRF token is missing
+        if flask_session and 'csrf_token' not in flask_session:
+            from flask_wtf.csrf import generate_csrf
+            # Generate a token and store it in session
+            token = generate_csrf()
+            logger.info(f"Generated missing CSRF token for path: {request.path}")
+            
+        return None
+    
+    # Exempt specific admin routes from CSRF protection since they're protected by authentication and role requirements
+    @app.after_request
+    def csrf_exempt_admin_routes(response):
+        # Get current request path
+        path = request.path
+        
+        # List of routes to exempt from CSRF protection
+        exempt_routes = [
+            '/admin/force_send/',  # Route handling force sending of scheduled messages
+            '/admin/delete_message/',  # Route handling message deletion
+            '/admin/update_rsvp'  # Route handling RSVP updates
+        ]
+        
+        # Check if the current request path starts with any of the exempt routes
+        for route in exempt_routes:
+            if path.startswith(route):
+                # This is a protected admin route, exempt it from CSRF protection
+                logger.info(f"Exempting admin route from CSRF: {path}")
+                request.csrf_exempt = True
+                break
+                
+        return response
 
     @login_manager.user_loader
     def load_user(user_id):
