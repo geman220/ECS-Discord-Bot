@@ -305,6 +305,10 @@
 <div id="page-loader">
     <span class="loader-spinner"></span>
 </div>
+<!-- Store user role data for JavaScript -->
+<script type="text/javascript">
+    document.body.dataset.userRoles = "{{ current_user.roles|map(attribute='name')|join(',') }}";
+</script>
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header with Breadcrumb -->
     <h4 class="fw-bold py-3 mb-3">
@@ -1149,7 +1153,9 @@
 </div>
 
 <!-- Request Sub Modal -->
-<div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true">
+<div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true" 
+    data-home-team-id="{{ match.home_team_id }}" data-away-team-id="{{ match.away_team_id }}"
+    data-home-team-name="{{ match.home_team.name }}" data-away-team-name="{{ match.away_team.name }}">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-warning text-white">
@@ -1182,10 +1188,14 @@
                             {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
                                 <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
                                 <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
-                            {% else %}
-                                {% for team, is_coach in current_user.player.get_current_teams(with_coach_status=True) %}
-                                    {% if is_coach and (team.id == match.home_team_id or team.id == match.away_team_id) %}
-                                        <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% elif current_user.has_role('Pub League Coach') and current_user.player %}
+                                <!-- Simpler coach check: Just show teams in this match for coaches -->
+                                {% for team in current_user.player.teams %}
+                                    {% if team.id == match.home_team_id %}
+                                        <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                    {% endif %}
+                                    {% if team.id == match.away_team_id %}
+                                        <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
                                     {% endif %}
                                 {% endfor %}
                             {% endif %}
