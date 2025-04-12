@@ -225,5 +225,21 @@ class CeleryConfig:
                 'queue': 'live_reporting',
                 'expires': 540
             }
+        },
+        'monitor-rsvp-health': {
+            'task': 'app.tasks.tasks_rsvp.monitor_rsvp_health',
+            'schedule': crontab(minute='*/30'),  # Run every 30 minutes
+            'options': {
+                'queue': 'discord',
+                'expires': 1740  # Task expires after 29 minutes
+            }
+        },
+        'force-discord-rsvp-sync': {
+            'task': 'app.tasks.tasks_rsvp.force_discord_rsvp_sync',
+            'schedule': crontab(hour='*/4'),  # Run every 4 hours
+            'options': {
+                'queue': 'discord',
+                'expires': 14340  # Task expires after 3 hours 59 minutes
+            }
         }
     }

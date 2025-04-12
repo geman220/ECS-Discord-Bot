@@ -21,12 +21,13 @@ from flask_login import login_required
 
 # Local application imports
 from app import csrf
-from app.core import celery
+from app.core import celery, db
 from app.models import Match, Availability, Team, Player, ScheduledMessage, User
 from app.tasks.tasks_rsvp import (
     notify_discord_of_rsvp_change_task,
     notify_frontend_of_rsvp_change_task,
-    update_rsvp
+    update_rsvp,
+    force_discord_rsvp_sync
 )
 from app.tasks.tasks_match_updates import fetch_match_and_team_id_task
 from app.availability_api_helpers import (
@@ -296,11 +297,27 @@ def update_availability_web():
     # If we have a discord_id, also update the reaction
     if discord_id:
         try:
-            # Instead of creating a new task, make sure the existing update_rsvp task will handle this
-            # The changes in tasks_rsvp.py will take care of updating the Discord reaction
-            logger.info(f"Discord ID found, update will include Discord reaction for user {discord_id}")
+            # Explicitly call the Discord bot to update the reaction
+            import requests
+            
+            # Call the Discord bot's API to update the reaction
+            discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
+            reaction_data = {
+                "match_id": str(data['match_id']),
+                "discord_id": str(discord_id),
+                "new_response": data['response'],
+                "old_response": None  # Let the bot figure out the old response
+            }
+            
+            logger.info(f"Sending reaction update to Discord: {reaction_data}")
+            response = requests.post(discord_api_url, json=reaction_data, timeout=10)
+            
+            if response.status_code == 200:
+                logger.info(f"Successfully updated Discord reaction for user {discord_id}")
+            else:
+                logger.error(f"Failed to update Discord reaction: {response.status_code} - {response.text}")
         except Exception as e:
-            logger.error(f"Error queueing Discord reaction update: {str(e)}")
+            logger.error(f"Error updating Discord reaction: {str(e)}", exc_info=True)
     
     return jsonify({"message": message}), 200
 
@@ -346,15 +363,73 @@ def get_match_rsvps(match_id):
     Retrieve RSVP data for a match.
 
     Optionally filters by team_id provided as a query parameter.
+    Can include discord_ids if include_discord_ids=true is provided.
     """
     session_db = g.db_session
     team_id = request.args.get('team_id', type=int)
-    logger.debug(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}")
+    include_discord_ids = request.args.get('include_discord_ids', 'false').lower() == 'true'
+    
+    logger.info(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}, include_discord_ids={include_discord_ids}")
 
     verify_availability_data(match_id, team_id, session=session_db)
-    rsvp_data = get_match_rsvp_data(match_id, team_id, session=session_db)
-    logger.debug(f"Returning RSVP data: {rsvp_data}")
-    return jsonify(rsvp_data), 200
+    
+    # Get detailed RSVP data with Discord IDs if requested
+    try:
+        # Start with the basic query
+        query = session_db.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
+        
+        # If a team_id is provided, use the player_teams association table to filter by team
+        if team_id:
+            from app.models import player_teams
+            query = query.join(player_teams, Player.id == player_teams.c.player_id).filter(player_teams.c.team_id == team_id)
+            logger.debug(f"Filtering by team_id: {team_id}")
+
+        # Get the availability records with discord_ids if requested
+        if include_discord_ids:
+            availability_records = query.with_entities(
+                Availability.response, 
+                Player.name,
+                Player.id,
+                Player.discord_id
+            ).all()
+        else:
+            availability_records = query.with_entities(
+                Availability.response, 
+                Player.name,
+                Player.id
+            ).all()
+        
+        logger.debug(f"Retrieved {len(availability_records)} availability records")
+
+        # Organize data by response type
+        rsvp_data = {'yes': [], 'no': [], 'maybe': []}
+        
+        # Process each record
+        for record in availability_records:
+            if include_discord_ids:
+                response, player_name, player_id, discord_id = record
+                player_data = {
+                    'player_name': player_name,
+                    'player_id': player_id,
+                    'discord_id': discord_id
+                }
+            else:
+                response, player_name, player_id = record
+                player_data = {
+                    'player_name': player_name,
+                    'player_id': player_id
+                }
+                
+            if response in rsvp_data:
+                rsvp_data[response].append(player_data)
+        
+        logger.info(f"Returning RSVP data for match {match_id}, team {team_id} with {len(availability_records)} entries")
+        return jsonify(rsvp_data), 200
+        
+    except Exception as e:
+        logger.exception(f"Error getting RSVPs for match {match_id}, team {team_id}: {str(e)}")
+        rsvp_data = {'yes': [], 'no': [], 'maybe': [], 'error': str(e)}
+        return jsonify(rsvp_data), 200
 
 
 @availability_bp.route('/update_availability_from_discord', methods=['POST'], endpoint='update_availability_from_discord')
@@ -662,3 +737,240 @@ def _get_task_status(task):
     elif task.state == 'FAILURE':
         return str(task.info)
     return 'In progress...'
+
+
+@availability_bp.route('/get_message_info/<message_id>', methods=['GET'], endpoint='get_message_info')
+def get_message_info(message_id):
+    """
+    Get information about a Discord message, including its channel ID, match ID, and team ID.
+    
+    This endpoint is used by the Discord bot's synchronization system to identify which
+    match and team a message belongs to, so it can properly update the correct RSVPs.
+    
+    Args:
+        message_id: The Discord message ID to look up
+        
+    Returns:
+        JSON response containing channel_id, match_id, and team_id if found
+    """
+    logger.info(f"Looking up message info for message ID: {message_id}")
+    try:
+        # Convert the message ID to a string for lookups (database columns are VARCHAR)
+        message_id_str = str(message_id)
+        
+        # Find a scheduled message with this home or away message ID
+        logger.debug(f"Querying for scheduled message with home_message_id or away_message_id = {message_id_str}")
+        scheduled_msg = db.session.query(ScheduledMessage).filter(
+            (ScheduledMessage.home_message_id == message_id_str) | 
+            (ScheduledMessage.away_message_id == message_id_str)
+        ).first()
+        
+        if not scheduled_msg:
+            # Let's log all message IDs for debugging
+            all_msgs = db.session.query(
+                ScheduledMessage.id, 
+                ScheduledMessage.home_message_id, 
+                ScheduledMessage.away_message_id
+            ).all()
+            logger.warning(f"No scheduled message found for message ID {message_id}. Available IDs: {all_msgs}")
+            return jsonify({'error': 'Message not found'}), 404
+            
+        # Determine if this is a home or away message
+        is_home = scheduled_msg.home_message_id == message_id
+        
+        # Get the associated match
+        match = scheduled_msg.match
+        if not match:
+            logger.warning(f"No match associated with scheduled message {scheduled_msg.id}")
+            return jsonify({'error': 'No match associated with this message'}), 404
+            
+        # Get the appropriate team ID and channel ID
+        team_id = match.home_team_id if is_home else match.away_team_id
+        channel_id = scheduled_msg.home_channel_id if is_home else scheduled_msg.away_channel_id
+        
+        # Build response
+        response = {
+            'channel_id': channel_id,
+            'match_id': match.id,
+            'team_id': team_id,
+            'is_home': is_home,
+            'message_type': 'home' if is_home else 'away'
+        }
+        logger.info(f"Found message info for {message_id}: {response}")
+        
+        # Return the information needed for syncing
+        return jsonify(response)
+        
+    except ValueError:
+        logger.error(f"Invalid message ID format: {message_id}")
+        return jsonify({'error': 'Invalid message ID format'}), 400
+    except Exception as e:
+        logger.exception(f"Error retrieving message info for {message_id}: {str(e)}")
+        return jsonify({'error': f'Server error: {str(e)}'}), 500
+
+
+@availability_bp.route('/force_discord_sync', methods=['POST'], endpoint='force_discord_sync')
+@login_required
+def force_discord_sync():
+    """
+    Force a synchronization between Flask app RSVPs and Discord embeds/reactions.
+    
+    This endpoint is useful for maintaining consistency after bot crashes or network issues.
+    It requires admin privileges to run due to potential performance impact.
+    
+    Returns:
+        JSON response indicating request has been sent to the Discord bot
+    """
+    # Only allow admin users to trigger the sync
+    if not g.user.is_admin:
+        logger.warning(f"Non-admin user {g.user.id} attempted to force Discord sync")
+        return jsonify({'error': 'Admin privileges required'}), 403
+        
+    try:
+        # First, trigger the Celery task to mark failed records for resync
+        task = force_discord_rsvp_sync.delay()
+        
+        # Then call the Discord bot's sync endpoint
+        import requests
+        discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"
+        
+        response = requests.post(discord_bot_url, timeout=5)
+        
+        if response.status_code == 200:
+            logger.info(f"Discord sync triggered by admin user {g.user.id}")
+            return jsonify({
+                'success': True,
+                'message': 'Discord synchronization triggered successfully',
+                'response': response.json(),
+                'task_id': task.id
+            }), 200
+        else:
+            logger.error(f"Failed to trigger Discord sync: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'message': f'Discord synchronization failed: {response.text}',
+                'task_id': task.id
+            }), 500
+            
+    except requests.RequestException as e:
+        logger.error(f"Error connecting to Discord bot for sync: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Could not connect to Discord bot: {str(e)}'
+        }), 500
+    except Exception as e:
+        logger.exception(f"Unexpected error during Discord sync: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Unexpected error: {str(e)}'
+        }), 500
+
+@availability_bp.route('/sync_discord_rsvps', methods=['POST'], endpoint='sync_discord_rsvps')
+def sync_discord_rsvps():
+    """
+    Receive RSVP updates from Discord bot to update the Flask database.
+    
+    This endpoint allows the Discord bot to inform Flask of RSVPs discovered during 
+    a sync operation that might be missing in the Flask database.
+    
+    Expected JSON payload:
+    {
+        "match_id": 123,
+        "rsvps": [
+            {"discord_id": "123456789", "response": "yes"},
+            {"discord_id": "987654321", "response": "no"}
+        ]
+    }
+    
+    Returns:
+        JSON response indicating success or failure
+    """
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'error': 'No JSON data provided'}), 400
+            
+        match_id = data.get('match_id')
+        rsvps = data.get('rsvps', [])
+        
+        if not match_id or not isinstance(rsvps, list):
+            return jsonify({'error': 'Invalid data format'}), 400
+            
+        # Verify the match exists
+        match = db.session.query(Match).get(match_id)
+        if not match:
+            return jsonify({'error': f'Match {match_id} not found'}), 404
+            
+        # Process each RSVP update
+        updates = []
+        for rsvp_data in rsvps:
+            discord_id = rsvp_data.get('discord_id')
+            response = rsvp_data.get('response')
+            
+            if not discord_id or not response:
+                continue
+                
+            # Find the player by Discord ID
+            player = db.session.query(Player).filter_by(discord_id=discord_id).first()
+            if not player:
+                logger.warning(f"Player with Discord ID {discord_id} not found")
+                continue
+                
+            # Check if an availability record exists
+            availability = db.session.query(Availability).filter_by(
+                match_id=match_id, 
+                player_id=player.id
+            ).first()
+            
+            if availability:
+                if availability.response != response:
+                    availability.response = response
+                    availability.responded_at = datetime.utcnow()
+                    updates.append({
+                        'player_id': player.id,
+                        'name': player.name,
+                        'old_response': availability.response,
+                        'new_response': response,
+                        'action': 'updated'
+                    })
+            else:
+                # Create new availability record
+                new_availability = Availability(
+                    match_id=match_id,
+                    player_id=player.id,
+                    response=response,
+                    discord_id=discord_id,
+                    responded_at=datetime.utcnow()
+                )
+                db.session.add(new_availability)
+                updates.append({
+                    'player_id': player.id,
+                    'name': player.name,
+                    'new_response': response,
+                    'action': 'created'
+                })
+                
+        # Commit all changes
+        db.session.commit()
+        
+        # If we made any updates, notify the frontend
+        if updates:
+            for update in updates:
+                notify_frontend_of_rsvp_change_task.delay(
+                    match_id=match_id,
+                    player_id=update['player_id'],
+                    response=update['new_response']
+                )
+            
+        return jsonify({
+            'success': True,
+            'message': f'Successfully processed {len(updates)} RSVP updates',
+            'updates': updates
+        })
+            
+    except Exception as e:
+        logger.exception(f"Error syncing Discord RSVPs: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error processing RSVP updates: {str(e)}'
+        }), 500

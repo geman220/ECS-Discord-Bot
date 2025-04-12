@@ -345,6 +345,11 @@
                             <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
                                 <i class="ti ti-eye me-1"></i> View Match Page
                             </a>
+                            {% if current_user.is_admin %}
+                            <button type="button" id="syncDiscordButton" class="btn btn-info ecs-btn ecs-btn-icon">
+                                <i class="ti ti-refresh me-1"></i> Sync Discord RSVPs
+                            </button>
+                            {% endif %}
                             {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
                             <button type="button" class="btn btn-success ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#assignSubModalRSVP">
                                 <i class="ti ti-user-plus me-1"></i> Assign Substitute
