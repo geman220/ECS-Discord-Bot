@@ -372,6 +372,9 @@ async def post_availability_message(message_data: Dict[str, Any]) -> Optional[Tu
 async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Update a user's reaction (RSVP) on Discord.
+    
+    This function checks if the requested update is actually needed before making
+    the Discord API call, to avoid unnecessary reaction updates that might cause race conditions.
 
     Args:
         request_data: Dictionary containing 'match_id', 'discord_id', 'new_response', and optionally 'old_response'.
@@ -392,6 +395,38 @@ async def update_user_reaction(request_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Ensure discord_id is a string
     request_data['discord_id'] = str(request_data['discord_id'])
+    
+    # First, check with Flask API if this update is needed
+    # This helps avoid race conditions where we might be trying to update to a state that's already correct
+    try:
+        check_api_url = f"http://webui:5000/api/get_match_rsvps/{request_data['match_id']}?include_discord_ids=true"
+        async with aiohttp.ClientSession() as check_session:
+            async with check_session.get(check_api_url) as response:
+                if response.status == 200:
+                    rsvp_data = await response.json()
+                    
+                    # Check each list to find the user's current status
+                    current_status = None
+                    for status in ['yes', 'no', 'maybe']:
+                        for player in rsvp_data.get(status, []):
+                            if player.get('discord_id') == request_data['discord_id']:
+                                current_status = status
+                                break
+                        if current_status:
+                            break
+                    
+                    # If the user's current status matches what we're trying to update it to,
+                    # we can skip the update to avoid potential race conditions
+                    if current_status == request_data['new_response']:
+                        logger.info(f"User {request_data['discord_id']} already has response {current_status} in database. Skipping reaction update.")
+                        return {
+                            'success': True,
+                            'message': "User already has the correct response in database. No update needed.",
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'sync_status': 'synced'
+                        }
+    except Exception as e:
+        logger.warning(f"Could not verify current RSVP status: {str(e)}. Proceeding with update.")
     
     # Max retries and backoff
     max_retries = 3

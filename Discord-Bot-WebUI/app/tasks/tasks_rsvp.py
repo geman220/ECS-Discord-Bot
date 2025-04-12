@@ -101,12 +101,36 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
 
         # Schedule Discord RSVP update if discord_id is available
         if discord_id:
+            # Run reaction update with higher priority (lower countdown)
+            # This ensures reactions are updated before the embed
             update_discord_rsvp_task.apply_async(kwargs={
                 "match_id": match_id,
                 "discord_id": discord_id,
                 "new_response": new_response,
                 "old_response": old_response
-            }, countdown=5)
+            }, countdown=1, priority=8)  # Higher priority value
+            
+            # Also try to update reaction directly via direct API call to ensure immediate response
+            try:
+                import requests
+                
+                discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
+                reaction_data = {
+                    "match_id": str(match_id),
+                    "discord_id": str(discord_id),
+                    "new_response": new_response,
+                    "old_response": old_response
+                }
+                
+                logger.info(f"Sending direct reaction update to Discord: {reaction_data}")
+                response = requests.post(discord_api_url, json=reaction_data, timeout=5)
+                
+                if response.status_code == 200:
+                    logger.info(f"Successfully sent direct reaction update for user {discord_id}")
+                else:
+                    logger.warning(f"Direct reaction update failed, will rely on task: {response.status_code}")
+            except Exception as e:
+                logger.warning(f"Could not send direct reaction update, will rely on task: {str(e)}")
         else:
             logger.info(f"No Discord ID available for player {player_id}, skipping Discord reaction update")
 
@@ -698,6 +722,15 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
 
         health_status = 'healthy' if health_score >= 80 else 'degraded' if health_score >= 50 else 'unhealthy'
 
+        # If health is degraded or unhealthy, trigger a Discord sync to fix issues
+        if health_status != 'healthy' and failed_count > 3:
+            logger.warning(f"RSVP health degraded (score: {health_score}). Triggering Discord sync.")
+            try:
+                # Trigger a Discord sync to fix issues
+                force_discord_rsvp_sync.apply_async(countdown=10)
+            except Exception as e:
+                logger.error(f"Failed to schedule Discord sync after detecting unhealthy state: {str(e)}")
+
         result = {
             'success': True,
             'message': 'Health check completed',
@@ -715,4 +748,92 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error in health monitoring: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_rsvp.force_discord_rsvp_sync', max_retries=3, queue='discord')
+def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
+    """
+    Force a full synchronization between Discord and Flask RSVP data.
+    
+    This task sends a request to the Discord bot to perform a full synchronization
+    of all RSVPs for all managed messages. This ensures consistency after bot crashes
+    or network issues.
+    
+    The task will:
+    1. Call the Discord bot's force_rsvp_sync API endpoint
+    2. Log the result of the sync operation
+    3. Update unsynced availability records to trigger retry
+    
+    Args:
+        session: Database session.
+        
+    Returns:
+        A dictionary with the result of the sync operation.
+        
+    Raises:
+        Retries the task on SQLAlchemy or general errors.
+    """
+    try:
+        import requests
+        
+        logger.info("Starting forced Discord RSVP synchronization")
+        
+        # First, mark failed records for retry by changing their sync status
+        failed_records = session.query(Availability).filter(
+            Availability.discord_sync_status == 'failed'
+        ).all()
+        
+        update_count = 0
+        for record in failed_records:
+            record.discord_sync_status = None  # Mark as needing sync
+            record.last_sync_attempt = None
+            record.sync_error = None
+            update_count += 1
+            
+        logger.info(f"Marked {update_count} failed records for resync")
+        
+        # Call the Discord bot API to force a full sync
+        discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"
+        
+        try:
+            response = requests.post(discord_bot_url, timeout=10)
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"Discord RSVP sync triggered successfully: {result}")
+                return {
+                    'success': True,
+                    'message': 'Discord RSVP sync triggered successfully',
+                    'discord_response': result,
+                    'updated_records': update_count,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+            else:
+                error_msg = f"Failed to trigger Discord RSVP sync: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {
+                    'success': False,
+                    'message': error_msg,
+                    'updated_records': update_count,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+        except requests.RequestException as e:
+            error_msg = f"Error connecting to Discord bot for RSVP sync: {str(e)}"
+            logger.error(error_msg)
+            
+            # Even if we can't connect to Discord, we still updated the records
+            return {
+                'success': False,
+                'message': error_msg,
+                'updated_records': update_count,
+                'connection_error': True,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during Discord RSVP sync: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error during Discord RSVP sync: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)

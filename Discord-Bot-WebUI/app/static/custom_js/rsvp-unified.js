@@ -35,6 +35,86 @@ document.addEventListener('DOMContentLoaded', function() {
     fixTeamOptions();
   }
   
+  // Setup Discord RSVP sync button
+  var syncDiscordButton = document.getElementById('syncDiscordButton');
+  if (syncDiscordButton) {
+    syncDiscordButton.addEventListener('click', function() {
+      // Change button to loading state
+      const originalText = syncDiscordButton.innerHTML;
+      syncDiscordButton.disabled = true;
+      syncDiscordButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Syncing...';
+      
+      // Get CSRF token from meta tag or hidden input
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         document.querySelector('input[name="csrf_token"]')?.value || '';
+      
+      // Call the API endpoint to force a sync
+      fetch('/api/force_discord_sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Reset button state
+        syncDiscordButton.disabled = false;
+        syncDiscordButton.innerHTML = originalText;
+        
+        // Show appropriate notification
+        if (data.success) {
+          if (window.toastr) {
+            toastr.success('RSVP synchronization with Discord has been triggered.', 'Sync Started');
+          } else if (window.Swal) {
+            Swal.fire({
+              title: 'Success!',
+              text: 'RSVP synchronization with Discord has been triggered.',
+              icon: 'success',
+              timer: 3000,
+              showConfirmButton: false
+            });
+          } else {
+            alert('RSVP synchronization with Discord has been triggered.');
+          }
+        } else {
+          if (window.toastr) {
+            toastr.error(data.message || 'An error occurred syncing with Discord.', 'Sync Failed');
+          } else if (window.Swal) {
+            Swal.fire({
+              title: 'Sync Failed',
+              text: data.message || 'An error occurred syncing with Discord.',
+              icon: 'error'
+            });
+          } else {
+            alert('Sync Failed: ' + (data.message || 'An error occurred syncing with Discord.'));
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error syncing with Discord:', error);
+        
+        // Reset button state
+        syncDiscordButton.disabled = false;
+        syncDiscordButton.innerHTML = originalText;
+        
+        // Show error notification
+        if (window.toastr) {
+          toastr.error('Could not connect to the Discord sync service.', 'Connection Error');
+        } else if (window.Swal) {
+          Swal.fire({
+            title: 'Connection Error',
+            text: 'Could not connect to the Discord sync service.',
+            icon: 'error'
+          });
+        } else {
+          alert('Connection Error: Could not connect to the Discord sync service.');
+        }
+      });
+    });
+  }
+  
   // Initialize when jQuery is ready
   if (window.jQuery) {
     jQuery(function($) {

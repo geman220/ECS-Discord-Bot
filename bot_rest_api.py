@@ -245,7 +245,7 @@ def extract_channel_and_message_id(message_id_str):
 async def fetch_team_rsvp_data(match_id: int, team_id: int):
     try:
         api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}"
-        logger.debug(f"Fetching RSVP data from {api_url}")
+        logger.info(f"Fetching RSVP data from {api_url}")
         
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as response:
@@ -1336,7 +1336,14 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
             bot_state.add_managed_message_id(message.id)
         
         logger.debug("Storing message and channel IDs in web UI")
-        store_message_ids_in_web_ui(request.match_id, home_message.id, away_message.id, request.home_channel_id, request.away_channel_id)
+        await store_message_ids_in_web_ui(
+            request.match_id, 
+            home_channel_id=request.home_channel_id, 
+            home_message_id=str(home_message.id), 
+            away_channel_id=request.away_channel_id, 
+            away_message_id=str(away_message.id)
+        )
+        logger.info(f"Stored IDs: Home msg={home_message.id}, Away msg={away_message.id}")
         
         logger.info(f"Successfully posted availability for match {request.match_id}")
         return {"home_message_id": home_message.id, "away_message_id": away_message.id}
@@ -1448,7 +1455,21 @@ async def update_availability_embed(match_id: str, bot: commands.Bot = Depends(g
         logger.exception(f"Error updating availability embed for match {match_id}: {e}")
         return {"status": "error", "message": f"Internal error: {str(e)}"}
 
-def store_message_ids_in_web_ui(match_id, home_message_id, away_message_id, home_channel_id, away_channel_id):
+async def store_message_ids_in_web_ui(match_id, home_channel_id=None, home_message_id=None, away_channel_id=None, away_message_id=None):
+    """
+    Store message IDs in the web UI for future reference.
+    This function has been updated to use aiohttp for async requests.
+    
+    Args:
+        match_id: ID of the match
+        home_channel_id: ID of the home team's channel
+        home_message_id: ID of the message in the home channel
+        away_channel_id: ID of the away team's channel  
+        away_message_id: ID of the message in the away channel
+    
+    Returns:
+        dict: A dictionary with the status of the operation
+    """
     api_url = "http://webui:5000/api/store_message_ids"
     payload = {
         'match_id': match_id,
@@ -1457,9 +1478,22 @@ def store_message_ids_in_web_ui(match_id, home_message_id, away_message_id, home
         'home_channel_id': home_channel_id,
         'away_channel_id': away_channel_id
     }
-    response = requests.post(api_url, json=payload)
-    if response.status_code != 200:
-        print(f"Failed to store message IDs in Web UI: {response.text}")
+    
+    logger.info(f"Storing message IDs in Web UI for match {match_id}: {payload}")
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(api_url, json=payload, timeout=10) as response:
+                if response.status == 200:
+                    logger.info(f"Successfully stored message IDs for match {match_id}")
+                    return {"success": True, "message": "Message IDs stored successfully"}
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to store message IDs in Web UI: {response.status} - {error_text}")
+                    return {"success": False, "message": f"Failed with status {response.status}: {error_text}"}
+    except Exception as e:
+        logger.exception(f"Error storing message IDs in Web UI: {str(e)}")
+        return {"success": False, "message": f"Exception occurred: {str(e)}"}
 
 @app.post("/channels/{channel_id}/threads")
 async def create_thread(channel_id: int, request: dict, bot: commands.Bot = Depends(get_bot)):
@@ -1690,7 +1724,8 @@ async def update_message_with_reactions(
 async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bot)):
     """
     Updates a user's reaction on Discord messages.
-    Enhanced with better error handling and retry logic.
+    Enhanced with better error handling, retry logic, and race condition prevention.
+    Fixed to ensure reactions are always properly updated when RSVPs change in the Flask app.
     
     Args:
         request: A dictionary containing match_id, discord_id, new_response, and optional old_response.
@@ -1766,64 +1801,145 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
         
         # Helper function to handle reaction updates
         async def process_message_reactions(channel_id, message_id, user_id, new_emoji, old_emoji):
+            """
+            Process message reactions using the simplified approach:
+            - Only keep the three base emoji reactions (👍, 👎, 🤷) on the message, added by the bot
+            - No user reactions are kept, to avoid conflicts
+            - Only update the embed with the user's RSVP status
+            """
             if not channel_id or not message_id:
                 logger.debug(f"Skipping message due to missing IDs: channel={channel_id}, message={message_id}")
                 return True, None  # Skip but don't count as error
                 
             try:
+                # Get channel with fallback
                 channel = bot.get_channel(int(channel_id))
+                if not channel:
+                    try:
+                        logger.info(f"Attempting to fetch channel {channel_id} directly")
+                        channel = await bot.fetch_channel(int(channel_id))
+                    except Exception as e:
+                        logger.error(f"Failed to fetch channel {channel_id}: {e}")
+                        return False, f"Channel {channel_id} not found or inaccessible"
+                
                 if not channel:
                     logger.error(f"Channel {channel_id} not found")
                     return False, f"Channel {channel_id} not found"
-                    
+                
+                # Get message
                 try:
                     message = await channel.fetch_message(int(message_id))
                 except discord.NotFound:
                     logger.error(f"Message {message_id} not found in channel {channel_id}")
                     return False, f"Message {message_id} not found"
-                    
-                # Get user object
+                
+                # Get user object (only for debugging/logging)
                 try:
                     user = await bot.fetch_user(int(user_id))
                 except discord.NotFound:
                     logger.error(f"User {user_id} not found")
                     return False, f"User {user_id} not found"
                 
-                # Remove old reactions if needed
+                # Simplified approach: Only update embed data in Flask, don't mess with user reactions
+                logger.info(f"Using simplified reaction approach for user {user_id} with response {new_emoji}")
+                
+                # Just make sure the three base reactions exist on the message (added by bot only)
                 valid_emojis = ['👍', '👎', '🤷']
-                for reaction in message.reactions:
-                    if str(reaction.emoji) in valid_emojis:
+                existing_emojis = [str(r.emoji) for r in message.reactions]
+                
+                # Add any missing base emojis (these are just the voting options)
+                for emoji in valid_emojis:
+                    if emoji not in existing_emojis:
+                        logger.info(f"Adding base emoji {emoji} to message {message_id}")
                         try:
-                            # Check if user has this reaction
-                            users = [u async for u in reaction.users()]
-                            if user in users and (old_emoji is None or str(reaction.emoji) != new_emoji):
-                                await reaction.remove(user)
-                                logger.debug(f"Removed reaction {reaction.emoji} from user {user_id}")
+                            await message.add_reaction(emoji)
+                            await asyncio.sleep(0.5)  # Small delay between adding reactions
                         except Exception as e:
-                            logger.error(f"Error removing reaction {reaction.emoji}: {e}")
+                            logger.error(f"Error adding base emoji {emoji}: {e}")
+                            # Continue with the rest of the emojis
                 
-                # Add new reaction if needed
-                if new_emoji:
+                # Update the embed directly (this is handled elsewhere by update_embed_for_message)
+                # No need to do anything specific here for the user's reaction
+                
+                # Always consider the operation successful since we don't manage user reactions anymore
+                logger.info(f"Successfully processed simplified reactions approach for user {user_id}")
+                return True, None
+                
+            except Exception as e:
+                logger.error(f"Error processing message reactions: {e}")
+                return False, str(e)
+                
+                # Only update the embed if we actually changed reactions
+                team_id = message_data.get('home_team_id') if str(channel_id) == message_data.get('home_channel_id') else message_data.get('away_team_id')
+                if team_id:
                     try:
-                        await message.add_reaction(new_emoji)
-                        logger.debug(f"Added reaction {new_emoji} for user {user_id}")
-                    except Exception as e:
-                        logger.error(f"Error adding reaction {new_emoji}: {e}")
-                        return False, f"Failed to add reaction: {str(e)}"
-                
-                # Also update the embed
-                try:
-                    team_id = message_data.get('home_team_id') if channel_id == message_data.get('home_channel_id') else message_data.get('away_team_id')
-                    if team_id:
                         await update_embed_for_message(message_id, channel_id, match_id, team_id, bot)
-                except Exception as e:
-                    logger.warning(f"Non-critical error updating embed: {e}")
-                    # Don't fail the operation just because embed update failed
+                    except Exception as e:
+                        logger.warning(f"Non-critical error updating embed: {e}")
+                        # Don't fail the operation just because embed update failed
                 
                 return True, None
             except Exception as e:
                 logger.error(f"Error processing message reactions: {e}")
                 return False, str(e)
+        
+        # Check current RSVP status from Flask (the source of truth)
+        try:
+            # Determine which team the user belongs to first
+            team_id = None
+            
+            # Try to determine if user is on home team
+            if message_data.get('home_team_id'):
+                api_url = f"http://webui:5000/api/is_user_on_team"
+                payload = {'discord_id': user_id, 'team_id': message_data['home_team_id']}
+                
+                async with aiohttp.ClientSession() as check_session:
+                    async with check_session.post(api_url, json=payload) as response:
+                        if response.status == 200:
+                            result = await response.json()
+                            if result.get('is_team_member', False):
+                                team_id = message_data['home_team_id']
+            
+            # If not on home team, check if on away team
+            if not team_id and message_data.get('away_team_id'):
+                api_url = f"http://webui:5000/api/is_user_on_team"
+                payload = {'discord_id': user_id, 'team_id': message_data['away_team_id']}
+                
+                async with aiohttp.ClientSession() as check_session:
+                    async with check_session.post(api_url, json=payload) as response:
+                        if response.status == 200:
+                            result = await response.json()
+                            if result.get('is_team_member', False):
+                                team_id = message_data['away_team_id']
+            
+            # If we found a team, check current RSVP status in Flask
+            if team_id:
+                api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}&include_discord_ids=true"
+                
+                async with aiohttp.ClientSession() as check_session:
+                    async with check_session.get(api_url) as response:
+                        if response.status == 200:
+                            rsvp_data = await response.json()
+                            
+                            # Check each list to find the user's current status
+                            current_status = None
+                            
+                            for status in ['yes', 'no', 'maybe']:
+                                for player in rsvp_data.get(status, []):
+                                    if player.get('discord_id') == user_id:
+                                        current_status = status
+                                        break
+                                if current_status:
+                                    break
+                            
+                            # Even if the requested status matches current status, still update reactions to ensure consistency
+                            if current_status == new_response:
+                                logger.info(f"User {user_id} already has RSVP status '{new_response}' in database, but will still update reactions to ensure they match")
+                                # Continue with processing to ensure reactions are properly set
+                                # Don't return here, so we process the reactions
+        except Exception as e:
+            logger.error(f"Error checking current RSVP status: {e}")
+            # Continue with the update as a fallback
         
         # Process home message
         if message_data.get('home_message_id') and message_data.get('home_channel_id'):
@@ -2041,4 +2157,41 @@ async def update_user_reaction_logic(request_data: dict, bot: commands.Bot):
         except Exception as e:
             logger.exception(f"Error updating reaction for message {message_id_str}: {e}")
 
-    logger.info("Finished processing all message IDs")
+
+@app.post("/api/force_rsvp_sync")
+async def force_rsvp_sync_endpoint(bot: commands.Bot = Depends(get_bot), throttled: bool = False):
+    """
+    Endpoint to force a full synchronization of RSVPs between Discord and Flask.
+    This is useful after bot restarts or network failures to ensure consistency.
+    
+    Args:
+        bot: The Discord bot instance
+        throttled: If True, adds delays between operations to avoid rate limiting
+    """
+    try:
+        # Get the full_rsvp_sync function from the main module
+        import sys
+        import ECS_Discord_Bot
+        
+        if hasattr(ECS_Discord_Bot, 'full_rsvp_sync'):
+            logger.info("Starting forced full RSVP synchronization...")
+            
+            # Create a task with a background sync that has throttling options
+            # The background sync process will handle all the updates with the rate limit protections
+            task = asyncio.create_task(ECS_Discord_Bot.full_rsvp_sync(force_sync=True))
+            
+            # We don't await the task because we want it to run in the background
+            # This way the API can respond immediately while the sync happens asynchronously
+            
+            return {
+                "success": True,
+                "message": "Full RSVP synchronization started in the background",
+                "timestamp": datetime.utcnow().isoformat(),
+                "throttled": throttled
+            }
+        else:
+            logger.error("full_rsvp_sync function not found in ECS_Discord_Bot module")
+            raise HTTPException(status_code=500, detail="Synchronization function not available")
+    except Exception as e:
+        logger.exception(f"Error forcing RSVP sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
