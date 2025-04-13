@@ -43,7 +43,8 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                          last_status: Optional[str] = None,
                          last_score: Optional[str] = None,
                          last_event_keys: Optional[list] = None,
-                         task_id: Optional[str] = None) -> Dict[str, Any]:
+                         task_id: Optional[str] = None,
+                         task_chain_length: int = 0) -> Dict[str, Any]:
     """
     Process a single live match update iteration.
 
