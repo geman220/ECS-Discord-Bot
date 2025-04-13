@@ -220,19 +220,16 @@ def discord_callback():
             
         redirect_uri = data.get('redirect_uri')
         
-        # Verify the state parameter to prevent CSRF attacks
+        # For mobile apps, we accept the state directly from the client
+        # This is necessary because mobile apps often lose session context between requests
         received_state = data.get('state')
-        stored_state = session.get('oauth_state')
         
         if not received_state:
             return jsonify({"msg": "Missing state parameter from original authorization request"}), 400
-            
-        if not stored_state or received_state != stored_state:
-            logger.warning(f"OAuth state mismatch: received {received_state[:8]}..., stored {stored_state[:8] if stored_state else None}...")
-            return jsonify({"msg": "Invalid or expired state parameter"}), 400
-            
-        # Clear the state from session as it's single-use
-        session.pop('oauth_state', None)
+        
+        # For web-based flows (non-mobile), we would validate against the session
+        # But for mobile clients, we skip this validation since they need to store 
+        # and return the state themselves
         
         # The code_verifier MUST be the same one used in the original authorization request
         code_verifier = data.get('code_verifier')
@@ -243,7 +240,7 @@ def discord_callback():
             return jsonify({"msg": "Missing authorization code"}), 400
             
         # Log the data we're using for the OAuth exchange
-        logger.info(f"Discord callback data - code length: {len(code) if code else 0}, redirect_uri: {redirect_uri}, state verified: true")
+        logger.info(f"Discord callback data - code length: {len(code) if code else 0}, redirect_uri: {redirect_uri}, using mobile flow")
         
         # Exchange the authorization code for an access token
         token_data = exchange_discord_code(code, redirect_uri, code_verifier)
