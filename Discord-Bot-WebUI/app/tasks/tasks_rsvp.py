@@ -201,6 +201,9 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
             return result
         finally:
             loop.close()
+            # Ensure connection cleanup - explicitly call cleanup utility
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
     except SQLAlchemyError as e:
         logger.error(f"Database error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
@@ -436,6 +439,9 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
             }
         finally:
             loop.close()
+            # Ensure connection cleanup after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
             
     except SQLAlchemyError as e:
         logger.error(f"Database error updating Discord RSVP: {str(e)}", exc_info=True)
@@ -487,6 +493,9 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
             }
         finally:
             loop.close()
+            # Ensure connection cleanup after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
             
     except SQLAlchemyError as e:
         logger.error(f"Database error notifying Discord of RSVP change: {str(e)}", exc_info=True)

@@ -138,6 +138,9 @@ def update_player_discord_roles(self, session, player_id: int) -> Dict[str, Any]
             return result
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
     except SQLAlchemyError as e:
         logger.error(f"Database error updating Discord roles for player {player_id}: {str(e)}", exc_info=True)
@@ -232,6 +235,9 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
             )
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
         # Update each player's sync info based on the results.
         for player in players:
@@ -317,6 +323,9 @@ def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional
             loop.stop()
             loop.close()
             asyncio.set_event_loop(None)
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
     except Exception as e:
         logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True)
@@ -431,6 +440,9 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
             }
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
     except Exception as e:
         logger.error(f"Error in fetch_role_status: {str(e)}")
@@ -731,6 +743,9 @@ def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dic
             result = loop.run_until_complete(_remove_player_roles_async(session, player.id, team_id))
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
         if result.get('success'):
             player.discord_roles = []
@@ -839,6 +854,9 @@ def create_team_discord_resources_task(self, session, team_id: int):
             return {'success': True, 'message': 'Discord resources created'}
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
     except Exception as e:
         logger.error(f"Error creating Discord resources: {str(e)}")
@@ -925,6 +943,9 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
             return {'success': True, 'message': 'Discord resources cleaned up'}
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
             
     except Exception as e:
         session.rollback()
@@ -963,6 +984,13 @@ def update_team_discord_resources_task(self, session, team_id: int, new_team_nam
             return {'success': True, 'message': 'Discord resources updated'}
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
+            loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
     except Exception as e:
         session.rollback()
         raise self.retry(exc=e, countdown=30)

@@ -6,11 +6,14 @@ import discord
 import asyncio
 import os
 import logging
+import time
 from discord import app_commands
 from discord.ext import commands
 from common import bot_token, server_id
 import uvicorn
 from bot_rest_api import app, bot_ready, update_embed_for_message, get_team_id_for_message, poll_task_result, session
+import signal
+import sys
 from shared_states import bot_ready, bot_state, set_bot_instance, periodic_check
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
@@ -31,7 +34,104 @@ intents.messages = True
 intents.guilds = True
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+class ECSBot(commands.Bot):
+    """
+    Custom Bot class with improved session management, error handling, and heartbeat monitoring.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = None
+        self.api_port = None
+        self.last_heartbeat = time.time()
+        self.heartbeat_interval = 5  # Check heartbeat every 5 seconds
+        self.max_heartbeat_delay = 10  # Maximum allowable delay in seconds
+        self.heartbeat_task = None
+        self._connection_retry_count = 0
+        self._max_connection_retries = 10
+    
+    async def setup_hook(self):
+        """Called when the bot is starting up"""
+        logger.info("Setting up bot...")
+        
+        # Create a session for the bot to use
+        self.session = aiohttp.ClientSession()
+        
+        # Start heartbeat monitoring
+        self.heartbeat_task = self.loop.create_task(self._monitor_heartbeat())
+        
+        logger.info("Bot setup completed")
+    
+    async def _monitor_heartbeat(self):
+        """
+        Monitor the bot's heartbeat to detect and recover from blocks.
+        This runs in a separate task and won't block the main thread.
+        """
+        logger.info("Starting heartbeat monitoring task")
+        
+        while not self.is_closed():
+            try:
+                # Check how long since last heartbeat
+                current_time = time.time()
+                time_since_last_heartbeat = current_time - self.last_heartbeat
+                
+                if time_since_last_heartbeat > self.max_heartbeat_delay:
+                    logger.warning(f"Heartbeat delayed by {time_since_last_heartbeat:.2f}s, which exceeds the maximum allowed delay of {self.max_heartbeat_delay}s")
+                    
+                    # Log active tasks to help debug what might be blocking
+                    tasks = [task for task in asyncio.all_tasks(self.loop) if not task.done()]
+                    logger.info(f"Currently {len(tasks)} active tasks in the event loop")
+                    
+                    # Optionally log more details about some tasks
+                    for i, task in enumerate(tasks[:5]):  # Log details for up to 5 tasks
+                        logger.info(f"Task {i+1}: {task.get_name()} - {task}")
+                
+                # Update the heartbeat time
+                self.last_heartbeat = current_time
+                
+                # Sleep for the monitoring interval
+                await asyncio.sleep(self.heartbeat_interval)
+                
+            except asyncio.CancelledError:
+                logger.info("Heartbeat monitoring task cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Error in heartbeat monitoring: {e}")
+                await asyncio.sleep(self.heartbeat_interval)
+    
+    async def on_socket_response(self, msg):
+        """
+        Called whenever a message is received from the Discord gateway.
+        Used to track heartbeat status.
+        """
+        # Update the last heartbeat time to indicate we're still receiving messages
+        self.last_heartbeat = time.time()
+        
+        # Pass to the parent method
+        await super().on_socket_response(msg)
+    
+    async def close(self):
+        """Called when the bot is shutting down"""
+        logger.info("Closing bot and cleaning up resources...")
+        
+        # Cancel the heartbeat monitoring task
+        if self.heartbeat_task and not self.heartbeat_task.done():
+            self.heartbeat_task.cancel()
+            try:
+                await self.heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        
+        # Close the session to prevent resource leaks
+        if self.session:
+            await self.session.close()
+            self.session = None
+            logger.info("Bot session closed")
+        
+        # Call the parent's close method
+        await super().close()
+        logger.info("Bot closed successfully")
+
+bot = ECSBot(command_prefix="!", intents=intents)
 
 # Removed separate managed_message_ids set; using bot_state instead
 
@@ -428,9 +528,44 @@ async def schedule_periodic_sync():
         # Run every 6 hours
         await asyncio.sleep(6 * 60 * 60)
 
+class RsvpSemaphore:
+    """
+    Semaphore to limit concurrent RSVP operations per match.
+    This prevents too many operations happening at once for the same match.
+    """
+    def __init__(self):
+        self.semaphores = {}  # match_id -> semaphore
+        
+    def get_semaphore(self, match_id, max_concurrent=2):
+        """Get a semaphore for the given match ID, creating one if it doesn't exist."""
+        if match_id not in self.semaphores:
+            self.semaphores[match_id] = asyncio.Semaphore(max_concurrent)
+        return self.semaphores[match_id]
+    
+    def release_semaphore(self, match_id):
+        """Release the semaphore for a match ID if it exists."""
+        if match_id in self.semaphores:
+            try:
+                self.semaphores[match_id].release()
+            except ValueError:  # Released too many times
+                pass
+    
+    def cleanup(self, match_id=None):
+        """Remove semaphores to free memory."""
+        if match_id:
+            if match_id in self.semaphores:
+                del self.semaphores[match_id]
+        else:
+            self.semaphores.clear()
+
+# Create a global semaphore manager
+rsvp_semaphore = RsvpSemaphore()
+
 async def sync_rsvp_with_web_ui(match_id, discord_id, response):
     """
     Syncs RSVP data with the web UI by sending a POST request.
+    Uses a semaphore to limit concurrent operations per match.
+    Includes retries with exponential backoff.
     """
     logger.debug(f"Syncing RSVP with Web UI for match {match_id}, user {discord_id}, response {response}")
     api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
@@ -441,15 +576,42 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
         "responded_at": datetime.utcnow().isoformat()
     }
 
-    try:
-        async with session.post(api_url, json=data) as resp:
-            resp_text = await resp.text()
-            if resp.status == 200:
-                logger.info(f"RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
-            else:
-                logger.error(f"Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
-    except aiohttp.ClientError as e:
-        logger.error(f"Failed to sync RSVP with Web UI: {str(e)}")
+    # Get the semaphore for this match
+    semaphore = rsvp_semaphore.get_semaphore(match_id)
+    
+    # Use the semaphore to limit concurrent operations
+    async with semaphore:
+        # Try with retries and exponential backoff
+        max_retries = 3
+        base_delay = 1  # Start with 1 second delay
+        
+        for attempt in range(max_retries):
+            try:
+                async with aiohttp.ClientSession() as local_session:  # Use a new session for each attempt
+                    async with local_session.post(api_url, json=data, timeout=10) as resp:
+                        resp_text = await resp.text()
+                        if resp.status == 200:
+                            logger.info(f"RSVP updated successfully for match {match_id} in Web UI. Response: {resp_text}")
+                            return True
+                        elif resp.status == 429:  # Rate limited
+                            retry_after = float(resp.headers.get('Retry-After', base_delay * (2 ** attempt)))
+                            logger.warning(f"Rate limited when updating RSVP. Retrying after {retry_after}s (attempt {attempt+1}/{max_retries})")
+                            await asyncio.sleep(retry_after)
+                        else:
+                            logger.error(f"Failed to update RSVP in Web UI: {resp.status}, {resp_text}")
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(base_delay * (2 ** attempt))
+            except aiohttp.ClientError as e:
+                logger.error(f"Failed to sync RSVP with Web UI (attempt {attempt+1}/{max_retries}): {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(base_delay * (2 ** attempt))
+            except Exception as e:
+                logger.error(f"Unexpected error syncing RSVP with Web UI: {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(base_delay * (2 ** attempt))
+        
+        logger.error(f"Failed to update RSVP after {max_retries} attempts for match {match_id}, user {discord_id}")
+        return False
 
 async def get_match_and_team_id_from_message(message_id: int, channel_id: int):
     """
@@ -645,19 +807,32 @@ async def get_user_team_id(discord_id: str, match_id: int) -> int:
 async def update_discord_embed(match_id: int):
     """
     Updates the Discord embed for a given match.
+    Has retry logic for failed connections.
     """
-    api_url = f"http://localhost:5001/api/update_availability_embed/{match_id}"
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(api_url, timeout=10) as response:
-                if response.status != 200:
-                    logger.error(f"Failed to update Discord embed. Status: {response.status}, Response: {await response.text()}")
-                else:
-                    logger.info(f"Discord embed updated for match {match_id}")
-    except aiohttp.ClientError as e:
-        logger.error(f"Failed to update Discord embed. RequestException: {str(e)}")
-    except Exception as e:
-        logger.error(f"Unexpected error while updating Discord embed: {str(e)}")
+    # Try localhost first, then try the container name
+    api_urls = [
+        f"http://localhost:5001/api/update_availability_embed/{match_id}",
+        f"http://127.0.0.1:5001/api/update_availability_embed/{match_id}",
+        f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
+    ]
+    
+    for api_url in api_urls:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(api_url, timeout=10) as response:
+                    if response.status == 200:
+                        logger.info(f"Discord embed updated for match {match_id}")
+                        return True
+                    else:
+                        logger.warning(f"Failed to update Discord embed using {api_url}. Status: {response.status}")
+        except aiohttp.ClientError as e:
+            logger.warning(f"Connection error updating Discord embed using {api_url}: {str(e)}")
+        except Exception as e:
+            logger.warning(f"Unexpected error while updating Discord embed using {api_url}: {str(e)}")
+    
+    # If we got here, all attempts failed
+    logger.error(f"All attempts to update Discord embed for match {match_id} failed")
+    return False
 
 async def load_cogs():
     """
@@ -797,17 +972,29 @@ async def on_app_command_error(interaction: discord.Interaction, error):
         )
 
 @bot.event
-async def on_raw_reaction_add(payload):
-    if payload.user_id == bot.user.id:
-        return
+async def process_reaction_with_rate_limit(message_id, emoji, user_id, channel_id, payload, retry_count=0):
+    """
+    Process a reaction with rate limit handling.
+    This function will retry with exponential backoff if rate limits are hit.
+    """
+    MAX_RETRIES = 5
+    BASE_DELAY = 1  # Base delay in seconds
+    
+    try:
+        return await process_reaction(message_id, emoji, user_id, channel_id, payload)
+    except discord.errors.HTTPException as e:
+        if e.status == 429 and retry_count < MAX_RETRIES:  # Rate limited
+            retry_after = e.retry_after if hasattr(e, 'retry_after') else BASE_DELAY * (2 ** retry_count)
+            logger.warning(f"Rate limited when processing reaction. Retrying after {retry_after:.2f}s (attempt {retry_count+1}/{MAX_RETRIES})")
+            await asyncio.sleep(retry_after)
+            return await process_reaction_with_rate_limit(message_id, emoji, user_id, channel_id, payload, retry_count + 1)
+        else:
+            raise  # Re-raise if not a rate limit or we've exceeded retries
 
-    message_id = payload.message_id
-    emoji = str(payload.emoji)
-    user_id = payload.user_id
-    channel_id = payload.channel_id
-
-    logger.debug(f"Raw reaction added: {emoji} by user: {user_id} for message_id: {message_id}")
-
+async def process_reaction(message_id, emoji, user_id, channel_id, payload):
+    """
+    Core logic for processing a reaction, separated for better rate limit handling.
+    """
     # Only look at relevant messages (within 14 days of today)
     active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
     if message_id not in active_message_ids:
@@ -846,8 +1033,11 @@ async def on_raw_reaction_add(payload):
         if channel:
             try:
                 message = await channel.fetch_message(message_id)
-                await message.remove_reaction(payload.emoji, user)
-                logger.info(f"Removed reaction {emoji} from user {user_id} on message {message_id}")
+                # Use a non-blocking task for removing the reaction
+                asyncio.create_task(
+                    remove_reaction_safely(message, payload.emoji, user, 
+                                          f"Removed reaction {emoji} from user {user_id} on message {message_id} (not on team)")
+                )
             except Exception as e:
                 logger.error(f"Error removing reaction: {e}")
 
@@ -868,48 +1058,11 @@ async def on_raw_reaction_add(payload):
         try:
             # Always update Flask (source of truth) with the user's reaction choice
             logger.info(f"Updating Flask with user {user_id}'s choice: {response}")
-            await sync_rsvp_with_web_ui(match_id, user_id, response)
+            # Process RSVP in a background task to avoid blocking
+            asyncio.create_task(
+                process_rsvp_background(match_id, user_id, response, channel_id, message_id, payload, user, emoji, emoji_to_response)
+            )
             
-            # Update the Discord embed to reflect the change
-            await update_discord_embed(match_id)
-            
-            # Get the channel and message
-            channel = bot.get_channel(channel_id)
-            if not channel:
-                try:
-                    channel = await bot.fetch_channel(channel_id)
-                except Exception as e:
-                    logger.error(f"Could not fetch channel {channel_id}: {e}")
-                    return
-                    
-            # Get the message
-            try:
-                message = await channel.fetch_message(message_id)
-            except Exception as e:
-                logger.error(f"Could not fetch message {message_id}: {e}")
-                return
-            
-            # NEW APPROACH: Always remove the user's reaction after processing it
-            # This way, only the bot's base reactions remain, avoiding confusion
-            await asyncio.sleep(1.0)  # Small delay to ensure RSVP processing completes
-            try:
-                # Remove this reaction
-                await message.remove_reaction(payload.emoji, user)
-                logger.info(f"Removed user {user_id}'s {emoji} reaction after processing RSVP")
-                
-                # Also remove any other reactions this user might have
-                for reaction in message.reactions:
-                    if str(reaction.emoji) in emoji_to_response.keys() and str(reaction.emoji) != emoji:
-                        users = [u async for u in reaction.users()]
-                        if user in users:
-                            await reaction.remove(user)
-                            logger.info(f"Removed user {user_id}'s other reaction: {reaction.emoji}")
-            except Exception as e:
-                logger.error(f"Error removing reactions: {e}")
-            
-            # No DM notification needed, users can see their status in the embed
-            logger.info(f"RSVP for user {user_id} recorded as {response}, visible in the match embed")
-                
         except Exception as e:
             logger.error(f"Error processing reaction add for user {user_id}: {str(e)}", exc_info=True)
     else:
@@ -924,10 +1077,139 @@ async def on_raw_reaction_add(payload):
                 
         try:
             message = await channel.fetch_message(message_id)
-            await message.remove_reaction(payload.emoji, user)
-            logger.info(f"Removed invalid reaction {emoji} from user {user_id}")
+            # Use a non-blocking task for removing the reaction
+            asyncio.create_task(
+                remove_reaction_safely(message, payload.emoji, user, 
+                                      f"Removed invalid reaction {emoji} from user {user_id}")
+            )
         except Exception as e:
             logger.error(f"Could not remove invalid reaction: {e}")
+
+async def process_rsvp_background(match_id, user_id, response, channel_id, message_id, payload, user, emoji, emoji_to_response):
+    """
+    Process an RSVP in the background to avoid blocking the main event loop.
+    """
+    try:
+        # Update the RSVP in the web UI
+        await sync_rsvp_with_web_ui(match_id, user_id, response)
+        
+        # Update the Discord embed to reflect the change (use a retry mechanism)
+        success = await update_discord_embed(match_id)
+        if not success:
+            logger.warning(f"Could not update Discord embed for match {match_id}. Will retry later.")
+            # Schedule a retry in the background
+            asyncio.create_task(retry_update_embed(match_id))
+        
+        # Get the channel and message
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(channel_id)
+            except Exception as e:
+                logger.error(f"Could not fetch channel {channel_id}: {e}")
+                return
+                
+        # Get the message
+        try:
+            message = await channel.fetch_message(message_id)
+        except Exception as e:
+            logger.error(f"Could not fetch message {message_id}: {e}")
+            return
+        
+        # NEW APPROACH: Always remove the user's reaction after processing it
+        # This way, only the bot's base reactions remain, avoiding confusion
+        await asyncio.sleep(1.0)  # Small delay to ensure RSVP processing completes
+        
+        # Remove this reaction, but do it in a background task to avoid blocking
+        asyncio.create_task(
+            remove_reaction_safely(message, payload.emoji, user, 
+                                  f"Removed user {user_id}'s {emoji} reaction after processing RSVP")
+        )
+        
+        # Also remove any other reactions this user might have (in background tasks)
+        for reaction in message.reactions:
+            if str(reaction.emoji) in emoji_to_response.keys() and str(reaction.emoji) != emoji:
+                users = [u async for u in reaction.users()]
+                if user in users:
+                    asyncio.create_task(
+                        remove_reaction_safely(message, reaction.emoji, user, 
+                                              f"Removed user {user_id}'s other reaction: {reaction.emoji}")
+                    )
+        
+        # No DM notification needed, users can see their status in the embed
+        logger.info(f"RSVP for user {user_id} recorded as {response}, visible in the match embed")
+    except Exception as e:
+        logger.error(f"Error in background RSVP processing for user {user_id}: {str(e)}", exc_info=True)
+
+async def retry_update_embed(match_id, attempt=0, max_attempts=3, delay=5):
+    """
+    Retry updating the Discord embed with exponential backoff.
+    """
+    if attempt >= max_attempts:
+        logger.error(f"Failed to update Discord embed for match {match_id} after {max_attempts} attempts.")
+        return
+    
+    # Wait with exponential backoff
+    await asyncio.sleep(delay * (2 ** attempt))
+    
+    try:
+        success = await update_discord_embed(match_id)
+        if success:
+            logger.info(f"Successfully updated Discord embed for match {match_id} on retry attempt {attempt+1}")
+        else:
+            # Schedule another retry
+            logger.warning(f"Discord embed update retry {attempt+1} failed for match {match_id}")
+            await retry_update_embed(match_id, attempt+1, max_attempts, delay)
+    except Exception as e:
+        logger.error(f"Error during embed update retry: {str(e)}")
+        # Still try again
+        await retry_update_embed(match_id, attempt+1, max_attempts, delay)
+
+async def remove_reaction_safely(message, emoji, user, log_message=None):
+    """
+    Remove a reaction with proper rate limit handling and retries.
+    This is done in a separate function to be used as a background task.
+    """
+    max_retries = 3
+    base_delay = 1  # Base delay in seconds
+    
+    for attempt in range(max_retries):
+        try:
+            await message.remove_reaction(emoji, user)
+            if log_message:
+                logger.info(log_message)
+            return True
+        except discord.errors.HTTPException as e:
+            if e.status == 429:  # Rate limited
+                retry_after = e.retry_after if hasattr(e, 'retry_after') else base_delay * (2 ** attempt)
+                logger.warning(f"Rate limited when removing reaction. Retrying after {retry_after:.2f}s (attempt {attempt+1}/{max_retries})")
+                await asyncio.sleep(retry_after)
+            else:
+                logger.error(f"HTTP error when removing reaction: {e}")
+                return False
+        except Exception as e:
+            logger.error(f"Error removing reaction: {e}")
+            return False
+    
+    logger.error(f"Failed to remove reaction after {max_retries} attempts")
+    return False
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.user_id == bot.user.id:
+        return
+
+    message_id = payload.message_id
+    emoji = str(payload.emoji)
+    user_id = payload.user_id
+    channel_id = payload.channel_id
+
+    logger.debug(f"Raw reaction added: {emoji} by user: {user_id} for message_id: {message_id}")
+    
+    # Process the reaction in a background task
+    asyncio.create_task(
+        process_reaction_with_rate_limit(message_id, emoji, user_id, channel_id, payload)
+    )
 
 @bot.event
 async def on_member_join(member: discord.Member):
@@ -981,6 +1263,132 @@ async def on_member_join(member: discord.Member):
     except Exception as e:
         logger.exception(f"Error processing member join for {member.id}: {e}")
 
+async def process_reaction_removal(message_id, emoji, user_id, channel_id, payload):
+    """
+    Process a reaction removal in a background task to avoid blocking the main thread.
+    """
+    try:
+        # Only look at relevant messages (within 14 days of today)
+        active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
+        if message_id not in active_message_ids:
+            logger.debug(f"Message ID {message_id} is not an active managed message. Ignoring reaction removal.")
+            return
+
+        match_id, team_id = await get_team_id_for_message(message_id, channel_id)
+        if match_id == "PROCESSING":
+            task_id = team_id  # In this case, team_id is actually task_id
+            logger.info(f"Task is still processing for message_id {message_id}. Task ID: {task_id}")
+
+            result = await poll_task_result(session, task_id, max_retries=30, delay=3)
+            if not result or 'error' in result:
+                logger.error(f"Could not fetch match and team ID for message {message_id}. Error: {result.get('error', 'Unknown error')}")
+                return
+            else:
+                match_id, team_id = result['match_id'], result['team_id']
+
+        if match_id is None or team_id is None:
+            logger.error(f"Could not find match or team for message {message_id}")
+            return
+
+        # Check if user is on the team
+        is_team_member = await is_user_on_team(str(user_id), team_id)
+        if not is_team_member:
+            logger.debug(f"User {user_id} is not on team {team_id}. Ignoring reaction removal.")
+            return
+
+        user = bot.get_user(user_id)
+        if not user:
+            logger.error(f"User with ID {user_id} not found.")
+            return
+
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(channel_id)
+            except Exception as e:
+                logger.error(f"Channel with ID {channel_id} not found: {e}")
+                return
+
+        # With the simplified approach, reaction removals don't change RSVP status
+        # Just log it, and make sure the base emoji reactions are still present
+        emoji_to_response = {
+            "👍": "yes",
+            "👎": "no",
+            "🤷": "maybe"
+        }
+        
+        if emoji in emoji_to_response:
+            logger.info(f"User {user_id} removed {emoji} reaction, checking if it's a vote change")
+            
+            # If this was a user removing their vote, we don't need to do anything special
+            # They will add another reaction if they want to change their vote
+            
+            # Just make sure all 3 base emoji reactions are still on the message
+            try:
+                message = await channel.fetch_message(message_id)
+                
+                # Check which emoji are missing from the message
+                existing_emojis = [str(r.emoji) for r in message.reactions]
+                
+                # Make sure all vote emojis are present (as background tasks)
+                for vote_emoji in emoji_to_response.keys():
+                    if vote_emoji not in existing_emojis:
+                        logger.info(f"Re-adding missing base emoji {vote_emoji} to message {message_id}")
+                        # Use a background task for adding reactions to avoid blocking
+                        asyncio.create_task(
+                            add_reaction_safely(message, vote_emoji, 
+                                               f"Added base emoji {vote_emoji} to message {message_id}")
+                        )
+            except Exception as e:
+                logger.error(f"Error ensuring base emojis are present: {e}")
+                
+            # No DM reminders needed, users can see their status in the embed
+            try:
+                # Get current Flask status (source of truth) for logging purposes only
+                flask_rsvps = await get_flask_rsvps(match_id, team_id)
+                current_response = flask_rsvps.get(str(user_id))
+                
+                if current_response:
+                    logger.info(f"User {user_id} removed their reaction but their RSVP is still recorded as {current_response}")
+            except Exception as e:
+                logger.error(f"Error checking RSVP status: {e}")
+        
+        # With the simplified approach, we don't need to process reaction removal further
+        # The on_raw_reaction_add handler will handle any new RSVP choices
+    except Exception as e:
+        logger.error(f"Error processing reaction removal: {e}", exc_info=True)
+
+async def add_reaction_safely(message, emoji, log_message=None):
+    """
+    Add a reaction with proper rate limit handling and retries.
+    This is done in a separate function to be used as a background task.
+    """
+    max_retries = 3
+    base_delay = 1  # Base delay in seconds
+    
+    for attempt in range(max_retries):
+        try:
+            await message.add_reaction(emoji)
+            if log_message:
+                logger.info(log_message)
+            # Delay a bit to avoid rate limits with multiple reactions
+            await asyncio.sleep(0.5)
+            return True
+        except discord.errors.HTTPException as e:
+            if e.status == 429:  # Rate limited
+                retry_after = e.retry_after if hasattr(e, 'retry_after') else base_delay * (2 ** attempt)
+                logger.warning(f"Rate limited when adding reaction. Retrying after {retry_after:.2f}s (attempt {attempt+1}/{max_retries})")
+                await asyncio.sleep(retry_after)
+            else:
+                logger.error(f"HTTP error when adding reaction: {e}")
+                return False
+        except Exception as e:
+            logger.error(f"Error adding reaction: {e}")
+            return False
+    
+    logger.error(f"Failed to add reaction after {max_retries} attempts")
+    return False
+
 @bot.event
 async def on_raw_reaction_remove(payload):
     if payload.user_id == bot.user.id:
@@ -991,107 +1399,132 @@ async def on_raw_reaction_remove(payload):
     user_id = payload.user_id
     channel_id = payload.channel_id
     logger.debug(f"Raw reaction removed: {emoji} by user: {user_id} for message_id: {message_id}")
-
-    # Only look at relevant messages (within 14 days of today)
-    active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
-    if message_id not in active_message_ids:
-        logger.debug(f"Message ID {message_id} is not an active managed message. Ignoring reaction removal.")
-        return
-
-    match_id, team_id = await get_team_id_for_message(message_id, channel_id)
-    if match_id == "PROCESSING":
-        task_id = team_id  # In this case, team_id is actually task_id
-        logger.info(f"Task is still processing for message_id {message_id}. Task ID: {task_id}")
-
-        result = await poll_task_result(session, task_id, max_retries=30, delay=3)
-        if not result or 'error' in result:
-            logger.error(f"Could not fetch match and team ID for message {message_id}. Error: {result.get('error', 'Unknown error')}")
-            return
-        else:
-            match_id, team_id = result['match_id'], result['team_id']
-
-    if match_id is None or team_id is None:
-        logger.error(f"Could not find match or team for message {message_id}")
-        return
-
-    # Check if user is on the team
-    is_team_member = await is_user_on_team(str(user_id), team_id)
-    if not is_team_member:
-        logger.debug(f"User {user_id} is not on team {team_id}. Ignoring reaction removal.")
-        return
-
-    user = bot.get_user(user_id)
-    if not user:
-        logger.error(f"User with ID {user_id} not found.")
-        return
-
-    channel = bot.get_channel(channel_id)
-    if not channel:
-        try:
-            channel = await bot.fetch_channel(channel_id)
-        except Exception as e:
-            logger.error(f"Channel with ID {channel_id} not found: {e}")
-            return
-
-    # With the simplified approach, reaction removals don't change RSVP status
-    # Just log it, and make sure the base emoji reactions are still present
-    emoji_to_response = {
-        "👍": "yes",
-        "👎": "no",
-        "🤷": "maybe"
-    }
     
-    if emoji in emoji_to_response:
-        logger.info(f"User {user_id} removed {emoji} reaction, checking if it's a vote change")
-        
-        # If this was a user removing their vote, we don't need to do anything special
-        # They will add another reaction if they want to change their vote
-        
-        # Just make sure all 3 base emoji reactions are still on the message
-        try:
-            message = await channel.fetch_message(message_id)
-            
-            # Check which emoji are missing from the message
-            existing_emojis = [str(r.emoji) for r in message.reactions]
-            
-            # Make sure all vote emojis are present
-            for vote_emoji in emoji_to_response.keys():
-                if vote_emoji not in existing_emojis:
-                    logger.info(f"Re-adding missing base emoji {vote_emoji} to message {message_id}")
-                    await message.add_reaction(vote_emoji)
-                    await asyncio.sleep(0.5)  # Small delay between adding reactions
-        except Exception as e:
-            logger.error(f"Error ensuring base emojis are present: {e}")
-            
-        # No DM reminders needed, users can see their status in the embed
-        try:
-            # Get current Flask status (source of truth) for logging purposes only
-            flask_rsvps = await get_flask_rsvps(match_id, team_id)
-            current_response = flask_rsvps.get(str(user_id))
-            
-            if current_response:
-                logger.info(f"User {user_id} removed their reaction but their RSVP is still recorded as {current_response}")
-        except Exception as e:
-            logger.error(f"Error checking RSVP status: {e}")
-    
-    # With the simplified approach, we don't need to process reaction removal further
-    # The on_raw_reaction_add handler will handle any new RSVP choices
+    # Process in a background task to avoid blocking the main event loop
+    asyncio.create_task(
+        process_reaction_removal(message_id, emoji, user_id, channel_id, payload)
+    )
 
 async def start_rest_api():
     """
-    Starts the FastAPI server using Uvicorn.
+    Starts the FastAPI server using Uvicorn with retry logic and error handling.
     """
-    config = uvicorn.Config(
-        app,
-        host="0.0.0.0",
-        port=5001,
-        log_level="info",
-        loop=bot.loop,          # Use the bot's event loop
-        lifespan="off",         # Disable lifespan events
-    )
-    server = uvicorn.Server(config)
-    await server.serve()
+    # Try a few ports starting from 5001
+    base_port = 5001
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        port = base_port + attempt
+        try:
+            logger.info(f"Attempting to start REST API server on port {port}")
+            config = uvicorn.Config(
+                app,
+                host="0.0.0.0",
+                port=port,
+                log_level="info",
+                loop=bot.loop,          # Use the bot's event loop
+                lifespan="off",         # Disable lifespan events
+            )
+            server = uvicorn.Server(config)
+            # Update the URL for update_discord_embed if we're using a non-default port
+            if port != 5001:
+                global update_discord_embed
+                # Save the original function
+                original_update_discord_embed = update_discord_embed
+                # Create a new function that uses the current port
+                async def updated_update_discord_embed(match_id: int):
+                    """Updated function using the current port"""
+                    api_url = f"http://localhost:{port}/api/update_availability_embed/{match_id}"
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.post(api_url, timeout=10) as response:
+                                if response.status != 200:
+                                    logger.error(f"Failed to update Discord embed. Status: {response.status}, Response: {await response.text()}")
+                                else:
+                                    logger.info(f"Discord embed updated for match {match_id}")
+                    except aiohttp.ClientError as e:
+                        logger.error(f"Failed to update Discord embed. RequestException: {str(e)}")
+                    except Exception as e:
+                        logger.error(f"Unexpected error while updating Discord embed: {str(e)}")
+                # Replace the function
+                update_discord_embed = updated_update_discord_embed
+                logger.info(f"Updated update_discord_embed function to use port {port}")
+            
+            # Try to start the server
+            await server.serve()
+            return  # If successful, exit the function
+        except OSError as e:
+            if e.errno == 98:  # Address already in use
+                logger.warning(f"Port {port} is already in use. Trying next port.")
+                if attempt == max_retries - 1:
+                    logger.error(f"Failed to bind to ports {base_port} through {port}. API server will not start.")
+                    # We'll continue running the bot without the API server
+                    return
+            else:
+                logger.error(f"Failed to start REST API server: {e}")
+                return
+
+async def cleanup():
+    """
+    Cleanup function to run when the bot is shutting down.
+    Ensures all resources are properly released.
+    """
+    logger.info("Cleaning up resources...")
+    
+    # Close bot session if it exists
+    if hasattr(bot, 'session') and bot.session:
+        logger.info("Closing bot session...")
+        try:
+            await bot.session.close()
+            logger.info("Bot session closed successfully.")
+        except Exception as e:
+            logger.error(f"Error closing bot session: {e}")
+    
+    # Close the shared session if it exists
+    if session:
+        logger.info("Closing shared session...")
+        try:
+            await session.close()
+            logger.info("Shared session closed successfully.")
+        except Exception as e:
+            logger.error(f"Error closing shared session: {e}")
+    
+    logger.info("Cleanup completed.")
+
+def signal_handler(sig, frame):
+    """
+    Signal handler for graceful shutdown.
+    """
+    logger.info(f"Received signal {sig}. Shutting down gracefully...")
+    # Schedule the cleanup coroutine if we have an event loop
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(cleanup())
+            # Give tasks a chance to complete
+            loop.run_until_complete(asyncio.sleep(2))
+    except Exception as e:
+        logger.error(f"Error during graceful shutdown: {e}")
+    sys.exit(0)
+
+# Register signal handlers
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
-    # Run the bot in the main thread
-    bot.run(bot_token)
+    try:
+        # Run the bot in the main thread
+        bot.run(bot_token)
+    except KeyboardInterrupt:
+        logger.info("Bot shutdown via KeyboardInterrupt")
+    except Exception as e:
+        logger.critical(f"Unhandled exception caused bot to crash: {e}", exc_info=True)
+    finally:
+        # Run cleanup synchronously if needed
+        try:
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(cleanup())
+            loop.close()
+        except Exception as e:
+            logger.error(f"Error during final cleanup: {e}")
+        logger.info("Bot process terminated.")
