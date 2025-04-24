@@ -522,6 +522,9 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
 
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            from app.utils.db_connection_monitor import ensure_connections_cleanup
+            ensure_connections_cleanup()
 
     except SQLAlchemyError as e:
         session.rollback()

@@ -41,7 +41,7 @@ class RateLimitedPool(QueuePool):
 
         # For periodic checking of long-running transactions.
         self._last_transaction_check = 0
-        self._transaction_check_interval = 60  # in seconds
+        self._transaction_check_interval = 15  # in seconds - reduced from 60s to 15s for more frequent checks
 
         super().__init__(*args, **kwargs)
 
@@ -49,6 +49,22 @@ class RateLimitedPool(QueuePool):
         event.listen(self, 'checkout', self._on_checkout)
         event.listen(self, 'checkin', self._on_checkin)
         event.listen(self, 'reset', self._on_reset)
+        event.listen(self, 'connect', self._on_connect)
+    
+    def _on_connect(self, dbapi_conn, connection_record):
+        """
+        Event handler called when a new connection is created.
+        
+        Logs the new connection and registers it with the global connection tracker.
+        """
+        conn_id = id(dbapi_conn)
+        logger.info(f"New database connection created: {conn_id}")
+        # Register with global connection tracker if it exists
+        try:
+            from app.utils.db_connection_monitor import register_connection
+            register_connection(conn_id, "pool_connect")
+        except ImportError:
+            pass
 
     def _get_stack_info(self, depth=10):
         """
@@ -57,11 +73,15 @@ class RateLimitedPool(QueuePool):
         :param depth: The number of stack frames to include.
         :return: A string representation of the stack trace.
         """
-        stack = traceback.extract_stack(limit=depth)
-        return "\n".join(
-            f"File: {frame.filename}, Line: {frame.lineno}, Function: {frame.name}, Code: {frame.line}"
-            for frame in stack
-        )
+        try:
+            stack = traceback.extract_stack(limit=depth)
+            return "\n".join(
+                f"File: {frame.filename}, Line: {frame.lineno}, Function: {frame.name}, Code: {frame.line}"
+                for frame in stack
+            )
+        except Exception as e:
+            logger.error(f"Error getting stack info: {e}")
+            return "<stack trace error>"
 
     def _get_transaction_state(self):
         """
@@ -166,6 +186,14 @@ class RateLimitedPool(QueuePool):
         try:
             if dbapi_conn and not dbapi_conn.closed:
                 dbapi_conn.rollback()
+                
+            # Unregister from global connection tracker if it exists
+            try:
+                from app.utils.db_connection_monitor import unregister_connection
+                unregister_connection(conn_id)
+            except ImportError:
+                pass
+                
         except Exception as e:
             logger.error(f"Error during connection {conn_id} cleanup: {e}", exc_info=True)
 
@@ -198,18 +226,21 @@ class RateLimitedPool(QueuePool):
 # ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': 10,
-    'max_overflow': 5,
-    'pool_recycle': 60,
-    'pool_timeout': 10,
+    'pool_size': 5,            # Reduced from 10 to 5 to prevent connection exhaustion
+    'max_overflow': 3,         # Reduced from 5 to 3 to limit max connections
+    'pool_recycle': 30,        # Reduced from 60 to 30 seconds to recycle connections faster
+    'pool_timeout': 5,         # Reduced from 10 to 5 seconds to fail faster on timeout
     'poolclass': RateLimitedPool,
     'pool_use_lifo': True,
     'connect_args': {
         'connect_timeout': 3,
         'options': (
             '-c statement_timeout=5000 '
-            '-c idle_in_transaction_session_timeout=5000 '
-            '-c lock_timeout=2000'
+            '-c idle_in_transaction_session_timeout=3000 '  # Reduced from 5000ms to 3000ms
+            '-c lock_timeout=2000 '
+            '-c tcp_keepalives_idle=60 '                  # Send TCP keepalive after 60s of inactivity
+            '-c tcp_keepalives_interval=60 '              # Resend keepalives every 60s
+            '-c tcp_keepalives_count=3'                   # Drop connection after 3 failed keepalives
         )
     },
     'echo': False,

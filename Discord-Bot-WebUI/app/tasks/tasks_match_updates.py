@@ -18,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.decorators import celery_task
 from app.models import MLSMatch, ScheduledMessage
 from app.utils.discord_helpers import send_discord_update
+from app.utils.db_connection_monitor import ensure_connections_cleanup
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,8 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
             ))
         finally:
             loop.close()
+            # Ensure connections are properly cleaned up after asyncio operations
+            ensure_connections_cleanup()
 
         logger.info(f"Match update sent successfully for match {match_id}")
         return {
@@ -266,3 +269,18 @@ def get_active_matches_task(self, session) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error getting active matches: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
+
+
+# Helper function for retrieving match
+def get_match(session, match_id: str) -> MLSMatch:
+    """
+    Retrieve a match by its ID.
+    
+    Args:
+        session: The database session.
+        match_id: The ID of the match to retrieve.
+        
+    Returns:
+        The MLSMatch object if found, None otherwise.
+    """
+    return session.query(MLSMatch).filter(MLSMatch.match_id == match_id).first()

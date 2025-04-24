@@ -11,11 +11,18 @@ to run at the end of each request.
 """
 
 import logging
-from typing import List, Dict, Optional
+import psycopg2
+import gc
+import threading
+from typing import List, Dict, Optional, Any
 from sqlalchemy import text
 from app.core import db
 
 logger = logging.getLogger(__name__)
+
+# Global variables to track connections
+_active_connections: Dict[int, Dict[str, Any]] = {}
+_connection_lock = threading.RLock()
 
 
 class DBConnectionMonitor:
@@ -45,8 +52,8 @@ class DBConnectionMonitor:
         # Set default configuration values if not already set.
         app.config.setdefault('DB_CONNECTION_TIMEOUT', 30)      # Timeout for normal web requests (seconds)
         app.config.setdefault('DB_QUERY_TIMEOUT', 300)          # Timeout for active queries (seconds)
-        app.config.setdefault('DB_MAX_CONNECTION_AGE', 900)       # Maximum age for any connection (seconds)
-        app.config.setdefault('DB_IDLE_TRANSACTION_TIMEOUT', 60)  # Timeout for idle-in-transaction (seconds)
+        app.config.setdefault('DB_MAX_CONNECTION_AGE', 300)       # Maximum age for any connection - reduced from 900 to 300 seconds (5 minutes)
+        app.config.setdefault('DB_IDLE_TRANSACTION_TIMEOUT', 30)  # Timeout for idle-in-transaction - reduced from 60 to 30 seconds
         app.config.setdefault('DB_MONITOR_ENABLED', True)
         app.teardown_appcontext(self.cleanup_connections)
 
@@ -213,5 +220,256 @@ class DBConnectionMonitor:
             )
             if terminated:
                 logger.warning(f"Cleanup terminated {terminated} stuck connections")
+                
+            # Also perform garbage collection to clean up any lingering connections
+            ensure_connections_cleanup()
         except Exception as e:
             logger.error(f"Error in connection cleanup: {e}")
+
+
+def register_connection(conn_id: int, origin: str = None) -> None:
+    """
+    Register a new database connection for tracking.
+    
+    Args:
+        conn_id: Unique identifier for the connection.
+        origin: Information about where the connection was created.
+    """
+    with _connection_lock:
+        import traceback
+        stack = ''.join(traceback.format_stack())
+        
+        _active_connections[conn_id] = {
+            'created_at': __import__('datetime').datetime.utcnow(),
+            'origin': origin or 'unknown',
+            'stack': stack,
+            'thread_id': threading.get_ident()
+        }
+        
+        logger.debug(
+            f"Registered connection {conn_id} from {origin}. "
+            f"Active connections: {len(_active_connections)}"
+        )
+
+
+def unregister_connection(conn_id: int) -> None:
+    """
+    Unregister a database connection that's no longer active.
+    
+    Args:
+        conn_id: Unique identifier for the connection.
+    """
+    with _connection_lock:
+        if conn_id in _active_connections:
+            conn_info = _active_connections.pop(conn_id)
+            logger.debug(
+                f"Unregistered connection {conn_id} from {conn_info.get('origin')}. "
+                f"Active connections: {len(_active_connections)}"
+            )
+        else:
+            logger.warning(f"Attempted to unregister unknown connection {conn_id}")
+
+
+def get_active_connections() -> List[Dict[str, Any]]:
+    """
+    Get a list of all currently active connections.
+    
+    Returns:
+        A list of dictionaries containing information about active connections.
+    """
+    with _connection_lock:
+        return [
+            {
+                'id': conn_id,
+                'created_at': info['created_at'],
+                'origin': info['origin'],
+                'thread_id': info['thread_id'],
+                'age_seconds': (
+                    __import__('datetime').datetime.utcnow() - info['created_at']
+                ).total_seconds()
+            }
+            for conn_id, info in _active_connections.items()
+        ]
+
+
+def find_leaked_connections(age_threshold_seconds: int = 300) -> List[Dict[str, Any]]:
+    """
+    Find potentially leaked connections that have been active for longer than the threshold.
+    
+    Args:
+        age_threshold_seconds: Time in seconds after which a connection is considered leaked.
+        
+    Returns:
+        A list of dictionaries containing information about leaked connections.
+    """
+    with _connection_lock:
+        now = __import__('datetime').datetime.utcnow()
+        return [
+            {
+                'id': conn_id,
+                'created_at': info['created_at'],
+                'origin': info['origin'],
+                'thread_id': info['thread_id'],
+                'age_seconds': (now - info['created_at']).total_seconds(),
+                'stack': info['stack']
+            }
+            for conn_id, info in _active_connections.items()
+            if (now - info['created_at']).total_seconds() > age_threshold_seconds
+        ]
+
+
+def close_leaked_connections(age_threshold_seconds: int = 300) -> int:
+    """
+    Attempt to close leaked connections.
+    
+    Args:
+        age_threshold_seconds: Time in seconds after which a connection is considered leaked.
+        
+    Returns:
+        The number of connections that were closed.
+    """
+    closed_count = 0
+    
+    # Search for connections in the garbage collector
+    for obj in gc.get_objects():
+        try:
+            if isinstance(obj, psycopg2.extensions.connection):
+                if not obj.closed:
+                    conn_id = id(obj)
+                    with _connection_lock:
+                        if conn_id in _active_connections:
+                            info = _active_connections[conn_id]
+                            age = (
+                                __import__('datetime').datetime.utcnow() - info['created_at']
+                            ).total_seconds()
+                            
+                            if age > age_threshold_seconds:
+                                try:
+                                    logger.warning(
+                                        f"Closing leaked connection {conn_id} from {info['origin']} "
+                                        f"(age: {age:.1f}s)"
+                                    )
+                                    obj.close()
+                                    unregister_connection(conn_id)
+                                    closed_count += 1
+                                except Exception as e:
+                                    logger.error(f"Error closing leaked connection {conn_id}: {e}")
+        except ReferenceError:
+            # Object was garbage collected while we were looking at it
+            continue
+        except Exception:
+            # Skip objects that can't be safely introspected
+            continue
+    
+    return closed_count
+
+
+def ensure_connections_cleanup() -> None:
+    """
+    Ensure proper cleanup of database connections.
+    
+    This function should be called periodically, especially in long-running
+    processes or after worker tasks complete.
+    """
+    try:
+        active_count = len(_active_connections)
+        if active_count > 0:
+            logger.info(f"Cleaning up {active_count} active database connections")
+            closed = close_leaked_connections(age_threshold_seconds=60)
+            logger.info(f"Closed {closed} leaked connections")
+            
+        # Force garbage collection to help clean up any lingering connections
+        gc.collect()
+    except Exception as e:
+        logger.error(f"Error in ensure_connections_cleanup: {e}", exc_info=True)
+
+
+def monitor_connections_background() -> None:
+    """
+    Monitor connections in a background thread.
+    
+    This function runs every minute to detect and clean up leaked connections.
+    It's designed to be started as a daemon thread.
+    """
+    import time
+    while True:
+        try:
+            # First, check for extreme long-running connections (zombie connections)
+            # Look for anything older than 1 hour, which is far too long
+            zombie_connections = find_leaked_connections(age_threshold_seconds=3600)
+            if zombie_connections:
+                logger.error(
+                    f"CRITICAL: Found {len(zombie_connections)} zombie database connections (> 1 hour old)"
+                )
+                for conn in zombie_connections:
+                    logger.error(
+                        f"Zombie connection: id={conn['id']}, "
+                        f"origin={conn['origin']}, "
+                        f"age={conn['age_seconds']:.1f}s"
+                    )
+                    
+                # Force terminate these extremely old connections
+                try:
+                    monitor = DBConnectionMonitor(current_app._get_current_object())
+                    terminated = monitor.terminate_stuck_connections(age_threshold_seconds=3600)
+                    logger.info(f"Terminated {terminated} zombie connections via database")
+                except Exception as e:
+                    logger.error(f"Failed to terminate zombie connections: {e}", exc_info=True)
+            
+            # Now check for normal leaked connections
+            leaked_connections = find_leaked_connections()
+            if leaked_connections:
+                logger.warning(
+                    f"Found {len(leaked_connections)} potentially leaked database connections"
+                )
+                for conn in leaked_connections:
+                    logger.warning(
+                        f"Leaked connection: id={conn['id']}, "
+                        f"origin={conn['origin']}, "
+                        f"age={conn['age_seconds']:.1f}s"
+                    )
+                
+                # Close connections that have been leaked
+                closed_count = close_leaked_connections()
+                logger.info(f"Closed {closed_count} leaked connections")
+            
+            # Check the overall connection count
+            active_count = len(_active_connections)
+            if active_count > 5:  # Lowered from 10 to 5
+                logger.warning(
+                    f"High number of active database connections: {active_count}"
+                )
+                
+            # Force garbage collection every cycle
+            import gc
+            gc.collect()
+            
+        except Exception as e:
+            logger.error(f"Error in monitor_connections_background: {e}", exc_info=True)
+        
+        # Sleep for 1 minute before the next check (reduced from 5 minutes)
+        time.sleep(60)
+
+
+def start_connection_monitor() -> threading.Thread:
+    """
+    Start the background connection monitoring thread.
+    
+    Returns:
+        The started thread.
+    """
+    monitor_thread = threading.Thread(
+        target=monitor_connections_background,
+        name="DBConnectionMonitor",
+        daemon=True
+    )
+    monitor_thread.start()
+    logger.info("Started database connection monitoring thread")
+    return monitor_thread
+
+
+# Initialize the monitor thread when this module is imported
+try:
+    monitor_thread = start_connection_monitor()
+except Exception as e:
+    logger.error(f"Failed to start connection monitor: {e}", exc_info=True)
