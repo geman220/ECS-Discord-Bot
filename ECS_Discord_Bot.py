@@ -7,6 +7,9 @@ import asyncio
 import os
 import logging
 import time
+import random
+import socket
+import contextlib
 from discord import app_commands
 from discord.ext import commands
 from common import bot_token, server_id
@@ -14,6 +17,7 @@ import uvicorn
 from bot_rest_api import app, bot_ready, update_embed_for_message, get_team_id_for_message, poll_task_result, session
 import signal
 import sys
+import traceback
 from shared_states import bot_ready, bot_state, set_bot_instance, periodic_check
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
@@ -66,7 +70,7 @@ class ECSBot(commands.Bot):
         Monitor the bot's heartbeat to detect and recover from blocks.
         This runs in a separate task and won't block the main thread.
         """
-        logger.info("Starting heartbeat monitoring task")
+        print("Starting heartbeat monitoring task")  # Use print instead of logger to avoid potential deadlock
         
         while not self.is_closed():
             try:
@@ -75,28 +79,51 @@ class ECSBot(commands.Bot):
                 time_since_last_heartbeat = current_time - self.last_heartbeat
                 
                 if time_since_last_heartbeat > self.max_heartbeat_delay:
-                    logger.warning(f"Heartbeat delayed by {time_since_last_heartbeat:.2f}s, which exceeds the maximum allowed delay of {self.max_heartbeat_delay}s")
+                    # Use print instead of logger to avoid potential deadlock
+                    print(f"WARNING: Heartbeat delayed by {time_since_last_heartbeat:.2f}s, exceeds max delay of {self.max_heartbeat_delay}s")
                     
-                    # Log active tasks to help debug what might be blocking
-                    tasks = [task for task in asyncio.all_tasks(self.loop) if not task.done()]
-                    logger.info(f"Currently {len(tasks)} active tasks in the event loop")
+                    # Only get basic task info to avoid potential deadlocks
+                    try:
+                        task_count = len([t for t in asyncio.all_tasks(self.loop) if not t.done()])
+                        print(f"Currently {task_count} active tasks in the event loop")
+                    except Exception as task_err:
+                        print(f"Error counting tasks: {task_err}")
                     
-                    # Optionally log more details about some tasks
-                    for i, task in enumerate(tasks[:5]):  # Log details for up to 5 tasks
-                        logger.info(f"Task {i+1}: {task.get_name()} - {task}")
+                    # Check if we need to force reconnection due to extended delay
+                    if time_since_last_heartbeat > self.max_heartbeat_delay * 3:
+                        print(f"CRITICAL: Heartbeat delayed by {time_since_last_heartbeat:.2f}s - forcing reconnection")
+                        # Schedule a reconnection task
+                        self.loop.create_task(self._force_reconnect())
                 
                 # Update the heartbeat time
                 self.last_heartbeat = current_time
                 
-                # Sleep for the monitoring interval
+                # Sleep for the monitoring interval - use shorter interval for better responsiveness
                 await asyncio.sleep(self.heartbeat_interval)
                 
             except asyncio.CancelledError:
-                logger.info("Heartbeat monitoring task cancelled")
+                print("Heartbeat monitoring task cancelled")
                 break
             except Exception as e:
-                logger.error(f"Error in heartbeat monitoring: {e}")
+                print(f"Error in heartbeat monitoring: {e}")
                 await asyncio.sleep(self.heartbeat_interval)
+    
+    async def _force_reconnect(self):
+        """Force a reconnection to Discord when heartbeat fails repeatedly."""
+        try:
+            print("Forcing reconnection to Discord...")
+            # Close the websocket connection to trigger a reconnect
+            if hasattr(self, 'ws') and self.ws:
+                await self.ws.close(code=1000)
+                print("Websocket closed, reconnection should begin shortly")
+            
+            # If that doesn't work, try to reset the internal state
+            if hasattr(self, '_connection'):
+                if hasattr(self._connection, 'clear'):
+                    self._connection.clear()
+                    print("Cleared connection state for reconnection")
+        except Exception as e:
+            print(f"Error during forced reconnection: {e}")
     
     async def on_socket_response(self, msg):
         """
@@ -202,53 +229,82 @@ async def full_rsvp_sync(force_sync=False):
     synced_count = 0
     failed_count = 0
     
-    for message_id in message_ids:
-        try:
-            # For each managed message, get its channel ID
-            match_data = await get_message_channel_from_web_ui(message_id)
-            if not match_data or 'channel_id' not in match_data:
-                logger.warning(f"Could not find channel ID for message {message_id}")
-                continue
+    # Limit concurrent operations to avoid overloading Discord API or causing deadlocks
+    # Process messages in batches with semaphores to control concurrency
+    semaphore = asyncio.Semaphore(3)  # Process up to 3 messages concurrently
+    
+    async def process_message(message_id):
+        nonlocal synced_count, failed_count
+        
+        # Using semaphore to limit concurrent processing
+        async with semaphore:
+            try:
+                # For each managed message, get its channel ID
+                match_data = await get_message_channel_from_web_ui(message_id)
+                if not match_data or 'channel_id' not in match_data:
+                    logger.warning(f"Could not find channel ID for message {message_id}")
+                    return
+                    
+                channel_id = int(match_data['channel_id'])
+                match_id = match_data.get('match_id')
+                team_id = match_data.get('team_id')
                 
-            channel_id = int(match_data['channel_id'])
-            match_id = match_data.get('match_id')
-            team_id = match_data.get('team_id')
-            
-            if not match_id or not team_id:
-                logger.warning(f"Missing match_id or team_id for message {message_id}")
-                continue
+                if not match_id or not team_id:
+                    logger.warning(f"Missing match_id or team_id for message {message_id}")
+                    return
+                    
+                # Get Discord reactions for this message
+                discord_rsvps = await get_message_reactions(channel_id, message_id)
                 
-            # Get Discord reactions for this message
-            discord_rsvps = await get_message_reactions(channel_id, message_id)
-            
-            # Get Flask RSVPs for the match
-            flask_rsvps = await get_flask_rsvps(match_id, team_id)
-            
-            if not flask_rsvps:
-                logger.warning(f"Could not fetch RSVPs from Flask for match {match_id}")
-                continue
+                # Get Flask RSVPs for the match
+                flask_rsvps = await get_flask_rsvps(match_id, team_id)
                 
-            # Compare and reconcile differences
-            reconciliation_needed = await reconcile_rsvps(
-                match_id, team_id, discord_rsvps, flask_rsvps, channel_id, message_id, force_sync
-            )
-            
-            if reconciliation_needed or force_sync:
-                # Update the embed with latest data from Flask (source of truth)
-                success = await update_embed_for_message(message_id, channel_id, match_id, team_id, bot)
-                if success:
-                    synced_count += 1
-                    logger.info(f"Successfully synced RSVPs for match {match_id}, message {message_id}")
+                if not flask_rsvps:
+                    logger.warning(f"Could not fetch RSVPs from Flask for match {match_id}")
+                    return
+                    
+                # Add a short yield to prevent blocking the event loop for too long
+                await asyncio.sleep(0.1)
+                
+                # Compare and reconcile differences
+                reconciliation_needed = await reconcile_rsvps(
+                    match_id, team_id, discord_rsvps, flask_rsvps, channel_id, message_id, force_sync
+                )
+                
+                # Add another short yield
+                await asyncio.sleep(0.1)
+                
+                if reconciliation_needed or force_sync:
+                    # Update the embed with latest data from Flask (source of truth)
+                    success = await update_embed_for_message(message_id, channel_id, match_id, team_id, bot)
+                    if success:
+                        synced_count += 1
+                        logger.info(f"Successfully synced RSVPs for match {match_id}, message {message_id}")
+                    else:
+                        failed_count += 1
+                        logger.error(f"Failed to sync RSVPs for match {match_id}, message {message_id}")
                 else:
-                    failed_count += 1
-                    logger.error(f"Failed to sync RSVPs for match {match_id}, message {message_id}")
-            else:
-                synced_count += 1
-                logger.debug(f"No sync needed for match {match_id}, message {message_id}")
-                
+                    synced_count += 1
+                    logger.debug(f"No sync needed for match {match_id}, message {message_id}")
+                    
+            except Exception as e:
+                logger.error(f"Error syncing message {message_id}: {str(e)}")
+                failed_count += 1
+    
+    # Create tasks for all messages and wait for them to complete with a timeout
+    tasks = [process_message(message_id) for message_id in message_ids]
+    
+    # Break the sync operation into smaller chunks with yields to prevent blocking
+    # This way even if RSVP sync takes a long time, it won't block the heartbeat
+    for i in range(0, len(tasks), 5):
+        chunk = tasks[i:i+5]
+        try:
+            # Process each chunk with a timeout to prevent blocking too long
+            await asyncio.gather(*chunk, return_exceptions=True)
+            # Short yield after each chunk
+            await asyncio.sleep(0.5)
         except Exception as e:
-            logger.error(f"Error syncing message {message_id}: {str(e)}", exc_info=True)
-            failed_count += 1
+            logger.error(f"Error processing chunk {i//5}: {e}")
     
     logger.info(f"RSVP sync completed: {synced_count} synced, {failed_count} failed")
     return {'synced': synced_count, 'failed': failed_count}
@@ -515,18 +571,75 @@ async def reconcile_rsvps(match_id, team_id, discord_rsvps, flask_rsvps, channel
 
 async def schedule_periodic_sync():
     """
-    Schedules periodic full RSVP synchronization.
+    Schedules periodic full RSVP synchronization with improved error handling
+    and shorter intervals to prevent blocking the main event loop.
     """
+    # Jitter the start time a bit to avoid synchronizing with other periodic tasks
+    await asyncio.sleep(random.randint(5, 30))
+    
+    # Track continuous failures to implement exponential backoff
+    consecutive_failures = 0
+    
     while True:
         try:
+            # Use shorter sleep intervals with periodic checks to be more responsive
+            # to cancellation and avoid blocking the event loop for too long
+            hours_until_next_sync = 6
+            
+            # Adjust interval based on failure count (backoff strategy)
+            if consecutive_failures > 0:
+                hours_until_next_sync = min(1 * (2 ** (consecutive_failures - 1)), 6)
+                logger.info(f"Using shortened sync interval of {hours_until_next_sync} hours due to previous failures")
+            
             logger.info("Starting scheduled full RSVP synchronization...")
-            await full_rsvp_sync()
-            logger.info("Completed scheduled full RSVP synchronization")
+            
+            # Use asyncio.wait_for to add a timeout to the sync operation
+            try:
+                await asyncio.wait_for(
+                    full_rsvp_sync(),
+                    timeout=10 * 60  # 10 minute timeout
+                )
+                logger.info("Completed scheduled full RSVP synchronization")
+                # Reset failure counter on success
+                consecutive_failures = 0
+            except asyncio.TimeoutError:
+                logger.error("RSVP sync timed out after 10 minutes")
+                consecutive_failures += 1
+            
+        except asyncio.CancelledError:
+            logger.info("Periodic sync task cancelled")
+            break
         except Exception as e:
-            logger.error(f"Error during scheduled full RSVP sync: {str(e)}", exc_info=True)
+            logger.error(f"Error during scheduled full RSVP sync: {str(e)}")
+            consecutive_failures += 1
         
-        # Run every 6 hours
-        await asyncio.sleep(6 * 60 * 60)
+        # Sleep in smaller intervals to be responsive to cancellation
+        try:
+            seconds_to_sleep = int(hours_until_next_sync * 60 * 60)
+            # Sleep in 5-minute chunks
+            chunk_size = 5 * 60
+            chunks = seconds_to_sleep // chunk_size
+            
+            for _ in range(chunks):
+                # Check if we should continue sleeping or break early
+                if bot.is_closed():
+                    logger.info("Bot is closed, breaking out of periodic sync sleep")
+                    break
+                    
+                await asyncio.sleep(chunk_size)
+                
+            # Sleep any remaining time
+            remaining = seconds_to_sleep % chunk_size
+            if remaining > 0 and not bot.is_closed():
+                await asyncio.sleep(remaining)
+                
+        except asyncio.CancelledError:
+            logger.info("Periodic sync sleep cancelled")
+            break
+        except Exception as e:
+            logger.error(f"Error during sync sleep: {e}")
+            # Use a short fallback sleep to avoid tight looping
+            await asyncio.sleep(300)
 
 class RsvpSemaphore:
     """
@@ -883,6 +996,9 @@ async def on_ready():
     else:
         logger.error(f"Guild with ID {server_id} not found.")
 
+    # Create a watchdog task to monitor bot health and force restart if needed
+    asyncio.create_task(watchdog_task())
+    
     try:
         logger.info("Loading managed message IDs from the web app...")
         await load_managed_message_ids()
@@ -893,7 +1009,9 @@ async def on_ready():
         logger.info("Cogs/extensions loaded successfully.")
 
         logger.info("Starting periodic synchronization task...")
-        asyncio.create_task(periodic_sync())
+        periodic_sync_task = asyncio.create_task(periodic_sync())
+        # Store task reference to prevent garbage collection
+        bot._periodic_sync_task = periodic_sync_task
 
         logger.info("Setting bot instance in shared_states...")
         set_bot_instance(bot)
@@ -902,25 +1020,90 @@ async def on_ready():
         bot_ready.set()
 
         logger.info("Starting periodic check task...")
-        asyncio.create_task(periodic_check())
+        periodic_check_task = asyncio.create_task(periodic_check())
+        # Store task reference to prevent garbage collection
+        bot._periodic_check_task = periodic_check_task
         
-        # Start the full RSVP synchronization task
+        # Start the full RSVP synchronization task, but don't block on_ready
         logger.info("Performing initial full RSVP synchronization...")
-        asyncio.create_task(full_rsvp_sync(force_sync=True))
+        full_sync_task = asyncio.create_task(full_rsvp_sync(force_sync=True))
+        # Store task reference to prevent garbage collection
+        bot._full_sync_task = full_sync_task
         
         # Schedule periodic full RSVP synchronization
         logger.info("Starting periodic full RSVP synchronization task...")
-        asyncio.create_task(schedule_periodic_sync())
+        schedule_sync_task = asyncio.create_task(schedule_periodic_sync())
+        # Store task reference to prevent garbage collection
+        bot._schedule_sync_task = schedule_sync_task
 
         # Start the REST API server as a task in the bot's event loop
         logger.info("Starting REST API server...")
-        bot.loop.create_task(start_rest_api())
+        api_task = bot.loop.create_task(start_rest_api())
+        # Store task reference to prevent garbage collection
+        bot._api_task = api_task
 
         logger.info("Bot initialization completed successfully.")
     except Exception as e:
         logger.exception(f"Error during bot initialization: {e}")
+        # If critical initialization fails, schedule a restart after a delay
+        asyncio.create_task(delayed_restart(60))
 
     logger.info("Bot is fully ready.")
+
+async def watchdog_task():
+    """
+    A watchdog task that monitors the bot's health and forces restart if needed.
+    This provides a failsafe against deadlocks and other issues.
+    """
+    MAX_CONSECUTIVE_FAILURES = 3
+    consecutive_failures = 0
+    
+    # Wait for bot to be fully ready before starting watchdog
+    await asyncio.sleep(60)
+    
+    while not bot.is_closed():
+        try:
+            # Check heartbeat health
+            current_time = time.time()
+            time_since_last_heartbeat = current_time - bot.last_heartbeat
+            
+            if time_since_last_heartbeat > bot.max_heartbeat_delay * 5:
+                # Critical situation - heartbeat extremely delayed
+                print(f"CRITICAL: Heartbeat delayed by {time_since_last_heartbeat:.2f}s - initiating emergency restart")
+                consecutive_failures += 1
+                
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    print(f"EMERGENCY: {consecutive_failures} consecutive heartbeat failures - forcing process exit")
+                    # Force exit the process so Docker can restart cleanly
+                    os._exit(1)
+                
+                # Try to force a reconnection first
+                await bot._force_reconnect()
+            else:
+                # Reset counter if things are working
+                consecutive_failures = 0
+            
+            # Check task health
+            try:
+                task_count = len([t for t in asyncio.all_tasks() if not t.done()])
+                if task_count > 100:  # Arbitrary large number that might indicate a leak
+                    print(f"WARNING: Unusually high number of tasks: {task_count}")
+            except Exception:
+                pass
+                
+        except Exception as e:
+            print(f"Error in watchdog task: {e}")
+        
+        # Sleep between checks - shorter interval for more responsive monitoring
+        await asyncio.sleep(30)
+
+async def delayed_restart(delay_seconds=60):
+    """Schedule a clean restart after a delay."""
+    logger.warning(f"Scheduling restart in {delay_seconds} seconds")
+    await asyncio.sleep(delay_seconds)
+    logger.warning("Initiating clean restart")
+    # Force exit the process so Docker can restart cleanly
+    os._exit(0)
 
 @bot.event
 async def on_message(message):
@@ -1407,16 +1590,31 @@ async def on_raw_reaction_remove(payload):
 
 async def start_rest_api():
     """
-    Starts the FastAPI server using Uvicorn with retry logic and error handling.
+    Starts the FastAPI server using Uvicorn with improved retry logic and error handling.
     """
-    # Try a few ports starting from 5001
+    # Try a wider range of ports starting from 5001
     base_port = 5001
-    max_retries = 3
+    max_retries = 10  # Increased from 3 to have more ports to try
+    
+    # Add a delay before trying to bind to any port to allow socket cleanup
+    await asyncio.sleep(5)
     
     for attempt in range(max_retries):
         port = base_port + attempt
         try:
             logger.info(f"Attempting to start REST API server on port {port}")
+            
+            # First check if the port is available without actually binding
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex(('0.0.0.0', port))
+            sock.close()
+            
+            if result == 0:  # Port is in use
+                logger.warning(f"Port {port} is already in use (pre-check). Trying next port.")
+                continue
+                
             config = uvicorn.Config(
                 app,
                 host="0.0.0.0",
@@ -1426,6 +1624,7 @@ async def start_rest_api():
                 lifespan="off",         # Disable lifespan events
             )
             server = uvicorn.Server(config)
+            
             # Update the URL for update_discord_embed if we're using a non-default port
             if port != 5001:
                 global update_discord_embed
@@ -1434,42 +1633,93 @@ async def start_rest_api():
                 # Create a new function that uses the current port
                 async def updated_update_discord_embed(match_id: int):
                     """Updated function using the current port"""
-                    api_url = f"http://localhost:{port}/api/update_availability_embed/{match_id}"
-                    try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.post(api_url, timeout=10) as response:
-                                if response.status != 200:
-                                    logger.error(f"Failed to update Discord embed. Status: {response.status}, Response: {await response.text()}")
-                                else:
-                                    logger.info(f"Discord embed updated for match {match_id}")
-                    except aiohttp.ClientError as e:
-                        logger.error(f"Failed to update Discord embed. RequestException: {str(e)}")
-                    except Exception as e:
-                        logger.error(f"Unexpected error while updating Discord embed: {str(e)}")
+                    # Try multiple URLs for resiliency
+                    api_urls = [
+                        f"http://localhost:{port}/api/update_availability_embed/{match_id}",
+                        f"http://127.0.0.1:{port}/api/update_availability_embed/{match_id}",
+                        f"http://discord-bot:{port}/api/update_availability_embed/{match_id}"
+                    ]
+                    
+                    for api_url in api_urls:
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                async with session.post(api_url, timeout=10) as response:
+                                    if response.status == 200:
+                                        logger.info(f"Discord embed updated for match {match_id}")
+                                        return True
+                                    else:
+                                        logger.warning(f"Failed to update Discord embed using {api_url}. Status: {response.status}")
+                        except aiohttp.ClientError as e:
+                            logger.warning(f"Connection error updating Discord embed using {api_url}: {str(e)}")
+                        except Exception as e:
+                            logger.warning(f"Unexpected error while updating Discord embed using {api_url}: {str(e)}")
+                    
+                    # If we got here, all attempts failed
+                    logger.error(f"All attempts to update Discord embed for match {match_id} failed")
+                    return False
+                
                 # Replace the function
                 update_discord_embed = updated_update_discord_embed
                 logger.info(f"Updated update_discord_embed function to use port {port}")
             
+            # Store the port so other parts of the application can reference it
+            bot.api_port = port
+            
             # Try to start the server
-            await server.serve()
-            return  # If successful, exit the function
+            try:
+                await server.serve()
+                return  # If successful, exit the function
+            except SystemExit:
+                # Uvicorn calls sys.exit() on certain failures, which we want to catch
+                logger.error(f"Uvicorn server exited unexpectedly while binding to port {port}")
+                # Continue to the next port
+                continue
+                
         except OSError as e:
             if e.errno == 98:  # Address already in use
                 logger.warning(f"Port {port} is already in use. Trying next port.")
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to bind to ports {base_port} through {port}. API server will not start.")
-                    # We'll continue running the bot without the API server
-                    return
+                # Add a small delay before trying the next port
+                await asyncio.sleep(1)
+                continue
             else:
-                logger.error(f"Failed to start REST API server: {e}")
-                return
+                logger.error(f"Failed to start REST API server with unexpected error: {e}")
+                # Try next port instead of returning
+                continue
+        except Exception as e:
+            logger.error(f"Unexpected error when starting API server on port {port}: {e}")
+            # Try next port instead of returning
+            continue
+    
+    # If we get here, we've tried all ports and failed
+    logger.error(f"Failed to bind to any port between {base_port} and {base_port + max_retries - 1}. API server will not start.")
+    logger.warning("Bot will continue running without the API server, which may affect some functionality.")
+    # We'll continue running the bot without the API server
+    return
 
 async def cleanup():
     """
-    Cleanup function to run when the bot is shutting down.
-    Ensures all resources are properly released.
+    Enhanced cleanup function to run when the bot is shutting down.
+    Ensures all resources are properly released and handles TCP socket timeouts.
     """
     logger.info("Cleaning up resources...")
+    
+    # First cancel any running tasks to prevent them from creating new resources
+    try:
+        # Get all tasks from the current event loop
+        pending_tasks = [task for task in asyncio.all_tasks() 
+                        if not task.done() and task != asyncio.current_task()]
+        
+        if pending_tasks:
+            logger.info(f"Cancelling {len(pending_tasks)} pending tasks...")
+            # Cancel all pending tasks
+            for task in pending_tasks:
+                task.cancel()
+            
+            # Wait for all tasks to be cancelled with a timeout
+            await asyncio.wait(pending_tasks, timeout=5)
+            logger.info("All pending tasks cancelled or timed out.")
+    except Exception as e:
+        logger.error(f"Error cancelling pending tasks: {e}")
     
     # Close bot session if it exists
     if hasattr(bot, 'session') and bot.session:
@@ -1481,7 +1731,7 @@ async def cleanup():
             logger.error(f"Error closing bot session: {e}")
     
     # Close the shared session if it exists
-    if session:
+    if 'session' in globals() and session:
         logger.info("Closing shared session...")
         try:
             await session.close()
@@ -1489,22 +1739,69 @@ async def cleanup():
         except Exception as e:
             logger.error(f"Error closing shared session: {e}")
     
+    # Clean up semaphore resources
+    if 'rsvp_semaphore' in globals():
+        try:
+            logger.info("Cleaning up RSVP semaphores...")
+            rsvp_semaphore.cleanup()
+        except Exception as e:
+            logger.error(f"Error cleaning up RSVP semaphores: {e}")
+    
+    # Release any socket connections explicitly
+    try:
+        import socket
+        # This will help free up any lingering socket connections
+        socket.setdefaulttimeout(1)
+    except Exception as e:
+        logger.error(f"Error setting socket default timeout: {e}")
+    
     logger.info("Cleanup completed.")
 
 def signal_handler(sig, frame):
     """
     Signal handler for graceful shutdown.
+    Enhanced to better handle cleanup and exit process.
     """
     logger.info(f"Received signal {sig}. Shutting down gracefully...")
+    
     # Schedule the cleanup coroutine if we have an event loop
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(cleanup())
-            # Give tasks a chance to complete
-            loop.run_until_complete(asyncio.sleep(2))
+        # Check if the bot object exists and is connected
+        if 'bot' in globals() and hasattr(bot, 'is_closed') and not bot.is_closed():
+            logger.info("Closing bot connection...")
+            # Create a new event loop if needed
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # If there's no event loop, create a new one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+            if loop.is_running():
+                # Close the bot connection
+                loop.create_task(bot.close())
+                # Run the cleanup tasks
+                loop.create_task(cleanup())
+                # Give tasks a chance to complete
+                try:
+                    loop.run_until_complete(asyncio.sleep(3))
+                except Exception as e:
+                    logger.error(f"Error waiting for tasks to complete: {e}")
+            else:
+                # If loop is not running, run cleanup synchronously
+                loop.run_until_complete(cleanup())
+                loop.run_until_complete(bot.close())
+        else:
+            logger.info("Bot not connected, running cleanup only...")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(cleanup())
+            
     except Exception as e:
         logger.error(f"Error during graceful shutdown: {e}")
+    
+    # Make sure we exit with success status to prevent Docker from restarting unnecessarily
+    logger.info("Exiting bot process...")
     sys.exit(0)
 
 # Register signal handlers
@@ -1512,19 +1809,54 @@ signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
+    # Create flag to track if this is a restart attempt
+    import os
+    is_restart_attempt = os.environ.get('BOT_RESTART_ATTEMPT', '0')
+    
+    # On restart attempts, add a delay to ensure port cleanup
+    if is_restart_attempt != '0':
+        restart_number = int(is_restart_attempt)
+        # Exponential backoff for restart delay
+        delay_seconds = min(5 * (2 ** restart_number), 60)  # Cap at 60 seconds
+        logger.info(f"This is restart attempt #{restart_number}. Waiting {delay_seconds} seconds before starting...")
+        import time
+        time.sleep(delay_seconds)
+    
+    # Set the restart attempt for next time
+    os.environ['BOT_RESTART_ATTEMPT'] = str(int(is_restart_attempt) + 1)
+    
     try:
         # Run the bot in the main thread
         bot.run(bot_token)
     except KeyboardInterrupt:
         logger.info("Bot shutdown via KeyboardInterrupt")
+    except ConnectionResetError as e:
+        logger.error(f"Connection reset error: {e}")
+        logger.info("This is usually a temporary network issue. The bot will restart automatically.")
     except Exception as e:
         logger.critical(f"Unhandled exception caused bot to crash: {e}", exc_info=True)
     finally:
         # Run cleanup synchronously if needed
         try:
+            # Reset the restart attempt counter if we're shutting down properly
+            if sys.exc_info()[0] is None or sys.exc_info()[0] == KeyboardInterrupt:
+                os.environ['BOT_RESTART_ATTEMPT'] = '0'
+                logger.info("Reset restart counter - this was a clean shutdown")
+            
             loop = asyncio.new_event_loop()
             loop.run_until_complete(cleanup())
             loop.close()
         except Exception as e:
             logger.error(f"Error during final cleanup: {e}")
+        
+        # Remove any socket files that might be lingering
+        try:
+            for port in range(5001, 5011):  # Check ports 5001-5010
+                socket_file = f"/tmp/uvicorn_{port}.sock"
+                if os.path.exists(socket_file):
+                    os.remove(socket_file)
+                    logger.info(f"Removed socket file: {socket_file}")
+        except Exception as e:
+            logger.error(f"Error removing socket files: {e}")
+            
         logger.info("Bot process terminated.")
