@@ -13,7 +13,8 @@
     init: function() {
       this.fixIOSViewportHeight();
       this.setupTouchFriendlyControls();
-      this.setupPullToRefresh();
+      // Pull-to-refresh disabled to prevent accidental refreshes
+      //this.setupPullToRefresh();
       this.setupAddToHomeScreen();
       this.attachEventListeners();
       this.improveModalExperience();
@@ -62,75 +63,11 @@
       }
     },
     
-    // Setup pull-to-refresh functionality
+    // Pull-to-refresh is completely disabled to fix the unintended refresh issue
+    // on small scrolls. The function definition stays for backward compatibility.
     setupPullToRefresh: function() {
-      if ('ontouchstart' in window) {
-        let startY, startTopScroll;
-        let refreshIndicator = null;
-        
-        document.addEventListener('touchstart', function(e) {
-          startY = e.touches[0].pageY;
-          startTopScroll = window.scrollY;
-        }, {passive: true});
-        
-        document.addEventListener('touchmove', function(e) {
-          // Only trigger when at top of page
-          if (window.scrollY === 0 && e.touches[0].pageY - startY > 60) {
-            if (!refreshIndicator) {
-              refreshIndicator = document.createElement('div');
-              refreshIndicator.className = 'refresh-indicator';
-              refreshIndicator.innerHTML = `
-                <div class="d-flex align-items-center justify-content-center p-2 bg-primary text-white">
-                  <i class="ti ti-refresh me-2"></i>
-                  <span>Pull down to refresh</span>
-                </div>
-              `;
-              refreshIndicator.style.position = 'fixed';
-              refreshIndicator.style.top = '0';
-              refreshIndicator.style.left = '0';
-              refreshIndicator.style.right = '0';
-              refreshIndicator.style.zIndex = '9999';
-              refreshIndicator.style.transform = 'translateY(-100%)';
-              refreshIndicator.style.transition = 'transform 0.2s ease-out';
-              document.body.appendChild(refreshIndicator);
-            }
-            
-            // Calculate and set the pull distance
-            const pullDistance = Math.min(e.touches[0].pageY - startY, 100);
-            const percentage = pullDistance / 100;
-            refreshIndicator.style.transform = `translateY(${-100 + (percentage * 100)}%)`;
-          }
-        }, {passive: true});
-        
-        document.addEventListener('touchend', function(e) {
-          if (refreshIndicator) {
-            // If pulled far enough, refresh the page
-            if (window.scrollY === 0 && e.changedTouches[0].pageY - startY > 100) {
-              refreshIndicator.innerHTML = `
-                <div class="d-flex align-items-center justify-content-center p-2 bg-primary text-white">
-                  <i class="ti ti-refresh ti-spin me-2"></i>
-                  <span>Refreshing...</span>
-                </div>
-              `;
-              refreshIndicator.style.transform = 'translateY(0)';
-              
-              // Refresh after animation
-              setTimeout(() => {
-                window.location.reload();
-              }, 500);
-            } else {
-              // Reset and remove indicator
-              refreshIndicator.style.transform = 'translateY(-100%)';
-              setTimeout(() => {
-                if (refreshIndicator.parentNode) {
-                  document.body.removeChild(refreshIndicator);
-                }
-                refreshIndicator = null;
-              }, 200);
-            }
-          }
-        }, {passive: true});
-      }
+      // Intentionally disabled to prevent accidental refreshes
+      return;
     },
     
     // Setup "Add to Home Screen" prompt
