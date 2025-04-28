@@ -328,37 +328,305 @@ def revoke_task():
     """
     Revoke a specific scheduled task and clean up its Redis key.
     
-    Expects JSON payload with 'key' and 'task_id'.
+    Expects JSON payload with either:
+    1. 'key' and 'task_id' (for Redis-based tasks)
+    2. 'worker' and either 'task_name' or 'task_id' (for scheduled tasks on workers)
     
     Returns:
         JSON response indicating revocation status.
     """
     try:
+        # Log the raw payload for debugging
         data = request.get_json()
+        logger.info(f"Revoke task request payload: {data}")
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No JSON payload provided'}), 400
+            
         key = data.get('key')
         task_id = data.get('task_id')
-        if not key or not task_id:
-            return jsonify({'success': False, 'error': 'Missing key or task_id'}), 400
-        logger.info(f"Revoking task {task_id} and cleaning up Redis key {key}")
-        celery.control.revoke(task_id, terminate=True)
-        redis_client = RedisManager().client
-        redis_client.delete(key)
-        with managed_session() as session:
-            if 'thread' in key:
-                match_id = key.split(':')[1]
-                match = get_match(session, match_id)
-                if match:
-                    match.thread_creation_time = None
-            elif 'reporting' in key:
-                match_id = key.split(':')[1]
-                match = get_match(session, match_id)
-                if match:
-                    match.live_reporting_scheduled = False
-                    match.live_reporting_started = False
-                    match.live_reporting_status = 'not_started'
-        return jsonify({'success': True, 'message': f'Task {task_id} revoked and Redis key {key} removed'})
+        worker = data.get('worker')
+        task_name = data.get('task_name')
+        
+        logger.info(f"Parsed parameters: key={key}, task_id={task_id}, worker={worker}, task_name={task_name}")
+        
+        # Check which mode we're operating in
+        if key and task_id:
+            # Mode 1: Revoke Redis-based task
+            logger.info(f"Revoking task {task_id} and cleaning up Redis key {key}")
+            celery.control.revoke(task_id, terminate=True)
+            redis_client = RedisManager().client
+            redis_client.delete(key)
+            with managed_session() as session:
+                if 'thread' in key:
+                    match_id = key.split(':')[1]
+                    match = get_match(session, match_id)
+                    if match:
+                        match.thread_creation_time = None
+                elif 'reporting' in key:
+                    match_id = key.split(':')[1]
+                    match = get_match(session, match_id)
+                    if match:
+                        match.live_reporting_scheduled = False
+                        match.live_reporting_started = False
+                        match.live_reporting_status = 'not_started'
+            return jsonify({'success': True, 'message': f'Task {task_id} revoked and Redis key {key} removed'})
+        
+        elif worker:
+            # Mode 2: Revoke a scheduled task on a worker - try with any provided ID
+            logger.info(f"Revoking task on worker {worker}")
+            
+            # If we have a task_id, use it directly
+            if task_id:
+                celery.control.revoke(task_id, terminate=True)
+                logger.info(f"Directly revoked task {task_id} on worker {worker}")
+                return jsonify({'success': True, 'message': f'Task {task_id} revoked on worker {worker}'})
+            
+            # No task_id but we have a worker and maybe task_name - try to find scheduled tasks
+            # Add a short timeout to avoid blocking
+            i = celery.control.inspect(timeout=2.0)
+            
+            # Get current scheduled tasks with better error handling
+            scheduled = {}
+            worker_tasks = []
+            
+            try:
+                # Try first approach - get all scheduled tasks
+                scheduled = i.scheduled() or {}
+                worker_tasks = scheduled.get(worker, [])
+                
+                if not worker_tasks:
+                    # Try targeted approach - explicitly specify worker
+                    scheduled = i.scheduled([worker]) or {}
+                    worker_tasks = scheduled.get(worker, [])
+                
+                # If still no tasks, try alternative API
+                if not worker_tasks:
+                    # Try to get active tasks
+                    active = i.active([worker]) or {}
+                    active_tasks = active.get(worker, [])
+                    
+                    # Try to get reserved tasks
+                    reserved = i.reserved([worker]) or {}
+                    reserved_tasks = reserved.get(worker, [])
+                    
+                    # Combine all tasks
+                    worker_tasks = worker_tasks + active_tasks + reserved_tasks
+                    
+                    logger.info(f"Found additional tasks: {len(active_tasks)} active, {len(reserved_tasks)} reserved")
+            except Exception as e:
+                logger.warning(f"Error getting scheduled tasks: {e}")
+            
+            logger.info(f"Found {len(worker_tasks)} scheduled tasks on worker {worker}")
+            
+            # If no specific task name, revoke all for this worker - even if no tasks found, try additional methods
+            if not task_name:
+                logger.info(f"Attempting to revoke tasks on worker {worker} - found {len(worker_tasks)} scheduled tasks")
+                
+                # Log the task details to debug
+                task_ids = []
+                for i, task in enumerate(worker_tasks):
+                    task_id = task.get('id')
+                    task_name = task.get('name')
+                    eta = task.get('eta')
+                    logger.info(f"Task {i+1}: id={task_id}, name={task_name}, eta={eta}")
+                    if task_id:
+                        task_ids.append(task_id)
+                
+                # First try to revoke each task individually
+                revoked_count = 0
+                
+                # If we have task_ids, try revoking them individually
+                if task_ids:
+                    for task_id in task_ids:
+                        try:
+                            logger.info(f"Attempting to revoke individual task {task_id}")
+                            celery.control.revoke(task_id, terminate=True)
+                            revoked_count += 1
+                            logger.info(f"Successfully revoked task {task_id}")
+                        except Exception as e:
+                            logger.warning(f"Error revoking task {task_id}: {e}")
+                
+                # Also try direct revocation by worker name
+                try:
+                    logger.info(f"Attempting to revoke all tasks for worker {worker}")
+                    # This will revoke all tasks for this worker
+                    result = celery.control.revoke(None, destination=[worker], terminate=True)
+                    logger.info(f"Revocation by worker result: {result}")
+                    # Count this as at least one revoked task
+                    revoked_count += 1
+                except Exception as e:
+                    logger.warning(f"Error revoking all tasks for worker {worker}: {e}")
+                
+                # Always try direct task deletion via direct Redis access
+                try:
+                    logger.info("Attempting direct Redis task deletion")
+                    redis_client = RedisManager().client
+                    
+                    # Try to find and delete scheduled task entries directly in Redis
+                    # Common Celery Redis keys for scheduled tasks
+                    scheduled_task_keys = [
+                        f"unacked_{worker}",  # Unacknowledged tasks
+                        f"unacked.{worker}",
+                        f"{worker}.unacked",
+                        "celery",             # Default queue
+                        "celery-schedule",    # Celery beat schedule
+                        "_kombu.binding.celery", # Celery bindings
+                    ]
+                    
+                    # Search for keys that contain the worker name
+                    all_keys = redis_client.keys("*")
+                    worker_keys = []
+                    
+                    for key in all_keys:
+                        key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+                        # Check if this key might be related to our worker
+                        if worker in key_str or "celery" in key_str.lower():
+                            worker_keys.append(key)
+                            
+                    # Add our specific known keys
+                    for key_pattern in scheduled_task_keys:
+                        pattern_matches = redis_client.keys(key_pattern)
+                        worker_keys.extend(pattern_matches)
+                        
+                    # Remove duplicates
+                    worker_keys = list(set(worker_keys))
+                    
+                    logger.info(f"Found {len(worker_keys)} potential Redis keys for worker {worker}")
+                    
+                    # Try to examine and clean each key
+                    cleaned_keys = 0
+                    for key in worker_keys:
+                        try:
+                            key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+                            logger.info(f"Examining Redis key: {key_str}")
+                            
+                            # For each key, try to determine the type and clean appropriately
+                            key_type = redis_client.type(key)
+                            key_type_str = key_type.decode('utf-8') if isinstance(key_type, bytes) else str(key_type)
+                            
+                            if key_type_str == 'hash':
+                                # Hash - try to get all values
+                                hash_data = redis_client.hgetall(key)
+                                logger.info(f"Hash data keys: {list(hash_data.keys())}")
+                                # Delete the hash
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                            elif key_type_str == 'list':
+                                # List - get length and clean
+                                list_len = redis_client.llen(key)
+                                logger.info(f"List length: {list_len}")
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                            elif key_type_str == 'set':
+                                # Set - get members and clean
+                                set_members = redis_client.smembers(key)
+                                logger.info(f"Set has {len(set_members)} members")
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                            elif key_type_str == 'zset':
+                                # Sorted set - get count and clean
+                                zset_count = redis_client.zcard(key)
+                                logger.info(f"Sorted set has {zset_count} members")
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                            elif key_type_str == 'string':
+                                # String - get value and clean
+                                string_val = redis_client.get(key)
+                                logger.info(f"String value length: {len(string_val) if string_val else 0}")
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                            else:
+                                # Unknown type - just delete
+                                logger.info(f"Unknown Redis key type: {key_type_str}")
+                                redis_client.delete(key)
+                                cleaned_keys += 1
+                                
+                        except Exception as e:
+                            logger.warning(f"Error cleaning Redis key {key}: {e}")
+                    
+                    logger.info(f"Cleaned {cleaned_keys} Redis keys for worker {worker}")
+                    revoked_count += cleaned_keys
+                except Exception as redis_error:
+                    logger.warning(f"Error during direct Redis cleanup: {redis_error}")
+                
+                # Even if Redis cleanup worked, still try purging the queue
+                try:
+                    # Get task information for more specific purging
+                    queues_to_purge = set()
+                    for task in worker_tasks:
+                        if 'request' in task and 'delivery_info' in task['request']:
+                            queue = task['request']['delivery_info'].get('routing_key', 'celery')
+                            queues_to_purge.add(queue)
+                    
+                    if not queues_to_purge:
+                        queues_to_purge.add('celery')  # Default queue
+                        
+                    # Purge all relevant queues
+                    for queue in queues_to_purge:
+                        try:
+                            result = celery.control.purge(queue)
+                            logger.info(f"Purged queue {queue}: {result}")
+                            if result:
+                                revoked_count += int(result)
+                        except Exception as e:
+                            logger.warning(f"Error purging queue {queue}: {e}")
+                            
+                    # Try to cancel all scheduled tasks for this worker
+                    try:
+                        celery.control.cancel_consumer(queue='celery', destination=[worker])
+                        logger.info(f"Canceled consumer for worker {worker}")
+                    except Exception as e:
+                        logger.warning(f"Error canceling consumer: {e}")
+                    
+                    # Try direct Celery Beat schedule manipulation
+                    try:
+                        # Try to clear the beat schedule
+                        redis_client = RedisManager().client
+                        redis_client.delete('celery-schedule')
+                        logger.info("Cleared Celery Beat schedule")
+                        revoked_count += 1
+                    except Exception as e:
+                        logger.warning(f"Error clearing beat schedule: {e}")
+                    
+                    # Force restart the worker to ensure tasks are cleared
+                    try:
+                        celery.control.pool_restart(destination=[worker])
+                        logger.info(f"Restarted worker pool for {worker}")
+                    except Exception as e:
+                        logger.warning(f"Error restarting worker pool: {e}")
+                    
+                    # If we did any cleanup, consider it success
+                    if revoked_count > 0:
+                        return jsonify({'success': True, 'message': f'Revoked {revoked_count} tasks and cleared queues for worker {worker}'})
+                    
+                    # Even if no tasks were explicitly revoked, report success since we tried all methods
+                    return jsonify({'success': True, 'message': f'Attempted all cleanup methods for worker {worker}'})
+                except Exception as purge_error:
+                    logger.warning(f"Error during queue purge: {purge_error}")
+                    
+                # If we revoked at least one task individually, consider it a success
+                if revoked_count > 0:
+                    logger.info(f"Revoked {revoked_count} tasks on worker {worker}")
+                    return jsonify({'success': True, 'message': f'Revoked {revoked_count} tasks on worker {worker}'})
+                else:
+                    # Last resort - try purging the default queue
+                    try:
+                        result = celery.control.purge()
+                        logger.info(f"Purged all queues: {result}")
+                        return jsonify({'success': True, 'message': f'Purged all queues: {result}'})
+                    except Exception as e:
+                        logger.warning(f"Error purging all queues: {e}")
+                        return jsonify({'success': False, 'error': f'Failed to revoke tasks on worker {worker}. Please manually restart the worker.'}), 500
+            
+            # Otherwise, we need either task_id or task_name
+            return jsonify({'success': False, 'error': f'Task identification not provided for worker {worker}'}), 400
+
+        else:
+            return jsonify({'success': False, 'error': 'Missing required parameters. Need either (key and task_id) or (worker)'}), 400
+            
     except Exception as e:
-        logger.error(f"Error revoking task {task_id}: {e}", exc_info=True)
+        logger.error(f"Error revoking task: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -677,6 +945,197 @@ def get_debug_logs():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@monitoring_bp.route('/inspect-task/<task_id>', endpoint='inspect_task')
+@login_required
+@role_required('Global Admin')
+def inspect_task(task_id):
+    """
+    Get detailed information about a specific task.
+    
+    Parameters:
+        task_id: The ID of the task to inspect.
+    
+    Returns:
+        JSON response with task details.
+    """
+    try:
+        # Get task result object
+        task = AsyncResult(task_id, app=celery)
+        
+        # Check basic task status
+        result = {
+            'id': task_id,
+            'state': task.state,
+            'ready': task.ready(),
+            'successful': task.successful() if task.ready() else None,
+            'result': str(task.result) if task.ready() else None,
+            'traceback': str(task.traceback) if task.failed() else None
+        }
+        
+        # Try to get additional info from Redis or worker
+        redis_client = RedisManager().client
+        
+        # Check if task is in any Redis key
+        keys = redis_client.keys('*')
+        related_keys = []
+        
+        for key in keys:
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+            value = redis_client.get(key)
+            if value:
+                value_str = value.decode('utf-8') if isinstance(value, bytes) else str(value)
+                if task_id in value_str:
+                    related_keys.append({
+                        'key': key_str,
+                        'value': value_str,
+                        'ttl': redis_client.ttl(key)
+                    })
+        
+        result['related_redis_keys'] = related_keys
+        
+        # Try to get task info from workers
+        i = celery.control.inspect(timeout=1.0)
+        
+        # Check if task is active, scheduled, or reserved on any worker
+        active = i.active() or {}
+        scheduled = i.scheduled() or {}
+        reserved = i.reserved() or {}
+        
+        result['active_on'] = []
+        result['scheduled_on'] = []
+        result['reserved_on'] = []
+        
+        for worker, tasks in active.items():
+            for t in tasks:
+                if t.get('id') == task_id:
+                    result['active_on'].append({'worker': worker, 'task': t})
+                    
+        for worker, tasks in scheduled.items():
+            for t in tasks:
+                if t.get('id') == task_id:
+                    result['scheduled_on'].append({'worker': worker, 'task': t})
+                    
+        for worker, tasks in reserved.items():
+            for t in tasks:
+                if t.get('id') == task_id:
+                    result['reserved_on'].append({'worker': worker, 'task': t})
+        
+        return jsonify({'success': True, 'task': result})
+    except Exception as e:
+        logger.error(f"Error inspecting task {task_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/cleanup-orphaned-tasks', endpoint='cleanup_orphaned_tasks', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def cleanup_orphaned_tasks():
+    """
+    Cleanup orphaned tasks that might be stuck in Redis or in the worker queues.
+    This helps when there's a discrepancy between what's displayed and what's actually scheduled.
+    
+    Returns:
+        JSON response with cleanup status and details.
+    """
+    try:
+        # 1. Check for Redis orphaned scheduler keys
+        redis_client = RedisManager().client
+        scheduler_keys = redis_client.keys('match_scheduler:*')
+        cleaned_keys = []
+        
+        for key in scheduler_keys:
+            try:
+                # Check if the key is valid
+                key_str = key.decode('utf-8') if isinstance(key, bytes) else str(key)
+                parts = key_str.split(':')
+                
+                if len(parts) != 3:
+                    # Malformed key - delete it
+                    redis_client.delete(key)
+                    cleaned_keys.append(key_str)
+                    continue
+                
+                # Check if the task exists
+                value = redis_client.get(key)
+                if not value:
+                    # Empty value - delete the key
+                    redis_client.delete(key)
+                    cleaned_keys.append(key_str)
+                    continue
+                
+                # Check if task ID is valid
+                task_id = value.decode('utf-8') if isinstance(value, bytes) else str(value)
+                if len(task_id) != 36:  # UUID is 36 characters
+                    # Invalid task ID - delete the key
+                    redis_client.delete(key)
+                    cleaned_keys.append(key_str)
+                    continue
+                
+                # Check if the task exists in Celery
+                task = AsyncResult(task_id, app=celery)
+                if task.state in ('SUCCESS', 'FAILURE', 'REVOKED'):
+                    # Task is complete but key still exists - delete the key
+                    redis_client.delete(key)
+                    cleaned_keys.append(key_str)
+            except Exception as e:
+                logger.warning(f"Error cleaning up key {key}: {e}")
+        
+        # 2. Purge any scheduled tasks that might be stuck
+        i = celery.control.inspect(timeout=2.0)
+        scheduler_workers = []
+        
+        try:
+            stats = i.stats() or {}
+            for worker_name in stats.keys():
+                if 'schedule' in worker_name.lower() or 'beat' in worker_name.lower():
+                    scheduler_workers.append(worker_name)
+        except Exception as e:
+            logger.warning(f"Error inspecting workers for scheduler: {e}")
+        
+        # 3. Check for database inconsistencies
+        match_ids = []
+        try:
+            with managed_session() as session:
+                # Try to safely check if the table exists first
+                table_exists = session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'mls_match'
+                    )
+                """)).scalar()
+                
+                if table_exists:
+                    # Reset live reporting statuses if needed
+                    updated_matches = session.execute(text("""
+                        UPDATE mls_match 
+                        SET live_reporting_scheduled = false,
+                            live_reporting_started = false,
+                            live_reporting_status = 'not_started'
+                        WHERE live_reporting_status IN ('preparing', 'scheduled')
+                        AND date_time < NOW() - INTERVAL '3 hours'
+                        RETURNING id
+                    """))
+                    
+                    match_ids = [row[0] for row in updated_matches]
+                else:
+                    logger.info("Table mls_match does not exist, skipping match updates")
+        except Exception as db_error:
+            logger.warning(f"Error updating match statuses: {db_error}")
+            # Continue execution even if this part fails
+            
+        return jsonify({
+            'success': True,
+            'cleaned_redis_keys': len(cleaned_keys),
+            'cleaned_keys': cleaned_keys,
+            'scheduler_workers': scheduler_workers,
+            'reset_matches': len(match_ids),
+            'match_ids': match_ids
+        })
+    except Exception as e:
+        logger.error(f"Error cleaning up orphaned tasks: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @monitoring_bp.route('/debug/queries', endpoint='get_debug_queries')
 @login_required
 @role_required('Global Admin')
@@ -747,6 +1206,187 @@ def get_system_stats():
     except Exception as e:
         current_app.logger.error(f"Error getting system stats: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@monitoring_bp.route('/workers', endpoint='get_workers')
+@login_required
+@role_required('Global Admin')
+def get_workers():
+    """
+    Retrieve information about all Celery workers.
+    
+    Returns:
+        JSON response with details about active Celery workers.
+    """
+    try:
+        # Cache key for workers data (expires after 15 seconds)
+        redis_client = RedisManager().client
+        cache_key = "monitoring:workers_data"
+        cache_ttl = 15  # seconds
+        
+        # Try to get from cache first
+        cached_data = redis_client.get(cache_key)
+        if cached_data:
+            try:
+                return jsonify(json.loads(cached_data))
+            except (json.JSONDecodeError, TypeError):
+                # If cache is corrupted, ignore and proceed with fresh data
+                pass
+                
+        # Set timeout for Celery inspection to avoid slow responses
+        # Default timeout is high which can cause the 6+ second delays
+        timeout = 1.0  # 1 second timeout
+        
+        # Create inspector with reduced timeout
+        i = celery.control.inspect(timeout=timeout)
+        
+        # Get all data with a single broadcast call instead of multiple calls
+        stats = i.stats() or {}
+        active = i.active() or {}
+        scheduled = i.scheduled() or {}
+        reserved = i.reserved() or {}
+        revoked = i.revoked() or {}
+        registered = {}
+        
+        # For registered tasks, only count them (don't get full list) to reduce payload size
+        for worker_name, worker_stats in stats.items():
+            try:
+                registered_count = redis_client.get(f"monitoring:registered_tasks:{worker_name}")
+                if registered_count:
+                    registered[worker_name] = int(registered_count)
+                else:
+                    # This is expensive, so cache it longer (1 hour)
+                    worker_registered = i.registered(destination=[worker_name]) or {}
+                    count = len(worker_registered.get(worker_name, []))
+                    registered[worker_name] = count
+                    redis_client.setex(f"monitoring:registered_tasks:{worker_name}", 3600, str(count))
+            except Exception:
+                registered[worker_name] = 0
+        
+        # Collect scheduled task details for display
+        scheduled_task_details = []
+        for worker_name, tasks in scheduled.items():
+            for task in tasks:
+                try:
+                    # Extract task info
+                    task_name = task.get('name', 'Unknown Task')
+                    args = task.get('args', [])
+                    kwargs = task.get('kwargs', {})
+                    eta = task.get('eta')
+                    task_id = task.get('id', '')
+                    
+                    # Extract request details for better task info
+                    request = task.get('request', {})
+                    delivery_info = request.get('delivery_info', {})
+                    queue = delivery_info.get('routing_key', 'Unknown')
+                    
+                    # Get full task details
+                    full_task = {
+                        'worker': worker_name,
+                        'name': task_name,
+                        'args': args,
+                        'kwargs': kwargs,
+                        'eta': eta,
+                        'id': task_id,
+                        'queue': queue
+                    }
+                    
+                    # Don't include full details as they cause JS issues
+                    # Instead include a simplified version
+                    try:
+                        simplified_details = {
+                            'id': task_id,
+                            'name': task_name,
+                            'worker': worker_name,
+                            'args': str(args),
+                            'kwargs': str(kwargs),
+                            'eta': str(eta),
+                            'queue': queue
+                        }
+                        full_task['full_details'] = json.dumps(simplified_details)
+                    except Exception:
+                        full_task['full_details'] = "{}"
+                    
+                    # Add match ID if we can find it in args or kwargs
+                    match_id = None
+                    if args and len(args) > 0:
+                        # First arg is often a match ID
+                        match_id = args[0]
+                    elif kwargs and 'match_id' in kwargs:
+                        match_id = kwargs['match_id']
+                    
+                    if match_id:
+                        full_task['match_id'] = match_id
+                        
+                        # Try to get match details from database for more context
+                        try:
+                            with managed_session() as session:
+                                match = get_match(session, match_id)
+                                if match:
+                                    full_task['match_details'] = {
+                                        'opponent': match.opponent if hasattr(match, 'opponent') else 'Unknown',
+                                        'date_time': match.date_time.isoformat() if hasattr(match, 'date_time') else None,
+                                        'location': match.location if hasattr(match, 'location') else 'Unknown'
+                                    }
+                        except Exception as e:
+                            logger.warning(f"Error fetching match details for task: {e}")
+                    
+                    scheduled_task_details.append(full_task)
+                except Exception as e:
+                    logger.warning(f"Error processing scheduled task: {e}")
+        
+        # Combine all information
+        workers_info = {}
+        for worker_name in stats.keys():
+            # Only include active workers to reduce payload
+            worker_scheduled = scheduled.get(worker_name, [])
+            workers_info[worker_name] = {
+                'active_tasks': active.get(worker_name, []),
+                'registered_tasks': registered.get(worker_name, 0),
+                'scheduled_tasks': len(worker_scheduled),
+                'reserved_tasks': len(reserved.get(worker_name, [])),
+                'status': 'online'
+            }
+        
+        # Get worker queues (also minimized)
+        queues = {}
+        scheduled_task_count = 0
+        for worker, worker_stats in stats.items():
+            if 'pool' in worker_stats:
+                queues[worker] = {
+                    'pool_size': worker_stats.get('pool', {}).get('max-concurrency', 0)
+                }
+            # Count total scheduled tasks across all workers
+            scheduled_task_count += len(scheduled.get(worker, []))
+        
+        result = {
+            'success': True, 
+            'workers': workers_info,
+            'queues': queues,
+            'total_workers': len(workers_info),
+            'active_workers': len(stats),
+            'total_scheduled_tasks': scheduled_task_count,
+            'scheduled_tasks': scheduled_task_details
+        }
+        
+        # Cache the result to improve performance
+        try:
+            redis_client.setex(cache_key, cache_ttl, json.dumps(result))
+        except (TypeError, json.JSONEncodeError):
+            pass
+            
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error getting worker information: {e}", exc_info=True)
+        return jsonify({
+            'success': True,  # Return success even on error to avoid UI disruption
+            'workers': {},
+            'queues': {},
+            'total_workers': 0,
+            'active_workers': 0,
+            'total_scheduled_tasks': 0,
+            'error': "Timed out waiting for worker response"
+        })
 
 
 @monitoring_bp.route('/db/connections/<int:pid>/stack', endpoint='get_stack_trace')

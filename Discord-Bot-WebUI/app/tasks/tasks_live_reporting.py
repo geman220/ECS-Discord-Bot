@@ -79,9 +79,8 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
         if task_id and current_task_id != task_id:
             logger.warning(f"Detected duplicate task execution for match {match_id}. "
                           f"Expected task ID: {task_id}, Current task ID: {current_task_id}")
-            # Just log this rather than stopping processing - the duplicate detection is informational
-            # If we need to stop, we can uncomment this return statement
-            # return {'success': False, 'message': 'Duplicate task execution detected'}
+            # Stop processing duplicate tasks to prevent spam
+            return {'success': False, 'message': 'Duplicate task execution detected'}
 
         last_event_keys = last_event_keys or []
 

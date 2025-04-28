@@ -637,14 +637,14 @@ async def reconcile_rsvps(match_id, team_id, discord_rsvps, flask_rsvps, channel
                     for reaction in message.reactions:
                         if str(reaction.emoji) in reaction_emoji.values():
                             try:
-                                # Only collect users with timeout
-                                users_collector = reaction.users()
+                                # Fetch users with timeout
                                 users = []
-                                async for u in asyncio.wait_for(anext(users_collector.__aiter__()), timeout=5.0):
-                                    users.append(u)
-                                    # Process in small batches to avoid long blocking operations
-                                    if len(users) >= 10:
-                                        break
+                                users_collector = reaction.users()
+                                try:
+                                    # Get up to 10 users to avoid long operations
+                                    users = await asyncio.wait_for(users_collector.flatten(limit=10), timeout=5.0)
+                                except asyncio.TimeoutError:
+                                    logger.warning(f"Timed out collecting users for reaction {reaction.emoji}")
                                 
                                 if user in users:
                                     await asyncio.wait_for(reaction.remove(user), timeout=5.0)
@@ -665,7 +665,8 @@ async def reconcile_rsvps(match_id, team_id, discord_rsvps, flask_rsvps, channel
                         if str(reaction.emoji) == emoji:
                             try:
                                 # Use limited collection with timeout
-                                async for u in asyncio.wait_for(reaction.users().flatten(limit=5), timeout=5.0):
+                                users = await asyncio.wait_for(reaction.users().flatten(limit=5), timeout=5.0)
+                                for u in users:
                                     if u.id == bot.user.id:
                                         bot_emoji_added = True
                                         break
