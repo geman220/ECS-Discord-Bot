@@ -123,16 +123,22 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
 
             logger.debug(f"Match status: {status_type}, Current score: {current_score}, Time: {current_time}")
 
-            # Handle match status changes
-            if status_type != last_status:
+            # Handle match status changes - only if the status has actually changed
+            if status_type != last_status and last_status is not None:
                 logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
                 # Pass the full match_data so that pre-match details can be extracted
                 await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score, match_data)
+            elif status_type == "STATUS_SCHEDULED" and last_status is None:
+                # Only send pre-match info the first time we see STATUS_SCHEDULED
+                logger.info(f"Initial pre-match info for match_id={match_id}")
+                await send_pre_match_info(thread_id, match_data)
 
-            # Handle score changes
-            if current_score != last_score:
+            # Handle score changes - only if the score has actually changed and we have a previous score
+            if current_score != last_score and last_score is not None:
                 logger.info(f"Score changed from {last_score} to {current_score} for match_id={match_id}")
-                await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
+                # Only send score updates if the match is in progress, not for pre-match
+                if status_type not in ["STATUS_SCHEDULED", "STATUS_PRE_GAME"]:
+                    await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
 
             # Process events
             events = competition.get("details", [])
@@ -195,9 +201,16 @@ async def handle_status_change(thread_id, status_type, home_team, away_team, hom
         away_score (str): Away team score.
         match_data (dict, optional): Full match data for additional context.
     """
-    if status_type == "STATUS_SCHEDULED":
-        logger.info(f"Sending pre-match update to thread {thread_id}")
-        await send_pre_match_info(thread_id, match_data)
+    if status_type == "STATUS_IN_PROGRESS" or status_type == "STATUS_FIRST_HALF":
+        # Match has started, send a kickoff update instead of duplicating score
+        logger.info(f"Match has started, sending kickoff update to thread {thread_id}")
+        await send_update_to_bot(thread_id, "match_started", {
+            "home_team": home_team,
+            "away_team": away_team,
+            "home_score": home_score,
+            "away_score": away_score,
+            "time": "0:00"
+        })
     elif status_type == "STATUS_HALFTIME":
         logger.info(f"Sending halftime update to thread {thread_id}")
         await send_update_to_bot(thread_id, "halftime", {

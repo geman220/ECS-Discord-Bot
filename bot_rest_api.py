@@ -469,6 +469,9 @@ def create_match_embed(update_type, update_data):
         # Extract match_id from update_data (ensure update_data contains it)
         match_id = update_data.get("match_id")
         return create_fulltime_embed(match_id, update_data, focus_team_id)
+    elif update_type == "match_started":
+        # Create a special kickoff embed to avoid duplicate messages
+        return create_match_started_embed(update_data, focus_team_id)
     elif update_type in ["status_scheduled", "pre_match_info"]:
         return create_pre_match_embed(update_data, focus_team_id)
     else:
@@ -478,6 +481,39 @@ def create_match_embed(update_type, update_data):
             description="An update has occurred."
         )
         return embed
+
+def create_match_started_embed(update_data, focus_team_id):
+    """
+    Create an embed for match kickoff.
+    """
+    home_team = update_data.get('home_team', {})
+    away_team = update_data.get('away_team', {})
+    home_team_name = home_team.get('displayName', "Home Team")
+    away_team_name = away_team.get('displayName', "Away Team")
+    home_team_id = str(home_team.get('id', ""))
+    away_team_id = str(away_team.get('id', ""))
+
+    embed = discord.Embed()
+    embed.title = f"🏟️ Kickoff! {home_team_name} vs {away_team_name}"
+    embed.color = discord.Color.green()
+    
+    # Check if our team is playing
+    if home_team_id == focus_team_id:
+        embed.description = f"**{home_team_name}** 0 - 0 {away_team_name}"
+        embed.set_thumbnail(url=home_team.get('logo'))
+        embed.add_field(name="Let's Go!", value="The match has started! Let's go Sounders! 💚", inline=False)
+    elif away_team_id == focus_team_id:
+        embed.description = f"{home_team_name} 0 - 0 **{away_team_name}**"
+        embed.set_thumbnail(url=away_team.get('logo'))
+        embed.add_field(name="Let's Go!", value="The match has started! Let's go Sounders! 💚", inline=False)
+    else:
+        embed.description = f"{home_team_name} 0 - 0 {away_team_name}"
+        embed.color = discord.Color.blue()
+        embed.add_field(name="Kickoff", value="The match has started!", inline=False)
+
+    embed.add_field(name="Time", value="Kickoff", inline=True)
+    
+    return embed
 
 def create_match_update_embed(update_data, focus_team_id):
     home_team = update_data.get('home_team', {})

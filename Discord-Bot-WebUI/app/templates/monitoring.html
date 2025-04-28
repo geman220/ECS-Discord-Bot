@@ -33,15 +33,12 @@
                             <h5 class="mb-0">Celery Workers</h5>
                             <small class="text-muted">Background task processors</small>
                         </div>
-                        <div class="card-icon">
-                            <span class="badge bg-label-success rounded-pill">Online</span>
+                        <div class="card-icon" id="workerStatusBadge">
+                            <span class="badge bg-label-secondary rounded-pill">Checking...</span>
                         </div>
                     </div>
-                    <div class="d-flex align-items-center mt-3 gap-2">
-                        <div class="progress flex-grow-1" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <small class="text-success fw-semibold">100%</small>
+                    <div class="mt-2" id="workersList">
+                        <!-- Workers will be populated here -->
                     </div>
                 </div>
             </div>
@@ -140,6 +137,11 @@
                                 <i class="ti ti-refresh me-1"></i>Refresh Data
                             </button>
                         </div>
+                        <div class="col-xl-3 col-md-6">
+                            <button type="button" id="cleanupOrphanedButton" class="btn btn-warning btn-sm w-100">
+                                <i class="ti ti-robot me-1"></i>Clean Orphaned Tasks
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,6 +172,7 @@
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ti ti-list-check me-2"></i>Scheduled Tasks</h5>
+                        <span class="badge bg-label-primary ms-2" id="scheduledTasksCount">0 tasks</span>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -177,6 +180,67 @@
                     <div id="tasksAccordion" class="accordion accordion-flush">
                         <!-- Tasks will be populated here -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Worker Scheduled Tasks Card -->
+    <div class="row mb-4" id="workerScheduledTasksRow" style="display: none;">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-calendar-time me-2"></i>Worker Scheduled Tasks</h5>
+                        <span class="badge bg-label-warning ms-2" id="workerScheduledTasksCount">0 tasks</span>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Worker</th>
+                                <th>Task Name</th>
+                                <th>Arguments/Match</th>
+                                <th>ETA</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workerScheduledTasksTable">
+                            <!-- Worker scheduled tasks will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Worker Details Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="ti ti-servers me-2"></i>Worker Details</h5>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Worker Name</th>
+                                <th>Status</th>
+                                <th>Pool Size</th>
+                                <th>Active Tasks</th>
+                                <th>Registered Tasks</th>
+                                <th>Scheduled</th>
+                                <th>Reserved</th>
+                            </tr>
+                        </thead>
+                        <tbody id="workersDetailTable">
+                            <!-- Worker details will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -189,6 +253,7 @@
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ti ti-database me-2"></i>Redis Task Entries</h5>
+                        <span class="badge bg-label-info ms-2" id="redisEntriesCount">0 entries</span>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -333,6 +398,39 @@
         background-color: var(--bs-info);
     }
     
+    /* Worker status styling */
+    #workersList {
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    /* Prevent layout jumps during reloads */
+    .card {
+        transition: min-height 0.3s ease-out;
+    }
+    
+    .table-responsive {
+        transition: min-height 0.3s ease-out;
+    }
+    
+    /* Add visual indicators to countdown */
+    .countdown-warning {
+        color: var(--bs-warning);
+        font-weight: 500;
+    }
+    
+    .countdown-critical {
+        color: var(--bs-danger);
+        font-weight: 700;
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
     /* Media queries for responsive design */
     @media (max-width: 767.98px) {
         .match-timeline {
@@ -363,9 +461,12 @@
 
     // Utility: Convert seconds to HH:MM:SS format
     function secondsToHMS(seconds) {
+        if (seconds === null || seconds === undefined || isNaN(seconds)) {
+            return "N/A";
+        }
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
+        const s = Math.floor(seconds % 60);
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
@@ -403,6 +504,9 @@
 
     // Create match details HTML
     function createMatchDetails(details) {
+        // Ensure we have details to work with
+        if (!details) return '<div class="card mb-3"><div class="card-body">No match details available</div></div>';
+        
         return `
         <div class="card mb-3">
             <div class="card-header border-bottom">
@@ -417,7 +521,7 @@
                             </div>
                             <div>
                                 <span class="fw-medium">Opponent</span>
-                                <p class="text-muted mb-0">${details.opponent}</p>
+                                <p class="text-muted mb-0">${details.opponent || 'Unknown'}</p>
                             </div>
                         </div>
                     </div>
@@ -485,16 +589,26 @@
             loadingSpinner.style.display = 'flex';
             errorAlert.style.display = 'none';
 
-            const [tasksResponse, redisResponse] = await Promise.all([
+            // Get container heights before fetching data to avoid layout shifts
+            const containers = document.querySelectorAll('.card, .table-responsive');
+            containers.forEach(container => {
+                if (container.offsetHeight > 0) {
+                    container.style.minHeight = `${container.offsetHeight}px`;
+                }
+            });
+
+            const [tasksResponse, redisResponse, workersResponse] = await Promise.all([
                 fetch('{{ url_for("monitoring.get_all_tasks") }}'),
-                fetch('{{ url_for("monitoring.get_redis_keys") }}')
+                fetch('{{ url_for("monitoring.get_redis_keys") }}'),
+                fetch('{{ url_for("monitoring.get_workers") }}')
             ]);
 
             const tasksData = await tasksResponse.json();
             const redisKeysData = await redisResponse.json();
+            const workersData = await workersResponse.json();
 
             if (tasksData.success && redisKeysData.success) {
-                updateDashboard(tasksData, redisKeysData);
+                updateDashboard(tasksData, redisKeysData, workersData);
                 lastUpdatedEl.textContent = new Date().toLocaleTimeString();
             } else {
                 throw new Error('Failed to fetch monitoring data');
@@ -503,13 +617,24 @@
             showError(err.message);
         } finally {
             loadingSpinner.style.display = 'none';
+            
+            // Reset container heights after data is loaded
+            setTimeout(() => {
+                const containers = document.querySelectorAll('.card, .table-responsive');
+                containers.forEach(container => {
+                    container.style.minHeight = '';
+                });
+            }, 500);
         }
     }
 
     // Update dashboard with new data
-    function updateDashboard(tasks, redis) {
+    function updateDashboard(tasks, redis, workers) {
         taskData = tasks;
         redisData = redis;
+        
+        // Store workers data for cross-referencing
+        window.lastWorkerData = workers;
 
         // Update summary counts
         let counts = calculateTaskCounts(tasks);
@@ -526,23 +651,366 @@
 
         // Update Redis connection status
         updateRedisStatus(redis);
+        
+        // Update workers information
+        updateWorkersInfo(workers);
+    }
+    
+    // Update worker information
+    function updateWorkersInfo(workersData) {
+        if (!workersData || !workersData.success) {
+            document.getElementById('workerStatusBadge').innerHTML = `
+                <span class="badge bg-label-danger rounded-pill">Error</span>
+            `;
+            document.getElementById('workersList').innerHTML = `
+                <div class="alert alert-danger mt-2 mb-0">
+                    <small>Could not fetch worker information</small>
+                </div>
+            `;
+            document.getElementById('workersDetailTable').innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-3">
+                        Error fetching worker information
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Update worker badge in summary card
+        const totalWorkers = workersData.total_workers || 0;
+        const activeWorkers = workersData.active_workers || 0;
+        const statusColor = activeWorkers > 0 ? 'success' : 'danger';
+        const statusText = activeWorkers > 0 ? 'Online' : 'Offline';
+        
+        document.getElementById('workerStatusBadge').innerHTML = `
+            <span class="badge bg-label-${statusColor} rounded-pill">${statusText} (${activeWorkers}/${totalWorkers})</span>
+        `;
+        
+        // Update scheduled tasks count in the dashboard
+        const totalScheduledTasks = workersData.total_scheduled_tasks || 0;
+        const pendingTasksEl = document.getElementById('pendingTasks');
+        const totalTasksEl = document.getElementById('totalTasks');
+        const scheduledTasksCountEl = document.getElementById('scheduledTasksCount');
+        
+        // Update task counts to reflect what's coming from workers API
+        if (pendingTasksEl && totalTasksEl) {
+            // Only update if there are scheduled tasks but none are shown in UI
+            if (totalScheduledTasks > 0 && pendingTasksEl.textContent === '0') {
+                pendingTasksEl.textContent = totalScheduledTasks;
+                totalTasksEl.textContent = totalScheduledTasks;
+            }
+        }
+        
+        // Update scheduled tasks count in card header
+        if (scheduledTasksCountEl) {
+            scheduledTasksCountEl.textContent = `${taskData.matches ? Object.keys(taskData.matches).length : 0} tasks`;
+        }
+        
+        // Update worker list in summary card
+        const workersList = document.getElementById('workersList');
+        if (!workersData.workers || Object.keys(workersData.workers).length === 0) {
+            workersList.innerHTML = `
+                <div class="alert alert-warning mt-2 mb-0">
+                    <small>No active workers detected</small>
+                </div>
+            `;
+        } else {
+            let totalScheduled = 0;
+            Object.values(workersData.workers).forEach(data => {
+                totalScheduled += data.scheduled_tasks || 0;
+            });
+            
+            let workersListHtml = '';
+            Object.entries(workersData.workers).forEach(([name, data], index) => {
+                if (index < 3) {  // Show first 3 workers in summary card
+                    const statusColor = data.status === 'online' ? 'success' : 'danger';
+                    const taskBadge = data.scheduled_tasks > 0 ? 
+                        `<span class="badge bg-label-warning ms-1" title="${data.scheduled_tasks} scheduled tasks">
+                            <small>${data.scheduled_tasks}</small>
+                        </span>` : '';
+                        
+                    workersListHtml += `
+                        <div class="d-flex align-items-center mt-2">
+                            <span class="badge bg-${statusColor} rounded-pill me-2" style="width: 8px; height: 8px; padding: 0;"></span>
+                            <small class="text-truncate">${name}</small>
+                            <div class="ms-auto d-flex align-items-center">
+                                <span class="badge bg-label-${statusColor}">
+                                    <small>${data.active_tasks.length} active</small>
+                                </span>
+                                ${taskBadge}
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Show summary of all scheduled tasks across workers
+            if (totalScheduled > 0) {
+                workersListHtml += `
+                    <div class="alert alert-warning mt-2 mb-0 py-1">
+                        <small><strong>${totalScheduled}</strong> scheduled task${totalScheduled !== 1 ? 's' : ''} across all workers</small>
+                    </div>
+                `;
+            }
+            
+            if (Object.keys(workersData.workers).length > 3) {
+                workersListHtml += `
+                    <div class="text-end mt-2">
+                        <small class="text-muted">+${Object.keys(workersData.workers).length - 3} more workers</small>
+                    </div>
+                `;
+            }
+            
+            workersList.innerHTML = workersListHtml;
+        }
+        
+        // Update detailed workers table
+        const workersDetailTable = document.getElementById('workersDetailTable');
+        if (!workersData.workers || Object.keys(workersData.workers).length === 0) {
+            workersDetailTable.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-3">
+                        <div class="empty-state py-4">
+                            <div class="empty-state-icon">
+                                <i class="ti ti-server-off"></i>
+                            </div>
+                            <h6 class="mt-1">No Active Workers</h6>
+                            <p class="text-muted">There are currently no Celery workers active.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } else {
+            let detailHtml = '';
+            Object.entries(workersData.workers).forEach(([name, data]) => {
+                const statusColor = data.status === 'online' ? 'success' : 'danger';
+                const poolSize = workersData.queues && workersData.queues[name] ? workersData.queues[name].pool_size : 'N/A';
+                
+                // Highlight if scheduled tasks exist
+                const scheduledClass = data.scheduled_tasks > 0 ? 'fw-bold text-warning' : '';
+                
+                detailHtml += `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-${statusColor} rounded-pill me-2" style="width: 8px; height: 8px; padding: 0;"></span>
+                                <span>${name}</span>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-label-${statusColor}">${data.status}</span></td>
+                        <td>${poolSize}</td>
+                        <td>${data.active_tasks.length}</td>
+                        <td>${data.registered_tasks}</td>
+                        <td class="${scheduledClass}">${data.scheduled_tasks}</td>
+                        <td>${data.reserved_tasks}</td>
+                    </tr>
+                `;
+            });
+            
+            // Add a summary row
+            const totalRegistered = Object.values(workersData.workers).reduce((sum, data) => sum + data.registered_tasks, 0);
+            const totalScheduled = Object.values(workersData.workers).reduce((sum, data) => sum + data.scheduled_tasks, 0);
+            const totalReserved = Object.values(workersData.workers).reduce((sum, data) => sum + data.reserved_tasks, 0);
+            const totalActive = Object.values(workersData.workers).reduce((sum, data) => sum + data.active_tasks.length, 0);
+            
+            detailHtml += `
+                <tr class="table-light">
+                    <td colspan="3" class="text-end"><strong>Totals:</strong></td>
+                    <td><strong>${totalActive}</strong></td>
+                    <td><strong>${totalRegistered}</strong></td>
+                    <td class="${totalScheduled > 0 ? 'text-warning' : ''}"><strong>${totalScheduled}</strong></td>
+                    <td><strong>${totalReserved}</strong></td>
+                </tr>
+            `;
+            
+            workersDetailTable.innerHTML = detailHtml;
+        }
+        
+        // Process scheduled tasks from workers data
+        updateWorkerScheduledTasks(workersData);
+        
+        // Show error message if provided in response
+        if (workersData.error) {
+            showError(workersData.error);
+        }
+    }
+    
+    // Update worker scheduled tasks table
+    function updateWorkerScheduledTasks(workersData) {
+        const scheduledTasks = workersData.scheduled_tasks || [];
+        const workerScheduledTasksRow = document.getElementById('workerScheduledTasksRow');
+        const workerScheduledTasksTable = document.getElementById('workerScheduledTasksTable');
+        const workerScheduledTasksCount = document.getElementById('workerScheduledTasksCount');
+        
+        // Hide the row if no scheduled tasks
+        if (scheduledTasks.length === 0) {
+            workerScheduledTasksRow.style.display = 'none';
+            return;
+        }
+        
+        // Show the row and update count
+        workerScheduledTasksRow.style.display = '';
+        workerScheduledTasksCount.textContent = `${scheduledTasks.length} tasks`;
+        
+        // Build the table
+        let scheduledTasksHtml = '';
+        scheduledTasks.forEach(task => {
+            const taskName = task.name || 'Unknown Task';
+            const simpleTaskName = taskName.split('.')
+                .pop()
+                .replace(/_/g, ' ')
+                .replace(/([A-Z])/g, ' $1')
+                .trim(); // Cleaner name for display
+                
+            // Format args as string
+            let argsStr = '';
+            if (task.args && task.args.length > 0) {
+                argsStr = task.args.join(', ');
+            }
+            
+            // Format kwargs as string
+            if (task.kwargs && Object.keys(task.kwargs).length > 0) {
+                const kwargsArr = Object.entries(task.kwargs).map(([k, v]) => `${k}=${JSON.stringify(v)}`);
+                if (argsStr) {
+                    argsStr += ', ' + kwargsArr.join(', ');
+                } else {
+                    argsStr = kwargsArr.join(', ');
+                }
+            }
+            
+            // Truncate args if too long
+            if (argsStr.length > 50) {
+                argsStr = argsStr.substring(0, 47) + '...';
+            }
+            
+            // Format ETA
+            let etaFormatted = 'N/A';
+            if (task.eta) {
+                const etaDate = new Date(task.eta);
+                etaFormatted = etaDate.toLocaleString();
+                
+                // Add countdown if in the future
+                const now = new Date();
+                const diffMs = etaDate - now;
+                if (diffMs > 0) {
+                    const diffSec = Math.floor(diffMs / 1000);
+                    let countdownClass = '';
+                    
+                    if (diffSec < 300) { // less than 5 minutes
+                        countdownClass = 'countdown-critical';
+                    } else if (diffSec < 1800) { // less than 30 minutes
+                        countdownClass = 'countdown-warning';
+                    }
+                    
+                    const countdown = secondsToHMS(diffSec);
+                    etaFormatted += `<div class="${countdownClass} mt-1">In ${countdown}</div>`;
+                }
+            }
+            
+            // Format match details if available
+            let matchDetails = '';
+            if (task.match_details) {
+                let matchDate = 'Unknown date';
+                try {
+                    if (task.match_details.date_time) {
+                        matchDate = new Date(task.match_details.date_time).toLocaleString();
+                    }
+                } catch (e) {
+                    console.error("Error parsing date:", e);
+                }
+                
+                matchDetails = `
+                    <div class="alert alert-info mt-2 p-2">
+                        <strong>Match:</strong> ${task.match_details.opponent || 'Unknown'}<br>
+                        <strong>Date:</strong> ${matchDate}<br>
+                        <strong>Location:</strong> ${task.match_details.location || 'Unknown'}
+                    </div>
+                `;
+            }
+            
+            // Try to guess task purpose from the name
+            let taskPurpose = 'Unknown purpose';
+            if (taskName.includes('thread')) {
+                taskPurpose = 'Create Discord Thread';
+            } else if (taskName.includes('live_reporting')) {
+                taskPurpose = 'Start Live Reporting';
+            } else if (taskName.includes('rsvp')) {
+                taskPurpose = 'Send RSVP Notification';
+            } else if (taskName.includes('reminder')) {
+                taskPurpose = 'Send Reminder';
+            } else if (taskName.includes('clean')) {
+                taskPurpose = 'Cleanup Task';
+            }
+            
+            // Generate the row
+            scheduledTasksHtml += `
+                <tr>
+                    <td>${task.worker}</td>
+                    <td>
+                        <div>
+                            <strong>${taskPurpose}</strong>
+                            <div><small class="text-muted">${simpleTaskName}</small></div>
+                            <div><small class="text-muted text-truncate d-block" style="max-width: 300px;">${taskName}</small></div>
+                            <div><small class="text-muted">Queue: ${task.queue || 'default'}</small></div>
+                            ${task.id ? `<div><small class="text-muted">ID: ${task.id}</small></div>` : ''}
+                        </div>
+                    </td>
+                    <td>
+                        <code>${argsStr || 'None'}</code>
+                        ${task.match_id ? `<div><small class="text-primary">Match ID: ${task.match_id}</small></div>` : ''}
+                        ${matchDetails}
+                        <button class="btn btn-sm btn-outline-secondary mt-1" 
+                                onclick="showTaskDetails('${task.full_details ? task.full_details.replace(/'/g, "").replace(/"/g, "") : ""}')"
+                                title="Show full task details">
+                            <i class="ti ti-code me-1"></i>Details
+                        </button>
+                    </td>
+                    <td>${etaFormatted}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-danger" onclick="revokeAllTasksForWorker('${task.worker}')">
+                                <i class="ti ti-trash me-1"></i>Revoke All Tasks
+                            </button>
+                            ${task.match_id ? `
+                            <button class="btn btn-sm btn-warning" onclick="findMatch('${task.match_id}')">
+                                <i class="ti ti-search me-1"></i>Find Match
+                            </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        workerScheduledTasksTable.innerHTML = scheduledTasksHtml;
     }
 
     // Calculate task counts
     function calculateTaskCounts(tasks) {
         let counts = { total: 0, pending: 0, successful: 0, failed: 0 };
 
-        if (tasks.matches) {
+        if (tasks && tasks.matches) {
             Object.values(tasks.matches).forEach(match => {
                 ['thread_task', 'reporting_task'].forEach(taskType => {
                     const task = match[taskType];
-                    if (task) {
+                    if (task && task.status) {
                         // Count all tasks, even those with null status
                         counts.total++;
                         updateTaskCount(counts, task.status);
                     }
                 });
             });
+        }
+        
+        // If we have worker data with scheduled tasks, include them in the counts
+        if (window.lastWorkerData && window.lastWorkerData.total_scheduled_tasks > 0) {
+            // If we found no tasks via the task API but we know there are scheduled tasks
+            // from the worker API, use those counts instead
+            if (counts.total === 0) {
+                counts.total = window.lastWorkerData.total_scheduled_tasks;
+                counts.pending = window.lastWorkerData.total_scheduled_tasks;
+            }
         }
 
         return counts;
@@ -551,7 +1019,10 @@
     function updateTaskCount(counts, status) {
         if (!status) return; // Skip if status is null
         
-        switch (status) {
+        // Ensure status is a string and convert to uppercase for consistent comparison
+        const statusStr = String(status).toUpperCase();
+        
+        switch (statusStr) {
             case 'PENDING':
                 counts.pending++;
                 break;
@@ -572,7 +1043,7 @@
     function updateTasksAccordion(tasks) {
         tasksAccordion.innerHTML = '';
 
-        if (!tasks.matches || Object.keys(tasks.matches).length === 0) {
+        if (!tasks || !tasks.matches || Object.keys(tasks.matches).length === 0) {
             tasksAccordion.innerHTML = `
             <div class="empty-state py-5">
                 <div class="empty-state-icon">
@@ -594,8 +1065,8 @@
     function createAccordionItem(matchId, matchData) {
         // If additional match details exist, display them in the header
         let headerText = `Match ${matchId}`;
-        if (matchData.match_details) {
-            headerText = `Match: ${matchData.match_details.opponent}`;
+        if (matchData && matchData.match_details) {
+            headerText = `Match: ${matchData.match_details.opponent || 'Unknown'}`;
         }
         
         const div = document.createElement('div');
@@ -634,17 +1105,18 @@
 
     // Create status badges for tasks
     function getStatusBadges(matchData) {
+        if (!matchData) return '';
         let badges = '';
 
-        if (matchData.thread_task) {
-            const status = matchData.thread_task.status || 'UNKNOWN';
+        if (matchData.thread_task && matchData.thread_task.status) {
+            const status = String(matchData.thread_task.status || 'UNKNOWN');
             badges += `<span class="badge bg-label-${getStatusColor(status)}">
             <i class="ti ti-message-circle me-1"></i>Thread: ${status}
         </span>`;
         }
 
-        if (matchData.reporting_task) {
-            const status = matchData.reporting_task.status || 'UNKNOWN';
+        if (matchData.reporting_task && matchData.reporting_task.status) {
+            const status = String(matchData.reporting_task.status || 'UNKNOWN');
             badges += `<span class="badge bg-label-${getStatusColor(status)}">
             <i class="ti ti-report me-1"></i>Reporting: ${status}
         </span>`;
@@ -655,9 +1127,12 @@
 
     // Get appropriate color for status
     function getStatusColor(status) {
-        if (!status) return 'secondary';
+        if (status === null || status === undefined) return 'secondary';
         
-        switch (status) {
+        // Ensure status is a string
+        const statusStr = String(status).toUpperCase();
+        
+        switch (statusStr) {
             case 'SUCCESS':
                 return 'success';
             case 'PENDING':
@@ -673,6 +1148,8 @@
 
     // Create detailed task information for tasks
     function createTaskDetails(matchData) {
+        if (!matchData) return '<div>No task details available</div>';
+        
         let html = '<div class="match-timeline">';
 
         if (matchData.thread_task) {
@@ -689,8 +1166,25 @@
 
     // Create a section for an individual task
     function createTaskSection(title, task, icon) {
+        if (!task) {
+            return `
+            <div class="match-timeline-item">
+                <div class="timeline-point status-unknown">
+                    <i class="ti ti-help text-white"></i>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="ti ti-${icon} me-1"></i>${title}</h6>
+                    </div>
+                    <div class="card-body">
+                        <p>No task information available</p>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
         // Default status if null
-        const status = task.status || 'UNKNOWN';
+        const status = task.status ? String(task.status) : 'UNKNOWN';
         
         // Set task type based on title
         const taskType = title.toLowerCase().includes('thread') ? 'thread' : 'reporting';
@@ -717,7 +1211,9 @@
             'UNKNOWN': 'help'
         };
         
-        const statusIcon = statusIconMap[status] || 'help';
+        // Convert status to uppercase for consistent mapping
+        const statusUpper = status.toUpperCase();
+        const statusIcon = statusIconMap[statusUpper] || 'help';
         const statusClass = status.toLowerCase();
         
         // Store task type and match ID for use in the buttons
@@ -746,7 +1242,7 @@
                         </div>
                         <div class="col-md-6">
                             <small class="text-muted d-block">Countdown</small>
-                            <span>${task.ttl !== null ? secondsToHMS(task.ttl) : 'N/A'}</span>
+                            <span>${task.ttl !== null && task.ttl !== undefined ? secondsToHMS(task.ttl) : 'N/A'}</span>
                         </div>
                         ${task.info ? `
                         <div class="col-md-12">
@@ -776,9 +1272,16 @@
     // Update Redis keys table
     function updateRedisKeysTable(redis) {
         redisKeysTable.innerHTML = '';
-        redisKeysCount.textContent = redis.total || 0;
+        redisKeysCount.textContent = redis && redis.total ? redis.total : 0;
+        
+        // Update Redis entries count in the header
+        const entriesCount = document.getElementById('redisEntriesCount');
+        if (entriesCount) {
+            const count = redis && redis.keys ? Object.keys(redis.keys).length : 0;
+            entriesCount.textContent = `${count} ${count === 1 ? 'entry' : 'entries'}`;
+        }
 
-        if (!redis.keys || Object.keys(redis.keys).length === 0) {
+        if (!redis || !redis.keys || Object.keys(redis.keys).length === 0) {
             redisKeysTable.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-4">
@@ -792,7 +1295,14 @@
             return;
         }
 
-        Object.entries(redis.keys).forEach(([key, value]) => {
+        // Sort keys by time-to-live (TTL) ascending
+        const sortedEntries = Object.entries(redis.keys).sort((a, b) => {
+            const ttlA = a[1]?.ttl || Number.MAX_SAFE_INTEGER;
+            const ttlB = b[1]?.ttl || Number.MAX_SAFE_INTEGER;
+            return ttlA - ttlB;
+        });
+
+        sortedEntries.forEach(([key, value]) => {
             const row = createRedisKeyRow(key, value);
             redisKeysTable.appendChild(row);
         });
@@ -800,18 +1310,24 @@
 
     // Create table row for Redis key
     function createRedisKeyRow(key, data) {
+        if (!data) {
+            return document.createElement('tr');
+        }
+        
         const tr = document.createElement('tr');
         let stored = data.value || 'N/A';
         let taskId = stored;
         let eta = null;
         
         // Attempt to parse the stored value as JSON to extract task ID and ETA
-        try {
-            const obj = JSON.parse(stored);
-            taskId = obj.task_id;
-            eta = obj.eta;
-        } catch (e) {
-            taskId = stored;
+        if (typeof stored === 'string') {
+            try {
+                const obj = JSON.parse(stored);
+                taskId = obj.task_id;
+                eta = obj.eta;
+            } catch (e) {
+                taskId = stored;
+            }
         }
 
         let countdown = 'N/A';
@@ -823,10 +1339,58 @@
             countdown = secondsToHMS(diff);
         }
 
-        const taskStatus = data.task_status ? data.task_status.status : 'N/A';
+        // Safely extract task status
+        let taskStatus = 'N/A';
+        if (data && data.task_status && data.task_status.status) {
+            taskStatus = String(data.task_status.status);
+        }
+        
+        // Format countdown with visual indicators
+        let countdownHtml = countdown;
+        if (data.ttl !== undefined && data.ttl !== null) {
+            let countdownClass = '';
+            if (data.ttl < 300) { // less than 5 minutes
+                countdownClass = 'countdown-critical';
+            } else if (data.ttl < 1800) { // less than 30 minutes
+                countdownClass = 'countdown-warning';
+            }
+            
+            if (countdownClass) {
+                countdownHtml = `<span class="${countdownClass}">${countdown}</span>`;
+            }
+        }
+        
+        // Extract task name from key if available
+        let taskName = '';
+        if (key && key.includes(':')) {
+            const parts = key.split(':');
+            if (parts.length >= 3) {
+                taskName = parts[2]; // The task type (thread or reporting)
+            }
+        }
+        
+        // Parse timestamp from task info if available
+        let scheduledTime = '';
+        if (data && data.task_status && data.task_status.info) {
+            try {
+                // Try to extract timestamp from the info string
+                const infoStr = String(data.task_status.info);
+                const timeMatch = infoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+                if (timeMatch && timeMatch[1]) {
+                    const date = new Date(timeMatch[1]);
+                    scheduledTime = date.toLocaleString();
+                }
+            } catch (e) {
+                // Ignore parsing errors
+            }
+        }
+        
         tr.innerHTML = `
         <td>
-            <span class="d-block text-truncate" style="max-width: 200px;">${key}</span>
+            <div>
+                <span class="d-block text-truncate" style="max-width: 200px;">${key}</span>
+                ${taskName ? `<small class="text-muted">${taskName} task</small>` : ''}
+            </div>
         </td>
         <td>
             <span class="d-block text-truncate" style="max-width: 150px;">${taskId || 'N/A'}</span>
@@ -834,17 +1398,33 @@
         <td>
             <span class="badge bg-${getStatusColor(taskStatus)}">${taskStatus}</span>
         </td>
-        <td>${countdown}</td>
         <td>
-            <button class="btn btn-sm btn-icon btn-danger" onclick="revokeTask('${taskId || ''}', '${key || ''}')" data-bs-toggle="tooltip" title="Revoke Task">
-                <i class="ti ti-trash"></i>
-            </button>
+            <div>
+                ${countdownHtml}
+                ${scheduledTime ? `<small class="d-block text-muted mt-1">Scheduled: ${scheduledTime}</small>` : ''}
+            </div>
+        </td>
+        <td>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-icon btn-danger" onclick="revokeTask('${taskId || ''}', '${key || ''}')" data-bs-toggle="tooltip" title="Revoke Task">
+                    <i class="ti ti-trash"></i>
+                </button>
+                <button class="btn btn-sm btn-icon btn-warning ms-1" onclick="rescheduleTask('${taskId || ''}', '${key || ''}')" data-bs-toggle="tooltip" title="Reschedule Task">
+                    <i class="ti ti-refresh"></i>
+                </button>
+            </div>
         </td>`;
         return tr;
     }
 
     // Update Redis status
     function updateRedisStatus(redis) {
+        if (!redis) {
+            redisConnectionStatus.className = 'badge bg-label-danger rounded-pill';
+            redisConnectionStatus.textContent = 'Disconnected';
+            return;
+        }
+        
         const status = redis.total > 0 ? 'Connected' : 'No Keys';
         const color = redis.total > 0 ? 'success' : 'warning';
         redisConnectionStatus.className = `badge bg-label-${color} rounded-pill`;
@@ -959,6 +1539,165 @@
             showError(err.message);
         }
     });
+    
+    // Clean Orphaned Tasks button
+    const cleanupOrphanedButton = document.getElementById('cleanupOrphanedButton');
+    if (cleanupOrphanedButton) {
+        cleanupOrphanedButton.addEventListener('click', async () => {
+            if (!confirm('This will clean up any orphaned or inconsistent tasks. Continue?')) return;
+            
+            try {
+                cleanupOrphanedButton.disabled = true;
+                cleanupOrphanedButton.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Cleaning...';
+                
+                const response = await fetch('{{ url_for("monitoring.cleanup_orphaned_tasks") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    let message = 'Cleanup completed:\n';
+                    message += `- ${result.cleaned_redis_keys} orphaned Redis keys removed\n`;
+                    message += `- ${result.reset_matches} match statuses reset\n`;
+                    
+                    if (result.cleaned_redis_keys > 0 || result.reset_matches > 0) {
+                        message += '\nThe system state has been corrected.';
+                    } else {
+                        message += '\nNo issues were found! The system is in a consistent state.';
+                    }
+                    
+                    alert(message);
+                    await fetchData();  // Refresh data
+                } else {
+                    throw new Error(result.error || 'Failed to clean up orphaned tasks');
+                }
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                cleanupOrphanedButton.disabled = false;
+                cleanupOrphanedButton.innerHTML = '<i class="ti ti-robot me-1"></i>Clean Orphaned Tasks';
+            }
+        });
+    }
+    
+    // Function to revoke all tasks for a specific worker
+    async function revokeAllTasksForWorker(workerName) {
+        if (!confirm(`Are you sure you want to revoke ALL tasks on worker "${workerName}"? This will remove ALL scheduled tasks for this worker.`)) {
+            return;
+        }
+        
+        try {
+            // Call the revoke task endpoint with just the worker name
+            const response = await fetch('{{ url_for("monitoring.revoke_task") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    worker: workerName
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                alert(result.message || `All tasks on worker "${workerName}" have been revoked.`);
+                await fetchData();  // Refresh data
+            } else {
+                throw new Error(result.error || 'Failed to revoke tasks');
+            }
+        } catch (err) {
+            showError(err.message);
+        }
+    }
+    
+    // Function to show task details in a modal
+    function showTaskDetails(taskDetailsJson) {
+        let taskDetails;
+        try {
+            // Safely handle string input
+            if (typeof taskDetailsJson === 'string') {
+                // Handle empty or invalid input
+                if (!taskDetailsJson || taskDetailsJson === '{}') {
+                    taskDetails = { note: "No detailed task information available" };
+                } else {
+                    try {
+                        taskDetails = JSON.parse(taskDetailsJson);
+                    } catch (e) {
+                        console.error("Error parsing JSON string:", e);
+                        taskDetails = { 
+                            error: "Could not parse task details",
+                            raw: taskDetailsJson.substring(0, 500) + (taskDetailsJson.length > 500 ? '...' : '')
+                        };
+                    }
+                }
+            } else if (taskDetailsJson && typeof taskDetailsJson === 'object') {
+                taskDetails = taskDetailsJson;
+            } else {
+                taskDetails = { note: "No detailed task information available" };
+            }
+        } catch (e) {
+            console.error("Error processing task details:", e);
+            taskDetails = { error: "Could not process task details" };
+        }
+        
+        // Format the details as pretty JSON
+        const formattedDetails = JSON.stringify(taskDetails, null, 2);
+        
+        // Create and show a modal with the details
+        const modalId = "taskDetailsModal";
+        
+        // Remove any existing modal with this ID
+        const existingModal = document.getElementById(modalId);
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Create new modal
+        const modal = document.createElement('div');
+        modal.id = modalId;
+        modal.className = 'modal fade';
+        modal.setAttribute('tabindex', '-1');
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Task Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">${formattedDetails}</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Show the modal
+        const modalInstance = new bootstrap.Modal(modal);
+        modalInstance.show();
+    }
+    
+    // Function to find and show match information
+    function findMatch(matchId) {
+        if (!matchId) {
+            alert("No match ID provided");
+            return;
+        }
+        
+        // Redirect to the match view page
+        window.location.href = `/match/${matchId}`;
+    }
 
     // Refresh Button
     refreshButton.addEventListener('click', fetchData);
@@ -974,7 +1713,7 @@
         
         // Initial fetch and setup refresh interval
         fetchData();
-        setInterval(fetchData, 10000); // Refresh every 10 seconds
+        setInterval(fetchData, 30000); // Refresh every 30 seconds
     });
 </script>
 {% endblock %}
