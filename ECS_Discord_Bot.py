@@ -166,55 +166,146 @@ VERIFY_CHANNEL_IDS = {1036026916282585228, 1072279143145799740}
 
 async def load_managed_message_ids():
     global session  # Use the global session variable
+    retry_count = 0
+    max_retries = 3
+    retry_delay = 1
 
-    # Ensure the session is initialized
-    if session is None:
-        logger.warning("Session is not initialized. Initializing session now.")
-        session = aiohttp.ClientSession()
+    while retry_count < max_retries:
+        # Ensure the session is initialized
+        if session is None or session.closed:
+            logger.warning("Session is not initialized or closed. Creating new session.")
+            try:
+                if session and not session.closed:
+                    await session.close()
+                session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
+            except Exception as e:
+                logger.error(f"Failed to create session: {e}")
+                await asyncio.sleep(retry_delay)
+                retry_count += 1
+                retry_delay *= 2  # Exponential backoff
+                continue
 
-    try:
-        async with session.get(f"{WEBUI_API_URL}/get_scheduled_messages") as response:
-            if response.status == 200:
-                data = await response.json()
-                for msg in data:
-                    # Extract match details
-                    match_date = msg.get('match_date')
-                    home_team_id = msg.get('home_team_id')
-                    away_team_id = msg.get('away_team_id')
-                    
-                    # Add home message ID with metadata
-                    if msg.get('home_message_id'):
-                        bot_state.add_managed_message_id(
-                            int(msg['home_message_id']),
-                            match_date=match_date,
-                            team_id=home_team_id
-                        )
-                    
-                    # Add away message ID with metadata
-                    if msg.get('away_message_id'):
-                        bot_state.add_managed_message_id(
-                            int(msg['away_message_id']),
-                            match_date=match_date,
-                            team_id=away_team_id
-                        )
+        try:
+            # Use timeout context to prevent hanging
+            timeout_ctx = aiohttp.ClientTimeout(total=10)
+            async with session.get(
+                f"{WEBUI_API_URL}/get_scheduled_messages", 
+                timeout=timeout_ctx
+            ) as response:
+                if response.status == 200:
+                    try:
+                        data = await asyncio.wait_for(response.json(), timeout=5.0)
+                        
+                        # Count successful additions
+                        added_count = 0
+                        
+                        for msg in data:
+                            # Extract match details
+                            match_date = msg.get('match_date')
+                            home_team_id = msg.get('home_team_id')
+                            away_team_id = msg.get('away_team_id')
+                            
+                            # Add home message ID with metadata
+                            if msg.get('home_message_id'):
+                                try:
+                                    bot_state.add_managed_message_id(
+                                        int(msg['home_message_id']),
+                                        match_date=match_date,
+                                        team_id=home_team_id
+                                    )
+                                    added_count += 1
+                                except (ValueError, TypeError) as e:
+                                    logger.error(f"Invalid home message ID: {msg.get('home_message_id')}, error: {e}")
+                            
+                            # Add away message ID with metadata
+                            if msg.get('away_message_id'):
+                                try:
+                                    bot_state.add_managed_message_id(
+                                        int(msg['away_message_id']),
+                                        match_date=match_date,
+                                        team_id=away_team_id
+                                    )
+                                    added_count += 1
+                                except (ValueError, TypeError) as e:
+                                    logger.error(f"Invalid away message ID: {msg.get('away_message_id')}, error: {e}")
+                        
+                        # Log stats about managed messages
+                        all_messages = len(bot_state.get_managed_message_ids())
+                        this_week = len(bot_state.get_managed_message_ids(days_limit=7))
+                        
+                        logger.info(f"Loaded {added_count} new managed message IDs. Total: {all_messages} ({this_week} for the next 7 days)")
+                        return  # Success, exit the retry loop
+                    except asyncio.TimeoutError:
+                        logger.error("Timed out parsing message data")
+                    except Exception as e:
+                        logger.error(f"Error processing message data: {e}")
+                else:
+                    logger.error(f"Failed to fetch scheduled messages: {response.status}")
+                    try:
+                        error_text = await asyncio.wait_for(response.text(), timeout=2.0)
+                        logger.error(f"Error response: {error_text[:200]}")
+                    except:
+                        logger.error("Could not read error response")
+            
+            # If we got here, we failed but didn't raise an exception
+            retry_count += 1
+            if retry_count < max_retries:
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
                 
-                # Log stats about managed messages
-                all_messages = len(bot_state.get_managed_message_ids())
-                this_week = len(bot_state.get_managed_message_ids(days_limit=7))
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            logger.error(f"Error fetching scheduled messages (attempt {retry_count+1}/{max_retries}): {e}")
+            retry_count += 1
+            if retry_count < max_retries:
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
                 
-                logger.info(f"Loaded {all_messages} managed messages ({this_week} for the next 7 days)")
-            else:
-                logger.error(f"Failed to fetch scheduled messages: {response.status}, {await response.text()}")
-    except aiohttp.ClientError as e:
-        logger.error(f"Error fetching scheduled messages: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error loading message IDs: {e}", exc_info=True)
+            retry_count += 1
+            if retry_count < max_retries:
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+    
+    # If we exhaust all retries
+    logger.error(f"Failed to load message IDs after {max_retries} attempts")
 
 async def periodic_sync():
     """
     Periodically synchronizes managed_message_ids with the web app.
     """
+    consecutive_failures = 0
     while True:
-        await load_managed_message_ids()
-        await asyncio.sleep(300)  # Sync every 5 minutes
+        try:
+            # Add timeout to prevent blocking
+            await asyncio.wait_for(load_managed_message_ids(), timeout=30.0)
+            consecutive_failures = 0  # Reset on success
+            logger.debug("Periodic sync completed successfully")
+        except asyncio.TimeoutError:
+            consecutive_failures += 1
+            logger.error(f"Periodic sync timed out after 30 seconds (failure #{consecutive_failures})")
+        except Exception as e:
+            consecutive_failures += 1
+            logger.error(f"Periodic sync failed (failure #{consecutive_failures}): {e}", exc_info=True)
+        
+        # Use exponential backoff for failures
+        sleep_time = 300  # Default: 5 minutes
+        if consecutive_failures > 0:
+            # Increase delay when having issues (min 60s, max 15 minutes)
+            sleep_time = min(max(60, 60 * (2 ** (consecutive_failures - 1))), 900)
+            logger.info(f"Using adjusted sync interval of {sleep_time} seconds due to failures")
+        
+        # Sleep in smaller chunks to be responsive
+        chunk_size = 30  # 30 second chunks
+        for _ in range(sleep_time // chunk_size):
+            if bot.is_closed():
+                logger.info("Bot is closed, breaking out of periodic sync")
+                return
+            await asyncio.sleep(chunk_size)
+        
+        # Sleep any remaining time
+        if sleep_time % chunk_size > 0 and not bot.is_closed():
+            await asyncio.sleep(sleep_time % chunk_size)
         
 async def full_rsvp_sync(force_sync=False):
     """
@@ -239,10 +330,18 @@ async def full_rsvp_sync(force_sync=False):
         # Using semaphore to limit concurrent processing
         async with semaphore:
             try:
-                # For each managed message, get its channel ID
-                match_data = await get_message_channel_from_web_ui(message_id)
-                if not match_data or 'channel_id' not in match_data:
-                    logger.warning(f"Could not find channel ID for message {message_id}")
+                # For each managed message, get its channel ID with timeout
+                try:
+                    match_data = await asyncio.wait_for(
+                        get_message_channel_from_web_ui(message_id),
+                        timeout=10.0
+                    )
+                    if not match_data or 'channel_id' not in match_data:
+                        logger.warning(f"Could not find channel ID for message {message_id}")
+                        return
+                except asyncio.TimeoutError:
+                    logger.error(f"Timeout getting channel for message {message_id}")
+                    failed_count += 1
                     return
                     
                 channel_id = int(match_data['channel_id'])
@@ -524,31 +623,61 @@ async def reconcile_rsvps(match_id, team_id, discord_rsvps, flask_rsvps, channel
                     continue
                 
                 try:
-                    # Fetch user object
-                    user = await bot.fetch_user(user_id)
+                    # Fetch user object with timeout
+                    try:
+                        user = await asyncio.wait_for(bot.fetch_user(user_id), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timed out fetching user {user_id}, skipping")
+                        continue
+                    except Exception as e:
+                        logger.error(f"Could not fetch user {user_id}: {str(e)}")
+                        continue
                     
-                    # Remove all existing reactions from this user
+                    # Remove all existing reactions from this user with timeout
                     for reaction in message.reactions:
                         if str(reaction.emoji) in reaction_emoji.values():
-                            users = [u async for u in reaction.users()]
-                            if user in users:
-                                await reaction.remove(user)
-                                logger.debug(f"Removed reaction {reaction.emoji} from user {user_id}")
+                            try:
+                                # Only collect users with timeout
+                                users_collector = reaction.users()
+                                users = []
+                                async for u in asyncio.wait_for(anext(users_collector.__aiter__()), timeout=5.0):
+                                    users.append(u)
+                                    # Process in small batches to avoid long blocking operations
+                                    if len(users) >= 10:
+                                        break
+                                
+                                if user in users:
+                                    await asyncio.wait_for(reaction.remove(user), timeout=5.0)
+                                    logger.debug(f"Removed reaction {reaction.emoji} from user {user_id}")
+                            except (asyncio.TimeoutError, Exception) as e:
+                                logger.warning(f"Timed out processing reactions for {user_id}: {str(e)}")
                     
-                    # Add the correct reaction
-                    await message.add_reaction(emoji)
+                    # Add the correct reaction with timeout
+                    try:
+                        await asyncio.wait_for(message.add_reaction(emoji), timeout=5.0)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"Timed out adding reaction {emoji} for user {user_id}")
+                        continue
                     
-                    # Make sure the bot adds the reaction if not already present
+                    # Only check bot reaction status with timeout if necessary
                     bot_emoji_added = False
                     for reaction in message.reactions:
                         if str(reaction.emoji) == emoji:
-                            bot_users = [u async for u in reaction.users()]
-                            if bot.user in bot_users:
-                                bot_emoji_added = True
-                                break
+                            try:
+                                # Use limited collection with timeout
+                                async for u in asyncio.wait_for(reaction.users().flatten(limit=5), timeout=5.0):
+                                    if u.id == bot.user.id:
+                                        bot_emoji_added = True
+                                        break
+                            except (asyncio.TimeoutError, Exception):
+                                # Continue even if we couldn't check
+                                pass
                     
                     if not bot_emoji_added:
-                        await message.add_reaction(emoji)
+                        try:
+                            await asyncio.wait_for(message.add_reaction(emoji), timeout=5.0)
+                        except:
+                            logger.warning(f"Timed out adding bot reaction {emoji}")
                     
                     logger.info(f"Fixed reactions for user {user_id} to match {response}")
                     reconciliation_needed = True
