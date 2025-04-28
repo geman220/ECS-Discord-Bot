@@ -1985,8 +1985,10 @@ def match_verification_dashboard():
                                   title='Match Verification Dashboard',
                                   matches=[], 
                                   is_coach=False)
+        
+        logger.info(f"Current season: {current_season.name} (ID: {current_season.id})")
                                   
-        # First join with Schedule to get all matches
+        # Start with a base query of all matches with eager loading for related entities
         query = session.query(Match).options(
             joinedload(Match.home_team),
             joinedload(Match.away_team),
@@ -1995,16 +1997,27 @@ def match_verification_dashboard():
             joinedload(Match.schedule)
         )
         
-        # Get all schedule IDs from current season instead of filtering directly
-        schedule_ids = session.query(Schedule.id).filter(Schedule.season_id == current_season.id).all()
-        schedule_ids = [s[0] for s in schedule_ids]
+        # Get all team IDs that belong to leagues in the current season
+        league_ids = [league.id for league in session.query(League).filter_by(season_id=current_season.id).all()]
+        logger.info(f"Found {len(league_ids)} leagues in current season: {league_ids}")
         
-        # Then filter matches by those schedule IDs if there are any
-        if schedule_ids:
-            query = query.filter(Match.schedule_id.in_(schedule_ids))
-            logger.info(f"Filtering matches by {len(schedule_ids)} schedules from season {current_season.id}")
-        else:
-            logger.warning(f"No schedules found for season {current_season.id}, will return no matches")
+        team_ids = []
+        if league_ids:
+            team_ids = [team.id for team in session.query(Team).filter(Team.league_id.in_(league_ids)).all()]
+            logger.info(f"Found {len(team_ids)} teams in current season")
+        
+        # Filter matches to only include those with home or away teams from the current season
+        if team_ids:
+            query = query.filter(
+                or_(
+                    Match.home_team_id.in_(team_ids),
+                    Match.away_team_id.in_(team_ids)
+                )
+            )
+            
+        # Get initial match count
+        base_match_count = query.count()
+        logger.info(f"Initial match count: {base_match_count}")
         
         # Process request filters
         current_week = request.args.get('week')
@@ -2016,16 +2029,19 @@ def match_verification_dashboard():
             query = query.join(Schedule, Match.schedule_id == Schedule.id).filter(Schedule.week == current_week)
             logger.info(f"Filtering by week: {current_week}")
             
-        # Filter by league if specified (needs to join through teams)
+        # Filter by league if specified
         if current_league_id:
             league_id = int(current_league_id)
             logger.info(f"Filtering by league_id: {league_id}")
-            # Use subquery to avoid duplicate alias errors
-            league_teams = session.query(Team.id).filter(Team.league_id == league_id).subquery()
-            query = query.filter(or_(
-                Match.home_team_id.in_(league_teams),
-                Match.away_team_id.in_(league_teams)
-            ))
+            # Get teams in this league
+            league_team_ids = [team.id for team in session.query(Team).filter_by(league_id=league_id).all()]
+            if league_team_ids:
+                query = query.filter(
+                    or_(
+                        Match.home_team_id.in_(league_team_ids),
+                        Match.away_team_id.in_(league_team_ids)
+                    )
+                )
             
         # Filter by verification status
         if current_verification_status == 'unverified':
@@ -2044,9 +2060,9 @@ def match_verification_dashboard():
             query = query.filter(or_(Match.home_team_score == None, Match.away_team_score == None))
             logger.info("Filtering by not reported matches")
             
-        # Basic info for debugging
-        total_match_count = query.count()
-        logger.info(f"Total matches found for current season: {total_match_count}")
+        # Log count after filters
+        after_filters_count = query.count()
+        logger.info(f"Match count after filters: {after_filters_count}")
         
         # Check if the user is a coach (to limit matches to their teams)
         is_coach = safe_current_user.has_role('Pub League Coach') and not (safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin'))
@@ -2064,11 +2080,15 @@ def match_verification_dashboard():
                 # Fallback - use all teams the user is on
                 coach_teams = [team.id for team in safe_current_user.player.teams]
             
+            logger.info(f"Coach teams: {coach_teams}")
+            
             # Filter to user's teams only if they're a coach
-            query = query.filter(
-                (Match.home_team_id.in_(coach_teams)) | 
-                (Match.away_team_id.in_(coach_teams))
-            )
+            if coach_teams:
+                query = query.filter(
+                    or_(Match.home_team_id.in_(coach_teams), Match.away_team_id.in_(coach_teams))
+                )
+            else:
+                logger.warning(f"Coach user {safe_current_user.id} has no assigned teams")
         
         # Get the sort parameters
         sort_by = request.args.get('sort_by', 'week')
@@ -2078,12 +2098,11 @@ def match_verification_dashboard():
         if sort_by == 'date':
             query = query.order_by(Match.date.desc() if sort_order == 'desc' else Match.date)
         elif sort_by == 'week':
-            # Need to join with Schedule to sort by week
-            query = query.join(Schedule, Match.schedule_id == Schedule.id)
+            query = query.join(Schedule, Match.schedule_id == Schedule.id, isouter=True)
             if sort_order == 'desc':
-                query = query.order_by(desc(Schedule.week))
+                query = query.order_by(desc(Schedule.week), Match.date)
             else:
-                query = query.order_by(Schedule.week)
+                query = query.order_by(Schedule.week, Match.date)
         elif sort_by == 'home_team':
             home_team_alias = aliased(Team)
             query = query.join(home_team_alias, Match.home_team_id == home_team_alias.id)
@@ -2109,40 +2128,42 @@ def match_verification_dashboard():
                     (Match.home_team_verified & Match.away_team_verified)
                 )
         else:
-            # Default to week ordering
-            query = query.join(Schedule, Match.schedule_id == Schedule.id)
-            query = query.order_by(Schedule.week)
+            # Default to date ordering if no clear sort parameter
+            query = query.order_by(Match.date.desc())
         
         # Execute the query with a limit to ensure it loads
-        matches = query.limit(100).all()
-        logger.debug(f"Found {len(matches)} matches for verification")
+        final_match_count = query.count()
+        logger.info(f"Final match count after all filters: {final_match_count}")
+        matches = query.limit(1000).all()  # Increase limit to get more matches
+        logger.info(f"Retrieved {len(matches)} matches for display")
         
-        # Log out how many matches were found
-        logger.info(f"Found {len(matches)} matches for verification display")
-        
-        # Get actual weeks for filtering UI from the schedules in the current season
+        # Get all distinct weeks for the filter dropdown
+        # Using a direct query approach to get weeks from schedules related to matches
         weeks = []
-        if current_season:
-            # Get distinct weeks from schedules in the current season
-            weeks_query = session.query(Schedule.week).filter(
-                Schedule.season_id == current_season.id
-            ).distinct().order_by(Schedule.week)
-            weeks = [week[0] for week in weeks_query]
-            
-            # Get leagues for the current season
-            leagues = session.query(League).filter(
-                League.season_id == current_season.id
-            ).all()
+        try:
+            if current_season:
+                # Get all schedules for the current season
+                schedules = session.query(Schedule).filter_by(season_id=current_season.id).all()
+                # Extract the week values and remove duplicates
+                weeks = sorted(list(set([s.week for s in schedules if s.week])))
+                logger.info(f"Available weeks: {weeks}")
+        except Exception as week_error:
+            logger.error(f"Error getting weeks: {str(week_error)}")
+        
+        # Get leagues for the current season
+        leagues = []
+        try:
+            if current_season:
+                leagues = session.query(League).filter_by(season_id=current_season.id).all()
+                logger.info(f"Available leagues: {[league.name for league in leagues]}")
+        except Exception as league_error:
+            logger.error(f"Error getting leagues: {str(league_error)}")
         
         # Simplified verifiable teams logic
         verifiable_teams = {}
         if hasattr(safe_current_user, 'player') and safe_current_user.player:
             for team in safe_current_user.player.teams:
                 verifiable_teams[team.id] = team.name
-        
-        # Get the current sorting parameters to pass to template
-        sort_by = request.args.get('sort_by', 'week')
-        sort_order = request.args.get('sort_order', 'asc')
         
         logger.info("Rendering match verification template")
         return render_template(

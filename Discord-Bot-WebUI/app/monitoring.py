@@ -59,10 +59,23 @@ class TaskMonitor:
         """
         try:
             result = AsyncResult(task_id, app=celery)
+            # Handle result.info properly based on its type
+            info_data = None
+            if result.info:
+                if isinstance(result.info, dict):
+                    # Convert dictionary to a simplified format
+                    info_data = result.info
+                elif hasattr(result.info, '__dict__'):
+                    # Handle custom objects by converting to dict
+                    info_data = result.info.__dict__
+                else:
+                    # Convert to string for all other types
+                    info_data = str(result.info)
+            
             return {
                 'id': task_id,
-                'status': result.status,
-                'info': str(result.info) if result.info else None,
+                'status': result.status or 'PENDING',
+                'info': info_data,
                 'ready': result.ready(),
                 'successful': result.successful() if result.ready() else None
             }

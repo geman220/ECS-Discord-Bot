@@ -398,6 +398,30 @@
         background-color: var(--bs-info);
     }
     
+    .status-error {
+        background-color: var(--bs-danger);
+    }
+    
+    /* Task details styling */
+    .task-details-table {
+        font-size: 0.85rem;
+    }
+    
+    .task-details-table td {
+        padding: 0.3rem;
+        vertical-align: top;
+    }
+    
+    .task-info {
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: var(--bs-light);
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
+    
     /* Worker status styling */
     #workersList {
         max-height: 120px;
@@ -1108,18 +1132,28 @@
         if (!matchData) return '';
         let badges = '';
 
-        if (matchData.thread_task && matchData.thread_task.status) {
-            const status = String(matchData.thread_task.status || 'UNKNOWN');
+        // Thread task badge
+        if (matchData.thread_task) {
+            const status = matchData.thread_task.status ? String(matchData.thread_task.status) : 'PENDING';
             badges += `<span class="badge bg-label-${getStatusColor(status)}">
-            <i class="ti ti-message-circle me-1"></i>Thread: ${status}
-        </span>`;
+                <i class="ti ti-message-circle me-1"></i>Thread: ${status}
+            </span>`;
+        } else {
+            badges += `<span class="badge bg-label-secondary">
+                <i class="ti ti-message-circle me-1"></i>Thread: Not Scheduled
+            </span>`;
         }
 
-        if (matchData.reporting_task && matchData.reporting_task.status) {
-            const status = String(matchData.reporting_task.status || 'UNKNOWN');
+        // Reporting task badge
+        if (matchData.reporting_task) {
+            const status = matchData.reporting_task.status ? String(matchData.reporting_task.status) : 'PENDING';
             badges += `<span class="badge bg-label-${getStatusColor(status)}">
-            <i class="ti ti-report me-1"></i>Reporting: ${status}
-        </span>`;
+                <i class="ti ti-report me-1"></i>Reporting: ${status}
+            </span>`;
+        } else {
+            badges += `<span class="badge bg-label-secondary">
+                <i class="ti ti-report me-1"></i>Reporting: Not Scheduled
+            </span>`;
         }
 
         return badges;
@@ -1137,8 +1171,15 @@
                 return 'success';
             case 'PENDING':
                 return 'warning';
+            case 'STARTED':
+                return 'info';
+            case 'RETRY':
+                return 'warning';
             case 'FAILURE':
+            case 'ERROR':
                 return 'danger';
+            case 'REVOKED':
+                return 'secondary';
             case 'UNKNOWN':
                 return 'info';
             default:
@@ -1184,7 +1225,7 @@
         }
         
         // Default status if null
-        const status = task.status ? String(task.status) : 'UNKNOWN';
+        const status = task.status ? String(task.status) : 'PENDING';
         
         // Set task type based on title
         const taskType = title.toLowerCase().includes('thread') ? 'thread' : 'reporting';
@@ -1213,8 +1254,57 @@
         
         // Convert status to uppercase for consistent mapping
         const statusUpper = status.toUpperCase();
-        const statusIcon = statusIconMap[statusUpper] || 'help';
-        const statusClass = status.toLowerCase();
+        const statusIcon = statusIconMap[statusUpper] || 'clock';
+        const statusClass = statusUpper === 'UNKNOWN' ? 'pending' : status.toLowerCase();
+        
+        // Format task info for display
+        let taskInfoHtml = '';
+        if (task.info) {
+            if (typeof task.info === 'object') {
+                // Format object data as key-value pairs
+                taskInfoHtml = `
+                <div class="col-md-12">
+                    <small class="text-muted d-block">Task Details</small>
+                    <div class="mt-1 text-muted">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tbody>`;
+                
+                // Add each property to the table
+                for (const [key, value] of Object.entries(task.info)) {
+                    // Skip null or undefined values
+                    if (value === null || value === undefined) continue;
+                    
+                    // Format the value based on type
+                    let displayValue = value;
+                    if (typeof value === 'object') {
+                        try {
+                            displayValue = JSON.stringify(value);
+                        } catch (e) {
+                            displayValue = String(value);
+                        }
+                    }
+                    
+                    taskInfoHtml += `
+                    <tr>
+                        <td style="width: 30%;"><small>${key}:</small></td>
+                        <td><small class="text-truncate d-inline-block" style="max-width: 250px;">${displayValue}</small></td>
+                    </tr>`;
+                }
+                
+                taskInfoHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            } else {
+                // Simple string display
+                taskInfoHtml = `
+                <div class="col-md-12">
+                    <small class="text-muted d-block">Info</small>
+                    <span>${task.info}</span>
+                </div>`;
+            }
+        }
         
         // Store task type and match ID for use in the buttons
         task.task_type = taskType;
@@ -1244,12 +1334,7 @@
                             <small class="text-muted d-block">Countdown</small>
                             <span>${task.ttl !== null && task.ttl !== undefined ? secondsToHMS(task.ttl) : 'N/A'}</span>
                         </div>
-                        ${task.info ? `
-                        <div class="col-md-12">
-                            <small class="text-muted d-block">Info</small>
-                            <span>${task.info}</span>
-                        </div>
-                        ` : ''}
+                        ${taskInfoHtml}
                         <!-- Hidden details for debugging -->
                         <div class="col-md-12">
                             <small class="text-muted d-block">Redis Key</small>
@@ -1340,7 +1425,7 @@
         }
 
         // Safely extract task status
-        let taskStatus = 'N/A';
+        let taskStatus = 'PENDING';
         if (data && data.task_status && data.task_status.status) {
             taskStatus = String(data.task_status.status);
         }
@@ -1360,12 +1445,21 @@
             }
         }
         
-        // Extract task name from key if available
+        // Extract task name and match ID from key if available
         let taskName = '';
+        let matchId = '';
         if (key && key.includes(':')) {
             const parts = key.split(':');
             if (parts.length >= 3) {
+                matchId = parts[1];
                 taskName = parts[2]; // The task type (thread or reporting)
+                
+                // Format task name for display
+                if (taskName === 'thread') {
+                    taskName = 'Thread Creation Task';
+                } else if (taskName === 'reporting') {
+                    taskName = 'Live Reporting Task';
+                }
             }
         }
         
@@ -1373,23 +1467,40 @@
         let scheduledTime = '';
         if (data && data.task_status && data.task_status.info) {
             try {
-                // Try to extract timestamp from the info string
-                const infoStr = String(data.task_status.info);
-                const timeMatch = infoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
-                if (timeMatch && timeMatch[1]) {
-                    const date = new Date(timeMatch[1]);
-                    scheduledTime = date.toLocaleString();
+                if (typeof data.task_status.info === 'object') {
+                    // Try to find ETA in the info object
+                    if (data.task_status.info.eta) {
+                        const date = new Date(data.task_status.info.eta);
+                        scheduledTime = date.toLocaleString();
+                    }
+                } else {
+                    // Fallback to regex for string info
+                    const infoStr = String(data.task_status.info);
+                    const timeMatch = infoStr.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+                    if (timeMatch && timeMatch[1]) {
+                        const date = new Date(timeMatch[1]);
+                        scheduledTime = date.toLocaleString();
+                    }
                 }
             } catch (e) {
                 // Ignore parsing errors
             }
         }
         
+        // Extract ETA from the original JSON data if available
+        if (!scheduledTime && eta) {
+            const etaDate = new Date(eta);
+            scheduledTime = etaDate.toLocaleString();
+        }
+        
         tr.innerHTML = `
         <td>
             <div>
-                <span class="d-block text-truncate" style="max-width: 200px;">${key}</span>
-                ${taskName ? `<small class="text-muted">${taskName} task</small>` : ''}
+                <span class="fw-medium">${taskName || 'Task'}</span>
+                <div>
+                    <small class="text-muted d-block text-truncate" style="max-width: 200px;">${key}</small>
+                    ${matchId ? `<small class="text-primary">Match ID: ${matchId}</small>` : ''}
+                </div>
             </div>
         </td>
         <td>
