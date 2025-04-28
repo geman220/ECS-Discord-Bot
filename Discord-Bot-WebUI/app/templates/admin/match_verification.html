@@ -51,9 +51,13 @@
                                 <label for="week" class="form-label">Week</label>
                                 <select id="week" name="week" class="form-select">
                                     <option value="">All Weeks</option>
-                                    {% for week_item in weeks %}
-                                    <option value="{{ week_item }}" {% if current_week == week_item %}selected{% endif %}>Week {{ week_item }}</option>
-                                    {% endfor %}
+                                    {% if weeks %}
+                                        {% for week_item in weeks %}
+                                        <option value="{{ week_item }}" {% if current_week == week_item %}selected{% endif %}>Week {{ week_item }}</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="" disabled>No weeks available</option>
+                                    {% endif %}
                                 </select>
                             </div>
                             

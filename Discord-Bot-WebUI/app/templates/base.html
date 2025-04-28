@@ -412,8 +412,8 @@
     <!-- Universal Responsive Solution - handles all screens and devices -->
     <script src="{{ url_for('static', filename='js/responsive-global.js') }}"></script>
     
-    <!-- Legacy Responsive JS helper (for backward compatibility) -->
-    <script src="{{ url_for('static', filename='js/responsive-helper.js') }}"></script>
+    <!-- Legacy Responsive JS helper (for backward compatibility) with cache busting -->
+    <script src="{{ url_for('static', filename='js/responsive-helper.js') }}?v={{ range(1, 1000000) | random }}"></script>
     
     <!-- ECS Design System JS -->
     <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
