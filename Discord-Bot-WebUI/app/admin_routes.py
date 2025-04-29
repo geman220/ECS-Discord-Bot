@@ -1448,23 +1448,29 @@ def manage_sub_requests():
         Match.time
     ).all()
     
-    # Get all sub requests
-    sub_requests = session.query(SubRequest).options(
-        joinedload(SubRequest.match),
-        joinedload(SubRequest.team),
-        joinedload(SubRequest.requester),
-        joinedload(SubRequest.fulfiller)
-    ).filter(
-        SubRequest.match_id.in_([match.id for match in upcoming_matches])
-    ).order_by(
-        SubRequest.created_at.desc()
-    ).all()
+    # Check if we have any matches
+    if not upcoming_matches:
+        logger.warning("No upcoming matches found for sub requests page. Check your date filters.")
+        # Add debug log to see current date range
+        logger.debug(f"Date range: {today} to {thirty_days_ahead}")
     
-    # Order by date, then time
-    upcoming_matches = match_query.order_by(
-        Match.date,
-        Match.time
-    ).all()
+    # Get all sub requests for these matches
+    match_ids = [match.id for match in upcoming_matches]
+    
+    # Only get sub requests if we have matches
+    if match_ids:
+        sub_requests = session.query(SubRequest).options(
+            joinedload(SubRequest.match),
+            joinedload(SubRequest.team),
+            joinedload(SubRequest.requester),
+            joinedload(SubRequest.fulfiller)
+        ).filter(
+            SubRequest.match_id.in_(match_ids)
+        ).order_by(
+            SubRequest.created_at.desc()
+        ).all()
+    else:
+        sub_requests = []
     
     # Organize sub requests by match and team for easier access
     requested_teams_by_match = {}

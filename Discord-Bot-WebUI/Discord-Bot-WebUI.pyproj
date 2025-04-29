@@ -22,6 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="app\admin_routes.py" />
     <Compile Include="app\API\predictions.py" />
     <Compile Include="app\assets.py" />
     <Compile Include="app\cli.py" />
@@ -81,7 +82,6 @@
     <Compile Include="wsgi.py" />
     <Compile Include="app\account.py" />
     <Compile Include="app\admin_helpers.py" />
-    <Compile Include="app\admin_routes.py" />
     <Compile Include="app\api_utils.py" />
     <Compile Include="app\app_api.py" />
     <Compile Include="app\app_api_helpers.py" />

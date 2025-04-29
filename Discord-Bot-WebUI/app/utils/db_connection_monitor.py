@@ -267,7 +267,9 @@ def unregister_connection(conn_id: int) -> None:
                 f"Active connections: {len(_active_connections)}"
             )
         else:
-            logger.warning(f"Attempted to unregister unknown connection {conn_id}")
+            # Only log at debug level since this is often a harmless race condition
+            # where a connection was already cleaned up by another process/thread
+            logger.debug(f"Attempted to unregister unknown connection {conn_id}")
 
 
 def get_active_connections() -> List[Dict[str, Any]]:
