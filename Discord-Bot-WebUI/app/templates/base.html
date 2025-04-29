@@ -30,11 +30,8 @@
     <!-- ECS Design System CSS - Single load with cache-busting -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}?v={{ range(1, 1000000) | random }}" />
     
-    <!-- Include our dedicated modal fix CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/modal-z-fix.css') }}" />
-    
-    <!-- Close button fix for modals with dark headers -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-close-fix.css') }}" />
+    <!-- Unified Responsive System - replacing all previous mobile fixes -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-system.css') }}?v={{ range(1, 1000000) | random }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -306,8 +303,7 @@
                 background-color: rgba(255, 255, 255, 0.7);
             }
     </style>
-    <!-- Mobile Responsive Fixes -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/mobile-responsive-fix.css') }}">
+    <!-- No additional CSS is needed here since we're using the consolidated responsive-system.css -->
     
     <!-- Dropdown Menu Fix -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/dropdown-menu-fix.css') }}">
@@ -409,11 +405,8 @@
     <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
 
-    <!-- Universal Responsive Solution - handles all screens and devices -->
-    <script src="{{ url_for('static', filename='js/responsive-global.js') }}"></script>
-    
-    <!-- Legacy Responsive JS helper (for backward compatibility) with cache busting -->
-    <script src="{{ url_for('static', filename='js/responsive-helper.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
+    <script src="{{ url_for('static', filename='js/responsive-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
     
     <!-- ECS Design System JS -->
     <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>

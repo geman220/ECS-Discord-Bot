@@ -12,7 +12,7 @@
             </h2>
             <div class="d-flex align-items-center text-muted">
                 <i class="ti ti-calendar-event me-2"></i>
-                Verify match reports and confirm game results for <span class="fw-semibold text-primary ms-1">{{ current_season.name if current_season else "Current Season" }}</span>
+                Verify match reports and confirm game results for <span class="fw-semibold text-primary ms-1">{{ active_season.name if active_season else "Current Season" }}</span>
             </div>
         </div>
     </div>
@@ -38,6 +38,11 @@
                         <h5 class="card-title mb-0">
                             <i class="ti ti-filter me-2"></i>Filter Matches
                         </h5>
+                        <div>
+                            <a class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" href="#seasonSelectorCollapse" role="button" aria-expanded="false" aria-controls="seasonSelectorCollapse">
+                                <i class="ti ti-calendar-stats me-1"></i>Change Season
+                            </a>
+                        </div>
                         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="true">
                             <i class="ti ti-chevron-down"></i>
                         </button>
@@ -45,7 +50,30 @@
                 </div>
                 <div class="collapse show" id="filterCollapse">
                     <div class="card-body">
+                        <!-- Season Selector Collapse -->
+                        <div class="collapse mb-3" id="seasonSelectorCollapse">
+                            <div class="card card-body bg-light">
+                                <h6 class="mb-3">Select Season</h6>
+                                <div class="row">
+                                    {% for season in seasons %}
+                                    <div class="col-md-3 mb-2">
+                                        <a href="{{ url_for('admin.match_verification_dashboard', season_id=season.id) }}" 
+                                        class="btn btn-sm {{ 'btn-primary' if active_season and season.id == active_season.id else 'btn-outline-primary' }} w-100">
+                                            {{ season.name }}
+                                            {% if season.is_current %}
+                                            <span class="badge bg-success ms-1">Current</span>
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
                         <form method="GET" action="{{ url_for('admin.match_verification_dashboard') }}" class="row g-3">
+                            {% if selected_season_id %}
+                            <input type="hidden" name="season_id" value="{{ selected_season_id }}">
+                            {% endif %}
                             <!-- Week Filter -->
                             <div class="col-md-4">
                                 <label for="week" class="form-label">Week</label>

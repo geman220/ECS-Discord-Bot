@@ -115,13 +115,8 @@
 
     // Apply global fixes for all devices
     applyGlobalFixes: function() {
-      // Prevent zoom on input focus in iOS
-      if (this.device.isIOS || this.device.isAndroid) {
-        const metaViewport = document.querySelector('meta[name="viewport"]');
-        if (metaViewport) {
-          metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-        }
-      }
+      // Don't force user-scalable=no anymore to prevent accidental refreshes
+      // We'll use other methods to prevent refresh on small scrolls
       
       // Fix tap delay on mobile browsers
       if (this.device.hasTouch) {
