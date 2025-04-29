@@ -346,10 +346,6 @@
      * Improve scrolling behavior site-wide
      */
     improveScrolling: function () {
-      // Disable pull-to-refresh completely
-      document.body.style.overscrollBehavior = 'none';
-      document.documentElement.style.overscrollBehavior = 'none';
-      
       // Enable smooth scrolling for anchor links
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         if (anchor.getAttribute('href').length > 1) {
