@@ -772,12 +772,10 @@
             });
         }
         
-        // Add pull-to-refresh functionality
+        // Add pull-to-refresh functionality (modified to prevent unwanted triggers)
         let startY;
-        let startTopScroll;
         document.addEventListener('touchstart', function(e) {
             startY = e.touches[0].pageY;
-            startTopScroll = window.scrollY;
         }, {passive: true});
         
         document.addEventListener('touchmove', function(e) {
@@ -794,14 +792,29 @@
         }, {passive: true});
         
         document.addEventListener('touchend', function(e) {
-            const spinner = document.querySelector('.refresh-spinner');
-            if (spinner && window.scrollY === 0 && e.changedTouches[0].pageY - startY > 100) {
-                spinner.innerHTML = '<i class="ti ti-refresh rotate ti-spin"></i> Refreshing...';
-                setTimeout(() => {
-                    window.location.reload();
-                }, 500);
-            } else if (spinner) {
-                document.body.removeChild(spinner);
+            // Only trigger refresh if deliberate pull and at page top
+            if (window.scrollY === 0 && document.querySelector('.refresh-spinner')) {
+                const spinner = document.querySelector('.refresh-spinner');
+                // Only refresh if pulled far enough (100px) and user isn't scrolling back up quickly
+                const pullDistance = e.changedTouches[0].pageY - startY;
+                
+                if (pullDistance > 100) {
+                    spinner.innerHTML = '<i class="ti ti-refresh rotate ti-spin"></i> Refreshing...';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    // Remove spinner if not pulled far enough
+                    if (spinner.parentNode) {
+                        spinner.parentNode.removeChild(spinner);
+                    }
+                }
+            } else if (document.querySelector('.refresh-spinner')) {
+                // Remove spinner in all other cases
+                const spinner = document.querySelector('.refresh-spinner');
+                if (spinner.parentNode) {
+                    spinner.parentNode.removeChild(spinner);
+                }
             }
         }, {passive: true});
     });
