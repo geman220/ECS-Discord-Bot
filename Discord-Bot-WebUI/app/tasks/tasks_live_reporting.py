@@ -445,6 +445,12 @@ async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
 def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
     """
     Check for matches with scheduled thread creation and trigger thread creation.
+    
+    Uses staggered execution to:
+    1. Prevent Discord API rate limits by spacing out thread creation
+    2. Batch process matches in small groups
+    3. Add variable delays based on match priority
+    4. Prevent concurrent creation of similar threads
 
     Returns:
         A dictionary summarizing the number of match threads scheduled for creation.
@@ -454,18 +460,92 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
     """
     try:
         now = datetime.utcnow()
+        # Include matches that are slightly overdue (up to 6 hours)
+        # and sort by creation time to process oldest first
         due_matches = session.query(MLSMatch).filter(
-            MLSMatch.thread_creation_time <= now,
+            MLSMatch.thread_creation_time <= now + timedelta(hours=6),
             MLSMatch.thread_created == False
-        ).all()
+        ).order_by(MLSMatch.thread_creation_time).all()
 
+        if not due_matches:
+            return {
+                'success': True,
+                'message': 'No match threads due for creation',
+                'scheduled_count': 0
+            }
+            
+        # Calculate priorities - matches closer to now should be processed first
+        matches_with_priority = []
         for match in due_matches:
-            create_match_thread_task.delay(match.match_id)
-
+            # Calculate priority based on how overdue the thread is
+            if match.thread_creation_time <= now:
+                # Overdue threads get high priority
+                priority = "high"
+                # More overdue = higher priority
+                minutes_overdue = (now - match.thread_creation_time).total_seconds() / 60
+                delay = max(0, 30 - min(minutes_overdue, 30))  # 0-30 minute delay inversely proportional to how overdue
+            else:
+                # Future threads get lower priority
+                priority = "medium" if match.date_time - now < timedelta(days=1) else "low"
+                # Further in future = more delay
+                minutes_until_due = (match.thread_creation_time - now).total_seconds() / 60
+                delay = 30 + min(minutes_until_due, 30)  # 30-60 minute delay based on time until due
+                
+            matches_with_priority.append({
+                'match': match,
+                'priority': priority,
+                'delay': delay
+            })
+        
+        # Sort by priority (high first) and then by delay (lower delay first)
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        matches_with_priority.sort(
+            key=lambda x: (priority_order[x['priority']], x['delay'])
+        )
+        
+        # Process in small batches with staggered execution
+        batch_size = 3  # Process max 3 matches in each batch
+        base_delay = 60  # 60 seconds between batches
+        
+        scheduled_count = 0
+        scheduled_details = []
+        
+        for i, match_info in enumerate(matches_with_priority):
+            match = match_info['match']
+            batch_num = i // batch_size
+            position_in_batch = i % batch_size
+            
+            # Calculate delay: batch delay + position delay + priority-based delay
+            total_delay = (batch_num * base_delay) + (position_in_batch * 20) + match_info['delay']
+            
+            # Schedule thread creation with appropriate delay
+            create_match_thread_task.apply_async(
+                args=[match.match_id],
+                countdown=int(total_delay)
+            )
+            
+            scheduled_count += 1
+            scheduled_details.append({
+                'match_id': match.match_id,
+                'opponent': match.opponent,
+                'date': match.date_time.isoformat() if match.date_time else None,
+                'priority': match_info['priority'],
+                'delay': total_delay,
+                'batch': batch_num + 1,
+                'position': position_in_batch + 1
+            })
+            
+            logger.info(
+                f"Scheduled thread creation for match {match.match_id} ({match.opponent}) "
+                f"with {total_delay}s delay (batch {batch_num+1}, position {position_in_batch+1}, priority {match_info['priority']})"
+            )
+            
         return {
             'success': True,
-            'message': f'Scheduled {len(due_matches)} match threads for creation',
-            'scheduled_count': len(due_matches)
+            'message': f'Scheduled {scheduled_count} match threads for creation using staggered execution',
+            'scheduled_count': scheduled_count,
+            'batches': (scheduled_count + batch_size - 1) // batch_size if scheduled_count > 0 else 0,
+            'details': scheduled_details
         }
 
     except SQLAlchemyError as e:
@@ -500,30 +580,24 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
             logger.info(f"Thread already exists for match {match_id}")
             return {'success': True, 'message': 'Thread already exists'}
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            thread_id = loop.run_until_complete(create_match_thread(session, match))
-            if thread_id:
-                match.thread_created = True
-                match.discord_thread_id = thread_id
-                session.commit()
+        # Use async_to_sync utility instead of creating our own event loop
+        from app.api_utils import async_to_sync
+        thread_id = async_to_sync(create_match_thread(session, match))
+        
+        if thread_id:
+            match.thread_created = True
+            match.discord_thread_id = thread_id
+            session.commit()
 
-                logger.info(f"Created thread {thread_id} for match {match_id}")
-                return {
-                    'success': True,
-                    'message': f'Thread created successfully. ID: {thread_id}',
-                    'thread_id': thread_id
-                }
+            logger.info(f"Created thread {thread_id} for match {match_id}")
+            return {
+                'success': True,
+                'message': f'Thread created successfully. ID: {thread_id}',
+                'thread_id': thread_id
+            }
 
-            logger.error(f"Failed to create thread for match {match_id}")
-            return {'success': False, 'message': 'Failed to create thread'}
-
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        logger.error(f"Failed to create thread for match {match_id}")
+        return {'success': False, 'message': 'Failed to create thread'}
 
     except SQLAlchemyError as e:
         session.rollback()

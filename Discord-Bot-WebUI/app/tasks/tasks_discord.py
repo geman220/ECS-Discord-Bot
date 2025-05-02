@@ -119,28 +119,21 @@ def update_player_discord_roles(self, session, player_id: int) -> Dict[str, Any]
             logger.error(f"Player {player_id} not found")
             return {'success': False, 'message': 'Player not found'}
 
-        # Create a new event loop to run async updates.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(
-                update_player_roles(session, player, force_update=False)
-            )
-            # Update player role fields and timestamps.
-            player.discord_roles = result.get('current_roles', [])
-            player.discord_last_verified = datetime.utcnow()
-            player.discord_needs_update = False
-            player.last_sync_attempt = datetime.utcnow()
-            player.sync_status = 'success' if result.get('success') else 'mismatch'
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        
+        result = async_to_sync(update_player_roles(session, player, force_update=False))
+        
+        # Update player role fields and timestamps.
+        player.discord_roles = result.get('current_roles', [])
+        player.discord_last_verified = datetime.utcnow()
+        player.discord_needs_update = False
+        player.last_sync_attempt = datetime.utcnow()
+        player.sync_status = 'success' if result.get('success') else 'mismatch'
 
-            # Emit socket event to notify clients.
-            socketio.emit('role_update', result)
-            return result
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Emit socket event to notify clients.
+        socketio.emit('role_update', result)
+        return result
 
     except SQLAlchemyError as e:
         logger.error(f"Database error updating Discord roles for player {player_id}: {str(e)}", exc_info=True)
@@ -227,17 +220,9 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
             joinedload(Player.teams).joinedload(Team.league)
         ).all()
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            results = loop.run_until_complete(
-                _process_role_updates_batch(session, players)
-            )
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        results = async_to_sync(_process_role_updates_batch(session, players))
 
         # Update each player's sync info based on the results.
         for player in players:
@@ -298,34 +283,27 @@ def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional
 
         logger.info(f"Found player {player_id}, discord_id={player.discord_id}")
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            logger.debug("Calling _assign_roles_async(...)")
-            result = loop.run_until_complete(_assign_roles_async(session, player.id, team_id, only_add))
-            # Use a nested transaction to update player sync status.
-            with session.begin_nested():
-                player.discord_roles_updated = datetime.utcnow()
-                if result.get('success'):
-                    player.discord_role_sync_status = 'completed'
-                else:
-                    player.discord_role_sync_status = 'failed'
-                    player.sync_error = result.get('error')
-                player.last_sync_attempt = datetime.utcnow()
-            return {
-                'success': True,
-                'message': 'Roles assigned successfully',
-                'player_id': player_id,
-                'timestamp': datetime.utcnow().isoformat(),
-                **result
-            }
-        finally:
-            loop.stop()
-            loop.close()
-            asyncio.set_event_loop(None)
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        logger.debug("Calling _assign_roles_async(...)")
+        result = async_to_sync(_assign_roles_async(session, player.id, team_id, only_add))
+        
+        # Use a nested transaction to update player sync status.
+        with session.begin_nested():
+            player.discord_roles_updated = datetime.utcnow()
+            if result.get('success'):
+                player.discord_role_sync_status = 'completed'
+            else:
+                player.discord_role_sync_status = 'failed'
+                player.sync_error = result.get('error')
+            player.last_sync_attempt = datetime.utcnow()
+        return {
+            'success': True,
+            'message': 'Roles assigned successfully',
+            'player_id': player_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            **result
+        }
 
     except Exception as e:
         logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True)
@@ -412,37 +390,32 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
             joinedload(Player.teams).joinedload(Team.league)
         ).all()
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            results = loop.run_until_complete(_fetch_roles_batch(session, players))
-            # Update players with the latest role sync status.
-            for status in results['status_updates']:
-                player = session.query(Player).get(status['id'])
-                if player:
-                    player.discord_role_sync_status = status['status']
-                    player.last_role_check = datetime.utcnow()
-                    if 'current_roles' in status:
-                        player.discord_roles = status['current_roles']
-                    if 'error' in status:
-                        player.sync_error = status['error']
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        results = async_to_sync(_fetch_roles_batch(session, players))
+        
+        # Update players with the latest role sync status.
+        for status in results['status_updates']:
+            player = session.query(Player).get(status['id'])
+            if player:
+                player.discord_role_sync_status = status['status']
+                player.last_role_check = datetime.utcnow()
+                if 'current_roles' in status:
+                    player.discord_roles = status['current_roles']
+                if 'error' in status:
+                    player.sync_error = status['error']
 
-            # Emit updated role status to clients.
-            socketio.emit('role_status_update', {
-                'results': results['role_results'],
-                'timestamp': datetime.utcnow().isoformat()
-            })
+        # Emit updated role status to clients.
+        socketio.emit('role_status_update', {
+            'results': results['role_results'],
+            'timestamp': datetime.utcnow().isoformat()
+        })
 
-            return {
-                'success': True,
-                'results': results['role_results'],
-                'fetched_at': datetime.utcnow().isoformat()
-            }
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        return {
+            'success': True,
+            'results': results['role_results'],
+            'fetched_at': datetime.utcnow().isoformat()
+        }
 
     except Exception as e:
         logger.error(f"Error in fetch_role_status: {str(e)}")
@@ -737,15 +710,9 @@ def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dic
         if not player:
             return {'success': False, 'message': 'Player not found'}
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(_remove_player_roles_async(session, player.id, team_id))
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        result = async_to_sync(_remove_player_roles_async(session, player.id, team_id))
 
         if result.get('success'):
             player.discord_roles = []
@@ -842,21 +809,14 @@ def create_team_discord_resources_task(self, session, team_id: int):
             logger.error(f"Team {team_id} not found")
             return {'success': False, 'message': 'Team not found'}
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            channel_result = loop.run_until_complete(
-                create_discord_channel(session, team.name, team.league.name, team.id)
-            )
-            if channel_result and channel_result.get('channel_id'):
-                team.discord_channel_id = channel_result['channel_id']
-            
-            return {'success': True, 'message': 'Discord resources created'}
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        channel_result = async_to_sync(create_discord_channel(session, team.name, team.league.name, team.id))
+        
+        if channel_result and channel_result.get('channel_id'):
+            team.discord_channel_id = channel_result['channel_id']
+        
+        return {'success': True, 'message': 'Discord resources created'}
 
     except Exception as e:
         logger.error(f"Error creating Discord resources: {str(e)}")
@@ -926,26 +886,21 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
         channel_id = team.discord_channel_id
         role_id = team.discord_player_role_id
         
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            if channel_id:
-                if loop.run_until_complete(delete_channel(channel_id)):
-                    team.discord_channel_id = None
-                    session.flush()
-            
-            if role_id:
-                if loop.run_until_complete(delete_role(role_id)):
-                    team.discord_player_role_id = None
-                    session.flush()
-            
-            session.commit()
-            return {'success': True, 'message': 'Discord resources cleaned up'}
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        
+        if channel_id:
+            if async_to_sync(delete_channel(channel_id)):
+                team.discord_channel_id = None
+                session.flush()
+        
+        if role_id:
+            if async_to_sync(delete_role(role_id)):
+                team.discord_player_role_id = None
+                session.flush()
+        
+        session.commit()
+        return {'success': True, 'message': 'Discord resources cleaned up'}
             
     except Exception as e:
         session.rollback()
@@ -976,21 +931,11 @@ def update_team_discord_resources_task(self, session, team_id: int, new_team_nam
         if not team:
             return {'success': False, 'message': 'Team not found'}
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(rename_team_roles(session, team, new_team_name))
-            session.commit()
-            return {'success': True, 'message': 'Discord resources updated'}
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        async_to_sync(rename_team_roles(session, team, new_team_name))
+        session.commit()
+        return {'success': True, 'message': 'Discord resources updated'}
     except Exception as e:
         session.rollback()
         raise self.retry(exc=e, countdown=30)

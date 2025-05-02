@@ -86,19 +86,13 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         match.current_minute = current_minute
         match.last_update_time = datetime.utcnow()
 
-        # Create a new event loop for async operations.
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(send_discord_update(
-                match.discord_thread_id,
-                update_type,
-                update_message
-            ))
-        finally:
-            loop.close()
-            # Ensure connections are properly cleaned up after asyncio operations
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        async_to_sync(send_discord_update(
+            match.discord_thread_id,
+            update_type,
+            update_message
+        ))
 
         logger.info(f"Match update sent successfully for match {match_id}")
         return {
