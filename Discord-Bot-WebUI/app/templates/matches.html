@@ -26,7 +26,7 @@
                 </div>
             </div>
             <div class="card-body">
-                <table class="table table-hover table-borderless align-middle">
+                <table class="table table-hover table-borderless align-middle mobile-card-table">
                     <thead class="table-light">
                         <tr>
                             <th>Opponent</th>
@@ -39,16 +39,16 @@
                     <tbody>
                         {% for match in matches %}
                         <tr id="row-{{ match.match_id }}" data-match-id="{{ match.match_id }}">
-                            <td>
+                            <td data-label="Opponent">
                                 <span class="fw-bold" id="opponent-{{ match.id }}">{{ match.opponent }}</span>
                             </td>
-                            <td>
+                            <td data-label="Date">
                                 <span id="date-{{ match.id }}">{{ match.formatted_date }}</span>
                             </td>
-                            <td>
+                            <td data-label="Competition">
                                 <span id="competition-{{ match.id }}">{{ inverse_competition_mappings.get(match.competition, match.competition) }}</span>
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 <span id="status-{{ match.id }}" class="badge
                                     {% if match.live_reporting_status == 'running' %}
                                         bg-success
@@ -62,7 +62,7 @@
                                     {{ match.live_reporting_status|capitalize }}
                                 </span>
                             </td>
-                            <td class="text-center" id="actions-{{ match.id }}">
+                            <td class="text-center table-actions" id="actions-{{ match.id }}">
                                 <div class="dropdown d-inline-block me-2">
                                     <button class="btn btn-link text-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ match.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                         <i class="fas fa-ellipsis-v"></i>

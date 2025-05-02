@@ -14,31 +14,31 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table mobile-card-table">
                 <!-- Table headers -->
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Jersey Size</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th data-card-title>Name</th>
+                        <th data-card-hidden="false">Email</th>
+                        <th data-card-hidden="false">Phone</th>
+                        <th data-card-hidden="false">Jersey Size</th>
+                        <th data-card-hidden="false">Status</th>
+                        <th data-card-hidden="true">Actions</th>
                     </tr>
                 </thead>
                 <!-- Table body -->
                 <tbody>
                     {% for player in players.items %}
                     <tr>
-                        <td>
+                        <td data-card-title>
                             <a href="{{ url_for('players.player_profile', player_id=player.id) }}">
                                 {{ player.name }}
                             </a>
                         </td>
-                        <td>{{ player.user.email }}</td>
-                        <td>{{ player.phone }}</td>
-                        <td>{{ player.jersey_size }}</td>
-                        <td>
+                        <td data-card-label="Email">{{ player.user.email }}</td>
+                        <td data-card-label="Phone">{{ player.phone }}</td>
+                        <td data-card-label="Jersey Size">{{ player.jersey_size }}</td>
+                        <td data-card-label="Status">
                             <span class="badge rounded-pill bg-{{ 'success' if player.is_current_player else 'secondary' }}">
                                 {{ 'Current Player' if player.is_current_player else 'Inactive' }}
                             </span>

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Responsive Tables Demo</h5>
+                    <small class="text-muted float-end">Mobile-friendly table patterns</small>
+                </div>
+                <div class="card-body">
+                    <p>View this page on a mobile device or narrow your browser window to see how tables transform into card views.</p>
+                    
+                    <div class="alert alert-info mb-4">
+                        <h6>How to use responsive tables:</h6>
+                        <ol class="mb-0">
+                            <li>Add the <code>mobile-card-table</code> class to your table element</li>
+                            <li>Ensure you have proper table headers and data cells</li>
+                            <li>The system will automatically convert to cards on mobile</li>
+                        </ol>
+                    </div>
+
+                    <h6 class="mb-3">Basic Example</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Jersey Size</th>
+                                    <th>Primary League</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td data-label="Name">David Hollingsworth</td>
+                                    <td data-label="Email">david@example.com</td>
+                                    <td data-label="Phone">206-555-1234</td>
+                                    <td data-label="Jersey Size">XL</td>
+                                    <td data-label="Primary League">Premier</td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <a href="#" class="btn btn-sm btn-primary">View</a>
+                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td data-label="Name">Jane Smith</td>
+                                    <td data-label="Email">jane@example.com</td>
+                                    <td data-label="Phone">425-555-5678</td>
+                                    <td data-label="Jersey Size">S</td>
+                                    <td data-label="Primary League">Classic</td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <a href="#" class="btn btn-sm btn-primary">View</a>
+                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td data-label="Name">Mike Johnson</td>
+                                    <td data-label="Email">mike@example.com</td>
+                                    <td data-label="Phone">206-555-9876</td>
+                                    <td data-label="Jersey Size">L</td>
+                                    <td data-label="Primary League">Premier</td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <a href="#" class="btn btn-sm btn-primary">View</a>
+                                        <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Table with Status Colors</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table mobile-card-table">
+                            <thead>
+                                <tr>
+                                    <th>Match</th>
+                                    <th>Date</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-success">
+                                    <td data-label="Match">ECS FC vs. Seattle United</td>
+                                    <td data-label="Date">May 15, 2025</td>
+                                    <td data-label="Location">Memorial Stadium</td>
+                                    <td data-label="Status">
+                                        <span class="badge bg-success">Confirmed</span>
+                                    </td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <button class="btn btn-sm btn-info">Details</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td data-label="Match">ECS FC vs. FC Seattle</td>
+                                    <td data-label="Date">May 22, 2025</td>
+                                    <td data-label="Location">Starfire Complex</td>
+                                    <td data-label="Status">
+                                        <span class="badge bg-warning">Pending</span>
+                                    </td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <button class="btn btn-sm btn-info">Details</button>
+                                    </td>
+                                </tr>
+                                <tr class="table-danger">
+                                    <td data-label="Match">ECS FC vs. Tacoma Stars</td>
+                                    <td data-label="Date">May 29, 2025</td>
+                                    <td data-label="Location">Tacoma Soccer Center</td>
+                                    <td data-label="Status">
+                                        <span class="badge bg-danger">Cancelled</span>
+                                    </td>
+                                    <td data-label="Actions" class="table-actions">
+                                        <button class="btn btn-sm btn-info">Details</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Implementation Guide</h5>
+                </div>
+                <div class="card-body">
+                    <h6>HTML Structure:</h6>
+                    <pre><code class="language-html">
+&lt;div class="table-responsive"&gt;
+    &lt;table class="table table-striped mobile-card-table"&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th&gt;Name&lt;/th&gt;
+                &lt;th&gt;Email&lt;/th&gt;
+                &lt;th&gt;Actions&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;tr&gt;
+                &lt;td data-label="Name"&gt;John Doe&lt;/td&gt;
+                &lt;td data-label="Email"&gt;john@example.com&lt;/td&gt;
+                &lt;td data-label="Actions" class="table-actions"&gt;
+                    &lt;a href="#" class="btn btn-sm btn-primary"&gt;View&lt;/a&gt;
+                    &lt;button class="btn btn-sm btn-danger"&gt;Delete&lt;/button&gt;
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+&lt;/div&gt;
+                    </code></pre>
+                    
+                    <div class="alert alert-success mt-4">
+                        <h6>Benefits of this approach:</h6>
+                        <ul class="mb-0">
+                            <li>No horizontal scrolling on mobile devices</li>
+                            <li>Clear labels for each data field</li>
+                            <li>Maintains all your existing table styling</li>
+                            <li>Automatically adapts to different screen sizes</li>
+                            <li>Works with existing Bootstrap table classes</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Highlight code blocks
+        document.querySelectorAll('pre code').forEach(function(block) {
+            block.classList.add('p-3', 'bg-light');
+        });
+    });
+</script>
+{% endblock %}

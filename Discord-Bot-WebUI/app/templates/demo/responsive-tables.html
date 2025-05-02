@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block custom_css %}
+<style>
+  .demo-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  
+  .code-block {
+    background-color: var(--bs-tertiary-bg);
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    font-family: monospace;
+  }
+  
+  .features-list li {
+    margin-bottom: 0.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title">Responsive Tables Demo</h4>
+        <p class="card-subtitle">Demonstration of mobile-friendly responsive table patterns</p>
+      </div>
+      
+      <div class="card-body">
+        <div class="demo-section">
+          <h5>Overview</h5>
+          <p>This responsive tables solution converts standard data tables to card-based layouts on mobile devices, making it easier for users to view and interact with tabular data on small screens.</p>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Key Features</h6>
+              <ul class="features-list">
+                <li>Automatically transforms tables to cards on mobile</li>
+                <li>Displays column headers as labels on mobile</li>
+                <li>Special handling for action buttons</li>
+                <li>Proper styling for dark mode</li>
+                <li>Compatible with existing table styles</li>
+                <li>Works with DataTables plugin</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>How to Use</h6>
+              <ol>
+                <li>Add <code>.mobile-card-table</code> class to your table</li>
+                <li>Add a table header with column names</li>
+                <li>JS will automatically add <code>data-label</code> attributes</li>
+                <li>Use existing Bootstrap table classes as needed</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+        
+        <div class="demo-section">
+          <h5>Basic Example</h5>
+          <p>A simple table that transforms to cards on mobile devices (resize your browser to see the effect):</p>
+          
+          <div class="code-block">
+            &lt;table class="table table-striped mobile-card-table"&gt;
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-striped mobile-card-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Jersey Size</th>
+                  <th>Primary League</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>David Hollingsworth</td>
+                  <td>david.h@example.com</td>
+                  <td>206-555-1234</td>
+                  <td>XL</td>
+                  <td>Premier</td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Sarah Johnson</td>
+                  <td>sarah.j@example.com</td>
+                  <td>425-555-6789</td>
+                  <td>M</td>
+                  <td>Classic</td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Michael Rodriguez</td>
+                  <td>michael.r@example.com</td>
+                  <td>360-555-4321</td>
+                  <td>L</td>
+                  <td>Premier</td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <button type="button" class="btn btn-sm btn-danger">Delete</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="demo-section">
+          <h5>With Status Colors</h5>
+          <p>Tables with status color rows will maintain their styling in card view:</p>
+          
+          <div class="table-responsive">
+            <table class="table mobile-card-table">
+              <thead>
+                <tr>
+                  <th>Match</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="table-success">
+                  <td>ECS FC vs. Seattle United</td>
+                  <td>May 15, 2025</td>
+                  <td>7:00 PM</td>
+                  <td>Memorial Stadium</td>
+                  <td><span class="badge bg-success">Confirmed</span></td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <a href="#" class="btn btn-sm btn-info">Report</a>
+                  </td>
+                </tr>
+                <tr class="table-warning">
+                  <td>ECS FC vs. FC Seattle</td>
+                  <td>May 22, 2025</td>
+                  <td>6:30 PM</td>
+                  <td>Starfire Sports Complex</td>
+                  <td><span class="badge bg-warning">Pending</span></td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <a href="#" class="btn btn-sm btn-warning">Confirm</a>
+                  </td>
+                </tr>
+                <tr class="table-danger">
+                  <td>ECS FC vs. Tacoma Stars</td>
+                  <td>May 29, 2025</td>
+                  <td>8:00 PM</td>
+                  <td>Tacoma Soccer Center</td>
+                  <td><span class="badge bg-danger">Cancelled</span></td>
+                  <td>
+                    <a href="#" class="btn btn-sm btn-primary">View</a>
+                    <a href="#" class="btn btn-sm btn-secondary">Reschedule</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="demo-section">
+          <h5>Complex Table with Avatars</h5>
+          <p>Tables with avatars and more complex data are also supported:</p>
+          
+          <div class="table-responsive">
+            <table class="table table-hover mobile-card-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Position</th>
+                  <th>Team</th>
+                  <th>Goals</th>
+                  <th>Assists</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="avatar-cell">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar avatar-sm me-2">
+                        <span class="avatar-initial rounded-circle bg-primary">JD</span>
+                      </div>
+                      <span>John Doe</span>
+                    </div>
+                  </td>
+                  <td>Forward</td>
+                  <td>ECS FC Premier</td>
+                  <td>12</td>
+                  <td>5</td>
+                  <td><span class="badge bg-success">Active</span></td>
+                  <td>
+                    <div class="dropdown">
+                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="ti ti-dots-vertical"></i>
+                      </button>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
+                        <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="avatar-cell">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar avatar-sm me-2">
+                        <span class="avatar-initial rounded-circle bg-success">JS</span>
+                      </div>
+                      <span>Jane Smith</span>
+                    </div>
+                  </td>
+                  <td>Midfielder</td>
+                  <td>ECS FC Classic</td>
+                  <td>8</td>
+                  <td>14</td>
+                  <td><span class="badge bg-warning">Injured</span></td>
+                  <td>
+                    <div class="dropdown">
+                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="ti ti-dots-vertical"></i>
+                      </button>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
+                        <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="avatar-cell">
+                    <div class="d-flex align-items-center">
+                      <div class="avatar avatar-sm me-2">
+                        <span class="avatar-initial rounded-circle bg-info">RJ</span>
+                      </div>
+                      <span>Robert Johnson</span>
+                    </div>
+                  </td>
+                  <td>Defender</td>
+                  <td>ECS FC Premier</td>
+                  <td>3</td>
+                  <td>2</td>
+                  <td><span class="badge bg-success">Active</span></td>
+                  <td>
+                    <div class="dropdown">
+                      <button type="button" class="btn btn-sm dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                        <i class="ti ti-dots-vertical"></i>
+                      </button>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#"><i class="ti ti-edit me-2"></i> Edit</a>
+                        <a class="dropdown-item" href="#"><i class="ti ti-trash me-2"></i> Delete</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div class="demo-section">
+          <h5>Implementation Guide</h5>
+          
+          <div class="alert alert-info">
+            <h6 class="alert-heading">How to update your existing tables</h6>
+            <p>To convert any table in your application to use this responsive card pattern:</p>
+            <ol class="mb-0">
+              <li>Add the <code>mobile-card-table</code> class to your table element</li>
+              <li>Ensure your table has proper <code>&lt;thead&gt;</code> and <code>&lt;tbody&gt;</code> sections</li>
+              <li>For tables with action buttons, no additional changes needed</li>
+              <li>For DataTables, you may need to adjust responsive options</li>
+            </ol>
+          </div>
+          
+          <h6 class="mt-4">Example Code</h6>
+          <div class="code-block">
+            &lt;!-- Basic Implementation --&gt;
+            &lt;div class="table-responsive"&gt;
+              &lt;table class="table table-striped mobile-card-table"&gt;
+                &lt;thead&gt;
+                  &lt;tr&gt;
+                    &lt;th&gt;Name&lt;/th&gt;
+                    &lt;th&gt;Email&lt;/th&gt;
+                    &lt;th&gt;Phone&lt;/th&gt;
+                    &lt;th&gt;Actions&lt;/th&gt;
+                  &lt;/tr&gt;
+                &lt;/thead&gt;
+                &lt;tbody&gt;
+                  &lt;tr&gt;
+                    &lt;td&gt;John Doe&lt;/td&gt;
+                    &lt;td&gt;john@example.com&lt;/td&gt;
+                    &lt;td&gt;555-1234&lt;/td&gt;
+                    &lt;td&gt;
+                      &lt;a href="#" class="btn btn-sm btn-primary"&gt;View&lt;/a&gt;
+                      &lt;button class="btn btn-sm btn-danger"&gt;Delete&lt;/button&gt;
+                    &lt;/td&gt;
+                  &lt;/tr&gt;
+                &lt;/tbody&gt;
+              &lt;/table&gt;
+            &lt;/div&gt;
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Example of manually processing a table
+    // (not required - the system handles this automatically)
+    document.querySelectorAll('.demo-manual-table').forEach(table => {
+      ResponsiveTables.processTable(table);
+    });
+  });
+</script>
+{% endblock %}

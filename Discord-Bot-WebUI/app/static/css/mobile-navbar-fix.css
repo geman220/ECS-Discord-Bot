@@ -1,0 +1,115 @@
+/**
+ * Mobile Navbar Fix
+ * 
+ * Improves display of navbar elements on mobile devices
+ */
+
+/* Mobile optimizations for navbar elements */
+@media (max-width: 991.98px) {
+  /* Fix navbar alignment */
+  .navbar-nav-right {
+    width: 100%;
+    justify-content: space-between !important;
+  }
+
+  /* Make the search input take appropriate width */
+  .navbar-nav-right form {
+    flex: 1;
+    margin-right: 0.5rem;
+    max-width: 70%;
+  }
+
+  /* Fix search input sizing */
+  .navbar-nav-right form input {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  /* Fix icon alignment */
+  .navbar-nav-right .navbar-nav {
+    margin-left: auto !important;
+    flex-wrap: nowrap;
+  }
+
+  /* Proper vertical alignment */
+  .navbar-nav-right .nav-item {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Fix avatar size and alignment */
+  .dropdown-user .avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Better notification icon placement */
+  .dropdown-notifications .nav-link {
+    padding: 0.25rem !important;
+  }
+
+  /* Fix theme switcher spacing */
+  .dropdown-style-switcher {
+    margin-right: 0.25rem !important;
+  }
+
+  /* Make navbar properly flex on mobile */
+  .layout-navbar {
+    flex-wrap: nowrap !important;
+  }
+
+  /* Improve menu toggle spacing */
+  .layout-menu-toggle {
+    margin-right: 0.5rem !important;
+  }
+
+  /* Fix dropdown positioning */
+  .dropdown-menu {
+    position: absolute !important;
+  }
+
+  /* Add proper spacing between elements */
+  .navbar-nav .nav-item {
+    margin-left: 0.25rem;
+  }
+
+  /* Ensure icons in navbar are properly sized */
+  .navbar-nav .ti, 
+  .navbar-nav .fa, 
+  .navbar-nav .fas {
+    font-size: 1.25rem !important;
+  }
+
+  /* Fix badge positioning */
+  .badge-dot {
+    top: 0px !important;
+    right: 0px !important;
+  }
+
+  /* Compact navbar on very small screens */
+  @media (max-width: 575.98px) {
+    .navbar-nav-right form {
+      max-width: 60%;
+    }
+
+    .navbar-nav-right .navbar-nav .nav-item {
+      margin-left: 0.1rem;
+    }
+
+    .dropdown-notifications {
+      margin-right: 0.25rem !important;
+    }
+
+    .layout-menu-toggle {
+      margin-right: 0.35rem !important;
+    }
+  }
+}
+
+/* Fixed search placeholder issue */
+@media (max-width: 991.98px) {
+  #player-search::placeholder {
+    font-size: 14px;
+    opacity: 0.7;
+  }
+}
