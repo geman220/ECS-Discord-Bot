@@ -4,7 +4,7 @@
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Enhanced Onboarding Modal -->
-    {% if show_onboarding %}
+    {% if show_onboarding or session.get('force_onboarding') %}
     <div class="modal fade" id="onboardingSlideModal" tabindex="-1" aria-labelledby="onboardingModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
@@ -788,8 +788,27 @@
 </script>
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
-{% if show_onboarding %}
+{% if show_onboarding or session.get('force_onboarding') %}
 <script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+<script>
+    // Auto-open the onboarding modal when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if the modal element exists
+        const modalElement = document.getElementById('onboardingSlideModal');
+        if (modalElement) {
+            console.log("Auto-opening onboarding modal");
+            try {
+                const onboardingModal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                onboardingModal.show();
+            } catch (error) {
+                console.error("Error auto-opening modal:", error);
+            }
+        }
+    });
+</script>
 {% endif %}
 {% if player %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>

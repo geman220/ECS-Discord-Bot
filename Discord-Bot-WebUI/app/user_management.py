@@ -302,11 +302,27 @@ def remove_user(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('user_management.manage_users'))
 
-    if user.player:
-        session.delete(user.player)
-
-    session.delete(user)
-    flash(f'User {user.username} has been removed.', 'success')
+    try:
+        if user.player:
+            from app.models import TemporarySubAssignment
+            
+            # First, delete any temporary sub assignments connected to this player
+            temp_subs = session.query(TemporarySubAssignment).filter_by(player_id=user.player.id).all()
+            for sub in temp_subs:
+                session.delete(sub)
+            
+            # Now delete the player
+            session.delete(user.player)
+        
+        # Delete the user
+        session.delete(user)
+        session.commit()
+        flash(f'User {user.username} has been removed.', 'success')
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error removing user {user_id}: {str(e)}")
+        flash(f'Error removing user: {str(e)}', 'danger')
+    
     return redirect(url_for('user_management.manage_users'))
 
 
@@ -342,6 +358,13 @@ def delete_user(user_id):
             
             # Get player ID before removing
             player_id = user.player.id
+            
+            # Remove temporary sub assignments first
+            from app.models import TemporarySubAssignment
+            temp_subs = session.query(TemporarySubAssignment).filter_by(player_id=player_id).all()
+            for sub in temp_subs:
+                session.delete(sub)
+            session.flush()  # Ensure sub assignments are deleted first
             
             # Remove player events (goals, cards, etc.)
             from app.models import PlayerEvent

@@ -36,14 +36,33 @@
       this.setupCustomBehaviors();
     },
     
-    // Ensure the design system stylesheet is loaded
+    // Ensure the ECS CSS architecture is loaded
     ensureStylesheetLoaded: function() {
-      if (!document.getElementById('ecs-design-system-stylesheet')) {
-        const link = document.createElement('link');
-        link.id = 'ecs-design-system-stylesheet';
-        link.rel = 'stylesheet';
-        link.href = '/static/css/design-system.css';
-        document.head.appendChild(link);
+      // Load core CSS if not already present
+      if (!document.getElementById('ecs-core-stylesheet')) {
+        const coreLink = document.createElement('link');
+        coreLink.id = 'ecs-core-stylesheet';
+        coreLink.rel = 'stylesheet';
+        coreLink.href = '/static/css/ecs-core.css';
+        document.head.appendChild(coreLink);
+      }
+      
+      // Load components CSS if not already present
+      if (!document.getElementById('ecs-components-stylesheet')) {
+        const componentsLink = document.createElement('link');
+        componentsLink.id = 'ecs-components-stylesheet';
+        componentsLink.rel = 'stylesheet';
+        componentsLink.href = '/static/css/ecs-components.css';
+        document.head.appendChild(componentsLink);
+      }
+      
+      // Load utilities CSS if not already present
+      if (!document.getElementById('ecs-utilities-stylesheet')) {
+        const utilitiesLink = document.createElement('link');
+        utilitiesLink.id = 'ecs-utilities-stylesheet';
+        utilitiesLink.rel = 'stylesheet';
+        utilitiesLink.href = '/static/css/ecs-utilities.css';
+        document.head.appendChild(utilitiesLink);
       }
     },
     

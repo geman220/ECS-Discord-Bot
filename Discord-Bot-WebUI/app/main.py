@@ -421,12 +421,13 @@ def index():
         # Use flask.session instead of SQLAlchemy session
         from flask import session as flask_session
         
-        # Use a get/delete approach to prevent infinite redirects
+        # Remove force_onboarding flag if it exists but don't redirect - use modal instead
         if 'force_onboarding' in flask_session and flask_session['force_onboarding']:
             # Delete the flag from session to prevent redirect loops
             flask_session.pop('force_onboarding', None)
-            logger.info(f"Redirecting user {safe_current_user.id} to onboarding page (force_onboarding flag)")
-            return redirect(url_for('main.onboarding'))
+            # Don't redirect, just set the show_onboarding flag to True
+            logger.info(f"Setting show_onboarding flag for user {safe_current_user.id} (force_onboarding flag found)")
+            # We'll use client-side JS to show the onboarding modal instead
             
         show_onboarding = (
             (not safe_current_user.has_completed_onboarding if player else 
@@ -967,6 +968,24 @@ def set_theme():
             logger.error(f"Error saving theme preference for user {current_user.id}: {e}")
     
     return jsonify({"success": True, "message": f"Theme set to {theme}"})
+
+
+@main.route('/clear_sweet_alert', methods=['POST'])
+def clear_sweet_alert():
+    """
+    Clear the sweet alert from the session.
+    
+    This endpoint is called after a SweetAlert has been displayed to prevent
+    it from appearing again on page refresh.
+    
+    Returns:
+        An empty response with HTTP 204 status code.
+    """
+    from flask import session as flask_session
+    if 'sweet_alert' in flask_session:
+        flask_session.pop('sweet_alert', None)
+        logger.info("Sweet alert cleared from session")
+    return '', 204
 
 
 @main.route('/save_phone_for_verification', methods=['POST'])

@@ -45,3 +45,5 @@ Discord-Bot-WebUI/app/static/.webassets-cache/
 /CLAUDE.md
 /Discord-Bot-WebUI/MOBILE_API.md
 /Discord-Bot-WebUI/app/static/custom_js/README.md
+
+**/.claude/settings.local.json

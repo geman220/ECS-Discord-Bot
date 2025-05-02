@@ -1,0 +1,166 @@
+/**
+ * Consolidated Dark Mode Fixes
+ * Contains all dark mode specific style fixes
+ */
+
+/* Fix autocomplete dropdown styling in dark mode */
+html[data-style="dark"] .ui-autocomplete {
+    background-color: #2b2c40 !important;
+    border-color: #444 !important;
+    color: #fff !important;
+}
+
+html[data-style="dark"] .ui-menu-item,
+html[data-style="dark"] .ui-menu-item-wrapper {
+    color: #dddee6 !important;
+}
+
+html[data-style="dark"] .ui-menu-item-wrapper.ui-state-active {
+    background-color: #444564 !important;
+    border-color: #444564 !important;
+}
+
+/* Fix dropdown menu background in dark mode */
+html[data-style="dark"] .dropdown-menu {
+    background-color: #2b2c40 !important;
+    border-color: #3a3b53 !important;
+}
+
+html[data-style="dark"] .dropdown-item {
+    color: #dddee6 !important;
+}
+
+html[data-style="dark"] .dropdown-item:hover,
+html[data-style="dark"] .dropdown-item:focus {
+    background-color: #444564 !important;
+    color: #fff !important;
+}
+
+/* Fix form switches in dark mode */
+html[data-style="dark"] .form-switch .form-check-input {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255, 255, 255, 0.25%29'/%3e%3c/svg%3e") !important;
+}
+
+html[data-style="dark"] .form-switch .form-check-input:checked {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e") !important;
+}
+
+/* DataTables dark mode fixes */
+html[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+html[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: #444564 !important;
+    color: #fff !important;
+    border-color: #444564 !important;
+}
+
+html[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #3a3b53 !important;
+    color: #fff !important;
+    border-color: #3a3b53 !important;
+}
+
+html[data-style="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: #dddee6 !important;
+}
+
+html[data-style="dark"] .dataTables_wrapper .dataTables_length,
+html[data-style="dark"] .dataTables_wrapper .dataTables_filter,
+html[data-style="dark"] .dataTables_wrapper .dataTables_info,
+html[data-style="dark"] .dataTables_wrapper .dataTables_processing,
+html[data-style="dark"] .dataTables_wrapper .dataTables_paginate {
+    color: #dddee6 !important;
+}
+
+/* Fix modal content in dark mode */
+html[data-style="dark"] .modal-content {
+    background-color: #2b2c40 !important;
+    border-color: #3a3b53 !important;
+}
+
+html[data-style="dark"] .modal-header,
+html[data-style="dark"] .modal-footer {
+    border-color: #3a3b53 !important;
+}
+
+/* Fix toggle state indicators */
+html[data-style="dark"] .toggle-state.bg-secondary {
+    background-color: #4f5067 !important;
+}
+
+/* Dark mode toggle switch fixes */
+html[data-style="dark"] .form-switch .form-check-input,
+.dark-style .form-switch .form-check-input {
+    background-color: rgba(67, 68, 86, 0.8) !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+html[data-style="dark"] .form-switch .form-check-input:checked,
+.dark-style .form-switch .form-check-input:checked {
+    background-color: #696cff !important;
+}
+
+/* Make search inputs transparent/match background in dark mode */
+html[data-style="dark"] .form-control,
+html[data-style="dark"] .ecs-form-control,
+html[data-style="dark"] input[type="text"],
+html[data-style="dark"] input[type="search"],
+.dark-style .form-control,
+.dark-style .ecs-form-control,
+.dark-style input[type="text"],
+.dark-style input[type="search"] {
+    background-color: transparent !important;
+    color: #d6d6e5 !important;
+    border-color: transparent !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+/* Navbar search specific styling */
+html[data-style="dark"] #player-search,
+.dark-style #player-search {
+    background-color: transparent !important;
+    border: none !important;
+    color: #d6d6e5 !important;
+}
+
+/* Improve hover states for inputs in dark mode */
+html[data-style="dark"] .form-control:hover,
+html[data-style="dark"] .ecs-form-control:hover,
+html[data-style="dark"] input[type="text"]:hover,
+html[data-style="dark"] input[type="search"]:hover,
+.dark-style .form-control:hover,
+.dark-style .ecs-form-control:hover,
+.dark-style input[type="text"]:hover,
+.dark-style input[type="search"]:hover {
+    background-color: rgba(43, 44, 64, 0.7) !important;
+    border-color: #444564 !important;
+}
+
+/* Special hover for navbar search */
+html[data-style="dark"] #player-search:hover,
+.dark-style #player-search:hover {
+    background-color: rgba(43, 44, 64, 0.7) !important;
+    border: 1px solid #444564 !important;
+}
+
+/* Focus states for inputs in dark mode */
+html[data-style="dark"] .form-control:focus,
+html[data-style="dark"] .ecs-form-control:focus,
+html[data-style="dark"] input[type="text"]:focus,
+html[data-style="dark"] input[type="search"]:focus,
+.dark-style .form-control:focus,
+.dark-style .ecs-form-control:focus,
+.dark-style input[type="text"]:focus,
+.dark-style input[type="search"]:focus {
+    background-color: rgba(43, 44, 64, 0.9) !important;
+    border-color: #696cff !important;
+    box-shadow: 0 0 0 0.25rem rgba(105, 108, 255, 0.25) !important;
+}
+
+/* Placeholder color in dark mode */
+html[data-style="dark"] .form-control::placeholder,
+html[data-style="dark"] .ecs-form-control::placeholder,
+.dark-style .form-control::placeholder,
+.dark-style .ecs-form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5) !important;
+    opacity: 0.5 !important;
+}

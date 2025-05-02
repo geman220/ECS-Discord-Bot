@@ -147,7 +147,10 @@ def create_app(config_object='web_config.Config'):
     request_lifecycle.register_before_request(custom_before_request)
 
     # Initialize additional extensions.
+    # Configure login manager
     login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    login_manager.login_message = None  # Disable the default "Please log in to access this page" message
     
     # Initialize CSRF with explicit configuration
     csrf.init_app(app)
@@ -313,9 +316,9 @@ def create_app(config_object='web_config.Config'):
         next_url = request.path
         # Use Flask's session explicitly
         from flask import session as flask_session
-        if '401_flash_shown' not in flask_session:
-            flash('Please log in to access this page.', 'info')
-            flask_session['401_flash_shown'] = True
+        
+        # Don't show a flash message for unauthenticated users
+        # Simply redirect to login
         if next_url != '/':
             flask_session['next'] = next_url
         return redirect(url_for('auth.login'))

@@ -2,7 +2,7 @@
 
 {% block main_content %}
 <style>
-    /* Fullscreen background for the login page */
+    /* Critical CSS inlined for fastest rendering */
     html, body {
         margin: 0;
         padding: 0;
@@ -12,7 +12,7 @@
 
     .authentication-wrapper {
         height: 100%;
-        width: 100%; /* Ensure full width */
+        width: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -20,17 +20,17 @@
 
     .authentication-inner {
         width: 100%;
-        max-width: 600px; /* Adjust max-width to make the form smaller */
+        max-width: 600px;
         background-color: white;
         display: flex;
         flex-direction: row;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Slight shadow for effect */
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         border-radius: 8px;
+        margin: 1rem;
     }
 
-    /* Fix button appearance */
     .waves-button-input {
         background-color: #00539F !important;
         color: white !important;
@@ -40,9 +40,16 @@
         width: 100%;
     }
 
-        .waves-button-input:hover {
-            background-color: #004080 !important;
-        }
+    .waves-button-input:hover {
+        background-color: #004080 !important;
+    }
+    
+    /* Preload Discord logo for buttons */
+    .discord-img {
+        content: url("{{ url_for('static', filename='img/discord_logo.svg') }}");
+        height: 20px;
+        margin-right: 8px;
+    }
 </style>
 
 <div class="authentication-wrapper">
@@ -60,13 +67,13 @@
 
                 <!-- Discord Login Button -->
                 <a href="{{ url_for('auth.discord_login') }}" class="btn btn-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="background-color: #7289DA; border-color: #7289DA;">
-                    <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
+                    <span class="discord-img"></span>
                     Login with Discord
                 </a>
                 
                 <!-- Discord Registration Button -->
                 <a href="{{ url_for('auth.discord_register') }}" class="btn btn-outline-primary btn-block mb-3 d-flex align-items-center justify-content-center" style="border-color: #7289DA; color: #7289DA;">
-                    <img src="{{ url_for('static', filename='img/discord_logo.svg') }}" alt="Discord Logo" style="height: 20px; margin-right: 8px;">
+                    <span class="discord-img"></span>
                     Register with Discord
                 </a>
 

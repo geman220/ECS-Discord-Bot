@@ -1,0 +1,23 @@
+/**
+ * Minimal Dropdown Menu Fix
+ * 
+ * This file contains just the essentials for making dropdowns
+ * work globally. Specific page issues are fixed with inline styles.
+ */
+
+/* Core fixes for global dropdown handling */
+.dropdown-menu {
+  z-index: 1050 !important;
+}
+
+/* General overflow fixes */
+.table-responsive, 
+.card, 
+.card-body {
+  overflow: visible !important;
+}
+
+/* Table cell positioning */
+table td {
+  position: relative;
+}

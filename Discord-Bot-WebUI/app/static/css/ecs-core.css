@@ -210,6 +210,21 @@ html[data-style="dark"] {
   --ecs-border-color: rgba(255, 255, 255, 0.125);
 }
 
+/* Apply background directly to body for dark mode */
+html[data-style="dark"] body {
+  background-color: var(--ecs-bg-dark);
+  color: var(--ecs-text-dark);
+}
+
+/* Apply background to key container elements in dark mode */
+html[data-style="dark"] .layout-container,
+html[data-style="dark"] .layout-page,
+html[data-style="dark"] .layout-wrapper,
+html[data-style="dark"] .content-wrapper {
+  background-color: var(--ecs-bg-dark);
+  color: var(--ecs-text-dark);
+}
+
 /* Apply theme colors */
 body {
   background-color: var(--ecs-bg);
