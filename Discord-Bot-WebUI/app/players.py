@@ -685,15 +685,25 @@ def delete_player(player_id):
         player = session.query(Player).get(player_id)
         if not player:
             abort(404)
+            
+        # First, delete any temporary sub assignments connected to this player
+        from app.models import TemporarySubAssignment
+        temp_subs = session.query(TemporarySubAssignment).filter_by(player_id=player_id).all()
+        for sub in temp_subs:
+            session.delete(sub)
+        session.flush()  # Ensure sub assignments are deleted first
+            
         user = player.user
         session.delete(player)
         session.delete(user)
+        session.commit()
         flash('Player and user account deleted successfully.', 'success')
         return redirect(url_for('players.view_players'))
     except SQLAlchemyError as e:
+        session.rollback()
         current_app.logger.error(f"Error deleting player {player_id}: {str(e)}")
         flash('An error occurred while deleting the player. Please try again.', 'danger')
-        raise
+        return redirect(url_for('players.view_players'))
 
 
 @players_bp.route('/edit_player/<int:player_id>', endpoint='edit_player', methods=['GET', 'POST'])

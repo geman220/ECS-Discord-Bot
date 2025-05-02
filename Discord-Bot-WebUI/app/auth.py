@@ -569,9 +569,15 @@ def register_with_discord():
         flask_session['discord_invite_link'] = default_invite_link
         flask_session['needs_discord_join'] = True
         
-        flash('Registration successful! Please join our Discord server and complete your profile.', 'success')
-        # Redirect to dedicated onboarding page instead of index
-        return redirect(url_for('main.onboarding'))
+        # Set sweet alert flag instead of using flash
+        flask_session['sweet_alert'] = {
+            'title': 'Registration Successful!',
+            'text': 'Please join our Discord server and complete your profile.',
+            'icon': 'success'
+        }
+        
+        # Redirect to main index which will handle onboarding and show the sweet alert
+        return redirect(url_for('main.index'))
         
     except Exception as e:
         logger.error(f"Discord registration error: {str(e)}", exc_info=True)

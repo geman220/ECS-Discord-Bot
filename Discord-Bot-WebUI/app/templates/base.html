@@ -64,11 +64,7 @@
     <!-- Jquery CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     
-    <!-- MOST IMPORTANT: Fix for button styling - loaded last to override all other styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/button-fix.css') }}">
-    
-    <!-- Fix for DataTables pagination in dark mode -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/paginate-dark-fix.css') }}?v={{ range(1, 1000000) | random }}">
+    <!-- ECS CSS handles all button styling and dark mode pagination -->
 
     <!-- Additional scripts loaded in footer -->
     <!-- Button fix scripts loaded in footer -->
@@ -302,12 +298,7 @@
                 background-color: rgba(255, 255, 255, 0.7);
             }
     </style>
-    <!-- No additional CSS is needed here since we're using the consolidated responsive-system.css -->
-    
-    <!-- Dropdown Menu Fix -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/dropdown-menu-fix.css') }}">
-    
-    <!-- Custom Toggle Switch Fix removed -->
+    <!-- All dropdown and responsive fixes are included in the ECS CSS architecture -->
     
     {% block custom_css %}
     {% endblock %}
@@ -402,9 +393,28 @@
     <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}"></script>
     <!-- Custom ripple effect disabler for any other ripple implementations -->
     <script src="{{ url_for('static', filename='custom_js/custom-ripple-disabler.js') }}"></script>
+    <!-- SweetAlert2 for nice notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/hammer/hammer.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/menu.js') }}"></script>
+    
+    <!-- SweetAlert Notification Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for SweetAlert message in session
+            {% if session.get('sweet_alert') %}
+                Swal.fire({
+                    title: "{{ session.get('sweet_alert').get('title', '') }}",
+                    text: "{{ session.get('sweet_alert').get('text', '') }}",
+                    icon: "{{ session.get('sweet_alert').get('icon', 'success') }}",
+                    confirmButtonText: "OK"
+                });
+                // Clear the sweet alert from session to avoid showing it again on refresh
+                fetch("{{ url_for('main.clear_sweet_alert') }}", {method: 'POST'});
+            {% endif %}
+        });
+    </script>
 
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
     <script src="{{ url_for('static', filename='js/responsive-system.js') }}?v={{ range(1, 1000000) | random }}"></script>

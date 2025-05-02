@@ -7,30 +7,30 @@
     <title>{{ title }}</title>
 
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Public+Sans:300,400,500,600,700" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Icons -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fontawesome.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
-
-    <!-- Core CSS -->
+    <!-- Critical CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
-
-    <!-- Vendors CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" />
-    
-    <!-- ECS CSS Architecture -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" />
+
+    <!-- Deferred CSS - these will load after the page is initially rendered -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fontawesome.css') }}" media="print" onload="this.media='all'"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/perfect-scrollbar/perfect-scrollbar.css') }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" media="print" onload="this.media='all'">
 
     <!-- Helpers -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
-
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
+    
+    <!-- SweetAlert2 for nicer notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -62,16 +62,15 @@
     <!-- Page-specific content will be injected here -->
     {% endblock %}
 
-    <!-- Core JS -->
+    <!-- Core JS - load minimal JS needed for login -->
     <script src="{{ url_for('static', filename='vendor/libs/jquery/jquery.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/libs/popper/popper.js') }}"></script>
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}"></script>
-    <!-- Simple Waves disabler -->
-    <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}"></script>
-
-    <!-- Other JS files -->
-    <script src="{{ url_for('static', filename='assets/js/main.js') }}"></script>
+    
+    <!-- Defer non-essential JS -->
+    <script src="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='assets/js/main.js') }}" defer></script>
 
     <!-- Toast Auto Dismiss and Progress Bar -->
     <script>
@@ -100,6 +99,18 @@
                     }
                 });
             });
+            
+            // Check for SweetAlert message in session
+            {% if session.get('sweet_alert') %}
+                Swal.fire({
+                    title: "{{ session.get('sweet_alert').get('title', '') }}",
+                    text: "{{ session.get('sweet_alert').get('text', '') }}",
+                    icon: "{{ session.get('sweet_alert').get('icon', 'success') }}",
+                    confirmButtonText: "OK"
+                });
+                // Clear the sweet alert from session to avoid showing it again on refresh
+                fetch("{{ url_for('main.clear_sweet_alert') }}", {method: 'POST'});
+            {% endif %}
         });
     </script>
 
