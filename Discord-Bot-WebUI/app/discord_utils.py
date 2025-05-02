@@ -951,6 +951,11 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
 
     Constructs an embed payload with match details and triggers a POST request
     to the Discord API to create a thread under a specified channel.
+    
+    Includes duplicate prevention by:
+    1. Checking if the match already has a thread ID in the database
+    2. Checking existing threads in the Discord channel with a similar name
+    3. Using database locking to prevent race conditions
 
     Args:
         session (Session): The database session.
@@ -962,6 +967,26 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
     if not match:
         logger.error("No match provided for thread creation")
         return None
+        
+    # Check if match already has a thread - this prevents duplicate creation
+    if match.discord_thread_id and match.thread_created:
+        logger.info(f"Match {match.match_id} already has thread ID {match.discord_thread_id}")
+        return match.discord_thread_id
+
+    # Try to acquire a database lock on this match to prevent race conditions
+    # Use 'WITH FOR UPDATE SKIP LOCKED' to avoid deadlocks
+    locked_match = session.query(MLSMatch).filter(
+        MLSMatch.id == match.id
+    ).with_for_update(skip_locked=True).first()
+    
+    if not locked_match:
+        logger.warning(f"Could not acquire lock on match {match.match_id}, another process may be creating a thread")
+        return None
+        
+    # Double-check after lock acquisition
+    if locked_match.discord_thread_id and locked_match.thread_created:
+        logger.info(f"After lock: match {match.match_id} already has thread ID {locked_match.discord_thread_id}")
+        return locked_match.discord_thread_id
 
     guild_id = int(os.getenv('SERVER_ID'))
     mls_channel_id = os.getenv('MATCH_CHANNEL_ID')
@@ -982,42 +1007,67 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
     pst_time = utc_time.astimezone(ZoneInfo("America/Los_Angeles"))
 
     thread_name = f"{home_team_name} vs {away_team_name} - {pst_time.strftime('%Y-%m-%d')}"
-    embed_data = {
-        "title": f"Match Thread: {home_team_name} vs {away_team_name}",
-        "description": "**Let's go Sounders!**",
-        "color": 0x5B9A49,
-        "fields": [
-            {"name": "Date and Time", "value": pst_time.strftime("%m/%d/%Y %I:%M %p %Z"), "inline": False},
-            {"name": "Venue", "value": match.venue if match.venue else "TBD", "inline": False},
-            {"name": "Competition", "value": match.competition if match.competition else "Unknown", "inline": True},
-            {"name": "Broadcast", "value": "AppleTV", "inline": True},
-            {"name": "Home/Away", "value": "Home" if match.is_home_game else "Away", "inline": True}
-        ],
-        "thumbnail_url": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png",
-        "footer_text": "Use /predict to participate in match predictions!"
-    }
-    if match.summary_link:
-        embed_data["fields"].append({"name": "Match Summary", "value": f"[Click here]({match.summary_link})", "inline": True})
-    if match.stats_link:
-        embed_data["fields"].append({"name": "Match Statistics", "value": f"[Click here]({match.stats_link})", "inline": True})
-    if match.commentary_link:
-        embed_data["fields"].append({"name": "Live Commentary", "value": f"[Click here]({match.commentary_link})", "inline": True})
-
-    payload = {
-        "name": thread_name,
-        "type": 11,  # GUILD_PUBLIC_THREAD
-        "auto_archive_duration": 1440,
-        "message": {
-            "content": "Match thread created! Discuss the game here and make your predictions.",
-            "embed_data": embed_data
-        }
-    }
-
+    
+    # Check if a thread with a similar name already exists to prevent duplicates
     async with aiohttp.ClientSession() as http_session:
+        # Fetch existing threads in the channel
+        existing_threads_url = f"{Config.BOT_API_URL}/channels/{mls_channel_id}/threads/active"
+        existing_threads = await make_discord_request('GET', existing_threads_url, http_session)
+        
+        if existing_threads and isinstance(existing_threads, list):
+            for thread in existing_threads:
+                if 'name' in thread and thread['name'] == thread_name:
+                    logger.warning(f"Thread with name '{thread_name}' already exists, id: {thread['id']}")
+                    
+                    # Update the match with the existing thread ID
+                    match.discord_thread_id = thread['id']
+                    match.thread_created = True
+                    session.commit()
+                    
+                    return thread['id']
+                    
+        # No duplicate found, proceed with thread creation
+        embed_data = {
+            "title": f"Match Thread: {home_team_name} vs {away_team_name}",
+            "description": "**Let's go Sounders!**",
+            "color": 0x5B9A49,
+            "fields": [
+                {"name": "Date and Time", "value": pst_time.strftime("%m/%d/%Y %I:%M %p %Z"), "inline": False},
+                {"name": "Venue", "value": match.venue if match.venue else "TBD", "inline": False},
+                {"name": "Competition", "value": match.competition if match.competition else "Unknown", "inline": True},
+                {"name": "Broadcast", "value": "AppleTV", "inline": True},
+                {"name": "Home/Away", "value": "Home" if match.is_home_game else "Away", "inline": True}
+            ],
+            "thumbnail_url": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png",
+            "footer_text": "Use /predict to participate in match predictions!"
+        }
+        if match.summary_link:
+            embed_data["fields"].append({"name": "Match Summary", "value": f"[Click here]({match.summary_link})", "inline": True})
+        if match.stats_link:
+            embed_data["fields"].append({"name": "Match Statistics", "value": f"[Click here]({match.stats_link})", "inline": True})
+        if match.commentary_link:
+            embed_data["fields"].append({"name": "Live Commentary", "value": f"[Click here]({match.commentary_link})", "inline": True})
+
+        payload = {
+            "name": thread_name,
+            "type": 11,  # GUILD_PUBLIC_THREAD
+            "auto_archive_duration": 1440,
+            "message": {
+                "content": "Match thread created! Discuss the game here and make your predictions.",
+                "embed_data": embed_data
+            }
+        }
+
         response = await make_discord_request('POST', f"{Config.BOT_API_URL}/channels/{mls_channel_id}/threads", http_session, json=payload)
         if response and 'id' in response:
             thread_id = response['id']
             logger.info(f"Created thread '{thread_name}' with ID {thread_id}")
+            
+            # Save the thread ID to prevent future duplicates
+            match.discord_thread_id = thread_id
+            match.thread_created = True
+            session.commit()
+            
             return thread_id
         else:
             logger.error(f"Failed to create thread for MLS match {match.match_id}")

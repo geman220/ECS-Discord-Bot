@@ -182,28 +182,22 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
         Retries the task on database or general errors.
     """
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(_send_availability_message_async(scheduled_message_id))
-            
-            # Update the ScheduledMessage record based on the result.
-            message = session.query(ScheduledMessage).get(scheduled_message_id)
-            if message:
-                message.last_send_attempt = datetime.utcnow()
-                if result['success']:
-                    message.status = 'SENT'
-                    message.sent_at = datetime.utcnow()
-                    message.send_error = None
-                else:
-                    message.status = 'FAILED'
-                    message.send_error = result.get('message')
-            return result
-        finally:
-            loop.close()
-            # Ensure connection cleanup - explicitly call cleanup utility
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+        # Use async_to_sync utility instead of creating a new event loop
+        from app.api_utils import async_to_sync
+        result = async_to_sync(_send_availability_message_async(scheduled_message_id))
+        
+        # Update the ScheduledMessage record based on the result.
+        message = session.query(ScheduledMessage).get(scheduled_message_id)
+        if message:
+            message.last_send_attempt = datetime.utcnow()
+            if result['success']:
+                message.status = 'SENT'
+                message.sent_at = datetime.utcnow()
+                message.send_error = None
+            else:
+                message.status = 'FAILED'
+                message.send_error = result.get('message')
+        return result
     except SQLAlchemyError as e:
         logger.error(f"Database error sending availability message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
@@ -379,6 +373,11 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
 
     This task runs an asynchronous helper to update the RSVP on Discord and then updates the corresponding
     Availability record with the sync status and timestamp.
+    
+    Includes reaction state checks to:
+    1. Verify if the reaction change is needed before making the API call
+    2. Avoid redundant reaction updates if the current state matches the desired state
+    3. Check Discord's current reaction state when possible to ensure idempotency
 
     Args:
         session: Database session.
@@ -398,50 +397,113 @@ def update_discord_rsvp_task(self, session, match_id: int, discord_id: str, new_
         if discord_id is not None and not isinstance(discord_id, str):
             discord_id = str(discord_id)
             logger.debug(f"Converted discord_id to string: {discord_id}")
-        
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            data = {
-                'match_id': match_id,
-                'discord_id': discord_id,
-                'new_response': new_response,
-                'old_response': old_response
+            
+        # Check 1: Skip update if removing a reaction that doesn't exist
+        if old_response is None and new_response == 'no_response':
+            logger.info(f"Skipping Discord RSVP update - no previous reaction to remove")
+            return {
+                'success': True,
+                'message': 'No reaction change needed',
+                'skipped': True,
+                'sync_timestamp': datetime.utcnow().isoformat()
             }
             
-            logger.info(f"Sending Discord RSVP update for match {match_id}, user {discord_id}, response {new_response}")
-            result = loop.run_until_complete(_update_discord_rsvp_async(data))
+        # Check 2: Skip update if the new response is the same as the old response
+        if old_response == new_response and old_response is not None:
+            logger.info(f"Skipping Discord RSVP update - reaction already matches desired state")
             
-            # Update availability record with sync status
+            # Update availability record to show it's synced
             availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
             if availability:
-                availability.discord_sync_status = 'synced' if result['success'] else 'failed'
+                availability.discord_sync_status = 'synced'
                 availability.last_sync_attempt = datetime.utcnow()
-                availability.sync_error = None if result['success'] else result.get('message')
-                logger.info(f"Updated sync status for availability record: {availability.discord_sync_status}")
-
-            # If update failed and we're not on the last retry, try again
-            if not result['success'] and self.request.retries < self.max_retries - 1:
-                logger.warning(f"Discord RSVP update failed, will retry: {result.get('message', 'Unknown error')}")
-                raise self.retry(countdown=min(2 ** self.request.retries * 10, 300))  # Exponential backoff with max 5 minutes
-
-            # After updating reaction, also make sure embed is updated
-            if not result['success']:
-                logger.warning(f"Discord reaction update failed, will trigger embed update to ensure consistency")
-                # Trigger embed update, but don't wait for it
-                notify_discord_of_rsvp_change_task.delay(match_id)
-
+                availability.sync_error = None
+                
             return {
-                'success': result['success'],
-                'message': result['message'],
-                'sync_timestamp': datetime.utcnow().isoformat(),
-                'data': data
+                'success': True,
+                'message': 'Reaction already in desired state',
+                'skipped': True,
+                'sync_timestamp': datetime.utcnow().isoformat()
             }
-        finally:
-            loop.close()
-            # Ensure connection cleanup after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+            
+        # Check 3: Verify current reaction state from Discord if we can
+        if not self.request.retries:  # Only on first attempt to avoid API spam
+            try:
+                # Get the message ID for this match
+                match = session.query(Match).get(match_id)
+                if match and match.discord_message_id:
+                    # Use a direct API call to check current reactions
+                    import requests
+                    
+                    discord_api_url = "http://discord-bot:5001/api/get_user_reaction"
+                    params = {
+                        "message_id": match.discord_message_id,
+                        "discord_id": discord_id
+                    }
+                    
+                    response = requests.get(discord_api_url, params=params, timeout=3)
+                    if response.status_code == 200:
+                        current_reaction = response.json().get('current_reaction')
+                        
+                        # If current reaction matches desired state, skip update
+                        if current_reaction == new_response:
+                            logger.info(f"Skipping Discord RSVP update - verified reaction already matches")
+                            
+                            # Update availability record to show it's synced
+                            availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
+                            if availability:
+                                availability.discord_sync_status = 'synced'
+                                availability.last_sync_attempt = datetime.utcnow()
+                                availability.sync_error = None
+                                
+                            return {
+                                'success': True,
+                                'message': 'Verified reaction already matches desired state',
+                                'skipped': True,
+                                'current_state': current_reaction,
+                                'sync_timestamp': datetime.utcnow().isoformat()
+                            }
+            except Exception as e:
+                # Just log the error and continue - this is just an optimization
+                logger.warning(f"Error checking current reaction state: {str(e)}")
+        
+        # If we get here, we need to update the reaction
+        from app.api_utils import async_to_sync
+        data = {
+            'match_id': match_id,
+            'discord_id': discord_id,
+            'new_response': new_response,
+            'old_response': old_response
+        }
+        
+        logger.info(f"Sending Discord RSVP update for match {match_id}, user {discord_id}, response {new_response}")
+        result = async_to_sync(_update_discord_rsvp_async(data))
+        
+        # Update availability record with sync status
+        availability = session.query(Availability).filter_by(match_id=match_id, discord_id=discord_id).first()
+        if availability:
+            availability.discord_sync_status = 'synced' if result['success'] else 'failed'
+            availability.last_sync_attempt = datetime.utcnow()
+            availability.sync_error = None if result['success'] else result.get('message')
+            logger.info(f"Updated sync status for availability record: {availability.discord_sync_status}")
+
+        # If update failed and we're not on the last retry, try again
+        if not result['success'] and self.request.retries < self.max_retries - 1:
+            logger.warning(f"Discord RSVP update failed, will retry: {result.get('message', 'Unknown error')}")
+            raise self.retry(countdown=min(2 ** self.request.retries * 10, 300))  # Exponential backoff with max 5 minutes
+
+        # After updating reaction, also make sure embed is updated
+        if not result['success']:
+            logger.warning(f"Discord reaction update failed, will trigger embed update to ensure consistency")
+            # Trigger embed update, but don't wait for it
+            notify_discord_of_rsvp_change_task.delay(match_id)
+
+        return {
+            'success': result['success'],
+            'message': result['message'],
+            'sync_timestamp': datetime.utcnow().isoformat(),
+            'data': data
+        }
             
     except SQLAlchemyError as e:
         logger.error(f"Database error updating Discord RSVP: {str(e)}", exc_info=True)
@@ -458,6 +520,11 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
 
     This task fetches a Match record, calls an asynchronous helper to notify Discord,
     and then updates the Match record with the notification status and timestamp.
+    
+    Includes idempotency checks to:
+    1. Prevent redundant notifications within a short time window
+    2. Track the last notification to avoid spamming Discord
+    3. Compare current RSVP status with the last notification state
 
     Args:
         session: Database session.
@@ -473,29 +540,67 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
         match = session.query(Match).get(match_id)
         if not match:
             return {'success': False, 'message': f'Match {match_id} not found'}
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(_notify_discord_async(match_id))
             
-            match = session.query(Match).get(match_id)
-            if match:
-                match.last_discord_notification = datetime.utcnow()
-                match.notification_status = 'success' if result['success'] else 'failed'
-                match.last_notification_error = None if result['success'] else result.get('message')
-
+        # Idempotency check #1: Rate limiting - prevent notifications too close together
+        if match.last_discord_notification:
+            now = datetime.utcnow()
+            time_since_last_notification = now - match.last_discord_notification
+            
+            # Don't send notifications more than once per minute unless previous one failed
+            if time_since_last_notification.total_seconds() < 60 and match.notification_status == 'success':
+                logger.info(f"Skipping notification for match {match_id} - last notification was {time_since_last_notification.total_seconds()} seconds ago")
+                return {
+                    'success': True,
+                    'message': 'Notification skipped - rate limited',
+                    'skipped': True,
+                    'notification_timestamp': datetime.utcnow().isoformat(),
+                    'match_id': match_id
+                }
+                
+        # Idempotency check #2: RSVP state check - get current RSVPs
+        current_rsvps = session.query(Availability).filter_by(match_id=match_id).all()
+        
+        # Generate a hash of the current RSVP state to compare with the last notification
+        import hashlib
+        current_state = "|".join(sorted([
+            f"{rsvp.player_id}:{rsvp.response}:{rsvp.responded_at.isoformat() if rsvp.responded_at else 'None'}"
+            for rsvp in current_rsvps
+        ]))
+        current_state_hash = hashlib.md5(current_state.encode()).hexdigest()
+        
+        # Compare with last notification state (if available)
+        if match.last_notification_state_hash == current_state_hash and match.notification_status == 'success':
+            logger.info(f"Skipping notification for match {match_id} - RSVP state unchanged")
             return {
-                'success': result['success'],
-                'message': result['message'],
+                'success': True,
+                'message': 'Notification skipped - no changes',
+                'skipped': True,
                 'notification_timestamp': datetime.utcnow().isoformat(),
                 'match_id': match_id
             }
-        finally:
-            loop.close()
-            # Ensure connection cleanup after asyncio operations
-            from app.utils.db_connection_monitor import ensure_connections_cleanup
-            ensure_connections_cleanup()
+
+        # Proceed with notification since we've passed the idempotency checks
+        from app.api_utils import async_to_sync
+        result = async_to_sync(_notify_discord_async(match_id))
+        
+        # Update match with notification result
+        match = session.query(Match).get(match_id)
+        if match:
+            match.last_discord_notification = datetime.utcnow()
+            match.notification_status = 'success' if result['success'] else 'failed'
+            match.last_notification_error = None if result['success'] else result.get('message')
+            
+            # If successful, update the state hash to prevent redundant notifications
+            if result['success']:
+                match.last_notification_state_hash = current_state_hash
+                
+        return {
+            'success': result['success'],
+            'message': result['message'],
+            'notification_timestamp': datetime.utcnow().isoformat(),
+            'match_id': match_id,
+            'state_hash': current_state_hash
+        }
             
     except SQLAlchemyError as e:
         logger.error(f"Database error notifying Discord of RSVP change: {str(e)}", exc_info=True)
