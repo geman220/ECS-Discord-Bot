@@ -27,11 +27,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" class="template-customizer-theme-css" />
     <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
     
-    <!-- ECS Design System CSS - Single load with cache-busting -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}?v={{ range(1, 1000000) | random }}" />
-    
-    <!-- Unified Responsive System - replacing all previous mobile fixes -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-system.css') }}?v={{ range(1, 1000000) | random }}" />
+    <!-- ECS CSS Architecture - with cache-busting -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -307,6 +306,8 @@
     
     <!-- Dropdown Menu Fix -->
     <link rel="stylesheet" href="{{ url_for('static', filename='custom_css/dropdown-menu-fix.css') }}">
+    
+    <!-- Custom Toggle Switch Fix removed -->
     
     {% block custom_css %}
     {% endblock %}
@@ -774,6 +775,8 @@
     
     <!-- Mobile menu fix for iOS and other mobile devices -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
+    
+    <!-- Toggle switch fix removed -->
     
     <!-- Initialize buttons consistently -->
     <script>
