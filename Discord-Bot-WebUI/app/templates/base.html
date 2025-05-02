@@ -31,6 +31,11 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}?v={{ range(1, 1000000) | random }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-tables.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-navbar-fix.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/empty-cell-fix.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-dropdown-fix.css') }}?v={{ range(1, 1000000) | random }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -419,6 +424,9 @@
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
     <script src="{{ url_for('static', filename='js/responsive-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
     
+    <!-- Responsive Tables JS - for mobile card views -->
+    <script src="{{ url_for('static', filename='js/responsive-tables.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    
     <!-- ECS Design System JS -->
     <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
     
@@ -785,6 +793,9 @@
     
     <!-- Mobile menu fix for iOS and other mobile devices -->
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
+    
+    <!-- Mobile table enhancement for better display -->
+    <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}?v={{ range(1, 1000000) | random }}"></script>
     
     <!-- Toggle switch fix removed -->
     

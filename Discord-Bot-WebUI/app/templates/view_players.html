@@ -11,34 +11,36 @@
 
     <!-- Actions -->
     <div class="row mb-2">
-        <div class="col-12 d-flex align-items-center">
-            <!-- Update Players Button -->
-            <form method="POST" action="{{ url_for('players.update_players') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-success me-2">
-                    <i data-feather="refresh-cw"></i> Update Players
-                </button>
-            </form>
-
-            <!-- Create Player Button -->
-            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createPlayerModal">
-                <i data-feather="plus"></i> Create Player
-            </button>
-
-            <!-- Search Form -->
-            <form method="GET" action="{{ url_for('players.view_players') }}" class="d-flex align-items-center flex-grow-1">
+        <div class="col-12 d-flex align-items-center mobile-action-container">
+            <!-- Search Form - First on mobile -->
+            <form method="GET" action="{{ url_for('players.view_players') }}" class="d-flex align-items-center flex-grow-1 mobile-search-container">
                 <div class="input-group">
                     <input type="text" class="form-control" name="search" placeholder="Search by name, email, phone, etc." value="{{ search_term }}">
                     <button class="btn btn-primary" type="submit"><i data-feather="search"></i></button>
                     <button class="btn btn-secondary" type="button" onclick="clearSearch()"><i data-feather="x"></i></button>
                 </div>
             </form>
+            
+            <div class="mobile-button-container">
+                <!-- Update Players Button -->
+                <form method="POST" action="{{ url_for('players.update_players') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success me-2">
+                        <i data-feather="refresh-cw"></i> Update Players
+                    </button>
+                </form>
+
+                <!-- Create Player Button -->
+                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createPlayerModal">
+                    <i data-feather="plus"></i> Create Player
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Players Table -->
     <div class="table-responsive">
-        <table class="table table-striped">
+        <table class="table table-striped mobile-card-table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -53,13 +55,13 @@
             <tbody>
                 {% for player in players %}
                 <tr>
-                    <td>{{ player.name }}</td>
-                    <td>{{ player.user.email }}</td>
-                    <td>{{ player.phone }}</td>
-                    <td>{{ player.jersey_size }}</td>
-                    <td>{{ player.primary_league.name if player.primary_league else 'N/A' }}</td>
-                    <td>{{ player.other_leagues|map(attribute='name')|join(', ') }}</td>
-                    <td>
+                    <td data-label="Name">{{ player.name }}</td>
+                    <td data-label="Email">{{ player.user.email }}</td>
+                    <td data-label="Phone">{{ player.phone }}</td>
+                    <td data-label="Jersey Size">{{ player.jersey_size }}</td>
+                    <td data-label="Primary League">{{ player.primary_league.name if player.primary_league else 'N/A' }}</td>
+                    <td data-label="Other Leagues">{{ player.other_leagues|map(attribute='name')|join(', ') }}</td>
+                    <td data-label="Actions" class="table-actions">
                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn btn-sm btn-primary">View</a>
                         <button type="button" class="btn btn-sm btn-danger" onclick="confirmDeletePlayer({{ player.id }})">Delete</button>
                     </td>
