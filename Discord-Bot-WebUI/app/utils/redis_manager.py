@@ -92,11 +92,11 @@ class RedisManager:
                     host=redis_host,
                     port=redis_port,
                     db=redis_db,
-                    socket_timeout=1.5,  # Reduced to detect problems faster
-                    socket_connect_timeout=1,  # Reduced to fail faster
+                    socket_timeout=2.0,  # Increased to allow slightly longer operations
+                    socket_connect_timeout=1.5,  # Increased to allow for network latency
                     decode_responses=True,
-                    health_check_interval=30,  # Less frequent checks to reduce overhead
-                    max_connections=20,  # Lower max connections to reduce memory usage
+                    health_check_interval=60,  # Increased to reduce overhead
+                    max_connections=30,  # Increased for 2 CPU / 4GB RAM environment
                     retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
@@ -133,9 +133,9 @@ class RedisManager:
         import time
         current_time = time.time()
         
-        # Periodically check and close idle connections (every 5 minutes)
+        # Periodically check and close idle connections (every 10 minutes)
         if hasattr(self, '_last_connection_cleanup'):
-            if current_time - self._last_connection_cleanup > 300:  # 5 minutes
+            if current_time - self._last_connection_cleanup > 600:  # 10 minutes (increased from 5)
                 self._cleanup_idle_connections()
                 self._last_connection_cleanup = current_time
         else:
