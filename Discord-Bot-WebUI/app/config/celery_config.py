@@ -58,7 +58,8 @@ class CeleryConfig:
 
     # Worker Settings
     worker_prefetch_multiplier = 1
-    worker_max_tasks_per_child = 50
+    worker_max_tasks_per_child = 100  # Increased from 50 - restart worker after 100 tasks
+    worker_max_memory_per_child = 150000  # 150MB memory limit per worker
     worker_concurrency = 4
     broker_connection_retry_on_startup = True
 

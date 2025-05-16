@@ -20,9 +20,10 @@ if __name__ == '__main__':
             '--pool=eventlet',
             '--concurrency=4',
             '--prefetch-multiplier=1',
-            '--max-tasks-per-child=50',
+            '--max-tasks-per-child=100',
             '--time-limit=1800',
-            '--soft-time-limit=1500'
+            '--soft-time-limit=1500',
+            '--max-memory-per-child=150000'
         ])
     except Exception as e:
         logger.error(f"Failed to start player sync worker: {e}", exc_info=True)

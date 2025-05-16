@@ -86,17 +86,17 @@ class RedisManager:
                 redis_port = int(os.getenv('REDIS_PORT', '6379'))
                 redis_db = int(os.getenv('REDIS_DB', '0'))
 
-                # Create a Redis connection pool with proper settings
+                # Create a Redis connection pool with optimized settings compatible with installed version
                 from redis import ConnectionPool
                 pool = ConnectionPool(
                     host=redis_host,
                     port=redis_port,
                     db=redis_db,
-                    socket_timeout=2,  # Reduced from 5 to detect problems faster
-                    socket_connect_timeout=2,  # Reduced from 5 to fail faster
+                    socket_timeout=1.5,  # Reduced to detect problems faster
+                    socket_connect_timeout=1,  # Reduced to fail faster
                     decode_responses=True,
-                    health_check_interval=15,  # More frequent health checks
-                    max_connections=30,  # Increased to handle more connections
+                    health_check_interval=30,  # Less frequent checks to reduce overhead
+                    max_connections=20,  # Lower max connections to reduce memory usage
                     retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
@@ -125,10 +125,22 @@ class RedisManager:
         Get the Redis client.
 
         If the client is uninitialized or the connection is not healthy, reinitialize it.
+        Periodically checks and closes idle connections to reduce memory usage.
 
         Returns:
             A Redis client instance.
         """
+        import time
+        current_time = time.time()
+        
+        # Periodically check and close idle connections (every 5 minutes)
+        if hasattr(self, '_last_connection_cleanup'):
+            if current_time - self._last_connection_cleanup > 300:  # 5 minutes
+                self._cleanup_idle_connections()
+                self._last_connection_cleanup = current_time
+        else:
+            self._last_connection_cleanup = current_time
+            
         try:
             if self._client is None:
                 self._initialize_client()
@@ -163,6 +175,29 @@ class RedisManager:
                 logger.error("Created dummy Redis client that will silently fail")
         
         return self._client
+        
+    def _cleanup_idle_connections(self):
+        """
+        Clean up idle Redis connections to prevent memory leaks.
+        This helps reduce overall memory usage by the Redis connection pool.
+        Uses only compatible methods with the current Redis version.
+        """
+        if not self._client or not hasattr(self._client, 'connection_pool'):
+            return
+            
+        try:
+            # Force connection pool to release connections
+            pool = self._client.connection_pool
+            if hasattr(pool, 'disconnect'):
+                # Simple disconnect call that's available in most Redis versions
+                logger.debug("Running Redis connection pool cleanup")
+                pool.disconnect()
+                
+                # Reinitialize the client to ensure a clean state
+                self._initialize_client()
+                logger.debug("Redis connection pool cleaned and reinitialized")
+        except Exception as e:
+            logger.warning(f"Error during Redis connection cleanup: {e}")
         
     def get_connection_stats(self):
         """
