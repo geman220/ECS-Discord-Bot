@@ -21,7 +21,7 @@ if __name__ == '__main__':
             '--pool=eventlet',
             '--concurrency=16',
             '--prefetch-multiplier=4',
-            '--max-tasks-per-child=50',
+            '--max-tasks-per-child=100',
             '--time-limit=1800',
             '--soft-time-limit=1500',
             '--max-memory-per-child=150000'

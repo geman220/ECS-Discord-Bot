@@ -15,10 +15,12 @@ if __name__ == '__main__':
         logger.info("Starting Discord Celery worker")
         celery.worker_main([
             'worker',
-            '--loglevel=DEBUG',
+            '--loglevel=INFO',
             '-Q', 'discord',
             '--pool=prefork',
             '--concurrency=4',
+            '--max-tasks-per-child=100',
+            '--max-memory-per-child=150000'
         ])
     except Exception as e:
         logger.error(f"Failed to start worker: {e}", exc_info=True)
