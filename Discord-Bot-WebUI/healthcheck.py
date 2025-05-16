@@ -20,7 +20,7 @@ CACHE_TTL = 15  # Cache result for 15 seconds
 
 def check_redis_health():
     """
-    Check Redis health using a very simple approach that uses minimal resources.
+    Check Redis health using the Redis Python library.
     
     Returns:
         bool: True if Redis responds to a ping, False otherwise.
@@ -38,35 +38,17 @@ def check_redis_health():
         pass
     
     try:
-        # Use the redis-cli command to check Redis health with minimal overhead
-        # This avoids loading the entire Redis Python library
-        import subprocess
+        # Use Redis Python library instead of redis-cli command
+        import redis
         
         # Get Redis host and port from environment or use defaults
         redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
         
-        # Parse the Redis URL (simple parsing)
-        if redis_url.startswith('redis://'):
-            parts = redis_url[8:].split('/')
-            host_port = parts[0].split(':')
-            host = host_port[0] or 'redis'
-            port = host_port[1] if len(host_port) > 1 else '6379'
-        else:
-            host = 'redis'
-            port = '6379'
+        # Connect to Redis with a short timeout
+        r = redis.from_url(redis_url, socket_timeout=1)
         
-        # Use timeout to ensure the command completes quickly
-        process = subprocess.Popen(
-            ["timeout", "1", "redis-cli", "-h", host, "-p", port, "ping"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        
-        # Wait for the process to complete with a timeout
-        stdout, stderr = process.communicate(timeout=1)
-        
-        # Check if the output contains "PONG"
-        result = stdout.strip().lower() == b'pong'
+        # Ping Redis to check if it's responsive
+        result = r.ping()
         
         # Cache the result
         try:
