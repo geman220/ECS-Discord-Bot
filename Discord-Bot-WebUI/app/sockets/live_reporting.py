@@ -138,6 +138,27 @@ def handle_live_connect():
     2. JWT token as a query parameter
     3. Fallback to a development user ID if in development mode
     """
+    # Rate limiting for connections (max 5 per minute per IP)
+    client_ip = request.remote_addr
+    try:
+        # Only enable rate limiting in production
+        if not current_app.config.get('DEBUG', False):
+            from app.utils.redis_manager import RedisManager
+            redis_client = RedisManager().client
+            rate_limit_key = f"socket_rate_limit:{client_ip}"
+            
+            # Get current count
+            count = redis_client.get(rate_limit_key)
+            if count and int(count) > 5:
+                logger.warning(f"Rate limit exceeded for {client_ip}")
+                return False
+            
+            # Increment counter with 60 second expiry
+            redis_client.incr(rate_limit_key)
+            redis_client.expire(rate_limit_key, 60)
+    except Exception as e:
+        logger.error(f"Error in rate limiting: {e}")
+    
     try:
         # Log headers for debugging
         headers_dict = dict(request.headers)

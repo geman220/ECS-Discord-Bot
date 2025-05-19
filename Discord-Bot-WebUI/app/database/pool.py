@@ -226,21 +226,21 @@ class RateLimitedPool(QueuePool):
 # ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': 5,            # Reduced from 10 to 5 to prevent connection exhaustion
-    'max_overflow': 3,         # Reduced from 5 to 3 to limit max connections
-    'pool_recycle': 30,        # Reduced from 60 to 30 seconds to recycle connections faster
-    'pool_timeout': 5,         # Reduced from 10 to 5 seconds to fail faster on timeout
+    'pool_size': 6,            # Increased to utilize 2 CPUs effectively
+    'max_overflow': 4,         # Increased to handle traffic spikes better
+    'pool_recycle': 30,        # Keep this value for connection health
+    'pool_timeout': 5,         # Keep this value for failing fast
     'poolclass': RateLimitedPool,
     'pool_use_lifo': True,
     'connect_args': {
         'connect_timeout': 3,
         'options': (
-            '-c statement_timeout=5000 '
-            '-c idle_in_transaction_session_timeout=3000 '  # Reduced from 5000ms to 3000ms
-            '-c lock_timeout=2000 '
-            '-c tcp_keepalives_idle=60 '                  # Send TCP keepalive after 60s of inactivity
-            '-c tcp_keepalives_interval=60 '              # Resend keepalives every 60s
-            '-c tcp_keepalives_count=3'                   # Drop connection after 3 failed keepalives
+            '-c statement_timeout=8000 '                   # Increased from 5000ms to 8000ms
+            '-c idle_in_transaction_session_timeout=5000 ' # Increased from 3000ms to 5000ms
+            '-c lock_timeout=3000 '                        # Increased from 2000ms to 3000ms
+            '-c tcp_keepalives_idle=60 '                   # Keep TCP keepalive after 60s of inactivity
+            '-c tcp_keepalives_interval=60 '               # Keep resending keepalives every 60s
+            '-c tcp_keepalives_count=3'                    # Keep drop connection after 3 failed keepalives
         )
     },
     'echo': False,

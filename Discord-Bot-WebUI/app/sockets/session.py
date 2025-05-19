@@ -32,9 +32,9 @@ def socket_session(engine):
     """
     session = SessionLocal(bind=engine)
     try:
-        # Set a local statement timeout of 5 seconds.
-        session.execute(text("SET LOCAL statement_timeout = '5s'"))
-        session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '10s'"))
+        # Increased timeouts for 2 CPU / 4GB RAM environment
+        session.execute(text("SET LOCAL statement_timeout = '10s'"))
+        session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '15s'"))
         yield session
         try:
             session.commit()

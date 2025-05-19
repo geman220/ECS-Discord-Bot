@@ -67,8 +67,10 @@ def configure_static_serving(app):
                 response.headers['Content-Type'] = content_type
 
             # Set additional headers for caching and security.
+            # Add immutable flag for static assets that won't change
+            is_immutable = filename.endswith(('.js', '.css', '.woff', '.woff2', '.ttf', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico'))
             response.headers.update({
-                'Cache-Control': 'public, max-age=31536000',
+                'Cache-Control': f'public, max-age=31536000{", immutable" if is_immutable else ""}',
                 'X-Content-Type-Options': 'nosniff',
                 'Access-Control-Allow-Origin': '*'
             })
