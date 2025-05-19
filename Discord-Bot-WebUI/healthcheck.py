@@ -5,26 +5,66 @@ Healthcheck Script
 
 This script checks the health of the Redis server by attempting to ping it.
 If the check passes, the script exits with a status code of 0; otherwise, it exits with 1.
+
+Highly optimized version to reduce CPU usage with minimal dependencies.
 """
 
 import os
 import sys
-from redis import Redis
+import time
+
+# Shared cache between process invocations (via file system)
+CACHE_FILE = "/tmp/redis_health_status"
+CACHE_TTL = 15  # Cache result for 15 seconds
 
 
 def check_redis_health():
     """
-    Check the health of the Redis server.
-
+    Check Redis health using the Redis Python library.
+    
     Returns:
         bool: True if Redis responds to a ping, False otherwise.
     """
+    # Try to use cached result first to avoid repeated checks
     try:
+        if os.path.exists(CACHE_FILE):
+            mtime = os.path.getmtime(CACHE_FILE)
+            if time.time() - mtime < CACHE_TTL:
+                with open(CACHE_FILE, 'r') as f:
+                    cached_status = f.read().strip()
+                    return cached_status == "OK"
+    except:
+        # Ignore any errors with the cache file
+        pass
+    
+    try:
+        # Use Redis Python library instead of redis-cli command
+        import redis
+        
+        # Get Redis host and port from environment or use defaults
         redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
-        redis_client = Redis.from_url(redis_url, socket_timeout=2)
-        return redis_client.ping()
+        
+        # Connect to Redis with a short timeout
+        r = redis.from_url(redis_url, socket_timeout=1)
+        
+        # Ping Redis to check if it's responsive
+        result = r.ping()
+        
+        # Cache the result
+        try:
+            with open(CACHE_FILE, 'w') as f:
+                f.write("OK" if result else "FAIL")
+        except:
+            pass
+            
+        return result
     except Exception as e:
-        print(f"Redis healthcheck failed: {str(e)}")
+        try:
+            # Cache the failure
+            with open(CACHE_FILE, 'w') as f:
+                f.write("FAIL")
+        except:
+            pass
         return False
 
 

@@ -337,6 +337,28 @@ def clean_zombie_tasks():
     """
     logger.info("Running zombie task cleanup")
     
+    # Force garbage collection to clean up any lingering objects
+    import gc
+    gc.collect()
+    
+    # Check memory usage first
+    try:
+        from app.utils.memory_monitor import check_memory_usage
+        memory_info = check_memory_usage()
+        if memory_info:
+            logger.info(f"Current memory usage: {memory_info['memory_mb']:.1f}MB")
+    except ImportError:
+        logger.debug("Memory monitor not available")
+    
+    # Clean up database connection pool
+    try:
+        from app.core import db
+        if hasattr(db, 'engine') and hasattr(db.engine, 'dispose'):
+            logger.info("Refreshing database connection pool")
+            db.engine.dispose()
+    except Exception as e:
+        logger.error(f"Error disposing database engine: {e}")
+    
     # Detect zombies first
     zombies = task_monitor.detect_zombie_tasks()
     logger.info(f"Found {len(zombies)} zombie tasks")
@@ -359,6 +381,16 @@ def clean_zombie_tasks():
             # Log the full stack trace for the first few orphaned sessions
             if idx < 3:  # Only log details for first 3 sessions to avoid log spam
                 logger.warning(f"Stack trace for session {session['session_id']}:\n{session['stack_trace']}")
+    
+    # Clean up Redis connections
+    try:
+        from app.utils.redis_manager import RedisManager
+        redis_manager = RedisManager()
+        if hasattr(redis_manager, '_cleanup_idle_connections'):
+            logger.info("Cleaning up idle Redis connections")
+            redis_manager._cleanup_idle_connections()
+    except Exception as e:
+        logger.error(f"Error cleaning Redis connections: {e}")
     
     return {
         "zombie_count": len(zombies),

@@ -13,8 +13,9 @@ import logging
 import os
 import time
 import hashlib
+import gc
 from flask import current_app
-from celery.signals import worker_process_init, worker_process_shutdown
+from celery.signals import worker_process_init, worker_process_shutdown, task_prerun, task_postrun
 from app.core import db, celery
 
 logger = logging.getLogger(__name__)
@@ -69,10 +70,11 @@ def init_celery(app=None):
         broker_connection_retry_on_startup=True,
         worker_prefetch_multiplier=1,
         task_track_started=True,
-        task_time_limit=30 * 60,
-        task_soft_time_limit=15 * 60,
-        worker_max_tasks_per_child=50,
-        worker_max_memory_per_child=150000
+        task_time_limit=45 * 60,          # Increased from 30 to 45 minutes with more resources
+        task_soft_time_limit=30 * 60,     # Increased from 15 to 30 minutes with more resources
+        worker_max_tasks_per_child=100,   # Increased from 50 to 100 with more resources
+        worker_max_memory_per_child=300000, # Increased from 150000 to 300000 with more RAM
+        worker_concurrency=2              # Set to match the number of CPUs
     )
 
     return celery
@@ -104,6 +106,37 @@ def cleanup_worker_process(**kwargs):
     """
     if hasattr(db, 'engine'):
         db.engine.dispose()
+        
+    # Clean up Redis connections
+    try:
+        from app.utils.redis_manager import RedisManager
+        redis_manager = RedisManager()
+        if hasattr(redis_manager, 'shutdown'):
+            redis_manager.shutdown()
+    except Exception as e:
+        logger.error(f"Error cleaning up Redis connections: {e}")
+        
+    # Force garbage collection
+    gc.collect()
+    
+@task_postrun.connect
+def cleanup_after_task(sender=None, task_id=None, task=None, **kwargs):
+    """
+    Cleanup resources after each task to reduce memory usage.
+    """
+    try:
+        # Run garbage collection cycle for long-running workers
+        gc.collect()
+        
+        # Check memory usage if monitor is available
+        try:
+            from app.utils.memory_monitor import check_memory_usage
+            check_memory_usage()
+        except ImportError:
+            pass
+            
+    except Exception as e:
+        logger.error(f"Error in post-task cleanup: {e}")
 
 # File versioning cache system for static assets
 class StaticFileVersioning:
@@ -114,7 +147,7 @@ class StaticFileVersioning:
     def __init__(self):
         self.version_cache = {}
         self.last_cache_clear = time.time()
-        self.cache_lifetime = 3600  # 1 hour
+        self.cache_lifetime = 86400  # 24 hours (increased from 1 hour)
         
     def get_version(self, filepath, method='mtime'):
         """
@@ -152,9 +185,15 @@ class StaticFileVersioning:
                     version = str(int(os.path.getmtime(full_path)))
                 elif method == 'hash':
                     # Use a hash of the file content
-                    with open(full_path, 'rb') as f:
-                        content = f.read()
-                        version = hashlib.md5(content).hexdigest()[:8]
+                    # Skip large files to avoid memory issues
+                    file_size = os.path.getsize(full_path)
+                    if file_size > 10 * 1024 * 1024:  # Skip files larger than 10MB
+                        # Use mtime instead for large files
+                        version = str(int(os.path.getmtime(full_path)))
+                    else:
+                        with open(full_path, 'rb') as f:
+                            content = f.read()
+                            version = hashlib.md5(content).hexdigest()[:8]
                 else:
                     # Fallback to current timestamp
                     version = str(int(time.time()))
