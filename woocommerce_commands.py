@@ -14,6 +14,7 @@ import json
 import datetime
 import urllib
 import difflib
+from dateutil import parser
 from common import (
     server_id, 
     has_required_wg_role, 
@@ -38,6 +39,8 @@ from database import (
     reset_woo_orders_db,
 )
 import logging
+
+debug = False
 
 logger = logging.getLogger(__name__)
 
@@ -111,17 +114,17 @@ async def get_product_variations(product_id):
     return variations if isinstance(variations, list) else []
 
 async def get_orders_for_product_ids(product_ids):
-    print(f"[DEBUG] get_orders_for_product_ids called with: {product_ids}")
+    if debug: print(f"[DEBUG] get_orders_for_product_ids called with: {product_ids}")
     
     if len(product_ids) == 1:
         all_orders = []
         for product_id in product_ids:
             orders = await get_single_product_orders_by_id(product_id)
-            print(f"[DEBUG] Orders for single product_id {product_id}: {len(orders)} orders")
+            if debug: print(f"[DEBUG] Orders for single product_id {product_id}: {len(orders)} orders")
             all_orders.extend(orders)
     else:
         all_orders = await get_all_orders()
-        print(f"[DEBUG] Total orders retrieved from get_all_orders: {len(all_orders)}")
+        if debug: print(f"[DEBUG] Total orders retrieved from get_all_orders: {len(all_orders)}")
 
     relevant_orders = []
     for order in all_orders:
@@ -131,15 +134,17 @@ async def get_orders_for_product_ids(product_ids):
             if product_in_order in product_ids:
                 append_line = True
                 meta_data = item.get("meta_data", [])
+                if debug: print(f"[DEBUG] Item meta_data: {meta_data}")
                 for meta in meta_data:
-                    if meta.get("key") == "_restock_refunded_items": 
-                        append_line = False
+                    if meta["key"] == "_reduced_stock": 
+                        if meta["value"] == "0":
+                            append_line = False
                 if append_line:
                     relevant_orders.append(order)
-                    print(f"[DEBUG] Appended order id: {order.get('id')}")
+                    if debug: print(f"[DEBUG] Appended order id: {order.get('id')}")
                 break
 
-    print(f"[DEBUG] Returning {len(relevant_orders)} relevant orders.")
+    if debug: print(f"[DEBUG] Returning {len(relevant_orders)} relevant orders.")
     return relevant_orders
 
 async def get_single_product_orders_by_id(product_id):
@@ -193,33 +198,29 @@ async def get_all_orders():
     return all_orders
 
 async def generate_csv_from_orders(orders, product_ids):
-    print(f"[DEBUG] Starting CSV generation for {len(orders)} orders and product_ids: {product_ids}")
+    if debug: print(f"[DEBUG] Starting CSV generation for {len(orders)} orders and product_ids: {product_ids}")
     csv_output = io.StringIO()
     csv_writer = csv.writer(csv_output)
 
     headers = [
         "Product Name",
-        "Customer First Name",
-        "Customer Last Name",
-        "Customer Email",
-        "Order Date Paid",
-        "Order Line Item Quantity",
-        "Order Line Item Price",
-        "Order Number",
-        "Order Status",
-        "Order Customer Note",
-        "Product Variation Name",
+        "First Name",
+        "Last Name",
+        "Email",
+        "Order Date",
+        "Quantity",
+        "Price",
+        "Order #",
+        "Status",
+        "Note",
+        "Variation",
         "Billing Address",
         "Alias",
-        "Alias Email",
         "Alias Description",
-        "Alias 1 email",
         "Alias 1 recipient",
         "Alias 1 type",
-        "Alias 2 email",
         "Alias 2 recipient",
-        "Alias 2 type",
-        "Product Variation Detail",
+        "Alias 2 type"
     ]
     csv_writer.writerow(headers)
 
@@ -233,6 +234,16 @@ async def generate_csv_from_orders(orders, product_ids):
         for item in line_items:
             product_in_order = item.get("product_id", None)
             if product_in_order in product_ids:
+                # confirm in the line-item metadata the quantity reduced from stock
+                # to account for line-item partial returns See order # 1005693
+                item_quantity = ""
+                item_meta_data = item.get("meta_data")
+                if item_meta_data:
+                    for meta in item_meta_data:
+                        if (meta["key"]=="_reduced_stock"):
+                            item_quantity = meta["value"]
+                else:
+                    item_quantity = item.get("quantity")
                 # Populate the row with initial values.
                 row = [
                     item.get("name", ""),
@@ -240,65 +251,61 @@ async def generate_csv_from_orders(orders, product_ids):
                     billing.get("last_name", ""),
                     billing.get("email", ""),
                     order.get("date_paid", ""),
-                    item.get("quantity", ""),
+                    item_quantity,
                     item.get("price", ""),
                     order.get("id", ""),
                     order.get("status", ""),
                     order.get("customer_note", ""),
                     item.get("variation_name", ""),
-                    billing.get("address_1", ""),
+                    billing.get("address_1", "") + ", " + billing.get("city") + " " + billing.get("state"),
                     "",  # alias placeholder
-                    "",  # alias email placeholder
                     "",  # alias description placeholder
-                    "",  # alias 1 email placeholder
                     "",  # alias 1 recipient placeholder
                     "",  # alias 1 type placeholder
-                    "",  # alias 2 email placeholder
                     "",  # alias 2 recipient placeholder
                     "",  # alias 2 type placeholder
                 ]
-                variation_detail = extract_variation_detail(order)
-                row.append(variation_detail)
+#                variation_detail = extract_variation_detail(order)
+#                row.append(variation_detail)
 
                 rows.append(row)
-                print(f"[DEBUG] Processed order id {order.get('id')} into CSV row.")
-                previous_email = billing.get("email", "")
+                if debug: print(f"[DEBUG] Processed order id {order.get('id')} into CSV row.")
+                #previous_email = billing.get("email", "")
                 break
 
-    print(f"[DEBUG] Sorting {len(rows)} rows.")
+    if debug: print(f"[DEBUG] Sorting {len(rows)} rows.")
     rows.sort(key=lambda x: (x[3].lower(), int(x[7])))
 
     previous_email = ""  # Reset for alias logic.
     for row in rows:
-        if row[3] != previous_email:
+        if row[3].lower() != previous_email:
             alias = f"ecstix-{row[7]}@weareecs.com"
             alias_description = f"{row[0]} entry for {row[1]} {row[2]}"
             alias_1_recipient = row[3]
             alias_2_recipient = "travel@weareecs.com"
-            alias_type = "MEMBER"
+            alias_type_member = "MEMBER"
+            alias_type_owner = "OWNER"
         else:
             alias = ""
             alias_description = ""
             alias_1_recipient = ""
             alias_2_recipient = ""
-            alias_type = ""
+            alias_type_member = ""
+            alias_type_owner = ""
 
         row[12] = alias
-        row[13] = alias
-        row[14] = alias_description
-        row[15] = alias
-        row[16] = alias_1_recipient
-        row[17] = alias_type
-        row[18] = alias
-        row[19] = alias_2_recipient
-        row[20] = alias_type
+        row[13] = alias_description
+        row[14] = alias_1_recipient
+        row[15] = alias_type_member
+        row[16] = alias_2_recipient
+        row[17] = alias_type_owner
 
-        previous_email = row[3]
+        previous_email = row[3].lower()
 
     for row in rows:
         csv_writer.writerow(row)
 
-    print(f"[DEBUG] CSV generation completed. Total rows written: {len(rows)}")
+    if debug: print(f"[DEBUG] CSV generation completed. Total rows written: {len(rows)}")
     return csv_output
 
 async def generate_csv_for_product_variations(product_name):
@@ -321,7 +328,7 @@ async def generate_csv_for_product_variations(product_name):
     if not all_orders:
         raise Exception("No orders found for product variations")
 
-    csv_output = await generate_csv_from_orders(all_orders)
+    csv_output = await generate_csv_from_orders(all_orders, product_id)
     return csv_output
 
 class WooCommerceCommands(commands.Cog):
@@ -340,29 +347,64 @@ class WooCommerceCommands(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         home_tickets_category = "765197885"
         away_tickets_category = "765197886"
+        decoration = ""
+        compare_date = datetime.datetime.now()
         current_year = datetime.datetime.now().year
 
         home_tickets = []
         home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&per_page=50&search={current_year}")
         home_tickets = await call_woocommerce_api(home_tickets_url)
+        if home_tickets is not None:
+            home_tickets.sort(key=lambda x: parser.parse(x['name'], fuzzy=True))
 
-        message_content = "🏠 **Home Tickets:**\n"
-        message_content += (
-            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in home_tickets) 
-            if home_tickets
-            else "No home tickets found."
-        )
+        message_content = "🏠 **Home Tickets:** (sold, remaining)\n"
+        if home_tickets:
+            for product in home_tickets:
+                compare_date = parser.parse(product['name'], fuzzy=True)
+                if compare_date - datetime.datetime.now() <= datetime.timedelta(days=-1):
+                    continue
+                elif compare_date - datetime.datetime.now() <= datetime.timedelta(days=14):
+                    decoration = "**"
+                else:
+                    decoration = ""
+                message_content += (
+                (f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"))
+        else:
+            message_content += ("No home tickets found.\n")
+
+#        message_content += (
+#            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in home_tickets) 
+#            if home_tickets
+#            else "No home tickets found."
+#        )
 
         away_tickets = []
         away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&per_page=50&search={current_year}")
         away_tickets = await call_woocommerce_api(away_tickets_url)
+        if away_tickets is not None:
+            away_tickets.sort(key=lambda x: parser.parse(x['name'], fuzzy=True))
 
-        message_content += "\n\n🚗 **Away Tickets:**\n"
-        message_content += (
-            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in away_tickets)
-            if away_tickets
-            else "No away tickets found."
-        )
+        message_content += "\n🚗 **Away Tickets:** (sold, remaining)\n"
+        if away_tickets:
+            for product in away_tickets:
+                compare_date = parser.parse(product['name'], fuzzy=True)
+                if compare_date - datetime.datetime.now() <= datetime.timedelta(days=-1):
+                    continue
+                elif compare_date - datetime.datetime.now() <= datetime.timedelta(days=14):
+                    decoration = "**"
+                else:
+                    decoration = ""
+                message_content += (
+                (f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"))
+        else:
+            message_content += ("No away tickets found.\n")
+
+#        message_content += "\n🚗 **Away Tickets:**\n"
+#        message_content += (
+#            "\n".join(f"{product['name']} ({product['stock_quantity']})" for product in away_tickets)
+#            if away_tickets
+#            else "No away tickets found."
+#        )
 
         await interaction.followup.send(message_content, ephemeral=True)
         
@@ -372,7 +414,7 @@ class WooCommerceCommands(commands.Cog):
     @app_commands.describe(product_title="Title of the product")
     @app_commands.guilds(discord.Object(id=server_id))
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
-        print(f"[DEBUG] Received command for product_title: {product_title}")
+        if debug: print(f"[DEBUG] Received command for product_title: {product_title}")
 
         if not await has_required_wg_role(interaction):
             await interaction.response.send_message(
@@ -381,32 +423,32 @@ class WooCommerceCommands(commands.Cog):
             return
 
         await interaction.response.defer()
-        print("[DEBUG] Deferred response sent.")
+        if debug: print("[DEBUG] Deferred response sent.")
 
         product = await get_product_by_name(product_title)
         if not product:
-            print(f"[DEBUG] Product not found: {product_title}")
+            if debug: print(f"[DEBUG] Product not found: {product_title}")
             await interaction.followup.send("Product not found.", ephemeral=True)
             return
-        print(f"[DEBUG] Found product: {product}")
+        if debug: print(f"[DEBUG] Found product: {product}")
 
         product_id = product["id"]
         variations = await get_product_variations(product_id)
-        print(f"[DEBUG] Variations for product_id {product_id}: {variations}")
+        if debug: print(f"[DEBUG] Variations for product_id {product_id}: {variations}")
 
         product_ids = [product_id] + [variation["id"] for variation in variations]
-        print(f"[DEBUG] Searching orders for product_ids: {product_ids}")
+        if debug: print(f"[DEBUG] Searching orders for product_ids: {product_ids}")
 
         relevant_orders = await get_orders_for_product_ids(product_ids)
-        print(f"[DEBUG] Number of relevant orders found: {len(relevant_orders)}")
+        if debug: print(f"[DEBUG] Number of relevant orders found: {len(relevant_orders)}")
 
         if not relevant_orders:
             await interaction.followup.send("No orders found for this product or its variations.", ephemeral=True)
             return
 
-        print("[DEBUG] Starting CSV generation...")
+        if debug: print("[DEBUG] Starting CSV generation...")
         csv_output = await generate_csv_from_orders(relevant_orders, product_ids)
-        print("[DEBUG] CSV generation complete.")
+        if debug: print("[DEBUG] CSV generation complete.")
 
         csv_output.seek(0)
         csv_filename = f"{product_title.replace('/', '_')}_orders.csv"
@@ -415,7 +457,7 @@ class WooCommerceCommands(commands.Cog):
         await interaction.followup.send(
             f"Orders for product '{product_title}':", file=csv_file, ephemeral=True
         )
-        print(f"[DEBUG] Followup message with CSV sent: {csv_filename}")
+        if debug: print(f"[DEBUG] Followup message with CSV sent: {csv_filename}")
 
         csv_output.close()
 
