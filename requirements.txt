@@ -1,6 +1,7 @@
 aiohttp==3.10.5
 alembic==1.13.2
 celery==5.4.0
+python-dateutil
 discord.py==2.4.0
 fastapi==0.113.0
 Flask==3.0.3
