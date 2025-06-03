@@ -182,12 +182,8 @@ def task_with_session(**task_kwargs):
                     
                     # Handle async functions
                     if is_async:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            result = loop.run_until_complete(func(self, session, *args, **kwargs))
-                        finally:
-                            loop.close()
+                        from app.api_utils import async_to_sync
+                        result = async_to_sync(func(self, session, *args, **kwargs))
                     else:
                         result = func(self, session, *args, **kwargs)
                     
