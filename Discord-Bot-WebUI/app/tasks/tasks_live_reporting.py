@@ -409,12 +409,18 @@ async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
             return {'success': False, 'message': f'Match {match_id} not found'}
 
         if match.thread_created:
+            # Reset scheduling flag since thread already exists
+            match.thread_creation_scheduled = False
+            match.thread_creation_task_id = None
             return {'success': True, 'message': f'Thread already exists for match {match_id}'}
 
         thread_id = await create_match_thread(match)
         if thread_id:
             match.thread_created = True
             match.discord_thread_id = thread_id
+            # Reset scheduling flags on successful creation
+            match.thread_creation_scheduled = False
+            match.thread_creation_task_id = None
 
             socketio.emit('thread_created', {
                 'match_id': match_id,
@@ -427,6 +433,9 @@ async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
                 'thread_id': thread_id
             }
 
+        # Reset scheduling flag on failure so it can be retried
+        match.thread_creation_scheduled = False
+        match.thread_creation_task_id = None
         return {'success': False, 'message': 'Failed to create thread'}
 
     except SQLAlchemyError as e:
@@ -462,9 +471,24 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
         now = datetime.utcnow()
         # Include matches that are slightly overdue (up to 6 hours)
         # and sort by creation time to process oldest first
+        # First, clean up any stale scheduled tasks (older than 2 hours)
+        stale_threshold = now - timedelta(hours=2)
+        stale_matches = session.query(MLSMatch).filter(
+            MLSMatch.thread_creation_scheduled == True,
+            MLSMatch.thread_created == False,
+            MLSMatch.last_thread_scheduling_attempt < stale_threshold
+        ).all()
+        
+        for stale_match in stale_matches:
+            logger.warning(f"Resetting stale thread scheduling for match {stale_match.match_id}")
+            stale_match.thread_creation_scheduled = False
+            stale_match.thread_creation_task_id = None
+        
+        # Now get matches that need thread creation
         due_matches = session.query(MLSMatch).filter(
             MLSMatch.thread_creation_time <= now + timedelta(hours=6),
-            MLSMatch.thread_created == False
+            MLSMatch.thread_created == False,
+            MLSMatch.thread_creation_scheduled == False
         ).order_by(MLSMatch.thread_creation_time).all()
 
         if not due_matches:
@@ -519,10 +543,15 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
             total_delay = (batch_num * base_delay) + (position_in_batch * 20) + match_info['delay']
             
             # Schedule thread creation with appropriate delay
-            create_match_thread_task.apply_async(
+            result = create_match_thread_task.apply_async(
                 args=[match.match_id],
                 countdown=int(total_delay)
             )
+            
+            # Mark the match as having a scheduled thread creation task
+            match.thread_creation_scheduled = True
+            match.thread_creation_task_id = result.id
+            match.last_thread_scheduling_attempt = now
             
             scheduled_count += 1
             scheduled_details.append({

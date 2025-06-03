@@ -713,6 +713,10 @@ class Match(db.Model):
     scheduled_messages = db.relationship('ScheduledMessage', back_populates='match')
     home_verifier = db.relationship('User', foreign_keys=[home_team_verified_by], backref=db.backref('home_verified_matches', lazy='dynamic'))
     away_verifier = db.relationship('User', foreign_keys=[away_team_verified_by], backref=db.backref('away_verified_matches', lazy='dynamic'))
+    
+    # Discord notification tracking
+    last_discord_notification = db.Column(db.DateTime, nullable=True)
+    notification_status = db.Column(db.String(50), nullable=True)
 
     def to_dict(self, include_teams=False, include_events=False):
         data = {
@@ -1150,6 +1154,9 @@ class MLSMatch(db.Model):
     thread_creation_time = db.Column(db.DateTime(timezone=True))
     thread_created = db.Column(db.Boolean, default=False)
     discord_thread_id = db.Column(db.String)
+    thread_creation_scheduled = db.Column(db.Boolean, default=False)
+    thread_creation_task_id = db.Column(db.String(100))
+    last_thread_scheduling_attempt = db.Column(db.DateTime)
     live_reporting_scheduled = db.Column(db.Boolean, default=False)
     live_reporting_started = db.Column(db.Boolean, default=False)
     live_reporting_status = db.Column(db.String(20), default='not_started')

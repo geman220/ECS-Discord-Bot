@@ -199,27 +199,30 @@ def async_to_sync(coroutine: Any) -> Any:
     Returns:
         Any: The result of the coroutine execution.
     """
+    import threading
+    import concurrent.futures
+    
+    def run_in_new_loop():
+        """Run the coroutine in a new event loop in this thread."""
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        try:
+            return new_loop.run_until_complete(coroutine)
+        finally:
+            new_loop.close()
+            asyncio.set_event_loop(None)
+    
     try:
         # Check if there's already a running event loop in this thread
-        running_loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
         
-        # If we detect we're in a running loop already, use a threadsafe approach
-        if running_loop and running_loop.is_running():
-            import threading
-            import concurrent.futures
-            
-            # Run the coroutine in a separate thread with its own event loop
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(lambda: asyncio.run(coroutine))
-                return future.result()
+        # If we get here, there's a running loop - use a thread
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(run_in_new_loop)
+            return future.result()
     except RuntimeError:
-        # No running event loop - we can create our own
-        loop = asyncio.new_event_loop()
-        try:
-            asyncio.set_event_loop(loop)
-            return loop.run_until_complete(coroutine)
-        finally:
-            loop.close()
+        # No running event loop - we can run directly
+        return run_in_new_loop()
 
 
 def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
