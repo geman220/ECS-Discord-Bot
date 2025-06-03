@@ -183,13 +183,9 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             "away_team_name": away_team_name
         }
 
-        # Create a new event loop for asynchronous operations
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(_send_availability_message(message_data))
-        finally:
-            loop.close()
+        # Use async_to_sync utility to handle event loop properly
+        from app.api_utils import async_to_sync
+        result = async_to_sync(_send_availability_message(message_data))
 
         # Update the scheduled message status to SENT
         message = session.query(ScheduledMessage).get(scheduled_message_id)

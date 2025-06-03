@@ -717,6 +717,7 @@ class Match(db.Model):
     # Discord notification tracking
     last_discord_notification = db.Column(db.DateTime, nullable=True)
     notification_status = db.Column(db.String(50), nullable=True)
+    last_notification_state_hash = db.Column(db.String(64), nullable=True)
 
     def to_dict(self, include_teams=False, include_events=False):
         data = {
