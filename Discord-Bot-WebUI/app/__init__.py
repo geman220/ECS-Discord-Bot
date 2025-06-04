@@ -450,6 +450,7 @@ def init_blueprints(app):
     from app.design_routes import design as design_bp
     from app.modals import modals as modals_bp
     from app.clear_cache import clear_cache_bp
+    from app.external_api import external_api_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -477,6 +478,7 @@ def init_blueprints(app):
     app.register_blueprint(design_bp, url_prefix='/design')
     app.register_blueprint(modals_bp, url_prefix='/modals')
     app.register_blueprint(clear_cache_bp)
+    app.register_blueprint(external_api_bp)
 
 def init_context_processors(app):
     """
