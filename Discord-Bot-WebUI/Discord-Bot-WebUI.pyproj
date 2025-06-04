@@ -38,10 +38,12 @@
     <Compile Include="app\database\__init__.py" />
     <Compile Include="app\db_management.py" />
     <Compile Include="app\debug\diagnostic.py" />
+    <Compile Include="app\external_api.py" />
     <Compile Include="app\help.py" />
     <Compile Include="app\log_config\logging_config.py" />
     <Compile Include="app\log_config\__init__.py" />
     <Compile Include="app\match_scheduler.py" />
+    <Compile Include="app\modals.py" />
     <Compile Include="app\monitoring.py" />
     <Compile Include="app\order_helpers.py" />
     <Compile Include="app\players_helpers.py" />

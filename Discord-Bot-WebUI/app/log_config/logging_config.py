@@ -6,7 +6,12 @@ Logging configuration for the application.
 This configuration is used to initialize Python's logging module with a
 dictionary-based setup. It defines formatters, handlers, and loggers for
 various parts of the application to ensure detailed and organized logging.
+
+Uses RotatingFileHandler to automatically manage log file sizes and prevent
+unlimited growth.
 """
+
+import logging.handlers
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -29,37 +34,53 @@ LOGGING_CONFIG = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',  # Changed to simple for less verbose console output
-            'level': 'INFO',        # Changed from DEBUG to INFO to reduce noise
-        },
-        'db_file': {
-            'class': 'logging.FileHandler',
-            'filename': 'db_operations.log',
-            'formatter': 'detailed',
-            'level': 'INFO',        # Only log important DB operations
-        },
-        'requests_file': {
-            'class': 'logging.FileHandler',
-            'filename': 'requests.log',
-            'formatter': 'detailed',
-            'level': 'INFO',        # Only log main request information
-        },
-        'auth_file': {
-            'class': 'logging.FileHandler',
-            'filename': 'auth.log',
-            'formatter': 'detailed',
-        },
-        'session_tracking': {
-            'class': 'logging.FileHandler',
-            'filename': 'session_tracking.log',
-            'formatter': 'focused',
+            'formatter': 'simple',
             'level': 'INFO',
         },
+        'db_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'db_operations.log',
+            'formatter': 'detailed',
+            'level': 'ERROR',       # Only log serious DB errors
+            'maxBytes': 50485760,   # 50MB
+            'backupCount': 3,
+            'encoding': 'utf-8'
+        },
+        'requests_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'requests.log',
+            'formatter': 'detailed',
+            'level': 'ERROR',       # Only log request errors
+            'maxBytes': 26214400,   # 25MB
+            'backupCount': 2,
+            'encoding': 'utf-8'
+        },
+        'auth_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'auth.log',
+            'formatter': 'detailed',
+            'level': 'INFO',
+            'maxBytes': 10485760,   # 10MB
+            'backupCount': 3,
+            'encoding': 'utf-8'
+        },
+        'session_tracking': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'session_tracking.log',
+            'formatter': 'focused',
+            'level': 'ERROR',       # Only log session errors
+            'maxBytes': 26214400,   # 25MB
+            'backupCount': 2,
+            'encoding': 'utf-8'
+        },
         'errors_file': {
-            'class': 'logging.FileHandler',
+            'class': 'logging.handlers.RotatingFileHandler',
             'filename': 'errors.log',
             'formatter': 'detailed',
-            'level': 'WARNING',     # Only log actual errors
+            'level': 'WARNING',
+            'maxBytes': 26214400,   # 25MB
+            'backupCount': 3,
+            'encoding': 'utf-8'
         }
     },
 
@@ -67,42 +88,42 @@ LOGGING_CONFIG = {
     'loggers': {
         'sqlalchemy.engine': {
             'handlers': ['db_file'],
-            'level': 'WARNING',     # Only log SQL errors, not queries
+            'level': 'ERROR',       # Only log serious SQL errors
             'propagate': False
         },
         'app.db_management': {
             'handlers': ['db_file', 'errors_file'],
-            'level': 'WARNING',     # Reduced from INFO to WARNING
+            'level': 'ERROR',       # Only log serious DB errors
             'propagate': False
         },
         'app.database.pool': {
-            'handlers': ['db_file', 'errors_file', 'session_tracking'],
-            'level': 'WARNING',     # Reduced noise but keep important connection errors
+            'handlers': ['db_file', 'errors_file'],
+            'level': 'ERROR',       # Only log serious connection errors
             'propagate': False
         },
         'app.utils.task_monitor': {
-            'handlers': ['console', 'session_tracking'],
-            'level': 'WARNING',     # Reduced from INFO to WARNING
+            'handlers': ['console'],
+            'level': 'ERROR',       # Only log serious task errors
             'propagate': False
         },
         'app.request': {
             'handlers': ['requests_file'],
-            'level': 'WARNING',     # Only log request problems
+            'level': 'ERROR',       # Only log request errors
             'propagate': False
         },
         'app.main': {
-            'handlers': ['console', 'requests_file'],
-            'level': 'WARNING',     # Reduced debug output
+            'handlers': ['console'],
+            'level': 'ERROR',       # Minimal logging
             'propagate': False
         },
         'app.match_pages': {
             'handlers': ['requests_file'],
-            'level': 'WARNING',     # Reduce RSVP checking noise
+            'level': 'ERROR',       # Only log serious errors
             'propagate': False
         },
         'app.availability_api_helpers': {
             'handlers': ['requests_file'],
-            'level': 'WARNING',     # Reduce availability API noise
+            'level': 'ERROR',       # Only log serious errors
             'propagate': False
         },
         'app.sms_helpers': {
@@ -116,38 +137,38 @@ LOGGING_CONFIG = {
             'propagate': False
         },
         'app.core': {
-            'handlers': ['console', 'requests_file'],
-            'level': 'WARNING',     # Reduced from INFO to WARNING
+            'handlers': ['console'],
+            'level': 'ERROR',       # Minimal logging
             'propagate': False
         },
         'app.core.session_manager': {
             'handlers': ['session_tracking', 'errors_file'],
-            'level': 'WARNING',     # Reduced session noise
+            'level': 'ERROR',       # Only log serious session errors
             'propagate': False
         },
         'flask_login': {
             'handlers': ['auth_file'],
-            'level': 'WARNING',     # Reduced login noise
+            'level': 'WARNING',     # Keep some login tracking
             'propagate': False
         },
         'werkzeug': {
             'handlers': ['requests_file'],
-            'level': 'ERROR',       # Further reduced HTTP noise - only errors
+            'level': 'ERROR',       # Only HTTP errors
             'propagate': False
         },
         'app.tasks': {
-            'handlers': ['console', 'session_tracking'],
-            'level': 'WARNING',     # Reduced task noise
+            'handlers': ['console'],
+            'level': 'ERROR',       # Only serious task errors
             'propagate': False
         },
         'app.lifecycle': {
             'handlers': ['console'],
-            'level': 'WARNING',     # Reduce request performance logging
+            'level': 'ERROR',       # Only serious lifecycle errors
             'propagate': False
         },
         'app.redis_manager': {
             'handlers': ['console'],
-            'level': 'WARNING',     # Reduce Redis connection noise 
+            'level': 'ERROR',       # Only serious Redis errors
             'propagate': False
         }
     },

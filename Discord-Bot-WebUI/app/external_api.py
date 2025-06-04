@@ -217,8 +217,8 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
             or_(Match.home_team_id == team.id, Match.away_team_id == team.id)
         ).order_by(desc(Match.match_date)).limit(20).all()
         
-        recent_matches = [m for m in all_matches if m.home_score is not None][:10]
-        upcoming_matches = [m for m in all_matches if m.home_score is None][:10]
+        recent_matches = [m for m in all_matches if m.home_team_score is not None][:10]
+        upcoming_matches = [m for m in all_matches if m.home_team_score is None][:10]
         
         data['recent_matches'] = [
             serialize_match(match, include_teams=False, include_events=False)
@@ -249,17 +249,17 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
         completed_matches = Match.query.filter(
             and_(
                 or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
-                Match.home_score.isnot(None)
+                Match.home_team_score.isnot(None)
             )
         ).all()
         
         if completed_matches:
             total_goals_for = sum([
-                (match.home_score if match.home_team_id == team.id else match.away_score)
+                (match.home_team_score if match.home_team_id == team.id else match.away_team_score)
                 for match in completed_matches
             ])
             total_goals_against = sum([
-                (match.away_score if match.home_team_id == team.id else match.home_score)
+                (match.away_team_score if match.home_team_id == team.id else match.home_team_score)
                 for match in completed_matches
             ])
             
@@ -269,7 +269,7 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
                 'total_goals_against': total_goals_against,
                 'average_goals_per_match': round(total_goals_for / len(completed_matches), 2),
                 'clean_sheets': len([m for m in completed_matches if 
-                    (m.away_score == 0 if m.home_team_id == team.id else m.home_score == 0)])
+                    (m.away_team_score == 0 if m.home_team_id == team.id else m.home_team_score == 0)])
             }
     
     return data
@@ -280,21 +280,21 @@ def serialize_match(match, include_teams=True, include_events=False, include_rsv
     data = {
         'id': match.id,
         'match_date': match.match_date.isoformat() if match.match_date else None,
-        'home_score': match.home_score,
-        'away_score': match.away_score,
-        'is_verified': match.is_verified,
+        'home_score': match.home_team_score,
+        'away_score': match.away_team_score,
+        'is_verified': match.home_team_verified and match.away_team_verified,
         'location': match.location,
         'match_type': getattr(match, 'match_type', 'regular'),
         'discord_thread_id': match.discord_thread_id,
-        'status': 'completed' if match.home_score is not None else 'scheduled',
+        'status': 'completed' if match.home_team_score is not None else 'scheduled',
         'result': None
     }
     
     # Calculate match result
-    if match.home_score is not None and match.away_score is not None:
-        if match.home_score > match.away_score:
+    if match.home_team_score is not None and match.away_team_score is not None:
+        if match.home_team_score > match.away_team_score:
             data['result'] = 'home_win'
-        elif match.away_score > match.home_score:
+        elif match.away_team_score > match.home_team_score:
             data['result'] = 'away_win'
         else:
             data['result'] = 'draw'
@@ -700,9 +700,9 @@ def get_matches():
                 return jsonify({'error': 'Invalid date_to format. Use ISO format.'}), 400
         
         if status == 'completed':
-            query = query.filter(Match.home_score.isnot(None))
+            query = query.filter(Match.home_team_score.isnot(None))
         elif status == 'scheduled':
-            query = query.filter(Match.home_score.is_(None))
+            query = query.filter(Match.home_team_score.is_(None))
         
         # Order by match date
         query = query.order_by(desc(Match.match_date))
@@ -882,7 +882,7 @@ def get_stats_summary():
         total_players = Player.query.filter(Player.is_current_player == True).count()
         total_teams = Team.query.count()
         total_matches = Match.query.count()
-        completed_matches = Match.query.filter(Match.home_score.isnot(None)).count()
+        completed_matches = Match.query.filter(Match.home_team_score.isnot(None)).count()
         
         # Filter by season if provided
         query_filter = []
@@ -909,7 +909,7 @@ def get_stats_summary():
                             Match.home_team_id.in_(team_ids),
                             Match.away_team_id.in_(team_ids)
                         ),
-                        Match.home_score.isnot(None)
+                        Match.home_team_score.isnot(None)
                     )
                 ).count()
         
@@ -921,7 +921,7 @@ def get_stats_summary():
         upcoming_matches = Match.query.filter(
             and_(
                 Match.match_date >= datetime.now(),
-                Match.home_score.is_(None)
+                Match.home_team_score.is_(None)
             )
         ).count()
         
