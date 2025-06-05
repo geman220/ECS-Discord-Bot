@@ -30,7 +30,15 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'version': '1.0.0'
+        'version': '2.0.0',
+        'modules': {
+            'auth': 'loaded',
+            'serializers': 'loaded',
+            'stats_utils': 'loaded',
+            'core_endpoints': 'loaded',
+            'analytics': 'loaded'
+        },
+        'message': 'External API is running with modular architecture'
     })
 
 

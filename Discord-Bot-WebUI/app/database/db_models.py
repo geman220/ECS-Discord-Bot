@@ -49,6 +49,8 @@ class ActiveMatchReporter(db.Model):
     user = db.relationship('User', backref=db.backref('reporting_matches', lazy='dynamic'))
     team = db.relationship('Team', backref=db.backref('active_reporters', lazy='dynamic'))
 
+
+
 class LiveMatch(db.Model):
     """
     Represents the current state of a live match being reported.
