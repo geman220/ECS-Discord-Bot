@@ -282,14 +282,15 @@ def get_attendance_analytics():
             })
         
         # Get attendance data for these matches
+        from sqlalchemy import case
         attendance_query = db.session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
             func.count(Availability.id).label('total_responses'),
-            func.sum(func.case(whens=[(Availability.response == 'available', 1)], else_=0)).label('available_count'),
-            func.sum(func.case(whens=[(Availability.response == 'unavailable', 1)], else_=0)).label('unavailable_count'),
-            func.sum(func.case(whens=[(Availability.response == 'maybe', 1)], else_=0)).label('maybe_count')
+            func.sum(case((Availability.response == 'available', 1), else_=0)).label('available_count'),
+            func.sum(case((Availability.response == 'unavailable', 1), else_=0)).label('unavailable_count'),
+            func.sum(case((Availability.response == 'maybe', 1), else_=0)).label('maybe_count')
         ).join(
             Availability, Player.id == Availability.player_id
         ).filter(
