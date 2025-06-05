@@ -696,6 +696,20 @@ def index():
         return redirect(url_for('main.index'))
 
 
+@main.route('/privacy-policy', methods=['GET'])
+def privacy_policy():
+    """
+    Display the privacy policy for the ECS Soccer League ChatGPT Assistant.
+    
+    This route serves the privacy policy required for the ChatGPT Custom GPT integration,
+    explaining how user data is accessed and used through the external API.
+    
+    Returns:
+        Rendered privacy policy template.
+    """
+    return render_template('privacy_policy.html', title='Privacy Policy')
+
+
 @main.route('/notifications', endpoint='notifications', methods=['GET'])
 @login_required
 def notifications():
