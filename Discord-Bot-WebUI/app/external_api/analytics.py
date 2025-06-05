@@ -22,6 +22,100 @@ from .stats_utils import calculate_expected_attendance, get_substitution_urgency
 logger = logging.getLogger(__name__)
 
 
+def calculate_career_absence_patterns(player_id):
+    """Calculate career-wide absence patterns for draft insights."""
+    try:
+        # Get all matches player could have participated in (across all seasons)
+        all_player_matches = db.session.query(Match).join(
+            Team, or_(Match.home_team_id == Team.id, Match.away_team_id == Team.id)
+        ).join(
+            player_teams, Team.id == player_teams.c.team_id
+        ).filter(
+            player_teams.c.player_id == player_id
+        ).all()
+        
+        if not all_player_matches:
+            return None
+            
+        # Get all availability responses for this player
+        match_ids = [m.id for m in all_player_matches]
+        all_availabilities = Availability.query.filter(
+            and_(
+                Availability.player_id == player_id,
+                Availability.match_id.in_(match_ids)
+            )
+        ).all()
+        
+        # Group by season to show patterns
+        season_patterns = {}
+        for match in all_player_matches:
+            # Get season from match
+            season = None
+            if match.home_team and match.home_team.league:
+                season = match.home_team.league.season
+            elif match.away_team and match.away_team.league:
+                season = match.away_team.league.season
+                
+            if not season:
+                continue
+                
+            season_key = f"{season.name} ({season.league_type})"
+            if season_key not in season_patterns:
+                season_patterns[season_key] = {
+                    'total_matches': 0,
+                    'available_responses': 0,
+                    'unavailable_responses': 0,
+                    'no_responses': 0
+                }
+            
+            season_patterns[season_key]['total_matches'] += 1
+            
+            # Find response for this match
+            response = next((a for a in all_availabilities if a.match_id == match.id), None)
+            if response:
+                if response.response.lower() in ['available', 'yes', 'attending']:
+                    season_patterns[season_key]['available_responses'] += 1
+                elif response.response.lower() in ['unavailable', 'no', 'not_attending']:
+                    season_patterns[season_key]['unavailable_responses'] += 1
+            else:
+                season_patterns[season_key]['no_responses'] += 1
+        
+        # Calculate career totals and averages
+        total_career_matches = len(all_player_matches)
+        total_available = len([a for a in all_availabilities if a.response.lower() in ['available', 'yes', 'attending']])
+        total_unavailable = len([a for a in all_availabilities if a.response.lower() in ['unavailable', 'no', 'not_attending']])
+        total_responses = len(all_availabilities)
+        total_no_response = total_career_matches - total_responses
+        
+        career_absence_rate = round(((total_unavailable + total_no_response) / total_career_matches * 100), 1) if total_career_matches > 0 else 0
+        career_response_rate = round((total_responses / total_career_matches * 100), 1) if total_career_matches > 0 else 0
+        career_availability_rate = round((total_available / total_responses * 100), 1) if total_responses > 0 else 0
+        
+        # Calculate season averages
+        seasons_played = len(season_patterns)
+        avg_matches_per_season = round(total_career_matches / max(seasons_played, 1), 1)
+        avg_available_per_season = round(total_available / max(seasons_played, 1), 1)
+        
+        # Determine draft recommendation
+        draft_recommendation = "reliable" if career_absence_rate < 40 else "unreliable" if career_absence_rate > 70 else "moderate_risk"
+        
+        return {
+            'seasons_analyzed': seasons_played,
+            'total_career_matches': total_career_matches,
+            'career_absence_rate_percent': career_absence_rate,
+            'career_response_rate_percent': career_response_rate,
+            'career_availability_rate_percent': career_availability_rate,
+            'avg_matches_per_season': avg_matches_per_season,
+            'avg_available_per_season': avg_available_per_season,
+            'draft_recommendation': draft_recommendation,
+            'season_breakdown': season_patterns
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating career patterns for player {player_id}: {e}")
+        return None
+
+
 def get_substitution_description(confirmed_available, min_players, ideal_players):
     """Generate human-readable description of substitution situation for 8v8."""
     if confirmed_available < min_players:
@@ -242,6 +336,13 @@ def get_attendance_analytics():
         max_matches = request.args.get('max_matches', type=int)
         limit = request.args.get('limit', 50, type=int)  # Limit results to 50 by default
         attendance_category = request.args.get('attendance_category', '')  # Filter by category
+        include_career_stats = request.args.get('include_career_stats', 'true').lower() == 'true'  # Include career-wide patterns
+        
+        # Default to current season if none specified
+        if season_id is None:
+            from .stats_utils import get_current_season
+            current_season = get_current_season()
+            season_id = current_season.id if current_season else None
         
         # Base query for matches with filters
         match_query = Match.query
@@ -343,59 +444,80 @@ def get_attendance_analytics():
             
             # Calculate percentages
             total_possible = len(match_ids)
-            attendance_rate = round((available_count / total_possible * 100), 1) if total_possible > 0 else 0
             response_rate = round((total_responses / total_possible * 100), 1) if total_possible > 0 else 0
+            
+            # Calculate absence rate: (unavailable + no_response) / total_possible
+            absent_count = unavailable_count + no_response_count
+            absence_rate = round((absent_count / total_possible * 100), 1) if total_possible > 0 else 0
+            
+            # Calculate availability rate: when they DO respond, how often they say yes
+            availability_rate = round((available_count / total_responses * 100), 1) if total_responses > 0 else 0
             
             # Get player's teams
             player_teams = [{'id': team.id, 'name': team.name} for team in player.teams]
+            
+            # Calculate career-wide patterns if requested
+            career_stats = None
+            if include_career_stats:
+                career_stats = calculate_career_absence_patterns(player.id)
             
             attendance_patterns.append({
                 'player_id': player.id,
                 'name': player.name,
                 'position': player.favorite_position or 'Unknown',
                 'teams': player_teams,
-                'attendance_stats': {
+                'rsvp_stats': {
                     'total_possible_matches': total_possible,
                     'responses_given': total_responses,
                     'available_responses': available_count,
                     'unavailable_responses': unavailable_count,
                     'maybe_responses': maybe_count,
                     'no_responses': no_response_count,
-                    'attendance_rate_percent': attendance_rate,
-                    'response_rate_percent': response_rate
+                    'response_rate_percent': response_rate,
+                    'absence_rate_percent': absence_rate,
+                    'availability_rate_percent': availability_rate
                 },
-                'attendance_category': (
-                    'high_attendance' if attendance_rate >= 80 else
-                    'medium_attendance' if attendance_rate >= 50 else
-                    'low_attendance'
+                'absence_category': (
+                    'frequently_absent' if absence_rate >= 70 else
+                    'occasionally_absent' if absence_rate >= 40 else
+                    'rarely_absent'
                 ),
                 'responsiveness': (
                     'very_responsive' if response_rate >= 90 else
                     'responsive' if response_rate >= 70 else
                     'needs_follow_up' if response_rate >= 40 else
                     'poor_response'
-                )
+                ),
+                'career_patterns': career_stats
             })
         
-        # Filter by attendance category if specified
+        # Filter by absence category if specified (keeping old parameter name for compatibility)
         if attendance_category:
-            attendance_patterns = [p for p in attendance_patterns if p['attendance_category'] == attendance_category]
+            # Map old parameter values to new categories
+            category_map = {
+                'low_attendance': 'frequently_absent',
+                'medium_attendance': 'occasionally_absent', 
+                'high_attendance': 'rarely_absent'
+            }
+            target_category = category_map.get(attendance_category, attendance_category)
+            attendance_patterns = [p for p in attendance_patterns if p['absence_category'] == target_category]
         
-        # Sort by attendance rate (descending for overall, ascending for low_attendance)
-        if attendance_category == 'low_attendance':
-            attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'])  # Lowest first
+        # Sort by absence rate (highest absence first for planning purposes)
+        if attendance_category == 'low_attendance' or attendance_category == 'frequently_absent':
+            attendance_patterns.sort(key=lambda x: x['rsvp_stats']['absence_rate_percent'], reverse=True)  # Most absent first
         else:
-            attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'], reverse=True)
+            attendance_patterns.sort(key=lambda x: x['rsvp_stats']['absence_rate_percent'])  # Least absent first
         
         # Apply limit to reduce response size
         attendance_patterns = attendance_patterns[:limit]
         
         # Generate summary insights
         total_players = len(attendance_patterns)
-        avg_attendance = sum(p['attendance_stats']['attendance_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
-        avg_response_rate = sum(p['attendance_stats']['response_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
+        avg_absence_rate = sum(p['rsvp_stats']['absence_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
+        avg_response_rate = sum(p['rsvp_stats']['response_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
+        avg_availability_rate = sum(p['rsvp_stats']['availability_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
         
-        low_attendance_count = len([p for p in attendance_patterns if p['attendance_category'] == 'low_attendance'])
+        frequently_absent_count = len([p for p in attendance_patterns if p['absence_category'] == 'frequently_absent'])
         poor_response_count = len([p for p in attendance_patterns if p['responsiveness'] == 'poor_response'])
         
         return jsonify({
@@ -403,13 +525,14 @@ def get_attendance_analytics():
             'summary': {
                 'total_players': total_players,
                 'total_matches_analyzed': len(match_ids),
-                'average_attendance_rate': round(avg_attendance, 1),
+                'average_absence_rate': round(avg_absence_rate, 1),
                 'average_response_rate': round(avg_response_rate, 1),
-                'low_attendance_players': low_attendance_count,
+                'average_availability_rate': round(avg_availability_rate, 1),
+                'frequently_absent_players': frequently_absent_count,
                 'poor_response_players': poor_response_count,
                 'insights': {
                     'players_needing_follow_up': poor_response_count,
-                    'players_with_low_attendance': low_attendance_count,
+                    'players_frequently_absent': frequently_absent_count,
                     'overall_engagement': (
                         'excellent' if avg_response_rate >= 85 else
                         'good' if avg_response_rate >= 70 else
@@ -424,7 +547,8 @@ def get_attendance_analytics():
                 'min_matches': min_matches,
                 'max_matches': max_matches,
                 'limit': limit,
-                'attendance_category': attendance_category
+                'attendance_category': attendance_category,
+                'include_career_stats': include_career_stats
             }
         })
         
