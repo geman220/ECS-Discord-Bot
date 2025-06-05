@@ -87,6 +87,13 @@ def get_players():
         
         if league_id:
             query = query.filter(Player.primary_league_id == league_id)
+        else:
+            # Default to Pub League only, exclude ECS FC
+            query = query.filter(
+                Player.primary_league.has(
+                    League.season.has(Season.league_type == 'Pub League')
+                )
+            )
         
         if position:
             query = query.filter(
@@ -205,6 +212,13 @@ def get_teams():
         
         if season_id:
             query = query.filter(Team.league.has(League.season_id == season_id))
+        else:
+            # Default to Pub League only, exclude ECS FC
+            query = query.filter(
+                Team.league.has(
+                    League.season.has(Season.league_type == 'Pub League')
+                )
+            )
         
         # Execute query with pagination
         teams_paginated = query.paginate(
@@ -436,7 +450,14 @@ def get_leagues():
             query = query.filter(League.season_id == season_id)
         
         if current_only:
-            query = query.filter(League.season.has(Season.is_current == True))
+            query = query.filter(
+                League.season.has(
+                    and_(
+                        Season.is_current == True,
+                        Season.league_type == 'Pub League'
+                    )
+                )
+            )
         
         if include_teams:
             query = query.options(joinedload(League.teams))
@@ -472,7 +493,12 @@ def get_seasons():
         query = Season.query
         
         if current_only:
-            query = query.filter(Season.is_current == True)
+            query = query.filter(
+                and_(
+                    Season.is_current == True,
+                    Season.league_type == 'Pub League'
+                )
+            )
         
         if include_leagues:
             query = query.options(joinedload(Season.leagues))
@@ -492,7 +518,7 @@ def get_seasons():
             
             if include_leagues:
                 season_data['leagues'] = [
-                    serialize_league(league, include_teams=False)
+                    serialize_league(league, include_teams=False, include_standings=False)
                     for league in season.leagues
                 ]
             
@@ -533,7 +559,10 @@ def search_all():
                         Player.favorite_position.ilike(f'%{query_text}%'),
                         Player.user.has(User.username.ilike(f'%{query_text}%'))
                     ),
-                    Player.is_current_player == True
+                    Player.is_current_player == True,
+                    Player.primary_league.has(
+                        League.season.has(Season.league_type == 'Pub League')
+                    )
                 )
             ).options(joinedload(Player.user)).limit(limit).all()
             
@@ -545,7 +574,12 @@ def search_all():
         if search_type in ['all', 'teams']:
             # Search teams
             teams = Team.query.filter(
-                Team.name.ilike(f'%{query_text}%')
+                and_(
+                    Team.name.ilike(f'%{query_text}%'),
+                    Team.league.has(
+                        League.season.has(Season.league_type == 'Pub League')
+                    )
+                )
             ).options(joinedload(Team.league)).limit(limit).all()
             
             results['teams'] = [
@@ -556,11 +590,14 @@ def search_all():
         if search_type in ['all', 'leagues']:
             # Search leagues
             leagues = League.query.filter(
-                League.name.ilike(f'%{query_text}%')
+                and_(
+                    League.name.ilike(f'%{query_text}%'),
+                    League.season.has(Season.league_type == 'Pub League')
+                )
             ).options(joinedload(League.season)).limit(limit).all()
             
             results['leagues'] = [
-                serialize_league(l, include_teams=False) 
+                serialize_league(l, include_teams=False, include_standings=False) 
                 for l in leagues
             ]
         
@@ -574,7 +611,7 @@ def search_all():
             ).limit(limit).all()
             
             results['matches'] = [
-                serialize_match(m, include_events=False, include_rsvps=False) 
+                serialize_match(m, include_events=False, include_rsvps=False, include_detailed=False) 
                 for m in matches
             ]
         
