@@ -240,6 +240,8 @@ def get_attendance_analytics():
         league_id = request.args.get('league_id', type=int)
         min_matches = request.args.get('min_matches', 0, type=int)
         max_matches = request.args.get('max_matches', type=int)
+        limit = request.args.get('limit', 50, type=int)  # Limit results to 50 by default
+        attendance_category = request.args.get('attendance_category', '')  # Filter by category
         
         # Base query for matches with filters
         match_query = Match.query
@@ -375,8 +377,18 @@ def get_attendance_analytics():
                 )
             })
         
-        # Sort by attendance rate (descending)
-        attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'], reverse=True)
+        # Filter by attendance category if specified
+        if attendance_category:
+            attendance_patterns = [p for p in attendance_patterns if p['attendance_category'] == attendance_category]
+        
+        # Sort by attendance rate (descending for overall, ascending for low_attendance)
+        if attendance_category == 'low_attendance':
+            attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'])  # Lowest first
+        else:
+            attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'], reverse=True)
+        
+        # Apply limit to reduce response size
+        attendance_patterns = attendance_patterns[:limit]
         
         # Generate summary insights
         total_players = len(attendance_patterns)
@@ -410,7 +422,9 @@ def get_attendance_analytics():
                 'team_id': team_id,
                 'league_id': league_id,
                 'min_matches': min_matches,
-                'max_matches': max_matches
+                'max_matches': max_matches,
+                'limit': limit,
+                'attendance_category': attendance_category
             }
         })
         
