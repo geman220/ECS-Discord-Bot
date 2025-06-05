@@ -237,7 +237,7 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
             ).order_by(Match.date.desc()).limit(10).all()
             
             for match in recent_matches:
-                data['recent_matches'].append(serialize_match(match))
+                data['recent_matches'].append(serialize_match(match, include_rsvps=False, include_events=False))
             
             # Upcoming matches (next 10)
             upcoming_matches = Match.query.filter(
@@ -252,7 +252,7 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
             ).order_by(Match.date.asc()).limit(10).all()
             
             for match in upcoming_matches:
-                data['upcoming_matches'].append(serialize_match(match))
+                data['upcoming_matches'].append(serialize_match(match, include_rsvps=False, include_events=False))
                 
         except Exception as e:
             logger.warning(f"Error serializing matches for team {team.id}: {e}")
@@ -262,7 +262,7 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
     return data
 
 
-def serialize_match(match, include_availability=False, include_events=False):
+def serialize_match(match, include_availability=False, include_events=False, include_rsvps=False, include_detailed=False):
     """Serialize match data for API response."""
     try:
         data = {
@@ -302,25 +302,41 @@ def serialize_match(match, include_availability=False, include_events=False):
             'error': 'Partial data available'
         }
     
-    if include_availability and hasattr(match, 'availability_responses'):
+    # Handle both include_availability (legacy) and include_rsvps (new API)
+    if (include_availability or include_rsvps) and hasattr(match, 'availability'):
         data['availability'] = {
             'available': [],
             'unavailable': [],
             'maybe': []
         }
         try:
-            for response in match.availability_responses:
+            for response in match.availability:
                 player_data = {
                     'player_id': response.player_id,
                     'player_name': response.player.name if response.player else 'Unknown',
-                    'response_date': response.created_at.isoformat() if response.created_at else None
+                    'response_date': response.responded_at.isoformat() if response.responded_at else None
                 }
                 
-                if response.status == 'available':
+                # Add detailed information if requested
+                if include_detailed and response.player:
+                    try:
+                        player_data.update({
+                            'discord_id': getattr(response.player, 'discord_id', None),
+                            'jersey_number': getattr(response.player, 'jersey_number', None),
+                            'position': getattr(response.player, 'favorite_position', None),
+                            'is_coach': getattr(response.player, 'is_coach', False),
+                            'is_substitute': getattr(response.player, 'is_sub', False)
+                        })
+                    except Exception as e:
+                        logger.warning(f"Error adding detailed player info for player {response.player_id}: {e}")
+                
+                # Normalize response values and categorize
+                response_lower = response.response.lower()
+                if response_lower in ['available', 'yes', 'attending']:
                     data['availability']['available'].append(player_data)
-                elif response.status == 'unavailable':
+                elif response_lower in ['unavailable', 'no', 'not_attending']:
                     data['availability']['unavailable'].append(player_data)
-                elif response.status == 'maybe':
+                elif response_lower in ['maybe', 'tentative']:
                     data['availability']['maybe'].append(player_data)
         except Exception as e:
             logger.warning(f"Error serializing availability for match {match.id}: {e}")
@@ -328,10 +344,10 @@ def serialize_match(match, include_availability=False, include_events=False):
     return data
 
 
-def serialize_league(league):
+def serialize_league(league, include_teams=False, include_standings=False):
     """Serialize league data for API response."""
     try:
-        return {
+        data = {
             'id': league.id,
             'name': league.name,
             'description': getattr(league, 'description', None),
@@ -345,6 +361,19 @@ def serialize_league(league):
             'team_count': len(league.teams) if hasattr(league, 'teams') else 0,
             'is_active': True  # Assuming all leagues in DB are active
         }
+        
+        if include_teams and hasattr(league, 'teams'):
+            data['teams'] = [
+                serialize_team(team, include_players=False, include_matches=False)
+                for team in league.teams
+            ]
+        
+        if include_standings:
+            # Add standings data if requested
+            # Note: This would need to be implemented based on your standings model/logic
+            data['standings'] = []  # Placeholder for now
+            
+        return data
     except Exception as e:
         logger.error(f"Error serializing league {getattr(league, 'id', 'unknown')}: {e}")
         return {

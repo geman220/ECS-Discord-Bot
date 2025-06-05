@@ -22,6 +22,33 @@ from .stats_utils import calculate_expected_attendance, get_substitution_urgency
 logger = logging.getLogger(__name__)
 
 
+def get_substitution_description(confirmed_available, min_players, ideal_players):
+    """Generate human-readable description of substitution situation for 8v8."""
+    if confirmed_available < min_players:
+        return f"Cannot field team - need {min_players - confirmed_available} more players"
+    elif confirmed_available < min_players + 2:
+        return f"Can field team but no substitutes - very tight"
+    elif confirmed_available < min_players + 4:
+        return f"Limited rotation - {confirmed_available - min_players} subs available"
+    elif confirmed_available < ideal_players:
+        return f"Good turnout but not optimal - {confirmed_available - min_players} subs"
+    else:
+        subs_available = confirmed_available - min_players
+        return f"Excellent turnout - {subs_available} subs allows balanced rotation"
+
+
+def get_sub_situation_summary(teams_needing_subs):
+    """Generate summary of substitution needs across teams."""
+    if not teams_needing_subs:
+        return "Both teams have adequate attendance - no subs needed"
+    elif len(teams_needing_subs) == 1:
+        team = teams_needing_subs[0]
+        return f"{team['team_type'].title()} team needs {team['subs_needed']} subs ({team['urgency']} priority)"
+    else:
+        total_subs = sum(team['subs_needed'] for team in teams_needing_subs)
+        return f"Both teams need subs - total {total_subs} substitutes needed"
+
+
 def analyze_team_for_match(match, team, team_type):
     """Helper function to analyze a team's attendance for a specific match."""
     try:
@@ -399,8 +426,8 @@ def get_substitution_needs():
         days_ahead = request.args.get('days_ahead', 14, type=int)
         league_id = request.args.get('league_id', type=int)
         team_id = request.args.get('team_id', type=int)
-        min_players_threshold = request.args.get('min_players', 9, type=int)
-        ideal_players = request.args.get('ideal_players', 15, type=int)
+        min_players_threshold = request.args.get('min_players', 8, type=int)
+        ideal_players = request.args.get('ideal_players', 13, type=int)
         
         # Get upcoming matches
         end_date = (datetime.now() + timedelta(days=days_ahead)).date()
@@ -452,7 +479,7 @@ def get_substitution_needs():
                     ideal_players
                 )
                 
-                needs_subs = urgency in ['critical', 'high']
+                needs_subs = urgency in ['critical', 'high', 'medium']
                 
                 # Calculate days until match
                 days_until = (match.date - datetime.now().date()).days
@@ -486,7 +513,8 @@ def get_substitution_needs():
                         'needs_substitutes': needs_subs,
                         'urgency': urgency,
                         'minimum_subs_needed': max(0, min_players_threshold - confirmed_available),
-                        'recommended_subs': max(0, (min_players_threshold + 2) - potential_available)
+                        'recommended_subs_for_ideal': max(0, ideal_players - confirmed_available),
+                        'current_situation': get_substitution_description(confirmed_available, min_players_threshold, ideal_players)
                     },
                     'available_players': team_analysis['available_players'],
                     'no_response_players': [
@@ -737,22 +765,34 @@ def get_match_insights():
             home_analysis = analyze_team_for_match(match, match.home_team, 'home')
             away_analysis = analyze_team_for_match(match, match.away_team, 'away')
             
-            # Calculate overall insights
+            # Calculate overall insights with 8v8 perspective
             total_expected = 0
             total_unavailable = 0
             total_awaiting = 0
+            teams_needing_subs = []
             
             for analysis in [home_analysis, away_analysis]:
                 if analysis:
                     total_expected += analysis['expected_attendance']
                     total_unavailable += analysis['confirmed_unavailable']
                     total_awaiting += analysis['no_response_count']
+                    
+                    # Check if this team needs subs (using 8v8 standards)
+                    urgency = get_substitution_urgency(analysis['confirmed_available'], analysis['total_roster'], 8, 13)
+                    if urgency in ['critical', 'high', 'medium']:
+                        teams_needing_subs.append({
+                            'team_name': analysis['team_name'],
+                            'team_type': analysis['team_type'],
+                            'confirmed_available': analysis['confirmed_available'],
+                            'urgency': urgency,
+                            'subs_needed': max(0, 13 - analysis['confirmed_available'])
+                        })
             
-            # Determine attendance outlook
+            # Determine attendance outlook based on 8v8 standards
             avg_expected = total_expected / 2 if total_expected > 0 else 0
-            if avg_expected >= 12:
+            if avg_expected >= 13:
                 outlook = 'excellent'
-            elif avg_expected >= 10:
+            elif avg_expected >= 11:
                 outlook = 'good'
             elif avg_expected >= 8:
                 outlook = 'adequate'
@@ -776,7 +816,9 @@ def get_match_insights():
                     'total_confirmed_unavailable': total_unavailable,
                     'total_awaiting_response': total_awaiting,
                     'attendance_outlook': outlook,
-                    'requires_immediate_attention': outlook in ['critical', 'concerning'] and match_status in ['urgent', 'upcoming']
+                    'requires_immediate_attention': outlook in ['critical', 'concerning'] and match_status in ['urgent', 'upcoming'],
+                    'teams_needing_subs': teams_needing_subs,
+                    'sub_situation_summary': get_sub_situation_summary(teams_needing_subs)
                 }
             })
         
@@ -827,8 +869,15 @@ def get_player_patterns():
         end_date = datetime.now().date()
         start_date = end_date - timedelta(days=days_lookback)
         
-        # Build player query
-        players_query = Player.query.filter(Player.is_current_player == True)
+        # Build player query - focus on Pub League only
+        players_query = Player.query.filter(
+            and_(
+                Player.is_current_player == True,
+                Player.primary_league.has(
+                    League.season.has(Season.league_type == 'Pub League')
+                )
+            )
+        )
         
         if player_id:
             players_query = players_query.filter(Player.id == player_id)

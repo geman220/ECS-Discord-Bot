@@ -11,20 +11,26 @@ from sqlalchemy import func, desc, and_, or_
 from app.core import db
 from app.models import (
     Player, Team, Match, League, Season, 
-    PlayerSeasonStats, PlayerCareerStats
+    PlayerSeasonStats, PlayerCareerStats, PlayerEvent
 )
 
 logger = logging.getLogger(__name__)
 
 
 def get_current_season():
-    """Get the current active season."""
-    return Season.query.filter(Season.is_current == True).first()
+    """Get the current active Pub League season."""
+    return Season.query.filter(
+        and_(
+            Season.is_current == True,
+            Season.league_type == 'Pub League'
+        )
+    ).first()
 
 
 def get_season_goal_leaders(season_id=None, limit=10):
     """
     Get goal leaders for a specific season or current season.
+    Falls back to calculating from PlayerEvent data if PlayerSeasonStats is empty.
     
     Args:
         season_id: Specific season ID, or None for current season
@@ -42,8 +48,8 @@ def get_season_goal_leaders(season_id=None, limit=10):
             logger.warning("No current season found and no season_id provided")
             return []
     
-    # Query season-specific goals
-    query = db.session.query(
+    # First try PlayerSeasonStats
+    stats_query = db.session.query(
         Player.id,
         Player.name,
         func.coalesce(func.sum(PlayerSeasonStats.goals), 0).label('season_goals')
@@ -61,7 +67,47 @@ def get_season_goal_leaders(season_id=None, limit=10):
         desc('season_goals')
     ).limit(limit)
     
-    return query.all()
+    results = stats_query.all()
+    
+    # Check if we have any non-zero goals from PlayerSeasonStats
+    has_stats_data = any(result.season_goals > 0 for result in results)
+    
+    if not has_stats_data:
+        # Fall back to calculating from PlayerEvent data
+        logger.info(f"No PlayerSeasonStats data found for season {season_id}, calculating from PlayerEvent data")
+        
+        # Get teams for this season
+        teams_in_season = Team.query.filter(Team.league.has(League.season_id == season_id)).all()
+        team_ids = [team.id for team in teams_in_season]
+        
+        if team_ids:
+            # Calculate goals from PlayerEvent records for matches involving teams in this season
+            events_query = db.session.query(
+                Player.id,
+                Player.name,
+                func.count(PlayerEvent.id).label('season_goals')
+            ).join(
+                PlayerEvent, Player.id == PlayerEvent.player_id
+            ).join(
+                Match, PlayerEvent.match_id == Match.id
+            ).filter(
+                and_(
+                    PlayerEvent.event_type == 'GOAL',
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    ),
+                    Player.is_current_player == True
+                )
+            ).group_by(
+                Player.id, Player.name
+            ).order_by(
+                desc('season_goals')
+            ).limit(limit)
+            
+            return events_query.all()
+    
+    return results
 
 
 def get_career_goal_leaders(limit=10):
@@ -93,6 +139,7 @@ def get_career_goal_leaders(limit=10):
 def get_season_assist_leaders(season_id=None, limit=10):
     """
     Get assist leaders for a specific season or current season.
+    Falls back to calculating from PlayerEvent data if PlayerSeasonStats is empty.
     
     Args:
         season_id: Specific season ID, or None for current season
@@ -110,8 +157,8 @@ def get_season_assist_leaders(season_id=None, limit=10):
             logger.warning("No current season found and no season_id provided")
             return []
     
-    # Query season-specific assists
-    query = db.session.query(
+    # First try PlayerSeasonStats
+    stats_query = db.session.query(
         Player.id,
         Player.name,
         func.coalesce(func.sum(PlayerSeasonStats.assists), 0).label('season_assists')
@@ -129,7 +176,47 @@ def get_season_assist_leaders(season_id=None, limit=10):
         desc('season_assists')
     ).limit(limit)
     
-    return query.all()
+    results = stats_query.all()
+    
+    # Check if we have any non-zero assists from PlayerSeasonStats
+    has_stats_data = any(result.season_assists > 0 for result in results)
+    
+    if not has_stats_data:
+        # Fall back to calculating from PlayerEvent data
+        logger.info(f"No PlayerSeasonStats data found for season {season_id}, calculating from PlayerEvent data")
+        
+        # Get teams for this season
+        teams_in_season = Team.query.filter(Team.league.has(League.season_id == season_id)).all()
+        team_ids = [team.id for team in teams_in_season]
+        
+        if team_ids:
+            # Calculate assists from PlayerEvent records for matches involving teams in this season
+            events_query = db.session.query(
+                Player.id,
+                Player.name,
+                func.count(PlayerEvent.id).label('season_assists')
+            ).join(
+                PlayerEvent, Player.id == PlayerEvent.player_id
+            ).join(
+                Match, PlayerEvent.match_id == Match.id
+            ).filter(
+                and_(
+                    PlayerEvent.event_type == 'ASSIST',
+                    or_(
+                        Match.home_team_id.in_(team_ids),
+                        Match.away_team_id.in_(team_ids)
+                    ),
+                    Player.is_current_player == True
+                )
+            ).group_by(
+                Player.id, Player.name
+            ).order_by(
+                desc('season_assists')
+            ).limit(limit)
+            
+            return events_query.all()
+    
+    return results
 
 
 def get_player_season_stats(player_id, season_id=None):
@@ -237,15 +324,15 @@ def calculate_expected_attendance(available_count, maybe_count, maybe_factor=0.5
     return available_count + (maybe_count * maybe_factor)
 
 
-def get_substitution_urgency(expected_attendance, roster_size, min_players=9, ideal_players=15):
+def get_substitution_urgency(expected_attendance, roster_size, min_players=8, ideal_players=13):
     """
-    Standardized substitution urgency calculation for 9v9 format.
+    Standardized substitution urgency calculation for 8v8 format.
     
     Args:
         expected_attendance: Expected number of players
         roster_size: Total roster size
-        min_players: Minimum players needed (default 9 for 9v9)
-        ideal_players: Ideal number for rolling subs (default 15)
+        min_players: Minimum players needed (default 8 for 8v8)
+        ideal_players: Ideal number for balanced rotation (default 13 - allows 2 double shifts per shift)
     
     Returns:
         urgency level: 'critical', 'high', 'medium', 'low', 'none'
@@ -254,9 +341,9 @@ def get_substitution_urgency(expected_attendance, roster_size, min_players=9, id
         return 'critical'  # Cannot field a team
     elif expected_attendance < min_players + 2:
         return 'high'      # Can barely field team, no subs
-    elif expected_attendance < (ideal_players * 0.8):
-        return 'medium'    # Limited substitution options
+    elif expected_attendance < min_players + 4:
+        return 'medium'    # Limited substitution options (10-11 players)
     elif expected_attendance < ideal_players:
-        return 'low'       # Some substitution depth but not ideal
+        return 'low'       # Some substitution depth but not optimal (12 players)
     else:
-        return 'none'      # Good to excellent turnout
+        return 'none'      # Ideal state - 13+ players allows balanced rotation
