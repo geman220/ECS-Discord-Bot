@@ -287,9 +287,9 @@ def get_attendance_analytics():
             Player.name,
             Player.favorite_position,
             func.count(Availability.id).label('total_responses'),
-            func.sum(func.case([(Availability.response == 'available', 1)], else_=0)).label('available_count'),
-            func.sum(func.case([(Availability.response == 'unavailable', 1)], else_=0)).label('unavailable_count'),
-            func.sum(func.case([(Availability.response == 'maybe', 1)], else_=0)).label('maybe_count')
+            func.sum(func.case((Availability.response == 'available', 1), else_=0)).label('available_count'),
+            func.sum(func.case((Availability.response == 'unavailable', 1), else_=0)).label('unavailable_count'),
+            func.sum(func.case((Availability.response == 'maybe', 1), else_=0)).label('maybe_count')
         ).join(
             Availability, Player.id == Availability.player_id
         ).filter(
