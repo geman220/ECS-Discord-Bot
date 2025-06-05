@@ -1,125 +1,355 @@
-{% extends "base.html" %}
+{% extends "base_unauthenticated.html" %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card">
-                <div class="card-header">
-                    <h1 class="card-title mb-0">Privacy Policy for ECS Soccer League ChatGPT Assistant</h1>
-                </div>
-                <div class="card-body">
-                    <p>
-                        <strong>Effective Date:</strong> June 4, 2025<br>
-                        <strong>Last Updated:</strong> June 4, 2025
-                    </p>
-
-                    <h2>Overview</h2>
-                    <p>This Privacy Policy explains how the ECS Soccer League ChatGPT Assistant ("the Assistant") collects, uses, and protects information when you interact with our custom GPT integration.</p>
-
-                    <h2>Information We Access</h2>
-
-                    <h3>From Our ECS Database</h3>
-                    <p>The Assistant has read-only access to:</p>
-                    <ul>
-                        <li><strong>Player Information:</strong> Names, positions, team affiliations, statistics, and public profile data</li>
-                        <li><strong>Team Data:</strong> Team names, rosters, standings, and match information</li>
-                        <li><strong>Match Records:</strong> Scores, dates, locations, and game events</li>
-                        <li><strong>League Information:</strong> Standings, schedules, and seasonal data</li>
-                    </ul>
-
-                    <h3>From Your Interactions</h3>
-                    <p>When you use the Assistant, we may collect:</p>
-                    <ul>
-                        <li><strong>Query Content:</strong> The questions and requests you ask</li>
-                        <li><strong>Usage Patterns:</strong> How you interact with the Assistant</li>
-                        <li><strong>Session Information:</strong> Technical data about your interactions</li>
-                    </ul>
-
-                    <h2>How We Use Information</h2>
-                    <p>We use the information to:</p>
-                    <ul>
-                        <li><strong>Provide Responses:</strong> Answer your questions about league data</li>
-                        <li><strong>Improve Service:</strong> Enhance the Assistant's performance and accuracy</li>
-                        <li><strong>Maintain Security:</strong> Monitor for misuse and ensure system integrity</li>
-                    </ul>
-
-                    <h2>Information We Share</h2>
-
-                    <h3>We DO NOT Share:</h3>
-                    <ul>
-                        <li><strong>Personal Contact Information:</strong> Phone numbers, email addresses, or private details</li>
-                        <li><strong>Sensitive Data:</strong> Internal notes, private communications, or confidential information</li>
-                        <li><strong>User Queries:</strong> Your specific questions or interactions with third parties</li>
-                    </ul>
-
-                    <h3>We DO Share:</h3>
-                    <ul>
-                        <li><strong>Public League Data:</strong> Information already available through our public channels</li>
-                        <li><strong>Aggregated Statistics:</strong> Non-identifying usage patterns for improvement purposes</li>
-                    </ul>
-
-                    <h2>Data Security</h2>
-                    <p>We implement security measures including:</p>
-                    <ul>
-                        <li><strong>API Key Authentication:</strong> Secure access controls</li>
-                        <li><strong>Read-Only Access:</strong> The Assistant cannot modify or delete data</li>
-                        <li><strong>Encrypted Communications:</strong> All data transmission is encrypted</li>
-                        <li><strong>Limited Scope:</strong> Access restricted to publicly available league information</li>
-                    </ul>
-
-                    <h2>Your Privacy Rights</h2>
-                    <p>You have the right to:</p>
-                    <ul>
-                        <li><strong>Access:</strong> Request information about what data is accessible</li>
-                        <li><strong>Correction:</strong> Request updates to inaccurate public profile information</li>
-                        <li><strong>Deletion:</strong> Request removal of your data from our systems</li>
-                        <li><strong>Restriction:</strong> Limit how your information is processed</li>
-                    </ul>
-
-                    <h2>OpenAI Integration</h2>
-                    <p>This Assistant operates through OpenAI's ChatGPT platform. Please review:</p>
-                    <ul>
-                        <li><strong>OpenAI's Privacy Policy:</strong> <a href="https://openai.com/privacy/" target="_blank">https://openai.com/privacy/</a></li>
-                        <li><strong>OpenAI's Terms of Service:</strong> <a href="https://openai.com/terms/" target="_blank">https://openai.com/terms/</a></li>
-                    </ul>
-                    <p>Your interactions with the Assistant are subject to both this policy and OpenAI's policies.</p>
-
-                    <h2>Data Retention</h2>
-                    <ul>
-                        <li><strong>Query Data:</strong> Processed in real-time, not permanently stored by us</li>
-                        <li><strong>League Data:</strong> Maintained according to our standard retention policies</li>
-                        <li><strong>Usage Analytics:</strong> Aggregated data may be retained for service improvement</li>
-                    </ul>
-
-                    <h2>Children's Privacy</h2>
-                    <p>This service is not directed to individuals under 13. We do not knowingly collect personal information from children under 13.</p>
-
-                    <h2>Updates to This Policy</h2>
-                    <p>We may update this privacy policy periodically. Continued use of the Assistant constitutes acceptance of any changes.</p>
-
-                    <h2>Contact Information</h2>
-                    <p>For privacy-related questions or requests:</p>
-                    <p><strong>Website:</strong> <a href="https://portal.ecsfc.com">https://portal.ecsfc.com</a></p>
-
-                    <h2>Compliance</h2>
-                    <p>This privacy policy complies with:</p>
-                    <ul>
-                        <li>General Data Protection Regulation (GDPR)</li>
-                        <li>California Consumer Privacy Act (CCPA)</li>
-                        <li>OpenAI's Custom GPT requirements</li>
-                    </ul>
-
-                    <hr class="my-4">
-
-                    <div class="alert alert-info">
-                        <strong>Note:</strong> This Assistant provides information about our soccer league based on publicly available data. For official league business or sensitive matters, please contact us directly through our official channels.
+{% block main_content %}
+<!-- Content wrapper with gradient background -->
+<div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-xl-7">
+                <!-- Header Section -->
+                <div class="text-center mb-4">
+                    <div class="d-flex justify-content-center align-items-center mb-3">
+                        <img src="{{ url_for('static', filename='assets/img/favicon/favicon.png') }}"
+                             alt="ECS Logo" style="height: 40px;" class="me-2">
+                        <h1 class="fw-bold text-primary">ECS Soccer League</h1>
                     </div>
+                    <p class="text-muted">ChatGPT Assistant Privacy Policy</p>
+                </div>
 
-                    <p class="text-muted"><em>This policy was last reviewed on June 4, 2025 and applies specifically to the ECS Soccer League ChatGPT Assistant integration.</em></p>
+                <!-- Privacy Policy Card -->
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white text-center py-3">
+                        <h2 class="card-title mb-0 text-white">
+                            <i class="ti ti-shield-check me-2"></i>Privacy Policy
+                        </h2>
+                        <p class="mb-0 mt-2 text-white-50">
+                            <small>Effective Date: June 4, 2025 | Last Updated: June 4, 2025</small>
+                        </p>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Overview Section -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-info-circle me-2"></i>Overview
+                            </h3>
+                            <p class="text-muted">
+                                This Privacy Policy explains how the ECS Soccer League ChatGPT Assistant ("the Assistant")
+                                collects, uses, and protects information when you interact with our custom GPT integration.
+                            </p>
+                        </div>
+
+                        <!-- Information We Access -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-database me-2"></i>Information We Access
+                            </h3>
+
+                            <h4 class="h5 text-dark mb-2">From Our ECS Database</h4>
+                            <p class="text-muted mb-3">The Assistant has read-only access to:</p>
+                            <ul class="text-muted">
+                                <li><strong>Player Information:</strong> Names, positions, team affiliations, statistics, and public profile data</li>
+                                <li><strong>Team Data:</strong> Team names, rosters, standings, and match information</li>
+                                <li><strong>Match Records:</strong> Scores, dates, locations, and game events</li>
+                                <li><strong>League Information:</strong> Standings, schedules, and seasonal data</li>
+                            </ul>
+
+                            <h4 class="h5 text-dark mb-2 mt-3">From Your Interactions</h4>
+                            <p class="text-muted mb-3">When you use the Assistant, we may collect:</p>
+                            <ul class="text-muted">
+                                <li><strong>Query Content:</strong> The questions and requests you ask</li>
+                                <li><strong>Usage Patterns:</strong> How you interact with the Assistant</li>
+                                <li><strong>Session Information:</strong> Technical data about your interactions</li>
+                            </ul>
+                        </div>
+
+                        <!-- How We Use Information -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-settings me-2"></i>How We Use Information
+                            </h3>
+                            <p class="text-muted mb-3">We use the information to:</p>
+                            <ul class="text-muted">
+                                <li><strong>Provide Responses:</strong> Answer your questions about league data</li>
+                                <li><strong>Improve Service:</strong> Enhance the Assistant's performance and accuracy</li>
+                                <li><strong>Maintain Security:</strong> Monitor for misuse and ensure system integrity</li>
+                            </ul>
+                        </div>
+
+                        <!-- Information Sharing -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-share me-2"></i>Information We Share
+                            </h3>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="alert alert-danger">
+                                        <h4 class="h5 text-danger mb-2">
+                                            <i class="ti ti-x me-2"></i>We DO NOT Share:
+                                        </h4>
+                                        <ul class="mb-0 small">
+                                            <li>Personal contact information</li>
+                                            <li>Sensitive data or private communications</li>
+                                            <li>Your specific queries with third parties</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert alert-success">
+                                        <h4 class="h5 text-success mb-2">
+                                            <i class="ti ti-check me-2"></i>We DO Share:
+                                        </h4>
+                                        <ul class="mb-0 small">
+                                            <li>Public league data only</li>
+                                            <li>Aggregated, non-identifying statistics</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data Security -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-shield-lock me-2"></i>Data Security
+                            </h3>
+                            <p class="text-muted mb-3">We implement security measures including:</p>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <ul class="text-muted">
+                                        <li><strong>API Key Authentication:</strong> Secure access controls</li>
+                                        <li><strong>Read-Only Access:</strong> Cannot modify or delete data</li>
+                                    </ul>
+                                </div>
+                                <div class="col-sm-6">
+                                    <ul class="text-muted">
+                                        <li><strong>Encrypted Communications:</strong> All data transmission is encrypted</li>
+                                        <li><strong>Limited Scope:</strong> Access restricted to public information</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Your Rights -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-user-check me-2"></i>Your Privacy Rights
+                            </h3>
+                            <p class="text-muted mb-3">You have the right to:</p>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <ul class="text-muted">
+                                        <li><strong>Access:</strong> Request information about accessible data</li>
+                                        <li><strong>Correction:</strong> Request updates to inaccurate information</li>
+                                    </ul>
+                                </div>
+                                <div class="col-sm-6">
+                                    <ul class="text-muted">
+                                        <li><strong>Deletion:</strong> Request removal of your data</li>
+                                        <li><strong>Restriction:</strong> Limit information processing</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OpenAI Integration -->
+                        <div class="mb-4">
+                            <div class="alert alert-info">
+                                <h4 class="h5 text-info mb-2">
+                                    <i class="ti ti-external-link me-2"></i>OpenAI Integration
+                                </h4>
+                                <p class="mb-2">This Assistant operates through OpenAI's ChatGPT platform. Please also review:</p>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="https://openai.com/privacy/" target="_blank" class="btn btn-sm btn-outline-info">
+                                        <i class="ti ti-external-link me-1"></i>OpenAI Privacy Policy
+                                    </a>
+                                    <a href="https://openai.com/terms/" target="_blank" class="btn btn-sm btn-outline-info">
+                                        <i class="ti ti-external-link me-1"></i>OpenAI Terms of Service
+                                    </a>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    Your interactions are subject to both this policy and OpenAI's policies.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Data Retention -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-clock me-2"></i>Data Retention
+                            </h3>
+                            <ul class="text-muted">
+                                <li><strong>Query Data:</strong> Processed in real-time, not permanently stored by us</li>
+                                <li><strong>League Data:</strong> Maintained according to our standard retention policies</li>
+                                <li><strong>Usage Analytics:</strong> Aggregated data may be retained for service improvement</li>
+                            </ul>
+                        </div>
+
+                        <!-- Compliance -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-certificate me-2"></i>Compliance
+                            </h3>
+                            <p class="text-muted mb-3">This privacy policy complies with:</p>
+                            <div class="row">
+                                <div class="col-sm-4">
+                                    <div class="text-center p-3 border rounded">
+                                        <i class="ti ti-world text-primary fs-1"></i>
+                                        <p class="mb-0 small"><strong>GDPR</strong></p>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="text-center p-3 border rounded">
+                                        <i class="ti ti-map-pin text-primary fs-1"></i>
+                                        <p class="mb-0 small"><strong>CCPA</strong></p>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="text-center p-3 border rounded">
+                                        <i class="ti ti-robot text-primary fs-1"></i>
+                                        <p class="mb-0 small"><strong>OpenAI Requirements</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div class="mb-4">
+                            <h3 class="text-primary mb-3">
+                                <i class="ti ti-mail me-2"></i>Contact Information
+                            </h3>
+                            <p class="text-muted mb-3">For privacy-related questions or requests:</p>
+                            <div class="d-flex justify-content-center">
+                                <a href="https://portal.ecsfc.com" target="_blank" class="btn btn-primary">
+                                    <i class="ti ti-world me-2"></i>Visit Our Portal
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Important Note -->
+                        <div class="alert alert-warning">
+                            <h4 class="h5 text-warning mb-2">
+                                <i class="ti ti-alert-triangle me-2"></i>Important Note
+                            </h4>
+                            <p class="mb-0">
+                                This Assistant provides information about our soccer league based on publicly available data.
+                                For official league business or sensitive matters, please contact us directly through our official channels.
+                            </p>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="text-center text-muted mt-4 pt-3 border-top">
+                            <small>
+                                <em>This policy was last reviewed on June 4, 2025 and applies specifically to the ECS Soccer League ChatGPT Assistant integration.</em>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Back to Portal Link -->
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-arrow-left me-2"></i>Back to Portal Login
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Gradient background */
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+
+    .authentication-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        padding: 2rem 0;
+    }
+
+    /* Card styling */
+    .card {
+        border: none;
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: none;
+    }
+
+    /* Better spacing for mobile */
+    @media (max-width: 767.98px) {
+        .authentication-wrapper {
+            padding: 1rem 0;
+        }
+
+        .card-body {
+            padding: 1.5rem !important;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .d-flex.gap-2 {
+            flex-direction: column;
+        }
+
+            .d-flex.gap-2 .btn {
+                margin-bottom: 0.5rem;
+            }
+    }
+
+    /* Icon styling */
+    .ti {
+        font-size: 1.1em;
+    }
+
+    /* Alert improvements */
+    .alert {
+        border-left: 4px solid;
+    }
+
+    .alert-danger {
+        border-left-color: #dc3545;
+    }
+
+    .alert-success {
+        border-left-color: #198754;
+    }
+
+    .alert-info {
+        border-left-color: #0dcaf0;
+    }
+
+    .alert-warning {
+        border-left-color: #ffc107;
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Link styling */
+    a {
+        text-decoration: none;
+    }
+
+        a:hover {
+            text-decoration: underline;
+        }
+</style>
 {% endblock %}

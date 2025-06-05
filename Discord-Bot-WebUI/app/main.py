@@ -704,8 +704,11 @@ def privacy_policy():
     This route serves the privacy policy required for the ChatGPT Custom GPT integration,
     explaining how user data is accessed and used through the external API.
     
+    This page is publicly accessible (no login required) as it needs to be
+    accessible to anyone using the ChatGPT integration.
+    
     Returns:
-        Rendered privacy policy template.
+        Rendered privacy policy template using unauthenticated base.
     """
     return render_template('privacy_policy.html', title='Privacy Policy')
 
