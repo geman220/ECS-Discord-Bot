@@ -404,7 +404,13 @@ def get_attendance_analytics():
         )
         
         # Get all players for this scope to calculate no-response counts
-        all_players_query = Player.query.filter(Player.is_current_player == True)
+        # Only include players who are on teams (have actually played)
+        all_players_query = Player.query.filter(
+            and_(
+                Player.is_current_player == True,
+                Player.teams.any()  # Must be on at least one team
+            )
+        )
         
         if team_id:
             all_players_query = all_players_query.filter(Player.teams.any(Team.id == team_id))
