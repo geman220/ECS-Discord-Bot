@@ -84,88 +84,122 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
     
     if include_demographics:
         data.update({
-            'pronouns': player.pronouns,
-            'jersey_size': player.jersey_size,
-            'phone_verified': player.is_phone_verified,
-            'sms_consent': player.sms_consent_given,
-            'expected_weeks_available': player.expected_weeks_available,
-            'unavailable_dates': player.unavailable_dates,
-            'willing_to_referee': player.willing_to_referee,
-            'other_positions': player.other_positions,
-            'positions_not_to_play': player.positions_not_to_play,
-            'frequency_play_goal': player.frequency_play_goal,
-            'additional_info': player.additional_info,
-            'player_notes': player.player_notes,
-            'team_swap_preference': player.team_swap,
-            'user_info': {
-                'username': player.user.username,
-                'email': player.user.email,
-                'created_at': player.user.created_at.isoformat() if player.user.created_at else None,
-                'last_login': player.user.last_login.isoformat() if player.user.last_login else None,
-                'is_approved': player.user.is_approved,
-                'has_completed_onboarding': player.user.has_completed_onboarding,
-                'email_notifications': player.user.email_notifications,
-                'sms_notifications': player.user.sms_notifications,
-                'discord_notifications': player.user.discord_notifications,
-                'profile_visibility': player.user.profile_visibility,
-                'roles': [role.name for role in player.user.roles] if player.user.roles else []
-            }
+            'pronouns': getattr(player, 'pronouns', None),
+            'jersey_size': getattr(player, 'jersey_size', None),
+            'phone_verified': getattr(player, 'is_phone_verified', False),
+            'sms_consent': getattr(player, 'sms_consent_given', False),
+            'expected_weeks_available': getattr(player, 'expected_weeks_available', None),
+            'unavailable_dates': getattr(player, 'unavailable_dates', None),
+            'willing_to_referee': getattr(player, 'willing_to_referee', None),
+            'other_positions': getattr(player, 'other_positions', None),
+            'positions_not_to_play': getattr(player, 'positions_not_to_play', None),
+            'frequency_play_goal': getattr(player, 'frequency_play_goal', None),
+            'additional_info': getattr(player, 'additional_info', None),
+            'player_notes': getattr(player, 'player_notes', None),
+            'team_swap_preference': getattr(player, 'team_swap', None)
         })
+        
+        # User info with safe access
+        if hasattr(player, 'user') and player.user:
+            data['user_info'] = {
+                'username': getattr(player.user, 'username', None),
+                'email': getattr(player.user, 'email', None),
+                'created_at': player.user.created_at.isoformat() if getattr(player.user, 'created_at', None) else None,
+                'last_login': player.user.last_login.isoformat() if getattr(player.user, 'last_login', None) else None,
+                'is_approved': getattr(player.user, 'is_approved', False),
+                'has_completed_onboarding': getattr(player.user, 'has_completed_onboarding', False),
+                'email_notifications': getattr(player.user, 'email_notifications', True),
+                'sms_notifications': getattr(player.user, 'sms_notifications', True),
+                'discord_notifications': getattr(player.user, 'discord_notifications', True),
+                'profile_visibility': getattr(player.user, 'profile_visibility', 'everyone'),
+                'roles': [role.name for role in player.user.roles] if getattr(player.user, 'roles', None) else []
+            }
+        else:
+            data['user_info'] = None
     
-    if include_teams and player.teams:
+    if include_teams and hasattr(player, 'teams') and player.teams:
         data['all_teams'] = []
-        for team in player.teams:
-            # Check if player is coach for this team
-            team_association = db.session.query(player_teams).filter_by(
-                player_id=player.id, 
-                team_id=team.id
-            ).first()
-            is_coach_for_team = team_association.is_coach if team_association else False
-            
-            data['all_teams'].append({
-                'id': team.id,
-                'name': team.name,
-                'league': team.league.name if team.league else None,
-                'is_coach': is_coach_for_team,
-                'discord_channel_id': team.discord_channel_id,
-                'team_color': getattr(team, 'team_color', None)
-            })
+        try:
+            for team in player.teams:
+                # Check if player is coach for this team
+                team_association = db.session.query(player_teams).filter_by(
+                    player_id=player.id, 
+                    team_id=team.id
+                ).first()
+                is_coach_for_team = getattr(team_association, 'is_coach', False) if team_association else False
+                
+                team_data = {
+                    'id': team.id,
+                    'name': team.name,
+                    'league': team.league.name if hasattr(team, 'league') and team.league else None,
+                    'is_coach': is_coach_for_team,
+                    'discord_channel_id': getattr(team, 'discord_channel_id', None),
+                    'team_color': getattr(team, 'team_color', None)
+                }
+                data['all_teams'].append(team_data)
+        except Exception as e:
+            logger.warning(f"Error serializing teams for player {player.id}: {e}")
+            data['all_teams'] = []
     
     if include_stats:
-        # Season stats
-        if player.season_stats:
-            data['season_stats'] = []
-            for stat in player.season_stats:
-                season_data = {
-                    'season_id': stat.season_id,
-                    'season_name': stat.season.name if stat.season else None,
-                    'matches_played': stat.matches_played or 0,
-                    'goals': stat.goals or 0,
-                    'assists': stat.assists or 0,
-                    'yellow_cards': stat.yellow_cards or 0,
-                    'red_cards': stat.red_cards or 0,
-                    'clean_sheets': stat.clean_sheets or 0,
-                    'saves': getattr(stat, 'saves', 0),
-                    'minutes_played': getattr(stat, 'minutes_played', 0),
-                    'goals_conceded': getattr(stat, 'goals_conceded', 0)
-                }
-                data['season_stats'].append(season_data)
+        # Season stats with safe access
+        data['season_stats'] = []
+        try:
+            if hasattr(player, 'season_stats') and player.season_stats:
+                for stat in player.season_stats:
+                    try:
+                        season_data = {
+                            'season_id': getattr(stat, 'season_id', None),
+                            'season_name': stat.season.name if hasattr(stat, 'season') and stat.season else None,
+                            'matches_played': getattr(stat, 'matches_played', 0) or 0,
+                            'goals': getattr(stat, 'goals', 0) or 0,
+                            'assists': getattr(stat, 'assists', 0) or 0,
+                            'yellow_cards': getattr(stat, 'yellow_cards', 0) or 0,
+                            'red_cards': getattr(stat, 'red_cards', 0) or 0,
+                            'clean_sheets': getattr(stat, 'clean_sheets', 0) or 0,
+                            'saves': getattr(stat, 'saves', 0) or 0,
+                            'minutes_played': getattr(stat, 'minutes_played', 0) or 0,
+                            'goals_conceded': getattr(stat, 'goals_conceded', 0) or 0
+                        }
+                        data['season_stats'].append(season_data)
+                    except Exception as e:
+                        logger.warning(f"Error serializing season stat for player {player.id}: {e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Error accessing season_stats for player {player.id}: {e}")
         
-        # Career stats
-        if player.career_stats:
-            career = player.career_stats[0]
-            data['career_stats'] = {
-                'total_matches': career.total_matches or 0,
-                'total_goals': career.total_goals or 0,
-                'total_assists': career.total_assists or 0,
-                'total_yellow_cards': career.total_yellow_cards or 0,
-                'total_red_cards': career.total_red_cards or 0,
-                'total_clean_sheets': career.total_clean_sheets or 0,
-                'total_saves': getattr(career, 'total_saves', 0),
-                'total_minutes_played': getattr(career, 'total_minutes_played', 0),
-                'goals_per_game': round((career.total_goals or 0) / max(career.total_matches or 1, 1), 2),
-                'assists_per_game': round((career.total_assists or 0) / max(career.total_matches or 1, 1), 2)
-            }
+        # Career stats with safe access
+        data['career_stats'] = None
+        try:
+            if hasattr(player, 'career_stats') and player.career_stats:
+                # Check if career_stats is a list and has items
+                if isinstance(player.career_stats, list) and len(player.career_stats) > 0:
+                    career = player.career_stats[0]
+                elif hasattr(player.career_stats, 'total_matches'):  # If it's a single object
+                    career = player.career_stats
+                else:
+                    career = None
+                
+                if career:
+                    total_matches = getattr(career, 'total_matches', 0) or 0
+                    total_goals = getattr(career, 'total_goals', 0) or 0
+                    total_assists = getattr(career, 'total_assists', 0) or 0
+                    
+                    data['career_stats'] = {
+                        'total_matches': total_matches,
+                        'total_goals': total_goals,
+                        'total_assists': total_assists,
+                        'total_yellow_cards': getattr(career, 'total_yellow_cards', 0) or 0,
+                        'total_red_cards': getattr(career, 'total_red_cards', 0) or 0,
+                        'total_clean_sheets': getattr(career, 'total_clean_sheets', 0) or 0,
+                        'total_saves': getattr(career, 'total_saves', 0) or 0,
+                        'total_minutes_played': getattr(career, 'total_minutes_played', 0) or 0,
+                        'goals_per_game': round(total_goals / max(total_matches, 1), 2),
+                        'assists_per_game': round(total_assists / max(total_matches, 1), 2)
+                    }
+        except Exception as e:
+            logger.warning(f"Error accessing career_stats for player {player.id}: {e}")
+            data['career_stats'] = None
     
     return data
 
