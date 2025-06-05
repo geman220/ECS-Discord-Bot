@@ -31,6 +31,46 @@ logger = logging.getLogger(__name__)
 external_api_bp = Blueprint('external_api', __name__, url_prefix='/api/external/v1')
 
 
+def calculate_expected_attendance(available_count, maybe_count, maybe_factor=0.5):
+    """
+    Standardized attendance calculation used across all endpoints.
+    
+    Args:
+        available_count: Number of players confirmed available
+        maybe_count: Number of players marked as maybe
+        maybe_factor: Weight given to maybe responses (default 0.5)
+    
+    Returns:
+        Expected number of attendees
+    """
+    return available_count + (maybe_count * maybe_factor)
+
+
+def get_substitution_urgency(expected_attendance, roster_size, min_players=9, ideal_players=15):
+    """
+    Standardized substitution urgency calculation for 9v9 format.
+    
+    Args:
+        expected_attendance: Expected number of players
+        roster_size: Total roster size
+        min_players: Minimum players needed (default 9 for 9v9)
+        ideal_players: Ideal number for rolling subs (default 15)
+    
+    Returns:
+        urgency level: 'critical', 'high', 'medium', 'low', 'none'
+    """
+    if expected_attendance < min_players:
+        return 'critical'  # Cannot field a team
+    elif expected_attendance < min_players + 2:
+        return 'high'      # Can barely field team, no subs
+    elif expected_attendance < (ideal_players * 0.8):
+        return 'medium'    # Limited substitution options
+    elif expected_attendance < ideal_players:
+        return 'low'       # Some substitution depth but not ideal
+    else:
+        return 'none'      # Good to excellent turnout
+
+
 def api_key_required(f):
     """Decorator to require API key authentication for external endpoints."""
     @wraps(f)
@@ -192,15 +232,26 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
                     total_goals = getattr(career, 'goals', 0) or 0
                     total_assists = getattr(career, 'assists', 0) or 0
                     
-                    # Calculate total matches from season stats if available
+                    # Calculate total matches from actual match participation
                     total_matches = 0
-                    if hasattr(player, 'season_stats') and player.season_stats:
-                        # Count matches where player has stats
-                        total_matches = len([s for s in player.season_stats if (s.goals + s.assists + s.yellow_cards + s.red_cards) > 0])
+                    if hasattr(player, 'teams') and player.teams:
+                        # Get matches for player's teams
+                        team_ids = [team.id for team in player.teams]
+                        if team_ids:
+                            # Count matches where player's teams played and were completed
+                            total_matches = Match.query.filter(
+                                and_(
+                                    or_(
+                                        Match.home_team_id.in_(team_ids),
+                                        Match.away_team_id.in_(team_ids)
+                                    ),
+                                    Match.home_team_score.isnot(None)  # Only completed matches
+                                )
+                            ).count()
                     
                     if total_matches == 0:
-                        # Estimate from goals/assists (rough approximation)
-                        total_matches = max(1, (total_goals + total_assists) // 2)
+                        # Fallback: at least 1 to avoid division by zero
+                        total_matches = 1
                     
                     data['career_stats'] = {
                         'total_matches': total_matches,
@@ -978,6 +1029,12 @@ def get_stats_summary():
         season_id = request.args.get('season_id', type=int)
         league_id = request.args.get('league_id', type=int)
         
+        # Default to current season if no season specified
+        if not season_id:
+            current_season = Season.query.filter(Season.is_current == True).first()
+            if current_season:
+                season_id = current_season.id
+        
         # Base counts
         total_players = Player.query.filter(Player.is_current_player == True).count()
         total_teams = Team.query.count()
@@ -1025,22 +1082,25 @@ def get_stats_summary():
             )
         ).count()
         
-        # Top performers
-        top_scorers = db.session.query(
+        # Top performers - filter by season if provided
+        scorer_query = db.session.query(
             PlayerSeasonStats.player_id,
             Player.name,
             func.sum(PlayerSeasonStats.goals).label('total_goals')
-        ).join(Player).group_by(PlayerSeasonStats.player_id, Player.name).order_by(
-            desc('total_goals')
-        ).limit(5).all()
+        ).join(Player).group_by(PlayerSeasonStats.player_id, Player.name)
         
-        top_assists = db.session.query(
+        assist_query = db.session.query(
             PlayerSeasonStats.player_id,
             Player.name,
             func.sum(PlayerSeasonStats.assists).label('total_assists')
-        ).join(Player).group_by(PlayerSeasonStats.player_id, Player.name).order_by(
-            desc('total_assists')
-        ).limit(5).all()
+        ).join(Player).group_by(PlayerSeasonStats.player_id, Player.name)
+        
+        if season_id:
+            scorer_query = scorer_query.filter(PlayerSeasonStats.season_id == season_id)
+            assist_query = assist_query.filter(PlayerSeasonStats.season_id == season_id)
+        
+        top_scorers = scorer_query.order_by(desc('total_goals')).limit(5).all()
+        top_assists = assist_query.order_by(desc('total_assists')).limit(5).all()
         
         return jsonify({
             'summary': {
@@ -1195,26 +1255,48 @@ def get_player_analytics():
         # Calculate analytics
         analytics_data = []
         for stat in stats:
-            # Calculate matches from events (goals + assists + cards as proxy)
-            total_events = stat.total_goals + stat.total_assists + stat.total_yellows + stat.total_reds
-            estimated_matches = max(1, total_events // 2) if total_events > 0 else 0
+            # Calculate actual matches played for this player in the season
+            player = Player.query.get(stat.id)
+            actual_matches = 0
+            if player and player.teams:
+                team_ids = [team.id for team in player.teams]
+                if team_ids:
+                    match_filter = [
+                        or_(
+                            Match.home_team_id.in_(team_ids),
+                            Match.away_team_id.in_(team_ids)
+                        ),
+                        Match.home_team_score.isnot(None)  # Only completed matches
+                    ]
+                    if season_id:
+                        # Filter by season through team's league
+                        match_filter.append(
+                            or_(
+                                Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                                Match.away_team.has(Team.league.has(League.season_id == season_id))
+                            )
+                        )
+                    actual_matches = Match.query.filter(and_(*match_filter)).count()
+            
+            # Use at least 1 to avoid division by zero
+            matches_played = max(actual_matches, 1)
             
             # Apply min_matches filter after query
-            if estimated_matches < min_matches and min_matches > 0:
+            if actual_matches < min_matches and min_matches > 0:
                 continue
             
             analytics_data.append({
                 'player_id': stat.id,
                 'name': stat.name,
                 'position': stat.favorite_position or 'Unknown',
-                'matches_played': estimated_matches,
+                'matches_played': actual_matches,
                 'goals': int(stat.total_goals),
                 'assists': int(stat.total_assists),
                 'yellow_cards': int(stat.total_yellows),
                 'red_cards': int(stat.total_reds),
                 'clean_sheets': 0,  # Not tracked in base model
-                'goals_per_match': round(stat.total_goals / max(estimated_matches, 1), 2),
-                'assists_per_match': round(stat.total_assists / max(estimated_matches, 1), 2),
+                'goals_per_match': round(stat.total_goals / matches_played, 2),
+                'assists_per_match': round(stat.total_assists / matches_played, 2),
                 'goal_contributions': int(stat.total_goals + stat.total_assists),
                 'discipline_score': int(stat.total_yellows + (stat.total_reds * 2))
             })
@@ -1472,19 +1554,45 @@ def get_substitution_needs():
                 # Get all availabilities for this match from this team's players
                 team_player_ids = [p.id for p in team.players]
                 
-                availabilities = Availability.query.filter(
-                    and_(
-                        Availability.match_id == match.id,
-                        Availability.player_id.in_(team_player_ids)
-                    )
+                # Debug: Check if we have team players
+                if not team_player_ids:
+                    logger.warning(f"Team {team.id} ({team.name}) has no players assigned")
+                
+                # Get ALL availabilities for this match
+                all_match_availabilities = Availability.query.filter(
+                    Availability.match_id == match.id
                 ).all()
+                
+                # Filter to only those from this team's players (by player_id OR discord_id)
+                team_discord_ids = [p.discord_id for p in team.players if p.discord_id]
+                availabilities = []
+                
+                for avail in all_match_availabilities:
+                    # Include if player_id matches a team member
+                    if avail.player_id and avail.player_id in team_player_ids:
+                        availabilities.append(avail)
+                    # Or if discord_id matches a team member (when player_id is null)
+                    elif avail.discord_id in team_discord_ids:
+                        availabilities.append(avail)
+                
+                # Debug: Log availability count
+                logger.debug(f"Team {team.name} (Match {match.id}): {len(team_player_ids)} players, {len(availabilities)} RSVPs")
                 
                 # Count responses
                 available_players = [a for a in availabilities if a.response == 'available']
                 unavailable_players = [a for a in availabilities if a.response == 'unavailable']
                 maybe_players = [a for a in availabilities if a.response == 'maybe']
                 
-                responded_player_ids = set(a.player_id for a in availabilities if a.player_id)
+                # Get players who have responded (either by player_id or discord_id match)
+                responded_player_ids = set()
+                team_discord_to_player = {p.discord_id: p.id for p in team.players if p.discord_id}
+                
+                for avail in availabilities:
+                    if avail.player_id:
+                        responded_player_ids.add(avail.player_id)
+                    elif avail.discord_id in team_discord_to_player:
+                        responded_player_ids.add(team_discord_to_player[avail.discord_id])
+                
                 no_response_player_ids = set(team_player_ids) - responded_player_ids
                 
                 # Get actual player objects for better data
@@ -1776,8 +1884,8 @@ def analyze_team_for_match(match, team, team_type):
             Player.id.in_(no_response_player_ids)
         ).all()
         
-        # Calculate expected attendance (available + 50% of maybe)
-        expected_attendance = available_count + (maybe_count * 0.5)
+        # Calculate expected attendance using standardized function
+        expected_attendance = calculate_expected_attendance(available_count, maybe_count)
         
         return {
             'team_id': team.id,
@@ -2244,20 +2352,39 @@ def get_substitute_requests():
                 
                 # Get RSVP data to determine if subs are needed
                 team_player_ids = [p.id for p in team.players]
-                availabilities = Availability.query.filter(
-                    and_(
-                        Availability.match_id == match.id,
-                        Availability.player_id.in_(team_player_ids)
-                    )
+                
+                # Debug team composition
+                if not team_player_ids:
+                    logger.warning(f"Team {team.id} ({team.name}) has no players assigned")
+                
+                # Get ALL availabilities for this match
+                all_match_availabilities = Availability.query.filter(
+                    Availability.match_id == match.id
                 ).all()
+                
+                # Filter to only those from this team's players (by player_id OR discord_id)
+                team_discord_ids = [p.discord_id for p in team.players if p.discord_id]
+                availabilities = []
+                
+                for avail in all_match_availabilities:
+                    # Include if player_id matches a team member
+                    if avail.player_id and avail.player_id in team_player_ids:
+                        availabilities.append(avail)
+                    # Or if discord_id matches a team member (when player_id is null)
+                    elif avail.discord_id in team_discord_ids:
+                        availabilities.append(avail)
+                
+                # Debug RSVP data
+                logger.debug(f"Team {team.name} (Match {match.id}): {len(team_player_ids)} players, {len(availabilities)} RSVPs")
                 
                 available_count = len([a for a in availabilities if a.response == 'available'])
                 maybe_count = len([a for a in availabilities if a.response == 'maybe'])
-                responded_count = len([a for a in availabilities if a.player_id])
+                # Count actual responses (some might have discord_id but no player_id)
+                responded_count = len(availabilities)  # All availabilities are responses
                 no_response_count = len(team_player_ids) - responded_count
                 
                 # Determine if team likely needs subs (contextual based on roster size)
-                expected_attendance = available_count + (maybe_count * 0.5)
+                expected_attendance = calculate_expected_attendance(available_count, maybe_count)
                 roster_size = len(team_player_ids)
                 
                 # Calculate percentage of roster attending
