@@ -60,27 +60,36 @@ def api_key_required(f):
 
 def serialize_player(player, include_stats=False, include_teams=False, include_demographics=False):
     """Serialize player data for API response with comprehensive information."""
-    data = {
-        'id': player.id,
-        'name': player.name,
-        'jersey_number': player.jersey_number,
-        'is_active': player.is_current_player,
-        'is_coach': player.is_coach,
-        'is_referee': player.is_ref,
-        'is_substitute': player.is_sub,
-        'discord_id': player.discord_id,
-        'favorite_position': player.favorite_position,
-        'profile_picture_url': player.profile_picture_url,
-        'updated_at': player.updated_at.isoformat() if player.updated_at else None,
-        'primary_league': {
-            'id': player.primary_league.id,
-            'name': player.primary_league.name
-        } if player.primary_league else None,
-        'primary_team': {
-            'id': player.primary_team.id,
-            'name': player.primary_team.name
-        } if player.primary_team else None
-    }
+    try:
+        data = {
+            'id': player.id,
+            'name': player.name,
+            'jersey_number': player.jersey_number,
+            'is_active': player.is_current_player,
+            'is_coach': player.is_coach,
+            'is_referee': player.is_ref,
+            'is_substitute': player.is_sub,
+            'discord_id': player.discord_id,
+            'favorite_position': player.favorite_position,
+            'profile_picture_url': player.profile_picture_url,
+            'updated_at': player.updated_at.isoformat() if player.updated_at else None,
+            'primary_league': {
+                'id': player.primary_league.id,
+                'name': player.primary_league.name
+            } if player.primary_league else None,
+            'primary_team': {
+                'id': player.primary_team.id,
+                'name': player.primary_team.name
+            } if player.primary_team else None
+        }
+    except Exception as e:
+        logger.error(f"Error in serialize_player base data for player {getattr(player, 'id', 'unknown')}: {e}")
+        # Return minimal safe data if there's an error
+        return {
+            'id': getattr(player, 'id', None),
+            'name': getattr(player, 'name', 'Unknown'),
+            'error': 'Partial data available'
+        }
     
     if include_demographics:
         data.update({
@@ -151,15 +160,16 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
                         season_data = {
                             'season_id': getattr(stat, 'season_id', None),
                             'season_name': stat.season.name if hasattr(stat, 'season') and stat.season else None,
-                            'matches_played': getattr(stat, 'matches_played', 0) or 0,
                             'goals': getattr(stat, 'goals', 0) or 0,
                             'assists': getattr(stat, 'assists', 0) or 0,
                             'yellow_cards': getattr(stat, 'yellow_cards', 0) or 0,
                             'red_cards': getattr(stat, 'red_cards', 0) or 0,
-                            'clean_sheets': getattr(stat, 'clean_sheets', 0) or 0,
-                            'saves': getattr(stat, 'saves', 0) or 0,
-                            'minutes_played': getattr(stat, 'minutes_played', 0) or 0,
-                            'goals_conceded': getattr(stat, 'goals_conceded', 0) or 0
+                            # These fields don't exist in the model, so we'll calculate or omit them
+                            'matches_played': 0,  # Would need to be calculated from match data
+                            'clean_sheets': 0,  # Goalkeeper-specific, not in base model
+                            'saves': 0,  # Goalkeeper-specific, not in base model
+                            'minutes_played': 0,  # Not tracked in base model
+                            'goals_conceded': 0  # Goalkeeper-specific, not in base model
                         }
                         data['season_stats'].append(season_data)
                     except Exception as e:
@@ -172,28 +182,35 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
         data['career_stats'] = None
         try:
             if hasattr(player, 'career_stats') and player.career_stats:
-                # Check if career_stats is a list and has items
-                if isinstance(player.career_stats, list) and len(player.career_stats) > 0:
-                    career = player.career_stats[0]
-                elif hasattr(player.career_stats, 'total_matches'):  # If it's a single object
-                    career = player.career_stats
-                else:
-                    career = None
+                # career_stats is a relationship that returns a list
+                career_stats_list = player.career_stats if isinstance(player.career_stats, list) else [player.career_stats]
                 
-                if career:
-                    total_matches = getattr(career, 'total_matches', 0) or 0
-                    total_goals = getattr(career, 'total_goals', 0) or 0
-                    total_assists = getattr(career, 'total_assists', 0) or 0
+                if career_stats_list and len(career_stats_list) > 0:
+                    career = career_stats_list[0]
+                    
+                    # The model only has goals, assists, yellow_cards, red_cards
+                    total_goals = getattr(career, 'goals', 0) or 0
+                    total_assists = getattr(career, 'assists', 0) or 0
+                    
+                    # Calculate total matches from season stats if available
+                    total_matches = 0
+                    if hasattr(player, 'season_stats') and player.season_stats:
+                        # Count matches where player has stats
+                        total_matches = len([s for s in player.season_stats if (s.goals + s.assists + s.yellow_cards + s.red_cards) > 0])
+                    
+                    if total_matches == 0:
+                        # Estimate from goals/assists (rough approximation)
+                        total_matches = max(1, (total_goals + total_assists) // 2)
                     
                     data['career_stats'] = {
                         'total_matches': total_matches,
                         'total_goals': total_goals,
                         'total_assists': total_assists,
-                        'total_yellow_cards': getattr(career, 'total_yellow_cards', 0) or 0,
-                        'total_red_cards': getattr(career, 'total_red_cards', 0) or 0,
-                        'total_clean_sheets': getattr(career, 'total_clean_sheets', 0) or 0,
-                        'total_saves': getattr(career, 'total_saves', 0) or 0,
-                        'total_minutes_played': getattr(career, 'total_minutes_played', 0) or 0,
+                        'total_yellow_cards': getattr(career, 'yellow_cards', 0) or 0,
+                        'total_red_cards': getattr(career, 'red_cards', 0) or 0,
+                        'total_clean_sheets': 0,  # Not tracked in model
+                        'total_saves': 0,  # Not tracked in model
+                        'total_minutes_played': 0,  # Not tracked in model
                         'goals_per_game': round(total_goals / max(total_matches, 1), 2),
                         'assists_per_game': round(total_assists / max(total_matches, 1), 2)
                     }
@@ -206,25 +223,33 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
 
 def serialize_team(team, include_players=False, include_matches=False, include_stats=False):
     """Serialize team data for API response with comprehensive information."""
-    data = {
-        'id': team.id,
-        'name': team.name,
-        'league': {
-            'id': team.league.id,
-            'name': team.league.name,
-            'season': {
-                'id': team.league.season.id,
-                'name': team.league.season.name,
-                'is_current': team.league.season.is_current
-            } if team.league.season else None
-        } if team.league else None,
-        'discord_channel_id': team.discord_channel_id,
-        'discord_coach_role_id': team.discord_coach_role_id,
-        'discord_player_role_id': team.discord_player_role_id,
-        'team_color': getattr(team, 'team_color', None),
-        'is_active': getattr(team, 'is_active', True),
-        'kit_url': team.kit_url
-    }
+    try:
+        data = {
+            'id': team.id,
+            'name': team.name,
+            'league': {
+                'id': team.league.id,
+                'name': team.league.name,
+                'season': {
+                    'id': team.league.season.id,
+                    'name': team.league.season.name,
+                    'is_current': team.league.season.is_current
+                } if team.league and team.league.season else None
+            } if team.league else None,
+            'discord_channel_id': team.discord_channel_id,
+            'discord_coach_role_id': team.discord_coach_role_id,
+            'discord_player_role_id': team.discord_player_role_id,
+            'team_color': None,  # Not in model
+            'is_active': True,  # Not in model, assume active
+            'kit_url': team.kit_url
+        }
+    except Exception as e:
+        logger.error(f"Error serializing team {getattr(team, 'id', 'unknown')}: {e}")
+        return {
+            'id': getattr(team, 'id', None),
+            'name': getattr(team, 'name', 'Unknown'),
+            'error': 'Partial data available'
+        }
     
     if include_players and team.players:
         data['players'] = []
@@ -311,18 +336,33 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
 
 def serialize_match(match, include_teams=True, include_events=False, include_rsvps=False, include_detailed=False):
     """Serialize match data for API response with comprehensive information."""
-    data = {
-        'id': match.id,
-        'match_date': match.match_date.isoformat() if match.match_date else None,
-        'home_score': match.home_team_score,
-        'away_score': match.away_team_score,
-        'is_verified': match.home_team_verified and match.away_team_verified,
-        'location': match.location,
-        'match_type': getattr(match, 'match_type', 'regular'),
-        'discord_thread_id': match.discord_thread_id,
-        'status': 'completed' if match.home_team_score is not None else 'scheduled',
-        'result': None
-    }
+    try:
+        # Combine date and time fields
+        match_datetime = None
+        if match.date:
+            if match.time:
+                match_datetime = datetime.combine(match.date, match.time)
+            else:
+                match_datetime = datetime.combine(match.date, datetime.min.time())
+        
+        data = {
+            'id': match.id,
+            'match_date': match_datetime.isoformat() if match_datetime else None,
+            'home_score': match.home_team_score,
+            'away_score': match.away_team_score,
+            'is_verified': match.home_team_verified and match.away_team_verified,
+            'location': match.location,
+            'match_type': 'regular',  # Not in model
+            'discord_thread_id': getattr(match, 'discord_thread_id', None),  # Not in model
+            'status': 'completed' if match.home_team_score is not None else 'scheduled',
+            'result': None
+        }
+    except Exception as e:
+        logger.error(f"Error serializing match {getattr(match, 'id', 'unknown')}: {e}")
+        return {
+            'id': getattr(match, 'id', None),
+            'error': 'Partial data available'
+        }
     
     # Calculate match result
     if match.home_team_score is not None and match.away_team_score is not None:
@@ -338,51 +378,73 @@ def serialize_match(match, include_teams=True, include_events=False, include_rsv
         data['away_team'] = serialize_team(match.away_team, include_players=False) if match.away_team else None
     
     if include_events:
-        events = MatchEvent.query.filter_by(match_id=match.id).order_by(MatchEvent.minute).all()
-        data['events'] = [
-            {
-                'minute': event.minute,
-                'event_type': event.event_type,
-                'player_name': event.player_name,
-                'description': event.description,
-                'team': event.team if hasattr(event, 'team') else None
-            }
-            for event in events
-        ]
+        try:
+            events = MatchEvent.query.filter_by(match_id=match.id).order_by(MatchEvent.minute).all()
+            data['events'] = []
+            for event in events:
+                try:
+                    event_data = {
+                        'minute': event.minute,
+                        'event_type': event.event_type,
+                        'player_name': event.player.name if event.player else None,
+                        'description': event.additional_data.get('description', '') if event.additional_data else '',
+                        'team': event.team.name if event.team else None
+                    }
+                    data['events'].append(event_data)
+                except Exception as e:
+                    logger.warning(f"Error serializing event {event.id}: {e}")
+                    continue
+        except Exception as e:
+            logger.warning(f"Error loading events for match {match.id}: {e}")
+            data['events'] = []
     
     if include_rsvps:
-        availabilities = Availability.query.filter_by(match_id=match.id).all()
-        rsvp_summary = {
-            'available': len([a for a in availabilities if a.status == 'available']),
-            'unavailable': len([a for a in availabilities if a.status == 'unavailable']),
-            'maybe': len([a for a in availabilities if a.status == 'maybe']),
-            'no_response': 0,
-            'total_responses': len(availabilities)
-        }
-        
-        # Calculate no_response based on team rosters
-        team_players = set()
-        if match.home_team:
-            team_players.update([p.id for p in match.home_team.players])
-        if match.away_team:
-            team_players.update([p.id for p in match.away_team.players])
-        
-        responded_players = set([a.player_id for a in availabilities])
-        rsvp_summary['no_response'] = len(team_players - responded_players)
-        
-        data['rsvps'] = rsvp_summary
-        
-        if include_detailed:
-            data['detailed_rsvps'] = [
-                {
-                    'player_id': a.player_id,
-                    'player_name': a.player.name if a.player else None,
-                    'status': a.status,
-                    'submitted_at': a.submitted_at.isoformat() if a.submitted_at else None,
-                    'notes': a.notes
-                }
-                for a in availabilities
-            ]
+        try:
+            availabilities = Availability.query.filter_by(match_id=match.id).all()
+            rsvp_summary = {
+                'available': len([a for a in availabilities if a.response == 'available']),
+                'unavailable': len([a for a in availabilities if a.response == 'unavailable']),
+                'maybe': len([a for a in availabilities if a.response == 'maybe']),
+                'no_response': 0,
+                'total_responses': len(availabilities)
+            }
+            
+            # Calculate no_response based on team rosters
+            team_players = set()
+            if match.home_team:
+                team_players.update([p.id for p in match.home_team.players])
+            if match.away_team:
+                team_players.update([p.id for p in match.away_team.players])
+            
+            responded_players = set([a.player_id for a in availabilities if a.player_id])
+            rsvp_summary['no_response'] = len(team_players - responded_players)
+            
+            data['rsvps'] = rsvp_summary
+            
+            if include_detailed:
+                data['detailed_rsvps'] = []
+                for a in availabilities:
+                    try:
+                        rsvp_data = {
+                            'player_id': a.player_id,
+                            'player_name': a.player.name if a.player else None,
+                            'status': a.response,  # Model uses 'response' not 'status'
+                            'submitted_at': a.responded_at.isoformat() if a.responded_at else None,  # Model uses 'responded_at'
+                            'notes': None  # Not in model
+                        }
+                        data['detailed_rsvps'].append(rsvp_data)
+                    except Exception as e:
+                        logger.warning(f"Error serializing RSVP for availability {a.id}: {e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Error loading RSVPs for match {match.id}: {e}")
+            data['rsvps'] = {
+                'available': 0,
+                'unavailable': 0,
+                'maybe': 0,
+                'no_response': 0,
+                'total_responses': 0
+            }
     
     return data
 
@@ -413,23 +475,27 @@ def serialize_league(league, include_teams=False, include_standings=False):
             desc(Standings.points), desc(Standings.goal_difference), desc(Standings.goals_for)
         ).all()
         
-        data['standings'] = [
-            {
-                'position': standing.position or idx + 1,
-                'team': {
-                    'id': standing.team.id,
-                    'name': standing.team.name
-                },
-                'wins': standing.wins,
-                'losses': standing.losses,
-                'draws': standing.draws,
-                'goals_for': standing.goals_for,
-                'goals_against': standing.goals_against,
-                'goal_difference': standing.goal_difference,
-                'points': standing.points
-            }
-            for idx, standing in enumerate(standings)
-        ]
+        data['standings'] = []
+        for idx, standing in enumerate(standings):
+            try:
+                standings_data = {
+                    'position': idx + 1,  # Calculate position based on order
+                    'team': {
+                        'id': standing.team.id,
+                        'name': standing.team.name
+                    },
+                    'wins': standing.wins,
+                    'losses': standing.losses,
+                    'draws': standing.draws,
+                    'goals_for': standing.goals_for,
+                    'goals_against': standing.goals_against,
+                    'goal_difference': standing.goal_difference,
+                    'points': standing.points
+                }
+                data['standings'].append(standings_data)
+            except Exception as e:
+                logger.warning(f"Error serializing standing for team {getattr(standing, 'team_id', 'unknown')}: {e}")
+                continue
     
     return data
 
@@ -722,14 +788,14 @@ def get_matches():
         if date_from:
             try:
                 date_from_obj = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
-                query = query.filter(Match.match_date >= date_from_obj)
+                query = query.filter(Match.date >= date_from_obj.date())
             except ValueError:
                 return jsonify({'error': 'Invalid date_from format. Use ISO format.'}), 400
         
         if date_to:
             try:
                 date_to_obj = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
-                query = query.filter(Match.match_date <= date_to_obj)
+                query = query.filter(Match.date <= date_to_obj.date())
             except ValueError:
                 return jsonify({'error': 'Invalid date_to format. Use ISO format.'}), 400
         
@@ -739,7 +805,7 @@ def get_matches():
             query = query.filter(Match.home_team_score.is_(None))
         
         # Order by match date
-        query = query.order_by(desc(Match.match_date))
+        query = query.order_by(desc(Match.date))
         
         # Execute query with pagination
         matches_paginated = query.paginate(
@@ -949,12 +1015,12 @@ def get_stats_summary():
         
         # Recent activity
         recent_matches = Match.query.filter(
-            Match.match_date >= datetime.now() - timedelta(days=30)
+            Match.date >= (datetime.now() - timedelta(days=30)).date()
         ).count()
         
         upcoming_matches = Match.query.filter(
             and_(
-                Match.match_date >= datetime.now(),
+                Match.date >= datetime.now().date(),
                 Match.home_team_score.is_(None)
             )
         ).count()
@@ -1093,64 +1159,64 @@ def get_player_analytics():
         season_id = request.args.get('season_id', type=int)
         team_id = request.args.get('team_id', type=int)
         position = request.args.get('position', '').strip()
-        min_matches = request.args.get('min_matches', 1, type=int)
+        min_matches = request.args.get('min_matches', 0, type=int)  # Default to 0 to include all players
         
-        # Build base query
+        # Build base query - LEFT JOIN to include players even without stats
         query = db.session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
-            func.coalesce(func.sum(PlayerSeasonStats.matches_played), 0).label('total_matches'),
             func.coalesce(func.sum(PlayerSeasonStats.goals), 0).label('total_goals'),
             func.coalesce(func.sum(PlayerSeasonStats.assists), 0).label('total_assists'),
             func.coalesce(func.sum(PlayerSeasonStats.yellow_cards), 0).label('total_yellows'),
-            func.coalesce(func.sum(PlayerSeasonStats.red_cards), 0).label('total_reds'),
-            func.coalesce(func.sum(PlayerSeasonStats.clean_sheets), 0).label('total_clean_sheets')
-        ).outerjoin(PlayerSeasonStats).join(Player.user).filter(
+            func.coalesce(func.sum(PlayerSeasonStats.red_cards), 0).label('total_reds')
+        ).outerjoin(
+            PlayerSeasonStats,
+            and_(
+                Player.id == PlayerSeasonStats.player_id,
+                PlayerSeasonStats.season_id == season_id if season_id else True
+            )
+        ).filter(
             Player.is_current_player == True
         ).group_by(
             Player.id, Player.name, Player.favorite_position
         )
         
         # Apply filters
-        if season_id:
-            query = query.filter(
-                or_(
-                    PlayerSeasonStats.season_id == season_id,
-                    PlayerSeasonStats.season_id.is_(None)
-                )
-            )
-        
         if team_id:
             query = query.filter(Player.teams.any(Team.id == team_id))
         
         if position:
             query = query.filter(Player.favorite_position.ilike(f'%{position}%'))
         
-        # Execute query
-        stats = query.having(
-            func.coalesce(func.sum(PlayerSeasonStats.matches_played), 0) >= min_matches
-        ).order_by(desc('total_goals')).all()
+        # Execute query and order by goals
+        stats = query.order_by(desc('total_goals')).all()
         
         # Calculate analytics
         analytics_data = []
         for stat in stats:
-            matches = max(stat.total_matches, 1)  # Avoid division by zero
+            # Calculate matches from events (goals + assists + cards as proxy)
+            total_events = stat.total_goals + stat.total_assists + stat.total_yellows + stat.total_reds
+            estimated_matches = max(1, total_events // 2) if total_events > 0 else 0
+            
+            # Apply min_matches filter after query
+            if estimated_matches < min_matches and min_matches > 0:
+                continue
             
             analytics_data.append({
                 'player_id': stat.id,
                 'name': stat.name,
-                'position': stat.favorite_position,
-                'matches_played': stat.total_matches,
-                'goals': stat.total_goals,
-                'assists': stat.total_assists,
-                'yellow_cards': stat.total_yellows,
-                'red_cards': stat.total_reds,
-                'clean_sheets': stat.total_clean_sheets,
-                'goals_per_match': round(stat.total_goals / matches, 2),
-                'assists_per_match': round(stat.total_assists / matches, 2),
-                'goal_contributions': stat.total_goals + stat.total_assists,
-                'discipline_score': stat.total_yellows + (stat.total_reds * 2)
+                'position': stat.favorite_position or 'Unknown',
+                'matches_played': estimated_matches,
+                'goals': int(stat.total_goals),
+                'assists': int(stat.total_assists),
+                'yellow_cards': int(stat.total_yellows),
+                'red_cards': int(stat.total_reds),
+                'clean_sheets': 0,  # Not tracked in base model
+                'goals_per_match': round(stat.total_goals / max(estimated_matches, 1), 2),
+                'assists_per_match': round(stat.total_assists / max(estimated_matches, 1), 2),
+                'goal_contributions': int(stat.total_goals + stat.total_assists),
+                'discipline_score': int(stat.total_yellows + (stat.total_reds * 2))
             })
         
         return jsonify({
@@ -1165,8 +1231,1573 @@ def get_player_analytics():
         })
         
     except Exception as e:
-        logger.error(f"Error in get_player_analytics: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        logger.error(f"Error in get_player_analytics: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/attendance', methods=['GET'])
+@api_key_required
+def get_attendance_analytics():
+    """Get detailed attendance analytics and patterns."""
+    try:
+        season_id = request.args.get('season_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        min_matches = request.args.get('min_matches', 0, type=int)
+        max_matches = request.args.get('max_matches', type=int)
+        
+        # Base query for matches with filters
+        match_query = Match.query
+        
+        if season_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                    Match.away_team.has(Team.league.has(League.season_id == season_id))
+                )
+            )
+        
+        if league_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league_id == league_id),
+                    Match.away_team.has(Team.league_id == league_id)
+                )
+            )
+        
+        if team_id:
+            match_query = match_query.filter(
+                or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+            )
+        
+        matches = match_query.all()
+        match_ids = [m.id for m in matches]
+        
+        if not match_ids:
+            return jsonify({
+                'attendance_patterns': [],
+                'summary': {'total_players': 0, 'total_matches': 0},
+                'filters_applied': {
+                    'season_id': season_id,
+                    'team_id': team_id,
+                    'league_id': league_id,
+                    'min_matches': min_matches,
+                    'max_matches': max_matches
+                }
+            })
+        
+        # Get attendance data for these matches
+        attendance_query = db.session.query(
+            Player.id,
+            Player.name,
+            Player.favorite_position,
+            func.count(Availability.id).label('total_responses'),
+            func.sum(func.case([(Availability.response == 'available', 1)], else_=0)).label('available_count'),
+            func.sum(func.case([(Availability.response == 'unavailable', 1)], else_=0)).label('unavailable_count'),
+            func.sum(func.case([(Availability.response == 'maybe', 1)], else_=0)).label('maybe_count')
+        ).join(
+            Availability, Player.id == Availability.player_id
+        ).filter(
+            Availability.match_id.in_(match_ids),
+            Player.is_current_player == True
+        ).group_by(
+            Player.id, Player.name, Player.favorite_position
+        )
+        
+        # Get all players for this scope to calculate no-response counts
+        all_players_query = Player.query.filter(Player.is_current_player == True)
+        
+        if team_id:
+            all_players_query = all_players_query.filter(Player.teams.any(Team.id == team_id))
+        elif league_id:
+            all_players_query = all_players_query.filter(
+                Player.teams.any(Team.league_id == league_id)
+            )
+        
+        all_players = all_players_query.all()
+        
+        attendance_stats = attendance_query.all()
+        
+        # Build comprehensive attendance data
+        attendance_patterns = []
+        player_response_map = {stat.id: stat for stat in attendance_stats}
+        
+        for player in all_players:
+            stat = player_response_map.get(player.id)
+            
+            if stat:
+                total_responses = int(stat.total_responses)
+                available_count = int(stat.available_count or 0)
+                unavailable_count = int(stat.unavailable_count or 0)
+                maybe_count = int(stat.maybe_count or 0)
+            else:
+                total_responses = 0
+                available_count = 0
+                unavailable_count = 0
+                maybe_count = 0
+            
+            no_response_count = len(match_ids) - total_responses
+            
+            # Apply filters
+            if min_matches > 0 and available_count < min_matches:
+                continue
+            if max_matches and available_count > max_matches:
+                continue
+            
+            # Calculate percentages
+            total_possible = len(match_ids)
+            attendance_rate = round((available_count / total_possible * 100), 1) if total_possible > 0 else 0
+            response_rate = round((total_responses / total_possible * 100), 1) if total_possible > 0 else 0
+            
+            # Get player's teams
+            player_teams = [{'id': team.id, 'name': team.name} for team in player.teams]
+            
+            attendance_patterns.append({
+                'player_id': player.id,
+                'name': player.name,
+                'position': player.favorite_position or 'Unknown',
+                'teams': player_teams,
+                'attendance_stats': {
+                    'total_possible_matches': total_possible,
+                    'responses_given': total_responses,
+                    'available_responses': available_count,
+                    'unavailable_responses': unavailable_count,
+                    'maybe_responses': maybe_count,
+                    'no_responses': no_response_count,
+                    'attendance_rate_percent': attendance_rate,
+                    'response_rate_percent': response_rate
+                },
+                'attendance_category': (
+                    'high_attendance' if attendance_rate >= 80 else
+                    'medium_attendance' if attendance_rate >= 50 else
+                    'low_attendance'
+                ),
+                'responsiveness': (
+                    'very_responsive' if response_rate >= 90 else
+                    'responsive' if response_rate >= 70 else
+                    'needs_follow_up' if response_rate >= 40 else
+                    'poor_response'
+                )
+            })
+        
+        # Sort by attendance rate (descending)
+        attendance_patterns.sort(key=lambda x: x['attendance_stats']['attendance_rate_percent'], reverse=True)
+        
+        # Generate summary insights
+        total_players = len(attendance_patterns)
+        avg_attendance = sum(p['attendance_stats']['attendance_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
+        avg_response_rate = sum(p['attendance_stats']['response_rate_percent'] for p in attendance_patterns) / max(total_players, 1)
+        
+        low_attendance_count = len([p for p in attendance_patterns if p['attendance_category'] == 'low_attendance'])
+        poor_response_count = len([p for p in attendance_patterns if p['responsiveness'] == 'poor_response'])
+        
+        return jsonify({
+            'attendance_patterns': attendance_patterns,
+            'summary': {
+                'total_players': total_players,
+                'total_matches_analyzed': len(match_ids),
+                'average_attendance_rate': round(avg_attendance, 1),
+                'average_response_rate': round(avg_response_rate, 1),
+                'low_attendance_players': low_attendance_count,
+                'poor_response_players': poor_response_count,
+                'insights': {
+                    'players_needing_follow_up': poor_response_count,
+                    'players_with_low_attendance': low_attendance_count,
+                    'overall_engagement': (
+                        'excellent' if avg_response_rate >= 85 else
+                        'good' if avg_response_rate >= 70 else
+                        'needs_improvement'
+                    )
+                }
+            },
+            'filters_applied': {
+                'season_id': season_id,
+                'team_id': team_id,
+                'league_id': league_id,
+                'min_matches': min_matches,
+                'max_matches': max_matches
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_attendance_analytics: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/substitution-needs', methods=['GET'])
+@api_key_required
+def get_substitution_needs():
+    """Analyze which teams need substitutes for upcoming matches."""
+    try:
+        days_ahead = request.args.get('days_ahead', 14, type=int)  # Look ahead 2 weeks by default
+        league_id = request.args.get('league_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        min_players_threshold = request.args.get('min_players', 9, type=int)  # Absolute minimum (9v9 format)
+        ideal_players = request.args.get('ideal_players', 15, type=int)  # Ideal for rolling subs
+        
+        # Get upcoming matches
+        end_date = (datetime.now() + timedelta(days=days_ahead)).date()
+        
+        upcoming_matches_query = Match.query.filter(
+            and_(
+                Match.date >= datetime.now().date(),
+                Match.date <= end_date,
+                Match.home_team_score.is_(None)  # Not yet played
+            )
+        )
+        
+        if league_id:
+            upcoming_matches_query = upcoming_matches_query.filter(
+                or_(
+                    Match.home_team.has(Team.league_id == league_id),
+                    Match.away_team.has(Team.league_id == league_id)
+                )
+            )
+        
+        if team_id:
+            upcoming_matches_query = upcoming_matches_query.filter(
+                or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+            )
+        
+        upcoming_matches = upcoming_matches_query.order_by(Match.date, Match.time).all()
+        
+        substitution_analysis = []
+        
+        for match in upcoming_matches:
+            # Analyze both teams
+            for team_type, team in [('home', match.home_team), ('away', match.away_team)]:
+                if not team:
+                    continue
+                
+                # Get all availabilities for this match from this team's players
+                team_player_ids = [p.id for p in team.players]
+                
+                availabilities = Availability.query.filter(
+                    and_(
+                        Availability.match_id == match.id,
+                        Availability.player_id.in_(team_player_ids)
+                    )
+                ).all()
+                
+                # Count responses
+                available_players = [a for a in availabilities if a.response == 'available']
+                unavailable_players = [a for a in availabilities if a.response == 'unavailable']
+                maybe_players = [a for a in availabilities if a.response == 'maybe']
+                
+                responded_player_ids = set(a.player_id for a in availabilities if a.player_id)
+                no_response_player_ids = set(team_player_ids) - responded_player_ids
+                
+                # Get actual player objects for better data
+                available_player_objects = Player.query.filter(
+                    Player.id.in_([a.player_id for a in available_players if a.player_id])
+                ).all()
+                
+                no_response_players = Player.query.filter(
+                    Player.id.in_(no_response_player_ids)
+                ).all()
+                
+                # Calculate substitute needs (contextual based on roster and format)
+                confirmed_available = len(available_players)
+                potential_available = confirmed_available + len(maybe_players)
+                total_roster = len(team.players)
+                
+                # Contextual substitute needs for 9v9 with rolling subs
+                roster_attendance_rate = confirmed_available / max(total_roster, 1)
+                
+                # Critical: Can't field minimum team
+                critical_shortage = confirmed_available < min_players_threshold
+                
+                # High priority: Can field team but no subs for rolling changes
+                needs_subs = (confirmed_available < ideal_players and roster_attendance_rate < 0.75) or critical_shortage
+                
+                # Ideally want 15+ for good rolling subs, 12+ minimum for some subs
+                
+                # Determine urgency based on context
+                if critical_shortage:
+                    urgency = 'critical'  # Can't field minimum team
+                elif confirmed_available < 12:
+                    urgency = 'high'      # Can field team but very limited subs
+                elif confirmed_available < ideal_players and roster_attendance_rate < 0.6:
+                    urgency = 'medium'    # Poor turnout for rolling subs
+                elif potential_available < ideal_players:
+                    urgency = 'low'       # Could use more depth but manageable
+                else:
+                    urgency = 'none'      # Good to excellent turnout
+                
+                # Calculate days until match
+                days_until = (match.date - datetime.now().date()).days
+                
+                substitution_analysis.append({
+                    'match_id': match.id,
+                    'match_date': match.date.isoformat(),
+                    'match_time': match.time.isoformat() if match.time else None,
+                    'location': match.location,
+                    'days_until_match': days_until,
+                    'team': {
+                        'id': team.id,
+                        'name': team.name,
+                        'league': team.league.name if team.league else None,
+                        'team_type': team_type  # 'home' or 'away'
+                    },
+                    'opponent': {
+                        'id': match.away_team.id if team_type == 'home' else match.home_team.id,
+                        'name': match.away_team.name if team_type == 'home' else match.home_team.name
+                    } if (match.away_team and match.home_team) else None,
+                    'roster_analysis': {
+                        'total_roster_size': total_roster,
+                        'confirmed_available': confirmed_available,
+                        'unavailable': len(unavailable_players),
+                        'maybe_available': len(maybe_players),
+                        'no_response': len(no_response_player_ids),
+                        'potential_available': potential_available,
+                        'shortage_amount': max(0, min_players_threshold - confirmed_available)
+                    },
+                    'substitute_needs': {
+                        'needs_substitutes': needs_subs,
+                        'urgency': urgency,
+                        'minimum_subs_needed': max(0, min_players_threshold - confirmed_available),
+                        'recommended_subs': max(0, (min_players_threshold + 2) - potential_available)  # Include buffer
+                    },
+                    'available_players': [
+                        {
+                            'id': p.id,
+                            'name': p.name,
+                            'position': p.favorite_position
+                        } for p in available_player_objects
+                    ],
+                    'no_response_players': [
+                        {
+                            'id': p.id,
+                            'name': p.name,
+                            'position': p.favorite_position,
+                            'needs_follow_up': True
+                        } for p in no_response_players
+                    ]
+                })
+        
+        # Sort by urgency and date
+        urgency_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
+        substitution_analysis.sort(key=lambda x: (urgency_order[x['substitute_needs']['urgency']], x['match_date']))
+        
+        # Generate summary
+        critical_matches = len([m for m in substitution_analysis if m['substitute_needs']['urgency'] == 'critical'])
+        high_priority_matches = len([m for m in substitution_analysis if m['substitute_needs']['urgency'] == 'high'])
+        matches_needing_subs = len([m for m in substitution_analysis if m['substitute_needs']['needs_substitutes']])
+        
+        return jsonify({
+            'substitution_analysis': substitution_analysis,
+            'summary': {
+                'total_upcoming_matches': len(substitution_analysis),
+                'matches_needing_substitutes': matches_needing_subs,
+                'critical_shortage_matches': critical_matches,
+                'high_priority_matches': high_priority_matches,
+                'analysis_period_days': days_ahead,
+                'recommendations': {
+                    'immediate_action_needed': critical_matches > 0,
+                    'total_subs_needed': sum(m['substitute_needs']['minimum_subs_needed'] for m in substitution_analysis),
+                    'follow_up_required': sum(len(m['no_response_players']) for m in substitution_analysis)
+                }
+            },
+            'filters_applied': {
+                'days_ahead': days_ahead,
+                'league_id': league_id,
+                'team_id': team_id,
+                'min_players_threshold': min_players_threshold
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_substitution_needs: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/match-insights', methods=['GET'])
+@api_key_required
+def get_match_insights():
+    """Get detailed insights for specific matches or upcoming matches."""
+    try:
+        match_id = request.args.get('match_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        days_ahead = request.args.get('days_ahead', 7, type=int)
+        include_historical = request.args.get('include_historical', 'false').lower() == 'true'
+        
+        match_insights = []
+        
+        if match_id:
+            # Get specific match
+            matches = [Match.query.get(match_id)]
+            if not matches[0]:
+                return jsonify({'error': 'Match not found'}), 404
+        else:
+            # Get upcoming matches
+            query = Match.query.filter(
+                Match.date >= datetime.now().date(),
+                Match.date <= (datetime.now() + timedelta(days=days_ahead)).date()
+            )
+            
+            if not include_historical:
+                query = query.filter(Match.home_team_score.is_(None))
+            
+            if team_id:
+                query = query.filter(
+                    or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+                )
+            
+            if league_id:
+                query = query.filter(
+                    or_(
+                        Match.home_team.has(Team.league_id == league_id),
+                        Match.away_team.has(Team.league_id == league_id)
+                    )
+                )
+            
+            matches = query.order_by(Match.date, Match.time).all()
+        
+        for match in matches:
+            if not match:
+                continue
+                
+            # Get RSVP data for both teams
+            home_team_analysis = None
+            away_team_analysis = None
+            
+            if match.home_team:
+                home_team_analysis = analyze_team_for_match(match, match.home_team, 'home')
+            
+            if match.away_team:
+                away_team_analysis = analyze_team_for_match(match, match.away_team, 'away')
+            
+            # Overall match analysis
+            total_expected_attendance = 0
+            total_confirmed_unavailable = 0
+            total_no_response = 0
+            
+            if home_team_analysis:
+                total_expected_attendance += home_team_analysis['expected_attendance']
+                total_confirmed_unavailable += home_team_analysis['confirmed_unavailable']
+                total_no_response += home_team_analysis['no_response_count']
+            
+            if away_team_analysis:
+                total_expected_attendance += away_team_analysis['expected_attendance']
+                total_confirmed_unavailable += away_team_analysis['confirmed_unavailable']
+                total_no_response += away_team_analysis['no_response_count']
+            
+            # Determine match status
+            days_until = (match.date - datetime.now().date()).days
+            is_completed = match.home_team_score is not None
+            
+            match_status = 'completed' if is_completed else (
+                'urgent' if days_until <= 2 else
+                'upcoming' if days_until <= 7 else
+                'future'
+            )
+            
+            match_insight = {
+                'match_id': match.id,
+                'match_date': match.date.isoformat(),
+                'match_time': match.time.isoformat() if match.time else None,
+                'location': match.location,
+                'days_until_match': days_until,
+                'match_status': match_status,
+                'is_completed': is_completed,
+                'home_team_analysis': home_team_analysis,
+                'away_team_analysis': away_team_analysis,
+                'overall_insights': {
+                    'total_expected_attendance': total_expected_attendance,
+                    'total_confirmed_unavailable': total_confirmed_unavailable,
+                    'total_awaiting_response': total_no_response,
+                    'attendance_outlook': (
+                        'excellent' if total_expected_attendance >= 30 else   # Both teams have great turnout (15+ each)
+                        'good' if total_expected_attendance >= 24 else        # Good attendance (12+ each) 
+                        'adequate' if total_expected_attendance >= 20 else    # Adequate (10+ each)
+                        'concerning' if total_expected_attendance >= 18 else  # Just enough (9+ each)
+                        'critical'                                            # Under minimum for competitive match
+                    )
+                }
+            }
+            
+            match_insights.append(match_insight)
+        
+        return jsonify({
+            'match_insights': match_insights,
+            'summary': {
+                'total_matches_analyzed': len(match_insights),
+                'matches_with_good_attendance': len([m for m in match_insights if m['overall_insights']['attendance_outlook'] in ['excellent', 'good']]),
+                'matches_needing_attention': len([m for m in match_insights if m['overall_insights']['attendance_outlook'] in ['concerning', 'critical']]),
+                'total_players_awaiting_response': sum(m['overall_insights']['total_awaiting_response'] for m in match_insights)
+            },
+            'filters_applied': {
+                'match_id': match_id,
+                'team_id': team_id,
+                'league_id': league_id,
+                'days_ahead': days_ahead,
+                'include_historical': include_historical
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_match_insights: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+def analyze_team_for_match(match, team, team_type):
+    """Helper function to analyze a team's attendance for a specific match."""
+    try:
+        team_player_ids = [p.id for p in team.players]
+        
+        # Get RSVP data
+        availabilities = Availability.query.filter(
+            and_(
+                Availability.match_id == match.id,
+                Availability.player_id.in_(team_player_ids)
+            )
+        ).all()
+        
+        # Categorize responses
+        available_count = len([a for a in availabilities if a.response == 'available'])
+        unavailable_count = len([a for a in availabilities if a.response == 'unavailable'])
+        maybe_count = len([a for a in availabilities if a.response == 'maybe'])
+        
+        responded_player_ids = set(a.player_id for a in availabilities if a.player_id)
+        no_response_player_ids = set(team_player_ids) - responded_player_ids
+        no_response_count = len(no_response_player_ids)
+        
+        # Get detailed player info
+        available_players = Player.query.filter(
+            Player.id.in_([a.player_id for a in availabilities if a.player_id and a.response == 'available'])
+        ).all()
+        
+        maybe_players = Player.query.filter(
+            Player.id.in_([a.player_id for a in availabilities if a.player_id and a.response == 'maybe'])
+        ).all()
+        
+        no_response_players = Player.query.filter(
+            Player.id.in_(no_response_player_ids)
+        ).all()
+        
+        # Calculate expected attendance (available + 50% of maybe)
+        expected_attendance = available_count + (maybe_count * 0.5)
+        
+        return {
+            'team_id': team.id,
+            'team_name': team.name,
+            'team_type': team_type,
+            'total_roster': len(team.players),
+            'confirmed_available': available_count,
+            'confirmed_unavailable': unavailable_count,
+            'maybe_available': maybe_count,
+            'no_response_count': no_response_count,
+            'expected_attendance': round(expected_attendance, 1),
+            'response_rate_percent': round((len(responded_player_ids) / len(team_player_ids) * 100), 1) if team_player_ids else 0,
+            'available_players': [
+                {
+                    'id': p.id,
+                    'name': p.name,
+                    'position': p.favorite_position
+                } for p in available_players
+            ],
+            'maybe_players': [
+                {
+                    'id': p.id,
+                    'name': p.name,
+                    'position': p.favorite_position
+                } for p in maybe_players
+            ],
+            'no_response_players': [
+                {
+                    'id': p.id,
+                    'name': p.name,
+                    'position': p.favorite_position
+                } for p in no_response_players
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing team {team.id} for match {match.id}: {e}")
+        return None
+
+
+@external_api_bp.route('/analytics/player-patterns', methods=['GET'])
+@api_key_required
+def get_player_patterns():
+    """Analyze individual player availability patterns and predict future attendance."""
+    try:
+        player_id = request.args.get('player_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        season_id = request.args.get('season_id', type=int)
+        days_lookback = request.args.get('days_lookback', 90, type=int)
+        include_predictions = request.args.get('include_predictions', 'true').lower() == 'true'
+        
+        # Build player query
+        player_query = Player.query.filter(Player.is_current_player == True)
+        
+        if player_id:
+            player_query = player_query.filter(Player.id == player_id)
+        if team_id:
+            player_query = player_query.filter(Player.teams.any(Team.id == team_id))
+        if league_id:
+            player_query = player_query.filter(Player.teams.any(Team.league_id == league_id))
+            
+        players = player_query.all()
+        
+        # Get relevant matches for the time period
+        lookback_date = (datetime.now() - timedelta(days=days_lookback)).date()
+        
+        match_query = Match.query.filter(Match.date >= lookback_date)
+        
+        if season_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                    Match.away_team.has(Team.league.has(League.season_id == season_id))
+                )
+            )
+        
+        matches = match_query.all()
+        match_ids = [m.id for m in matches]
+        
+        player_patterns = []
+        
+        for player in players:
+            # Get player's team matches only
+            player_team_ids = [t.id for t in player.teams]
+            relevant_matches = [
+                m for m in matches 
+                if m.home_team_id in player_team_ids or m.away_team_id in player_team_ids
+            ]
+            relevant_match_ids = [m.id for m in relevant_matches]
+            
+            if not relevant_match_ids:
+                continue
+            
+            # Get availability data
+            availabilities = Availability.query.filter(
+                and_(
+                    Availability.player_id == player.id,
+                    Availability.match_id.in_(relevant_match_ids)
+                )
+            ).all()
+            
+            # Analyze patterns
+            total_matches = len(relevant_match_ids)
+            total_responses = len(availabilities)
+            
+            available_responses = [a for a in availabilities if a.response == 'available']
+            unavailable_responses = [a for a in availabilities if a.response == 'unavailable']
+            maybe_responses = [a for a in availabilities if a.response == 'maybe']
+            
+            # Time-based patterns
+            recent_matches = [m for m in relevant_matches if (datetime.now().date() - m.date).days <= 30]
+            recent_match_ids = [m.id for m in recent_matches]
+            recent_availabilities = [a for a in availabilities if a.match_id in recent_match_ids]
+            recent_available = len([a for a in recent_availabilities if a.response == 'available'])
+            
+            # Calculate trends
+            if len(recent_matches) > 0:
+                recent_attendance_rate = round((recent_available / len(recent_matches) * 100), 1)
+            else:
+                recent_attendance_rate = 0
+                
+            overall_attendance_rate = round((len(available_responses) / total_matches * 100), 1) if total_matches > 0 else 0
+            response_rate = round((total_responses / total_matches * 100), 1) if total_matches > 0 else 0
+            
+            # Day of week patterns (if we have enough data)
+            day_patterns = {}
+            if len(availabilities) >= 5:  # Only if we have reasonable data
+                for avail in available_responses:
+                    match = next((m for m in relevant_matches if m.id == avail.match_id), None)
+                    if match:
+                        day_name = match.date.strftime('%A')
+                        day_patterns[day_name] = day_patterns.get(day_name, 0) + 1
+            
+            # Predict future availability
+            prediction_confidence = 'low'
+            predicted_attendance_rate = overall_attendance_rate
+            
+            if include_predictions and total_responses >= 3:
+                # Simple prediction based on recent trend vs overall
+                if abs(recent_attendance_rate - overall_attendance_rate) <= 10:
+                    prediction_confidence = 'high'
+                    predicted_attendance_rate = (recent_attendance_rate + overall_attendance_rate) / 2
+                elif total_responses >= 8:
+                    prediction_confidence = 'medium'
+                    predicted_attendance_rate = (recent_attendance_rate * 0.7) + (overall_attendance_rate * 0.3)
+                else:
+                    predicted_attendance_rate = overall_attendance_rate
+            
+            # Categorize player reliability
+            if response_rate >= 90 and overall_attendance_rate >= 80:
+                reliability = 'highly_reliable'
+            elif response_rate >= 70 and overall_attendance_rate >= 60:
+                reliability = 'reliable'
+            elif response_rate >= 50:
+                reliability = 'inconsistent'
+            else:
+                reliability = 'unreliable'
+            
+            player_pattern = {
+                'player_id': player.id,
+                'name': player.name,
+                'position': player.favorite_position,
+                'teams': [{'id': t.id, 'name': t.name} for t in player.teams],
+                'analysis_period': {
+                    'days_analyzed': days_lookback,
+                    'total_matches_in_period': total_matches,
+                    'matches_responded_to': total_responses,
+                    'recent_matches_30_days': len(recent_matches)
+                },
+                'attendance_patterns': {
+                    'overall_attendance_rate': overall_attendance_rate,
+                    'recent_attendance_rate': recent_attendance_rate,
+                    'response_rate': response_rate,
+                    'available_count': len(available_responses),
+                    'unavailable_count': len(unavailable_responses),
+                    'maybe_count': len(maybe_responses),
+                    'no_response_count': total_matches - total_responses
+                },
+                'day_of_week_preferences': day_patterns,
+                'reliability_score': reliability,
+                'predictions': {
+                    'predicted_attendance_rate': round(predicted_attendance_rate, 1),
+                    'confidence': prediction_confidence,
+                    'trend': (
+                        'improving' if recent_attendance_rate > overall_attendance_rate + 5 else
+                        'declining' if recent_attendance_rate < overall_attendance_rate - 5 else
+                        'stable'
+                    )
+                } if include_predictions else None
+            }
+            
+            player_patterns.append(player_pattern)
+        
+        # Sort by reliability and attendance rate
+        player_patterns.sort(key=lambda x: (
+            {'highly_reliable': 3, 'reliable': 2, 'inconsistent': 1, 'unreliable': 0}[x['reliability_score']],
+            x['attendance_patterns']['overall_attendance_rate']
+        ), reverse=True)
+        
+        # Generate insights
+        total_players = len(player_patterns)
+        reliable_players = len([p for p in player_patterns if p['reliability_score'] in ['highly_reliable', 'reliable']])
+        declining_players = len([p for p in player_patterns if p.get('predictions', {}).get('trend') == 'declining'])
+        
+        return jsonify({
+            'player_patterns': player_patterns,
+            'summary': {
+                'total_players_analyzed': total_players,
+                'reliable_players': reliable_players,
+                'unreliable_players': total_players - reliable_players,
+                'players_with_declining_trend': declining_players,
+                'average_response_rate': round(sum(p['attendance_patterns']['response_rate'] for p in player_patterns) / max(total_players, 1), 1),
+                'average_attendance_rate': round(sum(p['attendance_patterns']['overall_attendance_rate'] for p in player_patterns) / max(total_players, 1), 1)
+            },
+            'filters_applied': {
+                'player_id': player_id,
+                'team_id': team_id,
+                'league_id': league_id,
+                'season_id': season_id,
+                'days_lookback': days_lookback,
+                'include_predictions': include_predictions
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_player_patterns: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/referee-assignments', methods=['GET'])
+@api_key_required
+def get_referee_assignments():
+    """Track referee assignments and identify matches needing refs."""
+    try:
+        days_ahead = request.args.get('days_ahead', 14, type=int)
+        league_id = request.args.get('league_id', type=int)
+        season_id = request.args.get('season_id', type=int)
+        include_completed = request.args.get('include_completed', 'false').lower() == 'true'
+        
+        # Get matches in the specified timeframe
+        end_date = (datetime.now() + timedelta(days=days_ahead)).date()
+        
+        match_query = Match.query.filter(
+            and_(
+                Match.date >= datetime.now().date(),
+                Match.date <= end_date
+            )
+        )
+        
+        if not include_completed:
+            match_query = match_query.filter(Match.home_team_score.is_(None))
+        
+        if league_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league_id == league_id),
+                    Match.away_team.has(Team.league_id == league_id)
+                )
+            )
+        
+        if season_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                    Match.away_team.has(Team.league.has(League.season_id == season_id))
+                )
+            )
+        
+        matches = match_query.order_by(Match.date, Match.time).all()
+        
+        # Get all available referees
+        available_refs = Player.query.filter(
+            and_(
+                Player.is_ref == True,
+                Player.is_current_player == True
+            )
+        ).all()
+        
+        referee_analysis = []
+        matches_needing_refs = []
+        
+        for match in matches:
+            # Check if referee is assigned
+            assigned_ref = None
+            if match.ref_id:
+                assigned_ref = Player.query.get(match.ref_id)
+            
+            days_until = (match.date - datetime.now().date()).days
+            
+            ref_info = {
+                'match_id': match.id,
+                'match_date': match.date.isoformat(),
+                'match_time': match.time.isoformat() if match.time else None,
+                'location': match.location,
+                'days_until_match': days_until,
+                'home_team': {
+                    'id': match.home_team.id,
+                    'name': match.home_team.name,
+                    'league': match.home_team.league.name if match.home_team.league else None
+                } if match.home_team else None,
+                'away_team': {
+                    'id': match.away_team.id,
+                    'name': match.away_team.name,
+                    'league': match.away_team.league.name if match.away_team.league else None
+                } if match.away_team else None,
+                'referee_assignment': {
+                    'has_referee': assigned_ref is not None,
+                    'referee_id': assigned_ref.id if assigned_ref else None,
+                    'referee_name': assigned_ref.name if assigned_ref else None,
+                    'referee_contact': assigned_ref.phone if assigned_ref and assigned_ref.phone else None
+                },
+                'urgency': (
+                    'critical' if not assigned_ref and days_until <= 2 else
+                    'high' if not assigned_ref and days_until <= 5 else
+                    'medium' if not assigned_ref and days_until <= 10 else
+                    'low' if assigned_ref else
+                    'needs_assignment'
+                )
+            }
+            
+            referee_analysis.append(ref_info)
+            
+            if not assigned_ref:
+                matches_needing_refs.append(ref_info)
+        
+        # Referee availability analysis
+        ref_workload = {}
+        for ref in available_refs:
+            assigned_matches = [r for r in referee_analysis if r['referee_assignment']['referee_id'] == ref.id]
+            ref_workload[ref.id] = {
+                'referee_id': ref.id,
+                'name': ref.name,
+                'phone': ref.phone,
+                'total_assigned': len(assigned_matches),
+                'upcoming_matches': [
+                    {
+                        'match_id': m['match_id'],
+                        'date': m['match_date'],
+                        'teams': f"{m['home_team']['name'] if m['home_team'] else 'TBD'} vs {m['away_team']['name'] if m['away_team'] else 'TBD'}"
+                    } for m in assigned_matches
+                ],
+                'availability_status': (
+                    'overloaded' if len(assigned_matches) > 3 else
+                    'busy' if len(assigned_matches) > 1 else
+                    'available' if len(assigned_matches) <= 1 else
+                    'free'
+                )
+            }
+        
+        # Summary statistics
+        total_matches = len(referee_analysis)
+        matches_with_refs = len([r for r in referee_analysis if r['referee_assignment']['has_referee']])
+        critical_unassigned = len([r for r in referee_analysis if r['urgency'] == 'critical'])
+        high_priority_unassigned = len([r for r in referee_analysis if r['urgency'] == 'high'])
+        
+        return jsonify({
+            'referee_assignments': referee_analysis,
+            'matches_needing_referees': matches_needing_refs,
+            'referee_workload': list(ref_workload.values()),
+            'summary': {
+                'total_matches': total_matches,
+                'matches_with_referees': matches_with_refs,
+                'matches_needing_referees': len(matches_needing_refs),
+                'critical_unassigned': critical_unassigned,
+                'high_priority_unassigned': high_priority_unassigned,
+                'total_available_referees': len(available_refs),
+                'referee_coverage_rate': round((matches_with_refs / total_matches * 100), 1) if total_matches > 0 else 0,
+                'recommendations': {
+                    'immediate_action_needed': critical_unassigned > 0,
+                    'refs_available_for_assignment': len([r for r in ref_workload.values() if r['availability_status'] in ['free', 'available']]),
+                    'overloaded_referees': len([r for r in ref_workload.values() if r['availability_status'] == 'overloaded'])
+                }
+            },
+            'filters_applied': {
+                'days_ahead': days_ahead,
+                'league_id': league_id,
+                'season_id': season_id,
+                'include_completed': include_completed
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_referee_assignments: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/substitute-requests', methods=['GET'])
+@api_key_required
+def get_substitute_requests():
+    """Track which teams have requested substitutes and sub availability."""
+    try:
+        days_ahead = request.args.get('days_ahead', 14, type=int)
+        league_id = request.args.get('league_id', type=int)
+        season_id = request.args.get('season_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        
+        # Get upcoming matches
+        end_date = (datetime.now() + timedelta(days=days_ahead)).date()
+        
+        match_query = Match.query.filter(
+            and_(
+                Match.date >= datetime.now().date(),
+                Match.date <= end_date,
+                Match.home_team_score.is_(None)  # Only upcoming matches
+            )
+        )
+        
+        if league_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league_id == league_id),
+                    Match.away_team.has(Team.league_id == league_id)
+                )
+            )
+        
+        if season_id:
+            match_query = match_query.filter(
+                or_(
+                    Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                    Match.away_team.has(Team.league.has(League.season_id == season_id))
+                )
+            )
+        
+        if team_id:
+            match_query = match_query.filter(
+                or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+            )
+        
+        matches = match_query.order_by(Match.date, Match.time).all()
+        
+        # Check for temporary sub assignments (teams that have requested subs)
+        from app.database.db_models import TemporarySubAssignment
+        
+        substitute_requests = []
+        available_subs = []
+        
+        # Get all players marked as substitutes
+        sub_players = Player.query.filter(
+            and_(
+                Player.is_sub == True,
+                Player.is_current_player == True
+            )
+        ).all()
+        
+        for match in matches:
+            # Check for temporary sub assignments for this match
+            try:
+                temp_subs = db.session.query(TemporarySubAssignment).filter(
+                    TemporarySubAssignment.match_id == match.id
+                ).all()
+            except:
+                # Table might not exist, skip temp sub tracking
+                temp_subs = []
+            
+            days_until = (match.date - datetime.now().date()).days
+            
+            for team_type, team in [('home', match.home_team), ('away', match.away_team)]:
+                if not team:
+                    continue
+                
+                # Find temp subs assigned to this team for this match
+                team_temp_subs = [ts for ts in temp_subs if ts.team_id == team.id]
+                
+                # Get RSVP data to determine if subs are needed
+                team_player_ids = [p.id for p in team.players]
+                availabilities = Availability.query.filter(
+                    and_(
+                        Availability.match_id == match.id,
+                        Availability.player_id.in_(team_player_ids)
+                    )
+                ).all()
+                
+                available_count = len([a for a in availabilities if a.response == 'available'])
+                maybe_count = len([a for a in availabilities if a.response == 'maybe'])
+                responded_count = len([a for a in availabilities if a.player_id])
+                no_response_count = len(team_player_ids) - responded_count
+                
+                # Determine if team likely needs subs (contextual based on roster size)
+                expected_attendance = available_count + (maybe_count * 0.5)
+                roster_size = len(team_player_ids)
+                
+                # Calculate percentage of roster attending
+                attendance_rate = expected_attendance / max(roster_size, 1)
+                
+                # 9v9 with rolling subs needs good attendance for full line changes
+                # Ideal: 18 players (2 full lines), Minimum: 9 players
+                if roster_size >= 15:  # Large roster
+                    needs_subs = attendance_rate < 0.6 or expected_attendance < 12  # Need 60% or 12+ players
+                elif roster_size >= 12:  # Medium roster  
+                    needs_subs = attendance_rate < 0.7 or expected_attendance < 10  # Need 70% or 10+ players
+                else:  # Small roster
+                    needs_subs = attendance_rate < 0.8 or expected_attendance < 9   # Need 80% or 9+ players
+                
+                has_requested_subs = len(team_temp_subs) > 0
+                
+                sub_request_info = {
+                    'match_id': match.id,
+                    'match_date': match.date.isoformat(),
+                    'match_time': match.time.isoformat() if match.time else None,
+                    'days_until_match': days_until,
+                    'team': {
+                        'id': team.id,
+                        'name': team.name,
+                        'league': team.league.name if team.league else None,
+                        'team_type': team_type
+                    },
+                    'opponent': {
+                        'id': match.away_team.id if team_type == 'home' else match.home_team.id,
+                        'name': match.away_team.name if team_type == 'home' else match.home_team.name
+                    } if (match.away_team and match.home_team) else None,
+                    'substitute_status': {
+                        'has_requested_subs': has_requested_subs,
+                        'likely_needs_subs': needs_subs,
+                        'subs_assigned': len(team_temp_subs),
+                        'expected_attendance': round(expected_attendance, 1),
+                        'players_not_responded': no_response_count
+                    },
+                    'assigned_substitutes': [
+                        {
+                            'player_id': ts.player_id,
+                            'player_name': Player.query.get(ts.player_id).name if Player.query.get(ts.player_id) else 'Unknown',
+                            'assigned_at': ts.created_at.isoformat() if ts.created_at else None,
+                            'assigned_by': ts.assigned_by
+                        } for ts in team_temp_subs
+                    ],
+                    'urgency': (
+                        'critical' if needs_subs and not has_requested_subs and days_until <= 2 else
+                        'high' if needs_subs and not has_requested_subs and days_until <= 5 else
+                        'medium' if needs_subs and not has_requested_subs else
+                        'resolved' if has_requested_subs else
+                        'low'
+                    )
+                }
+                
+                substitute_requests.append(sub_request_info)
+        
+        # Analyze substitute availability
+        for sub in sub_players:
+            # Count how many matches this sub is assigned to
+            try:
+                assigned_matches = db.session.query(TemporarySubAssignment).filter(
+                    and_(
+                        TemporarySubAssignment.player_id == sub.id,
+                        TemporarySubAssignment.match_id.in_([m.id for m in matches])
+                    )
+                ).count()
+            except:
+                assigned_matches = 0
+            
+            available_subs.append({
+                'player_id': sub.id,
+                'name': sub.name,
+                'position': sub.favorite_position,
+                'phone': sub.phone,
+                'teams': [{'id': t.id, 'name': t.name} for t in sub.teams],
+                'assignments_this_period': assigned_matches,
+                'availability_status': (
+                    'overloaded' if assigned_matches > 2 else
+                    'busy' if assigned_matches > 0 else
+                    'available'
+                )
+            })
+        
+        # Summary stats
+        total_team_slots = len(substitute_requests)
+        teams_requesting_subs = len([r for r in substitute_requests if r['substitute_status']['has_requested_subs']])
+        teams_likely_needing_subs = len([r for r in substitute_requests if r['substitute_status']['likely_needs_subs']])
+        critical_needs = len([r for r in substitute_requests if r['urgency'] == 'critical'])
+        
+        return jsonify({
+            'substitute_requests': substitute_requests,
+            'available_substitutes': available_subs,
+            'summary': {
+                'total_team_match_slots': total_team_slots,
+                'teams_with_sub_requests': teams_requesting_subs,
+                'teams_likely_needing_subs': teams_likely_needing_subs,
+                'critical_substitute_needs': critical_needs,
+                'total_available_subs': len(available_subs),
+                'available_subs_not_assigned': len([s for s in available_subs if s['availability_status'] == 'available']),
+                'substitute_fulfillment_rate': round((teams_requesting_subs / max(teams_likely_needing_subs, 1) * 100), 1),
+                'recommendations': {
+                    'immediate_action_needed': critical_needs > 0,
+                    'subs_available_for_assignment': len([s for s in available_subs if s['availability_status'] == 'available']),
+                    'teams_needing_follow_up': teams_likely_needing_subs - teams_requesting_subs
+                }
+            },
+            'filters_applied': {
+                'days_ahead': days_ahead,
+                'league_id': league_id,
+                'season_id': season_id,
+                'team_id': team_id
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_substitute_requests: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/team-performance', methods=['GET'])
+@api_key_required
+def get_team_performance():
+    """Analyze current season team performance, form, and standings."""
+    try:
+        season_id = request.args.get('season_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        team_id = request.args.get('team_id', type=int)
+        include_form = request.args.get('include_form', 'true').lower() == 'true'
+        min_matches = request.args.get('min_matches', 0, type=int)
+        
+        # Get current season if not specified
+        if not season_id:
+            current_season = Season.query.filter(Season.is_current == True).first()
+            season_id = current_season.id if current_season else None
+        
+        if not season_id:
+            return jsonify({'error': 'No current season found and no season_id provided'}), 400
+        
+        # Build team query
+        team_query = Team.query.join(League).filter(League.season_id == season_id)
+        
+        if league_id:
+            team_query = team_query.filter(Team.league_id == league_id)
+        
+        if team_id:
+            team_query = team_query.filter(Team.id == team_id)
+        
+        teams = team_query.all()
+        
+        team_performance = []
+        
+        for team in teams:
+            # Get all matches for this team in the season
+            team_matches = Match.query.filter(
+                and_(
+                    or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
+                    or_(
+                        Match.home_team.has(Team.league.has(League.season_id == season_id)),
+                        Match.away_team.has(Team.league.has(League.season_id == season_id))
+                    )
+                )
+            ).order_by(Match.date).all()
+            
+            # Filter completed matches
+            completed_matches = [m for m in team_matches if m.home_team_score is not None]
+            
+            # Skip teams with fewer than min_matches
+            if len(completed_matches) < min_matches:
+                continue
+            
+            # Calculate basic stats
+            wins = 0
+            draws = 0
+            losses = 0
+            goals_for = 0
+            goals_against = 0
+            
+            # Recent form (last 5 matches)
+            recent_matches = completed_matches[-5:] if len(completed_matches) >= 5 else completed_matches
+            recent_form = []
+            recent_wins = 0
+            
+            for match in completed_matches:
+                is_home = match.home_team_id == team.id
+                team_score = match.home_team_score if is_home else match.away_team_score
+                opponent_score = match.away_team_score if is_home else match.home_team_score
+                
+                goals_for += team_score
+                goals_against += opponent_score
+                
+                if team_score > opponent_score:
+                    wins += 1
+                    result = 'W'
+                elif team_score < opponent_score:
+                    losses += 1
+                    result = 'L'
+                else:
+                    draws += 1
+                    result = 'D'
+                
+                # Track recent form
+                if match in recent_matches:
+                    recent_form.append({
+                        'match_id': match.id,
+                        'date': match.date.isoformat(),
+                        'opponent': match.away_team.name if is_home else match.home_team.name,
+                        'score': f"{team_score}-{opponent_score}",
+                        'result': result,
+                        'home_away': 'H' if is_home else 'A'
+                    })
+                    if result == 'W':
+                        recent_wins += 1
+            
+            # Calculate derived stats
+            total_matches = len(completed_matches)
+            points = (wins * 3) + draws
+            goal_difference = goals_for - goals_against
+            
+            # Win rates
+            win_rate = round((wins / total_matches * 100), 1) if total_matches > 0 else 0
+            recent_form_rating = round((recent_wins / len(recent_matches) * 100), 1) if recent_matches else 0
+            
+            # Calculate averages
+            avg_goals_for = round(goals_for / total_matches, 2) if total_matches > 0 else 0
+            avg_goals_against = round(goals_against / total_matches, 2) if total_matches > 0 else 0
+            
+            # Performance classification
+            if win_rate >= 70:
+                performance_level = 'excellent'
+            elif win_rate >= 50:
+                performance_level = 'good'
+            elif win_rate >= 30:
+                performance_level = 'average'
+            else:
+                performance_level = 'struggling'
+            
+            # Form trend
+            if len(recent_matches) >= 3:
+                if recent_form_rating >= 60:
+                    form_trend = 'hot'
+                elif recent_form_rating >= 40:
+                    form_trend = 'decent'
+                else:
+                    form_trend = 'cold'
+            else:
+                form_trend = 'insufficient_data'
+            
+            # Calculate position (simplified - could be enhanced with actual standings table)
+            team_stats = {
+                'team_id': team.id,
+                'team_name': team.name,
+                'league': {
+                    'id': team.league.id,
+                    'name': team.league.name
+                },
+                'season_stats': {
+                    'matches_played': total_matches,
+                    'wins': wins,
+                    'draws': draws,
+                    'losses': losses,
+                    'goals_for': goals_for,
+                    'goals_against': goals_against,
+                    'goal_difference': goal_difference,
+                    'points': points,
+                    'win_rate_percent': win_rate,
+                    'avg_goals_for_per_match': avg_goals_for,
+                    'avg_goals_against_per_match': avg_goals_against
+                },
+                'performance_metrics': {
+                    'performance_level': performance_level,
+                    'form_trend': form_trend,
+                    'recent_form_rating': recent_form_rating,
+                    'offensive_strength': (
+                        'high' if avg_goals_for >= 2.5 else
+                        'medium' if avg_goals_for >= 1.5 else
+                        'low'
+                    ),
+                    'defensive_strength': (
+                        'high' if avg_goals_against <= 1.0 else
+                        'medium' if avg_goals_against <= 2.0 else
+                        'low'
+                    )
+                },
+                'recent_form': recent_form if include_form else None,
+                'upcoming_matches': len([m for m in team_matches if m.home_team_score is None])
+            }
+            
+            team_performance.append(team_stats)
+        
+        # Sort by points, then goal difference
+        team_performance.sort(key=lambda x: (x['season_stats']['points'], x['season_stats']['goal_difference']), reverse=True)
+        
+        # Add league position
+        for idx, team in enumerate(team_performance):
+            team['league_position'] = idx + 1
+        
+        # Generate league insights
+        if team_performance:
+            total_teams = len(team_performance)
+            avg_goals_per_match = sum(t['season_stats']['avg_goals_for_per_match'] for t in team_performance) / total_teams
+            
+            # Find leaders and strugglers
+            top_team = team_performance[0] if team_performance else None
+            bottom_team = team_performance[-1] if team_performance else None
+            
+            hot_teams = [t for t in team_performance if t['performance_metrics']['form_trend'] == 'hot']
+            struggling_teams = [t for t in team_performance if t['performance_metrics']['performance_level'] == 'struggling']
+            
+            summary = {
+                'total_teams': total_teams,
+                'league_leader': {
+                    'team_name': top_team['team_name'],
+                    'points': top_team['season_stats']['points'],
+                    'matches_played': top_team['season_stats']['matches_played']
+                } if top_team else None,
+                'most_struggling': {
+                    'team_name': bottom_team['team_name'],
+                    'points': bottom_team['season_stats']['points'],
+                    'win_rate': bottom_team['season_stats']['win_rate_percent']
+                } if bottom_team else None,
+                'teams_in_good_form': len(hot_teams),
+                'teams_struggling': len(struggling_teams),
+                'average_goals_per_match': round(avg_goals_per_match, 2),
+                'competitive_balance': (
+                    'very_competitive' if top_team and bottom_team and (top_team['season_stats']['points'] - bottom_team['season_stats']['points']) <= 6 else
+                    'competitive' if top_team and bottom_team and (top_team['season_stats']['points'] - bottom_team['season_stats']['points']) <= 12 else
+                    'dominant_leaders'
+                )
+            }
+        else:
+            summary = {'total_teams': 0}
+        
+        return jsonify({
+            'team_performance': team_performance,
+            'league_summary': summary,
+            'filters_applied': {
+                'season_id': season_id,
+                'league_id': league_id,
+                'team_id': team_id,
+                'include_form': include_form,
+                'min_matches': min_matches
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_team_performance: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
+@external_api_bp.route('/analytics/player-status', methods=['GET'])
+@api_key_required
+def get_player_status():
+    """Analyze player status including new players, onboarding, and activity levels."""
+    try:
+        season_id = request.args.get('season_id', type=int)
+        league_id = request.args.get('league_id', type=int)
+        status_filter = request.args.get('status', '')  # 'new', 'inactive', 'unassigned', 'all'
+        include_onboarding = request.args.get('include_onboarding', 'true').lower() == 'true'
+        
+        # Get current season if not specified
+        if not season_id:
+            current_season = Season.query.filter(Season.is_current == True).first()
+            season_id = current_season.id if current_season else None
+        
+        # Build player query
+        player_query = Player.query.filter(Player.is_current_player == True)
+        
+        if league_id:
+            player_query = player_query.filter(Player.teams.any(Team.league_id == league_id))
+        
+        players = player_query.all()
+        
+        player_status_list = []
+        
+        for player in players:
+            # Determine player status categories
+            has_teams = len(player.teams) > 0
+            has_completed_onboarding = player.user.has_completed_onboarding if player.user else False
+            is_approved = player.user.is_approved if player.user else False
+            
+            # Check if player is new (created recently and/or no team assignments)
+            is_new_player = False
+            if player.user and player.user.created_at:
+                days_since_creation = (datetime.utcnow() - player.user.created_at).days
+                is_new_player = days_since_creation <= 30 or not has_teams
+            
+            # Check activity level based on RSVP responses
+            recent_matches = []
+            response_count = 0
+            if season_id and has_teams:
+                # Get matches for player's teams in current season
+                team_ids = [t.id for t in player.teams]
+                recent_match_query = Match.query.filter(
+                    and_(
+                        or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
+                        Match.date >= (datetime.now() - timedelta(days=30)).date()
+                    )
+                )
+                recent_matches = recent_match_query.all()
+                
+                # Count RSVP responses
+                if recent_matches:
+                    response_count = Availability.query.filter(
+                        and_(
+                            Availability.player_id == player.id,
+                            Availability.match_id.in_([m.id for m in recent_matches])
+                        )
+                    ).count()
+            
+            # Determine activity level
+            if recent_matches:
+                response_rate = response_count / len(recent_matches)
+                if response_rate >= 0.8:
+                    activity_level = 'very_active'
+                elif response_rate >= 0.5:
+                    activity_level = 'active'
+                elif response_rate >= 0.2:
+                    activity_level = 'somewhat_active'
+                else:
+                    activity_level = 'inactive'
+            else:
+                activity_level = 'no_recent_matches'
+            
+            # Categorize player status
+            status_categories = []
+            if is_new_player:
+                status_categories.append('new')
+            if not has_teams:
+                status_categories.append('unassigned')
+            if not is_approved:
+                status_categories.append('pending_approval')
+            if not has_completed_onboarding:
+                status_categories.append('needs_onboarding')
+            if activity_level in ['inactive', 'somewhat_active']:
+                status_categories.append('low_engagement')
+            if not status_categories:
+                status_categories.append('active_member')
+            
+            # Player roles and capabilities
+            roles = []
+            if player.is_coach:
+                roles.append('coach')
+            if player.is_ref:
+                roles.append('referee')
+            if player.is_sub:
+                roles.append('substitute')
+            if not roles:
+                roles.append('player')
+            
+            player_status_info = {
+                'player_id': player.id,
+                'name': player.name,
+                'status_categories': status_categories,
+                'roles': roles,
+                'team_assignments': [
+                    {
+                        'team_id': team.id,
+                        'team_name': team.name,
+                        'league': team.league.name if team.league else None
+                    } for team in player.teams
+                ],
+                'activity_metrics': {
+                    'activity_level': activity_level,
+                    'recent_matches_count': len(recent_matches),
+                    'rsvp_responses_count': response_count,
+                    'response_rate_percent': round((response_count / len(recent_matches) * 100), 1) if recent_matches else 0
+                },
+                'account_info': {
+                    'is_approved': is_approved,
+                    'has_completed_onboarding': has_completed_onboarding,
+                    'days_since_creation': (datetime.utcnow() - player.user.created_at).days if player.user and player.user.created_at else None,
+                    'last_login': player.user.last_login.isoformat() if player.user and player.user.last_login else None,
+                    'email_notifications': player.user.email_notifications if player.user else None,
+                    'sms_notifications': player.user.sms_notifications if player.user else None
+                } if include_onboarding else None,
+                'contact_info': {
+                    'phone': player.phone,
+                    'phone_verified': player.is_phone_verified,
+                    'discord_id': player.discord_id
+                },
+                'needs_attention': len([c for c in status_categories if c in ['pending_approval', 'needs_onboarding', 'unassigned', 'low_engagement']]) > 0
+            }
+            
+            # Apply status filter
+            if status_filter and status_filter != 'all':
+                if status_filter not in status_categories:
+                    continue
+            
+            player_status_list.append(player_status_info)
+        
+        # Sort by attention needed, then by name
+        player_status_list.sort(key=lambda x: (not x['needs_attention'], x['name']))
+        
+        # Generate summary statistics
+        total_players = len(player_status_list)
+        new_players = len([p for p in player_status_list if 'new' in p['status_categories']])
+        unassigned_players = len([p for p in player_status_list if 'unassigned' in p['status_categories']])
+        pending_approval = len([p for p in player_status_list if 'pending_approval' in p['status_categories']])
+        needs_onboarding = len([p for p in player_status_list if 'needs_onboarding' in p['status_categories']])
+        inactive_players = len([p for p in player_status_list if 'low_engagement' in p['status_categories']])
+        players_needing_attention = len([p for p in player_status_list if p['needs_attention']])
+        
+        # Role distribution
+        role_counts = {}
+        for player in player_status_list:
+            for role in player['roles']:
+                role_counts[role] = role_counts.get(role, 0) + 1
+        
+        summary = {
+            'total_players': total_players,
+            'new_players': new_players,
+            'unassigned_players': unassigned_players,
+            'pending_approval': pending_approval,
+            'needs_onboarding_completion': needs_onboarding,
+            'low_engagement_players': inactive_players,
+            'players_needing_attention': players_needing_attention,
+            'role_distribution': role_counts,
+            'engagement_health': (
+                'excellent' if inactive_players / max(total_players, 1) <= 0.1 else
+                'good' if inactive_players / max(total_players, 1) <= 0.2 else
+                'needs_improvement'
+            ),
+            'onboarding_completion_rate': round(((total_players - needs_onboarding) / max(total_players, 1) * 100), 1)
+        }
+        
+        return jsonify({
+            'player_status': player_status_list,
+            'summary': summary,
+            'filters_applied': {
+                'season_id': season_id,
+                'league_id': league_id,
+                'status_filter': status_filter,
+                'include_onboarding': include_onboarding
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_player_status: {e}", exc_info=True)
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
 
 
 @external_api_bp.route('/health', methods=['GET'])
@@ -1188,6 +2819,14 @@ def health_check():
             'GET /api/external/v1/stats/summary',
             'GET /api/external/v1/search',
             'GET /api/external/v1/analytics/player-stats',
+            'GET /api/external/v1/analytics/attendance',
+            'GET /api/external/v1/analytics/substitution-needs',
+            'GET /api/external/v1/analytics/match-insights',
+            'GET /api/external/v1/analytics/player-patterns',
+            'GET /api/external/v1/analytics/referee-assignments',
+            'GET /api/external/v1/analytics/substitute-requests',
+            'GET /api/external/v1/analytics/team-performance',
+            'GET /api/external/v1/analytics/player-status',
             'GET /api/external/v1/health'
         ]
     })
