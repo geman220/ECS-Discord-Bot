@@ -270,7 +270,7 @@ def serialize_match(match, include_availability=False, include_events=False):
             'date': match.date.isoformat() if match.date else None,
             'time': match.time.strftime('%H:%M') if match.time else None,
             'location': match.location,
-            'field': match.field,
+            'field': getattr(match, 'field', match.location),
             'home_team': {
                 'id': match.home_team.id,
                 'name': match.home_team.name
@@ -283,9 +283,9 @@ def serialize_match(match, include_availability=False, include_events=False):
             'away_score': match.away_team_score,
             'is_completed': match.home_team_score is not None,
             'referee': {
-                'id': match.referee.id,
-                'name': match.referee.name
-            } if match.referee else None,
+                'id': match.ref.id,
+                'name': match.ref.name
+            } if getattr(match, 'ref', None) else None,
             'league': {
                 'id': match.home_team.league.id,
                 'name': match.home_team.league.name

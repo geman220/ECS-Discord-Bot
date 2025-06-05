@@ -25,6 +25,7 @@
     <Compile Include="app\admin_routes.py" />
     <Compile Include="app\API\predictions.py" />
     <Compile Include="app\assets.py" />
+    <Compile Include="app\clear_cache.py" />
     <Compile Include="app\cli.py" />
     <Compile Include="app\config\celery_config.py" />
     <Compile Include="app\config\__init__.py" />
@@ -38,10 +39,19 @@
     <Compile Include="app\database\__init__.py" />
     <Compile Include="app\db_management.py" />
     <Compile Include="app\debug\diagnostic.py" />
+    <Compile Include="app\design_routes.py" />
     <Compile Include="app\external_api.py" />
+    <Compile Include="app\external_api\analytics.py" />
+    <Compile Include="app\external_api\auth.py" />
+    <Compile Include="app\external_api\core_endpoints.py" />
+    <Compile Include="app\external_api\serializers.py" />
+    <Compile Include="app\external_api\stats_utils.py" />
+    <Compile Include="app\external_api\__init__.py" />
+    <Compile Include="app\external_api_backup.py" />
     <Compile Include="app\help.py" />
     <Compile Include="app\log_config\logging_config.py" />
     <Compile Include="app\log_config\__init__.py" />
+    <Compile Include="app\log_management.py" />
     <Compile Include="app\match_scheduler.py" />
     <Compile Include="app\modals.py" />
     <Compile Include="app\monitoring.py" />
@@ -136,6 +146,7 @@
     <Folder Include="app\core\" />
     <Folder Include="app\database\" />
     <Folder Include="app\debug\" />
+    <Folder Include="app\external_api\" />
     <Folder Include="app\log_config\" />
     <Folder Include="app\log_config\__pycache__\" />
     <Folder Include="app\API\" />
