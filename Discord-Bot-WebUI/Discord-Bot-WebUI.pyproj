@@ -276,6 +276,7 @@
     <Content Include="app\templates\onboarding_modal_content.html" />
     <Content Include="app\templates\player_profile.html" />
     <Content Include="app\templates\player_table.html" />
+    <Content Include="app\templates\privacy_policy.html" />
     <Content Include="app\templates\pub_league_schedule.html" />
     <Content Include="app\templates\register.html" />
     <Content Include="app\templates\reset_password.html" />
