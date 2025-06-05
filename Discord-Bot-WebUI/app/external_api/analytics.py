@@ -12,7 +12,7 @@ from flask import request, jsonify
 from app.core import db
 from app.models import (
     Player, Team, Match, League, Season, Availability,
-    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment
+    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment, SubRequest
 )
 
 from . import external_api_bp
@@ -481,56 +481,84 @@ def get_substitution_needs():
                 
                 needs_subs = urgency in ['critical', 'high', 'medium']
                 
-                # Calculate days until match
-                days_until = (match.date - datetime.now().date()).days
+                # Check if coach has manually requested a substitute
+                manual_sub_request = SubRequest.query.filter(
+                    and_(
+                        SubRequest.match_id == match.id,
+                        SubRequest.team_id == team.id,
+                        SubRequest.status.in_(['PENDING', 'APPROVED'])
+                    )
+                ).first()
                 
-                substitution_analysis.append({
-                    'match_id': match.id,
-                    'match_date': match.date.isoformat(),
-                    'match_time': match.time.isoformat() if match.time else None,
-                    'location': match.location,
-                    'days_until_match': days_until,
-                    'team': {
-                        'id': team.id,
-                        'name': team.name,
-                        'league': team.league.name if team.league else None,
-                        'team_type': team_type
-                    },
-                    'opponent': {
-                        'id': match.away_team.id if team_type == 'home' else match.home_team.id,
-                        'name': match.away_team.name if team_type == 'home' else match.home_team.name
-                    } if (match.away_team and match.home_team) else None,
-                    'roster_analysis': {
-                        'total_roster_size': team_analysis['total_roster'],
-                        'confirmed_available': confirmed_available,
-                        'unavailable': team_analysis['confirmed_unavailable'],
-                        'maybe_available': team_analysis['maybe_available'],
-                        'no_response': team_analysis['no_response_count'],
-                        'potential_available': potential_available,
-                        'shortage_amount': max(0, min_players_threshold - confirmed_available)
-                    },
-                    'substitute_needs': {
-                        'needs_substitutes': needs_subs,
-                        'urgency': urgency,
-                        'minimum_subs_needed': max(0, min_players_threshold - confirmed_available),
-                        'recommended_subs_for_ideal': max(0, ideal_players - confirmed_available),
-                        'current_situation': get_substitution_description(confirmed_available, min_players_threshold, ideal_players)
-                    },
-                    'available_players': team_analysis['available_players'],
-                    'no_response_players': [
-                        {**p, 'needs_follow_up': True} 
-                        for p in team_analysis['no_response_players']
-                    ]
-                })
+                has_manual_request = manual_sub_request is not None
+                
+                # Team needs subs if either RSVP data indicates need OR coach manually requested
+                needs_subs_final = needs_subs or has_manual_request
+                
+                # Only add teams that actually need substitutes
+                if needs_subs_final:
+                    # Calculate days until match
+                    days_until = (match.date - datetime.now().date()).days
+                    
+                    substitution_analysis.append({
+                        'match_id': match.id,
+                        'match_date': match.date.isoformat(),
+                        'match_time': match.time.isoformat() if match.time else None,
+                        'location': match.location,
+                        'days_until_match': days_until,
+                        'team': {
+                            'id': team.id,
+                            'name': team.name,
+                            'league': team.league.name if team.league else None,
+                            'team_type': team_type
+                        },
+                        'opponent': {
+                            'id': match.away_team.id if team_type == 'home' else match.home_team.id,
+                            'name': match.away_team.name if team_type == 'home' else match.home_team.name
+                        } if (match.away_team and match.home_team) else None,
+                        'roster_analysis': {
+                            'total_roster_size': team_analysis['total_roster'],
+                            'confirmed_available': confirmed_available,
+                            'unavailable': team_analysis['confirmed_unavailable'],
+                            'maybe_available': team_analysis['maybe_available'],
+                            'no_response': team_analysis['no_response_count'],
+                            'potential_available': potential_available,
+                            'shortage_amount': max(0, min_players_threshold - confirmed_available)
+                        },
+                        'substitute_needs': {
+                            'needs_substitutes': needs_subs_final,
+                            'urgency': 'high' if has_manual_request and urgency in ['low', 'none'] else urgency,
+                            'minimum_subs_needed': max(0, min_players_threshold - confirmed_available),
+                            'recommended_subs_for_ideal': max(0, ideal_players - confirmed_available) if needs_subs_final else 0,
+                            'current_situation': get_substitution_description(confirmed_available, min_players_threshold, ideal_players),
+                            'manual_request': {
+                                'has_request': has_manual_request,
+                                'request_id': manual_sub_request.id if manual_sub_request else None,
+                                'status': manual_sub_request.status if manual_sub_request else None,
+                                'requested_at': manual_sub_request.created_at.isoformat() if manual_sub_request else None,
+                                'notes': manual_sub_request.notes if manual_sub_request else None
+                            }
+                        },
+                        'available_players': team_analysis['available_players'],
+                        'no_response_players': [
+                            {**p, 'needs_follow_up': True} 
+                            for p in team_analysis['no_response_players']
+                        ]
+                    })
         
-        # Sort by urgency and date
+        # Sort by urgency and date, prioritizing manual requests
         urgency_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'none': 4}
-        substitution_analysis.sort(key=lambda x: (urgency_order[x['substitute_needs']['urgency']], x['match_date']))
+        substitution_analysis.sort(key=lambda x: (
+            urgency_order[x['substitute_needs']['urgency']], 
+            not x['substitute_needs']['manual_request']['has_request'],  # Manual requests first
+            x['match_date']
+        ))
         
         # Generate summary
         critical_matches = len([m for m in substitution_analysis if m['substitute_needs']['urgency'] == 'critical'])
         high_priority_matches = len([m for m in substitution_analysis if m['substitute_needs']['urgency'] == 'high'])
         matches_needing_subs = len([m for m in substitution_analysis if m['substitute_needs']['needs_substitutes']])
+        manual_requests = len([m for m in substitution_analysis if m['substitute_needs']['manual_request']['has_request']])
         
         return jsonify({
             'substitution_analysis': substitution_analysis,
@@ -539,6 +567,7 @@ def get_substitution_needs():
                 'matches_needing_substitutes': matches_needing_subs,
                 'critical_shortage_matches': critical_matches,
                 'high_priority_matches': high_priority_matches,
+                'manual_sub_requests': manual_requests,
                 'analysis_period_days': days_ahead,
                 'recommendations': {
                     'immediate_action_needed': critical_matches > 0,
