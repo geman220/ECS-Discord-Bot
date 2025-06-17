@@ -191,7 +191,7 @@ async def fetch_espn_data(endpoint: Optional[str] = None, full_url: Optional[str
 def async_to_sync(coroutine: Any) -> Any:
     """
     Convert an async coroutine to a synchronous function call.
-    Safely handles nested event loop scenarios.
+    Safely handles nested event loop scenarios, including eventlet.
     
     Args:
         coroutine: The async coroutine to execute.
@@ -211,6 +211,16 @@ def async_to_sync(coroutine: Any) -> Any:
         finally:
             new_loop.close()
             asyncio.set_event_loop(None)
+    
+    # Check if we're in an eventlet environment
+    try:
+        import eventlet
+        # If eventlet is patched, we need to use native threads
+        if eventlet.patcher.is_monkey_patched('thread'):
+            import eventlet.tpool
+            return eventlet.tpool.execute(run_in_new_loop)
+    except ImportError:
+        pass
     
     try:
         # Check if there's already a running event loop in this thread

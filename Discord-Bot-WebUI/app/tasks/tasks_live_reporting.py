@@ -485,11 +485,26 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
             stale_match.thread_creation_task_id = None
         
         # Now get matches that need thread creation
+        # But exclude matches that already have Redis-scheduled tasks
+        from app.utils.redis_manager import RedisManager
+        redis = RedisManager().client
+        
         due_matches = session.query(MLSMatch).filter(
             MLSMatch.thread_creation_time <= now + timedelta(hours=6),
             MLSMatch.thread_created == False,
             MLSMatch.thread_creation_scheduled == False
         ).order_by(MLSMatch.thread_creation_time).all()
+        
+        # Filter out matches that already have Redis-scheduled tasks
+        filtered_matches = []
+        for match in due_matches:
+            redis_key = f"match_scheduler:{match.match_id}:thread"
+            if not redis.exists(redis_key):
+                filtered_matches.append(match)
+            else:
+                logger.info(f"Skipping match {match.match_id} - already has Redis-scheduled thread task")
+        
+        due_matches = filtered_matches
 
         if not due_matches:
             return {
@@ -599,34 +614,62 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
     session = current_app.SessionLocal()
     try:
         logger.info(f"Starting thread creation for match {match_id}")
-        match = get_match(session, match_id)
-
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return {'success': False, 'message': f'Match {match_id} not found'}
-
-        if match.thread_created and not force:
-            logger.info(f"Thread already exists for match {match_id}")
-            return {'success': True, 'message': 'Thread already exists'}
-
-        # Use async_to_sync utility instead of creating our own event loop
-        from app.api_utils import async_to_sync
-        thread_id = async_to_sync(create_match_thread(session, match))
         
-        if thread_id:
-            match.thread_created = True
-            match.discord_thread_id = thread_id
-            session.commit()
+        # Use Redis to ensure only one worker processes this match at a time
+        from app.utils.redis_manager import RedisManager
+        redis = RedisManager().client
+        lock_key = f"thread_creation_lock:{match_id}"
+        lock_value = f"{self.request.id}"  # Use task ID as lock value
+        
+        # Try to acquire lock with 5 minute expiry
+        if not redis.set(lock_key, lock_value, nx=True, ex=300):
+            logger.info(f"Another worker is already creating thread for match {match_id}")
+            # Wait a bit and check if thread was created
+            import time
+            time.sleep(5)
+            
+            match = get_match(session, match_id)
+            if match and match.thread_created:
+                logger.info(f"Thread was created by another worker for match {match_id}")
+                return {'success': True, 'message': 'Thread already exists'}
+            else:
+                logger.warning(f"Lock held but thread not created yet for match {match_id}")
+                return {'success': False, 'message': 'Thread creation in progress by another worker'}
+        
+        try:
+            match = get_match(session, match_id)
 
-            logger.info(f"Created thread {thread_id} for match {match_id}")
-            return {
-                'success': True,
-                'message': f'Thread created successfully. ID: {thread_id}',
-                'thread_id': thread_id
-            }
+            if not match:
+                logger.error(f"Match {match_id} not found")
+                return {'success': False, 'message': f'Match {match_id} not found'}
 
-        logger.error(f"Failed to create thread for match {match_id}")
-        return {'success': False, 'message': 'Failed to create thread'}
+            if match.thread_created and not force:
+                logger.info(f"Thread already exists for match {match_id}")
+                return {'success': True, 'message': 'Thread already exists'}
+
+            # Use async_to_sync utility instead of creating our own event loop
+            from app.api_utils import async_to_sync
+            thread_id = async_to_sync(create_match_thread(session, match))
+            
+            if thread_id:
+                match.thread_created = True
+                match.discord_thread_id = thread_id
+                session.commit()
+
+                logger.info(f"Created thread {thread_id} for match {match_id}")
+                return {
+                    'success': True,
+                    'message': f'Thread created successfully. ID: {thread_id}',
+                    'thread_id': thread_id
+                }
+
+            logger.error(f"Failed to create thread for match {match_id}")
+            return {'success': False, 'message': 'Failed to create thread'}
+            
+        finally:
+            # Release lock only if we own it
+            if redis.get(lock_key) == lock_value:
+                redis.delete(lock_key)
 
     except SQLAlchemyError as e:
         session.rollback()
