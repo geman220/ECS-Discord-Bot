@@ -700,20 +700,12 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
             logger.info(f"Coach roles found: {coach_roles}")
             logger.info(f"Player is_coach flag: {player.is_coach}")
             
-            # Synchronize database is_coach with Discord coach roles
+            # Log Discord coach role status for debugging
             has_discord_coach_role = bool(coach_roles)
+            logger.info(f"Player {player.id} Discord coach role status: {has_discord_coach_role}, Database is_coach: {player.is_coach}")
             
-            # If there's a mismatch between database and Discord, update the database
-            if has_discord_coach_role and not player.is_coach:
-                logger.info(f"Player {player.id} has Discord coach role but database flag is False - updating database")
-                player.is_coach = True
-                session.add(player)
-                session.commit()
-                # Update expected roles since player.is_coach has changed
-                expected_roles = await get_expected_roles(session, player)
-                expected_normalized = {normalize_name(r) for r in expected_roles}
-            # We don't remove coach status if it exists in the database but not in Discord
-            # That will be handled by the normal role sync mechanism
+            # Trust the database is_coach flag rather than synchronizing with Discord
+            # This allows profile page updates to properly remove coach roles
 
             to_add = [r for r in expected_roles if normalize_name(r) not in current_normalized]
             
