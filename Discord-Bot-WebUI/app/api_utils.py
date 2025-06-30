@@ -203,14 +203,13 @@ def async_to_sync(coroutine: Any) -> Any:
     import concurrent.futures
     
     def run_in_new_loop():
-        """Run the coroutine in a new event loop in this thread."""
+        """Run the coroutine in a new event loop in a separate thread."""
         new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
         try:
+            # Don't set this as the event loop for the thread to avoid conflicts
             return new_loop.run_until_complete(coroutine)
         finally:
             new_loop.close()
-            asyncio.set_event_loop(None)
     
     # Check if we're in an eventlet environment
     try:
@@ -226,10 +225,10 @@ def async_to_sync(coroutine: Any) -> Any:
         # Check if there's already a running event loop in this thread
         asyncio.get_running_loop()
         
-        # If we get here, there's a running loop - use a thread
+        # If we get here, there's a running loop - always use a thread
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(run_in_new_loop)
-            return future.result()
+            return future.result(timeout=300)  # 5 minute timeout
     except RuntimeError:
         # No running event loop - we can run directly
         return run_in_new_loop()

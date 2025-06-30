@@ -25,7 +25,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio
 from app.core.session_manager import managed_session
 from app.core.helpers import get_match
-from app.decorators import celery_task, async_task
+from app.decorators import celery_task
 from app.models import MLSMatch, Prediction
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
@@ -383,67 +383,6 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=30)
 
 
-@async_task(
-    name='app.tasks.tasks_live_reporting.create_match_thread_task',
-    queue='live_reporting',
-    max_retries=3
-)
-async def create_match_thread_task(session, match_id: str) -> Dict[str, Any]:
-    """
-    Create a Discord thread for a match with retries.
-
-    This async task:
-      - Retrieves the match by ID.
-      - If a thread does not already exist, creates one via the Discord API.
-      - Emits a socketio event on successful thread creation.
-
-    Returns:
-        A dictionary indicating success or failure, along with the thread ID if successful.
-
-    Raises:
-        Retries on SQLAlchemy or general errors.
-    """
-    try:
-        match = get_match(session, match_id)
-        if not match:
-            return {'success': False, 'message': f'Match {match_id} not found'}
-
-        if match.thread_created:
-            # Reset scheduling flag since thread already exists
-            match.thread_creation_scheduled = False
-            match.thread_creation_task_id = None
-            return {'success': True, 'message': f'Thread already exists for match {match_id}'}
-
-        thread_id = await create_match_thread(match)
-        if thread_id:
-            match.thread_created = True
-            match.discord_thread_id = thread_id
-            # Reset scheduling flags on successful creation
-            match.thread_creation_scheduled = False
-            match.thread_creation_task_id = None
-
-            socketio.emit('thread_created', {
-                'match_id': match_id,
-                'thread_id': thread_id
-            })
-
-            return {
-                'success': True,
-                'message': f'Thread created successfully',
-                'thread_id': thread_id
-            }
-
-        # Reset scheduling flag on failure so it can be retried
-        match.thread_creation_scheduled = False
-        match.thread_creation_task_id = None
-        return {'success': False, 'message': 'Failed to create thread'}
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error creating match thread: {str(e)}", exc_info=True)
-        raise create_match_thread_task.retry(exc=e, countdown=60)
-    except Exception as e:
-        logger.error(f"Error creating match thread: {str(e)}", exc_info=True)
-        raise create_match_thread_task.retry(exc=e, countdown=30)
 
 
 @celery_task(
@@ -554,11 +493,18 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
             batch_num = i // batch_size
             position_in_batch = i % batch_size
             
+            # Check if thread creation is already in progress for this match
+            lock_key = f"thread_creation_lock:{match.match_id}"
+            redis_client = current_app.redis_client
+            if redis_client.exists(lock_key):
+                logger.info(f"Thread creation already in progress for match {match.match_id}, skipping")
+                continue
+            
             # Calculate delay: batch delay + position delay + priority-based delay
             total_delay = (batch_num * base_delay) + (position_in_batch * 20) + match_info['delay']
             
             # Schedule thread creation with appropriate delay
-            result = create_match_thread_task.apply_async(
+            result = force_create_mls_thread_task.apply_async(
                 args=[match.match_id],
                 countdown=int(total_delay)
             )

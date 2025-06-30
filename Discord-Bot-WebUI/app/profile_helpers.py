@@ -159,6 +159,9 @@ def handle_profile_update(form, player, user):
         # Update array fields separately
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
+        
+        # Update player notes
+        player.player_notes = form.player_notes.data
 
         # Handle team swap if present
         if hasattr(form, 'team_swap'):
@@ -265,6 +268,38 @@ def handle_career_stats_update(player, form):
     except Exception as e:
         logger.error(f"Error updating career stats: {str(e)}", exc_info=True)
         flash('Error updating career stats.', 'danger')
+        raise
+
+
+def handle_admin_notes_update(player, form):
+    """
+    Update a player's admin notes (only for admins and coaches).
+
+    Args:
+        player: The player object to update.
+        form: The submitted form containing admin notes data.
+
+    Returns:
+        A redirect response to the player's profile page.
+
+    Raises:
+        Exception: Propagates any encountered exception.
+    """
+    try:
+        logger.debug(f"Entering handle_admin_notes_update for player {player.id}")
+        
+        # Update admin notes
+        player.notes = form.notes.data
+        
+        session = g.db_session
+        session.commit()
+        
+        logger.info(f"Admin notes for player {player.id} updated successfully.")
+        flash('Admin notes updated successfully.', 'success')
+        return redirect(url_for('players.player_profile', player_id=player.id))
+    except Exception as e:
+        logger.error(f"Error updating admin notes: {str(e)}", exc_info=True)
+        flash('Error updating admin notes.', 'danger')
         raise
 
 

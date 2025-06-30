@@ -41,7 +41,8 @@ from app.player_management_helpers import create_player_profile, record_order_hi
 from app.stat_helpers import decrement_player_stats
 from app.profile_helpers import (
     handle_coach_status_update, handle_ref_status_update, handle_profile_update,
-    handle_season_stats_update, handle_career_stats_update, handle_add_stat_manually
+    handle_season_stats_update, handle_career_stats_update, handle_add_stat_manually,
+    handle_admin_notes_update
 )
 from app.tasks.player_sync import sync_players_with_woocommerce
 from app.utils.sync_data_manager import get_sync_data, delete_sync_data
@@ -419,6 +420,12 @@ def player_profile(player_id):
                     return handle_profile_update(form, player, user)
                 else:
                     flash('You do not have permission to update this profile.', 'danger')
+                    return redirect(url_for('players.player_profile', player_id=player.id))
+            elif form.validate_on_submit() and 'update_admin_notes' in request.form:
+                if is_admin or safe_current_user.has_role('Pub League Coach'):
+                    return handle_admin_notes_update(player, form)
+                else:
+                    flash('You do not have permission to update admin notes.', 'danger')
                     return redirect(url_for('players.player_profile', player_id=player.id))
             elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
                 return handle_season_stats_update(player, season_stats_form, season.id)
