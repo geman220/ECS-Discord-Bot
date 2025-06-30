@@ -56,6 +56,24 @@ def handle_coach_status_update(player, user):
             {"is_coach": is_coach, "player_id": player.id}
         )
         
+        # Update Flask roles to match coach status
+        if player.user:
+            from app.models import Role
+            coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
+            if coach_role:
+                if is_coach:
+                    # Add coach role if not already assigned
+                    if coach_role not in player.user.roles:
+                        player.user.roles.append(coach_role)
+                        logger.info(f"Added 'Pub League Coach' Flask role to player {player.id}")
+                else:
+                    # Remove coach role if assigned
+                    if coach_role in player.user.roles:
+                        player.user.roles.remove(coach_role)
+                        logger.info(f"Removed 'Pub League Coach' Flask role from player {player.id}")
+            else:
+                logger.warning("'Pub League Coach' role not found in database")
+        
         session.commit()  # Commit changes first
 
         if player.discord_id:
