@@ -792,8 +792,8 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     # Check if the player has the "Pub League Coach" role in the Flask app
     has_coach_role_in_flask = "Pub League Coach" in user_roles
     
-    # Determine if the player should have coach status based on both database is_coach and Flask role
-    should_have_coach_status = player.is_coach or has_coach_role_in_flask
+    # Use database is_coach flag as the authoritative source for Discord role assignment
+    should_have_coach_status = player.is_coach
     
     # Log determination for debugging
     logger.info(f"Player {player.id} has database is_coach={player.is_coach}, Flask 'Pub League Coach'={has_coach_role_in_flask}")
