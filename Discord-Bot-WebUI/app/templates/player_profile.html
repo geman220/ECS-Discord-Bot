@@ -507,7 +507,7 @@
                                 </div>
                             </div>
                             
-                            <div class="card shadow-sm">
+                            <div class="card shadow-sm mb-4">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                                     <h5 class="card-title mb-0">Player Notes</h5>
                                     <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="player-notes">
@@ -536,6 +536,40 @@
                                     </form>
                                 </div>
                             </div>
+                            
+                            {% if is_admin or safe_current_user.has_role('Pub League Coach') %}
+                            <div class="card shadow-sm">
+                                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                                    <h5 class="card-title mb-0">Admin/Coach Notes</h5>
+                                    <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="admin-notes">
+                                        <i class="ti ti-pencil"></i> Edit
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <form method="POST" enctype="multipart/form-data" id="admin-notes-form">
+                                        {{ form.hidden_tag() }}
+                                        <div class="form-group">
+                                            <div class="view-mode">
+                                                <div class="p-3 rounded bg-label-warning bg-opacity-10">
+                                                    <i class="ti ti-lock me-1"></i> <strong>Admin/Coach Only:</strong><br>
+                                                    {{ player.notes or 'No admin notes available' }}
+                                                </div>
+                                            </div>
+                                            <div class="edit-mode d-none">
+                                                {{ form.notes(class_="form-control", id="notes", rows=3) }}
+                                                <div class="form-text">These notes are only visible to administrators and coaches.</div>
+                                                <div class="text-end mt-3">
+                                                    <button type="button" class="btn btn-secondary me-2 cancel-edit" data-section="admin-notes">Cancel</button>
+                                                    <button type="submit" name="update_admin_notes" class="btn btn-primary">
+                                                        <i class="ti ti-device-floppy me-1"></i>Save Admin Notes
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endif %}
                             {% else %}
                             <!-- Read-Only View for Coaches -->
                             {% set goal_frequency_map = {
@@ -690,7 +724,7 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="card shadow-sm">
+                                    <div class="card shadow-sm mb-4">
                                         <div class="card-header border-bottom">
                                             <h5 class="card-title mb-0">Player Notes</h5>
                                         </div>
@@ -700,6 +734,20 @@
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    {% if is_admin or safe_current_user.has_role('Pub League Coach') %}
+                                    <div class="card shadow-sm">
+                                        <div class="card-header border-bottom">
+                                            <h5 class="card-title mb-0">Admin/Coach Notes</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="bg-label-warning bg-opacity-10 p-3 rounded">
+                                                <i class="ti ti-lock me-1"></i> <strong>Admin/Coach Only:</strong><br>
+                                                <p class="mb-0 mt-2">{{ player.notes or 'No admin notes available' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endif %}
