@@ -15,7 +15,7 @@ import hashlib
 
 try:
     import redis
-    from app.redis_manager import get_redis_connection
+    from app.utils.redis_manager import get_redis_connection
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
