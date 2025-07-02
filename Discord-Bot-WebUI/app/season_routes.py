@@ -9,7 +9,8 @@ league rollovers, setting the current season, and deleting seasons along with
 their associated leagues and teams.
 """
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g
+from flask import Blueprint, render_template, redirect, url_for, request, g
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
 from sqlalchemy import func
 from typing import Optional
@@ -43,21 +44,21 @@ def manage_seasons():
         if season_name:
             try:
                 create_pub_league_season(session, season_name)
-                flash(f'Pub League Season "{season_name}" created successfully with Premier and Classic leagues.', 'success')
+                show_success(f'Pub League Season "{season_name}" created successfully with Premier and Classic leagues.')
             except Exception as e:
                 logger.error(f"Error creating Pub League season: {e}")
-                flash('Error occurred while creating Pub League season.', 'danger')
+                show_error('Error occurred while creating Pub League season.')
                 raise
         elif ecs_fc_season_name:
             try:
                 create_ecs_fc_season(session, ecs_fc_season_name)
-                flash(f'ECS FC Season "{ecs_fc_season_name}" created successfully.', 'success')
+                show_success(f'ECS FC Season "{ecs_fc_season_name}" created successfully.')
             except Exception as e:
                 logger.error(f"Error creating ECS FC season: {e}")
-                flash('Error occurred while creating ECS FC season.', 'danger')
+                show_error('Error occurred while creating ECS FC season.')
                 raise
         else:
-            flash('Season name cannot be empty.', 'danger')
+            show_error('Season name cannot be empty.')
 
         return redirect(url_for('publeague.season.manage_seasons'))
 
@@ -239,17 +240,17 @@ def set_current_season(season_id):
     session = g.db_session
     season = session.query(Season).get(season_id)
     if not season:
-        flash('Season not found.', 'danger')
+        show_error('Season not found.')
         return redirect(url_for('publeague.season.manage_seasons'))
 
     try:
         # Mark all seasons of this league type as not current.
         session.query(Season).filter_by(league_type=season.league_type).update({'is_current': False})
         season.is_current = True
-        flash(f'Season "{season.name}" is now the current season for {season.league_type}.', 'success')
+        show_success(f'Season "{season.name}" is now the current season for {season.league_type}.')
     except Exception as e:
         logger.error(f"Error setting current season: {e}")
-        flash('Failed to set the current season.', 'danger')
+        show_error('Failed to set the current season.')
         raise
 
     return redirect(url_for('publeague.season.manage_seasons'))
@@ -271,7 +272,7 @@ def delete_season(season_id):
     session = g.db_session
     season = session.query(Season).get(season_id)
     if not season:
-        flash('Season not found.', 'danger')
+        show_error('Season not found.')
         return redirect(url_for('publeague.season.manage_seasons'))
 
     try:
@@ -285,9 +286,9 @@ def delete_season(season_id):
             session.delete(league)
 
         session.delete(season)
-        flash(f'Season "{season.name}" has been deleted along with its associated leagues.', 'success')
+        show_success(f'Season "{season.name}" has been deleted along with its associated leagues.')
     except Exception as e:
         logger.error(f"Error deleting season: {e}")
-        flash('Failed to delete the season.', 'danger')
+        show_error('Failed to delete the season.')
         raise
     return redirect(url_for('publeague.season.manage_seasons'))

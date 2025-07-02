@@ -15,9 +15,10 @@ from typing import Optional
 
 # Third-party imports
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, request,
+    Blueprint, render_template, redirect, url_for, request,
     current_app, jsonify, session, g, make_response
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_user, logout_user, login_required
 from sqlalchemy import func
 
@@ -227,7 +228,7 @@ def discord_callback():
         error = request.args.get('error')
         error_description = request.args.get('error_description', 'No description')
         logger.error(f"Discord OAuth error: {error} - {error_description}")
-        flash(f'Discord authentication error: {error}', 'danger')
+        show_error(f'Discord authentication error: {error}')
         return redirect(url_for('auth.login'))
     
     # Verify the state parameter to prevent CSRF attacks
@@ -236,7 +237,7 @@ def discord_callback():
     # More lenient check for development/testing
     if not state:
         logger.warning("No state parameter received from Discord")
-        flash('Authentication failed: No state parameter. Please try again.', 'danger')
+        show_error('Authentication failed: No state parameter. Please try again.')
         return redirect(url_for('auth.login'))
     
     if not stored_state:
@@ -244,14 +245,14 @@ def discord_callback():
         # For development environments, allow the login flow to continue without state validation
         # This helps when using Docker where session persistence might be problematic
         if not code:
-            flash('Authentication failed: Session expired. Please try again.', 'danger')
+            show_error('Authentication failed: Session expired. Please try again.')
             return redirect(url_for('auth.login'))
         logger.warning("Proceeding despite missing stored state since we have a code (dev mode)")
     elif state != stored_state:
         logger.warning(f"OAuth state mismatch: received {state[:8]}..., stored {stored_state[:8]}...")
         # In development/docker environment, we'll continue anyway if we have a code
         if not code:
-            flash('Authentication validation failed. Please try again.', 'danger')
+            show_error('Authentication validation failed. Please try again.')
             return redirect(url_for('auth.login'))
         logger.warning("Proceeding despite state mismatch since we have a code (dev mode)")
     else:
@@ -264,7 +265,7 @@ def discord_callback():
     session.modified = True
     
     if not code:
-        flash('Login failed: No authorization code. Please try again.', 'danger')
+        show_error('Login failed: No authorization code. Please try again.')
         return redirect(url_for('auth.login'))
 
     try:
@@ -279,7 +280,7 @@ def discord_callback():
         
         if not token_data or 'access_token' not in token_data:
             logger.error(f"Failed to exchange code for token: {token_data}")
-            flash('Failed to authenticate with Discord. Please try again.', 'danger')
+            show_error('Failed to authenticate with Discord. Please try again.')
             return redirect(url_for('auth.login'))
             
         logger.info(f"Successfully obtained access token from Discord")
@@ -288,7 +289,7 @@ def discord_callback():
         
         if not user_data:
             logger.error("Failed to get user data from Discord")
-            flash('Failed to retrieve your Discord profile. Please try again.', 'danger')
+            show_error('Failed to retrieve your Discord profile. Please try again.')
             return redirect(url_for('auth.login'))
             
         logger.info(f"Successfully retrieved Discord user data: id={user_data.get('id')}, username={user_data.get('username')}")
@@ -300,7 +301,7 @@ def discord_callback():
         discord_username = user_data.get('username', 'Discord User')
 
         if not discord_email:
-            flash('Unable to access Discord email.', 'danger')
+            show_error('Unable to access Discord email.')
             return redirect(url_for('auth.login'))
 
         # Get registration mode from session (default to False if not set)
@@ -311,12 +312,12 @@ def discord_callback():
         
         # If user exists and this is a registration attempt
         if user and is_registration:
-            flash('An account with this email already exists. Please login instead.', 'info')
+            show_info('An account with this email already exists. Please login instead.')
             return redirect(url_for('auth.login'))
             
         # If user doesn't exist and this is a login attempt
         if not user and not is_registration:
-            flash('No account found. Please register first.', 'info')
+            show_info('No account found. Please register first.')
             # Redirect to registration with the same Discord auth data
             session['pending_discord_email'] = discord_email
             session['pending_discord_id'] = discord_id
@@ -412,7 +413,7 @@ def discord_callback():
 
     except Exception as e:
         logger.error(f"Discord auth error: {str(e)}", exc_info=True)
-        flash('Authentication failed.', 'danger')
+        show_error('Authentication failed.')
         return redirect(url_for('auth.login'))
 
 
@@ -437,7 +438,7 @@ def register_with_discord():
     discord_username = session.get('pending_discord_username')
     
     if not discord_email or not discord_id:
-        flash('Missing Discord information. Please try again.', 'danger')
+        show_error('Missing Discord information. Please try again.')
         return redirect(url_for('auth.login'))
     
     if request.method == 'GET':
@@ -502,10 +503,10 @@ def register_with_discord():
             # Log Discord integration status but continue regardless
             if not discord_result.get('success'):
                 logger.warning(f"Discord integration warning: {discord_result.get('message')}")
-                flash("Discord integration had some issues. You have been registered, but you may need to join the Discord server manually.", 'warning')
+                show_warning("Discord integration had some issues. You have been registered, but you may need to join the Discord server manually.")
         except Exception as e:
             logger.error(f"Error with Discord server integration: {str(e)}")
-            flash("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.", 'warning')
+            show_warning("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.")
         
         # Find the SUB role in database
         sub_role = db_session.query(Role).filter_by(name='SUB').first()
@@ -581,7 +582,7 @@ def register_with_discord():
         
     except Exception as e:
         logger.error(f"Discord registration error: {str(e)}", exc_info=True)
-        flash('Registration failed. Please try again later.', 'danger')
+        show_error('Registration failed. Please try again later.')
         return redirect(url_for('auth.login'))
 
 @auth.route('/verify_purchase', methods=['GET'])
@@ -639,7 +640,7 @@ def login():
         logger.debug("Processing login POST request")
         if not form.validate_on_submit():
             logger.debug(f"Form validation failed: {form.errors}")
-            flash('Please check your form inputs.', 'danger')
+            show_error('Please check your form inputs.')
             return render_template('login.html', title='Login', form=form)
 
         email = form.email.data.lower()
@@ -648,7 +649,7 @@ def login():
         users = User.query.filter_by(email=email).all()
         if not users:
             logger.debug("No user found with provided email")
-            flash('Invalid email or password', 'danger')
+            show_error('Invalid email or password')
             return render_template('login.html', title='Login', form=form)
 
         if len(users) > 1:
@@ -656,7 +657,7 @@ def login():
             players = Player.query.filter_by(email=email).all()
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
-                flash('Multiple profiles found. Please contact an admin.', 'warning')
+                show_warning('Multiple profiles found. Please contact an admin.')
                 return render_template('login.html', title='Login', form=form)
 
         user = users[0]
@@ -664,12 +665,12 @@ def login():
 
         if not user.check_password(form.password.data):
             logger.debug("Invalid password")
-            flash('Invalid email or password', 'danger')
+            show_error('Invalid email or password')
             return render_template('login.html', title='Login', form=form)
 
         if not user.is_approved:
             logger.debug("User not approved")
-            flash('Your account is not approved yet.', 'info')
+            show_info('Your account is not approved yet.')
             return render_template('login.html', title='Login', form=form)
 
         # If 2FA is enabled, redirect to 2FA verification.
@@ -707,17 +708,17 @@ def login():
                 return redirect(url_for('main.index'))
             else:
                 logger.error("Failed to update last login")
-                flash('Login failed. Please try again.', 'danger')
+                show_error('Login failed. Please try again.')
                 return render_template('login.html', title='Login', form=form)
 
         except Exception as e:
             logger.error(f"Error during login: {str(e)}", exc_info=True)
-            flash('Login failed. Please try again.', 'danger')
+            show_error('Login failed. Please try again.')
             return render_template('login.html', title='Login', form=form)
 
     except Exception as e:
         logger.error(f"Unexpected error in login route: {str(e)}", exc_info=True)
-        flash('An unexpected error occurred. Please try again.', 'danger')
+        show_error('An unexpected error occurred. Please try again.')
         return render_template('login.html', title='Login', form=form)
 
 
@@ -764,7 +765,7 @@ def verify_2fa_login():
     # If we still don't have a user_id, we need to redirect to login
     if not user_id or not user_id.isdigit():
         logger.warning("No valid user_id found anywhere")
-        flash('No 2FA login pending.', 'danger')
+        show_error('No 2FA login pending.')
         return redirect(url_for('auth.login'))
     
     # Convert user_id to int
@@ -779,7 +780,7 @@ def verify_2fa_login():
     user = User.query.get(user_id)
     if not user:
         logger.warning(f"User not found for ID: {user_id}")
-        flash('Invalid user. Please log in again.', 'danger')
+        show_error('Invalid user. Please log in again.')
         return redirect(url_for('auth.login'))
 
     # Create a form with CSRF protection disabled if we detect this is a CSRF issue
@@ -825,13 +826,13 @@ def verify_2fa_login():
                 else:
                     # Invalid token
                     logger.warning(f"Invalid 2FA token submitted for user {user.id}")
-                    flash('Invalid verification code. Please try again.', 'danger')
+                    show_error('Invalid verification code. Please try again.')
             else:
                 logger.warning(f"Invalid 2FA token format: {token_value}")
-                flash('Please enter a valid 6-digit verification code.', 'danger')
+                show_error('Please enter a valid 6-digit verification code.')
     except Exception as e:
         logger.error(f"Error processing 2FA form: {str(e)}", exc_info=True)
-        flash('An error occurred. Please try logging in again.', 'danger')
+        show_error('An error occurred. Please try logging in again.')
         return redirect(url_for('auth.login'))
 
     # Add csrf_token to template context
@@ -892,11 +893,11 @@ def register():
                 roles=roles
             )
             user.set_password(form.password.data)
-            flash('Account created and pending approval.')
+            show_info('Account created and pending approval.')
             return user, redirect(url_for('auth.login'))
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
-            flash('Registration failed. Please try again.', 'danger')
+            show_error('Registration failed. Please try again.')
 
     return render_template('register.html', title='Register', form=form)
 
@@ -932,12 +933,12 @@ def reset_password_token(token):
 
     user_id = verify_reset_token(token)
     if not user_id:
-        flash('Invalid or expired reset link.', 'danger')
+        show_error('Invalid or expired reset link.')
         return redirect(url_for('auth.forgot_password'))
 
     user = User.query.get(user_id)
     if not user:
-        flash('User not found.', 'danger')
+        show_error('User not found.')
         return redirect(url_for('auth.forgot_password'))
 
     form = ResetPasswordForm()
@@ -945,11 +946,11 @@ def reset_password_token(token):
         try:
             user.set_password(form.password.data)
             if send_reset_confirmation_email(user.email):
-                flash('Password updated successfully. Please log in.', 'success')
+                show_success('Password updated successfully. Please log in.')
                 return redirect(url_for('auth.login'))
         except Exception as e:
             logger.error(f"Password reset error: {str(e)}")
-            flash('Password reset failed. Please try again.', 'danger')
+            show_error('Password reset failed. Please try again.')
 
     return render_template('reset_password.html', title='Reset Password', form=form, token=token)
 
@@ -977,14 +978,14 @@ def sync_discord_roles():
     """
     user = safe_current_user
     if not user or not user.player or not user.player.discord_id:
-        flash('No Discord account linked to your profile.', 'warning')
+        show_warning('No Discord account linked to your profile.')
         return redirect(url_for('main.index'))
     
     # Trigger a complete role sync (not just adding roles)
     assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
     logger.info(f"Triggered complete Discord role sync for player {user.player.id}")
     
-    flash('Discord roles sync requested. Changes should take effect within a minute.', 'success')
+    show_success('Discord roles sync requested. Changes should take effect within a minute.')
     return redirect(url_for('main.index'))
 
 

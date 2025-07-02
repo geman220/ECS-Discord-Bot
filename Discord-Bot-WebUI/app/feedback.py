@@ -12,12 +12,13 @@ submission and manages database transactions and error handling to ensure a smoo
 import logging
 from datetime import datetime
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
+from flask import Blueprint, render_template, redirect, url_for, request, abort
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, Role
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.email import send_email
 from app.utils.db_utils import transactional
 from app.core import db
@@ -144,12 +145,12 @@ def submit_feedback():
                 except Exception as email_error:
                     logger.error(f"Failed to send notification email: {str(email_error)}")
                 
-                flash('Your feedback has been submitted successfully!', 'success')
+                show_success('Your feedback has been submitted successfully!')
                 return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
                 
             except Exception as e:
                 logger.error(f"Error in feedback submission: {str(e)}", exc_info=True)
-                flash('An error occurred while submitting your feedback. Please try again.', 'danger')
+                show_error('An error occurred while submitting your feedback. Please try again.')
                 return redirect(url_for('feedback.submit_feedback'))
         
         return render_template(
@@ -165,7 +166,7 @@ def submit_feedback():
         
     except Exception as e:
         logger.error(f"Unexpected error in submit_feedback route: {str(e)}", exc_info=True)
-        flash('An unexpected error occurred. Please try again.', 'danger')
+        show_error('An unexpected error occurred. Please try again.')
         return redirect(url_for('main.index'))
 
 
@@ -201,12 +202,12 @@ def view_feedback(feedback_id):
                 db.session.add(reply)
                 feedback.replies.append(reply)
                 
-                flash('Reply added successfully!', 'success')
+                show_success('Reply added successfully!')
                 return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
                 
             except Exception as e:
                 logger.error(f"Error adding reply to feedback {feedback.id}: {str(e)}", exc_info=True)
-                flash('Error adding reply. Please try again.', 'danger')
+                show_error('Error adding reply. Please try again.')
                 raise
             
         return render_template(
@@ -218,7 +219,7 @@ def view_feedback(feedback_id):
 
     except Exception as e:
         logger.error(f"Error viewing feedback {feedback_id}: {str(e)}", exc_info=True)
-        flash('An error occurred while viewing the feedback.', 'danger')
+        show_error('An error occurred while viewing the feedback.')
         return redirect(url_for('feedback.submit_feedback'))
 
 
@@ -240,9 +241,9 @@ def close_feedback(feedback_id):
     try:
         feedback.status = 'Closed'
         feedback.closed_at = datetime.utcnow()
-        flash('Your feedback has been closed successfully.', 'success')
+        show_success('Your feedback has been closed successfully.')
     except Exception as e:
-        flash(f"An error occurred while closing the feedback: {str(e)}", 'danger')
+        show_error(f"An error occurred while closing the feedback: {str(e)}")
         raise
 
     return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))

@@ -16,7 +16,7 @@ import logging
 import logging.config
 
 from datetime import timedelta
-from flask import Flask, request, session, redirect, url_for, render_template, flash, g
+from flask import Flask, request, session, redirect, url_for, render_template, g
 from flask_assets import Environment
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
@@ -33,6 +33,7 @@ from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
 from app.models import User, Role, Season
 from app.lifecycle import request_lifecycle
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_management import db_manager
 from app.database.config import configure_db_settings
 
@@ -342,7 +343,7 @@ def create_app(config_object='web_config.Config'):
                 return redirect(url_for('main.index'))
             except:
                 return redirect('/')
-        flash('An error occurred while redirecting. You have been returned to the home page.', 'error')
+        show_error('An error occurred while redirecting. You have been returned to the home page.')
         return redirect('/')
 
     @app.before_request

@@ -11,9 +11,10 @@ as well as profile management, stat updates, and Discord notifications.
 import logging
 
 from flask import (
-    current_app, Blueprint, render_template, redirect, url_for, flash,
+    current_app, Blueprint, render_template, redirect, url_for,
     request, abort, jsonify, g
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
@@ -57,7 +58,7 @@ def handle_forbidden_error(error):
     """
     Handle Forbidden errors by flashing a warning and redirecting the user.
     """
-    flash("You don't have the necessary permissions to perform that action.", "warning")
+    show_warning("You don't have the necessary permissions to perform that action.")
     return redirect(request.referrer or url_for('players.view_players')), 403
 
 
@@ -257,7 +258,7 @@ def create_player():
     form.league_id.choices = [(str(league.id), league.name) for league in leagues]
 
     if not form.validate():
-        flash('Form validation failed. Please check your inputs.', 'danger')
+        show_error('Form validation failed. Please check your inputs.')
         logger.debug("Form validation failed.")
         return redirect(url_for('players.view_players'))
 
@@ -283,17 +284,17 @@ def create_player():
         session.commit()
         logger.debug("session.commit() succeeded.")
 
-        flash('Player created or updated successfully.', 'success')
+        show_success('Player created or updated successfully.')
         return redirect(url_for('players.view_players'))
     except SQLAlchemyError as e:
         logger.error("SQLAlchemyError creating/updating player", exc_info=True)
         session.rollback()
-        flash('An error occurred while creating or updating the player. Please try again.', 'danger')
+        show_error('An error occurred while creating or updating the player. Please try again.')
         return redirect(url_for('players.view_players'))
     except Exception as e:
         logger.exception("Unexpected error creating/updating player")
         session.rollback()
-        flash('An unexpected error occurred. Please contact support.', 'danger')
+        show_error('An unexpected error occurred. Please contact support.')
         return redirect(url_for('players.view_players'))
 
 
@@ -355,7 +356,7 @@ def player_profile(player_id):
         current_season_name, current_year = get_current_season_and_year()
         season = session.query(Season).filter_by(name=current_season_name).first()
         if not season:
-            flash('Current season not found.', 'danger')
+            show_error('Current season not found.')
             return redirect(url_for('main.index'))
 
         matches = session.query(Match).join(PlayerEvent).options(
@@ -369,7 +370,7 @@ def player_profile(player_id):
 
         classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
-            flash('Classic league not found', 'danger')
+            show_error('Classic league not found')
             return redirect(url_for('players.player_profile', player_id=player.id))
 
         season_stats = session.query(PlayerSeasonStats).filter_by(
@@ -391,20 +392,20 @@ def player_profile(player_id):
 
         form = PlayerProfileForm(obj=player)
         form.jersey_size.choices = jersey_size_choices
+        
+        # Always initialize all fields with current data to preserve existing values
+        form.email.data = user.email
+        form.other_positions.data = (
+            player.other_positions.strip('{}').split(',')
+            if player.other_positions else []
+        )
+        form.positions_not_to_play.data = (
+            player.positions_not_to_play.strip('{}').split(',')
+            if player.positions_not_to_play else []
+        )
 
-        if request.method == 'GET':
-            form.email.data = user.email
-            form.other_positions.data = (
-                player.other_positions.strip('{}').split(',')
-                if player.other_positions else []
-            )
-            form.positions_not_to_play.data = (
-                player.positions_not_to_play.strip('{}').split(',')
-                if player.positions_not_to_play else []
-            )
-
-            if is_classic_league_player and hasattr(form, 'team_swap'):
-                form.team_swap.data = player.team_swap
+        if is_classic_league_player and hasattr(form, 'team_swap'):
+            form.team_swap.data = player.team_swap
 
         season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
         career_stats_form = (CareerStatsForm(obj=player.career_stats[0])
@@ -419,13 +420,13 @@ def player_profile(player_id):
                 if is_player or is_admin:
                     return handle_profile_update(form, player, user)
                 else:
-                    flash('You do not have permission to update this profile.', 'danger')
+                    show_error('You do not have permission to update this profile.')
                     return redirect(url_for('players.player_profile', player_id=player.id))
             elif form.validate_on_submit() and 'update_admin_notes' in request.form:
                 if is_admin or safe_current_user.has_role('Pub League Coach'):
                     return handle_admin_notes_update(player, form)
                 else:
-                    flash('You do not have permission to update admin notes.', 'danger')
+                    show_error('You do not have permission to update admin notes.')
                     return redirect(url_for('players.player_profile', player_id=player.id))
             elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
                 return handle_season_stats_update(player, season_stats_form, season.id)
@@ -457,7 +458,7 @@ def player_profile(player_id):
         )
     except Exception as e:
         logger.error(f"Error in player_profile: {str(e)}", exc_info=True)
-        flash('An error occurred while loading the profile.', 'danger')
+        show_error('An error occurred while loading the profile.')
         return redirect(url_for('main.index'))
 
 
@@ -471,7 +472,7 @@ def add_stat_manually_route(player_id):
     player = session.query(Player).get_or_404(player_id)
 
     if not safe_current_user.has_role('Pub League Admin') and not safe_current_user.has_role('Global Admin'):
-        flash('You do not have permission to perform this action.', 'danger')
+        show_error('You do not have permission to perform this action.')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
     try:
@@ -483,9 +484,9 @@ def add_stat_manually_route(player_id):
             'red_cards': int(request.form.get('red_cards', 0)),
         }
         player.add_stat_manually(new_stat_data, user_id=safe_current_user.id)
-        flash('Stat added successfully.', 'success')
+        show_success('Stat added successfully.')
     except ValueError as e:
-        flash('Invalid input values provided.', 'danger')
+        show_error('Invalid input values provided.')
         raise
 
     return redirect(url_for('players.player_profile', player_id=player_id))
@@ -579,10 +580,10 @@ def create_profile():
             league_id=form.league_id.data
         )
         session.add(player)
-        flash('Player profile created successfully!', 'success')
+        show_success('Player profile created successfully!')
         return redirect(url_for('main.index'))
 
-    flash('Error creating player profile. Please check your inputs.', 'danger')
+    show_error('Error creating player profile. Please check your inputs.')
     return redirect(url_for('main.index'))
 
 
@@ -662,7 +663,7 @@ def upload_profile_picture(player_id):
     if not cropped_image_data:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(success=False, message='No image data provided'), 400
-        flash('No image data provided.', 'danger')
+        show_error('No image data provided.')
         return redirect(url_for('players.player_profile', player_id=player_id))
 
     try:
@@ -680,14 +681,14 @@ def upload_profile_picture(player_id):
             logger.warning(f"Failed to queue image optimization: {e}")
             # Don't fail the upload if optimization queue fails
         
-        flash('Profile picture updated successfully!', 'success')
+        show_success('Profile picture updated successfully!')
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(success=True, message='Profile picture updated!', image_url=image_url)
         return redirect(url_for('players.player_profile', player_id=player_id))
     except Exception as e:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(success=False, message=str(e)), 500
-        flash(f'An error occurred while uploading the image: {str(e)}', 'danger')
+        show_error(f'An error occurred while uploading the image: {str(e)}')
         raise
 
 
@@ -715,12 +716,12 @@ def delete_player(player_id):
         session.delete(player)
         session.delete(user)
         session.commit()
-        flash('Player and user account deleted successfully.', 'success')
+        show_success('Player and user account deleted successfully.')
         return redirect(url_for('players.view_players'))
     except SQLAlchemyError as e:
         session.rollback()
         current_app.logger.error(f"Error deleting player {player_id}: {str(e)}")
-        flash('An error occurred while deleting the player. Please try again.', 'danger')
+        show_error('An error occurred while deleting the player. Please try again.')
         return redirect(url_for('players.view_players'))
 
 
@@ -743,11 +744,11 @@ def edit_player(player_id):
     if form.validate_on_submit():
         try:
             form.populate_obj(player)
-            flash('Player updated successfully.', 'success')
+            show_success('Player updated successfully.')
             return redirect(url_for('players.view_players'))
         except SQLAlchemyError as e:
             current_app.logger.error(f"Error updating player {player_id}: {str(e)}")
-            flash('An error occurred while updating the player. Please try again.', 'danger')
+            show_error('An error occurred while updating the player. Please try again.')
             raise
 
     return render_template('edit_player.html', title='Edit Player', form=form, player=player)
@@ -762,18 +763,18 @@ def contact_player_discord(player_id):
     """
     message_text = request.form.get('discord_message')
     if not message_text:
-         flash("Message cannot be empty.", "danger")
+         show_error("Message cannot be empty.")
          return redirect(url_for('players.player_profile', player_id=player_id))
     
     player = Player.query.get_or_404(player_id)
     
     if not player.discord_id:
-         flash("This player does not have a linked Discord account.", "danger")
+         show_error("This player does not have a linked Discord account.")
          return redirect(url_for('players.player_profile', player_id=player_id))
     
     user = User.query.get(player.user_id)
     if not user.discord_notifications:
-         flash("The player has opted out of Discord notifications.", "danger")
+         show_error("The player has opted out of Discord notifications.")
          return redirect(url_for('players.player_profile', player_id=player_id))
     
     payload = {
@@ -786,10 +787,10 @@ def contact_player_discord(player_id):
     try:
         response = requests.post(bot_api_url, json=payload, timeout=10)
         if response.status_code == 200:
-            flash("Message sent successfully on Discord.", "success")
+            show_success("Message sent successfully on Discord.")
         else:
-            flash("Failed to send the message on Discord.", "danger")
+            show_error("Failed to send the message on Discord.")
     except Exception as e:
-         flash("Error contacting Discord bot: " + str(e), "danger")
+         show_error("Error contacting Discord bot: " + str(e))
     
     return redirect(url_for('players.player_profile', player_id=player_id))

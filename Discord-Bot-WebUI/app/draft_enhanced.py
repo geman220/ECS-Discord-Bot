@@ -12,7 +12,7 @@ import logging
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 
-from flask import Blueprint, render_template, redirect, url_for, flash, g, jsonify, request
+from flask import Blueprint, render_template, redirect, url_for, g, jsonify, request
 from flask_login import login_required, current_user
 from flask_socketio import emit, join_room, leave_room, rooms
 from sqlalchemy.orm import joinedload, selectinload
@@ -21,6 +21,7 @@ from sqlalchemy import text, desc
 
 from app.core import socketio, db
 from app.decorators import role_required
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_utils import mark_player_for_discord_update
 from app.models import (
     League, Player, Team, Season, PlayerSeasonStats, PlayerCareerStats,
@@ -386,7 +387,7 @@ def draft_league(league_name: str):
     # Validate league name
     valid_leagues = ['classic', 'premier', 'ecs_fc']
     if league_name.lower() not in valid_leagues:
-        flash(f'Invalid league name: {league_name}', 'danger')
+        show_error(f'Invalid league name: {league_name}')
         return redirect(url_for('main.index'))
     
     # Normalize league name for database lookup
@@ -399,11 +400,11 @@ def draft_league(league_name: str):
     current_league, all_leagues = DraftService.get_league_data(db_league_name)
     
     if not current_league:
-        flash(f'No current {db_league_name} league found.', 'danger')
+        show_error(f'No current {db_league_name} league found.')
         return redirect(url_for('main.index'))
     
     if not all_leagues:
-        flash(f'No {db_league_name} leagues found.', 'danger')
+        show_error(f'No {db_league_name} leagues found.')
         return redirect(url_for('main.index'))
     
     # Get teams (excluding Practice teams)

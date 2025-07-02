@@ -34,30 +34,6 @@
 </head>
 <body>
 
-    <!-- Flash Toast Container -->
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
-        <div id="flash-toast-container" style="width: 100%; max-width: 500px;">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="toast align-items-center text-white bg-{{ 'success' if category == 'success' else 'info' if category == 'info' else 'danger' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <i class="ti {{ 'ti-check-circle' if category == 'success' else 'ti-info-circle' if category == 'info' else 'ti-alert-circle' }} me-2"></i>
-                        {{ message }}
-                    </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="progress mt-2" style="height: 5px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-light" role="progressbar" style="width: 100%;"></div>
-                </div>
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
-        </div>
-    </div>
-    <!-- / Flash Toast Container -->
     {% block main_content %}
     <!-- Page-specific content will be injected here -->
     {% endblock %}
@@ -72,34 +48,9 @@
     <script src="{{ url_for('static', filename='custom_js/disable-waves.js') }}" defer></script>
     <script src="{{ url_for('static', filename='assets/js/main.js') }}" defer></script>
 
-    <!-- Toast Auto Dismiss and Progress Bar -->
+    <!-- Sweet Alerts -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const toastElList = [].slice.call(document.querySelectorAll('#flash-toast-container .toast'));
-            toastElList.forEach(function (toastEl) {
-                const toast = new bootstrap.Toast(toastEl, {
-                    delay: 5000, // 5 seconds
-                    autohide: true
-                });
-
-                // Show the toast
-                toast.show();
-
-                // Progress Bar Animation
-                const progressBar = toastEl.querySelector('.progress-bar');
-                if (progressBar) {
-                    progressBar.style.transition = `width 5s linear`;
-                    progressBar.style.width = '0%'; // Start the animation to shrink the width
-                }
-
-                // When the toast hides, reset the progress bar
-                toastEl.addEventListener('hidden.bs.toast', function () {
-                    if (progressBar) {
-                        progressBar.style.width = '100%'; // Reset for next toast
-                    }
-                });
-            });
-            
             // Check for SweetAlert message in session
             {% if session.get('sweet_alert') %}
                 Swal.fire({

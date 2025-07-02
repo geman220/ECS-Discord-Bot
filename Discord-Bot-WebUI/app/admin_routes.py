@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 
 from celery.result import AsyncResult
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash,
+    Blueprint, render_template, redirect, url_for,
     request, jsonify, abort, g, current_app
 )
 from sqlalchemy import func
@@ -25,6 +25,7 @@ from flask_login import login_required
 from sqlalchemy.orm import joinedload, aliased
 from flask_wtf.csrf import CSRFProtect
 
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.admin_helpers import (
     get_filtered_users, handle_user_action, get_container_data,
     manage_docker_container, get_container_logs, send_sms_message,
@@ -114,7 +115,7 @@ def admin_dashboard():
             user_id = request.form.get('user_id')
             success = handle_user_action(action, user_id, session=session)
             if not success:
-                flash('Error processing user action.', 'danger')
+                show_error('Error processing user action.')
             return redirect(url_for('admin.admin_dashboard'))
 
         # Handle announcement creation/update
@@ -123,7 +124,7 @@ def admin_dashboard():
             content = request.form.get('content')
             success = handle_announcement_update(title=title, content=content, session=session)
             if not success:
-                flash('Error creating announcement.', 'danger')
+                show_error('Error creating announcement.')
             return redirect(url_for('admin.admin_dashboard'))
 
         # Handle permissions update
@@ -132,7 +133,7 @@ def admin_dashboard():
             permissions = request.form.getlist('permissions')
             success = handle_permissions_update(role_id, permissions)
             if not success:
-                flash('Error updating permissions.', 'danger')
+                show_error('Error updating permissions.')
             return redirect(url_for('admin.admin_dashboard'))
 
     # Handle GET request: pagination and filtering of users
@@ -180,7 +181,7 @@ def manage_container(container_id, action):
     """
     success = manage_docker_container(container_id, action)
     if not success:
-        flash("Failed to manage container.", "danger")
+        show_error("Failed to manage container.")
     return redirect(url_for('admin.admin_dashboard'))
 
 
@@ -225,12 +226,12 @@ def send_sms():
     message = request.form.get('message_body')
 
     if not to_phone or not message:
-        flash("Phone number and message body are required.", "danger")
+        show_error("Phone number and message body are required.")
         return redirect(url_for('admin.admin_dashboard'))
 
     success = send_sms_message(to_phone, message)
     if not success:
-        flash("Failed to send SMS.", "danger")
+        show_error("Failed to send SMS.")
     return redirect(url_for('admin.admin_dashboard'))
 
 
@@ -278,7 +279,7 @@ def manage_announcements():
         )
         session.add(new_announcement)
         session.commit()
-        flash("Announcement created successfully.", "success")
+        show_success("Announcement created successfully.")
         return redirect(url_for('admin.manage_announcements'))
 
     announcements = session.query(Announcement).order_by(Announcement.position).all()
@@ -342,7 +343,7 @@ def edit_announcement(announcement_id):
         if request.method == 'PUT':
             return jsonify({'error': 'Title and content are required.'}), 400
         else:
-            flash('Title and content are required.', 'danger')
+            show_error('Title and content are required.')
             return redirect(url_for('admin.admin_dashboard'))
 
     announcement = session.query(Announcement).get(announcement_id)
@@ -350,7 +351,7 @@ def edit_announcement(announcement_id):
         if request.method == 'PUT':
             return jsonify({'error': 'Announcement not found.'}), 404
         else:
-            flash('Announcement not found.', 'danger')
+            show_error('Announcement not found.')
             return redirect(url_for('admin.admin_dashboard'))
 
     announcement.title = title
@@ -360,7 +361,7 @@ def edit_announcement(announcement_id):
     if request.method == 'PUT':
         return jsonify({'success': True})
     else:
-        flash('Announcement updated successfully.', 'success')
+        show_success('Announcement updated successfully.')
         return redirect(url_for('admin.admin_dashboard'))
 
 
@@ -377,7 +378,7 @@ def delete_announcement(announcement_id):
         if request.method == 'DELETE':
             return jsonify({'error': 'Announcement not found.'}), 404
         else:
-            flash('Announcement not found.', 'danger')
+            show_error('Announcement not found.')
             return redirect(url_for('admin.admin_dashboard'))
 
     session.delete(announcement)
@@ -386,7 +387,7 @@ def delete_announcement(announcement_id):
     if request.method == 'DELETE':
         return jsonify({'success': True})
     else:
-        flash('Announcement deleted successfully.', 'success')
+        show_success('Announcement deleted successfully.')
         return redirect(url_for('admin.admin_dashboard'))
 
 
@@ -466,15 +467,15 @@ def schedule_season():
         session.commit()
 
         if scheduled_count > 0:
-            flash(f'Successfully scheduled {scheduled_count} messages for matches in the next 90 days.', 'success')
+            show_success(f'Successfully scheduled {scheduled_count} messages for matches in the next 90 days.')
         else:
-            flash('No new messages scheduled. All matches already have scheduled messages.', 'info')
+            show_info('No new messages scheduled. All matches already have scheduled messages.')
         
         logger.info(f"Admin {safe_current_user.id} manually scheduled {scheduled_count} future matches")
         
     except Exception as e:
         logger.error(f"Error scheduling season availability: {str(e)}", exc_info=True)
-        flash(f'Error scheduling season availability: {str(e)}', 'danger')
+        show_error(f'Error scheduling season availability: {str(e)}')
         session.rollback()
     
     return redirect(url_for('admin.view_scheduled_messages'))
@@ -552,10 +553,10 @@ def force_send_message(message_id):
         message.status = 'QUEUED'
         session.commit()
         logger.info(f"Message {message_id} queued for sending")
-        flash('Message is being sent.', 'success')
+        show_success('Message is being sent.')
     except Exception as e:
         logger.error(f"Error queuing message {message_id}: {str(e)}")
-        flash('Error queuing message for sending.', 'danger')
+        show_error('Error queuing message for sending.')
 
     return redirect(url_for('admin.view_scheduled_messages'))
 
@@ -571,7 +572,7 @@ def schedule_next_week():
     from app.tasks.tasks_rsvp import schedule_weekly_match_availability
     
     task = schedule_weekly_match_availability.delay()
-    flash('This Sunday\'s match scheduling task has been initiated.', 'success')
+    show_success('This Sunday\'s match scheduling task has been initiated.')
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
@@ -586,7 +587,7 @@ def process_scheduled_messages_route():
     from app.tasks.tasks_rsvp import process_scheduled_messages
     
     task = process_scheduled_messages.delay()
-    flash('Processing and sending all pending messages - check status in a few minutes.', 'success')
+    show_success('Processing and sending all pending messages - check status in a few minutes.')
     return redirect(url_for('admin.view_scheduled_messages'))
 
 
@@ -620,15 +621,15 @@ def cleanup_old_messages_route():
         session.commit()
         
         if deleted_count > 0:
-            flash(f'Successfully deleted {deleted_count} old messages.', 'success')
+            show_success(f'Successfully deleted {deleted_count} old messages.')
         else:
-            flash(f'No messages found older than {days_old} days with status SENT or FAILED.', 'info')
+            show_info(f'No messages found older than {days_old} days with status SENT or FAILED.')
             
         logger.info(f"Admin {safe_current_user.id} manually cleaned up {deleted_count} old messages")
         
     except Exception as e:
         logger.error(f"Error cleaning up old messages: {str(e)}", exc_info=True)
-        flash(f'Error cleaning up old messages: {str(e)}', 'danger')
+        show_error(f'Error cleaning up old messages: {str(e)}')
         session.rollback()
     
     return redirect(url_for('admin.view_scheduled_messages'))
@@ -646,11 +647,11 @@ def delete_message(message_id):
     message = session.query(ScheduledMessage).get(message_id)
     
     if not message:
-        flash('Message not found.', 'danger')
+        show_error('Message not found.')
     else:
         match_info = f"{message.match.home_team.name} vs {message.match.away_team.name}" if message.match else "Unknown match"
         session.delete(message)
-        flash(f'Message for {match_info} has been deleted.', 'success')
+        show_success(f'Message for {match_info} has been deleted.')
     
     return redirect(url_for('admin.view_scheduled_messages'))
 
@@ -696,7 +697,7 @@ def send_custom_sms():
     if not player_id or not phone or not message:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        flash('Phone number and message are required.', 'danger')
+        show_error('Phone number and message are required.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -705,7 +706,7 @@ def send_custom_sms():
     if not player:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Player not found'}), 404
-        flash('Player not found.', 'danger')
+        show_error('Player not found.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -715,7 +716,7 @@ def send_custom_sms():
     if not user or not user.sms_notifications:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'SMS notifications are disabled for this user'}), 403
-        flash('SMS notifications are disabled for this user.', 'danger')
+        show_error('SMS notifications are disabled for this user.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -729,12 +730,12 @@ def send_custom_sms():
         logger.info(f"Admin {safe_current_user.id} sent SMS to player {player_id}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': True, 'message': 'SMS sent successfully'})
-        flash('SMS sent successfully.', 'success')
+        show_success('SMS sent successfully.')
     else:
         logger.error(f"Failed to send SMS to player {player_id}: {result}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': f'Failed to send SMS: {result}'})
-        flash(f'Failed to send SMS: {result}', 'danger')
+        show_error(f'Failed to send SMS: {result}')
     
     if match_id:
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
@@ -761,7 +762,7 @@ def send_discord_dm():
     if not player_id or not message:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        flash('Player ID and message are required.', 'danger')
+        show_error('Player ID and message are required.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -770,7 +771,7 @@ def send_discord_dm():
     if not player or not player.discord_id:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Player not found or no Discord ID'}), 404
-        flash('Player not found or has no Discord ID.', 'danger')
+        show_error('Player not found or has no Discord ID.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -780,7 +781,7 @@ def send_discord_dm():
     if not user or not user.discord_notifications:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Discord notifications are disabled for this user'}), 403
-        flash('Discord notifications are disabled for this user.', 'danger')
+        show_error('Discord notifications are disabled for this user.')
         if match_id:
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
@@ -799,17 +800,17 @@ def send_discord_dm():
             logger.info(f"Admin {safe_current_user.id} sent Discord DM to player {player_id}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': True, 'message': 'Discord DM sent successfully'})
-            flash('Discord DM sent successfully.', 'success')
+            show_success('Discord DM sent successfully.')
         else:
             logger.error(f"Failed to send Discord DM to player {player_id}: {response.text}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'message': 'Failed to send Discord DM'})
-            flash('Failed to send Discord DM.', 'danger')
+            show_error('Failed to send Discord DM.')
     except Exception as e:
         logger.error(f"Error contacting Discord bot: {str(e)}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': f'Error contacting Discord bot: {str(e)}'})
-        flash(f'Error contacting Discord bot: {str(e)}', 'danger')
+        show_error(f'Error contacting Discord bot: {str(e)}')
     
     if match_id:
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
@@ -839,7 +840,7 @@ def update_rsvp():
     if not player_id or not match_id or not response:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        flash('Player ID, match ID, and response are required.', 'danger')
+        show_error('Player ID, match ID, and response are required.')
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
     
     # Check if the player and match exist
@@ -848,7 +849,7 @@ def update_rsvp():
     if not player or not match:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({'success': False, 'message': 'Player or match not found'}), 404
-        flash('Player or match not found.', 'danger')
+        show_error('Player or match not found.')
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
     
     # If clearing the response
@@ -870,16 +871,16 @@ def update_rsvp():
                 
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return jsonify({'success': True, 'message': 'RSVP cleared successfully'})
-                flash('RSVP cleared successfully.', 'success')
+                show_success('RSVP cleared successfully.')
             else:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return jsonify({'success': True, 'message': 'No RSVP found to clear'})
-                flash('No RSVP found to clear.', 'info')
+                show_info('No RSVP found to clear.')
         except Exception as e:
             logger.error(f"Error clearing RSVP: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'message': f'Error clearing RSVP: {str(e)}'})
-            flash(f'Error clearing RSVP: {str(e)}', 'danger')
+            show_error(f'Error clearing RSVP: {str(e)}')
     else:
         try:
             # Update or create the availability record
@@ -918,12 +919,12 @@ def update_rsvp():
             
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': True, 'message': 'RSVP updated successfully'})
-            flash('RSVP updated successfully.', 'success')
+            show_success('RSVP updated successfully.')
         except Exception as e:
             logger.error(f"Error updating RSVP: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({'success': False, 'message': f'Error updating RSVP: {str(e)}'})
-            flash(f'Error updating RSVP: {str(e)}', 'danger')
+            show_error(f'Error updating RSVP: {str(e)}')
     
     return redirect(url_for('admin.rsvp_status', match_id=match_id))
 
@@ -991,7 +992,7 @@ def view_feedback(feedback_id):
     if request.method == 'POST':
         if 'update_feedback' in request.form and form.validate():
             form.populate_obj(feedback)
-            flash('Feedback has been updated successfully.', 'success')
+            show_success('Feedback has been updated successfully.')
 
         elif 'submit_reply' in request.form and reply_form.validate():
             reply = FeedbackReply(
@@ -1012,7 +1013,7 @@ def view_feedback(feedback_id):
                     )
                 except Exception as e:
                     logger.error(f"Failed to send reply notification email: {str(e)}")
-            flash('Your reply has been added successfully.', 'success')
+            show_success('Your reply has been added successfully.')
             return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
         elif 'add_note' in request.form and note_form.validate():
@@ -1022,7 +1023,7 @@ def view_feedback(feedback_id):
                 author_id=safe_current_user.id
             )
             session.add(note)
-            flash('Note added successfully.', 'success')
+            show_success('Note added successfully.')
             return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
     return render_template(
@@ -1056,7 +1057,7 @@ def close_feedback(feedback_id):
             body=render_template("emails/feedback_closed.html", feedback=feedback)
         )
 
-    flash('Feedback has been closed successfully.', 'success')
+    show_success('Feedback has been closed successfully.')
     return redirect(url_for('admin.view_feedback', feedback_id=feedback.id))
 
 
@@ -1072,7 +1073,7 @@ def delete_feedback(feedback_id):
     if not feedback:
         abort(404)
     session.delete(feedback)
-    flash('Feedback has been permanently deleted.', 'success')
+    show_success('Feedback has been permanently deleted.')
     return redirect(url_for('admin.admin_reports'))
 
 
@@ -1526,11 +1527,11 @@ def update_sub_request(request_id):
     player_id = request.form.get('player_id')  # For fulfillment
     
     if not action or action != 'fulfill':
-        flash('Invalid action.', 'danger')
+        show_error('Invalid action.')
         return redirect(url_for('admin.manage_sub_requests'))
     
     if not player_id:
-        flash('Player ID is required for fulfillment.', 'danger')
+        show_error('Player ID is required for fulfillment.')
         return redirect(url_for('admin.manage_sub_requests'))
     
     # Get the sub request
@@ -1540,7 +1541,7 @@ def update_sub_request(request_id):
     ).get(request_id)
     
     if not sub_request:
-        flash('Sub request not found.', 'danger')
+        show_error('Sub request not found.')
         return redirect(url_for('admin.manage_sub_requests'))
     
     # Directly fulfill the request - no intermediate approval step
@@ -1565,9 +1566,9 @@ def update_sub_request(request_id):
         message = fulfill_message
     
     if success:
-        flash(message, 'success')
+        show_success(message)
     else:
-        flash(message, 'danger')
+        show_error(message)
     
     return redirect(url_for('admin.manage_sub_requests'))
 
@@ -1588,7 +1589,7 @@ def request_sub():
     notes = request.form.get('notes')
     
     if not match_id or not team_id_raw:
-        flash('Missing required fields for sub request.', 'danger')
+        show_error('Missing required fields for sub request.')
         return redirect(request.referrer or url_for('main.index'))
     
     # Handle special cases from the JavaScript fallback
@@ -1596,7 +1597,7 @@ def request_sub():
         # Get the match to determine the actual team IDs
         match = session.query(Match).get(match_id)
         if not match:
-            flash('Match not found.', 'danger')
+            show_error('Match not found.')
             return redirect(request.referrer or url_for('main.index'))
         
         # Set team_id based on the placeholder value
@@ -1605,7 +1606,7 @@ def request_sub():
         try:
             team_id = int(team_id_raw)
         except (ValueError, TypeError):
-            flash('Invalid team ID format.', 'danger')
+            show_error('Invalid team ID format.')
             return redirect(request.referrer or url_for('main.index'))
     
     # Check permissions for coaches
@@ -1616,12 +1617,12 @@ def request_sub():
         # Get the match to verify teams
         match = session.query(Match).get(match_id)
         if not match:
-            flash('Match not found.', 'danger')
+            show_error('Match not found.')
             return redirect(request.referrer or url_for('main.index'))
         
         # Verify this is a valid team for this match
         if team_id != match.home_team_id and team_id != match.away_team_id:
-            flash('Selected team is not part of this match.', 'danger')
+            show_error('Selected team is not part of this match.')
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         
         # Direct database query to check coach status
@@ -1670,7 +1671,7 @@ def request_sub():
                 logger.warning(f"Coach role override: Allowing request for {safe_current_user.id} for team {team_id}")
                 is_coach = True
             else:
-                flash('You are not authorized to request subs for this team.', 'danger')
+                show_error('You are not authorized to request subs for this team.')
                 logger.warning(f"User {safe_current_user.id} denied sub request for team {team_id}, match {match_id}")
                 return redirect(request.referrer or url_for('main.index'))
     
@@ -1684,9 +1685,9 @@ def request_sub():
     )
     
     if success:
-        flash(message, 'success')
+        show_success(message)
     else:
-        flash(message, 'danger')
+        show_error(message)
     
     # Determine where to redirect
     if request.referrer and 'rsvp_status' in request.referrer:
@@ -1811,7 +1812,7 @@ def assign_sub():
     team_id = request.form.get('team_id', type=int)
     
     if not all([player_id, match_id, team_id]):
-        flash('Missing required fields for sub assignment.', 'danger')
+        show_error('Missing required fields for sub assignment.')
         return redirect(url_for('admin.manage_subs'))
     
     success, message = assign_sub_to_team(
@@ -1823,9 +1824,9 @@ def assign_sub():
     )
     
     if success:
-        flash(message, 'success')
+        show_success(message)
     else:
-        flash(message, 'danger')
+        show_error(message)
     
     # If AJAX request, return JSON response
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1851,7 +1852,7 @@ def remove_sub(assignment_id):
     # Get the assignment to determine the match_id for potential redirect
     assignment = session.query(TemporarySubAssignment).get(assignment_id)
     if not assignment:
-        flash('Assignment not found.', 'danger')
+        show_error('Assignment not found.')
         return redirect(url_for('admin.manage_subs'))
     
     match_id = assignment.match_id
@@ -1863,9 +1864,9 @@ def remove_sub(assignment_id):
     )
     
     if success:
-        flash(message, 'success')
+        show_success(message)
     else:
-        flash(message, 'danger')
+        show_error(message)
     
     # If AJAX request, return JSON response
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1959,9 +1960,9 @@ def cleanup_subs():
     count, message = cleanup_old_sub_assignments(session=session)
     
     if count > 0:
-        flash(message, 'success')
+        show_success(message)
     else:
-        flash(message, 'info')
+        show_info(message)
     
     return redirect(url_for('admin.manage_subs'))
 
@@ -1986,7 +1987,7 @@ def match_verification_dashboard():
         current_season = session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
         if not current_season:
             logger.warning("No current Pub League season found")
-            flash("No current Pub League season found. Contact an administrator.", "warning")
+            show_warning("No current Pub League season found. Contact an administrator.")
             return render_template('admin/match_verification.html', 
                                   title='Match Verification Dashboard',
                                   matches=[], 
@@ -2244,17 +2245,17 @@ def admin_verify_match(match_id):
     match = session.query(Match).get(match_id)
     
     if not match:
-        flash('Match not found.', 'danger')
+        show_error('Match not found.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     # First check if the match has been reported
     if not match.reported:
-        flash('Match has not been reported yet and cannot be verified.', 'warning')
+        show_warning('Match has not been reported yet and cannot be verified.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     team_to_verify = request.form.get('team', None)
     if not team_to_verify or team_to_verify not in ['home', 'away', 'both']:
-        flash('Invalid team specified.', 'danger')
+        show_error('Invalid team specified.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     # Check permissions for coaches
@@ -2291,15 +2292,15 @@ def admin_verify_match(match_id):
     
     # Validate the requested verification against permissions
     if team_to_verify == 'home' and not can_verify_home:
-        flash('You do not have permission to verify for the home team.', 'danger')
+        show_error('You do not have permission to verify for the home team.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     if team_to_verify == 'away' and not can_verify_away:
-        flash('You do not have permission to verify for the away team.', 'danger')
+        show_error('You do not have permission to verify for the away team.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     if team_to_verify == 'both' and not (can_verify_home and can_verify_away):
-        flash('You do not have permission to verify for both teams.', 'danger')
+        show_error('You do not have permission to verify for both teams.')
         return redirect(url_for('admin.match_verification_dashboard'))
     
     # Proceed with verification
@@ -2320,9 +2321,9 @@ def admin_verify_match(match_id):
     
     # Customize the flash message based on what was verified
     if team_to_verify == 'both':
-        flash('Match has been verified for both teams.', 'success')
+        show_success('Match has been verified for both teams.')
     else:
         team_name = match.home_team.name if team_to_verify == 'home' else match.away_team.name
-        flash(f'Match has been verified for {team_name}.', 'success')
+        show_success(f'Match has been verified for {team_name}.')
     
     return redirect(url_for('admin.match_verification_dashboard'))

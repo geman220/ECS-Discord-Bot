@@ -12,13 +12,14 @@ import asyncio
 import logging
 
 # Third-party imports
-from flask import Blueprint, render_template, redirect, url_for, flash, request, g
+from flask import Blueprint, render_template, redirect, url_for, request, g
 from flask_login import login_required
 from sqlalchemy.exc import SQLAlchemyError
 
 # Local application imports
 from app.decorators import role_required
 from app.models import Season, League, Team, Player
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.discord_utils import delete_team_roles, assign_roles_to_player
 from app.tasks.tasks_discord import cleanup_team_discord_resources_task, create_team_discord_resources_task, update_team_discord_resources_task
 
@@ -106,11 +107,11 @@ def clear_players():
         # Delete all player records.
         deleted_count = session.query(Player).delete()
         logger.info(f"Deleted {deleted_count} players")
-        flash('All players have been cleared.', 'success')
+        show_success('All players have been cleared.')
         return redirect(url_for('publeague.view_players'))
     except Exception as e:
         logger.error(f"Error clearing players: {str(e)}")
-        flash(f"Error clearing players: {str(e)}", 'danger')
+        show_error(f"Error clearing players: {str(e)}")
         raise
 
 
@@ -132,13 +133,13 @@ def add_team():
         season_id = request.form.get('season_id', '').strip()
 
         if not all([team_name, league_name, season_id]):
-            flash('Team name, league name, and season ID are required.', 'danger')
+            show_error('Team name, league name, and season ID are required.')
             return redirect(url_for('publeague.manage_teams'))
 
         # Retrieve the league.
         league = session.query(League).filter_by(name=league_name, season_id=season_id).first()
         if not league:
-            flash('League not found.', 'danger')
+            show_error('League not found.')
             return redirect(url_for('publeague.manage_teams'))
 
         # Create and persist the team.
@@ -149,11 +150,11 @@ def add_team():
         # Enqueue Discord channel creation as a Celery task.
         create_team_discord_resources_task.delay(new_team.id)
 
-        flash(f'Team "{team_name}" added successfully. Discord setup in progress...', 'success')
+        show_success(f'Team "{team_name}" added successfully. Discord setup in progress...')
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error creating team: {str(e)}")
-        flash(f"Error creating team: {str(e)}", 'danger')
+        show_error(f"Error creating team: {str(e)}")
         raise
 
 
@@ -172,12 +173,12 @@ def edit_team():
         new_team_name = request.form.get('team_name', '').strip()
         
         if not all([team_id, new_team_name]):
-            flash('Team ID and new team name are required.', 'danger')
+            show_error('Team ID and new team name are required.')
             return redirect(url_for('publeague.manage_teams'))
 
         team = session.query(Team).get(team_id)
         if not team:
-            flash('Team not found.', 'danger')
+            show_error('Team not found.')
             return redirect(url_for('publeague.manage_teams'))
 
         old_team_name = team.name
@@ -186,11 +187,11 @@ def edit_team():
         # Enqueue Discord update as a Celery task.
         update_team_discord_resources_task.delay(team_id, new_team_name)
 
-        flash(f'Team "{old_team_name}" renamed to "{new_team_name}". Discord update in progress...', 'success')
+        show_success(f'Team "{old_team_name}" renamed to "{new_team_name}". Discord update in progress...')
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error updating team: {str(e)}")
-        flash(f"Error updating team: {str(e)}", 'danger')
+        show_error(f"Error updating team: {str(e)}")
         raise
 
 
@@ -205,12 +206,12 @@ def delete_team():
     try:
         team_id = request.form.get('team_id')
         if not team_id:
-            flash('Team ID is required.', 'danger')
+            show_error('Team ID is required.')
             return redirect(url_for('publeague.manage_teams'))
 
         team = session.query(Team).get(team_id)
         if not team:
-            flash('Team not found.', 'danger')
+            show_error('Team not found.')
             return redirect(url_for('publeague.manage_teams'))
 
         team_name = team.name
@@ -220,11 +221,11 @@ def delete_team():
 
         session.delete(team)
         
-        flash(f'Team "{team_name}" deleted. Discord cleanup in progress...', 'success')
+        show_success(f'Team "{team_name}" deleted. Discord cleanup in progress...')
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error deleting team: {str(e)}")
-        flash('An error occurred while deleting the team.', 'danger')
+        show_error('An error occurred while deleting the team.')
         return redirect(url_for('publeague.manage_teams'))
 
 
@@ -262,7 +263,7 @@ def manage_teams():
     except Exception as e:
         session.rollback()
         logger.error(f"Error in manage_teams: {str(e)}")
-        flash('Error loading teams.', 'danger')
+        show_error('Error loading teams.')
         return redirect(url_for('main.index'))
 
 
@@ -284,14 +285,14 @@ def assign_discord_roles():
         ).all()
 
         if not players:
-            flash('No eligible players found for role assignment.', 'info')
+            show_info('No eligible players found for role assignment.')
             return redirect(url_for('publeague.manage_teams'))
 
         asyncio.run(assign_roles_to_players(session, players))
         
-        flash('Discord roles have been assigned to all eligible players.', 'success')
+        show_success('Discord roles have been assigned to all eligible players.')
         return redirect(url_for('publeague.manage_teams'))
     except Exception as e:
         logger.error(f"Error assigning Discord roles: {str(e)}")
-        flash('Error occurred while assigning Discord roles.', 'danger')
+        show_error('Error occurred while assigning Discord roles.')
         return redirect(url_for('publeague.manage_teams'))

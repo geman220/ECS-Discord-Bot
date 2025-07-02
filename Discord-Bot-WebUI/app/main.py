@@ -18,9 +18,10 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from flask import (
-    Blueprint, render_template, redirect, url_for, abort, request, flash,
+    Blueprint, render_template, redirect, url_for, abort, request,
     jsonify, g, session
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_, func, text
@@ -30,6 +31,7 @@ from app.models import (
     Match, Notification, Team, Player, Announcement, player_teams
 )
 from app.decorators import role_required
+from app import csrf
 from app.forms import (
     OnboardingForm, soccer_positions, pronoun_choices, availability_choices,
     willing_to_referee_choices, ReportMatchForm
@@ -472,18 +474,18 @@ def index():
                             
                             # Check if phone number is provided when SMS is enabled
                             if sms_notifications_enabled and not player.phone and not request.form.get('phone'):
-                                flash('Please provide a phone number to enable SMS notifications.', 'warning')
+                                show_warning('Please provide a phone number to enable SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
                                 
                             # Check for consent when SMS notifications are enabled
                             if sms_notifications_enabled and not sms_consent_given:
-                                flash('Please check the consent box to enable SMS notifications.', 'warning')
+                                show_warning('Please check the consent box to enable SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
                             
                             # Check if the phone number is verified when SMS is enabled
                             if sms_notifications_enabled and not (sms_verified or player_already_verified):
                                 logger.warning(f"SMS notifications enabled but phone not verified for player {player.id}")
-                                flash('Please verify your phone number to complete registration with SMS notifications.', 'warning')
+                                show_warning('Please verify your phone number to complete registration with SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
                             
                             # Update onboarding status
@@ -502,28 +504,28 @@ def index():
                                 {"user_id": safe_current_user.id}
                             ).fetchone()
                             logger.info(f"Direct query verification: has_completed_onboarding = {result[0]}")
-                        flash('Profile updated successfully!', 'success')
+                        show_success('Profile updated successfully!')
                         return redirect(url_for('main.index'))
 
                     except Exception as e:
                         session.rollback()
                         logger.error(f"Error in profile creation/update: {str(e)}", exc_info=True)
-                        flash('An error occurred while saving your profile. Please try again.', 'danger')
+                        show_error('An error occurred while saving your profile. Please try again.')
                         return redirect(url_for('main.index'))
                 else:
                     logger.warning(f"Form validation failed: {onboarding_form.errors}")
-                    flash('Form validation failed. Please check the form inputs.', 'danger')
+                    show_error('Form validation failed. Please check the form inputs.')
 
             elif form_action == 'reset_skip_profile':
                 try:
                     with session.begin():
                         safe_current_user.has_skipped_profile_creation = False
                         session.add(safe_current_user)
-                    flash('Onboarding has been reset. Please complete the onboarding process.', 'info')
+                    show_info('Onboarding has been reset. Please complete the onboarding process.')
                     return redirect(url_for('main.index'))
                 except Exception as e:
                     logger.error(f"Error resetting profile: {str(e)}", exc_info=True)
-                    flash('An error occurred. Please try again.', 'danger')
+                    show_error('An error occurred. Please try again.')
                     return redirect(url_for('main.index'))
 
         user_teams = player.teams if player else []
@@ -700,7 +702,7 @@ def index():
 
     except Exception as e:
         logger.error(f"Unexpected error in index route: {str(e)}", exc_info=True)
-        flash('An unexpected error occurred. Please try again.', 'danger')
+        show_error('An unexpected error occurred. Please try again.')
         return redirect(url_for('main.index'))
 
 
@@ -786,7 +788,7 @@ def onboarding():
     
     # If user already completed onboarding, redirect to index
     if player and safe_current_user.has_completed_onboarding:
-        flash('Your profile is already set up!', 'info')
+        show_info('Your profile is already set up!')
         return redirect(url_for('main.index'))
     
     # Get the onboarding form
@@ -813,19 +815,19 @@ def onboarding():
             
             # If SMS is enabled but not verified, show warning
             if sms_notifications and not (sms_verified or already_verified):
-                flash('Please verify your phone number to enable SMS notifications.', 'warning')
+                show_warning('Please verify your phone number to enable SMS notifications.')
             else:
                 # Mark onboarding as complete
                 safe_current_user.has_completed_onboarding = True
                 session.add(safe_current_user)
                 session.commit()
-                flash('Profile created successfully!', 'success')
+                show_success('Profile created successfully!')
                 return redirect(url_for('main.index'))
                 
         except Exception as e:
             session.rollback()
             logger.error(f"Error saving profile: {e}", exc_info=True)
-            flash('An error occurred. Please try again.', 'danger')
+            show_error('An error occurred. Please try again.')
     
     # Get Discord invite link from session
     discord_invite_link = flask_session.get('discord_invite_link', "https://discord.gg/weareecs")
@@ -995,6 +997,7 @@ def set_theme():
     return jsonify({"success": True, "message": f"Theme set to {theme}"})
 
 
+@csrf.exempt
 @main.route('/clear_sweet_alert', methods=['POST'])
 def clear_sweet_alert():
     """

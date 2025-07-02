@@ -11,12 +11,13 @@ The module interacts with the database and enforces role-based access control fo
 
 import logging
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, g
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.models import User, Role, Player, League, Season, Team
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,7 @@ def manage_users():
                     league_id = int(form.league.data)
                     query = query.join(Player).filter(Player.league_id == league_id)
                 except ValueError:
-                    flash('Invalid league selection.', 'warning')
+                    show_warning('Invalid league selection.')
 
         if form.active.data:
             is_current_player = form.active.data.lower() == 'true'
@@ -187,7 +188,7 @@ def create_user():
 
         session.add(user)
         session.commit()
-        flash(f'User {user.username} created successfully.', 'success')
+        show_success(f'User {user.username} created successfully.')
         return redirect(url_for('user_management.manage_users'))
 
     return render_template('create_user.html', title='Create User', form=form)
@@ -211,7 +212,7 @@ def edit_user(user_id):
     ).get(user_id)
 
     if not user:
-        flash('User not found.', 'danger')
+        show_error('User not found.')
         return redirect(url_for('user_management.manage_users'))
 
     # Build dynamic choices for form fields
@@ -278,13 +279,13 @@ def edit_user(user_id):
             user.player.other_leagues = new_secondary_leagues
 
         session.commit()
-        flash(f'User {user.username} updated successfully.', 'success')
+        show_success(f'User {user.username} updated successfully.')
     else:
         # Display validation errors
         for field_name, errors in form.errors.items():
             label = getattr(form, field_name).label.text if hasattr(form, field_name) else field_name
             for error_msg in errors:
-                flash(f"Error in {label}: {error_msg}", 'danger')
+                show_error(f"Error in {label}: {error_msg}")
 
     return redirect(url_for('user_management.manage_users'))
 
@@ -299,7 +300,7 @@ def remove_user(user_id):
     session = g.db_session
     user = session.query(User).get(user_id)
     if not user:
-        flash('User not found.', 'danger')
+        show_error('User not found.')
         return redirect(url_for('user_management.manage_users'))
 
     try:
@@ -317,11 +318,11 @@ def remove_user(user_id):
         # Delete the user
         session.delete(user)
         session.commit()
-        flash(f'User {user.username} has been removed.', 'success')
+        show_success(f'User {user.username} has been removed.')
     except Exception as e:
         session.rollback()
         logger.exception(f"Error removing user {user_id}: {str(e)}")
-        flash(f'Error removing user: {str(e)}', 'danger')
+        show_error(f'Error removing user: {str(e)}')
     
     return redirect(url_for('user_management.manage_users'))
 
@@ -429,14 +430,14 @@ def approve_user(user_id):
     session = g.db_session
     user = session.query(User).get(user_id)
     if not user:
-        flash('User not found.', 'danger')
+        show_error('User not found.')
         return redirect(url_for('user_management.manage_users'))
 
     if user.is_approved:
-        flash(f'User {user.username} is already approved.', 'info')
+        show_info(f'User {user.username} is already approved.')
     else:
         user.is_approved = True
-        flash(f'User {user.username} has been approved.', 'success')
+        show_success(f'User {user.username} has been approved.')
 
     return redirect(url_for('user_management.manage_users'))
 

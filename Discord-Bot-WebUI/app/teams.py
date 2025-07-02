@@ -17,9 +17,10 @@ from typing import Optional
 from werkzeug.utils import secure_filename
 
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, request, jsonify, g,
+    Blueprint, render_template, redirect, url_for, request, jsonify, g,
     current_app
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
 from flask_wtf.csrf import validate_csrf, CSRFError
 from sqlalchemy import or_, func
@@ -70,7 +71,7 @@ def team_details(team_id):
         .get(team_id)
     )
     if not team:
-        flash('Team not found.', 'danger')
+        show_error('Team not found.')
         return redirect(url_for('teams.teams_overview'))
 
     league = session.query(League).get(team.league_id)
@@ -242,7 +243,7 @@ def teams_overview():
     )
 
     if not current_pub_season and not current_ecs_season:
-        flash('No current season found for either Pub League or ECS FC.', 'warning')
+        show_warning('No current season found for either Pub League or ECS FC.')
         return redirect(url_for('home.index'))
 
     # Build conditions based on which current seasons exist.
@@ -280,7 +281,7 @@ def report_match(match_id):
         .get(match_id)
     )
     if not match:
-        flash('Match not found.', 'danger')
+        show_error('Match not found.')
         return redirect(url_for('teams.teams_overview'))
 
     if request.method == 'GET':
@@ -476,7 +477,7 @@ def view_standings():
     session = g.db_session
     season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     if not season:
-        flash('No current season found.', 'warning')
+        show_warning('No current season found.')
         return redirect(url_for('home.index'))
 
     def get_standings(league_name):
@@ -534,7 +535,7 @@ def season_overview():
     # Get the current Pub League season
     season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     if not season:
-        flash('No current season found.', 'warning')
+        show_warning('No current season found.')
         return redirect(url_for('home.index'))
     
     # Define a function to get all leagues for a season
@@ -814,16 +815,16 @@ def upload_team_kit(team_id):
     session = g.db_session
     team = session.query(Team).get(team_id)
     if not team:
-        flash('Team not found.', 'danger')
+        show_error('Team not found.')
         return redirect(url_for('teams.teams_overview'))
     
     if 'team_kit' not in request.files:
-        flash('No file part in the request.', 'danger')
+        show_error('No file part in the request.')
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     file = request.files['team_kit']
     if file.filename == '':
-        flash('No file selected.', 'danger')
+        show_error('No file selected.')
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     if file and allowed_file(file.filename):
@@ -856,8 +857,8 @@ def upload_team_kit(team_id):
         team.kit_url = url_for('static', filename='img/uploads/kits/' + filename) + f'?v={timestamp}'
         session.commit()
         
-        flash('Team kit updated successfully!', 'success')
+        show_success('Team kit updated successfully!')
         return redirect(url_for('teams.team_details', team_id=team_id))
     else:
-        flash('Invalid file type. Allowed types: png, jpg, jpeg, gif.', 'danger')
+        show_error('Invalid file type. Allowed types: png, jpg, jpeg, gif.')
         return redirect(url_for('teams.team_details', team_id=team_id))

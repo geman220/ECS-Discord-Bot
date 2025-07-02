@@ -11,13 +11,14 @@ Access to topics is controlled based on user roles, and Markdown content is conv
 
 import os
 import markdown
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, jsonify
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.core import db
 from app.models import Role, HelpTopic
 from app.forms import HelpTopicForm
 from app.decorators import role_required
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 import logging
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def view_topic(topic_id):
     topic = HelpTopic.query.get_or_404(topic_id)
     allowed_role_names = [role.name for role in topic.allowed_roles]
     if not set(allowed_role_names) & set(role.name for role in current_user.roles):
-        flash('You do not have permission to view this help topic.', 'error')
+        show_error('You do not have permission to view this help topic.')
         return redirect(url_for('help.index'))
     # Convert Markdown to HTML using the fenced code extension for code blocks.
     html_content = markdown.markdown(topic.markdown_content, extensions=['fenced_code'])
@@ -131,7 +132,7 @@ def new_help_topic():
         topic.allowed_roles = selected_roles
         db.session.add(topic)
         db.session.commit()
-        flash('Help topic created successfully!', 'success')
+        show_success('Help topic created successfully!')
         return redirect(url_for('help.admin_help_topics'))
     return render_template('help/admin/new_help_topic.html', form=form, title="Create New Help Topic")
 
@@ -160,7 +161,7 @@ def edit_help_topic(topic_id):
         selected_roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
         topic.allowed_roles = selected_roles
         db.session.commit()
-        flash('Help topic updated successfully!', 'success')
+        show_success('Help topic updated successfully!')
         return redirect(url_for('help.admin_help_topics'))
     return render_template('help/admin/edit_help_topic.html', form=form, topic=topic, title="Edit Help Topic")
 
@@ -180,7 +181,7 @@ def delete_help_topic(topic_id):
     topic = HelpTopic.query.get_or_404(topic_id)
     db.session.delete(topic)
     db.session.commit()
-    flash('Help topic deleted successfully!', 'success')
+    show_success('Help topic deleted successfully!')
     return redirect(url_for('help.admin_help_topics'))
 
 @help_bp.route('/admin/upload_image', methods=['POST'])
