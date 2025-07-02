@@ -266,10 +266,8 @@ def unregister_connection(conn_id: int) -> None:
                 f"Unregistered connection {conn_id} from {conn_info.get('origin')}. "
                 f"Active connections: {len(_active_connections)}"
             )
-        else:
-            # Only log at debug level since this is often a harmless race condition
-            # where a connection was already cleaned up by another process/thread
-            logger.debug(f"Attempted to unregister unknown connection {conn_id}")
+        # Silent return for race condition - connection already cleaned up by another thread
+        # This prevents log spam when multiple cleanup mechanisms run simultaneously
 
 
 def get_active_connections() -> List[Dict[str, Any]]:

@@ -1,0 +1,439 @@
+"""
+High-Performance Image Caching Service
+
+Optimizes player profile images for fast loading in draft system.
+Handles 200+ player images with automatic optimization, WebP conversion,
+thumbnail generation, and lazy loading strategies.
+"""
+
+import os
+import logging
+import requests
+from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
+from PIL import Image
+import io
+from pathlib import Path
+
+from app.core import db
+from app.models import Player, PlayerImageCache
+
+logger = logging.getLogger(__name__)
+
+
+class ImageCacheService:
+    """Service for high-performance player image caching and optimization."""
+    
+    # Configuration
+    CACHE_DIR = Path("app/static/img/cache/players")
+    THUMBNAIL_SIZE = (80, 80)  # For draft list view
+    MEDIUM_SIZE = (200, 200)   # For detailed view
+    WEBP_QUALITY = 85
+    JPEG_QUALITY = 90
+    CACHE_EXPIRY_DAYS = 30
+    
+    @classmethod
+    def initialize_cache_directory(cls):
+        """Create cache directories if they don't exist."""
+        cls.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        (cls.CACHE_DIR / "thumbnails").mkdir(exist_ok=True)
+        (cls.CACHE_DIR / "medium").mkdir(exist_ok=True)
+        (cls.CACHE_DIR / "webp").mkdir(exist_ok=True)
+    
+    @staticmethod
+    def get_player_image_data(player_ids: List[int]) -> Dict[int, Dict]:
+        """
+        OPTIMIZED: Fast bulk lookup of optimized image URLs for multiple players.
+        Returns cached URLs for immediate loading with minimal database hits.
+        """
+        try:
+            # Single query to get both cache data and player data
+            from sqlalchemy.orm import joinedload
+            from app.core import db
+            
+            # Get cached image data with a single query
+            cached_images_query = db.session.query(PlayerImageCache).filter(
+                PlayerImageCache.player_id.in_(player_ids),
+                PlayerImageCache.cache_status == 'ready'
+            )
+            
+            # Get players data in the same transaction for missing cache entries
+            players_query = db.session.query(Player).filter(
+                Player.id.in_(player_ids)
+            )
+            
+            # Execute queries and build lookup maps
+            cached_images = {img.player_id: img for img in cached_images_query.all()}
+            all_players = {p.id: p for p in players_query.all()}
+            
+            result = {}
+            
+            # Process cached images first (fastest path)
+            for player_id, cache_entry in cached_images.items():
+                result[player_id] = {
+                    'thumbnail_url': cache_entry.thumbnail_url or cache_entry.original_url,
+                    'medium_url': cache_entry.cached_url or cache_entry.original_url,
+                    'webp_url': cache_entry.webp_url or cache_entry.original_url,
+                    'original_url': cache_entry.original_url,
+                    'is_optimized': cache_entry.is_optimized,
+                    'file_size': cache_entry.file_size or 0
+                }
+            
+            # Handle players without cached images
+            players_without_cache = set(player_ids) - set(cached_images.keys())
+            optimization_queue = []  # Batch queue for optimization
+            
+            for player_id in players_without_cache:
+                player = all_players.get(player_id)
+                if player and player.profile_picture_url:
+                    result[player_id] = {
+                        'thumbnail_url': player.profile_picture_url,
+                        'medium_url': player.profile_picture_url,
+                        'webp_url': player.profile_picture_url,
+                        'original_url': player.profile_picture_url,
+                        'is_optimized': False,
+                        'file_size': 0
+                    }
+                    # Add to batch optimization queue
+                    optimization_queue.append((player.id, player.profile_picture_url))
+                else:
+                    # Use default image for players without profile pictures
+                    default_image = "/static/img/default_player.png"
+                    result[player_id] = {
+                        'thumbnail_url': default_image,
+                        'medium_url': default_image,
+                        'webp_url': default_image,
+                        'original_url': default_image,
+                        'is_optimized': True,
+                        'file_size': 0
+                    }
+            
+            # Batch queue optimization requests
+            if optimization_queue:
+                ImageCacheService._batch_queue_for_optimization(optimization_queue)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error getting player image data: {e}")
+            # Fallback to original URLs
+            players = Player.query.filter(Player.id.in_(player_ids)).all()
+            return {
+                player.id: {
+                    'thumbnail_url': player.profile_picture_url or "/static/img/default_player.png",
+                    'medium_url': player.profile_picture_url or "/static/img/default_player.png",
+                    'webp_url': player.profile_picture_url or "/static/img/default_player.png",
+                    'original_url': player.profile_picture_url or "/static/img/default_player.png",
+                    'is_optimized': False,
+                    'file_size': 0
+                } for player in players
+            }
+    
+    @staticmethod
+    def _queue_for_optimization(player_id: int, image_url: str):
+        """Queue a player image for optimization."""
+        try:
+            cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
+            if not cache_entry:
+                cache_entry = PlayerImageCache(
+                    player_id=player_id,
+                    original_url=image_url,
+                    cache_status='pending'
+                )
+                db.session.add(cache_entry)
+            else:
+                cache_entry.original_url = image_url
+                cache_entry.cache_status = 'pending'
+            
+            db.session.commit()
+            
+        except Exception as e:
+            logger.warning(f"Failed to queue image optimization for player {player_id}: {e}")
+    
+    @staticmethod
+    def _batch_queue_for_optimization(optimization_queue: List[Tuple[int, str]]):
+        """OPTIMIZED: Batch queue multiple players for image optimization."""
+        if not optimization_queue:
+            return
+            
+        try:
+            # Get existing cache entries for these players
+            player_ids = [item[0] for item in optimization_queue]
+            existing_entries = {
+                entry.player_id: entry 
+                for entry in PlayerImageCache.query.filter(
+                    PlayerImageCache.player_id.in_(player_ids)
+                ).all()
+            }
+            
+            # Batch create/update cache entries
+            new_entries = []
+            updated_count = 0
+            
+            for player_id, image_url in optimization_queue:
+                if player_id in existing_entries:
+                    # Update existing entry
+                    existing_entries[player_id].original_url = image_url
+                    existing_entries[player_id].cache_status = 'pending'
+                    updated_count += 1
+                else:
+                    # Create new entry
+                    new_entries.append(PlayerImageCache(
+                        player_id=player_id,
+                        original_url=image_url,
+                        cache_status='pending'
+                    ))
+            
+            # Bulk insert new entries
+            if new_entries:
+                db.session.bulk_save_objects(new_entries)
+            
+            db.session.commit()
+            
+            logger.debug(f"Batch queued {len(new_entries)} new + {updated_count} updated images for optimization")
+            
+            # Trigger background optimization if enabled
+            # This could trigger a Celery task for background processing
+            # ImageOptimizationTask.delay(player_ids)
+            
+        except Exception as e:
+            logger.warning(f"Failed to batch queue image optimization: {e}")
+            db.session.rollback()
+            # Fallback to individual queuing
+            for player_id, image_url in optimization_queue:
+                ImageCacheService._queue_for_optimization(player_id, image_url)
+    
+    @staticmethod
+    def optimize_player_image(player_id: int, force_refresh: bool = False) -> bool:
+        """
+        Optimize a single player's image with multiple formats and sizes.
+        Returns True if successful.
+        """
+        try:
+            ImageCacheService.initialize_cache_directory()
+            
+            # Get or create cache entry
+            cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
+            if not cache_entry:
+                # Create cache entry from player data
+                player = Player.query.get(player_id)
+                if not player or not player.profile_picture_url:
+                    logger.debug(f"Player {player_id} has no profile picture")
+                    return False
+                
+                cache_entry = PlayerImageCache(
+                    player_id=player_id,
+                    original_url=player.profile_picture_url,
+                    cache_status='pending'
+                )
+                db.session.add(cache_entry)
+                db.session.commit()
+                logger.debug(f"Created cache entry for player {player_id}")
+            
+            # Skip if already optimized and not forced
+            if cache_entry.is_optimized and not force_refresh:
+                return True
+            
+            cache_entry.cache_status = 'processing'
+            db.session.commit()
+            
+            # Download/load original image
+            original_url = cache_entry.original_url
+            image_data = None
+            
+            if original_url and original_url.startswith('/static/'):
+                # Handle local files
+                original_path = Path("app") / original_url.lstrip('/')
+                if original_path.exists():
+                    with open(original_path, 'rb') as f:
+                        image_data = f.read()
+                    logger.debug(f"Loaded local image: {original_path}")
+                else:
+                    logger.warning(f"Local image not found: {original_path}")
+                    cache_entry.cache_status = 'failed'
+                    db.session.commit()
+                    return False
+            elif original_url and original_url.startswith('http'):
+                # Download from URL
+                try:
+                    response = requests.get(original_url, timeout=10, stream=True)
+                    response.raise_for_status()
+                    image_data = response.content
+                    logger.debug(f"Downloaded image from: {original_url}")
+                except Exception as e:
+                    logger.warning(f"Failed to download image from {original_url}: {e}")
+                    cache_entry.cache_status = 'failed'
+                    db.session.commit()
+                    return False
+            else:
+                logger.warning(f"Invalid image URL for player {player_id}: {original_url}")
+                cache_entry.cache_status = 'failed'
+                db.session.commit()
+                return False
+            
+            if not image_data:
+                logger.warning(f"No image data loaded for player {player_id}")
+                cache_entry.cache_status = 'failed'
+                db.session.commit()
+                return False
+            
+            # Open and validate image
+            image = Image.open(io.BytesIO(image_data))
+            if image.mode in ('RGBA', 'LA', 'P'):
+                # Convert to RGB for JPEG
+                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                image = rgb_image
+            
+            # Generate filenames
+            base_name = f"player_{player_id}"
+            timestamp = int(datetime.now().timestamp())
+            
+            # Create thumbnail
+            thumbnail = image.copy()
+            thumbnail.thumbnail(ImageCacheService.THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
+            thumbnail_path = ImageCacheService.CACHE_DIR / "thumbnails" / f"{base_name}_thumb_{timestamp}.jpg"
+            thumbnail.save(thumbnail_path, 'JPEG', quality=ImageCacheService.JPEG_QUALITY, optimize=True)
+            
+            # Create medium size
+            medium = image.copy()
+            medium.thumbnail(ImageCacheService.MEDIUM_SIZE, Image.Resampling.LANCZOS)
+            medium_path = ImageCacheService.CACHE_DIR / "medium" / f"{base_name}_med_{timestamp}.jpg"
+            medium.save(medium_path, 'JPEG', quality=ImageCacheService.JPEG_QUALITY, optimize=True)
+            
+            # Create WebP version (best compression)
+            webp_path = ImageCacheService.CACHE_DIR / "webp" / f"{base_name}_{timestamp}.webp"
+            medium.save(webp_path, 'WEBP', quality=ImageCacheService.WEBP_QUALITY, optimize=True)
+            
+            # Update cache entry
+            cache_entry.thumbnail_url = f"/static/img/cache/players/thumbnails/{thumbnail_path.name}"
+            cache_entry.cached_url = f"/static/img/cache/players/medium/{medium_path.name}"
+            cache_entry.webp_url = f"/static/img/cache/players/webp/{webp_path.name}"
+            cache_entry.width = medium.width
+            cache_entry.height = medium.height
+            cache_entry.file_size = medium_path.stat().st_size
+            cache_entry.is_optimized = True
+            cache_entry.cache_status = 'ready'
+            cache_entry.last_cached = datetime.utcnow()
+            cache_entry.cache_expiry = datetime.utcnow() + timedelta(days=ImageCacheService.CACHE_EXPIRY_DAYS)
+            
+            db.session.commit()
+            
+            logger.info(f"Successfully optimized image for player {player_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error optimizing image for player {player_id}: {e}")
+            try:
+                cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
+                if cache_entry:
+                    cache_entry.cache_status = 'failed'
+                    db.session.commit()
+            except:
+                pass
+            return False
+    
+    @staticmethod
+    def bulk_optimize_images(player_ids: List[int] = None, max_workers: int = 1) -> Dict[str, int]:
+        """
+        Optimize images for multiple players.
+        If player_ids is None, optimizes all current players.
+        Using sequential processing to avoid Flask context issues.
+        """
+        try:
+            if player_ids is None:
+                # Get all current players with images (filter out empty/null URLs)
+                players = Player.query.filter(
+                    Player.is_current_player == True,
+                    Player.profile_picture_url.isnot(None),
+                    Player.profile_picture_url != ''
+                ).all()
+                
+                # Further filter to only players with actual image URLs (not just empty strings)
+                player_ids = []
+                for player in players:
+                    if player.profile_picture_url and player.profile_picture_url.strip():
+                        player_ids.append(player.id)
+                
+                logger.info(f"Found {len(player_ids)} players with profile pictures")
+            
+            if not player_ids:
+                logger.info("No players with profile pictures found")
+                return {'success': 0, 'failed': 0, 'skipped': 0}
+                
+            logger.info(f"Starting bulk image optimization for {len(player_ids)} players")
+            
+            results = {'success': 0, 'failed': 0, 'skipped': 0}
+            
+            # Process sequentially to avoid Flask context issues
+            for i, player_id in enumerate(player_ids):
+                try:
+                    success = ImageCacheService.optimize_player_image(player_id)
+                    if success:
+                        results['success'] += 1
+                    else:
+                        results['failed'] += 1
+                    
+                    # Log progress every 20 players
+                    if (i + 1) % 20 == 0:
+                        logger.info(f"Processed {i + 1}/{len(player_ids)} players...")
+                        
+                except Exception as e:
+                    logger.error(f"Error processing player {player_id}: {e}")
+                    results['failed'] += 1
+            
+            logger.info(f"Bulk optimization completed: {results}")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in bulk image optimization: {e}")
+            return {'success': 0, 'failed': len(player_ids or []), 'skipped': 0}
+    
+    @staticmethod
+    def cleanup_expired_cache():
+        """Remove expired cache entries and files."""
+        try:
+            expired_entries = PlayerImageCache.query.filter(
+                PlayerImageCache.cache_expiry < datetime.utcnow()
+            ).all()
+            
+            for entry in expired_entries:
+                # Remove files
+                for url in [entry.thumbnail_url, entry.cached_url, entry.webp_url]:
+                    if url and url.startswith('/static/'):
+                        file_path = Path("app") / url.lstrip('/')
+                        if file_path.exists():
+                            file_path.unlink()
+                
+                # Remove database entry
+                db.session.delete(entry)
+            
+            db.session.commit()
+            logger.info(f"Cleaned up {len(expired_entries)} expired cache entries")
+            
+        except Exception as e:
+            logger.error(f"Error cleaning up expired cache: {e}")
+
+
+def handle_player_image_update(player_id: int):
+    """
+    Event handler to be called when a player's profile picture changes.
+    Queues the image for optimization.
+    """
+    try:
+        player = Player.query.get(player_id)
+        if player and player.profile_picture_url:
+            # Try to use Celery for async processing if available
+            try:
+                from app.tasks.tasks_image_optimization import queue_image_optimization
+                if queue_image_optimization(player_id):
+                    logger.info(f"Queued async image optimization for player {player_id}")
+                    return
+            except ImportError:
+                logger.debug("Celery not available, using synchronous optimization")
+            
+            # Fallback to synchronous optimization
+            ImageCacheService._queue_for_optimization(player_id, player.profile_picture_url)
+            ImageCacheService.optimize_player_image(player_id)
+    except Exception as e:
+        logger.error(f"Failed to handle image update for player {player_id}: {e}")

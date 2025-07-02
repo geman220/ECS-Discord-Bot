@@ -239,7 +239,7 @@ def create_app(config_object='web_config.Config'):
             logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None
 
-    # Initialize SocketIO with Redis as the message queue.
+    # Initialize SocketIO with Redis as the message queue
     socketio.init_app(
         app,
         message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
@@ -248,9 +248,15 @@ def create_app(config_object='web_config.Config'):
         cors_allowed_origins=app.config.get('CORS_ORIGINS', '*')
     )
 
-    # Register blueprints, context processors, and error handlers.
+    # CRITICAL: Import handlers AFTER socketio.init_app() so they register on the correct instance
+    from . import socket_handlers
+    
+    # Register blueprints, context processors, and error handlers
     init_blueprints(app)
     init_context_processors(app)
+    
+    logger.info("🎯 Socket.IO system initialized successfully")
+    
     install_error_handlers(app)
 
     # Apply ProxyFix to handle reverse proxy headers.
@@ -426,7 +432,7 @@ def init_blueprints(app):
     logger = logging.getLogger(__name__)
     from app.auth import auth as auth_bp
     from app.publeague import publeague as publeague_bp
-    from app.draft import draft as draft_bp
+    from app.draft_enhanced import draft_enhanced as draft_enhanced_bp
     from app.players import players_bp
     from app.main import main as main_bp
     from app.teams import teams_bp
@@ -454,7 +460,7 @@ def init_blueprints(app):
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
-    app.register_blueprint(draft_bp, url_prefix='/draft')
+    app.register_blueprint(draft_enhanced_bp, url_prefix='/draft')
     app.register_blueprint(players_bp, url_prefix='/players')
     app.register_blueprint(teams_bp, url_prefix='/teams')
     app.register_blueprint(availability_bp, url_prefix='/api')

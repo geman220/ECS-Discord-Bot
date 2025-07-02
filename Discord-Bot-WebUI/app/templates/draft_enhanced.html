@@ -1,0 +1,962 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block custom_css %}
+<!-- Draft System Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
+
+<style>
+/* FIFA Player Card Styles */
+.player-card {
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.player-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.player-card[draggable="true"]:active {
+    transform: rotate(5deg) scale(0.95);
+    cursor: grabbing;
+}
+
+/* Simple background colors for experience levels */
+.player-card[data-experience="0"] .position-relative {
+    background: #74b9ff !important; /* New Player - Blue */
+}
+
+.player-card[data-experience="1"] .position-relative,
+.player-card[data-experience="2"] .position-relative {
+    background: #fdcb6e !important; /* Experienced - Orange */
+}
+
+.player-card[data-experience="3"] .position-relative,
+.player-card[data-experience="4"] .position-relative,
+.player-card[data-experience="5"] .position-relative {
+    background: #fd79a8 !important; /* Veteran - Pink */
+}
+
+/* High attendance glow effect */
+.player-card[data-attendance^="9"] .position-relative,
+.player-card[data-attendance="100"] .position-relative {
+    background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); /* High attendance - Green */
+    box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
+}
+
+/* Draft animation */
+.player-card.being-drafted {
+    animation: draftPulse 0.5s ease-in-out;
+}
+
+@keyframes draftPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 576px) {
+    .player-card {
+        min-height: 280px;
+    }
+}
+
+/* Search highlight effect */
+.player-card.search-highlight {
+    animation: searchPulse 1s ease-in-out;
+}
+
+@keyframes searchPulse {
+    0% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    50% { box-shadow: 0 4px 20px rgba(0, 123, 255, 0.4); }
+    100% { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+}
+
+/* Button hover effects */
+.player-card .btn-success {
+    transition: all 0.2s ease;
+}
+
+.player-card .btn-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+/* Text shadow for better readability on images */
+.text-shadow-sm {
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+/* Smart face cropping for player images */
+.player-face-crop {
+    /* Default: center horizontally, 20% from top (good for most portraits) */
+    object-position: center 20%;
+    transition: object-position 0.3s ease;
+}
+
+/* Fallback positioning strategies for different aspect ratios */
+.player-face-crop[style*="object-position"] {
+    /* For very wide images (likely landscape), focus more center */
+    object-position: center 30%;
+}
+
+/* Smart cropping based on image load behavior */
+.player-face-crop:hover {
+    /* Slight zoom effect on hover to show more of the image */
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+
+/* Small corner experience tag */
+.experience-corner-tag {
+    width: 24px;
+    height: 24px;
+    border-radius: 0 0 0 12px; /* Rounded bottom-left corner only */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    border: 2px solid rgba(255,255,255,0.8);
+    border-top: none;
+    border-right: none;
+}
+
+.experience-initial {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="position-fixed top-0 end-0 m-3" style="z-index: 1050; display: none;">
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <i class="ti ti-wifi-off me-1"></i>
+            Connecting...
+        </div>
+    </div>
+
+    <!-- Draft Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="text-primary mb-1">{{ title }}</h2>
+                            <p class="text-muted mb-0">Draft and manage players for your teams</p>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <div class="text-center">
+                                <div class="h4 text-primary mb-0">{{ analytics.total_teams }}</div>
+                                <small class="text-muted">Teams</small>
+                            </div>
+                            <div class="text-center">
+                                <div class="h4 text-success mb-0">{{ analytics.total_players_drafted }}</div>
+                                <small class="text-muted">Drafted</small>
+                            </div>
+                            <div class="text-center">
+                                <div class="h4 text-info mb-0" id="availableCount">{{ available_players|length }}</div>
+                                <small class="text-muted">Available</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-end g-3">
+                        <div class="col-lg-4 col-md-6">
+                            <label class="form-label">Search Players</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="ti ti-search"></i></span>
+                                <input type="text" id="playerSearch" class="form-control" placeholder="Type player name..." autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-sm-6">
+                            <label class="form-label">Position</label>
+                            <select id="positionFilter" class="form-select">
+                                <option value="">All Positions</option>
+                                <option value="goalkeeper">Goalkeeper</option>
+                                <option value="defender">Defender</option>
+                                <option value="midfielder">Midfielder</option>
+                                <option value="forward">Forward</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-3 col-sm-6">
+                            <label class="form-label">Sort By</label>
+                            <select id="sortBy" class="form-select">
+                                <option value="name">Name</option>
+                                <option value="experience">Experience</option>
+                                <option value="attendance">Attendance</option>
+                                <option value="goals">Goals</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Available Players -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-users me-2"></i>
+                        Available Players (<span id="available-players-count">{{ available_players|length }}</span>)
+                    </h5>
+                </div>
+                <!-- FIFA-Style Player Cards Grid -->
+                <div id="available-players" class="row g-3"
+                     ondrop="handleDropToAvailable(event)" 
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)"
+                     style="min-height: 200px; padding: 20px; border: 2px dashed transparent; transition: border-color 0.3s ease;">
+                    {% for player in available_players %}
+                    <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                        <div id="player-{{ player.id }}" class="card player-card border-0 shadow-sm h-100"
+                             data-player-id="{{ player.id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-position="{{ (player.favorite_position or '')|lower }}"
+                             data-experience="{{ player.league_experience_seasons }}"
+                             data-attendance="{{ player.attendance_estimate }}"
+                             data-goals="{{ player.career_goals }}"
+                             draggable="true" 
+                             ondragstart="handleDragStart(event, {{ player.id }})"
+                             ondragend="handleDragEnd(event)"
+                             style="cursor: grab; transition: all 0.2s ease; min-height: 320px;">
+                            
+                            <!-- Player Image Header -->
+                            <div class="position-relative overflow-hidden" style="height: 120px;">
+                                <!-- Full Header Player Image -->
+                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}" 
+                                     alt="{{ player.name }}" 
+                                     class="player-face-crop"
+                                     style="width: 100%; height: 100%; object-fit: cover; object-position: center 20%; display: block !important; visibility: visible !important; opacity: 1 !important;"
+                                     loading="eager"
+                                     onerror="console.log('Image failed to load:', this.src); this.src='/static/img/default_player.png';"
+                                     onload="console.log('Image loaded successfully:', this.src); smartCropImage(this);">
+                                
+                                <!-- Dark overlay for better text readability -->
+                                <div class="position-absolute w-100 h-100" style="background: rgba(0,0,0,0.3); top: 0; left: 0;"></div>
+                                
+                                <!-- Experience Badge - Small Corner Tag -->
+                                <div class="position-absolute top-0 end-0" style="z-index: 2;">
+                                    <div class="experience-corner-tag bg-{{ 'success' if player.experience_level == 'Veteran' else 'warning' if player.experience_level == 'Experienced' else 'secondary' }}" 
+                                         title="{{ player.experience_level }}">
+                                        <span class="experience-initial">
+                                            {{ player.experience_level[0] if player.experience_level else 'N' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Player Name Overlay -->
+                                <div class="position-absolute bottom-0 start-0 p-2" style="z-index: 2;">
+                                    <h6 class="text-white fw-bold mb-0 text-shadow-sm">{{ player.name }}</h6>
+                                </div>
+                            </div>
+                            
+                            <!-- Player Info Body -->
+                            <div class="card-body p-3 text-center">
+                                <!-- Position Badge -->
+                                <div class="mb-2">
+                                    {% if player.favorite_position and player.favorite_position != 'Any' %}
+                                    <span class="badge bg-primary rounded-pill">{{ player.favorite_position }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary rounded-pill">Any Position</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Stats Row -->
+                                <div class="row text-center mb-2 small">
+                                    <div class="col-6">
+                                        <div class="fw-bold text-success">{{ player.career_goals }}</div>
+                                        <div class="text-muted">Goals</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold text-info">{{ player.career_assists }}</div>
+                                        <div class="text-muted">Assists</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Cards & Attendance -->
+                                <div class="row text-center mb-3 small">
+                                    <div class="col-6">
+                                        <div class="fw-bold">
+                                            <span class="text-warning">{{ player.career_yellow_cards }}</span>/<span class="text-danger">{{ player.career_red_cards }}</span>
+                                        </div>
+                                        <div class="text-muted">Y/R Cards</div>
+                                    </div>
+                                    <div class="col-6">
+                                        {% if player.attendance_estimate is not none %}
+                                        <div class="fw-bold text-{{ 'success' if player.attendance_estimate >= 80 else 'warning' if player.attendance_estimate >= 60 else 'danger' }}">
+                                            {{ "%.0f"|format(player.attendance_estimate) }}%
+                                        </div>
+                                        {% else %}
+                                        <div class="fw-bold text-muted">
+                                            No data
+                                        </div>
+                                        {% endif %}
+                                        <div class="text-muted">Attendance</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Experience Info -->
+                                <div class="small text-muted mb-2">
+                                    {{ player.league_experience_seasons }} season{{ 's' if player.league_experience_seasons != 1 else '' }}
+                                </div>
+                                
+                                <!-- Availability Info -->
+                                {% if player.expected_weeks_available and player.expected_weeks_available != 'All weeks' %}
+                                <div class="small text-info mb-3">
+                                    <i class="ti ti-calendar-event me-1"></i><strong>Expected:</strong> {{ player.expected_weeks_available }}
+                                </div>
+                                {% else %}
+                                <div class="small text-success mb-3">
+                                    <i class="ti ti-calendar-check me-1"></i><strong>Available:</strong> All weeks
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="card-footer bg-transparent border-0 p-2">
+                                <div class="d-grid gap-1">
+                                    <button class="btn btn-success btn-sm fw-bold" 
+                                            onclick="confirmDraftPlayer({{ player.id }}, '{{ player.name|escape }}')"
+                                            style="background: linear-gradient(45deg, #28a745, #20c997);">
+                                        <i class="ti ti-user-plus me-1"></i>Draft Player
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" 
+                                            onclick="openPlayerModal({{ player.id }})">
+                                        <i class="ti ti-user me-1"></i>View Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state ecs-empty-state dark-mode-applied" style="display: none; background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-30); padding: 3rem; text-align: center; border-radius: 8px; margin: 2rem;">
+                <div class="empty-state-icon" style="color: var(--ecs-neutral-50); font-size: 3rem; margin-bottom: 1rem;">
+                    <i class="ti ti-search"></i>
+                </div>
+                <div class="empty-state-title" style="color: var(--ecs-neutral-20); font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">No players found</div>
+                <div class="empty-state-text" style="color: var(--ecs-neutral-50); font-size: 0.875rem;">Try adjusting your search or filters</div>
+            </div>
+        </div>
+        
+        <!-- Teams Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="ti ti-users me-2"></i>
+                        Teams
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="accordion" id="teamsAccordion">
+                        {% for team in teams %}
+                        <div class="accordion-item team-drop-zone" 
+                             data-team-id="{{ team.id }}"
+                             ondrop="handleDrop(event, {{ team.id }})" 
+                             ondragover="handleDragOver(event)"
+                             ondragleave="handleDragLeave(event)"
+                             style="transition: background-color 0.3s ease, border-left 0.3s ease; position: relative;">
+                            <h2 class="accordion-header" id="heading{{ team.id }}">
+                                <button class="accordion-button collapsed" type="button" 
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ team.id }}" 
+                                        aria-expanded="false" 
+                                        aria-controls="collapse{{ team.id }}">
+                                    <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                        <span class="fw-bold">{{ team.name }}</span>
+                                        <span class="badge bg-primary" id="teamCount{{ team.id }}">
+                                            {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }} players
+                                        </span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ team.id }}" 
+                                 class="accordion-collapse collapse" 
+                                 aria-labelledby="heading{{ team.id }}" 
+                                 data-bs-parent="#teamsAccordion">
+                                <div class="accordion-body p-2">
+                                    <div class="border rounded p-3 bg-light"
+                                         id="teamSection{{ team.id }}"
+                                         data-team-id="{{ team.id }}"
+                                         ondrop="handleDrop(event, {{ team.id }})" 
+                                         ondragover="handleDragOver(event)"
+                                         ondragleave="handleDragLeave(event)"
+                                         style="min-height: 120px; border: 2px dashed #dee2e6 !important;"
+                                         role="region"
+                                         aria-label="{{ team.name }} team roster">
+                                        
+                                        <div id="teamPlayers{{ team.id }}" class="row g-2">
+                                            {% for player in drafted_players_by_team[team.id] %}
+                                            <div class="col-md-6 col-lg-4" data-player-id="{{ player.id }}">
+                                                <div class="card border-0 shadow-sm" 
+                                                     style="min-height: 120px; cursor: grab;"
+                                                     draggable="true"
+                                                     ondragstart="handleDragStart(event, {{ player.id }})"
+                                                     ondragend="handleDragEnd(event)">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-flex align-items-center mb-2">
+                                                            <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" 
+                                                                 alt="{{ player.name }}" 
+                                                                 class="rounded-circle me-2"
+                                                                 style="width: 40px; height: 40px; object-fit: cover;"
+                                                                 loading="lazy"
+                                                                 onerror="this.src='/static/img/default_player.png';">
+                                                            <div class="flex-grow-1 min-width-0">
+                                                                <div class="fw-semibold text-truncate small">{{ player.name }}</div>
+                                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                                    {{ player.favorite_position or 'Any' }}
+                                                                </div>
+                                                            </div>
+                                                            <button class="btn btn-outline-danger btn-sm p-1" 
+                                                                    onclick="confirmRemovePlayer({{ player.id }}, {{ team.id }}, '{{ player.name|escape }}', '{{ team.name|escape }}')" 
+                                                                    title="Remove {{ player.name }}">
+                                                                <i class="ti ti-x" style="font-size: 0.75rem;"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between text-center small">
+                                                            <div>
+                                                                <div class="fw-bold text-success">{{ player.career_goals }}</div>
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Goals</div>
+                                                            </div>
+                                                            <div>
+                                                                <div class="fw-bold text-info">{{ player.career_assists }}</div>
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Assists</div>
+                                                            </div>
+                                                            <div>
+                                                                <div class="fw-bold">
+                                                                    <span class="text-warning">{{ player.career_yellow_cards }}</span>/<span class="text-danger">{{ player.career_red_cards }}</span>
+                                                                </div>
+                                                                <div class="text-muted" style="font-size: 0.7rem;">Cards</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        {% if not drafted_players_by_team[team.id] %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="ti ti-user-plus mb-2" style="font-size: 2rem; opacity: 0.5;"></i>
+                                            <div class="fw-semibold">Drag players here</div>
+                                            <small>or click Draft on a player</small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Enhanced Player Profile Modal for Draft -->
+<div class="modal fade" id="playerProfileModal" tabindex="-1" aria-labelledby="playerProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content ecs-modal dark-mode-applied" style="background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-10);">
+            <div class="modal-header ecs-modal-header" style="background-color: var(--ecs-neutral-90) !important; color: var(--ecs-neutral-20) !important; border-bottom: 1px solid var(--ecs-neutral-80) !important;">
+                <h5 class="modal-title ecs-modal-title" id="playerProfileModalLabel" style="color: var(--ecs-neutral-20) !important;">
+                    <i class="ti ti-user me-2"></i>Player Profile
+                </h5>
+                <button type="button" class="btn-close ecs-modal-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1) !important;"></button>
+            </div>
+            <div class="modal-body p-0 ecs-modal-body" style="background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-10);">
+                <div id="playerProfileContent">
+                    <!-- Loading State -->
+                    <div id="profileLoading" class="text-center py-5" style="color: var(--ecs-neutral-30);">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted" style="color: var(--ecs-neutral-50);">Loading player details...</p>
+                    </div>
+                    
+                    <!-- Profile Content Container -->
+                    <div id="profileData" style="display: none;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer ecs-modal-footer" style="background-color: var(--ecs-neutral-100); border-top: 1px solid var(--ecs-neutral-80);">
+                <button type="button" class="btn btn-secondary ecs-btn ecs-btn-secondary" data-bs-dismiss="modal" style="background-color: var(--ecs-neutral-80); color: var(--ecs-neutral-30); border-color: var(--ecs-neutral-70);">Close</button>
+                <button type="button" class="btn btn-success ecs-btn ecs-btn-success" id="draftFromModal" style="display: none;">
+                    <i class="ti ti-user-plus me-1"></i>Draft This Player
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Draft Confirmation Modal -->
+<div class="modal fade" id="draftConfirmModal" tabindex="-1" aria-labelledby="draftConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content ecs-modal dark-mode-applied" style="background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-10);">
+            <div class="modal-header ecs-modal-header" style="background-color: var(--ecs-primary); color: var(--ecs-neutral-10);">
+                <h5 class="modal-title" id="draftConfirmModalLabel" style="color: var(--ecs-neutral-10);">
+                    <i class="ti ti-user-plus me-2"></i>Draft Player
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-30);">
+                <p id="draftPlayerMessage" class="mb-3"></p>
+                <div class="mb-3">
+                    <label for="teamSelect" class="form-label" style="color: var(--ecs-neutral-30);">Select Team:</label>
+                    <select id="teamSelect" class="form-select ecs-form-control" style="background-color: var(--ecs-neutral-95); color: var(--ecs-neutral-20); border-color: var(--ecs-neutral-80);">
+                        <option value="">Choose a team...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer" style="background-color: var(--ecs-neutral-100); border-top: 1px solid var(--ecs-neutral-80);">
+                <button type="button" class="btn btn-secondary ecs-btn" data-bs-dismiss="modal" style="background-color: var(--ecs-neutral-80); color: var(--ecs-neutral-30); border-color: var(--ecs-neutral-70);">Cancel</button>
+                <button type="button" class="btn btn-primary ecs-btn" id="confirmDraftBtn" style="background-color: var(--ecs-primary); border-color: var(--ecs-primary);">
+                    <i class="ti ti-user-plus me-1"></i>Draft Player
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="text-center">
+        <div class="loading-spinner mx-auto mb-3"></div>
+        <p class="text-muted">Processing...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<!-- Socket.IO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<!-- Draft System JavaScript -->
+<script src="{{ url_for('static', filename='js/draft-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
+
+<script>
+// Initialize the draft system when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDraftSystem('{{ league_name }}');
+    
+    // Add performance optimizations
+    if ('loading' in HTMLImageElement.prototype) {
+        const images = document.querySelectorAll('img[loading="lazy"]');
+        images.forEach(img => {
+            img.addEventListener('load', function() {
+                this.classList.add('loaded');
+            });
+        });
+    }
+    
+    // Add keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/') {
+            e.preventDefault();
+            document.getElementById('playerSearch')?.focus();
+        }
+    });
+    
+    console.log('🎉 Draft System v2 loaded successfully');
+    
+    // Update team counts on page load
+    updateAllTeamCounts();
+    
+    // Setup live search functionality
+    setupLiveSearch();
+    
+    // Set initial available player count
+    const initialCount = document.querySelectorAll('#available-players .player-card').length;
+    updateAvailablePlayerCount(initialCount);
+    
+    // Listen for socket events to update team counts
+    if (typeof io !== 'undefined') {
+        const socket = io('/draft');
+        
+        socket.on('player_drafted_enhanced', function(data) {
+            console.log('Player drafted:', data);
+            // Update the specific team count
+            if (data.team_id) {
+                setTimeout(() => updateTeamCount(data.team_id), 100);
+            }
+        });
+        
+        socket.on('player_removed_enhanced', function(data) {
+            console.log('Player removed:', data);
+            // Update the specific team count
+            if (data.team_id) {
+                setTimeout(() => updateTeamCount(data.team_id), 100);
+            }
+        });
+    }
+});
+
+// Live search functionality
+function setupLiveSearch() {
+    const searchInput = document.getElementById('playerSearch');
+    const positionFilter = document.getElementById('positionFilter');
+    const sortBy = document.getElementById('sortBy');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', filterPlayers);
+    }
+    if (positionFilter) {
+        positionFilter.addEventListener('change', filterPlayers);
+    }
+    if (sortBy) {
+        sortBy.addEventListener('change', filterPlayers);
+    }
+}
+
+// Filter players in real-time
+function filterPlayers() {
+    const searchTerm = document.getElementById('playerSearch')?.value.toLowerCase() || '';
+    const positionFilter = document.getElementById('positionFilter')?.value.toLowerCase() || '';
+    const sortBy = document.getElementById('sortBy')?.value || 'name';
+    
+    const availablePlayersContainer = document.getElementById('available-players');
+    const playerCards = availablePlayersContainer?.querySelectorAll('.col-xl-3, .col-lg-4, .col-md-6, .col-sm-6') || [];
+    
+    let visibleCount = 0;
+    let filteredPlayers = [];
+    
+    // Filter and collect visible players
+    playerCards.forEach(card => {
+        const playerCard = card.querySelector('.player-card');
+        if (!playerCard) return;
+        
+        const playerName = playerCard.getAttribute('data-player-name') || '';
+        const playerPosition = playerCard.getAttribute('data-position') || '';
+        
+        // Check search term match
+        const matchesSearch = !searchTerm || playerName.includes(searchTerm);
+        
+        // Check position filter match
+        const matchesPosition = !positionFilter || playerPosition === positionFilter;
+        
+        const isVisible = matchesSearch && matchesPosition;
+        
+        if (isVisible) {
+            card.style.display = 'block';
+            visibleCount++;
+            
+            // Collect data for sorting
+            const experience = parseInt(playerCard.getAttribute('data-experience')) || 0;
+            const attendance = parseFloat(playerCard.getAttribute('data-attendance')) || 0;
+            const goals = parseInt(playerCard.getAttribute('data-goals')) || 0;
+            
+            filteredPlayers.push({
+                element: card,
+                name: playerName,
+                experience: experience,
+                attendance: attendance,
+                goals: goals
+            });
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Sort the visible players
+    if (sortBy && filteredPlayers.length > 0) {
+        sortPlayers(filteredPlayers, sortBy);
+    }
+    
+    // Update both counters
+    updateAvailablePlayerCount(visibleCount);
+    
+    // Show/hide empty state
+    const emptyState = document.getElementById('emptyState');
+    if (emptyState) {
+        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+    
+    console.log(`Filtered players: ${visibleCount} visible`);
+}
+
+// Sort players based on selected criteria
+function sortPlayers(players, sortBy) {
+    const container = document.getElementById('available-players');
+    if (!container) return;
+    
+    players.sort((a, b) => {
+        switch (sortBy) {
+            case 'experience':
+                return b.experience - a.experience; // Highest first
+            case 'attendance':
+                return b.attendance - a.attendance; // Highest first
+            case 'goals':
+                return b.goals - a.goals; // Highest first
+            case 'name':
+            default:
+                return a.name.localeCompare(b.name); // Alphabetical
+        }
+    });
+    
+    // Reorder elements in the DOM
+    players.forEach(player => {
+        container.appendChild(player.element);
+    });
+}
+
+// Update available player count in both locations
+function updateAvailablePlayerCount(count) {
+    const availableCount = document.getElementById('availableCount');
+    const availablePlayersCount = document.getElementById('available-players-count');
+    
+    if (availableCount) {
+        availableCount.textContent = count;
+    }
+    if (availablePlayersCount) {
+        availablePlayersCount.textContent = count;
+    }
+}
+
+// Smart image cropping function is now in draft-system.js
+
+// Function to update team player counts
+function updateTeamCount(teamId) {
+    const teamSection = document.getElementById(`teamPlayers${teamId}`);
+    const teamCountBadge = document.getElementById(`teamCount${teamId}`);
+    
+    if (teamSection && teamCountBadge) {
+        // Count the number of player cards in the team section
+        const playerCount = teamSection.querySelectorAll('[data-player-id]').length;
+        teamCountBadge.textContent = `${playerCount} players`;
+        
+        console.log(`Updated team ${teamId} count to ${playerCount} players`);
+    }
+}
+
+// Function to update all team counts
+function updateAllTeamCounts() {
+    // Find all team sections and update their counts
+    document.querySelectorAll('[id^="teamPlayers"]').forEach(teamSection => {
+        const teamId = teamSection.id.replace('teamPlayers', '');
+        updateTeamCount(teamId);
+    });
+}
+
+// Custom Draft Confirmation Modal (replaces SweetAlert2)
+function confirmDraftPlayer(playerId, playerName) {
+    // Populate the message
+    document.getElementById('draftPlayerMessage').innerHTML = `Select a team for <strong>${playerName}</strong>:`;
+    
+    // Populate team options
+    const teamSelect = document.getElementById('teamSelect');
+    teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+    
+    // Get all teams and their player counts
+    document.querySelectorAll('[id^="teamCount"]').forEach(badge => {
+        const teamId = badge.id.replace('teamCount', '');
+        const teamName = badge.parentElement.querySelector('.fw-bold').textContent;
+        const playerCount = badge.textContent.replace(' players', '');
+        
+        const option = document.createElement('option');
+        option.value = teamId;
+        option.textContent = `${teamName} (${playerCount})`;
+        teamSelect.appendChild(option);
+    });
+    
+    // Set up the confirm button
+    const confirmBtn = document.getElementById('confirmDraftBtn');
+    confirmBtn.onclick = function() {
+        const selectedTeamId = teamSelect.value;
+        if (!selectedTeamId) {
+            alert('Please select a team!');
+            return;
+        }
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('draftConfirmModal')).hide();
+        
+        // Execute the draft via socket or API
+        if (typeof socket !== 'undefined') {
+            socket.emit('draft_player_enhanced', {
+                player_id: playerId,
+                team_id: parseInt(selectedTeamId),
+                league_name: '{{ league_name }}'
+            });
+        }
+        
+        console.log(`Drafting player ${playerId} to team ${selectedTeamId}`);
+    };
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('draftConfirmModal'));
+    modal.show();
+}
+
+// Enhanced Player Profile Modal Functions
+function openPlayerModal(playerId) {
+    const modal = new bootstrap.Modal(document.getElementById('playerProfileModal'));
+    
+    // Show loading state
+    document.getElementById('profileLoading').style.display = 'block';
+    document.getElementById('profileData').style.display = 'none';
+    document.getElementById('draftFromModal').style.display = 'none';
+    
+    // Open modal
+    modal.show();
+    
+    // Fetch player data
+    fetch(`/players/api/player_profile/${playerId}`)
+        .then(response => response.json())
+        .then(data => {
+            displayPlayerProfile(data, playerId);
+        })
+        .catch(error => {
+            console.error('Error loading player profile:', error);
+            document.getElementById('profileLoading').innerHTML = `
+                <div class="text-center py-5">
+                    <i class="ti ti-exclamation-triangle text-warning mb-3" style="font-size: 3rem;"></i>
+                    <h5>Error Loading Profile</h5>
+                    <p class="text-muted">Unable to load player information. Please try again.</p>
+                </div>
+            `;
+        });
+}
+
+function displayPlayerProfile(data, playerId) {
+    document.getElementById('profileLoading').style.display = 'none';
+    
+    const profileHtml = `
+        <div class="p-4" style="background-color: var(--ecs-neutral-100); color: var(--ecs-neutral-10);">
+            <!-- Player Header Info -->
+            <div class="text-center mb-4">
+                <img src="${data.profile_picture_url || '/static/img/default_player.png'}" 
+                     alt="${data.name}" 
+                     class="rounded-circle border border-3 border-white mb-3"
+                     style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
+                     onerror="this.src='/static/img/default_player.png';">
+                <h4 class="fw-bold mb-1" style="color: var(--ecs-neutral-20);">${data.name}</h4>
+                <p class="mb-2" style="color: var(--ecs-neutral-50);">${data.favorite_position || 'Any Position'}</p>
+                
+                <!-- Career Stats Row -->
+                <div class="row text-center mb-4">
+                    <div class="col-3">
+                        <div class="fw-bold text-success fs-5">${data.goals}</div>
+                        <small style="color: var(--ecs-neutral-50);">Goals</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="fw-bold text-info fs-5">${data.assists}</div>
+                        <small style="color: var(--ecs-neutral-50);">Assists</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="fw-bold text-warning fs-5">${data.yellow_cards}</div>
+                        <small style="color: var(--ecs-neutral-50);">Yellow</small>
+                    </div>
+                    <div class="col-3">
+                        <div class="fw-bold text-danger fs-5">${data.red_cards}</div>
+                        <small style="color: var(--ecs-neutral-50);">Red</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Playing Information Section -->
+            <div class="mb-4">
+                <h5 class="pb-2 mb-3" style="border-bottom: 1px solid var(--ecs-neutral-80); color: var(--ecs-neutral-20);">
+                    <i class="ti ti-info-circle me-2"></i>Playing Information
+                </h5>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-2">
+                            <strong style="color: var(--ecs-neutral-30);">Preferred Position:</strong> 
+                            <span class="badge bg-primary ms-1">${data.favorite_position || 'Any'}</span>
+                        </div>
+                        ${data.other_positions ? `
+                        <div class="mb-2">
+                            <strong style="color: var(--ecs-neutral-30);">Other Positions:</strong> 
+                            <small style="color: var(--ecs-neutral-50);">${data.other_positions}</small>
+                        </div>
+                        ` : ''}
+                        ${data.positions_to_avoid ? `
+                        <div class="mb-2">
+                            <strong style="color: var(--ecs-neutral-30);">Positions to Avoid:</strong> 
+                            <small style="color: var(--ecs-neutral-50);">${data.positions_to_avoid}</small>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="col-md-6">
+                        ${data.goal_frequency ? `
+                        <div class="mb-2">
+                            <strong style="color: var(--ecs-neutral-30);">Goal Frequency:</strong> 
+                            <small style="color: var(--ecs-neutral-50);">${data.goal_frequency}</small>
+                        </div>
+                        ` : ''}
+                        ${data.expected_availability ? `
+                        <div class="mb-2">
+                            <strong style="color: var(--ecs-neutral-30);">Expected Availability:</strong> 
+                            <small style="color: var(--ecs-neutral-50);">${data.expected_availability}</small>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Player Notes -->
+            ${data.player_notes ? `
+            <div class="mb-4">
+                <h5 class="pb-2 mb-3" style="border-bottom: 1px solid var(--ecs-neutral-80); color: var(--ecs-neutral-20);">
+                    <i class="ti ti-notes me-2"></i>Player Notes
+                </h5>
+                <p style="color: var(--ecs-neutral-40);">${data.player_notes}</p>
+            </div>
+            ` : ''}
+            
+            <!-- Admin Notes -->
+            ${data.admin_notes ? `
+            <div class="mb-3">
+                <h5 class="pb-2 mb-3" style="border-bottom: 1px solid var(--ecs-neutral-80); color: var(--ecs-neutral-20);">
+                    <i class="ti ti-shield me-2"></i>Admin Notes
+                </h5>
+                <p style="color: var(--ecs-neutral-40);">${data.admin_notes}</p>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    document.getElementById('profileData').innerHTML = profileHtml;
+    document.getElementById('profileData').style.display = 'block';
+    
+    // Show draft button and set up click handler
+    const draftButton = document.getElementById('draftFromModal');
+    draftButton.style.display = 'inline-block';
+    draftButton.onclick = () => {
+        // Close modal and trigger draft
+        bootstrap.Modal.getInstance(document.getElementById('playerProfileModal')).hide();
+        confirmDraftPlayer(playerId, data.name);
+    };
+}
+</script>
+{% endblock %}

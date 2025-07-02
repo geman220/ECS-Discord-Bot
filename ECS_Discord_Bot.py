@@ -315,7 +315,7 @@ async def full_rsvp_sync(force_sync=False):
     Args:
         force_sync: If True, update all messages even if no discrepancy detected.
     """
-    logger.info(f"Starting full RSVP synchronization (force_sync={force_sync})")
+    logger.info(f"Starting full RSVP synchronization (force_sync={force_sync}) - processing only matches from last 7 days")
     message_ids = list(bot_state.get_managed_message_ids())
     synced_count = 0
     failed_count = 0
@@ -338,6 +338,11 @@ async def full_rsvp_sync(force_sync=False):
                     )
                     if not match_data or 'channel_id' not in match_data:
                         logger.warning(f"Could not find channel ID for message {message_id}")
+                        return
+                        
+                    # Skip old matches (older than 7 days) to avoid processing massive backlogs
+                    if not match_data.get('is_recent_match', True):
+                        logger.debug(f"Skipping old match (date: {match_data.get('match_date')}) for message {message_id}")
                         return
                 except asyncio.TimeoutError:
                     logger.error(f"Timeout getting channel for message {message_id}")

@@ -211,6 +211,14 @@ def handle_profile_update(player, onboarding_form):
             upload_path = os.path.join(upload_folder, filename)
             onboarding_form.profile_picture.data.save(upload_path)
             player.profile_picture_url = url_for('static', filename='uploads/' + filename)
+            
+            # Trigger image optimization for new upload
+            try:
+                from app.image_cache_service import handle_player_image_update
+                handle_player_image_update(player.id)
+                logger.info(f"Queued image optimization for player {player.id} during onboarding")
+            except Exception as e:
+                logger.warning(f"Failed to queue image optimization during onboarding: {e}")
 
         session.add(player)
         session.add(safe_current_user)

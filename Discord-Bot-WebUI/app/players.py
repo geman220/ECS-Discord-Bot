@@ -513,6 +513,7 @@ def api_player_profile(player_id):
         'yellow_cards': player.get_career_yellow_cards(),
         'red_cards': player.get_career_red_cards(),
         'player_notes': player.player_notes,
+        'admin_notes': getattr(player, 'notes', None),
         'favorite_position': get_friendly_value(player.favorite_position, soccer_positions),
         'other_positions': player.other_positions.strip('{}').replace(',', ', ') if player.other_positions else None,
         'goal_frequency': get_friendly_value(player.frequency_play_goal, goal_frequency_choices),
@@ -669,6 +670,16 @@ def upload_profile_picture(player_id):
         player.profile_picture_url = image_url
         player.updated_at = datetime.utcnow()  # Update the timestamp to force a cache refresh
         session.commit()
+        
+        # Trigger image optimization asynchronously
+        try:
+            from app.image_cache_service import handle_player_image_update
+            handle_player_image_update(player_id)
+            logger.info(f"Queued image optimization for player {player_id}")
+        except Exception as e:
+            logger.warning(f"Failed to queue image optimization: {e}")
+            # Don't fail the upload if optimization queue fails
+        
         flash('Profile picture updated successfully!', 'success')
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify(success=True, message='Profile picture updated!', image_url=image_url)

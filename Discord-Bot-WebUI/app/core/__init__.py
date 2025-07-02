@@ -18,7 +18,14 @@ from celery import signals
 
 # Initialize core components
 db = SQLAlchemy()
-socketio = SocketIO()
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode='eventlet',
+    ping_timeout=60,
+    ping_interval=25,
+    logger=True,
+    engineio_logger=False
+)
 celery = Celery('app')
 
 # Make signals accessible from celery object

@@ -9,9 +9,12 @@ a local statement timeout, commits the session on successful completion, and
 rolls back in case of errors.
 """
 
+import logging
 from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
 
 # Create a session factory that prevents expiration of objects on commit.
 SessionLocal = sessionmaker(expire_on_commit=False)
