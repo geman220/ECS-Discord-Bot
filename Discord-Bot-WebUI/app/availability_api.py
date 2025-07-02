@@ -788,13 +788,21 @@ def get_message_info(message_id):
         team_id = match.home_team_id if is_home else match.away_team_id
         channel_id = scheduled_msg.home_channel_id if is_home else scheduled_msg.away_channel_id
         
+        # Check if match is recent (within last 7 days) to avoid processing old matches
+        from datetime import datetime, timedelta
+        week_ago = datetime.utcnow().date() - timedelta(days=7) 
+        is_recent_match = match.date >= week_ago
+        
         # Build response
         response = {
             'channel_id': channel_id,
             'match_id': match.id,
             'team_id': team_id,
             'is_home': is_home,
-            'message_type': 'home' if is_home else 'away'
+            'message_type': 'home' if is_home else 'away',
+            'match_date': match.date.isoformat(),
+            'match_time': match.time.isoformat() if match.time else None,
+            'is_recent_match': is_recent_match
         }
         logger.info(f"Found message info for {message_id}: {response}")
         

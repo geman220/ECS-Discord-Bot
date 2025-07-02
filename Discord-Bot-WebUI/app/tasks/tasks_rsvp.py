@@ -146,6 +146,25 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             "response": new_response
         }, countdown=2)
 
+        # Update attendance statistics cache when RSVP changes
+        try:
+            from app.attendance_service import handle_availability_change
+            from app.models import Match, Season
+            
+            # Get the season for this match to update season-specific stats
+            match = session.query(Match).get(match_id)
+            season_id = None
+            if match and hasattr(match, 'schedule') and match.schedule:
+                season_id = match.schedule.season_id
+            
+            # Update attendance stats asynchronously to avoid blocking main RSVP flow
+            handle_availability_change(player_id, season_id)
+            logger.debug(f"Updated attendance stats for player {player_id}")
+            
+        except Exception as e:
+            # Don't fail the main RSVP update if attendance stats update fails
+            logger.warning(f"Failed to update attendance stats for player {player_id}: {e}")
+
         return {
             'success': True,
             'message': "RSVP updated successfully",
@@ -795,12 +814,22 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         Retries the task on SQLAlchemy or general errors.
     """
     try:
-        total_avail = session.query(Availability).count()
+        # Only check health for RSVPs from matches within the last week
+        week_ago = datetime.utcnow().date() - timedelta(days=7)
+        recent_match_ids = session.query(Match.id).filter(
+            Match.date >= week_ago
+        ).subquery()
+        
+        total_avail = session.query(Availability).filter(
+            Availability.match_id.in_(recent_match_ids)
+        ).count()
         unsynced_count = session.query(Availability).filter(
+            Availability.match_id.in_(recent_match_ids),
             (Availability.discord_sync_status != 'synced') |
             (Availability.discord_sync_status.is_(None))
         ).count()
         failed_count = session.query(Availability).filter(
+            Availability.match_id.in_(recent_match_ids),
             Availability.discord_sync_status == 'failed'
         ).count()
         pending_count = session.query(ScheduledMessage).filter(
@@ -810,6 +839,7 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
             ScheduledMessage.status == 'FAILED'
         ).count()
         recent_responses = session.query(Availability).filter(
+            Availability.match_id.in_(recent_match_ids),
             Availability.responded_at >= datetime.utcnow() - timedelta(hours=24)
         ).count()
 
@@ -838,7 +868,7 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
 
         # If health is degraded or unhealthy, trigger a Discord sync to fix issues
         if health_status != 'healthy' and failed_count > 3:
-            logger.warning(f"RSVP health degraded (score: {health_score}). Triggering Discord sync.")
+            logger.warning(f"RSVP health degraded (score: {health_score}) for recent matches. Triggering Discord sync.")
             try:
                 # Trigger a Discord sync to fix issues
                 force_discord_rsvp_sync.apply_async(countdown=10)
@@ -854,7 +884,7 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
             'timestamp': datetime.utcnow().isoformat()
         }
 
-        logger.info("RSVP health check completed", extra=result)
+        logger.info("RSVP health check completed (last 7 days only)", extra=result)
         return result
 
     except SQLAlchemyError as e:
@@ -893,9 +923,16 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
         
         logger.info("Starting forced Discord RSVP synchronization")
         
-        # First, mark failed records for retry by changing their sync status
+        # Only sync RSVPs for matches within the last week to avoid massive backlogs
+        week_ago = datetime.utcnow().date() - timedelta(days=7)
+        recent_match_ids = session.query(Match.id).filter(
+            Match.date >= week_ago
+        ).subquery()
+        
+        # First, mark failed records for retry by changing their sync status (recent matches only)
         failed_records = session.query(Availability).filter(
-            Availability.discord_sync_status == 'failed'
+            Availability.discord_sync_status == 'failed',
+            Availability.match_id.in_(recent_match_ids)
         ).all()
         
         update_count = 0
@@ -905,7 +942,7 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
             record.sync_error = None
             update_count += 1
             
-        logger.info(f"Marked {update_count} failed records for resync")
+        logger.info(f"Marked {update_count} failed records for resync (last 7 days only)")
         
         # Call the Discord bot API to force a full sync
         discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"

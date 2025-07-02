@@ -444,6 +444,8 @@ class Player(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     user = db.relationship('User', back_populates='player')
     availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
+    attendance_stats = db.relationship('PlayerAttendanceStats', back_populates='player', uselist=False, cascade="all, delete-orphan")
+    image_cache = db.relationship('PlayerImageCache', back_populates='player', uselist=False, cascade="all, delete-orphan")
     notes = db.Column(db.Text, nullable=True)
     is_current_player = db.Column(db.Boolean, default=False)
     profile_picture_url = db.Column(db.String(255), nullable=True)
@@ -914,6 +916,175 @@ class Availability(db.Model):
             'discord_id': self.discord_id,
             'response': self.response,
             'responded_at': self.responded_at.isoformat() if self.responded_at else None,
+        }
+
+
+class PlayerAttendanceStats(db.Model):
+    """Cached attendance statistics for fast lookups during drafts and player evaluations."""
+    __tablename__ = 'player_attendance_stats'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False, unique=True)
+    
+    # Raw counts
+    total_matches_invited = db.Column(db.Integer, default=0, nullable=False)
+    total_responses = db.Column(db.Integer, default=0, nullable=False)
+    yes_responses = db.Column(db.Integer, default=0, nullable=False)
+    no_responses = db.Column(db.Integer, default=0, nullable=False)
+    maybe_responses = db.Column(db.Integer, default=0, nullable=False)
+    no_response_count = db.Column(db.Integer, default=0, nullable=False)
+    
+    # Calculated percentages (stored for fast access)
+    response_rate = db.Column(db.Float, default=0.0, nullable=False)  # % of times they respond
+    attendance_rate = db.Column(db.Float, default=0.0, nullable=False)  # % of times they say yes
+    adjusted_attendance_rate = db.Column(db.Float, default=0.0, nullable=False)  # yes + (maybe * 0.5)
+    reliability_score = db.Column(db.Float, default=0.0, nullable=False)  # composite score
+    
+    # Season-specific tracking
+    current_season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    season_matches_invited = db.Column(db.Integer, default=0, nullable=False)
+    season_yes_responses = db.Column(db.Integer, default=0, nullable=False)
+    season_attendance_rate = db.Column(db.Float, default=0.0, nullable=False)
+    
+    # Metadata
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_match_date = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    player = db.relationship('Player', back_populates='attendance_stats')
+    season = db.relationship('Season')
+    
+    @classmethod
+    def get_or_create(cls, player_id, season_id=None):
+        """Get existing stats or create new record for player."""
+        stats = cls.query.filter_by(player_id=player_id).first()
+        if not stats:
+            stats = cls(player_id=player_id, current_season_id=season_id)
+            db.session.add(stats)
+        return stats
+    
+    def update_stats(self, session=None):
+        """Recalculate all statistics from availability data."""
+        if session is None:
+            session = db.session
+            
+        # Get all availability records for this player
+        availability_records = session.query(Availability).filter_by(player_id=self.player_id).all()
+        
+        # Reset counters
+        self.total_matches_invited = len(availability_records)
+        self.total_responses = 0
+        self.yes_responses = 0
+        self.no_responses = 0
+        self.maybe_responses = 0
+        self.no_response_count = 0
+        
+        # Count responses
+        for record in availability_records:
+            response = (record.response or '').lower()
+            if response in ['yes', 'no', 'maybe']:
+                self.total_responses += 1
+                if response == 'yes':
+                    self.yes_responses += 1
+                elif response == 'no':
+                    self.no_responses += 1
+                elif response == 'maybe':
+                    self.maybe_responses += 1
+            else:
+                self.no_response_count += 1
+        
+        # Calculate percentages
+        if self.total_matches_invited > 0:
+            self.response_rate = (self.total_responses / self.total_matches_invited) * 100
+            self.attendance_rate = (self.yes_responses / self.total_matches_invited) * 100
+            self.adjusted_attendance_rate = ((self.yes_responses + (self.maybe_responses * 0.5)) / self.total_matches_invited) * 100
+            
+            # Reliability score weights response rate and attendance
+            if self.total_matches_invited >= 5:  # Established players
+                self.reliability_score = (self.response_rate * 0.3) + (self.adjusted_attendance_rate * 0.7)
+            else:  # New players
+                self.reliability_score = (self.response_rate * 0.5) + (self.adjusted_attendance_rate * 0.5)
+        else:
+            self.response_rate = 0.0
+            self.attendance_rate = 0.0
+            self.adjusted_attendance_rate = 0.0
+            self.reliability_score = 0.0
+        
+        # Update season-specific stats if season is set
+        if self.current_season_id:
+            self._update_season_stats(session)
+        
+        self.last_updated = datetime.utcnow()
+        
+    def _update_season_stats(self, session):
+        """Update current season statistics."""
+        # Get availability records for current season
+        season_records = session.query(Availability).join(Match).join(Schedule).filter(
+            Availability.player_id == self.player_id,
+            Schedule.season_id == self.current_season_id
+        ).all()
+        
+        self.season_matches_invited = len(season_records)
+        self.season_yes_responses = sum(1 for r in season_records if (r.response or '').lower() == 'yes')
+        
+        if self.season_matches_invited > 0:
+            self.season_attendance_rate = (self.season_yes_responses / self.season_matches_invited) * 100
+        else:
+            self.season_attendance_rate = 0.0
+    
+    def to_dict(self):
+        return {
+            'player_id': self.player_id,
+            'total_matches_invited': self.total_matches_invited,
+            'response_rate': round(self.response_rate, 1),
+            'attendance_rate': round(self.attendance_rate, 1),
+            'adjusted_attendance_rate': round(self.adjusted_attendance_rate, 1),
+            'reliability_score': round(self.reliability_score, 1),
+            'season_attendance_rate': round(self.season_attendance_rate, 1),
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None
+        }
+
+
+class PlayerImageCache(db.Model):
+    """Cached and optimized player profile images for fast loading."""
+    __tablename__ = 'player_image_cache'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False, unique=True)
+    
+    # Image URLs
+    original_url = db.Column(db.String(500))
+    cached_url = db.Column(db.String(500))
+    thumbnail_url = db.Column(db.String(500))
+    webp_url = db.Column(db.String(500))
+    
+    # Image properties
+    file_size = db.Column(db.Integer, default=0)
+    width = db.Column(db.Integer, default=0)
+    height = db.Column(db.Integer, default=0)
+    format = db.Column(db.String(10), default='jpg')
+    
+    # Cache management
+    cache_status = db.Column(db.String(20), default='pending')  # pending, processing, ready, failed
+    last_cached = db.Column(db.DateTime, default=datetime.utcnow)
+    cache_expiry = db.Column(db.DateTime)
+    
+    # Performance optimization
+    is_optimized = db.Column(db.Boolean, default=False)
+    optimization_level = db.Column(db.Integer, default=1)  # 1=basic, 2=medium, 3=aggressive
+    
+    # Relationships
+    player = db.relationship('Player', back_populates='image_cache')
+    
+    def to_dict(self):
+        return {
+            'player_id': self.player_id,
+            'thumbnail_url': self.thumbnail_url,
+            'cached_url': self.cached_url,
+            'webp_url': self.webp_url,
+            'is_optimized': self.is_optimized,
+            'file_size': self.file_size,
+            'cache_status': self.cache_status
         }
 
 

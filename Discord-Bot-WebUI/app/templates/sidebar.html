@@ -115,18 +115,18 @@
                 <div>Draft</div>
             </a>
             <ul class="menu-sub">
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_classic' }}">
-                    <a class="menu-link" href="{{ url_for('draft.draft_classic') }}">
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'classic' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='classic') }}">
                         <div>Classic Division</div>
                     </a>
                 </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_premier' }}">
-                    <a class="menu-link" href="{{ url_for('draft.draft_premier') }}">
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'premier' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='premier') }}">
                         <div>Premier Division</div>
                     </a>
                 </li>
-                <li class="menu-item {{ 'active' if request.endpoint == 'draft.draft_ecs_fc' }}">
-                    <a class="menu-link" href="{{ url_for('draft.draft_ecs_fc') }}">
+                <li class="menu-item {{ 'active' if request.endpoint == 'draft_enhanced.draft_league' and 'ecs_fc' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('draft_enhanced.draft_league', league_name='ecs_fc') }}">
                         <div>ECS FC Division</div>
                     </a>
                 </li>
