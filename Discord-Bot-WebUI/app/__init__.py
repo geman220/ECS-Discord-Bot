@@ -34,6 +34,7 @@ from app.utils.user_helpers import safe_current_user
 from app.models import User, Role, Season
 from app.lifecycle import request_lifecycle
 from app.alert_helpers import show_success, show_error, show_warning, show_info
+from app.utils.display_helpers import format_position_name, format_field_name
 from app.db_management import db_manager
 from app.database.config import configure_db_settings
 
@@ -380,6 +381,31 @@ def create_app(config_object='web_config.Config'):
             finally:
                 session.close()
             return dict(current_pub_league_season=season)
+
+    # Register template filter and global functions for display formatting
+    @app.template_filter('format_position')
+    def format_position_filter(position):
+        """
+        Template filter to format position names for display.
+        Usage in templates: {{ player.favorite_position|format_position }}
+        """
+        return format_position_name(position)
+    
+    @app.template_global()
+    def format_position(position):
+        """
+        Template global function to format position names for display.
+        Usage in templates: {{ format_position('central_midfielder') }}
+        """
+        return format_position_name(position)
+    
+    @app.template_global()
+    def format_field(field_name):
+        """
+        Template global function to format field names for display.
+        Usage in templates: {{ format_field('favorite_position') }}
+        """
+        return format_field_name(field_name)
 
     @app.teardown_request
     def teardown_request(exception):

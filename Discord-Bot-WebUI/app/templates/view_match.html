@@ -452,7 +452,7 @@
                                 <div class="player-details">
                                     <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
                                     <small class="text-muted d-block text-truncate">
-                                        {% if player.favorite_position %}Position: {{ player.favorite_position }}{% endif %}
+                                        {% if player.favorite_position %}Position: {{ format_position(player.favorite_position) }}{% endif %}
                                     </small>
                                 </div>
                             </a>
@@ -561,7 +561,7 @@
                                 <div class="player-details">
                                     <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
                                     <small class="text-muted d-block text-truncate">
-                                        {% if player.favorite_position %}Position: {{ player.favorite_position }}{% endif %}
+                                        {% if player.favorite_position %}Position: {{ format_position(player.favorite_position) }}{% endif %}
                                     </small>
                                 </div>
                             </a>

@@ -422,7 +422,7 @@
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label for="favorite_position" class="form-label">{{ form.favorite_position.label.text }}</label>
-                                                <div class="view-mode">{{ player.favorite_position }}</div>
+                                                <div class="view-mode">{{ format_position(player.favorite_position) }}</div>
                                                 <div class="edit-mode d-none">
                                                     {{ form.favorite_position(class_="form-select select2", id="favorite_position", required=True) }}
                                                 </div>
@@ -450,9 +450,11 @@
                                                 <div class="view-mode">
                                                     {% if player.other_positions %}
                                                     {% if player.other_positions is string %}
-                                                    {{ player.other_positions }}
+                                                    {{ format_position(player.other_positions) }}
                                                     {% else %}
-                                                    {{ player.other_positions|join(', ') }}
+                                                    {% for position in player.other_positions %}
+                                                        {{ format_position(position) }}{% if not loop.last %}, {% endif %}
+                                                    {% endfor %}
                                                     {% endif %}
                                                     {% else %}
                                                     <span class="text-muted">None selected</span>
@@ -469,9 +471,11 @@
                                                 <div class="view-mode">
                                                     {% if player.positions_not_to_play %}
                                                     {% if player.positions_not_to_play is string %}
-                                                    {{ player.positions_not_to_play }}
+                                                    {{ format_position(player.positions_not_to_play) }}
                                                     {% else %}
-                                                    {{ player.positions_not_to_play|join(', ') }}
+                                                    {% for position in player.positions_not_to_play %}
+                                                        {{ format_position(position) }}{% if not loop.last %}, {% endif %}
+                                                    {% endfor %}
                                                     {% endif %}
                                                     {% else %}
                                                     <span class="text-muted">None selected</span>
@@ -663,7 +667,7 @@
                                                         </div>
                                                         <div>
                                                             <h6 class="mb-0">Favorite Position</h6>
-                                                            <span>{{ player.favorite_position }}</span>
+                                                            <span>{{ format_position(player.favorite_position) }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -688,9 +692,11 @@
                                                             <span>
                                                                 {% if player.other_positions %}
                                                                 {% if player.other_positions is string %}
-                                                                {{ player.other_positions }}
+                                                                {{ format_position(player.other_positions) }}
                                                                 {% else %}
-                                                                {{ player.other_positions|join(', ') }}
+                                                                {% for position in player.other_positions %}
+                                                                    {{ format_position(position) }}{% if not loop.last %}, {% endif %}
+                                                                {% endfor %}
                                                                 {% endif %}
                                                                 {% else %}
                                                                 <span class="text-muted">None selected</span>
@@ -709,9 +715,11 @@
                                                             <span>
                                                                 {% if player.positions_not_to_play %}
                                                                 {% if player.positions_not_to_play is string %}
-                                                                {{ player.positions_not_to_play }}
+                                                                {{ format_position(player.positions_not_to_play) }}
                                                                 {% else %}
-                                                                {{ player.positions_not_to_play|join(', ') }}
+                                                                {% for position in player.positions_not_to_play %}
+                                                                    {{ format_position(position) }}{% if not loop.last %}, {% endif %}
+                                                                {% endfor %}
                                                                 {% endif %}
                                                                 {% else %}
                                                                 <span class="text-muted">None selected</span>

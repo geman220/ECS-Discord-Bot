@@ -3,6 +3,12 @@
  * Clean implementation matching ECS UI patterns
  */
 
+// Global utility function for formatting position names
+function formatPosition(position) {
+    if (!position) return position;
+    return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 class DraftSystemV2 {
     constructor(leagueName) {
         this.leagueName = leagueName;
@@ -609,7 +615,7 @@ class DraftSystemV2 {
                         <div class="flex-grow-1 min-width-0">
                             <div class="fw-semibold text-truncate small">${player.name}</div>
                             <div class="text-muted" style="font-size: 0.75rem;">
-                                ${player.favorite_position || 'Any'}
+                                ${formatPosition(player.favorite_position) || 'Any'}
                             </div>
                         </div>
                         <button class="btn btn-outline-danger btn-sm p-1" 
@@ -678,7 +684,7 @@ class DraftSystemV2 {
         
         const profilePictureUrl = player.profile_picture_url || '/static/img/default_player.png';
         const experienceLevel = player.experience_level || player.league_experience_seasons || 'Unknown';
-        const position = player.favorite_position || player.position || 'Any';
+        const position = formatPosition(player.favorite_position || player.position) || 'Any';
         
         // Get enhanced player data
         const mediumPictureUrl = player.profile_picture_medium || player.profile_picture_webp || profilePictureUrl;
@@ -918,7 +924,7 @@ class DraftSystemV2 {
                     <h4 class="fw-bold mb-2">${player.name}</h4>
                     <div class="mb-3">
                         ${player.favorite_position ? 
-                            `<span class="badge badge-position">${player.favorite_position}</span>` 
+                            `<span class="badge badge-position">${formatPosition(player.favorite_position)}</span>` 
                             : ''
                         }
                         <span class="badge badge-${player.experience_level === 'Veteran' ? 'veteran' : 

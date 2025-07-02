@@ -3,6 +3,12 @@
  * Optimizes rendering of large player lists by only rendering visible items
  */
 
+// Global utility function for formatting position names
+function formatPosition(position) {
+    if (!position) return position;
+    return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 class VirtualScrolling {
     constructor(containerSelector, itemHeight = 120, bufferItems = 5) {
         this.container = document.querySelector(containerSelector);
@@ -187,7 +193,7 @@ class DraftPlayerVirtualScrolling extends VirtualScrolling {
                         gap: 15px;
                         flex-wrap: wrap;
                     ">
-                        <span class="position">${player.favorite_position || 'Any'}</span>
+                        <span class="position">${formatPosition(player.favorite_position) || 'Any'}</span>
                         <span class="experience">${player.experience_level || 'New'}</span>
                         <span class="attendance">${player.attendance_estimate || 75}% attendance</span>
                     </div>
