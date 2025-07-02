@@ -279,7 +279,7 @@
                                 <!-- Position Badge -->
                                 <div class="mb-2">
                                     {% if player.favorite_position and player.favorite_position != 'Any' %}
-                                    <span class="badge bg-primary rounded-pill">{{ player.favorite_position }}</span>
+                                    <span class="badge bg-primary rounded-pill">{{ format_position(player.favorite_position) }}</span>
                                     {% else %}
                                     <span class="badge bg-secondary rounded-pill">Any Position</span>
                                     {% endif %}
@@ -432,7 +432,7 @@
                                                             <div class="flex-grow-1 min-width-0">
                                                                 <div class="fw-semibold text-truncate small">{{ player.name }}</div>
                                                                 <div class="text-muted" style="font-size: 0.75rem;">
-                                                                    {{ player.favorite_position or 'Any' }}
+                                                                    {{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}
                                                                 </div>
                                                             </div>
                                                             <button class="btn btn-outline-danger btn-sm p-1" 
@@ -565,6 +565,12 @@
 <script src="{{ url_for('static', filename='js/draft-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
 
 <script>
+// JavaScript version of format_position function
+function formatPosition(position) {
+    if (!position) return position;
+    return position.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 // Initialize the draft system when the page loads
 document.addEventListener('DOMContentLoaded', function() {
     initializeDraftSystem('{{ league_name }}');
@@ -860,7 +866,7 @@ function displayPlayerProfile(data, playerId) {
                      style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
                      onerror="this.src='/static/img/default_player.png';">
                 <h4 class="fw-bold mb-1" style="color: var(--ecs-neutral-20);">${data.name}</h4>
-                <p class="mb-2" style="color: var(--ecs-neutral-50);">${data.favorite_position || 'Any Position'}</p>
+                <p class="mb-2" style="color: var(--ecs-neutral-50);">${formatPosition(data.favorite_position) || 'Any Position'}</p>
                 
                 <!-- Career Stats Row -->
                 <div class="row text-center mb-4">
@@ -892,12 +898,12 @@ function displayPlayerProfile(data, playerId) {
                     <div class="col-md-6">
                         <div class="mb-2">
                             <strong style="color: var(--ecs-neutral-30);">Preferred Position:</strong> 
-                            <span class="badge bg-primary ms-1">${data.favorite_position || 'Any'}</span>
+                            <span class="badge bg-primary ms-1">${formatPosition(data.favorite_position) || 'Any'}</span>
                         </div>
                         ${data.other_positions ? `
                         <div class="mb-2">
                             <strong style="color: var(--ecs-neutral-30);">Other Positions:</strong> 
-                            <small style="color: var(--ecs-neutral-50);">${data.other_positions}</small>
+                            <small style="color: var(--ecs-neutral-50);">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => formatPosition(pos)).join(', ') : data.other_positions}</small>
                         </div>
                         ` : ''}
                         ${data.positions_to_avoid ? `
