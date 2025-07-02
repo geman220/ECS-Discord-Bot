@@ -17,8 +17,9 @@ import logging
 
 # Third-party imports
 from flask import (
-    Blueprint, render_template, redirect, url_for, flash, request, g, jsonify, abort
+    Blueprint, render_template, redirect, url_for, request, g, jsonify, abort
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
 
 # Local application imports
@@ -491,7 +492,7 @@ def schedule_wizard(season_id):
                     Team.name == special_team_name
                 ).first()
                 if not special_team:
-                    flash(f"Error: No special team named {special_team_name} found in DB", "danger")
+                    show_error(f"Error: No special team named {special_team_name} found in DB")
                     return redirect(url_for('schedule.schedule_wizard', season_id=season.id))
 
                 placeholders = []
@@ -527,7 +528,7 @@ def schedule_wizard(season_id):
                     if objects:
                         manager.session.commit()
 
-                flash(f"{special_team_name} placeholders created for {len(placeholders)} matches!", "success")
+                show_success(f"{special_team_name} placeholders created for {len(placeholders)} matches!")
                 return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
 
             timeslot_list = []
@@ -550,7 +551,7 @@ def schedule_wizard(season_id):
 
         elif wizard_step == 'step2':
             create_schedule_from_placeholders(request.form, manager, league_id=league_id)
-            flash("Matches created successfully!", "success")
+            show_success("Matches created successfully!")
             return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
 
     return render_template(

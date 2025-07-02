@@ -12,7 +12,8 @@ Flask-WTF for forms, and custom helper functions for SMS, 2FA, and Discord integ
 import qrcode
 import base64
 from io import BytesIO
-from flask import send_file, Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify, session, g
+from flask import send_file, Blueprint, render_template, redirect, url_for, request, current_app, jsonify, session, g
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required, current_user
 from app import csrf
 from app.core import db
@@ -187,9 +188,9 @@ def update_notifications():
         user.email_notifications = form.email_notifications.data
         user.discord_notifications = form.discord_notifications.data
         user.profile_visibility = form.profile_visibility.data
-        flash('Notification settings updated successfully.', 'success')
+        show_success('Notification settings updated successfully.')
     else:
-        flash('Error updating notification settings.', 'danger')
+        show_error('Error updating notification settings.')
     return redirect(url_for('account.settings'))
 
 
@@ -209,13 +210,13 @@ def change_password():
     if form.validate_on_submit():
         if check_password_hash(user.password_hash, form.current_password.data):
             user.password_hash = generate_password_hash(form.new_password.data)
-            flash('Your password has been updated successfully.', 'success')
+            show_success('Your password has been updated successfully.')
         else:
-            flash('Current password is incorrect.', 'danger')
+            show_error('Current password is incorrect.')
     else:
         for field, errors in form.errors.items():
             for error in errors:
-                flash(f"{field.capitalize()}: {error}", 'danger')
+                show_error(f"{field.capitalize()}: {error}")
     return redirect(url_for('account.settings'))
 
 
@@ -236,7 +237,7 @@ def update_account_info():
     if user.player:
         user.player.name = form.get('name')
         user.player.phone = form.get('phone')
-    flash('Account information updated successfully', 'success')
+    show_success('Account information updated successfully')
     return redirect(url_for('account.settings'))
 
 
@@ -313,7 +314,7 @@ def confirm_sms_opt_in():
         user.sms_notifications = True
         if user.player:
             user.player.is_phone_verified = True
-        flash('SMS notifications enabled successfully.', 'success')
+        show_success('SMS notifications enabled successfully.')
         return jsonify(success=True, message="SMS notifications enabled successfully.")
     else:
         return jsonify(success=False, message="Invalid verification code."), 400
@@ -334,7 +335,7 @@ def opt_out_sms():
     user.sms_notifications = False
     if user.player:
         user.player.sms_opt_out_timestamp = datetime.utcnow()
-    flash('SMS notifications disabled successfully.', 'success')
+    show_success('SMS notifications disabled successfully.')
     return jsonify(success=True, message="You have successfully opted-out of SMS notifications.")
 
 
@@ -388,7 +389,7 @@ def enable_2fa():
         totp = pyotp.TOTP(current_user.totp_secret)
         if totp.verify(code):
             current_user.is_2fa_enabled = True
-            flash('2FA enabled successfully.', 'success')
+            show_success('2FA enabled successfully.')
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'message': 'Invalid verification code'}), 400
@@ -411,9 +412,9 @@ def disable_2fa():
         if user.is_2fa_enabled:
             user.is_2fa_enabled = False
             user.totp_secret = None
-            flash('Two-Factor Authentication has been disabled.', 'success')
+            show_success('Two-Factor Authentication has been disabled.')
         else:
-            flash('Two-Factor Authentication is not currently enabled.', 'warning')
+            show_warning('Two-Factor Authentication is not currently enabled.')
     return redirect(url_for('account.settings'))
 
 
@@ -446,11 +447,11 @@ def discord_callback():
     user = session.query(User).get(current_user.id)
     code = request.args.get('code')
     if not code:
-        flash('Discord linking failed. Please try again.', 'danger')
+        show_error('Discord linking failed. Please try again.')
         return redirect(url_for('account.settings'))
 
     if not user.player:
-        flash('Unable to link Discord account. Player profile not found.', 'danger')
+        show_error('Unable to link Discord account. Player profile not found.')
         return redirect(url_for('account.settings'))
 
     success, error = link_discord_account(
@@ -462,9 +463,9 @@ def discord_callback():
     )
 
     if success:
-        flash('Your Discord account has been successfully linked.', 'success')
+        show_success('Your Discord account has been successfully linked.')
     else:
-        flash(f'Failed to link Discord account: {error}', 'danger')
+        show_error(f'Failed to link Discord account: {error}')
     return redirect(url_for('account.settings'))
 
 
@@ -482,9 +483,9 @@ def unlink_discord():
 
     if user.player and user.player.discord_id:
         user.player.discord_id = None
-        flash('Your Discord account has been unlinked successfully.', 'success')
+        show_success('Your Discord account has been unlinked successfully.')
     else:
-        flash('No Discord account is currently linked.', 'info')
+        show_info('No Discord account is currently linked.')
     return redirect(url_for('account.settings'))
 
 

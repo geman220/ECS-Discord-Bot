@@ -19,7 +19,7 @@ import pytz
 from dateutil import parser
 from flask import (
     Blueprint, render_template, redirect, url_for, request,
-    jsonify, current_app, flash, g
+    jsonify, current_app, g
 )
 from flask_login import login_required
 
@@ -28,6 +28,7 @@ from app.core import celery
 from app.tasks.tasks_live_reporting import (
     start_live_reporting, force_create_mls_thread_task
 )
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_utils import load_match_dates_from_db, insert_mls_match, update_mls_match
 from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
 from app.decorators import role_required
@@ -237,22 +238,22 @@ def add_mls_match():
                     session_db.flush()
                     if not match:
                         logger.error("Failed to create match record")
-                        flash("Failed to create match record", "error")
+                        show_error("Failed to create match record")
                         return redirect(url_for('bot_admin.matches'))
 
                     scheduler = get_scheduler()
                     scheduler_result = scheduler.schedule_match_tasks(match.id)
                     if not scheduler_result.get('success'):
                         logger.error(f"Failed to schedule match tasks: {scheduler_result.get('message')}")
-                        flash(f"Match added but scheduling failed: {scheduler_result.get('message')}", "warning")
+                        show_warning(f"Match added but scheduling failed: {scheduler_result.get('message')}")
                     else:
                         logger.info(f"Successfully scheduled match tasks for match {match.id}")
-                        flash("Match added and scheduled successfully", "success")
+                        show_success("Match added and scheduled successfully")
                     return redirect(url_for('bot_admin.matches'))
 
                 except Exception as e:
                     logger.error(f"Error processing match: {str(e)}", exc_info=True)
-                    flash(f"Error processing match: {str(e)}", "error")
+                    show_error(f"Error processing match: {str(e)}")
                     return redirect(url_for('bot_admin.matches'))
 
         logger.warning("No Sounders match found in the event data")

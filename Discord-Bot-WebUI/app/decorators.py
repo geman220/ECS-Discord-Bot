@@ -18,13 +18,14 @@ from contextlib import asynccontextmanager
 from inspect import getouterframes, currentframe
 
 from flask import (
-    flash, redirect, url_for, abort, jsonify,
+    redirect, url_for, abort, jsonify,
     current_app, has_app_context, g
 )
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from app.core import celery
 from app.utils.user_helpers import safe_current_user
+from app.alert_helpers import show_success, show_error, show_warning, show_info
 
 logger = logging.getLogger(__name__)
 
@@ -99,19 +100,19 @@ def role_required(roles):
         def decorated_function(*args, **kwargs):
             user = safe_current_user
             if not user or not user.is_authenticated:
-                flash('Please log in to access this page.', 'warning')
+                show_warning('Please log in to access this page.')
                 return redirect(url_for('auth.login'))
 
             session = getattr(g, 'db_session', None)
             if session is None:
-                flash('Database session not available.', 'danger')
+                show_error('Database session not available.')
                 return redirect(url_for('auth.login'))
 
             # Merge user to refresh role data
             user = session.merge(user)
             user_roles = [role.name for role in user.roles]
             if not any(role in user_roles for role in roles):
-                flash(f'Access denied: Required roles: {", ".join(roles)}', 'danger')
+                show_error(f'Access denied: Required roles: {", ".join(roles)}')
                 return abort(403)
 
             return f(*args, **kwargs)
@@ -140,17 +141,17 @@ def permission_required(permission_name):
         def decorated_function(*args, **kwargs):
             user = safe_current_user
             if not user or not user.is_authenticated:
-                flash('Please log in to access this page.', 'warning')
+                show_warning('Please log in to access this page.')
                 return redirect(url_for('auth.login'))
 
             session = getattr(g, 'db_session', None)
             if session is None:
-                flash('Database session not available.', 'danger')
+                show_error('Database session not available.')
                 return redirect(url_for('auth.login'))
 
             user = session.merge(user)
             if not user.has_permission(permission_name):
-                flash(f'Access denied: {permission_name} permission required.', 'danger')
+                show_error(f'Access denied: {permission_name} permission required.')
                 return abort(403)
 
             return f(*args, **kwargs)
@@ -178,7 +179,7 @@ def admin_or_owner_required(func):
 
         player_id = kwargs.get('player_id')
         if not player_id:
-            flash('Invalid access: player_id missing.', 'danger')
+            show_error('Invalid access: player_id missing.')
             return abort(400)
 
         session = getattr(g, 'db_session', None)
@@ -188,7 +189,7 @@ def admin_or_owner_required(func):
 
         player = session.query(Player).get(player_id)
         if not player:
-            flash('Player not found.', 'danger')
+            show_error('Player not found.')
             return abort(404)
 
         admin_roles = ['Global Admin', 'Pub League Admin']
@@ -199,7 +200,7 @@ def admin_or_owner_required(func):
         is_owner = (user.id == player.user_id)
 
         if not (is_admin or is_owner):
-            flash('Access denied: You do not have permission to perform this action.', 'danger')
+            show_error('Access denied: You do not have permission to perform this action.')
             return abort(403)
 
         return func(*args, **kwargs)

@@ -9,7 +9,8 @@ and updating season and career statistics.
 """
 
 import logging
-from flask import flash, request, redirect, url_for, g
+from flask import request, redirect, url_for, g
+from app.alert_helpers import show_success, show_error
 from app.models import User
 from app.utils.user_helpers import safe_current_user
 from app.tasks.tasks_discord import assign_roles_to_player_task
@@ -85,11 +86,11 @@ def handle_coach_status_update(player, user):
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 
         logger.info(f"{player.name}'s coach status updated successfully to {is_coach}")
-        flash(f"{player.name}'s coach status updated successfully.", 'success')
+        show_success(f"{player.name}'s coach status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating coach status: {str(e)}", exc_info=True)
-        flash('Error updating coach status.', 'danger')
+        show_error('Error updating coach status.')
         raise
 
 
@@ -126,11 +127,11 @@ def handle_ref_status_update(player, user):
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 
         logger.info(f"{player.name}'s referee status updated successfully.")
-        flash(f"{player.name}'s referee status updated successfully.", 'success')
+        show_success(f"{player.name}'s referee status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
-        flash('Error updating referee status.', 'danger')
+        show_error('Error updating referee status.')
         raise
 
 
@@ -160,7 +161,7 @@ def handle_profile_update(form, player, user):
             logger.debug("Email not unique. Aborting update.")
             return redirect(url_for('players.player_profile', player_id=player.id))
 
-        new_email = form.email.data.lower()
+        new_email = form.email.data.lower() if form.email.data else None
         logger.debug(f"Updating user.email from {user.email} to {new_email}")
         user.email = new_email
         player.email = new_email
@@ -186,12 +187,15 @@ def handle_profile_update(form, player, user):
             player.team_swap = form.team_swap.data if form.team_swap.data else None
             logger.debug(f"Set player.team_swap to {player.team_swap}")
 
-        flash('Profile updated successfully.', 'success')
+        session = g.db_session
+        session.commit()
+
+        show_success('Profile updated successfully.')
         logger.info(f"Profile for player {player.id} updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}", exc_info=True)
-        flash('Error updating profile.', 'danger')
+        show_error('Error updating profile.')
         raise
 
 
@@ -212,13 +216,13 @@ def check_email_uniqueness(email, user_id):
         existing_user = session.query(User).filter(User.email == email, User.id != user_id).first()
         if existing_user:
             logger.warning(f"Email {email} already in use by user {existing_user.id}.")
-            flash('Email is already in use by another account.', 'danger')
+            show_error('Email is already in use by another account.')
             return True
         logger.debug(f"Email {email} is unique.")
         return False
     except Exception as e:
         logger.error(f"Error checking email uniqueness: {str(e)}", exc_info=True)
-        flash('Error checking email availability.', 'danger')
+        show_error('Error checking email availability.')
         return True
 
 
@@ -251,11 +255,11 @@ def handle_season_stats_update(player, form, season_id):
 
         player.update_season_stats(season_id, stats_changes, user_id=safe_current_user.id)
         logger.info(f"Season stats updated successfully for player {player.id} in season {season_id}")
-        flash('Season stats updated successfully.', 'success')
+        show_success('Season stats updated successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating season stats: {str(e)}", exc_info=True)
-        flash('Error updating season stats.', 'danger')
+        show_error('Error updating season stats.')
         raise
 
 
@@ -281,11 +285,11 @@ def handle_career_stats_update(player, form):
 
         form.populate_obj(player.career_stats[0])
         logger.info(f"Career stats updated successfully for player {player.id}")
-        flash('Career stats updated successfully.', 'success')
+        show_success('Career stats updated successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating career stats: {str(e)}", exc_info=True)
-        flash('Error updating career stats.', 'danger')
+        show_error('Error updating career stats.')
         raise
 
 
@@ -313,11 +317,11 @@ def handle_admin_notes_update(player, form):
         session.commit()
         
         logger.info(f"Admin notes for player {player.id} updated successfully.")
-        flash('Admin notes updated successfully.', 'success')
+        show_success('Admin notes updated successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         logger.error(f"Error updating admin notes: {str(e)}", exc_info=True)
-        flash('Error updating admin notes.', 'danger')
+        show_error('Error updating admin notes.')
         raise
 
 
@@ -354,13 +358,13 @@ def handle_add_stat_manually(player):
 
         player.add_stat_manually(new_stat_data, user_id=safe_current_user.id)
         logger.info(f"Stat added successfully for player {player.id} in match {match_id}")
-        flash('Stat added successfully.', 'success')
+        show_success('Stat added successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except ValueError as e:
         logger.error(f"Invalid input for stats: {str(e)}", exc_info=True)
-        flash('Invalid input for stats. Please enter valid numbers.', 'danger')
+        show_error('Invalid input for stats. Please enter valid numbers.')
         raise
     except Exception as e:
         logger.error(f"Error adding stats: {str(e)}", exc_info=True)
-        flash('Error adding stats.', 'danger')
+        show_error('Error adding stats.')
         raise
