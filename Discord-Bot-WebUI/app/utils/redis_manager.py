@@ -85,6 +85,8 @@ class RedisManager:
                 redis_host = os.getenv('REDIS_HOST', 'redis')
                 redis_port = int(os.getenv('REDIS_PORT', '6379'))
                 redis_db = int(os.getenv('REDIS_DB', '0'))
+                
+                logger.debug(f"Attempting Redis connection to {redis_host}:{redis_port}/{redis_db}")
 
                 # Create a Redis connection pool with optimized settings compatible with installed version
                 from redis import ConnectionPool
@@ -236,3 +238,15 @@ class RedisManager:
                     logger.warning(f"Redis connection pool nearing capacity: {in_use}/{max_conn} connections in use")
         
         return stats
+
+
+# Global function to get Redis connection
+def get_redis_connection():
+    """
+    Get a Redis connection using the singleton RedisManager.
+    
+    Returns:
+        Redis: A Redis client instance
+    """
+    manager = RedisManager()
+    return manager.client
