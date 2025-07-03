@@ -34,7 +34,7 @@ from app.models import (
     PlayerSeasonStats, player_teams
 )
 from app.forms import ReportMatchForm
-from app.teams_helpers import populate_team_stats, update_standings, process_events
+from app.teams_helpers import populate_team_stats, update_standings, process_events, process_own_goals
 from app.utils.user_helpers import safe_current_user
 from app.decorators import role_required
 
@@ -381,6 +381,21 @@ def report_match(match_id):
                     }
                     for ev in events
                 ]
+            
+            # Get own goals separately since they don't have a player_id
+            own_goals = (
+                session.query(PlayerEvent)
+                .filter_by(match_id=match.id, event_type=PlayerEventType.OWN_GOAL)
+                .all()
+            )
+            data['own_goals'] = [
+                {
+                    'id': ev.id,
+                    'team_id': ev.team_id,
+                    'minute': ev.minute or ''
+                }
+                for ev in own_goals
+            ]
 
             logger.debug(f"Returning match data: {data}")
             return jsonify(data), 200
@@ -414,6 +429,9 @@ def report_match(match_id):
         process_events(session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
         process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
         process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
+        
+        # Process own goals for the match
+        process_own_goals(session, match, data, 'own_goals_to_add', 'own_goals_to_remove')
 
         # Handle team verification
         current_user_id = safe_current_user.id
@@ -781,6 +799,29 @@ def season_overview():
     classic_all_goal_scorers = get_all_goal_scorers(season.id, 'Classic')
     classic_all_assist_providers = get_all_assist_providers(season.id, 'Classic')
     
+    # Get own goal statistics for the season
+    def get_own_goal_stats(season_id, league_name=None):
+        query = (
+            session.query(func.count(PlayerEvent.id).label('total_own_goals'))
+            .join(Team, PlayerEvent.team_id == Team.id)
+            .join(League, Team.league_id == League.id)
+            .filter(
+                PlayerEvent.event_type == PlayerEventType.OWN_GOAL,
+                League.season_id == season_id
+            )
+        )
+        
+        if league_name:
+            query = query.filter(League.name == league_name)
+            
+        result = query.first()
+        return result.total_own_goals if result else 0
+    
+    # Get own goal counts
+    total_own_goals = get_own_goal_stats(season.id)
+    premier_own_goals = get_own_goal_stats(season.id, 'Premier')
+    classic_own_goals = get_own_goal_stats(season.id, 'Classic')
+    
     # Populate team stats for the template
     premier_team_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
     classic_team_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
@@ -806,7 +847,10 @@ def season_overview():
         premier_all_goal_scorers=premier_all_goal_scorers,
         premier_all_assist_providers=premier_all_assist_providers,
         classic_all_goal_scorers=classic_all_goal_scorers,
-        classic_all_assist_providers=classic_all_assist_providers
+        classic_all_assist_providers=classic_all_assist_providers,
+        total_own_goals=total_own_goals,
+        premier_own_goals=premier_own_goals,
+        classic_own_goals=classic_own_goals
     )
 
 @teams_bp.route('/upload_team_kit/<int:team_id>', methods=['POST'])
@@ -858,6 +902,53 @@ def upload_team_kit(team_id):
         session.commit()
         
         show_success('Team kit updated successfully!')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    else:
+        show_error('Invalid file type. Allowed types: png, jpg, jpeg, gif.')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+
+
+@teams_bp.route('/upload_team_background/<int:team_id>', methods=['POST'])
+@login_required
+def upload_team_background(team_id):
+    session = g.db_session
+    team = session.query(Team).get(team_id)
+    if not team:
+        show_error('Team not found.')
+        return redirect(url_for('teams.teams_overview'))
+    
+    if 'team_background' not in request.files:
+        show_error('No file part in the request.')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    
+    file = request.files['team_background']
+    if file.filename == '':
+        show_error('No file selected.')
+        return redirect(url_for('teams.team_details', team_id=team_id))
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'backgrounds')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        
+        image = Image.open(file).convert("RGB")
+        
+        # Resize and optimize for background use
+        # Scale to reasonable dimensions while maintaining aspect ratio
+        max_width = 1200
+        max_height = 600
+        image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+        
+        # Save with optimization
+        image.save(file_path, format='JPEG', optimize=True, quality=85)
+        
+        # Append a timestamp to bust the cache
+        timestamp = int(time.time())
+        team.background_image_url = url_for('static', filename='img/uploads/backgrounds/' + filename) + f'?v={timestamp}'
+        session.commit()
+        
+        show_success('Team background updated successfully!')
         return redirect(url_for('teams.team_details', team_id=team_id))
     else:
         show_error('Invalid file type. Allowed types: png, jpg, jpeg, gif.')

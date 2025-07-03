@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
-        console.log('Button size fix applied to', buttons.length, 'buttons');
+        // console.log('Button size fix applied to', buttons.length, 'buttons');
     }
     
     // Call the fix immediately
@@ -89,12 +89,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         if (buttonsAdded) {
-            console.log('Button size fix applied to dynamically added buttons');
+            // console.log('Button size fix applied to dynamically added buttons');
         }
     });
     
     // Start observing the document with the configured parameters
     observer.observe(document.body, { childList: true, subtree: true });
     
-    console.log('Button size fix script initialized');
+    // console.log('Button size fix script initialized');
 });

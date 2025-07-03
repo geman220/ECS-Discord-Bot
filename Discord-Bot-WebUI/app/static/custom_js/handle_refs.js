@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const calendarEl = document.getElementById('leagueCalendar');
     if (!calendarEl) {
-        console.error('Element with ID "leagueCalendar" not found');
+        // console.error('Element with ID "leagueCalendar" not found');
         return;
     }
 
@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 refList.appendChild(li);
             });
         } catch (error) {
-            console.error('Error fetching referees:', error);
+            // console.error('Error fetching referees:', error);
         }
     }
 
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             calendar.addEventSource(data.events);
             updateQuickStats(data.stats);
         } catch (error) {
-            console.error('Error loading events:', error);
+            // console.error('Error loading events:', error);
         }
     }
 
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchAvailableReferees(calendar.getDate());
             }, 1000);
         } catch (error) {
-            console.error('Error removing referee:', error);
+            // console.error('Error removing referee:', error);
             displayModalFeedback('assignRefFeedback', 'Error removing referee.', 'danger');
         }
     }
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
             refSelect.disabled = false;
             document.getElementById('assignRefButton').disabled = false;
         } catch (error) {
-            console.error('Error fetching referees:', error);
+            // console.error('Error fetching referees:', error);
             displayModalFeedback('assignRefFeedback', `Error fetching referees: ${error.message}`, 'danger');
         }
 
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchAvailableReferees(calendar.getDate());
             }, 1000);
         } catch (error) {
-            console.error('Error assigning referee:', error);
+            // console.error('Error assigning referee:', error);
             displayModalFeedback('assignRefFeedback', 'Error assigning referee.', 'danger');
         }
     }

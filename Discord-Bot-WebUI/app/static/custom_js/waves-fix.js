@@ -11,7 +11,7 @@
         // Wait a bit for Waves to initialize
         setTimeout(function() {
             if (window.Waves) {
-                console.log('Overriding Waves library implementation...');
+                // console.log('Overriding Waves library implementation...');
                 
                 // Create a new implementation of the ripple effect
                 const FixedEffect = {
@@ -105,7 +105,7 @@
                 const originalAttach = window.Waves.attach;
                 window.Waves.attach = function() {
                     const result = originalAttach.apply(this, arguments);
-                    console.log('Waves elements attached with fixed implementation');
+                    // console.log('Waves elements attached with fixed implementation');
                     return result;
                 };
                 
@@ -115,9 +115,9 @@
                     el.style.transition = 'background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out';
                 });
                 
-                console.log('Waves library implementation successfully replaced with fixed version');
+                // console.log('Waves library implementation successfully replaced with fixed version');
             } else {
-                console.log('Waves library not found, cannot apply fix');
+                // console.log('Waves library not found, cannot apply fix');
             }
         }, 100); // Short delay to ensure Waves is loaded
     });

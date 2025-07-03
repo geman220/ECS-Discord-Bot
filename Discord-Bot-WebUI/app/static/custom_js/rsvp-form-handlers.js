@@ -33,7 +33,7 @@ $(document).ready(function() {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
     } catch (e) {
-        console.error("Error initializing tooltips:", e);
+        // console.error("Error initializing tooltips:", e);
     }
     
     // Initialize DataTables
@@ -108,7 +108,7 @@ $(document).ready(function() {
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
     } catch (e) {
-        console.error("Error initializing DataTables:", e);
+        // console.error("Error initializing DataTables:", e);
     }
     
     // Helper function to format phone number
@@ -198,7 +198,7 @@ $(document).ready(function() {
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        // console.error('Error:', error);
                         toastr.error('An error occurred while updating RSVP.');
                     });
                 }
@@ -230,7 +230,7 @@ $(document).ready(function() {
                 }
             });
         } catch (e) {
-            console.error("Error initializing event handlers:", e);
+            // console.error("Error initializing event handlers:", e);
         }
     }
     
@@ -243,7 +243,7 @@ $(document).ready(function() {
             initializeEventHandlers();
         });
     } catch (e) {
-        console.error("Error setting up tab handlers:", e);
+        // console.error("Error setting up tab handlers:", e);
     }
     
     // Form submission handlers
@@ -282,7 +282,7 @@ $(document).ready(function() {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                // console.error('Error:', error);
                 toastr.error('An error occurred while sending SMS.');
             })
             .finally(() => {
@@ -325,7 +325,7 @@ $(document).ready(function() {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                // console.error('Error:', error);
                 toastr.error('An error occurred while sending Discord DM.');
             })
             .finally(() => {
@@ -334,6 +334,6 @@ $(document).ready(function() {
             });
         });
     } catch (e) {
-        console.error("Error setting up form handlers:", e);
+        // console.error("Error setting up form handlers:", e);
     }
 });

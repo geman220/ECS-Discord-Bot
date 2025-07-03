@@ -37,10 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -74,10 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -111,10 +111,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -148,10 +148,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -185,10 +185,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -222,10 +222,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -259,10 +259,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]
@@ -292,10 +292,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (response.ok) {
                                 tourVar.cancel();
                             } else {
-                                console.error('Failed to complete the tour');
+                                // console.error('Failed to complete the tour');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => // console.error('Error:', error));
                 }
             }
         ]

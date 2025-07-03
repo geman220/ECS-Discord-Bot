@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       })
       .catch(error => {
-        console.error('Error syncing with Discord:', error);
+        // Error syncing with Discord
         
         // Reset button state
         syncDiscordButton.disabled = false;
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
         bindTabHandlers();
         
       } catch (e) {
-        console.error("Error initializing RSVP page:", e);
+        // console.error("Error initializing RSVP page:", e);
       }
     });
   }
@@ -211,7 +211,7 @@ function fixDropdownsAndOverflow() {
       containers[j].style.position = 'relative';
     }
   } catch (e) {
-    console.error("Error fixing dropdowns:", e);
+    // console.error("Error fixing dropdowns:", e);
   }
 }
 
@@ -276,7 +276,7 @@ function bindEventHandlers() {
             modal.show();
           }
         } catch (e) {
-          console.error("Error showing SMS modal:", e);
+          // console.error("Error showing SMS modal:", e);
         }
       });
       
@@ -298,7 +298,7 @@ function bindEventHandlers() {
             modal.show();
           }
         } catch (e) {
-          console.error("Error showing Discord modal:", e);
+          // console.error("Error showing Discord modal:", e);
         }
       });
       
@@ -310,7 +310,7 @@ function bindEventHandlers() {
           var response = $(this).data('response') || '';
           
           if (!playerId || !matchId || !response) {
-            console.error("Missing required data for RSVP update");
+            // console.error("Missing required data for RSVP update");
             return;
           }
           
@@ -381,7 +381,7 @@ function bindEventHandlers() {
                 }
               })
               .catch(function(error) {
-                console.error('Error:', error);
+                // console.error('Error:', error);
                 Swal.fire({
                   title: 'Error',
                   text: 'An error occurred while updating RSVP. Please try again.',
@@ -391,7 +391,7 @@ function bindEventHandlers() {
             }
           });
         } catch (e) {
-          console.error("Error handling RSVP update:", e);
+          // console.error("Error handling RSVP update:", e);
         }
       });
       
@@ -407,7 +407,7 @@ function bindEventHandlers() {
             $('#smsCharCount').removeClass('text-danger fw-bold');
           }
         } catch (e) {
-          console.error("Error counting SMS characters:", e);
+          // console.error("Error counting SMS characters:", e);
         }
       });
       
@@ -423,7 +423,7 @@ function bindEventHandlers() {
             $('#discordCharCount').removeClass('text-danger fw-bold');
           }
         } catch (e) {
-          console.error("Error counting Discord characters:", e);
+          // console.error("Error counting Discord characters:", e);
         }
       });
       
@@ -471,7 +471,7 @@ function bindEventHandlers() {
             }
           })
           .catch(function(error) {
-            console.error('Error:', error);
+            // console.error('Error:', error);
             if (window.toastr) {
               toastr.error('An error occurred while sending SMS.');
             }
@@ -480,7 +480,7 @@ function bindEventHandlers() {
             submitBtn.prop('disabled', false).html(originalText);
           });
         } catch (e) {
-          console.error("Error sending SMS:", e);
+          // console.error("Error sending SMS:", e);
         }
       });
       
@@ -528,7 +528,7 @@ function bindEventHandlers() {
             }
           })
           .catch(function(error) {
-            console.error('Error:', error);
+            // console.error('Error:', error);
             if (window.toastr) {
               toastr.error('An error occurred while sending Discord DM.');
             }
@@ -537,12 +537,12 @@ function bindEventHandlers() {
             submitBtn.prop('disabled', false).html(originalText);
           });
         } catch (e) {
-          console.error("Error sending Discord DM:", e);
+          // console.error("Error sending Discord DM:", e);
         }
       });
     }
   } catch (e) {
-    console.error("Global error in bindEventHandlers:", e);
+    // console.error("Global error in bindEventHandlers:", e);
   }
 }
 
@@ -566,7 +566,7 @@ function bindTabHandlers() {
       });
     }
   } catch (e) {
-    console.error("Error binding tab handlers:", e);
+    // console.error("Error binding tab handlers:", e);
   }
 }
 
@@ -616,7 +616,7 @@ function loadAvailableSubs() {
             }
           })
           .catch(error => {
-            console.error('Error fetching substitutes:', error);
+            // console.error('Error fetching substitutes:', error);
             subPlayerSelect.find('option[value="loading"]').remove();
             subPlayerSelect.append('<option value="" disabled>Error loading substitutes</option>');
             
@@ -689,7 +689,7 @@ function loadAvailableSubs() {
           }
         })
         .catch(error => {
-          console.error('Error assigning substitute:', error);
+          // console.error('Error assigning substitute:', error);
           if (window.toastr) {
             toastr.error('An error occurred while assigning the substitute.');
           } else {
@@ -703,7 +703,7 @@ function loadAvailableSubs() {
       });
     }
   } catch (e) {
-    console.error("Error loading available subs:", e);
+    // console.error("Error loading available subs:", e);
   }
 }
 
@@ -724,16 +724,16 @@ function fixTeamOptions() {
     
     // First check if the team select already has options (other than the default placeholder)
     if (teamSelect.options.length > 1) {
-      console.log("Team options already present, no fix needed");
+      // console.log("Team options already present, no fix needed");
       return;
     } else {
-      console.log("Team select has no options, applying fix");
+      // console.log("Team select has no options, applying fix");
     }
     
     // Get match information from the page
     var matchInfoText = document.querySelector('#requestSubModal .alert-info .mb-0');
     if (!matchInfoText) {
-      console.log("Could not find match info text");
+      // console.log("Could not find match info text");
       return;
     }
     
@@ -741,13 +741,13 @@ function fixTeamOptions() {
     var matchParts = matchText.split(' vs ');
     
     if (matchParts.length < 2) {
-      console.log("Could not parse match text:", matchText);
+      // console.log("Could not parse match text:", matchText);
       return;
     }
     
     var homeTeamName = matchParts[0].trim();
     var awayTeamName = matchParts[1].split(' - ')[0].trim();
-    console.log("Parsed team names:", homeTeamName, awayTeamName);
+    // console.log("Parsed team names:", homeTeamName, awayTeamName);
     
     // Get team IDs from the modal data attributes
     var homeTeamId = requestSubModal.dataset.homeTeamId;
@@ -755,7 +755,7 @@ function fixTeamOptions() {
     
     // If data attributes are available, use them to add options immediately
     if (homeTeamId && awayTeamId) {
-      console.log("Found team IDs in data attributes:", homeTeamId, awayTeamId);
+      // console.log("Found team IDs in data attributes:", homeTeamId, awayTeamId);
       
       // For coaches, we need to determine which team they coach
       var isAdmin = false;
@@ -777,7 +777,7 @@ function fixTeamOptions() {
         awayOption.text = awayTeamName;
         teamSelect.appendChild(awayOption);
         
-        console.log("Added both team options for admin");
+        // console.log("Added both team options for admin");
         return;
       } else {
         // For coaches, try to determine which team they coach
@@ -792,13 +792,13 @@ function fixTeamOptions() {
         awayOption.text = awayTeamName;
         teamSelect.appendChild(awayOption);
         
-        console.log("Added both team options as fallback");
+        // console.log("Added both team options as fallback");
         return;
       }
     }
     
     // If we didn't have data attributes, try to find team IDs in other ways
-    console.log("Data attributes not found, trying alternate methods");
+    // console.log("Data attributes not found, trying alternate methods");
     
     // Try to find team IDs from other parts of the page
     var assignSubForm = document.getElementById('assignSubFormRSVP');
@@ -813,7 +813,7 @@ function fixTeamOptions() {
           newOption.text = option.text;
           teamSelect.appendChild(newOption);
         }
-        console.log("Copied options from assign sub form");
+        // console.log("Copied options from assign sub form");
         return; // Successfully added options, no need to continue
       }
     }
@@ -823,17 +823,17 @@ function fixTeamOptions() {
     var matchId = matchIdInput ? matchIdInput.value : '';
     
     if (!matchId) {
-      console.log("Could not find match ID");
+      // console.log("Could not find match ID");
       return;
     }
     
-    console.log("Making request to find match details for match ID:", matchId);
+    // console.log("Making request to find match details for match ID:", matchId);
     
     // Make a direct request to get match data
     fetch('/admin/rsvp_status/' + matchId)
       .then(response => {
         if (!response.ok) {
-          console.log("Response not OK:", response.status);
+          // console.log("Response not OK:", response.status);
           return null;
         }
         return response.text();
@@ -841,7 +841,7 @@ function fixTeamOptions() {
       .then(html => {
         if (!html) return;
         
-        console.log("Received HTML response, parsing for team data");
+        // console.log("Received HTML response, parsing for team data");
         
         // Create a temporary element to parse the HTML
         var tempDiv = document.createElement('div');
@@ -858,10 +858,10 @@ function fixTeamOptions() {
             newOption.text = option.text;
             teamSelect.appendChild(newOption);
           }
-          console.log("Added options from parsed HTML response");
+          // console.log("Added options from parsed HTML response");
         } else {
           // Last resort: create options based on the match text we parsed earlier
-          console.log("Creating options based on parsed match text");
+          // console.log("Creating options based on parsed match text");
           
           // Just add both teams as options and let the server handle validation
           var homeOption = document.createElement('option');
@@ -876,10 +876,10 @@ function fixTeamOptions() {
         }
       })
       .catch(error => {
-        console.error('Error fetching match details:', error);
+        // console.error('Error fetching match details:', error);
         
         // Last resort fallback: create options with placeholder values
-        console.log("Error occurred, creating fallback options");
+        // console.log("Error occurred, creating fallback options");
         
         var homeOption = document.createElement('option');
         homeOption.value = "home_team";  // Use placeholder values
@@ -892,6 +892,6 @@ function fixTeamOptions() {
         teamSelect.appendChild(awayOption);
       });
   } catch (e) {
-    console.error("Error fixing team options:", e);
+    // console.error("Error fixing team options:", e);
   }
 }

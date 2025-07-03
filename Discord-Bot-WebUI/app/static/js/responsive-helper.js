@@ -97,7 +97,7 @@
             installPrompt.remove();
           }
           
-          console.log('PWA installed successfully');
+          // console.log('PWA installed successfully');
         });
       }
     },

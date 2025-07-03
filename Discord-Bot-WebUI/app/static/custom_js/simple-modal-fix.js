@@ -9,7 +9,7 @@
 function ensureModalInitialized(modalId) {
     const modalElement = document.getElementById(modalId);
     if (!modalElement) {
-        console.error(`Modal element #${modalId} not found`);
+        // console.error(`Modal element #${modalId} not found`);
         return null;
     }
     
@@ -50,7 +50,7 @@ function cleanupModalBackdrop() {
                 modal.style.display = 'none';
             }
         } catch (e) {
-            console.error('Error closing modal:', e);
+            // console.error('Error closing modal:', e);
         }
     });
 }

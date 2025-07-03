@@ -4,7 +4,7 @@
 
 // Create global functions directly
 function toggleSmsConsent(show) {
-    console.log("Toggle SMS consent:", show);
+    // console.log("Toggle SMS consent:", show);
     document.getElementById('smsOptInSection').style.display = show ? 'block' : 'none';
     
     // If SMS is disabled, also hide verification
@@ -14,12 +14,12 @@ function toggleSmsConsent(show) {
 }
 
 function toggleSmsVerification(show) {
-    console.log("Toggle SMS verification:", show); 
+    // console.log("Toggle SMS verification:", show); 
     document.getElementById('smsVerificationSection').style.display = show ? 'block' : 'none';
 }
 
 function sendVerificationCode() {
-    console.log("Sending verification code");
+    // console.log("Sending verification code");
     var phoneInput = document.querySelector('input[name="phone"]');
     var sendButton = document.getElementById('sendVerificationBtn');
     var verificationCodeInput = document.getElementById('verificationCodeInput');
@@ -88,7 +88,7 @@ function sendVerificationCode() {
         }
     })
     .catch(function(error) {
-        console.error('Error sending verification code:', error);
+        // console.error('Error sending verification code:', error);
         sendButton.disabled = false;
         sendButton.innerHTML = '<i class="ti ti-send me-1"></i> Send Verification Code';
         Swal.fire({
@@ -101,7 +101,7 @@ function sendVerificationCode() {
 }
 
 function verifyCode() {
-    console.log("Verifying code");
+    // console.log("Verifying code");
     var codeInput = document.getElementById('verificationCode');
     var verifyButton = document.getElementById('verifyCodeBtn');
     var verificationCodeInput = document.getElementById('verificationCodeInput');
@@ -173,7 +173,7 @@ function verifyCode() {
         }
     })
     .catch(function(error) {
-        console.error('Error verifying code:', error);
+        // console.error('Error verifying code:', error);
         verifyButton.disabled = false;
         verifyButton.innerHTML = '<i class="ti ti-check me-1"></i> Verify Code';
         Swal.fire({
@@ -194,7 +194,7 @@ window.adminSetVerificationCode = function() {
         var verificationCodeInput = document.getElementById('verificationCodeInput');
         
         if (!phoneInput || !phoneInput.value.trim()) {
-            console.error("Phone number is required");
+            // console.error("Phone number is required");
             return;
         }
         
@@ -214,15 +214,15 @@ window.adminSetVerificationCode = function() {
             if (data.success) {
                 // Show the verification code input 
                 verificationCodeInput.style.display = 'block';
-                console.log("Admin generated verification code:", data.code);
+                // console.log("Admin generated verification code:", data.code);
                 alert("Verification code: " + data.code);
             } else {
-                console.error("Error:", data.message);
+                // console.error("Error:", data.message);
                 alert("Error: " + (data.message || "Failed to set verification code"));
             }
         })
         .catch(function(error) {
-            console.error('Error setting verification code:', error);
+            // console.error('Error setting verification code:', error);
             alert("Error: " + error);
         });
     }

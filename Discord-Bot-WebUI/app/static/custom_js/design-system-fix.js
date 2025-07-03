@@ -7,7 +7,7 @@
 
 // Fix for syntax errors in design-system.js
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Design system fix applied');
+  // console.log('Design system fix applied');
   
   // Override any potentially problematic methods on ECSDesignSystem
   if (window.ECSDesignSystem) {
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
           originalSetupCustomBehaviors.call(ECSDesignSystem);
         }
       } catch (e) {
-        console.warn('Error in original setupCustomBehaviors, using safe version', e);
+        // console.warn('Error in original setupCustomBehaviors, using safe version', e);
         
         // Safe implementation
         try {
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ECSDesignSystem.addRippleEffect();
           }
         } catch (e2) {
-          console.warn('Error in addRippleEffect', e2);
+          // console.warn('Error in addRippleEffect', e2);
         }
         
         try {
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ECSDesignSystem.improveKeyboardNavigation();
           }
         } catch (e2) {
-          console.warn('Error in improveKeyboardNavigation', e2);
+          // console.warn('Error in improveKeyboardNavigation', e2);
         }
         
         try {
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ECSDesignSystem.setupTransitions();
           }
         } catch (e2) {
-          console.warn('Error in setupTransitions', e2);
+          // console.warn('Error in setupTransitions', e2);
         }
       }
     };

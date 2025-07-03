@@ -115,7 +115,7 @@ function loadModalsIfNotFound() {
                 resolve(true);
             },
             error: function(err) {
-                console.error('Failed to load modals:', err);
+                // console.error('Failed to load modals:', err);
                 reject(err);
             }
         });

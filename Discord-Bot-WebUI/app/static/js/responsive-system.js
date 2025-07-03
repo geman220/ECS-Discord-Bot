@@ -38,7 +38,7 @@
       this.setupMutationObserver();
       
       // Log initialization
-      console.log('ResponsiveSystem initialized', this.device);
+      // console.log('ResponsiveSystem initialized', this.device);
     },
 
     /**
@@ -233,7 +233,7 @@
             });
           }, 300);
         } catch (e) {
-          console.warn('Error enhancing Select2:', e);
+          // console.warn('Error enhancing Select2:', e);
         }
       }
     },

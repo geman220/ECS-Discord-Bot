@@ -25,6 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
         
-        console.log('Waves transform fix applied');
+        // console.log('Waves transform fix applied');
     }
 });

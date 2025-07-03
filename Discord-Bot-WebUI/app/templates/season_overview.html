@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import 'macros.html' as macros %}
 
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -75,9 +76,7 @@
                                         <td class="text-center fw-bold">{{ loop.index }}</td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-sm bg-success me-2 d-flex align-items-center justify-content-center">
-                                                    <span class="team-initial text-white">{{ standing.team.name[0] }}</span>
-                                                </div>
+                                                {{ macros.team_avatar(standing.team, 'sm', 'bg-success me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
                                                    class="team-name">
                                                     {{ standing.team.name }}
@@ -333,9 +332,7 @@
                                         <td class="text-center fw-bold">{{ loop.index }}</td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar avatar-sm bg-primary me-2 d-flex align-items-center justify-content-center">
-                                                    <span class="team-initial text-white">{{ standing.team.name[0] }}</span>
-                                                </div>
+                                                {{ macros.team_avatar(standing.team, 'sm', 'bg-primary me-2') }}
                                                 <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
                                                    class="team-name">
                                                     {{ standing.team.name }}
@@ -590,6 +587,67 @@
             <div class="tab-content" id="all-stats-tabsContent">
                 <!-- Combined Stats -->
                 <div class="tab-pane fade show active" id="all-combined" role="tabpanel" aria-labelledby="all-combined-tab">
+                    <!-- Season Summary Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="ti ti-chart-bar me-2"></i>Season Summary Statistics
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm me-3 bg-danger">
+                                                    <i class="ti ti-target text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Total Own Goals</h6>
+                                                    <span class="text-muted fw-bold">{{ total_own_goals }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm me-3 bg-success">
+                                                    <i class="ti ti-target text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Premier Own Goals</h6>
+                                                    <span class="text-muted fw-bold">{{ premier_own_goals }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm me-3 bg-primary">
+                                                    <i class="ti ti-target text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Classic Own Goals</h6>
+                                                    <span class="text-muted fw-bold">{{ classic_own_goals }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar avatar-sm me-3 bg-warning">
+                                                    <i class="ti ti-info-circle text-white"></i>
+                                                </div>
+                                                <div>
+                                                    <h6 class="mb-0">Season</h6>
+                                                    <span class="text-muted fw-bold">{{ season.name }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="row mb-4">
                         <!-- All Goal Scorers Card -->
                         <div class="col-md-6 mb-4">

@@ -87,6 +87,29 @@
                         </div>
                     </div>
 
+                    <!-- Own Goals -->
+                    <div class="mb-4">
+                        <label class="form-label">Own Goals</label>
+                        <div class="card p-3 border-1 shadow-sm">
+                            <div id="ownGoalsContainer-{{ match.id }}" class="mb-2">
+                                {% for own_goal in match.own_goals %}
+                                <div class="input-group mb-2 own-goal-event-entry" data-unique-id="{{ own_goal.id }}">
+                                    <input type="hidden" name="own_goals-stat_id[]" value="{{ own_goal.id }}">
+                                    <select class="form-select" name="own_goals-team_id[]">
+                                        <option value="{{ match.home_team_id }}" {% if own_goal.team_id == match.home_team_id %}selected{% endif %}>{{ match.home_team_name }}</option>
+                                        <option value="{{ match.away_team_id }}" {% if own_goal.team_id == match.away_team_id %}selected{% endif %}>{{ match.away_team_name }}</option>
+                                    </select>
+                                    <input type="text" class="form-control" name="own_goals-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ own_goal.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
+                                    <button class="btn btn-danger" type="button" onclick="removeOwnGoalEvent(this)">Remove</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-warning btn-sm" type="button" onclick="addOwnGoalEvent('{{ match.id }}', 'ownGoalsContainer-{{ match.id }}')">
+                                <i data-feather="plus" class="me-1"></i> Add Own Goal
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Assist Providers -->
                     <div class="mb-4">
                         <label class="form-label">Assist Providers</label>
@@ -860,4 +883,24 @@
         </div>
     </div>
 </div>
+{% endmacro %}
+
+{% macro team_avatar(team, size='sm', css_classes='') %}
+{# 
+    Renders a team avatar - either the uploaded kit image or a fallback with team initial
+    
+    Args:
+        team: Team object with name and kit_url properties
+        size: Avatar size ('sm', 'md', 'lg', etc.) - defaults to 'sm'
+        css_classes: Additional CSS classes to apply
+#}
+{% if team.kit_url %}
+    <div class="avatar avatar-{{ size }} {{ css_classes }} d-flex align-items-center justify-content-center">
+        <img src="{{ team.kit_url }}" alt="{{ team.name }} Kit" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+{% else %}
+    <div class="avatar avatar-{{ size }} {{ css_classes }} d-flex align-items-center justify-content-center">
+        <span class="team-initial text-white">{{ team.name[0] if team.name else '?' }}</span>
+    </div>
+{% endif %}
 {% endmacro %}

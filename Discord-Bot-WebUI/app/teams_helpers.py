@@ -174,6 +174,61 @@ def adjust_standings(home_standing, away_standing, home_score, away_score, subtr
     logger.info(f"After adjustment: home_standing={home_standing.to_dict() if hasattr(home_standing, 'to_dict') else home_standing}, away_standing={away_standing.to_dict() if hasattr(away_standing, 'to_dict') else away_standing}")
 
 
+def process_own_goals(session, match, data, add_key, remove_key):
+    """
+    Process own goal events for a match: remove and add/update events.
+    Own goals are team events, not player events.
+    """
+    logger.info(f"Processing OWN_GOAL events for Match ID {match.id}")
+    events_to_add = data.get(add_key, [])
+    events_to_remove = data.get(remove_key, [])
+
+    logger.info(f"Own goals to add: {len(events_to_add)}, Own goals to remove: {len(events_to_remove)}")
+
+    # Process removals first
+    for event_data in events_to_remove:
+        stat_id = event_data.get('stat_id')
+        if stat_id:
+            event = session.query(PlayerEvent).get(stat_id)
+            if event:
+                session.delete(event)
+                logger.info(f"Removed OWN_GOAL: Stat ID {stat_id} for team_id={event.team_id}")
+            else:
+                logger.warning(f"Own goal event with Stat ID {stat_id} not found.")
+
+    # Process additions or updates
+    for event_data in events_to_add:
+        team_id = int(event_data.get('team_id'))
+        minute = event_data.get('minute')
+        stat_id = event_data.get('stat_id')
+
+        # Validate that team is part of this match
+        if team_id not in [match.home_team_id, match.away_team_id]:
+            logger.error(f"Team ID {team_id} not part of this match.")
+            raise ValueError(f"Team ID {team_id} not part of this match.")
+
+        if stat_id:
+            # Update existing own goal
+            event = session.query(PlayerEvent).get(stat_id)
+            if event:
+                event.team_id = team_id
+                event.minute = minute
+                logger.info(f"Updated OWN_GOAL: Stat ID {stat_id} for team_id={team_id}")
+            else:
+                logger.warning(f"Own goal event with Stat ID {stat_id} not found for update.")
+        else:
+            # Create new own goal event
+            event = PlayerEvent(
+                player_id=None,  # Own goals don't have a player
+                team_id=team_id,
+                match_id=match.id,
+                minute=minute,
+                event_type=PlayerEventType.OWN_GOAL
+            )
+            session.add(event)
+            logger.info(f"Added new OWN_GOAL for team_id={team_id} at minute {minute}")
+
+
 def process_events(session, match, data, event_type, add_key, remove_key):
     """
     Process player events for a match: remove and add/update events.

@@ -59,7 +59,7 @@
       this.device.isAndroid = /android/.test(userAgent);
       
       // Log device info for debugging
-      console.log('Device detection:', this.device);
+      // console.log('Device detection:', this.device);
     },
 
     // Add device-specific classes to the body
@@ -213,7 +213,7 @@
             });
           }, 500);
         } catch (e) {
-          console.warn('Error enhancing Select2:', e);
+          // console.warn('Error enhancing Select2:', e);
         }
       }
     },

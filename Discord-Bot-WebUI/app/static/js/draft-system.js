@@ -25,7 +25,7 @@ class DraftSystemV2 {
         this.initializeSocket();
         this.setupSearch();
         
-        console.log('🎯 Draft System v2 initialized');
+        // console.log('🎯 Draft System v2 initialized');
     }
     
     setupImageHandling() {
@@ -104,7 +104,7 @@ class DraftSystemV2 {
         // Apply the smart positioning
         img.style.objectPosition = objectPosition;
         
-        console.log(`Smart crop applied: ${img.alt} (${naturalWidth}x${naturalHeight}, ratio: ${aspectRatio.toFixed(2)}) -> ${objectPosition}`);
+        // console.log(`Smart crop applied: ${img.alt} (${naturalWidth}x${naturalHeight}, ratio: ${aspectRatio.toFixed(2)}) -> ${objectPosition}`);
     }
     
     setupEventListeners() {
@@ -140,7 +140,7 @@ class DraftSystemV2 {
     
     initializeSocket() {
         try {
-            console.log('🔌 Initializing Socket.IO connection to default namespace');
+            // console.log('🔌 Initializing Socket.IO connection to default namespace');
             this.socket = io('/', {
                 transports: ['websocket', 'polling'],
                 upgrade: true,
@@ -151,54 +151,54 @@ class DraftSystemV2 {
             });
             
             this.socket.on('connect', () => {
-                console.log('✅ Connected to draft system');
+                // console.log('✅ Connected to draft system');
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
                 this.socket.emit('join_draft_room', { league_name: this.leagueName });
             });
             
             this.socket.on('disconnect', () => {
-                console.log('❌ Disconnected from draft system');
+                // console.log('❌ Disconnected from draft system');
                 this.isConnected = false;
                 this.updateConnectionStatus(false);
             });
             
             this.socket.on('connect_error', (error) => {
-                console.error('🔌 Connection error:', error);
-                console.error('Error details:', error.message, error.type, error.description);
+                // console.error('🔌 Connection error:', error);
+                // console.error('Error details:', error.message, error.type, error.description);
                 this.updateConnectionStatus(false, 'Connection Error');
                 
                 // Try to reconnect with different settings after a delay
                 setTimeout(() => {
                     if (!this.isConnected) {
-                        console.log('🔄 Attempting reconnection with different settings...');
+                        // console.log('🔄 Attempting reconnection with different settings...');
                         this.tryFallbackConnection();
                     }
                 }, 3000);
             });
             
             this.socket.on('joined_room', (data) => {
-                console.log('🏠 Joined room:', data.room);
+                // console.log('🏠 Joined room:', data.room);
             });
             
             this.socket.on('player_drafted_enhanced', (data) => {
-                console.log('🎯 Received player_drafted_enhanced event:', data);
+                // console.log('🎯 Received player_drafted_enhanced event:', data);
                 this.handlePlayerDrafted(data);
             });
             
             this.socket.on('player_removed_enhanced', (data) => {
-                console.log('🔥 Received player_removed_enhanced event:', data);
+                // console.log('🔥 Received player_removed_enhanced event:', data);
                 this.handlePlayerRemoved(data);
             });
             
             this.socket.on('error', (data) => {
-                console.error('❌ Received error event:', data);
+                // console.error('❌ Received error event:', data);
                 this.hideLoading(); // Hide loading overlay on error
                 this.showToast('Error: ' + data.message, 'error');
             });
             
             this.socket.on('draft_error', (data) => {
-                console.error('❌ Received draft_error event:', data);
+                // console.error('❌ Received draft_error event:', data);
                 this.hideLoading(); // Hide loading overlay on error
                 this.showToast('Draft Error: ' + data.message, 'error');
             });
@@ -208,14 +208,14 @@ class DraftSystemV2 {
             });
             
         } catch (error) {
-            console.error('Failed to initialize socket:', error);
+            // console.error('Failed to initialize socket:', error);
             this.updateConnectionStatus(false, 'Failed to Connect');
         }
     }
     
     tryFallbackConnection() {
         try {
-            console.log('🔧 Trying alternative connection method...');
+            // console.log('🔧 Trying alternative connection method...');
             if (this.socket) {
                 this.socket.disconnect();
             }
@@ -230,14 +230,14 @@ class DraftSystemV2 {
             });
             
             this.socket.on('connect', () => {
-                console.log('✅ Alternative connection successful!');
+                // console.log('✅ Alternative connection successful!');
                 this.isConnected = true;
                 this.updateConnectionStatus(true);
                 this.socket.emit('join_draft_room', { league_name: this.leagueName });
             });
             
             this.socket.on('connect_error', (error) => {
-                console.error('❌ Alternative connection also failed:', error);
+                // console.error('❌ Alternative connection also failed:', error);
                 this.updateConnectionStatus(false, 'Using HTTP Fallback');
                 this.showToast('WebSocket connection failed. Using HTTP mode.', 'info');
             });
@@ -246,7 +246,7 @@ class DraftSystemV2 {
             this.setupSocketEventListeners();
             
         } catch (error) {
-            console.error('Alternative connection failed:', error);
+            // console.error('Alternative connection failed:', error);
             this.updateConnectionStatus(false, 'HTTP Fallback Only');
         }
     }
@@ -263,7 +263,7 @@ class DraftSystemV2 {
         });
         
         this.socket.on('remove_error', (data) => {
-            console.error('❌ Received remove_error event:', data);
+            // console.error('❌ Received remove_error event:', data);
             this.hideLoading(); // Hide loading overlay on error
             this.showToast('Remove Error: ' + data.message, 'error');
         });
@@ -468,7 +468,7 @@ class DraftSystemV2 {
             return;
         }
         
-        console.log(`🎯 Drafting player ${this.currentPlayerId} to team ${teamId} (${teamName}) in league ${this.leagueName}`);
+        // console.log(`🎯 Drafting player ${this.currentPlayerId} to team ${teamId} (${teamName}) in league ${this.leagueName}`);
         
         this.showLoading();
         this.socket.emit('draft_player_enhanced', {
@@ -477,12 +477,12 @@ class DraftSystemV2 {
             league_name: this.leagueName
         });
         
-        console.log(`🎯 Draft event emitted, waiting for response...`);
+        // console.log(`🎯 Draft event emitted, waiting for response...`);
         
         // Set a timeout to hide loading if no response is received
         setTimeout(() => {
             if (document.getElementById('loadingOverlay').style.display === 'flex') {
-                console.log('⏰ Draft timeout - hiding loading overlay');
+                // console.log('⏰ Draft timeout - hiding loading overlay');
                 this.hideLoading();
                 this.showToast('Draft is taking longer than expected...', 'warning');
             }
@@ -493,7 +493,7 @@ class DraftSystemV2 {
     
     async fallbackDraftPlayer(playerId, teamId, teamName) {
         try {
-            console.log(`🔄 HTTP Fallback: Drafting player ${playerId} to team ${teamId}`);
+            // console.log(`🔄 HTTP Fallback: Drafting player ${playerId} to team ${teamId}`);
             this.showLoading();
             
             // Get CSRF token
@@ -526,7 +526,7 @@ class DraftSystemV2 {
                 this.showToast(error.message || 'Draft failed', 'error');
             }
         } catch (error) {
-            console.error('Fallback draft failed:', error);
+            // console.error('Fallback draft failed:', error);
             this.showToast('Draft failed - please try again', 'error');
         } finally {
             this.hideLoading();
@@ -587,7 +587,7 @@ class DraftSystemV2 {
     addPlayerToTeam(player, teamId, teamName) {
         const teamSection = document.getElementById(`teamPlayers${teamId}`);
         if (!teamSection) {
-            console.error(`Team section not found for team ${teamId}`);
+            // console.error(`Team section not found for team ${teamId}`);
             return;
         }
         
@@ -667,14 +667,14 @@ class DraftSystemV2 {
         if (teamSection && teamCountBadge) {
             const playerCount = teamSection.querySelectorAll('[data-player-id]').length;
             teamCountBadge.textContent = `${playerCount} players`;
-            console.log(`Updated team ${teamId} count to ${playerCount} players`);
+            // console.log(`Updated team ${teamId} count to ${playerCount} players`);
         }
     }
 
     addPlayerToAvailable(player) {
         const availableContainer = document.getElementById('available-players');
         if (!availableContainer) {
-            console.error('Available players container not found');
+            // console.error('Available players container not found');
             return;
         }
         
@@ -728,8 +728,8 @@ class DraftSystemV2 {
                          class="player-face-crop"
                          style="width: 100%; height: 100%; object-fit: cover; object-position: center 20%; display: block !important; visibility: visible !important; opacity: 1 !important;"
                          loading="eager"
-                         onerror="console.log('Image failed to load:', this.src); this.src='/static/img/default_player.png';"
-                         onload="console.log('Image loaded successfully:', this.src); if(typeof smartCropImage === 'function') smartCropImage(this);">
+                         onerror="// console.log('Image failed to load:', this.src); this.src='/static/img/default_player.png';"
+                         onload="// console.log('Image loaded successfully:', this.src); if(typeof smartCropImage === 'function') smartCropImage(this);">
                     
                     <!-- Dark overlay for better text readability -->
                     <div class="position-absolute w-100 h-100" style="background: rgba(0,0,0,0.3); top: 0; left: 0;"></div>
@@ -1108,7 +1108,7 @@ class DraftSystemV2 {
             // Fallback to existing toast system
             window.showToast(message, type);
         } else {
-            console.log(`${type.toUpperCase()}: ${message}`);
+            // console.log(`${type.toUpperCase()}: ${message}`);
         }
     }
     

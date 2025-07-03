@@ -51,6 +51,8 @@ function getContainerId(eventType, matchId) {
         containerId = 'yellowCardsContainer-' + matchId;
     } else if (eventType === 'red_cards') {
         containerId = 'redCardsContainer-' + matchId;
+    } else if (eventType === 'own_goals') {
+        containerId = 'ownGoalsContainer-' + matchId;
     }
     return containerId;
 }
@@ -116,7 +118,7 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
 window.removeEvent = function(button) {
     // Handle cases where button might be undefined or null
     if (!button) {
-        console.warn("removeEvent called with null or undefined button");
+        // removeEvent called with null or undefined button
         return;
     }
 
@@ -177,16 +179,12 @@ window.removeEvent = function(button) {
             }
         }
     } catch (e) {
-        console.error("Error finding parent element:", e);
+        // Error finding parent element
     }
 
     // If still not found, tell user and exit
     if (!eventEntry || !jQueryEntry || !jQueryEntry.length) {
-        console.warn("Could not find identifiable element for removal", {
-            button: button,
-            buttonType: typeof button,
-            buttonClass: button.className
-        });
+        // Could not find identifiable element for removal
         return; // Exit silently without showing error to user
     }
 
@@ -196,15 +194,10 @@ window.removeEvent = function(button) {
         uniqueId = jQueryEntry.data('unique-id');
         statId = jQueryEntry.find('input[name$="-stat_id[]"]').val();
     } catch (e) {
-        console.warn("Error getting data attributes:", e);
+        // Error getting data attributes
     }
 
-    // Log info for debugging
-    console.log("Removing event:", {
-        uniqueId: uniqueId,
-        statId: statId,
-        element: eventEntry
-    });
+    // Removing event
 
     // Simple confirmation for mobile device (prevent accidental taps)
     if (window.innerWidth < 768) {
@@ -266,7 +259,7 @@ function setupEditMatchButtons() {
             // Get the match ID
             const matchId = button.getAttribute('data-match-id');
             if (!matchId) {
-                console.warn('Edit button missing match ID:', button);
+                // Edit button missing match ID
                 return;
             }
             
@@ -286,7 +279,7 @@ function setupEditMatchButtons() {
 
 // Function to handle edit button clicks
 function handleEditButtonClick(matchId) {
-    console.log(`Edit button clicked for match ${matchId}`);
+    // Edit button clicked for match
     
     // Show loading spinner
     Swal.fire({
@@ -307,16 +300,19 @@ function handleEditButtonClick(matchId) {
         },
         timeout: 15000, // 15 second timeout
         success: function(data) {
-            console.log('Match data received:', data);
+            // Match data received
+            
+            // Store match data globally for access by other functions
+            window.currentMatchData = data;
+            window.currentMatchData.matchId = matchId;
+            
             Swal.close();
             
             // Set up and display the modal
             setupAndShowModal(matchId, data);
         },
         error: function(xhr, status, error) {
-            console.error('Error fetching match data:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
+            // Error fetching match data
             
             Swal.fire({
                 icon: 'error',
@@ -334,7 +330,7 @@ function setupAndShowModal(matchId, data) {
     const modal = document.getElementById(modalId);
     
     if (!modal) {
-        console.log(`Modal #${modalId} not found, generating one dynamically`);
+        // Modal not found, generating one dynamically
         
         // First try to load all modals
         $.ajax({
@@ -344,7 +340,7 @@ function setupAndShowModal(matchId, data) {
                 // Append to the container if it exists, otherwise to body
                 const container = document.getElementById('reportMatchModal-container') || document.body;
                 $(container).append(modalContent);
-                console.log('Modals loaded dynamically');
+                // Modals loaded dynamically
                 
                 // Now try to find the modal again
                 const modalRecheck = document.getElementById(modalId);
@@ -367,7 +363,7 @@ function setupAndShowModal(matchId, data) {
 
 // Function to create a dynamic modal for a specific match when needed
 function createDynamicModal(matchId, data) {
-    console.log(`Creating a dynamic modal for match ${matchId}`);
+    // Creating a dynamic modal for match
     
     // Create the container if it doesn't exist
     let container = document.getElementById('reportMatchModal-container');
@@ -565,7 +561,7 @@ function populateModal(modal, data) {
     
     // Check if player data is available
     if (Object.keys(playerChoices[matchId]).length === 0) {
-        console.error('No player data available for match:', matchId);
+        // No player data available for match
         Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -625,6 +621,7 @@ function populateModal(modal, data) {
     const assist_providers = data.assist_providers || [];
     const yellow_cards = data.yellow_cards || [];
     const red_cards = data.red_cards || [];
+    const own_goals = data.own_goals || [];
     
     // Update initialEvents with default empty arrays if needed
     initialEvents[matchId] = {
@@ -651,6 +648,12 @@ function populateModal(modal, data) {
             stat_id: String(card.id),
             player_id: String(card.player_id),
             minute: card.minute || null
+        })) || [],
+        ownGoals: own_goals.map(ownGoal => ({
+            unique_id: String(ownGoal.id),
+            stat_id: String(ownGoal.id),
+            team_id: String(ownGoal.team_id),
+            minute: ownGoal.minute || null
         })) || []
     };
     
@@ -669,6 +672,10 @@ function populateModal(modal, data) {
     
     red_cards.forEach(function(red) {
         window.addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute);
+    });
+    
+    own_goals.forEach(function(ownGoal) {
+        window.addOwnGoalEvent(matchId, 'ownGoalsContainer-' + matchId, ownGoal.id, ownGoal.team_id, ownGoal.minute);
     });
     
     // Add verification checkboxes if they're not already there
@@ -695,7 +702,7 @@ function populateModal(modal, data) {
                 try {
                     bsModal.show();
                 } catch (err) {
-                    console.error("Error showing modal:", err);
+                    // Error showing modal
                     // Fallback to jQuery
                     $(modal).modal('show');
                 }
@@ -705,7 +712,7 @@ function populateModal(modal, data) {
             if (typeof $ !== 'undefined' && typeof $.fn.modal !== 'undefined') {
                 $(modal).modal('show');
             } else {
-                console.error('Neither Bootstrap nor jQuery modal available');
+                // Neither Bootstrap nor jQuery modal available
                 // Manual fallback - just show the modal
                 modal.style.display = 'block';
                 modal.classList.add('show');
@@ -718,7 +725,7 @@ function populateModal(modal, data) {
             }
         }
     } catch (error) {
-        console.error('Error showing modal:', error);
+        // Error showing modal
         // Last resort fallback
         Swal.fire({
             icon: 'error', 
@@ -731,10 +738,7 @@ function populateModal(modal, data) {
 // Function to update or add the verification section to the modal
 function updateVerificationSection(modal, matchId, data) {
     try {
-        console.log("Updating verification section with data:", {
-            matchId: matchId,
-            data: data
-        });
+        // Updating verification section with data
         
         // Look for existing verification section, create if not found
         let verificationSection = modal.querySelector(`#verificationSection-${matchId}`);
@@ -744,11 +748,11 @@ function updateVerificationSection(modal, matchId, data) {
             const modalBody = modal.querySelector('.modal-body');
             
             if (!modalBody) {
-                console.error('Modal body not found');
+                // Modal body not found
                 return;
             }
             
-            console.log("Creating verification section");
+            // Creating verification section
             verificationSection = document.createElement('div');
             verificationSection.id = `verificationSection-${matchId}`;
             verificationSection.className = 'mb-4 verification-section border-top pt-4 mt-4';
@@ -763,12 +767,7 @@ function updateVerificationSection(modal, matchId, data) {
         const canVerifyHome = data.can_verify_home || false;
         const canVerifyAway = data.can_verify_away || false;
         
-        console.log("Verification status:", {
-            homeTeamVerified, 
-            awayTeamVerified,
-            canVerifyHome,
-            canVerifyAway
-        });
+        // Verification status
         
         // Set up the HTML for the verification section
         let verificationHTML = `
@@ -841,13 +840,13 @@ function updateVerificationSection(modal, matchId, data) {
             </div>
         `;
         
-        console.log("Setting verification HTML");
+        // Setting verification HTML
         // Update the verification section HTML
         verificationSection.innerHTML = verificationHTML;
         
-        console.log("Verification section updated successfully");
+        // Verification section updated successfully
     } catch (error) {
-        console.error("Error updating verification section:", error);
+        // Error updating verification section
     }
 }
 
@@ -857,16 +856,35 @@ function getFinalEvents(matchId, eventType) {
     let containerId = getContainerId(eventType, matchId);
     let baseName = containerId.split('Container-')[0];
 
-    // Only get visible entries (exclude ones marked for removal)
-    $(`#${containerId}`).find('.player-event-entry:not(.to-be-removed)').each(function () {
-        let statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
-        let playerId = $(this).find(`select[name="${baseName}-player_id[]"]`).val();
-        let minute = $(this).find(`input[name="${baseName}-minute[]"]`).val();
-        let uniqueId = $(this).attr('data-unique-id');
+    // Handle own goals differently since they use team_id instead of player_id
+    if (eventType === 'own_goals') {
+        $(`#${containerId}`).find('.own-goal-event-entry:not(.to-be-removed)').each(function () {
+            // Use 'own_goals' as the field name prefix (not 'ownGoals')
+            let statId = $(this).find(`input[name="own_goals-stat_id[]"]`).val();
+            let teamId = $(this).find(`select[name="own_goals-team_id[]"]`).val();
+            let minute = $(this).find(`input[name="own_goals-minute[]"]`).val();
+            let uniqueId = $(this).attr('data-unique-id');
+            
+            if (teamId) {
+                events.push({
+                    stat_id: statId || '',
+                    team_id: teamId,
+                    minute: minute || '',
+                    unique_id: uniqueId
+                });
+            }
+        });
+    } else {
+        // Only get visible entries (exclude ones marked for removal)
+        $(`#${containerId}`).find('.player-event-entry:not(.to-be-removed)').each(function () {
+            let statId = $(this).find(`input[name="${baseName}-stat_id[]"]`).val();
+            let playerId = $(this).find(`select[name="${baseName}-player_id[]"]`).val();
+            let minute = $(this).find(`input[name="${baseName}-minute[]"]`).val();
+            let uniqueId = $(this).attr('data-unique-id');
 
         // Skip entries without player_id (which is required)
         if (!playerId) {
-            console.warn(`Skipping entry without player_id: uniqueId=${uniqueId}, statId=${statId}`);
+            // Skipping entry without player_id
             return;
         }
 
@@ -875,10 +893,11 @@ function getFinalEvents(matchId, eventType) {
         playerId = playerId ? String(playerId) : null;
         minute = minute ? String(minute) : null;
 
-        events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
-    });
+            events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
+        });
+    }
 
-    console.log(`Final ${eventType} events:`, events);
+    // Final events
     return events;
 }
 
@@ -899,13 +918,13 @@ function eventExists(event, eventsArray) {
     }
 
     // If we get here, we have no reliable way to compare - log this
-    console.warn("Event comparison failed - no stat_id or unique_id:", event);
+    // Event comparison failed - no stat_id or unique_id
     return false;
 }
 
 // Function to send the AJAX request to update stats
 function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove,
-    yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove) {
+    yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove) {
     const homeTeamScore = $('#home_team_score-' + matchId).val();
     const awayTeamScore = $('#away_team_score-' + matchId).val();
     const notes = $('#match_notes-' + matchId).val();
@@ -946,6 +965,8 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             yellow_cards_to_remove: yellowCardsToRemove,
             red_cards_to_add: redCardsToAdd,
             red_cards_to_remove: redCardsToRemove,
+            own_goals_to_add: ownGoalsToAdd,
+            own_goals_to_remove: ownGoalsToRemove,
             verify_home_team: verifyHomeTeam,
             verify_away_team: verifyAwayTeam
         }),
@@ -983,7 +1004,7 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
                             }
                         }
                     } catch (e) {
-                        console.error("Error closing modal:", e);
+                        // Error closing modal
                     }
 
                     // Reload the page to reflect changes
@@ -1000,8 +1021,7 @@ function updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsTo
             }
         },
         error: function (xhr, status, error) {
-            console.error('AJAX Error:', error);
-            console.error('Response:', xhr.responseText);
+            // AJAX Error
 
             Swal.fire({
                 icon: 'error',
@@ -1020,7 +1040,7 @@ $(document).on('submit', '.report-match-form', function (e) {
     e.stopPropagation();
 
     var matchId = $(this).data('match-id');
-    console.log(`Submitting form for Match ID: ${matchId}`);
+    // Submitting form for Match ID
 
     // Ensure initialEvents is properly defined
     if (typeof initialEvents === 'undefined') {
@@ -1029,12 +1049,13 @@ $(document).on('submit', '.report-match-form', function (e) {
 
     // Initialize the match data if it doesn't exist
     if (!initialEvents[matchId]) {
-        console.log(`Initializing empty data for match ${matchId}`);
+        // Initializing empty data for match
         initialEvents[matchId] = {
             goals: [],
             assists: [],
             yellowCards: [],
-            redCards: []
+            redCards: [],
+            ownGoals: []
         };
     }
 
@@ -1043,37 +1064,37 @@ $(document).on('submit', '.report-match-form', function (e) {
     let finalAssists = getFinalEvents(matchId, 'assist_providers');
     let finalYellowCards = getFinalEvents(matchId, 'yellow_cards');
     let finalRedCards = getFinalEvents(matchId, 'red_cards');
+    let finalOwnGoals = getFinalEvents(matchId, 'own_goals');
 
     // Get initial events (what was loaded from server)
     let initialGoals = initialEvents[matchId].goals || [];
     let initialAssists = initialEvents[matchId].assists || [];
     let initialYellowCards = initialEvents[matchId].yellowCards || [];
     let initialRedCards = initialEvents[matchId].redCards || [];
+    let initialOwnGoals = initialEvents[matchId].ownGoals || [];
 
     // Also get any specifically removed events (those with to-be-removed class)
     let removedGoalIds = collectRemovedStatIds(matchId, 'goal_scorers');
     let removedAssistIds = collectRemovedStatIds(matchId, 'assist_providers');
     let removedYellowCardIds = collectRemovedStatIds(matchId, 'yellow_cards');
     let removedRedCardIds = collectRemovedStatIds(matchId, 'red_cards');
+    let removedOwnGoalIds = collectRemovedOwnGoalIds(matchId);
 
-    console.log("Removed event IDs:", {
-        goals: removedGoalIds,
-        assists: removedAssistIds,
-        yellowCards: removedYellowCardIds,
-        redCards: removedRedCardIds
-    });
+    // Removed event IDs
 
     // Events to add: in final but not in initial
     let goalsToAdd = finalGoals.filter(goal => !eventExists(goal, initialGoals));
     let assistsToAdd = finalAssists.filter(assist => !eventExists(assist, initialAssists));
     let yellowCardsToAdd = finalYellowCards.filter(card => !eventExists(card, initialYellowCards));
     let redCardsToAdd = finalRedCards.filter(card => !eventExists(card, initialRedCards));
+    let ownGoalsToAdd = finalOwnGoals.filter(ownGoal => !ownGoalExists(ownGoal, initialOwnGoals));
 
     // Create events to remove directly from removed IDs
     let goalsToRemove = [];
     let assistsToRemove = [];
     let yellowCardsToRemove = [];
     let redCardsToRemove = [];
+    let ownGoalsToRemove = [];
 
     // Add explicitly removed items (items with to-be-removed class)
     if (removedYellowCardIds.length > 0) {
@@ -1122,6 +1143,17 @@ $(document).on('submit', '.report-match-form', function (e) {
         });
     }
 
+    if (removedOwnGoalIds.length > 0) {
+        removedOwnGoalIds.forEach(id => {
+            const ownGoal = initialOwnGoals.find(og => og.stat_id === id);
+            if (ownGoal) {
+                ownGoalsToRemove.push(ownGoal);
+            } else {
+                ownGoalsToRemove.push({ stat_id: id });
+            }
+        });
+    }
+
     // Also add items that were in initial but missing from final (normal removal logic)
     initialGoals.forEach(goal => {
         if (!eventExists(goal, finalGoals) && !goalsToRemove.some(g => g.stat_id === goal.stat_id)) {
@@ -1147,12 +1179,13 @@ $(document).on('submit', '.report-match-form', function (e) {
         }
     });
 
-    console.log("Events to add/remove:", {
-        goalsToAdd, goalsToRemove,
-        assistsToAdd, assistsToRemove,
-        yellowCardsToAdd, yellowCardsToRemove,
-        redCardsToAdd, redCardsToRemove
+    initialOwnGoals.forEach(ownGoal => {
+        if (!ownGoalExists(ownGoal, finalOwnGoals) && !ownGoalsToRemove.some(og => og.stat_id === ownGoal.stat_id)) {
+            ownGoalsToRemove.push(ownGoal);
+        }
     });
+
+    // Events to add/remove
 
     // Confirmation before submitting
     Swal.fire({
@@ -1165,7 +1198,173 @@ $(document).on('submit', '.report-match-form', function (e) {
         confirmButtonText: 'Yes, submit it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove);
+            updateStats(matchId, goalsToAdd, goalsToRemove, assistsToAdd, assistsToRemove, yellowCardsToAdd, yellowCardsToRemove, redCardsToAdd, redCardsToRemove, ownGoalsToAdd, ownGoalsToRemove);
         }
     });
 });
+
+// Function to add a new own goal event entry
+window.addOwnGoalEvent = function(matchId, containerId, statId = null, teamId = null, minute = null) {
+    var containerSelector = '#' + containerId;
+
+    // Generate a unique ID for the event if not provided
+    var uniqueId = statId ? String(statId) : 'new-' + Date.now() + '-' + Math.random();
+
+    // Get team names and IDs from the match data
+    // First try window variables (for team detail pages)
+    var homeTeamName = window['homeTeamName_' + matchId];
+    var awayTeamName = window['awayTeamName_' + matchId];
+    var homeTeamId = window['homeTeamId_' + matchId];
+    var awayTeamId = window['awayTeamId_' + matchId];
+    
+    // If not available, try to get from the modal's match data
+    if (!homeTeamName || !awayTeamName) {
+        // Look for the modal with this match ID to get team data
+        const modalSelector = '#reportMatchModal-' + matchId;
+        const modal = document.querySelector(modalSelector);
+        
+        if (modal) {
+            // Get team names from modal title or data attributes
+            const modalTitle = modal.querySelector('.modal-title');
+            if (modalTitle) {
+                const titleText = modalTitle.textContent;
+                // Parse "Report Match: Team A vs Team B" format
+                const vsMatch = titleText.match(/Match:\s*(.+?)\s+vs\s+(.+)$/);
+                if (vsMatch) {
+                    homeTeamName = vsMatch[1].trim();
+                    awayTeamName = vsMatch[2].trim();
+                }
+            }
+        }
+        
+        // If still not found, try to get from the stored match data
+        if (window.currentMatchData && window.currentMatchData.matchId == matchId) {
+            homeTeamName = window.currentMatchData.home_team_name;
+            awayTeamName = window.currentMatchData.away_team_name;
+            homeTeamId = window.currentMatchData.home_team ? window.currentMatchData.home_team.id : null;
+            awayTeamId = window.currentMatchData.away_team ? window.currentMatchData.away_team.id : null;
+            
+            // Got team names from stored match data
+        }
+    }
+    
+    // Final fallback to generic names if team names still aren't available
+    if (!homeTeamName) homeTeamName = 'Home Team';
+    if (!awayTeamName) awayTeamName = 'Away Team';
+
+    // Define the new input group for own goals
+    var newInputGroup = `
+        <div class="input-group mb-2 own-goal-event-entry" data-unique-id="${uniqueId}">
+            <input type="hidden" name="own_goals-stat_id[]" value="${statId ? statId : ''}">
+            <select class="form-select" name="own_goals-team_id[]">
+                <option value="${homeTeamId}"${teamId == homeTeamId ? ' selected' : ''}>${homeTeamName}</option>
+                <option value="${awayTeamId}"${teamId == awayTeamId ? ' selected' : ''}>${awayTeamName}</option>
+            </select>
+            <input type="text" class="form-control" name="own_goals-minute[]" 
+                   placeholder="Minute (e.g., '45' or '45+2')" 
+                   value="${minute ? minute : ''}"
+                   pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
+                   title="Enter a valid minute (e.g., '45' or '45+2')">
+            <button class="btn btn-danger" type="button" onclick="removeOwnGoalEvent(this)">Remove</button>
+        </div>
+    `;
+
+    // Append the new input group to the container
+    $(containerSelector).append(newInputGroup);
+
+    // Re-initialize Feather icons if necessary
+    if (typeof feather !== 'undefined' && feather) {
+        feather.replace();
+    }
+};
+
+// Function to remove an own goal event entry
+window.removeOwnGoalEvent = function(button) {
+    // Handle cases where button might be undefined or null
+    if (!button) {
+        // removeOwnGoalEvent called with null or undefined button
+        return;
+    }
+
+    // Try multiple methods to find the parent element
+    let eventEntry = null;
+    let jQueryEntry = null;
+    
+    try {
+        // Method 1: DOM API with instanceof check
+        if (button instanceof Element) {
+            eventEntry = button.closest('.own-goal-event-entry') || 
+                         button.closest('.input-group');
+            
+            // If found, wrap in jQuery
+            if (eventEntry) {
+                jQueryEntry = $(eventEntry);
+            }
+        }
+        
+        // Method 2: Try jQuery if element wasn't found or button is jQuery object
+        if (!eventEntry || !jQueryEntry) {
+            // Convert to jQuery if not already
+            const $button = (button instanceof Element) ? $(button) : $(button);
+            jQueryEntry = $button.closest('.own-goal-event-entry');
+            
+            // If still not found, try alternates
+            if (!jQueryEntry.length) {
+                jQueryEntry = $button.closest('.input-group');
+            }
+        }
+        
+    } catch (error) {
+        // Error in removeOwnGoalEvent
+        return;
+    }
+
+    // Check if we found a valid entry
+    if (!jQueryEntry || !jQueryEntry.length) {
+        // Could not find parent element for own goal event removal
+        return;
+    }
+
+    // Get the stat ID from the hidden input (if it exists)
+    const statIdInput = jQueryEntry.find('input[name="own_goals-stat_id[]"]');
+    const statId = statIdInput.val();
+
+    if (statId && statId.trim() !== '' && !statId.startsWith('new-')) {
+        // This is an existing event, mark it for removal
+        jQueryEntry.addClass('to-be-removed').hide();
+    } else {
+        // This is a new event, remove it completely
+        jQueryEntry.remove();
+    }
+};
+
+// Function to collect removed own goal stat IDs
+function collectRemovedOwnGoalIds(matchId) {
+    let containerId = `ownGoalsContainer-${matchId}`;
+    let removedIds = [];
+
+    $(`#${containerId}`).find('.own-goal-event-entry.to-be-removed').each(function () {
+        const statId = $(this).find('input[name="own_goals-stat_id[]"]').val();
+        if (statId && statId.trim() !== '') {
+            removedIds.push(statId);
+        }
+    });
+
+    return removedIds;
+}
+
+// Function to check if an own goal exists in a list
+function ownGoalExists(ownGoal, ownGoalList) {
+    return ownGoalList.some(og => {
+        // Check by stat_id if both have it
+        if (ownGoal.stat_id && og.stat_id) {
+            return ownGoal.stat_id === og.stat_id;
+        }
+        // Check by unique_id if both have it
+        if (ownGoal.unique_id && og.unique_id) {
+            return ownGoal.unique_id === og.unique_id;
+        }
+        // Check by team_id and minute as fallback
+        return ownGoal.team_id === og.team_id && ownGoal.minute === og.minute;
+    });
+}

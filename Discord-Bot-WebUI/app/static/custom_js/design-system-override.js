@@ -18,17 +18,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Replace with our safe version
       ECSDesignSystem.setupCustomBehaviors = function() {
-        console.log('Using safe setupCustomBehaviors');
+        // console.log('Using safe setupCustomBehaviors');
         
         // Try to call individual methods safely
         try { if (typeof this.addRippleEffect === 'function') this.addRippleEffect(); } 
-        catch (e) { console.error('Error in addRippleEffect:', e); }
+        catch (e) { // console.error('Error in addRippleEffect:', e); }
         
         try { if (typeof this.improveKeyboardNavigation === 'function') this.improveKeyboardNavigation(); } 
-        catch (e) { console.error('Error in improveKeyboardNavigation:', e); }
+        catch (e) { // console.error('Error in improveKeyboardNavigation:', e); }
         
         try { if (typeof this.setupTransitions === 'function') this.setupTransitions(); } 
-        catch (e) { console.error('Error in setupTransitions:', e); }
+        catch (e) { // console.error('Error in setupTransitions:', e); }
       };
       
       // Call the setup method to initialize
@@ -36,11 +36,11 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
           ECSDesignSystem.setupCustomBehaviors();
         } catch (e) {
-          console.error('Error in setupCustomBehaviors:', e);
+          // console.error('Error in setupCustomBehaviors:', e);
         }
       }, 500);
     } catch (error) {
-      console.error('Failed to override ECSDesignSystem methods:', error);
+      // console.error('Failed to override ECSDesignSystem methods:', error);
     }
   }
   
@@ -56,6 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
       menu.style.zIndex = '1060';
     });
   } catch (error) {
-    console.error('Failed to fix modals:', error);
+    // console.error('Failed to fix modals:', error);
   }
 });

@@ -258,6 +258,7 @@ class Team(db.Model):
     )
 
     kit_url = db.Column(db.String(255), nullable=True)
+    background_image_url = db.Column(db.String(255), nullable=True)
 
     def to_dict(self, include_players=False):
         data = {
@@ -1130,20 +1131,23 @@ class PlayerEventType(enum.Enum):
     ASSIST = 'assist'
     YELLOW_CARD = 'yellow_card'
     RED_CARD = 'red_card'
+    OWN_GOAL = 'own_goal'
 
 
 class PlayerEvent(db.Model):
-    """Model representing a match event (goal, assist, etc.) for a player."""
+    """Model representing a match event (goal, assist, etc.) for a player or team (own goals)."""
     __tablename__ = 'player_event'
 
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)  # For own goals
     minute = db.Column(db.String, nullable=True)
     event_type = db.Column(Enum(PlayerEventType), nullable=False)
 
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
+    team = db.relationship('Team', backref='own_goal_events')
 
     def to_dict(self, include_player=False):
         data = {

@@ -136,7 +136,7 @@ class ScheduleManager {
                 alert(result.message || 'Error adding single week');
             }
         } catch (err) {
-            console.error('Error in handleSingleWeekSubmit:', err);
+            // console.error('Error in handleSingleWeekSubmit:', err);
             alert('Error adding single week');
         }
     }
@@ -191,7 +191,7 @@ class ScheduleManager {
 
     openAddMatchModal({ league_id, week, date }) {
         if (!this.editMatchModal) {
-            console.error('No edit match modal found.');
+            // console.error('No edit match modal found.');
             return;
         }
         this.isAddOperation = true;
@@ -215,7 +215,7 @@ class ScheduleManager {
 
     openEditMatchModal(matchData) {
         if (!this.editMatchModal) {
-            console.error('No edit match modal found.');
+            // console.error('No edit match modal found.');
             return;
         }
         this.isAddOperation = false;
@@ -267,7 +267,7 @@ class ScheduleManager {
                 alert(data.message || 'Failed to save match');
             }
         } catch (err) {
-            console.error('Error in handleMatchFormSubmit:', err);
+            // console.error('Error in handleMatchFormSubmit:', err);
             alert('Error saving match');
         }
     }
@@ -292,7 +292,7 @@ class ScheduleManager {
                 alert(data.message || 'Failed to delete match');
             }
         } catch (err) {
-            console.error('Error deleting match:', err);
+            // console.error('Error deleting match:', err);
             alert('Error deleting match');
         }
     }

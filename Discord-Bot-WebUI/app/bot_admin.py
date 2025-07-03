@@ -95,11 +95,17 @@ def roles():
     return render_template('roles.html', title='Current Roles')
 
 
+# DEPRECATED ROUTE - MARKED FOR DELETION
+# This route has been replaced by /admin/match_management
+# TODO: Remove this route and related templates after new system is verified in production
 @bot_admin_bp.route('/matches')
 @login_required
 def matches():
     """
-    Retrieve and display match dates for live reporting.
+    DEPRECATED: Retrieve and display match dates for live reporting.
+    
+    This route has been deprecated and replaced by the unified match_management route.
+    It will be removed in a future update once the new system is verified.
     
     Converts stored UTC dates to Pacific Time for display.
     """

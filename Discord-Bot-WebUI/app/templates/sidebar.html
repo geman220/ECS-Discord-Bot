@@ -244,22 +244,32 @@
         </li>
         {% endif %}
 
-        <!-- MLS Match Schedule - Only Discord Admin and Global Admin -->
+        <!-- Match Management - New unified interface -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if '/bot' in request.path }}">
-            <a class="menu-link" href="{{ url_for('bot_admin.matches') }}">
-                <i data-feather="calendar" class="menu-icon"></i>
-                <div>Sounders Schedule</div>
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_management' }}">
+            <a class="menu-link" href="{{ url_for('admin.match_management') }}">
+                <i data-feather="monitor" class="menu-icon"></i>
+                <div>Match Management</div>
             </a>
         </li>
         {% endif %}
 
-        <!-- MLS Match Thread Scheduling - Only Discord Admin and Global Admin -->
-        {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}
+        <!-- DEPRECATED: MLS Match Schedule - Will be removed soon -->
+        {% if false and ('Discord Admin' in user_roles or 'Global Admin' in user_roles) %}
+        <li class="menu-item {{ 'active' if '/bot' in request.path }}">
+            <a class="menu-link" href="{{ url_for('bot_admin.matches') }}">
+                <i data-feather="calendar" class="menu-icon"></i>
+                <div>Sounders Schedule [DEPRECATED]</div>
+            </a>
+        </li>
+        {% endif %}
+
+        <!-- DEPRECATED: MLS Match Thread Scheduling - Will be removed soon -->
+        {% if false and ('Discord Admin' in user_roles or 'Global Admin' in user_roles) %}
         <li class="menu-item {{ 'active' if request.endpoint == 'admin.view_mls_matches' }}">
             <a class="menu-link" href="{{ url_for('admin.view_mls_matches') }}">
                 <i data-feather="message-square" class="menu-icon"></i>
-                <div>MLS Match Threads</div>
+                <div>MLS Match Threads [DEPRECATED]</div>
             </a>
         </li>
         {% endif %}
