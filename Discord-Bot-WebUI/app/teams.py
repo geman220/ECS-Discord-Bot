@@ -276,7 +276,9 @@ def report_match(match_id):
         session.query(Match)
         .options(
             joinedload(Match.home_team).joinedload(Team.players),
-            joinedload(Match.away_team).joinedload(Team.players)
+            joinedload(Match.away_team).joinedload(Team.players),
+            joinedload(Match.home_verifier).joinedload(User.player),
+            joinedload(Match.away_verifier).joinedload(User.player)
         )
         .get(match_id)
     )
@@ -361,6 +363,12 @@ def report_match(match_id):
                 'home_team_verified': match.home_team_verified,
                 'away_team_verified': match.away_team_verified,
                 'fully_verified': match.fully_verified,
+                'home_verifier': (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player 
+                                 else match.home_verifier.username if match.home_verifier else None),
+                'away_verifier': (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player 
+                                 else match.away_verifier.username if match.away_verifier else None),
+                'home_team_verified_at': match.home_team_verified_at.isoformat() if match.home_team_verified_at else None,
+                'away_team_verified_at': match.away_team_verified_at.isoformat() if match.away_team_verified_at else None,
                 'can_verify_home': can_verify_home,
                 'can_verify_away': can_verify_away,
                 'user_team_ids': user_team_ids,
@@ -476,7 +484,13 @@ def report_match(match_id):
             'success': True,
             'home_team_verified': match.home_team_verified,
             'away_team_verified': match.away_team_verified,
-            'fully_verified': match.fully_verified
+            'fully_verified': match.fully_verified,
+            'home_verifier': (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player 
+                             else match.home_verifier.username if match.home_verifier else None),
+            'away_verifier': (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player 
+                             else match.away_verifier.username if match.away_verifier else None),
+            'home_team_verified_at': match.home_team_verified_at.isoformat() if match.home_team_verified_at else None,
+            'away_team_verified_at': match.away_team_verified_at.isoformat() if match.away_team_verified_at else None
         }), 200
 
     else:
