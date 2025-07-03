@@ -288,7 +288,7 @@
                                     <td>
                                         {{ match.home_team.name }}
                                         {% if match.home_team_verified %}
-                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ match.home_verifier.username if match.home_verifier else 'Unknown' }} 
+                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.home_verifier.player.name if match.home_verifier and match.home_verifier.player else match.home_verifier.username) if match.home_verifier else 'Unknown' }} 
                                         at {{ match.home_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.home_team_verified_at else 'Unknown' }}">
                                             <i class="ti ti-check me-1"></i>Verified
                                         </span>
@@ -301,7 +301,7 @@
                                     <td>
                                         {{ match.away_team.name }}
                                         {% if match.away_team_verified %}
-                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ match.away_verifier.username if match.away_verifier else 'Unknown' }} 
+                                        <span class="badge bg-label-success" data-bs-toggle="tooltip" title="Verified by: {{ (match.away_verifier.player.name if match.away_verifier and match.away_verifier.player else match.away_verifier.username) if match.away_verifier else 'Unknown' }} 
                                         at {{ match.away_team_verified_at.strftime('%m/%d/%Y %H:%M') if match.away_team_verified_at else 'Unknown' }}">
                                             <i class="ti ti-check me-1"></i>Verified
                                         </span>
