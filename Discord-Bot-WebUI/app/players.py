@@ -67,51 +67,9 @@ def handle_forbidden_error(error):
 @role_required(['Pub League Admin', 'Global Admin'])
 def view_players():
     """
-    View the list of players with pagination and optional search.
+    Redirect to the consolidated user management page.
     """
-    search_term = request.args.get('search', '').strip()
-    page = request.args.get('page', 1, type=int)
-    per_page = 10
-
-    session = g.db_session
-    base_query = session.query(Player).join(User)
-
-    if search_term:
-        base_query = base_query.filter(
-            (Player.name.ilike(f'%{search_term}%')) |
-            (User.email.ilike(f'%{search_term}%')) |
-            (Player.phone.ilike(f'%{search_term}%')) |
-            (Player.jersey_size.ilike(f'%{search_term}%'))
-        )
-
-    total = base_query.count()
-    players = base_query.offset((page - 1) * per_page).limit(per_page).all()
-    total_pages = (total + per_page - 1) // per_page
-
-    pagination = {
-        'page': page,
-        'per_page': per_page,
-        'total': total,
-        'pages': total_pages,
-        'has_prev': page > 1,
-        'has_next': page < total_pages,
-        'prev_num': page - 1 if page > 1 else None,
-        'next_num': page + 1 if page < total_pages else None
-    }
-
-    leagues = session.query(League).all()
-    distinct_jersey_sizes = session.query(Player.jersey_size).distinct().all()
-    jersey_sizes = sorted(set(size[0] for size in distinct_jersey_sizes if size[0]))
-
-    return render_template(
-        'view_players.html',
-        title='View Players',
-        players=players,
-        search_term=search_term,
-        leagues=leagues,
-        jersey_sizes=jersey_sizes,
-        pagination=pagination
-    )
+    return redirect(url_for('user_management.manage_users'))
 
 
 @players_bp.route('/update', endpoint='update_players', methods=['POST'])
@@ -119,10 +77,9 @@ def view_players():
 @role_required(['Pub League Admin', 'Global Admin'])
 def update_players():
     """
-    Trigger asynchronous synchronization of players with WooCommerce.
+    Redirect to the consolidated user management WooCommerce sync.
     """
-    task = sync_players_with_woocommerce.apply_async(queue='player_sync')
-    return jsonify({'task_id': task.id, 'status': 'started'})
+    return redirect(url_for('user_management.update_players'), code=307)
 
 
 @players_bp.route('/confirm_update', methods=['POST'])
@@ -130,98 +87,18 @@ def update_players():
 @role_required(['Pub League Admin', 'Global Admin'])
 def confirm_update():
     """
-    Confirm and process the sync update data.
-    Handles creation of new players, updates to existing players, and inactivation.
+    Redirect to the consolidated user management confirm update.
     """
-    task_id = request.json.get('task_id')
-    if not task_id:
-        return jsonify({'status': 'error', 'message': 'Task ID missing'}), 400
-
-    sync_data = get_sync_data(task_id)
-    if not sync_data:
-        return jsonify({'status': 'error', 'message': 'No sync data found'}), 400
-
-    try:
-        session = db.session
-        logger.debug(f"confirm_update: Sync data: {sync_data}")
-
-        # Process new players if requested
-        if request.json.get('process_new', False):
-            for new_player in sync_data.get('new_players', []):
-                logger.debug(f"Processing new player info: {new_player['info']}")
-                user = create_user_for_player(new_player['info'], session=session)
-                logger.debug(f"User created: {user} (id: {user.id})")
-                league = session.query(League).get(new_player['league_id'])
-                player = create_player_profile(new_player['info'], league, user, session=session)
-                logger.debug(f"Player created/updated: {player.id} (user_id: {player.user_id})")
-                player.is_current_player = True
-                if not player.primary_league:
-                    player.primary_league = league
-                record_order_history(
-                    order_id=new_player['order_id'],
-                    player_id=player.id,
-                    league_id=league.id,
-                    season_id=league.season_id,
-                    profile_count=new_player['quantity'],
-                    session=session
-                )
-
-        # Process updates for existing players
-        for update in sync_data.get('player_league_updates', []):
-            player_id = update.get('player_id')
-            league_id = update.get('league_id')
-            player = session.query(Player).get(player_id)
-            if player:
-                player.is_current_player = True
-                league = session.query(League).get(league_id)
-                if league and league not in player.other_leagues:
-                    player.other_leagues.append(league)
-
-        # Process inactive players if requested
-        if request.json.get('process_inactive', False):
-            for player_id in sync_data.get('potential_inactive', []):
-                player = session.query(Player).get(player_id)
-                if player:
-                    player.is_current_player = False
-
-        session.commit()
-        delete_sync_data(task_id)
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        session.rollback()
-        current_app.logger.error(f"Error in confirm_update: {e}", exc_info=True)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+    return redirect(url_for('user_management.confirm_update'), code=307)
 
 
 @players_bp.route('/update_status/<task_id>', methods=['GET'])
 @login_required
 def update_status(task_id):
     """
-    Return the current status of the asynchronous update task.
+    Redirect to the consolidated user management update status.
     """
-    task = AsyncResult(task_id, app=celery)
-    if task.state == 'PENDING':
-        response = {
-            'state': task.state,
-            'progress': 0,
-            'stage': 'init',
-            'message': 'Task pending...'
-        }
-    elif task.state == 'PROGRESS':
-        response = task.info
-    elif task.state == 'SUCCESS':
-        result = task.result
-        result['stage'] = 'complete'
-        result['progress'] = 100
-        response = result
-    else:
-        response = {
-            'state': task.state,
-            'progress': 0,
-            'stage': 'error',
-            'message': str(task.info)
-        }
-    return jsonify(response)
+    return redirect(url_for('user_management.update_status', task_id=task_id))
 
 
 @players_bp.route('/create_player', endpoint='create_player', methods=['POST'])

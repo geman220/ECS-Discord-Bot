@@ -46,7 +46,8 @@ from app.models import (
     Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Feedback, FeedbackReply, Note, Team, Match,
     Player, Availability, User, Schedule, Season, League,
-    TemporarySubAssignment, SubRequest
+    TemporarySubAssignment, SubRequest, LeaguePoll, 
+    LeaguePollResponse, LeaguePollDiscordMessage, player_teams
 )
 from app.utils.task_monitor import get_task_info
 from app.core import celery
@@ -3204,3 +3205,354 @@ def admin_verify_match(match_id):
         show_success(f'Match has been verified for {team_name}.')
     
     return redirect(url_for('admin.match_verification_dashboard'))
+
+
+# -----------------------------------------------------------
+# League Poll Management
+# -----------------------------------------------------------
+
+@admin_bp.route('/admin/polls', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def manage_polls():
+    """View and manage league polls."""
+    session = g.db_session
+    
+    # Get all polls ordered by creation date (newest first)
+    polls = session.query(LeaguePoll).order_by(desc(LeaguePoll.created_at)).all()
+    
+    # Calculate response counts for each poll
+    for poll in polls:
+        poll.response_counts = poll.get_response_counts()
+        poll.total_responses = sum(poll.response_counts.values())
+    
+    return render_template('admin/manage_polls.html', polls=polls)
+
+
+@admin_bp.route('/admin/polls/create', methods=['GET', 'POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def create_poll():
+    """Create a new league poll."""
+    session = g.db_session
+    
+    # Get current Pub League season team count for display
+    current_season = session.query(Season).filter(
+        Season.league_type == 'Pub League',
+        Season.is_current == True
+    ).first()
+    
+    team_count = 0
+    if current_season:
+        team_count = session.query(Team).join(
+            League, Team.league_id == League.id
+        ).filter(
+            League.season_id == current_season.id,
+            Team.discord_channel_id.isnot(None)
+        ).count()
+    
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        question = request.form.get('question', '').strip()
+        
+        if not title or not question:
+            show_error('Title and question are required.')
+            return render_template('admin/create_poll.html', team_count=team_count, current_season=current_season)
+        
+        try:
+            # Create the poll
+            poll = LeaguePoll(
+                title=title,
+                question=question,
+                created_by=safe_current_user.id,
+                status='ACTIVE'
+            )
+            session.add(poll)
+            session.flush()  # To get the poll ID
+            
+            # Get only current season teams with Discord channels
+            current_season_post = session.query(Season).filter(
+                Season.league_type == 'Pub League',
+                Season.is_current == True
+            ).first()
+            
+            if not current_season_post:
+                show_error('No active Pub League season found.')
+                return render_template('admin/create_poll.html', team_count=0, current_season=None)
+            
+            # Get teams from current season only
+            teams = session.query(Team).join(
+                League, Team.league_id == League.id
+            ).filter(
+                League.season_id == current_season_post.id,
+                Team.discord_channel_id.isnot(None)
+            ).all()
+            
+            if not teams:
+                show_warning('No teams with Discord channels found. Poll created but not sent.')
+                session.commit()
+                return redirect(url_for('admin.manage_polls'))
+            
+            # Create Discord message records for each team
+            discord_messages = []
+            for team in teams:
+                discord_msg = LeaguePollDiscordMessage(
+                    poll_id=poll.id,
+                    team_id=team.id,
+                    channel_id=team.discord_channel_id
+                )
+                session.add(discord_msg)
+                discord_messages.append(discord_msg)
+            
+            session.commit()
+            
+            # Send poll to Discord via API call to Discord bot
+            try:
+                discord_bot_url = current_app.config.get('DISCORD_BOT_URL', 'http://discord-bot:5001')
+                payload = {
+                    'poll_id': poll.id,
+                    'title': poll.title,
+                    'question': poll.question,
+                    'teams': [{'team_id': msg.team_id, 'channel_id': msg.channel_id, 'message_record_id': msg.id} 
+                             for msg in discord_messages]
+                }
+                
+                response = requests.post(
+                    f'{discord_bot_url}/api/send_league_poll',
+                    json=payload,
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    sent_count = result.get('sent', 0)
+                    failed_count = result.get('failed', 0)
+                    
+                    if failed_count > 0:
+                        show_warning(f'Poll {title} sent to {sent_count} teams. Failed to send to {failed_count} teams.')
+                    else:
+                        show_success(f'Poll {title} successfully sent to all {sent_count} teams!')
+                else:
+                    logger.error(f"Failed to send poll to Discord: {response.status_code} - {response.text}")
+                    show_warning(f'Poll created but failed to send to Discord. Status: {response.status_code}')
+                    
+            except Exception as e:
+                logger.error(f"Error sending poll to Discord: {str(e)}", exc_info=True)
+                show_warning('Poll created but failed to send to Discord. Check logs for details.')
+            
+            return redirect(url_for('admin.manage_polls'))
+            
+        except Exception as e:
+            logger.error(f"Error creating poll: {str(e)}", exc_info=True)
+            show_error(f'Error creating poll: {str(e)}')
+            session.rollback()
+    
+    return render_template('admin/create_poll.html', team_count=team_count, current_season=current_season)
+
+
+@admin_bp.route('/admin/polls/<int:poll_id>/results', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def poll_results(poll_id):
+    """View detailed results for a specific poll."""
+    session = g.db_session
+    
+    poll = session.query(LeaguePoll).get(poll_id)
+    if not poll:
+        show_error('Poll not found.')
+        return redirect(url_for('admin.manage_polls'))
+    
+    # Get overall response counts
+    response_counts = poll.get_response_counts()
+    total_responses = sum(response_counts.values())
+    
+    # Get team breakdown
+    team_breakdown_raw = poll.get_team_breakdown()
+    
+    # Organize team breakdown by team
+    team_breakdown = {}
+    for team_name, team_id, response, count in team_breakdown_raw:
+        if team_name not in team_breakdown:
+            team_breakdown[team_name] = {
+                'team_id': team_id,
+                'yes': 0, 'no': 0, 'maybe': 0, 'total': 0
+            }
+        team_breakdown[team_name][response] = count
+        team_breakdown[team_name]['total'] += count
+    
+    # Get individual responses for detailed view
+    responses = session.query(LeaguePollResponse, Player, Team).join(
+        Player, Player.id == LeaguePollResponse.player_id
+    ).join(
+        player_teams, player_teams.c.player_id == Player.id
+    ).join(
+        Team, Team.id == player_teams.c.team_id
+    ).filter(
+        LeaguePollResponse.poll_id == poll_id
+    ).order_by(Team.name, Player.name).all()
+    
+    return render_template('admin/poll_results.html', 
+                         poll=poll, 
+                         response_counts=response_counts,
+                         total_responses=total_responses,
+                         team_breakdown=team_breakdown,
+                         responses=responses)
+
+
+@admin_bp.route('/admin/polls/<int:poll_id>/close', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def close_poll(poll_id):
+    """Close a poll to prevent further responses."""
+    session = g.db_session
+    
+    poll = session.query(LeaguePoll).get(poll_id)
+    if not poll:
+        show_error('Poll not found.')
+        return redirect(url_for('admin.manage_polls'))
+    
+    if poll.status == 'CLOSED':
+        show_info('Poll is already closed.')
+        return redirect(url_for('admin.manage_polls'))
+    
+    try:
+        poll.status = 'CLOSED'
+        poll.closed_at = datetime.utcnow()
+        session.commit()
+        
+        show_success(f'Poll {poll.title} has been closed.')
+        
+    except Exception as e:
+        logger.error(f"Error closing poll: {str(e)}", exc_info=True)
+        show_error(f'Error closing poll: {str(e)}')
+        session.rollback()
+    
+    return redirect(url_for('admin.manage_polls'))
+
+
+@admin_bp.route('/admin/polls/<int:poll_id>/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def delete_poll(poll_id):
+    """Delete a poll and all its responses."""
+    session = g.db_session
+    
+    poll = session.query(LeaguePoll).get(poll_id)
+    if not poll:
+        show_error('Poll not found.')
+        return redirect(url_for('admin.manage_polls'))
+    
+    try:
+        poll_title = poll.title
+        poll.status = 'DELETED'
+        session.commit()
+        
+        show_success(f'Poll {poll_title} has been deleted.')
+        
+    except Exception as e:
+        logger.error(f"Error deleting poll: {str(e)}", exc_info=True)
+        show_error(f'Error deleting poll: {str(e)}')
+        session.rollback()
+    
+    return redirect(url_for('admin.manage_polls'))
+
+
+# API endpoint for Discord bot to update poll responses
+@admin_bp.route('/api/update_poll_response', methods=['POST'])
+@csrf_exempt
+def update_poll_response():
+    """Update poll response from Discord bot."""
+    try:
+        data = request.get_json()
+        
+        poll_id = data.get('poll_id')
+        discord_id = data.get('discord_id')
+        response = data.get('response')  # 'yes', 'no', 'maybe'
+        
+        if not all([poll_id, discord_id, response]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if response not in ['yes', 'no', 'maybe']:
+            return jsonify({'error': 'Invalid response value'}), 400
+        
+        session = g.db_session
+        
+        # Find the player by Discord ID
+        player = session.query(Player).filter(Player.discord_id == str(discord_id)).first()
+        if not player:
+            return jsonify({'error': 'Player not found'}), 404
+        
+        # Check if poll exists and is active
+        poll = session.query(LeaguePoll).filter(
+            LeaguePoll.id == poll_id,
+            LeaguePoll.status == 'ACTIVE'
+        ).first()
+        if not poll:
+            return jsonify({'error': 'Poll not found or not active'}), 404
+        
+        # Check if response already exists
+        existing_response = session.query(LeaguePollResponse).filter(
+            LeaguePollResponse.poll_id == poll_id,
+            LeaguePollResponse.player_id == player.id
+        ).first()
+        
+        if existing_response:
+            # Update existing response
+            existing_response.response = response
+            existing_response.responded_at = datetime.utcnow()
+        else:
+            # Create new response
+            new_response = LeaguePollResponse(
+                poll_id=poll_id,
+                player_id=player.id,
+                discord_id=str(discord_id),
+                response=response
+            )
+            session.add(new_response)
+        
+        session.commit()
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Error updating poll response: {str(e)}", exc_info=True)
+        session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_bp.route('/api/update_poll_message', methods=['POST'])
+@csrf_exempt
+def update_poll_message():
+    """Update poll message record with Discord message ID after sending."""
+    try:
+        data = request.get_json()
+        
+        message_record_id = data.get('message_record_id')
+        message_id = data.get('message_id')
+        sent_at = data.get('sent_at')
+        
+        if not all([message_record_id, message_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        session = g.db_session
+        
+        # Find the Discord message record
+        discord_message = session.query(LeaguePollDiscordMessage).get(message_record_id)
+        if not discord_message:
+            return jsonify({'error': 'Message record not found'}), 404
+        
+        # Update the record
+        discord_message.message_id = message_id
+        if sent_at:
+            discord_message.sent_at = datetime.fromisoformat(sent_at.replace('Z', '+00:00'))
+        else:
+            discord_message.sent_at = datetime.utcnow()
+        
+        session.commit()
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        logger.error(f"Error updating poll message: {str(e)}", exc_info=True)
+        session.rollback()
+        return jsonify({'error': str(e)}), 500

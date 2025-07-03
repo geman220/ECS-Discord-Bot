@@ -231,9 +231,13 @@ async def load_managed_message_ids():
                         
                         # Log stats about managed messages
                         all_messages = len(bot_state.get_managed_message_ids())
-                        this_week = len(bot_state.get_managed_message_ids(days_limit=7))
+                        active_messages = len(bot_state.get_managed_message_ids(days_limit=14))
                         
-                        logger.info(f"Loaded {added_count} new managed message IDs. Total: {all_messages} ({this_week} for the next 7 days)")
+                        logger.info(f"Loaded {added_count} new managed message IDs. Total: {all_messages} ({active_messages} active within 14 days)")
+                        
+                        # Also load active poll messages
+                        await load_poll_message_ids()
+                        
                         return  # Success, exit the retry loop
                     except asyncio.TimeoutError:
                         logger.error("Timed out parsing message data")
@@ -269,6 +273,51 @@ async def load_managed_message_ids():
     
     # If we exhaust all retries
     logger.error(f"Failed to load message IDs after {max_retries} attempts")
+
+
+async def load_poll_message_ids():
+    """
+    Load active poll message IDs from the Flask app.
+    """
+    try:
+        # Clear existing poll messages to avoid stale data
+        bot_state.poll_messages.clear()
+        
+        # Get active polls from Flask
+        async with session.get(f"{WEBUI_API_URL}/api/get_active_poll_messages") as response:
+            if response.status == 200:
+                data = await response.json()
+                poll_count = 0
+                
+                for poll_msg in data:
+                    message_id = poll_msg.get('message_id')
+                    if message_id:
+                        try:
+                            message_id_int = int(message_id)
+                            # Track in bot state
+                            bot_state.add_managed_message_id(
+                                message_id_int,
+                                match_date=None,  # Polls don't have match dates
+                                team_id=poll_msg.get('team_id')
+                            )
+                            # Store poll metadata
+                            bot_state.poll_messages[message_id_int] = {
+                                'poll_id': poll_msg.get('poll_id'),
+                                'team_id': poll_msg.get('team_id'),
+                                'channel_id': poll_msg.get('channel_id')
+                            }
+                            poll_count += 1
+                            logger.debug(f"Added poll message {message_id_int} to both managed messages and poll_messages")
+                        except (ValueError, TypeError) as e:
+                            logger.error(f"Invalid poll message ID: {message_id}, error: {e}")
+                
+                logger.info(f"Loaded {poll_count} active poll message IDs")
+            else:
+                logger.warning(f"Failed to fetch active poll messages: {response.status}")
+                
+    except Exception as e:
+        logger.error(f"Error loading poll message IDs: {e}")
+
 
 async def periodic_sync():
     """
@@ -1290,6 +1339,119 @@ async def on_app_command_error(interaction: discord.Interaction, error):
             "An error occurred while processing the command.", ephemeral=True
         )
 
+async def process_poll_reaction(message_id, emoji, user_id, channel_id, payload):
+    """
+    Process a reaction on a poll message.
+    """
+    try:
+        # Get poll metadata
+        poll_info = bot_state.poll_messages.get(message_id)
+        if not poll_info:
+            logger.error(f"Poll info not found for message {message_id}")
+            return
+        
+        poll_id = poll_info['poll_id']
+        team_id = poll_info['team_id']
+        
+        # Map emoji to response
+        emoji_to_response = {
+            "✅": "yes",
+            "❌": "no",
+            "⚠️": "maybe"
+        }
+        
+        response = emoji_to_response.get(emoji)
+        if not response:
+            # Remove invalid reactions
+            try:
+                channel = bot.get_channel(channel_id)
+                if channel:
+                    message = await channel.fetch_message(message_id)
+                    user = await bot.fetch_user(user_id)
+                    await message.remove_reaction(payload.emoji, user)
+                    logger.info(f"Removed invalid poll reaction {emoji} from user {user_id}")
+            except Exception as e:
+                logger.error(f"Error removing invalid poll reaction: {e}")
+            return
+        
+        # Get user information
+        user = bot.get_user(user_id)
+        if not user:
+            try:
+                user = await bot.fetch_user(user_id)
+            except Exception as e:
+                logger.error(f"Could not fetch user {user_id}: {e}")
+                return
+        
+        logger.info(f"User {user_id} ({user.name}) reacted with {emoji} ({response}) to poll {poll_id}")
+        
+        # Send the poll response to the Flask app
+        try:
+            api_url = f"{WEBUI_API_URL}/update_poll_response_from_discord"
+            data = {
+                "poll_id": poll_id,
+                "discord_id": str(user_id),
+                "response": response,
+                "responded_at": datetime.utcnow().isoformat()
+            }
+            
+            async with session.post(api_url, json=data) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    logger.info(f"Poll response recorded successfully: {result}")
+                    
+                    # Remove other reactions from the same user
+                    try:
+                        channel = bot.get_channel(channel_id)
+                        if channel:
+                            message = await channel.fetch_message(message_id)
+                            
+                            # Remove other emoji reactions from this user
+                            for other_emoji, _ in emoji_to_response.items():
+                                if other_emoji != emoji:
+                                    try:
+                                        await message.remove_reaction(other_emoji, user)
+                                    except discord.errors.NotFound:
+                                        # Reaction doesn't exist, that's fine
+                                        pass
+                                    except Exception as e:
+                                        logger.debug(f"Could not remove reaction {other_emoji}: {e}")
+                    except Exception as e:
+                        logger.error(f"Error managing user reactions: {e}")
+                        
+                elif resp.status == 403:
+                    # User not authorized to vote (not on team)
+                    error_data = await resp.json()
+                    logger.warning(f"User {user_id} not authorized to vote: {error_data.get('error')}")
+                    
+                    # Remove the reaction
+                    try:
+                        channel = bot.get_channel(channel_id)
+                        if channel:
+                            message = await channel.fetch_message(message_id)
+                            await message.remove_reaction(payload.emoji, user)
+                    except Exception as e:
+                        logger.error(f"Error removing unauthorized reaction: {e}")
+                    
+                    # Send DM to user
+                    try:
+                        await user.send(
+                            "You cannot vote in this poll because you are not a member of this team. "
+                            "Only team members can participate in team polls."
+                        )
+                    except discord.Forbidden:
+                        logger.debug(f"Could not send DM to user {user_id}")
+                        
+                else:
+                    error_text = await resp.text()
+                    logger.error(f"Failed to record poll response: {resp.status} - {error_text}")
+                    
+        except Exception as e:
+            logger.error(f"Error sending poll response to Flask: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error processing poll reaction: {e}", exc_info=True)
+
 @bot.event
 async def process_reaction_with_rate_limit(message_id, emoji, user_id, channel_id, payload, retry_count=0):
     """
@@ -1314,10 +1476,36 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     """
     Core logic for processing a reaction, separated for better rate limit handling.
     """
+    logger.debug(f"Processing reaction for message {message_id}, poll_messages has {len(bot_state.poll_messages)} entries")
+    
+    # Check if this is a poll message first
+    if message_id in bot_state.poll_messages:
+        logger.info(f"Processing poll reaction on message {message_id}")
+        await process_poll_reaction(message_id, emoji, user_id, channel_id, payload)
+        return
+    
     # Only look at relevant messages (within 14 days of today)
     active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
     if message_id not in active_message_ids:
-        logger.debug(f"Message ID {message_id} is not an active managed message. Ignoring reaction.")
+        # Check if this might be a poll message that wasn't properly loaded
+        all_managed = bot_state.get_managed_message_ids()
+        is_in_all_managed = message_id in all_managed
+        poll_count = len(bot_state.poll_messages)
+        
+        logger.debug(f"Message ID {message_id} is not an active managed message. Ignoring reaction. "
+                    f"(In all managed: {is_in_all_managed}, Poll messages count: {poll_count})")
+        
+        # If it's in managed messages but not in poll_messages, try to reload poll messages
+        if is_in_all_managed and poll_count > 0:
+            logger.warning(f"Message {message_id} is managed but not in poll_messages. Attempting to reload poll messages.")
+            await load_poll_message_ids()
+            
+            # Try again after reloading
+            if message_id in bot_state.poll_messages:
+                logger.info(f"Found message {message_id} in poll_messages after reload. Processing as poll.")
+                await process_poll_reaction(message_id, emoji, user_id, channel_id, payload)
+                return
+        
         return
 
     # Fetch match_id and team_id from the web app
@@ -1587,6 +1775,12 @@ async def process_reaction_removal(message_id, emoji, user_id, channel_id, paylo
     Process a reaction removal in a background task to avoid blocking the main thread.
     """
     try:
+        # Check if this is a poll message first
+        if hasattr(bot_state, 'poll_messages') and message_id in bot_state.poll_messages:
+            logger.info(f"Poll reaction removed on message {message_id}, but no action needed")
+            # For polls, we handle everything in the add reaction event
+            return
+        
         # Only look at relevant messages (within 14 days of today)
         active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
         if message_id not in active_message_ids:

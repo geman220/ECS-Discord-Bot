@@ -216,23 +216,23 @@
             </a>
         </li>
         {% endif %}
-
-        <!-- Player Database Management - Only Pub League Admin and Global Admin -->
+        
+        <!-- League Polls - Pub League Admin / Global Admin -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'players' in request.path }}">
-            <a class="menu-link" href="{{ url_for('players.view_players') }}">
-                <i data-feather="database" class="menu-icon"></i>
-                <div>Player Database</div>
+        <li class="menu-item {{ 'active' if request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}">
+            <a class="menu-link" href="{{ url_for('admin.manage_polls') }}">
+                <i class="ti ti-clipboard-list menu-icon"></i>
+                <div>League Polls</div>
             </a>
         </li>
         {% endif %}
 
-        <!-- Manage Users for Global Admins Only -->
-        {% if 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'manage_users' in request.path }}">
+        <!-- User & Player Management - Pub League Admin and Global Admin -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'manage_users' in request.path or 'players' in request.path }}">
             <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
-                <i data-feather="user-check" class="menu-icon"></i>
-                <div>Manage Users</div>
+                <i data-feather="users" class="menu-icon"></i>
+                <div>User & Player Management</div>
             </a>
         </li>
         {% endif %}
