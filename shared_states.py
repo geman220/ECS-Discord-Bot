@@ -17,6 +17,8 @@ class BotState:
     def __init__(self):
         # Store message_id -> {match_date, team_id, added_at} mapping
         self.managed_messages = {}
+        # Store poll message_id -> {poll_id, team_id, channel_id} mapping
+        self.poll_messages = {}
         self.bot_instance = None
 
     def add_managed_message_id(self, message_id, match_date=None, team_id=None):
@@ -101,6 +103,7 @@ class BotState:
     def cleanup_old_messages(self, days_threshold=14):
         """
         Remove messages for matches that are older than the threshold.
+        Also cleans up old poll messages based on their creation time.
         
         Args:
             days_threshold: Remove messages for matches older than this many days
@@ -110,40 +113,68 @@ class BotState:
         """
         today = datetime.utcnow().date()
         to_remove = []
+        poll_messages_removed = 0
         
         for message_id, metadata in self.managed_messages.items():
             match_date = metadata.get('match_date')
-            if not match_date:
-                continue
-                
-            # Try to parse the date
-            try:
-                if 'T' in match_date:  # ISO format with time
-                    match_datetime = datetime.fromisoformat(match_date)
-                    match_date = match_datetime.date()
-                else:
-                    # Try different date formats
-                    for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y']:
-                        try:
-                            match_date = datetime.strptime(match_date, fmt).date()
-                            break
-                        except ValueError:
-                            continue
-                
-                # If the match date is in the past beyond threshold, mark for removal
-                if isinstance(match_date, datetime.date):
-                    days_old = (today - match_date).days
+            added_at = metadata.get('added_at')
+            
+            # Handle match messages with dates
+            if match_date:
+                # Try to parse the match date
+                try:
+                    if 'T' in match_date:  # ISO format with time
+                        match_datetime = datetime.fromisoformat(match_date)
+                        match_date = match_datetime.date()
+                    else:
+                        # Try different date formats
+                        for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y']:
+                            try:
+                                match_date = datetime.strptime(match_date, fmt).date()
+                                break
+                            except ValueError:
+                                continue
+                    
+                    # If the match date is in the past beyond threshold, mark for removal
+                    if isinstance(match_date, datetime.date):
+                        days_old = (today - match_date).days
+                        if days_old > days_threshold:
+                            to_remove.append(message_id)
+                except (ValueError, TypeError):
+                    # Skip messages with unparseable dates
+                    pass
+            
+            # Handle poll messages and other messages without match dates
+            elif added_at:
+                try:
+                    # Parse the added_at timestamp
+                    if 'T' in added_at:
+                        added_datetime = datetime.fromisoformat(added_at)
+                    else:
+                        added_datetime = datetime.strptime(added_at, '%Y-%m-%d %H:%M:%S')
+                    
+                    # Check if this message is older than threshold
+                    days_old = (datetime.utcnow() - added_datetime).days
                     if days_old > days_threshold:
                         to_remove.append(message_id)
-            except (ValueError, TypeError):
-                # Skip messages with unparseable dates
-                pass
+                        # Count poll messages separately for logging
+                        if message_id in self.poll_messages:
+                            poll_messages_removed += 1
+                            
+                except (ValueError, TypeError):
+                    # If we can't parse added_at, skip this message
+                    pass
         
         # Remove the old messages
         for message_id in to_remove:
             self.remove_managed_message_id(message_id)
-            
-        logger.info(f"Cleaned up {len(to_remove)} old messages older than {days_threshold} days")
+            # Also remove from poll_messages if it's there
+            if message_id in self.poll_messages:
+                del self.poll_messages[message_id]
+        
+        regular_messages_removed = len(to_remove) - poll_messages_removed
+        logger.info(f"Cleaned up {len(to_remove)} old messages older than {days_threshold} days "
+                   f"({regular_messages_removed} match messages, {poll_messages_removed} poll messages)")
         return len(to_remove)
 
     def set_bot_instance(self, bot: commands.Bot):
@@ -193,10 +224,10 @@ async def periodic_check():
                 
                 # Log managed message count with different timeframes
                 all_messages = len(bot_state.get_managed_message_ids())
-                this_week_messages = len(bot_state.get_managed_message_ids(days_limit=7))
+                active_messages = len(bot_state.get_managed_message_ids(days_limit=14))
                 this_month_messages = len(bot_state.get_managed_message_ids(days_limit=30))
                 
-                logger.info(f"Managing {all_messages} total messages: {this_week_messages} for this week, {this_month_messages} for this month")
+                logger.info(f"Managing {all_messages} total messages: {active_messages} active (14 days), {this_month_messages} within month")
                 
                 # Check if it's time to clean up old messages (every 6 hours)
                 now = datetime.utcnow()

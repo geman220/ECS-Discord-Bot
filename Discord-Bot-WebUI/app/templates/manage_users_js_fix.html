@@ -1,0 +1,508 @@
+{% block custom_js %}
+<script>
+    // Global variables and reusable functions - accessible to both initial load and AJAX updates
+    let editUserModal, editUserForm, editUserUrlTemplate, getUserDataUrl, approveUserUrlTemplate, removeUserUrlTemplate, deleteUserUrlTemplate, csrfToken;
+
+    // Reusable function to handle edit user click
+    function handleEditUserClick(userId) {
+        // Show loading
+        Swal.fire({
+            title: 'Loading...',
+            html: 'Fetching user data',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch(`${getUserDataUrl}?user_id=${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Close loading dialog
+                Swal.close();
+                
+                if (data.error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error
+                    });
+                    return;
+                }
+
+                // Populate basic fields
+                document.getElementById('editUserId').value = data.id;
+                document.getElementById('editUsername').value = data.username;
+                document.getElementById('editEmail').value = data.email;
+
+                // Roles
+                const editRolesSelect = document.getElementById('editRoles');
+                const selectedRoles = data.roles.map(id => id.toString());
+                for (let option of editRolesSelect.options) {
+                    option.selected = selectedRoles.includes(option.value);
+                }
+
+                // Player profile section
+                const playerProfileSection = document.getElementById('playerProfileSection');
+                const leagueField = document.getElementById('editLeague');
+                const teamField = document.getElementById('editTeam');
+                const isCurrentPlayerField = document.getElementById('editIsCurrentPlayer');
+                const noPlayerMessage = document.getElementById('noPlayerMessage');
+
+                if (data.has_player) {
+                    playerProfileSection.classList.remove('d-none');
+                    noPlayerMessage.classList.add('d-none');
+                    
+                    // Set values
+                    leagueField.value = data.league_id || '0';
+                    leagueField.disabled = false;
+                    
+                    // Trigger league change event to filter teams first
+                    leagueField.dispatchEvent(new Event('change'));
+                    
+                    // Set team after league filtering
+                    teamField.value = data.team_id || '0';
+                    teamField.disabled = false;
+                    isCurrentPlayerField.checked = data.is_current_player;
+                    isCurrentPlayerField.disabled = false;
+                    
+                    // Secondary league
+                    const secondaryLeagueField = document.getElementById('editSecondaryLeague');
+                    if (data.secondary_league_id && secondaryLeagueField) {
+                        secondaryLeagueField.value = data.secondary_league_id || '0';
+                        secondaryLeagueField.disabled = false;
+                    }
+                    
+                    // Secondary team
+                    const secondaryTeamField = document.getElementById('editSecondaryTeam');
+                    if (data.secondary_team_id && secondaryTeamField) {
+                        secondaryTeamField.value = data.secondary_team_id || '0';
+                        secondaryTeamField.disabled = false;
+                    }
+                } else {
+                    playerProfileSection.classList.remove('d-none');
+                    noPlayerMessage.classList.remove('d-none');
+                    
+                    // Clear and disable fields
+                    leagueField.value = '0';
+                    leagueField.disabled = true;
+                    teamField.value = '0';
+                    teamField.disabled = true;
+                    isCurrentPlayerField.checked = false;
+                    isCurrentPlayerField.disabled = true;
+                    
+                    // Clear secondary league
+                    const secondaryLeagueField = document.getElementById('editSecondaryLeague');
+                    if (secondaryLeagueField) {
+                        secondaryLeagueField.value = '0';
+                        secondaryLeagueField.disabled = true;
+                    }
+                    
+                    // Clear secondary team
+                    const secondaryTeamField = document.getElementById('editSecondaryTeam');
+                    if (secondaryTeamField) {
+                        secondaryTeamField.value = '0';
+                        secondaryTeamField.disabled = true;
+                    }
+                }
+
+                // Update form action and show modal
+                const editUserUrl = editUserUrlTemplate.replace('/0', `/${userId}`);
+                editUserForm.action = editUserUrl;
+                editUserModal.show();
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error fetching user data:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while fetching user data.'
+                });
+            });
+    }
+
+    // Reusable function to handle approve user
+    function handleApproveUserClick(userId) {
+        const approveUserUrl = approveUserUrlTemplate.replace('/0', `/${userId}`);
+
+        Swal.fire({
+            title: 'Approve User',
+            text: 'Are you sure you want to approve this user?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, approve it!',
+            cancelButtonText: 'No, cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = approveUserUrl;
+                
+                // Add CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+                
+                // Submit the form
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Reusable function to handle remove user
+    function handleRemoveUserClick(userId) {
+        const removeUserUrl = removeUserUrlTemplate.replace('/0', `/${userId}`);
+
+        Swal.fire({
+            title: 'Remove User',
+            text: 'Are you sure you want to remove this user? This action can be reversed.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove it!',
+            cancelButtonText: 'No, cancel',
+            confirmButtonColor: '#ff9800'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = removeUserUrl;
+                
+                // Add CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken;
+                form.appendChild(csrfInput);
+                
+                // Submit the form
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+
+    // Reusable function to handle delete user
+    function handleDeleteUserClick(userId, username) {
+        const deleteUserUrl = deleteUserUrlTemplate.replace('/0', `/${userId}`);
+
+        Swal.fire({
+            title: 'Delete User Completely',
+            html: `<div class="text-start">
+                   <p class="mb-2">Are you sure you want to <strong>permanently delete</strong> all data for user ${username}?</p>
+                   <p class="mb-2">This will delete:</p>
+                   <ul class="mb-3 text-danger">
+                       <li>User account and authentication</li>
+                       <li>Player profile</li>
+                       <li>All match statistics</li>
+                       <li>All RSVPs and responses</li>
+                       <li>Team memberships</li>
+                       <li>Feedback and records</li>
+                   </ul>
+                   <p class="fw-bold mb-0">This action CANNOT be undone.</p>
+                   </div>`,
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, permanently delete',
+            cancelButtonText: 'No, cancel',
+            confirmButtonColor: '#dc3545',
+            focusCancel: true,
+            showLoaderOnConfirm: true,
+            preConfirm: () => {
+                return fetch(deleteUserUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        throw new Error(data.message || 'An error occurred');
+                    }
+                    return data;
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: result.value.message,
+                    icon: 'success'
+                }).then(() => {
+                    // Reload the page
+                    window.location.reload();
+                });
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize global variables
+        editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        editUserForm = document.getElementById('editUserForm');
+        editUserUrlTemplate = `{{ url_for('user_management.edit_user', user_id=0) }}`;
+        approveUserUrlTemplate = `{{ url_for('user_management.approve_user', user_id=0) }}`;
+        removeUserUrlTemplate = `{{ url_for('user_management.remove_user', user_id=0) }}`;
+        deleteUserUrlTemplate = `{{ url_for('user_management.delete_user', user_id=0) }}`;
+        getUserDataUrl = "{{ url_for('user_management.get_user_data') }}";
+        csrfToken = "{{ csrf_token() }}";
+
+        const editUserButtons = document.querySelectorAll('.edit-user-btn');
+        const approveUserButtons = document.querySelectorAll('.approve-user-btn');
+        const removeUserButtons = document.querySelectorAll('.remove-user-btn');
+        const deleteUserButtons = document.querySelectorAll('.delete-user-btn');
+
+        // Filter teams by selected league
+        document.getElementById('editLeague').addEventListener('change', function() {
+            const leagueId = this.value;
+            const teamSelect = document.getElementById('editTeam');
+            const options = teamSelect.querySelectorAll('option');
+
+            options.forEach(option => {
+                if (option.value === '0' || option.dataset.league === leagueId) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+
+            // Reset team selection if league changes
+            teamSelect.value = '0';
+        });
+
+        // Handle edit user button clicks
+        editUserButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-user-id');
+                handleEditUserClick(userId);
+            });
+        });
+
+        // Handle approve user button clicks
+        approveUserButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-user-id');
+                handleApproveUserClick(userId);
+            });
+        });
+
+        // Handle remove user button clicks
+        removeUserButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-user-id');
+                handleRemoveUserClick(userId);
+            });
+        });
+
+        // Handle delete user button clicks
+        deleteUserButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const userId = this.getAttribute('data-user-id');
+                const username = this.getAttribute('data-username');
+                handleDeleteUserClick(userId, username);
+            });
+        });
+
+        // WooCommerce sync functionality (rest of the original code...)
+        // ... continue with existing sync functionality
+    });
+
+    // Real-time filtering functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const roleFilter = document.getElementById('roleFilter');
+        const approvedFilter = document.getElementById('approvedFilter');
+        const leagueFilter = document.getElementById('leagueFilter');
+        const activeFilter = document.getElementById('activeFilter');
+        const totalCount = document.querySelector('.text-muted.me-2');
+        const paginationContainer = document.getElementById('paginationContainer');
+        
+        let filterTimeout;
+        
+        // Debounce function to avoid too many requests
+        function debounce(func, wait) {
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(filterTimeout);
+                    func(...args);
+                };
+                clearTimeout(filterTimeout);
+                filterTimeout = setTimeout(later, wait);
+            };
+        }
+        
+        // Function to check if any filters are active
+        function hasActiveFilters() {
+            return searchInput.value.trim() !== '' || 
+                   roleFilter.value !== '' || 
+                   approvedFilter.value !== '' || 
+                   leagueFilter.value !== '' || 
+                   activeFilter.value !== '';
+        }
+        
+        // Function to perform the filtering
+        function performFilter() {
+            // If no filters are active, reload the page to show normal pagination
+            if (!hasActiveFilters()) {
+                window.location.href = '{{ url_for("user_management.manage_users") }}';
+                return;
+            }
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            params.append('search', searchInput.value);
+            params.append('role', roleFilter.value);
+            params.append('approved', approvedFilter.value);
+            params.append('league', leagueFilter.value);
+            params.append('active', activeFilter.value);
+            params.append('ajax', 'true');
+            
+            // Show loading indicator
+            const tbody = document.querySelector('tbody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Filtering...</td></tr>';
+            
+            // Send AJAX request
+            fetch(`{{ url_for("user_management.manage_users") }}?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update table body
+                    tbody.innerHTML = data.html;
+                    
+                    // Update total count
+                    if (totalCount) {
+                        totalCount.textContent = `Total: ${data.total} users`;
+                    }
+                    
+                    // Hide pagination during filtering (since we show all results)
+                    if (paginationContainer) {
+                        paginationContainer.style.display = 'none';
+                    }
+                    
+                    // Re-initialize event listeners for new elements
+                    initializeDropdownHandlers();
+                    initializeActionButtons();
+                } else {
+                    const errorMsg = data.error || 'Error loading data';
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">${errorMsg}</td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Filter error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading data. Please refresh the page.</td></tr>';
+            });
+        }
+        
+        // Debounced filter function
+        const debouncedFilter = debounce(performFilter, 300);
+        
+        // Add event listeners to all filter inputs
+        searchInput.addEventListener('input', debouncedFilter);
+        roleFilter.addEventListener('change', debouncedFilter);
+        approvedFilter.addEventListener('change', debouncedFilter);
+        leagueFilter.addEventListener('change', debouncedFilter);
+        activeFilter.addEventListener('change', debouncedFilter);
+        
+        // Function to reinitialize dropdown handlers after table update
+        function initializeDropdownHandlers() {
+            document.querySelectorAll('.dropdown-toggle').forEach(toggleBtn => {
+                toggleBtn.addEventListener('click', function() {
+                    // Close any other open dropdowns
+                    document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                        if (menu !== this.nextElementSibling) {
+                            menu.classList.remove('show');
+                        }
+                    });
+                    
+                    // Ensure the dropdown menu is positioned correctly
+                    setTimeout(() => {
+                        const dropdown = this.closest('.dropdown');
+                        const menu = dropdown.querySelector('.dropdown-menu');
+                        
+                        if (menu && menu.classList.contains('show')) {
+                            // Make sure the menu is in the viewport
+                            const rect = menu.getBoundingClientRect();
+                            if (rect.right > window.innerWidth) {
+                                menu.style.left = 'auto';
+                                menu.style.right = '0';
+                            }
+                            if (rect.bottom > window.innerHeight) {
+                                menu.style.top = 'auto';
+                                menu.style.bottom = '0';
+                            }
+                            
+                            // Ensure the menu has highest z-index
+                            menu.style.zIndex = '10000';
+                        }
+                    }, 10);
+                });
+            });
+        }
+        
+        // Function to reinitialize action buttons after table update
+        function initializeActionButtons() {
+            // Reinitialize edit user buttons
+            document.querySelectorAll('.edit-user-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const userId = this.getAttribute('data-user-id');
+                    handleEditUserClick(userId);
+                });
+            });
+            
+            // Reinitialize approve user buttons
+            document.querySelectorAll('.approve-user-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const userId = this.getAttribute('data-user-id');
+                    handleApproveUserClick(userId);
+                });
+            });
+            
+            // Reinitialize remove user buttons
+            document.querySelectorAll('.remove-user-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const userId = this.getAttribute('data-user-id');
+                    handleRemoveUserClick(userId);
+                });
+            });
+            
+            // Reinitialize delete user buttons
+            document.querySelectorAll('.delete-user-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const userId = this.getAttribute('data-user-id');
+                    const username = this.getAttribute('data-username');
+                    handleDeleteUserClick(userId, username);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

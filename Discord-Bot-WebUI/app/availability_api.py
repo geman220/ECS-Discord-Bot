@@ -14,6 +14,7 @@ This module defines endpoints for managing match availability, including:
 import os
 import logging
 import ipaddress
+from datetime import datetime
 
 # Third-party imports
 from flask import Blueprint, request, jsonify, abort, g, current_app
@@ -486,6 +487,104 @@ def update_availability_from_discord():
             'status': 'error',
             'error': str(e)
         }), 500
+
+
+@availability_bp.route('/update_poll_response_from_discord', methods=['POST'], endpoint='update_poll_response_from_discord')
+def update_poll_response_from_discord():
+    """
+    Update poll response data based on information received from Discord.
+
+    Expects JSON with:
+        - poll_id
+        - discord_id
+        - response ('yes', 'no', 'maybe')
+        - optionally, responded_at
+    """
+    session_db = g.db_session
+    try:
+        data = request.json
+        logger.info(f"Received poll response from Discord: {data}")
+
+        required_fields = ['poll_id', 'discord_id', 'response']
+        if not all(field in data for field in required_fields):
+            logger.error("Missing required fields for poll response")
+            return jsonify({
+                'status': 'error',
+                'error': 'Missing required fields'
+            }), 400
+
+        poll_id = data['poll_id']
+        discord_id = str(data['discord_id'])
+        response = data['response']
+        
+        if response not in ['yes', 'no', 'maybe']:
+            logger.error(f"Invalid response value: {response}")
+            return jsonify({
+                'status': 'error',
+                'error': 'Invalid response value'
+            }), 400
+
+        # Find the player by Discord ID
+        from app.models import Player, LeaguePoll, LeaguePollResponse
+        player = session_db.query(Player).filter(Player.discord_id == discord_id).first()
+        if not player:
+            logger.error(f"No player found for discord_id {discord_id}")
+            return jsonify({
+                'status': 'error',
+                'error': 'Player not found'
+            }), 404
+
+        # Check if poll exists and is active
+        poll = session_db.query(LeaguePoll).filter(
+            LeaguePoll.id == poll_id,
+            LeaguePoll.status == 'ACTIVE'
+        ).first()
+        if not poll:
+            logger.error(f"Poll {poll_id} not found or not active")
+            return jsonify({
+                'status': 'error',
+                'error': 'Poll not found or not active'
+            }), 404
+
+        # Check if response already exists
+        existing_response = session_db.query(LeaguePollResponse).filter(
+            LeaguePollResponse.poll_id == poll_id,
+            LeaguePollResponse.player_id == player.id
+        ).first()
+
+        if existing_response:
+            # Update existing response
+            old_response = existing_response.response
+            existing_response.response = response
+            existing_response.responded_at = datetime.utcnow()
+            logger.info(f"Updated poll response for player {player.name} (ID: {player.id}) from {old_response} to {response}")
+        else:
+            # Create new response
+            new_response = LeaguePollResponse(
+                poll_id=poll_id,
+                player_id=player.id,
+                discord_id=discord_id,
+                response=response
+            )
+            session_db.add(new_response)
+            logger.info(f"Created new poll response for player {player.name} (ID: {player.id}): {response}")
+
+        session_db.commit()
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Poll response recorded: {response}',
+            'player_name': player.name
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error in update_poll_response_from_discord: {str(e)}", exc_info=True)
+        session_db.rollback()
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
 
 
 @availability_bp.route('/get_message_ids/<int:match_id>', methods=['GET'], endpoint='get_message_ids')
@@ -981,4 +1080,193 @@ def sync_discord_rsvps():
         return jsonify({
             'success': False,
             'message': f'Error processing RSVP updates: {str(e)}'
+        }), 500
+
+
+@availability_bp.route('/api/record_poll_response', methods=['POST'])
+def record_poll_response():
+    """
+    Records a poll response from Discord.
+    
+    Expected JSON:
+    {
+        "poll_id": int,
+        "discord_id": str,
+        "response": str ("yes", "no", "maybe"),
+        "responded_at": str (ISO datetime)
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        poll_id = data.get('poll_id')
+        discord_id = data.get('discord_id')
+        response = data.get('response')
+        responded_at = data.get('responded_at')
+        
+        if not all([poll_id, discord_id, response]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        if response not in ['yes', 'no', 'maybe']:
+            return jsonify({'error': 'Invalid response. Must be yes, no, or maybe'}), 400
+        
+        # Import models
+        from app.models import LeaguePoll, LeaguePollResponse, Player
+        from datetime import datetime
+        
+        # Check if poll exists and is active
+        poll = LeaguePoll.query.get(poll_id)
+        if not poll:
+            return jsonify({'error': 'Poll not found'}), 404
+            
+        if poll.status != 'ACTIVE':
+            return jsonify({'error': 'Poll is not active'}), 400
+        
+        # Find player by Discord ID
+        player = Player.query.filter_by(discord_id=discord_id).first()
+        if not player:
+            return jsonify({'error': 'Player not found with this Discord ID'}), 403
+        
+        # Check if player has already responded
+        existing_response = LeaguePollResponse.query.filter_by(
+            poll_id=poll_id,
+            player_id=player.id
+        ).first()
+        
+        if existing_response:
+            # Update existing response
+            old_response = existing_response.response
+            existing_response.response = response
+            existing_response.responded_at = datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
+            action = 'updated'
+            
+            logger.info(f"Updated poll response for player {player.name} ({player.id}) "
+                       f"from {old_response} to {response} for poll {poll_id}")
+        else:
+            # Create new response
+            new_response = LeaguePollResponse(
+                poll_id=poll_id,
+                player_id=player.id,
+                discord_id=discord_id,
+                response=response,
+                responded_at=datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
+            )
+            db.session.add(new_response)
+            action = 'created'
+            
+            logger.info(f"Created new poll response for player {player.name} ({player.id}) "
+                       f"with response {response} for poll {poll_id}")
+        
+        db.session.commit()
+        
+        # Get updated response counts
+        response_counts = poll.get_response_counts()
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'player_name': player.name,
+            'response': response,
+            'poll_id': poll_id,
+            'response_counts': response_counts
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error recording poll response: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'error': f'Error recording poll response: {str(e)}'
+        }), 500
+
+
+@availability_bp.route('/update_poll_message', methods=['POST'])
+def update_poll_message():
+    """
+    Updates the Discord message ID for a poll message after it's sent.
+    
+    Expected JSON:
+    {
+        "message_record_id": int,
+        "message_id": str,
+        "sent_at": str (ISO datetime)
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        message_record_id = data.get('message_record_id')
+        message_id = data.get('message_id')
+        sent_at = data.get('sent_at')
+        
+        if not all([message_record_id, message_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        from app.models import LeaguePollDiscordMessage
+        from datetime import datetime
+        
+        # Find the message record
+        message_record = LeaguePollDiscordMessage.query.get(message_record_id)
+        if not message_record:
+            return jsonify({'error': 'Message record not found'}), 404
+        
+        # Update the message ID and sent timestamp
+        message_record.message_id = message_id
+        message_record.sent_at = datetime.fromisoformat(sent_at) if sent_at else datetime.utcnow()
+        
+        db.session.commit()
+        
+        logger.info(f"Updated poll message record {message_record_id} with Discord message ID {message_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Poll message record updated successfully'
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error updating poll message: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'error': f'Error updating poll message: {str(e)}'
+        }), 500
+
+
+@availability_bp.route('/api/get_active_poll_messages', methods=['GET'])
+def get_active_poll_messages():
+    """
+    Get all active poll messages with their Discord message IDs.
+    Returns data needed by the Discord bot to track poll reactions.
+    """
+    try:
+        from app.models import LeaguePoll, LeaguePollDiscordMessage
+        
+        # Get all active polls with their Discord messages
+        active_poll_messages = db.session.query(
+            LeaguePollDiscordMessage
+        ).join(
+            LeaguePoll, LeaguePoll.id == LeaguePollDiscordMessage.poll_id
+        ).filter(
+            LeaguePoll.status == 'ACTIVE',
+            LeaguePollDiscordMessage.message_id.isnot(None)
+        ).all()
+        
+        result = []
+        for msg in active_poll_messages:
+            result.append({
+                'poll_id': msg.poll_id,
+                'team_id': msg.team_id,
+                'channel_id': msg.channel_id,
+                'message_id': msg.message_id
+            })
+        
+        logger.info(f"Returning {len(result)} active poll messages")
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.exception(f"Error getting active poll messages: {str(e)}")
+        return jsonify({
+            'error': f'Error getting active poll messages: {str(e)}'
         }), 500

@@ -49,8 +49,8 @@ def view_match(match_id):
 
     # Fetch match details with necessary relationships eagerly loaded
     match = session.query(Match).options(
-        joinedload(Match.home_team).joinedload(Team.players).joinedload(Player.availability),
-        joinedload(Match.away_team).joinedload(Team.players).joinedload(Player.availability),
+        joinedload(Match.home_team).joinedload(Team.players),
+        joinedload(Match.away_team).joinedload(Team.players),
         joinedload(Match.schedule)
     ).get(match_id)
 
@@ -76,9 +76,18 @@ def view_match(match_id):
             'maybe': [],
             'no_response': []
         }
+        # Get availability records for this specific match and team players
+        player_ids = [p.id for p in team.players]
+        availability_records = session.query(Availability).filter(
+            Availability.match_id == match.id,
+            Availability.player_id.in_(player_ids)
+        ).all()
+        
+        # Create a lookup dict for faster access
+        availability_lookup = {a.player_id: a for a in availability_records}
+        
         for player in team.players:
-            # Find the availability entry for the current match
-            availability = next((a for a in player.availability if a.match_id == match.id), None)
+            availability = availability_lookup.get(player.id)
             if availability:
                 if availability.response == 'yes':
                     rsvp_data['available'].append(player)
@@ -90,6 +99,51 @@ def view_match(match_id):
                 rsvp_data['no_response'].append(player)
         return rsvp_data
 
+    # Check for sorting parameter
+    sort_by = request.args.get('sort', 'default')  # Default to no sorting
+    
+    # Get availability records for sorting purposes
+    if sort_by in ['name', 'response']:
+        home_player_ids = [p.id for p in match.home_team.players]
+        away_player_ids = [p.id for p in match.away_team.players]
+        
+        # Get availability records for both teams
+        home_availability = session.query(Availability).filter(
+            Availability.match_id == match.id,
+            Availability.player_id.in_(home_player_ids)
+        ).all()
+        away_availability = session.query(Availability).filter(
+            Availability.match_id == match.id,
+            Availability.player_id.in_(away_player_ids)
+        ).all()
+        
+        # Create lookup dicts
+        home_availability_lookup = {a.player_id: a for a in home_availability}
+        away_availability_lookup = {a.player_id: a for a in away_availability}
+        
+        # Sort based on selected option
+        if sort_by == 'name':
+            match.home_team.players.sort(key=lambda p: p.name.lower())
+            match.away_team.players.sort(key=lambda p: p.name.lower())
+        elif sort_by == 'response':
+            # Sort by response priority: yes, maybe, no, no_response
+            response_priority = {'yes': 1, 'maybe': 2, 'no': 3, None: 4}
+            
+            match.home_team.players.sort(key=lambda p: (
+                response_priority.get(
+                    home_availability_lookup.get(p.id).response if home_availability_lookup.get(p.id) else None,
+                    4
+                ),
+                p.name.lower()  # Secondary sort by name
+            ))
+            match.away_team.players.sort(key=lambda p: (
+                response_priority.get(
+                    away_availability_lookup.get(p.id).response if away_availability_lookup.get(p.id) else None,
+                    4
+                ),
+                p.name.lower()  # Secondary sort by name
+            ))
+    
     home_rsvp_data = get_rsvp_data(match.home_team)
     away_rsvp_data = get_rsvp_data(match.away_team)
     
@@ -110,7 +164,8 @@ def view_match(match_id):
         schedule=schedule,
         home_rsvp_data=home_rsvp_data,
         away_rsvp_data=away_rsvp_data,
-        player_choices=player_choices
+        player_choices=player_choices,
+        sort_by=sort_by
     )
 
 

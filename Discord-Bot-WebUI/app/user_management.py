@@ -18,6 +18,10 @@ from sqlalchemy.orm import joinedload
 from app.models import User, Role, Player, League, Season, Team
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
 from app.alert_helpers import show_success, show_error, show_warning, show_info
+from app.tasks.player_sync import sync_players_with_woocommerce
+from app.utils.sync_data_manager import get_sync_data, delete_sync_data
+from app.player_management_helpers import create_player_profile, record_order_history
+from app.players_helpers import create_user_for_player
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -26,14 +30,21 @@ logger = logging.getLogger(__name__)
 user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_management')
 
 
-@user_management_bp.route('/manage_users', endpoint='manage_users', methods=['GET'])
+@user_management_bp.route('/manage_users', endpoint='manage_users', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
 def manage_users():
     """
     Render the user management page with a list of users filtered by search criteria.
+    Supports both regular GET requests and AJAX GET requests for real-time filtering.
     """
-    form = FilterUsersForm(request.args)
+    # Handle AJAX requests for real-time filtering
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('ajax') == 'true'
+    
+    # Always use query args for filtering (both regular and AJAX requests)
+    form_data = request.args
+    
+    form = FilterUsersForm(form_data)
     session = g.db_session
 
     # Retrieve roles and current season leagues
@@ -53,64 +64,126 @@ def manage_users():
         joinedload(User.player).joinedload(Player.other_leagues),
     )
 
-    if form.validate():
-        if form.search.data:
-            search_term = f"%{form.search.data}%"
-            query = query.filter(
-                (User.username.ilike(search_term)) |
-                (User.email.ilike(search_term))
-            )
+    try:
+        if form.validate():
+            if form.search.data:
+                search_term = f"%{form.search.data}%"
+                query = query.filter(
+                    (User.username.ilike(search_term)) |
+                    (User.email.ilike(search_term))
+                )
 
-        if form.role.data:
-            query = query.join(User.roles).filter(Role.name == form.role.data)
+            if form.role.data:
+                query = query.join(User.roles).filter(Role.name == form.role.data)
 
-        if form.approved.data:
-            is_approved = form.approved.data.lower() == 'true'
-            query = query.filter(User.is_approved == is_approved)
+            if form.approved.data:
+                is_approved = form.approved.data.lower() == 'true'
+                query = query.filter(User.is_approved == is_approved)
 
-        if form.league.data:
-            if form.league.data == 'none':
-                query = query.outerjoin(Player).filter(Player.league_id.is_(None))
-            else:
-                try:
-                    league_id = int(form.league.data)
-                    query = query.join(Player).filter(Player.league_id == league_id)
-                except ValueError:
-                    show_warning('Invalid league selection.')
+            if form.league.data:
+                if form.league.data == 'none':
+                    query = query.outerjoin(Player).filter(Player.league_id.is_(None))
+                else:
+                    try:
+                        league_id = int(form.league.data)
+                        query = query.join(Player).filter(Player.league_id == league_id)
+                    except ValueError:
+                        if is_ajax:
+                            return jsonify({'success': False, 'error': 'Invalid league selection.'})
+                        show_warning('Invalid league selection.')
 
-        if form.active.data:
-            is_current_player = form.active.data.lower() == 'true'
-            query = query.join(Player).filter(Player.is_current_player == is_current_player)
+            if form.active.data:
+                is_current_player = form.active.data.lower() == 'true'
+                query = query.join(Player).filter(Player.is_current_player == is_current_player)
 
-    # Pagination logic
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    query = query.distinct()
-    total = query.count()
-    users = query.offset((page - 1) * per_page).limit(per_page).all()
-    total_pages = (total + per_page - 1) // per_page
+        # Pagination logic
+        if is_ajax:
+            # For AJAX requests, show all results (no pagination)
+            page = 1
+            per_page = 1000  # Large number to show all results
+            query = query.distinct()
+            total = query.count()
+            users = query.all()
+            total_pages = 1
+        else:
+            # Regular pagination for page loads
+            page = request.args.get('page', 1, type=int)
+            per_page = 20
+            query = query.distinct()
+            total = query.count()
+            users = query.offset((page - 1) * per_page).limit(per_page).all()
+            total_pages = (total + per_page - 1) // per_page
+    except Exception as e:
+        logger.exception(f"Error in manage_users filtering: {str(e)}")
+        if is_ajax:
+            return jsonify({'success': False, 'error': 'An error occurred while filtering users.'})
+        show_error('An error occurred while loading users.')
+        # Return empty data for regular requests
+        users = []
+        total = 0
+        total_pages = 0
 
     # Prepare user data for rendering
     users_data = []
-    for user in users:
-        secondary_names = (
-            [league.name for league in user.player.other_leagues]
-            if user.player and user.player.other_leagues else []
-        )
+    try:
+        for user in users:
+            secondary_names = (
+                [league.name for league in user.player.other_leagues]
+                if user.player and user.player.other_leagues else []
+            )
 
-        user_data = {
-            'id': user.id,
-            'username': user.username,
-            'email': user.email,
-            'roles': [role.name for role in user.roles],
-            'team': user.player.teams[0].name if (user.player and user.player.teams) else 'N/A',
-            'league': user.player.league.name if user.player and user.player.league else "None",
-            'other_leagues': secondary_names,
-            'is_current_player': user.player.is_current_player
-            if (user.player and user.player.is_current_player is not None) else False,
-            'is_approved': user.is_approved
-        }
-        users_data.append(user_data)
+            # Get primary team and secondary team
+            primary_team_name = 'N/A'
+            secondary_team_name = None
+            
+            if user.player and user.player.teams:
+                if user.player.primary_team_id:
+                    # Find primary team
+                    primary_team = next(
+                        (team for team in user.player.teams if team.id == user.player.primary_team_id), 
+                        None
+                    )
+                    if primary_team:
+                        primary_team_name = primary_team.name
+                    
+                    # Get first secondary team (if any)
+                    secondary_teams = [
+                        team for team in user.player.teams 
+                        if team.id != user.player.primary_team_id
+                    ]
+                    if secondary_teams:
+                        secondary_team_name = secondary_teams[0].name
+                else:
+                    # No primary team set, use first team as primary
+                    primary_team_name = user.player.teams[0].name
+                    if len(user.player.teams) > 1:
+                        secondary_team_name = user.player.teams[1].name
+
+            # Get secondary league name
+            secondary_league_name = None
+            if user.player and user.player.other_leagues:
+                secondary_league_name = user.player.other_leagues[0].name
+
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'roles': [role.name for role in user.roles],
+                'team': primary_team_name,
+                'secondary_team': secondary_team_name,
+                'league': user.player.league.name if user.player and user.player.league else "None",
+                'secondary_league': secondary_league_name,
+                'is_current_player': user.player.is_current_player
+                if (user.player and user.player.is_current_player is not None) else False,
+                'is_approved': user.is_approved
+            }
+            users_data.append(user_data)
+    except Exception as e:
+        logger.exception(f"Error preparing user data: {str(e)}")
+        if is_ajax:
+            return jsonify({'success': False, 'error': 'An error occurred while preparing user data.'})
+        show_error('An error occurred while processing user data.')
+        users_data = []
 
     edit_form = EditUserForm()
     pagination_args = {k: v for k, v in request.args.to_dict(flat=True).items() if k != 'page'}
@@ -126,6 +199,107 @@ def manage_users():
         'next_num': page + 1 if page < total_pages else None
     }
 
+    # Handle AJAX requests
+    if is_ajax:
+        try:
+            from markupsafe import escape
+            
+            # Generate the table rows HTML
+            table_rows_html = ""
+            for user in users_data:
+                # Build roles badges
+                roles_html = ""
+                for role in user['roles']:
+                    roles_html += f'<span class="badge bg-label-primary">{escape(role)}</span>'
+                
+                # Build teams info
+                teams_html = f'<strong>{"No Team" if user["team"] == "N/A" else escape(user["team"])}</strong>'
+                if user['secondary_team']:
+                    teams_html += f'<br><small class="text-muted">+ {escape(user["secondary_team"])}</small>'
+                
+                # Build leagues info
+                leagues_html = f'<strong>{escape(user["league"]) if user["league"] else "None"}</strong>'
+                if user['secondary_league']:
+                    leagues_html += f'<br><small class="text-muted">+ {escape(user["secondary_league"])}</small>'
+                
+                # Build status badges
+                status_html = ""
+                if user['is_current_player']:
+                    status_html += '<span class="badge bg-label-success">Active</span>'
+                else:
+                    status_html += '<span class="badge bg-label-warning">Inactive</span>'
+                status_html += '<br>'
+                if user['is_approved']:
+                    status_html += '<span class="badge bg-label-success">Approved</span>'
+                else:
+                    status_html += '<span class="badge bg-label-danger">Pending</span>'
+                
+                # Build actions dropdown
+                actions_html = f'''
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" id="userActions{user["id"]}" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="ti ti-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userActions{user["id"]}" style="z-index: 9999; position: absolute;">
+                        <li>
+                            <a class="dropdown-item edit-user-btn" href="#" data-user-id="{user["id"]}">
+                                <i class="ti ti-edit me-2"></i>Edit User
+                            </a>
+                        </li>'''
+                
+                if not user['is_approved']:
+                    actions_html += f'''
+                        <li>
+                            <a class="dropdown-item approve-user-btn" href="#" data-user-id="{user["id"]}">
+                                <i class="ti ti-check-circle me-2"></i>Approve User
+                            </a>
+                        </li>'''
+                
+                actions_html += f'''
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item text-warning remove-user-btn" href="#" data-user-id="{user["id"]}">
+                                <i class="ti ti-user-off me-2"></i>Remove User
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-danger delete-user-btn" href="#" data-user-id="{user["id"]}" data-username="{escape(user["username"])}">
+                                <i class="ti ti-trash me-2"></i>Delete User Completely
+                            </a>
+                        </li>
+                    </ul>
+                </div>'''
+                
+                table_rows_html += f'''
+                <tr>
+                    <td class="fw-semibold">{escape(user["username"])}</td>
+                    <td>{roles_html}</td>
+                    <td><div class="text-truncate" style="max-width: 200px;">{teams_html}</div></td>
+                    <td><div class="text-truncate" style="max-width: 150px;">{leagues_html}</div></td>
+                    <td><div>{status_html}</div></td>
+                    <td class="text-end position-relative" style="overflow: visible;">{actions_html}</td>
+                </tr>'''
+        
+            return jsonify({
+                'success': True,
+                'html': table_rows_html,
+                'total': total,
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': total_pages,
+                    'has_prev': page > 1,
+                    'has_next': page < total_pages,
+                    'prev_num': page - 1 if page > 1 else None,
+                    'next_num': page + 1 if page < total_pages else None
+                }
+            })
+        except Exception as e:
+            logger.exception(f"Error generating AJAX response: {str(e)}")
+            return jsonify({'success': False, 'error': 'An error occurred while generating the response.'})
+    
+    # Regular page load
     return render_template(
         'manage_users.html',
         title='User Management',
@@ -254,29 +428,37 @@ def edit_user(user_id):
             user.player.is_sub = has_sub_role  # Update is_sub flag based on SUB role
 
             # Update team assignment
+            all_teams = []
+            
+            # Handle primary team
             if form.team_id.data and form.team_id.data != 0:
-                team = session.query(Team).get(form.team_id.data)
-                if team:
-                    user.player.teams = [team]
-                    user.player.primary_team_id = team.id
+                primary_team = session.query(Team).get(form.team_id.data)
+                if primary_team:
+                    all_teams.append(primary_team)
+                    user.player.primary_team_id = primary_team.id
             else:
-                user.player.teams = []
                 user.player.primary_team_id = None
+            
+            # Handle secondary team
+            secondary_team_id = request.form.get('secondary_team', type=int)
+            if secondary_team_id and secondary_team_id != 0:
+                secondary_team = session.query(Team).get(secondary_team_id)
+                if secondary_team and secondary_team.id != user.player.primary_team_id:
+                    all_teams.append(secondary_team)
+            
+            # Update the player's teams relationship
+            user.player.teams = all_teams
 
-            # Handle secondary leagues
-            secondary_league_ids = request.form.getlist('secondary_leagues', type=int)
-            if secondary_league_ids:
-                new_secondary_leagues = session.query(League).filter(League.id.in_(secondary_league_ids)).all()
+            # Handle secondary league
+            secondary_league_id = request.form.get('secondary_league', type=int)
+            if secondary_league_id and secondary_league_id != 0:
+                secondary_league = session.query(League).get(secondary_league_id)
+                if secondary_league and secondary_league.id != user.player.primary_league_id:
+                    user.player.other_leagues = [secondary_league]
+                else:
+                    user.player.other_leagues = []
             else:
-                new_secondary_leagues = []
-
-            # Exclude primary league from secondary leagues
-            if user.player.primary_league_id:
-                new_secondary_leagues = [
-                    l for l in new_secondary_leagues if l.id != user.player.primary_league_id
-                ]
-
-            user.player.other_leagues = new_secondary_leagues
+                user.player.other_leagues = []
 
         session.commit()
         show_success(f'User {user.username} updated successfully.')
@@ -465,11 +647,16 @@ def get_user_data():
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    primary_team = None
-    if user.player and user.player.primary_team_id:
-        primary_team = next(
-            (team for team in user.player.teams if team.id == user.player.primary_team_id), None
-        )
+    secondary_team_id = 0
+    if user.player and user.player.teams:
+        # Get the first team that's not the primary team
+        secondary_teams = [team for team in user.player.teams if team.id != user.player.primary_team_id]
+        if secondary_teams:
+            secondary_team_id = secondary_teams[0].id
+
+    secondary_league_id = 0
+    if user.player and user.player.other_leagues:
+        secondary_league_id = user.player.other_leagues[0].id
 
     user_data = {
         'id': user.id,
@@ -477,10 +664,153 @@ def get_user_data():
         'email': user.email,
         'roles': [role.id for role in user.roles],
         'league_id': user.player.league_id if (user.player and user.player.league_id) else 0,
-        'team_id': primary_team.id if primary_team else None,
+        'team_id': user.player.primary_team_id if (user.player and user.player.primary_team_id) else 0,
         'primary_league_id': user.player.primary_league_id if user.player else None,
         'is_current_player': user.player.is_current_player if user.player else False,
         'has_player': user.player is not None,
-        'other_leagues': [l.id for l in user.player.other_leagues] if user.player else []
+        'secondary_league_id': secondary_league_id,
+        'secondary_team_id': secondary_team_id
     }
     return jsonify(user_data)
+
+
+@user_management_bp.route('/update_players', endpoint='update_players', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def update_players():
+    """
+    Trigger asynchronous synchronization of players with WooCommerce.
+    """
+    task = sync_players_with_woocommerce.apply_async(queue='player_sync')
+    return jsonify({'task_id': task.id, 'status': 'started'})
+
+
+@user_management_bp.route('/confirm_update', endpoint='confirm_update', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def confirm_update():
+    """
+    Confirm and process the sync update data.
+    Handles creation of new players, updates to existing players, and inactivation.
+    """
+    task_id = request.json.get('task_id')
+    if not task_id:
+        return jsonify({'status': 'error', 'message': 'Task ID missing'}), 400
+
+    sync_data = get_sync_data(task_id)
+    if not sync_data:
+        return jsonify({'status': 'error', 'message': 'No sync data found'}), 400
+
+    try:
+        session = g.db_session
+        logger.debug(f"confirm_update: Sync data: {sync_data}")
+
+        # Process new players if requested
+        if request.json.get('process_new', False):
+            for new_player in sync_data.get('new_players', []):
+                logger.debug(f"Processing new player info: {new_player['info']}")
+                user = create_user_for_player(new_player['info'], session=session)
+                logger.debug(f"User created: {user} (id: {user.id})")
+                league = session.query(League).get(new_player['league_id'])
+                player = create_player_profile(new_player['info'], league, user, session=session)
+                logger.debug(f"Player created/updated: {player.id} (user_id: {player.user_id})")
+                player.is_current_player = True
+                if not player.primary_league:
+                    player.primary_league = league
+                record_order_history(
+                    order_id=new_player['order_id'],
+                    player_id=player.id,
+                    league_id=league.id,
+                    season_id=league.season_id,
+                    profile_count=new_player['quantity'],
+                    session=session
+                )
+
+        # Process updates for existing players
+        for update in sync_data.get('player_league_updates', []):
+            player_id = update.get('player_id')
+            league_id = update.get('league_id')
+            order_id = update.get('order_id')
+            profile_count = update.get('quantity', 1)
+
+            if player_id and league_id and order_id:
+                player = session.query(Player).get(player_id)
+                league = session.query(League).get(league_id)
+                if player and league:
+                    player.is_current_player = True
+                    record_order_history(
+                        order_id=order_id,
+                        player_id=player_id,
+                        league_id=league_id,
+                        season_id=league.season_id,
+                        profile_count=profile_count,
+                        session=session
+                    )
+
+        # Mark inactive players if requested
+        if request.json.get('process_inactive', False):
+            for inactive_player_id in sync_data.get('inactive_players', []):
+                player = session.query(Player).get(inactive_player_id)
+                if player:
+                    player.is_current_player = False
+
+        session.commit()
+        delete_sync_data(task_id)
+
+        return jsonify({
+            'status': 'success',
+            'message': f"Sync completed successfully. "
+                      f"{len(sync_data.get('new_players', []))} new players processed, "
+                      f"{len(sync_data.get('player_league_updates', []))} existing players updated, "
+                      f"{len(sync_data.get('inactive_players', []))} players marked inactive."
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error in confirm_update: {str(e)}")
+        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+
+
+@user_management_bp.route('/update_status/<task_id>', endpoint='update_status')
+@login_required
+@role_required('Global Admin')
+def update_status(task_id):
+    """
+    Get the status of a player sync task.
+    """
+    from celery.result import AsyncResult
+    
+    result = AsyncResult(task_id)
+    
+    if result.state == 'PENDING':
+        response = {
+            'state': result.state,
+            'progress': 0,
+            'stage': 'pending',
+            'message': 'Task is waiting to start...'
+        }
+    elif result.state == 'PROGRESS':
+        response = {
+            'state': result.state,
+            'progress': result.info.get('progress', 0),
+            'stage': result.info.get('stage', 'processing'),
+            'message': result.info.get('message', 'Processing...')
+        }
+    elif result.state == 'SUCCESS':
+        response = {
+            'state': result.state,
+            'progress': 100,
+            'stage': 'complete',
+            'message': 'Sync completed successfully',
+            'new_players': result.result.get('new_players_count', 0),
+            'potential_inactive': result.result.get('potential_inactive_count', 0)
+        }
+    else:  # FAILURE
+        response = {
+            'state': result.state,
+            'progress': 0,
+            'stage': 'failed',
+            'message': str(result.info) if result.info else 'Task failed'
+        }
+    
+    return jsonify(response)

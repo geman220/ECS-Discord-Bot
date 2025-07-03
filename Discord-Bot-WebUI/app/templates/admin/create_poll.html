@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Create League Poll{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">Admin / ECS FC / Polls / </span> Create New Poll
+    </h4>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Create League Poll</h5>
+                    {% if current_season and team_count > 0 %}
+                    <p class="text-muted mb-0">This poll will be sent to {{ team_count }} teams in {{ current_season.name }}</p>
+                    {% elif current_season %}
+                    <p class="text-muted mb-0 text-warning">⚠️ No teams with Discord channels found in {{ current_season.name }}</p>
+                    {% else %}
+                    <p class="text-muted mb-0 text-danger">⚠️ No active Pub League season found</p>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Poll Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" required 
+                                   placeholder="e.g., Fun Week Attendance" maxlength="255">
+                            <div class="form-text">A short, descriptive title for your poll</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="question" class="form-label">Poll Question <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="question" name="question" rows="3" required 
+                                      placeholder="e.g., Will you be able to attend Fun Week activities?"></textarea>
+                            <div class="form-text">The question that will be asked to all players</div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="mb-4">
+                            <h6>Discord Preview</h6>
+                            <div class="border rounded p-3 bg-light">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="badge bg-primary me-2">LEAGUE POLL</div>
+                                    <strong id="preview-title">Poll Title</strong>
+                                </div>
+                                <p class="mb-2" id="preview-question">Your poll question will appear here...</p>
+                                <div class="d-flex gap-2">
+                                    <span class="badge bg-success">✅ Yes</span>
+                                    <span class="badge bg-danger">❌ No</span>
+                                    <span class="badge bg-warning">⚠️ Maybe</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin.manage_polls') }}" class="btn btn-outline-secondary">
+                                <i class="ti ti-arrow-left me-1"></i> Back to Polls
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-send me-1"></i> Create & Send Poll
+                                {% if team_count > 10 %}
+                                <small class="d-block text-light">(~{{ (team_count * 0.8)|round|int }}s to send)</small>
+                                {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="ti ti-info-circle me-1"></i> How League Polls Work
+                    </h6>
+                    <ul class="mb-0">
+                        <li>The poll will be sent to all teams in the current Pub League season</li>
+                        <li>Only teams with Discord channels configured will receive the poll</li>
+                        <li>Polls are sent with rate limiting (0.5-1.2s between teams) to respect Discord's API limits</li>
+                        <li>Players can respond with Yes, No, or Maybe using Discord reactions</li>
+                        <li>You can view detailed results including team breakdowns</li>
+                        <li>Polls are clearly marked as "LEAGUE POLL" to distinguish from regular RSVPs</li>
+                        <li>You can close polls to prevent further responses when needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Live preview functionality
+    function updatePreview() {
+        const title = $('#title').val() || 'Poll Title';
+        const question = $('#question').val() || 'Your poll question will appear here...';
+        
+        $('#preview-title').text(title);
+        $('#preview-question').text(question);
+    }
+    
+    $('#title, #question').on('input', updatePreview);
+    updatePreview(); // Initial update
+});
+</script>
+{% endblock %}

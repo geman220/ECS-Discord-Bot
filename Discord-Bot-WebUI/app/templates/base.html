@@ -384,9 +384,9 @@
             // Check for SweetAlert message in session
             {% if session.get('sweet_alert') %}
                 Swal.fire({
-                    title: "{{ session.get('sweet_alert').get('title', '') }}",
-                    text: "{{ session.get('sweet_alert').get('text', '') }}",
-                    icon: "{{ session.get('sweet_alert').get('icon', 'success') }}",
+                    title: {{ session.get('sweet_alert').get('title', '') | tojson }},
+                    text: {{ session.get('sweet_alert').get('text', '') | tojson }},
+                    icon: {{ session.get('sweet_alert').get('icon', 'success') | tojson }},
                     confirmButtonText: "OK"
                 });
                 // Clear the sweet alert from session to avoid showing it again on refresh

@@ -1472,3 +1472,104 @@ class SubRequest(db.Model):
     
     def __repr__(self):
         return f"<SubRequest: {self.team_id} in match {self.match_id}, status: {self.status}>"
+
+
+class LeaguePoll(db.Model):
+    """Model representing a league-wide poll sent to all team channels."""
+    __tablename__ = 'league_polls'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    question = db.Column(db.Text, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status = db.Column(db.String(20), default='ACTIVE')  # ACTIVE, CLOSED, DELETED
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    closed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    creator = db.relationship('User', backref=db.backref('created_polls', lazy='dynamic'))
+    responses = db.relationship('LeaguePollResponse', back_populates='poll', cascade='all, delete-orphan')
+    discord_messages = db.relationship('LeaguePollDiscordMessage', back_populates='poll', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<LeaguePoll {self.id}: {self.title}>"
+    
+    def get_response_counts(self):
+        """Get counts of responses by type."""
+        from sqlalchemy import func
+        response_counts = db.session.query(
+            LeaguePollResponse.response,
+            func.count(LeaguePollResponse.id).label('count')
+        ).filter(
+            LeaguePollResponse.poll_id == self.id
+        ).group_by(LeaguePollResponse.response).all()
+        
+        counts = {'yes': 0, 'no': 0, 'maybe': 0}
+        for response, count in response_counts:
+            counts[response] = count
+        return counts
+    
+    def get_team_breakdown(self):
+        """Get response breakdown by team."""
+        from sqlalchemy import func
+        team_breakdown = db.session.query(
+            Team.name,
+            Team.id,
+            LeaguePollResponse.response,
+            func.count(LeaguePollResponse.id).label('count')
+        ).join(
+            Player, Player.id == LeaguePollResponse.player_id
+        ).join(
+            player_teams, player_teams.c.player_id == Player.id
+        ).join(
+            Team, Team.id == player_teams.c.team_id
+        ).filter(
+            LeaguePollResponse.poll_id == self.id
+        ).group_by(
+            Team.name, Team.id, LeaguePollResponse.response
+        ).order_by(Team.name, LeaguePollResponse.response).all()
+        
+        return team_breakdown
+
+
+class LeaguePollResponse(db.Model):
+    """Model representing a response to a league poll."""
+    __tablename__ = 'league_poll_responses'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey('league_polls.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    discord_id = db.Column(db.String(20), nullable=False)  # For tracking Discord user
+    response = db.Column(db.String(10), nullable=False)  # 'yes', 'no', 'maybe'
+    responded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    poll = db.relationship('LeaguePoll', back_populates='responses')
+    player = db.relationship('Player', backref=db.backref('poll_responses', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('poll_id', 'player_id', name='uq_poll_player_response'),
+    )
+    
+    def __repr__(self):
+        return f"<LeaguePollResponse: Poll {self.poll_id}, Player {self.player_id}, Response: {self.response}>"
+
+
+class LeaguePollDiscordMessage(db.Model):
+    """Model representing Discord messages sent for a league poll."""
+    __tablename__ = 'league_poll_discord_messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey('league_polls.id', ondelete='CASCADE'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    channel_id = db.Column(db.String(20), nullable=False)  # Discord channel ID
+    message_id = db.Column(db.String(20), nullable=True)   # Discord message ID (set after sending)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    send_error = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    poll = db.relationship('LeaguePoll', back_populates='discord_messages')
+    team = db.relationship('Team', backref=db.backref('poll_messages', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f"<LeaguePollDiscordMessage: Poll {self.poll_id}, Team {self.team_id}, Channel {self.channel_id}>"
