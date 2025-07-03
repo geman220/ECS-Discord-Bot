@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     
     // Check if the element exists before proceeding
     if (!rsvpDataElement) {
-        console.log('RSVP data element not found, RSVP functionality disabled');
+        // console.log('RSVP data element not found, RSVP functionality disabled');
         return; // Exit early if RSVP data is not available
     }
     
@@ -33,18 +33,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 // For debugging, log the raw response text first
                 return response.text().then(text => {
-                    console.log('Raw response:', text);
+                    // console.log('Raw response:', text);
                     try {
                         return JSON.parse(text);
                     } catch (e) {
-                        console.error('JSON parse error:', e);
+                        // console.error('JSON parse error:', e);
                         throw new Error('Invalid JSON response');
                     }
                 });
             })
             .then(data => {
                 if (data.success) {
-                    console.log('RSVP updated successfully');
+                    // console.log('RSVP updated successfully');
                     // Show success message
                     Swal.fire({
                         icon: 'success',
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         setTimeout(() => window.location.reload(), 1000);
                     }
                 } else {
-                    console.error('Failed to update RSVP:', data.message);
+                    // console.error('Failed to update RSVP:', data.message);
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             })
             .catch(error => {
-                console.error('Error updating RSVP:', error);
+                // console.error('Error updating RSVP:', error);
                 // Show error message to user
                 Swal.fire({
                     icon: 'error',
@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Get all form inputs and extract unique match IDs
             const inputs = document.querySelectorAll('.btn-check.rsvp-input');
             if (!inputs || inputs.length === 0) {
-                console.log('No RSVP inputs found on page');
+                // console.log('No RSVP inputs found on page');
                 return;
             }
             
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // For each valid match ID, fetch the status
             matchIds.forEach(matchId => {
                 if (!matchId || matchId === 'undefined') {
-                    console.warn('Invalid match ID for RSVP status fetch');
+                    // console.warn('Invalid match ID for RSVP status fetch');
                     return;
                 }
                 
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         try {
                             return JSON.parse(text);
                         } catch (e) {
-                            console.error(`JSON parse error for match ${matchId}:`, e);
+                            // console.error(`JSON parse error for match ${matchId}:`, e);
                             throw new Error('Invalid JSON response');
                         }
                     });
@@ -167,11 +167,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 })
                 .catch(error => {
-                    console.log(`Could not load RSVP status for match ${matchId}: ${error.message}`);
+                    // console.log(`Could not load RSVP status for match ${matchId}: ${error.message}`);
                 });
             });
         } catch (error) {
-            console.error('Error in setInitialRSVPs:', error);
+            // console.error('Error in setInitialRSVPs:', error);
         }
     }
 

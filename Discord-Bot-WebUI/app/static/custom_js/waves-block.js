@@ -7,7 +7,7 @@
  */
 
 (function() {
-    console.log('Initializing waves-block.js...');
+    // console.log('Initializing waves-block.js...');
     
     // Function to apply to immediately fix nodes 
     function fixNode(node) {
@@ -72,7 +72,7 @@
             attributeFilter: ['class', 'style']
         });
         
-        console.log('Waves-block initialized and monitoring all nodes');
+        // console.log('Waves-block initialized and monitoring all nodes');
     });
     
     // Also intercept and override the Waves.Effect methods completely
@@ -80,7 +80,7 @@
         // Wait a bit for Waves to initialize
         setTimeout(function() {
             if (window.Waves && window.Waves.Effect) {
-                console.log('Blocking Waves library effect methods');
+                // console.log('Blocking Waves library effect methods');
                 
                 // Replace the show method to do nothing
                 window.Waves.Effect.show = function() {
@@ -127,7 +127,7 @@
                     return originalSetAttribute.call(this, name, value);
                 };
                 
-                console.log('Waves effect methods successfully blocked');
+                // console.log('Waves effect methods successfully blocked');
             }
         }, 100);
     });

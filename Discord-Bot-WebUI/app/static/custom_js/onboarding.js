@@ -1,9 +1,9 @@
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("Onboarding script loaded");
+    // console.log("Onboarding script loaded");
     
     // Core elements 
     const modalElement = document.getElementById('onboardingSlideModal');
-    console.log("Modal element found:", !!modalElement);
+    // console.log("Modal element found:", !!modalElement);
     
     const carouselElement = document.getElementById('modalCarouselControls');
     const nextOrSaveButton = document.getElementById('nextOrSaveButton');
@@ -35,16 +35,16 @@ document.addEventListener('DOMContentLoaded', function () {
     //  Modal initialization
     // =====================
     if (modalElement) {
-        console.log("Initializing onboarding modal");
+        // console.log("Initializing onboarding modal");
         try {
             const onboardingModal = new bootstrap.Modal(modalElement, {
                 backdrop: 'static',
                 keyboard: false
             });
             onboardingModal.show();
-            console.log("Modal show() called");
+            // console.log("Modal show() called");
         } catch (error) {
-            console.error("Error showing modal:", error);
+            // console.error("Error showing modal:", error);
         }
 
         modalElement.addEventListener('shown.bs.modal', function () {
@@ -266,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             croppedImageHiddenInput.value = canvas.toDataURL('image/png');
                         }
                     } catch (err) {
-                        console.error('Error getting cropped image:', err);
+                        // console.error('Error getting cropped image:', err);
                     }
                 }
 

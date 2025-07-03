@@ -24,7 +24,7 @@ const PRECACHE_ASSETS = [
 
 // Install service worker and cache core assets
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing new version');
+  // console.log('[Service Worker] Installing new version');
   
   // Skip waiting to ensure the new service worker activates immediately
   self.skipWaiting();
@@ -32,7 +32,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('[Service Worker] Caching app shell and content');
+        // console.log('[Service Worker] Caching app shell and content');
         return cache.addAll(PRECACHE_ASSETS);
       })
   );
@@ -40,7 +40,7 @@ self.addEventListener('install', event => {
 
 // Activate new service worker and clean up old caches
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating new service worker');
+  // console.log('[Service Worker] Activating new service worker');
   
   const cacheWhitelist = [CACHE_NAME];
   
@@ -49,7 +49,7 @@ self.addEventListener('activate', event => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            console.log('[Service Worker] Deleting old cache:', cacheName);
+            // console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -141,7 +141,7 @@ self.addEventListener('fetch', event => {
 
 // Handle push notifications (if needed)
 self.addEventListener('push', event => {
-  console.log('[Service Worker] Push message received:', event);
+  // console.log('[Service Worker] Push message received:', event);
   
   const title = 'ECS Soccer League';
   const options = {
@@ -161,7 +161,7 @@ self.addEventListener('push', event => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notification click: ', event);
+  // console.log('[Service Worker] Notification click: ', event);
   
   event.notification.close();
   
@@ -189,7 +189,7 @@ self.addEventListener('sync', event => {
   if (event.tag === 'rsvp-sync') {
     event.waitUntil(
       // Implement the sync logic here to send cached RSVPs
-      console.log('[Service Worker] Syncing RSVPs')
+      // console.log('[Service Worker] Syncing RSVPs')
     );
   }
 });

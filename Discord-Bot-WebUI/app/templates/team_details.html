@@ -6,8 +6,11 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Team Header -->
     <div class="card bg-primary mb-4">
-        <div class="card-body p-0 position-relative overflow-hidden">
-            <div class="d-flex team-header-wrapper p-4">
+        <div class="card-body p-0 position-relative overflow-hidden {% if team.background_image_url %}ecs-card-body{% endif %}">
+            {% if team.background_image_url %}
+            <div class="team-background-overlay"></div>
+            {% endif %}
+            <div class="d-flex team-header-wrapper p-4{% if team.background_image_url %} team-header-with-background{% endif %}"{% if team.background_image_url %} style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('{{ team.background_image_url }}'); background-size: cover; background-position: center; background-repeat: no-repeat;" data-bs-toggle="modal" data-bs-target="#backgroundImageModal"{% endif %}>
                 <div class="team-info text-white z-1 p-2">
                     <h1 class="display-5 fw-bold mb-2">{{ team.name }}</h1>
                     <div class="hstack gap-2 mb-2">
@@ -26,19 +29,29 @@
                 </div>
                 {% endif %}
                 
-                <!-- Upload button to update team kit -->
+                <!-- Upload buttons for team kit and background -->
                 {% if safe_current_user.has_permission('upload_kit') %}
                 <div class="position-absolute top-0 end-0 p-3">
-                    <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
-                          method="post"
-                          enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="file" name="team_kit" id="team_kit" style="display: none;" onchange="this.form.submit();">
-                        <button type="button" class="btn btn-light btn-icon" onclick="document.getElementById('team_kit').click();" 
-                                aria-label="Upload Team Kit" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Kit">
-                            <i class="ti ti-upload"></i>
+                    <div class="btn-group-vertical" role="group">
+                        <!-- Team Kit Upload -->
+                        <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
+                              method="post"
+                              enctype="multipart/form-data" class="mb-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="file" name="team_kit" id="team_kit" style="display: none;" onchange="this.form.submit();" accept="image/*">
+                            <button type="button" class="btn btn-light btn-icon" onclick="document.getElementById('team_kit').click();" 
+                                    aria-label="Upload Team Kit" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Kit">
+                                <i class="ti ti-upload"></i>
+                            </button>
+                        </form>
+                        
+                        <!-- Team Background Upload -->
+                        <input type="file" id="team_background" style="display: none;" accept="image/*" onchange="loadImageForCropping(this);">
+                        <button type="button" class="btn btn-light btn-icon" onclick="document.getElementById('team_background').click();" 
+                                aria-label="Upload Team Background" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Background">
+                            <i class="ti ti-photo"></i>
                         </button>
-                    </form>
+                    </div>
                 </div>
                 {% endif %}
             </div>
@@ -301,6 +314,49 @@
         </div>
     </div>
 </div>
+
+<!-- Background Image Cropping Modal -->
+<div class="modal fade" id="cropBackgroundModal" tabindex="-1" aria-labelledby="cropBackgroundModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cropBackgroundModalLabel">Crop Team Background Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <p class="text-muted">Adjust the image to fit the team header background. Recommended aspect ratio is 2:1 (wide).</p>
+                </div>
+                <div class="crop-container">
+                    <img id="cropImage" style="max-width: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadCroppedImage()">
+                    <i class="ti ti-upload me-1"></i>Upload Background
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Size Background Image Modal -->
+{% if team.background_image_url %}
+<div class="modal fade" id="backgroundImageModal" tabindex="-1" aria-labelledby="backgroundImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white" id="backgroundImageModalLabel">{{ team.name }} - Team Photo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="{{ team.background_image_url }}" class="img-fluid rounded" alt="{{ team.name }} Team Photo">
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block custom_css %}
@@ -309,6 +365,39 @@
     .team-header-wrapper {
         position: relative;
         min-height: 120px;
+    }
+    
+    .team-background-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+        z-index: 1;
+    }
+    
+    .team-header-with-background {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .team-header-with-background:hover {
+        transform: scale(1.02);
+    }
+    
+    .crop-container {
+        max-height: 400px;
+        overflow: hidden;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        position: relative;
+    }
+    
+    #cropImage {
+        display: block;
+        max-height: 400px;
+        margin: 0 auto;
     }
     
     .kit-image {
@@ -422,7 +511,13 @@
 {% endblock %}
 
 {% block custom_js %}
+<!-- Include Cropper.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+
 <script>
+    let cropper;
+    
     // Initialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -432,6 +527,90 @@
             });
         });
     });
+    
+    // Load image for cropping
+    function loadImageForCropping(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const cropImage = document.getElementById('cropImage');
+                cropImage.src = e.target.result;
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('cropBackgroundModal'));
+                modal.show();
+                
+                // Initialize cropper when modal is shown
+                document.getElementById('cropBackgroundModal').addEventListener('shown.bs.modal', function() {
+                    if (cropper) {
+                        cropper.destroy();
+                    }
+                    cropper = new Cropper(cropImage, {
+                        aspectRatio: 2 / 1, // 2:1 aspect ratio for wide header
+                        viewMode: 1,
+                        autoCropArea: 0.8,
+                        responsive: true,
+                        scalable: true,
+                        zoomable: true,
+                        cropBoxResizable: true,
+                        background: false,
+                        guides: true,
+                        highlight: false,
+                        dragMode: 'move'
+                    });
+                }, { once: true });
+                
+                // Clean up cropper when modal is hidden
+                document.getElementById('cropBackgroundModal').addEventListener('hidden.bs.modal', function() {
+                    if (cropper) {
+                        cropper.destroy();
+                        cropper = null;
+                    }
+                }, { once: true });
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+    
+    // Upload cropped image
+    function uploadCroppedImage() {
+        if (!cropper) return;
+        
+        const canvas = cropper.getCroppedCanvas({
+            width: 1200,
+            height: 600,
+            imageSmoothingEnabled: true,
+            imageSmoothingQuality: 'high'
+        });
+        
+        canvas.toBlob(function(blob) {
+            const formData = new FormData();
+            formData.append('team_background', blob, 'background.jpg');
+            formData.append('csrf_token', '{{ csrf_token() }}');
+            
+            // Show loading state
+            const uploadBtn = document.querySelector('#cropBackgroundModal .btn-primary');
+            const originalText = uploadBtn.innerHTML;
+            uploadBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Uploading...';
+            uploadBtn.disabled = true;
+            
+            fetch('{{ url_for("teams.upload_team_background", team_id=team.id) }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Reload the page to show the new background
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading image. Please try again.');
+                uploadBtn.innerHTML = originalText;
+                uploadBtn.disabled = false;
+            });
+        }, 'image/jpeg', 0.85);
+    }
     
     // Make player choices globally available for our fix script
     window.playerChoices = {{ player_choices | tojson | safe }};
@@ -444,6 +623,8 @@
         {% for match in matches_on_date %}
             window.homeTeamName_{{ match.id }} = "{{ match.home_team_name|escape }}";
             window.awayTeamName_{{ match.id }} = "{{ match.away_team_name|escape }}";
+            window.homeTeamId_{{ match.id }} = "{{ match.home_team_id }}";
+            window.awayTeamId_{{ match.id }} = "{{ match.away_team_id }}";
 
             window.homeTeamPlayersOptions_{{ match.id }} = `
                 {% for player in match.home_players %}

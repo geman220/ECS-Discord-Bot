@@ -12,7 +12,7 @@
 (function() {
   // Wait for the DOM to be fully loaded
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('RSVP page fixes applied');
+    // console.log('RSVP page fixes applied');
     
     // Fix dropdown positioning
     function fixDropdownPositioning() {

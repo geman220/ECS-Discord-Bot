@@ -48,6 +48,8 @@ from app.models import (
     Player, Availability, User, Schedule, Season, League,
     TemporarySubAssignment, SubRequest
 )
+from app.utils.task_monitor import get_task_info
+from app.core import celery
 from sqlalchemy import and_, or_, func, desc
 from app.tasks.tasks_core import (
     schedule_season_availability,
@@ -1161,19 +1163,894 @@ def mass_update_discord_roles():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# DEPRECATED ROUTE - MARKED FOR DELETION
+# This route has been replaced by /admin/match_management
+# TODO: Remove this route and related templates after new system is verified in production
 @admin_bp.route('/admin/mls_matches', endpoint='view_mls_matches')
 @login_required
 @role_required('Global Admin')
 def view_mls_matches():
     """
-    View MLS matches.
+    DEPRECATED: View MLS matches.
+    
+    This route has been deprecated and replaced by the unified match_management route.
+    It will be removed in a future update once the new system is verified.
     """
     session = g.db_session
     matches = session.query(MLSMatch).all()
     return render_template('admin/mls_matches.html',
-                           title='MLS Matches',
+                           title='MLS Matches [DEPRECATED]',
                            matches=matches,
                            timedelta=timedelta)
+
+
+# ============================================================================
+# UNIFIED MATCH MANAGEMENT ROUTES
+# ============================================================================
+
+def get_status_color(status):
+    """Get Bootstrap color class for match status."""
+    colors = {
+        'not_started': 'secondary',
+        'scheduled': 'warning', 
+        'running': 'success',
+        'completed': 'info',
+        'stopped': 'danger',
+        'failed': 'danger'
+    }
+    return colors.get(status, 'secondary')
+
+
+def get_status_icon(status):
+    """Get FontAwesome icon class for match status."""
+    icons = {
+        'not_started': 'fa-circle',
+        'scheduled': 'fa-clock',
+        'running': 'fa-play-circle',
+        'completed': 'fa-check-circle',
+        'stopped': 'fa-stop-circle',
+        'failed': 'fa-exclamation-triangle'
+    }
+    return icons.get(status, 'fa-circle')
+
+
+def get_status_display(status):
+    """Get human-readable display text for match status."""
+    displays = {
+        'not_started': 'Not Started',
+        'scheduled': 'Scheduled',
+        'running': 'Running',
+        'completed': 'Completed', 
+        'stopped': 'Stopped',
+        'failed': 'Failed'
+    }
+    return displays.get(status, status.title() if status else 'Unknown')
+
+
+def get_match_task_details(matches):
+    """
+    Shared function to get task details for matches from Redis.
+    """
+    from app.utils.redis_manager import RedisManager
+    redis = RedisManager().client
+    
+    match_data = []
+    for match in matches:
+        # Get scheduled tasks from Redis
+        thread_key = f"match_scheduler:{match.id}:thread"
+        reporting_key = f"match_scheduler:{match.id}:reporting"
+        
+        thread_task_info = None
+        reporting_task_info = None
+        
+        try:
+            # Check for scheduled thread task
+            thread_task_data = redis.get(thread_key)
+            if thread_task_data:
+                import json
+                try:
+                    thread_task_info = json.loads(thread_task_data)
+                except:
+                    thread_task_info = {'task_id': thread_task_data.decode() if isinstance(thread_task_data, bytes) else thread_task_data}
+            
+            # Check for scheduled reporting task
+            reporting_task_data = redis.get(reporting_key)
+            if reporting_task_data:
+                try:
+                    reporting_task_info = json.loads(reporting_task_data)
+                except:
+                    reporting_task_info = {'task_id': reporting_task_data.decode() if isinstance(reporting_task_data, bytes) else reporting_task_data}
+                    
+        except Exception as e:
+            logging.debug(f"Error getting Redis task info for match {match.id}: {e}")
+        
+        # Calculate scheduled times
+        thread_scheduled_time = None
+        reporting_scheduled_time = None
+        
+        if match.date_time:
+            # Thread creation: 24 hours before match (or 48 hours before for international matches)
+            hours_before = 48 if match.competition in ['fifa.cwc', 'concacaf.champions', 'concacaf.league'] else 24
+            thread_scheduled_time = (match.date_time - timedelta(hours=hours_before)).isoformat()
+            
+            # Live reporting: 5 minutes before match
+            reporting_scheduled_time = (match.date_time - timedelta(minutes=5)).isoformat()
+        
+        match_info = {
+            'match': match,
+            'id': match.id,
+            'live_reporting_status': match.live_reporting_status,
+            'thread_created': match.thread_created,
+            'live_reporting_task_id': match.live_reporting_task_id,
+            'scheduled_tasks': {
+                'thread': {
+                    'scheduled': thread_task_info is not None,
+                    'task_id': thread_task_info.get('task_id') if thread_task_info else None,
+                    'scheduled_time': thread_scheduled_time,
+                    'eta': thread_task_info.get('eta') if thread_task_info else None
+                },
+                'reporting': {
+                    'scheduled': reporting_task_info is not None,
+                    'task_id': reporting_task_info.get('task_id') if reporting_task_info else None,
+                    'scheduled_time': reporting_scheduled_time,
+                    'eta': reporting_task_info.get('eta') if reporting_task_info else None
+                }
+            }
+        }
+        
+        match_data.append(match_info)
+    
+    return match_data
+
+
+@admin_bp.route('/admin/match_management')
+@login_required
+@role_required('Global Admin')
+def match_management():
+    """
+    Unified match management page combining thread and live reporting functionality.
+    """
+    session = g.db_session
+    matches = session.query(MLSMatch).order_by(MLSMatch.date_time).all()
+    
+    # Get initial task details to eliminate loading state
+    matches_with_tasks = get_match_task_details(matches)
+    
+    return render_template('admin/match_management.html',
+                           title='Match Management',
+                           matches=matches,
+                           matches_with_tasks=matches_with_tasks,
+                           current_time=datetime.now(),
+                           timedelta=timedelta,
+                           get_status_color=get_status_color,
+                           get_status_icon=get_status_icon,
+                           get_status_display=get_status_display)
+
+
+@admin_bp.route('/admin/match_management/statuses')
+@login_required
+@role_required('Global Admin')
+def match_management_statuses():
+    """
+    Get current status of all matches with detailed task information for AJAX refresh.
+    """
+    session = g.db_session
+    matches = session.query(MLSMatch).all()
+    
+    # Use shared function to get task details
+    matches_with_tasks = get_match_task_details(matches)
+    
+    # Extract just the data needed for JSON response (without match objects)
+    match_data = []
+    for match_info in matches_with_tasks:
+        simplified_info = {
+            'id': match_info['id'],
+            'live_reporting_status': match_info['live_reporting_status'],
+            'thread_created': match_info['thread_created'],
+            'live_reporting_task_id': match_info['live_reporting_task_id'],
+            'scheduled_tasks': match_info['scheduled_tasks']
+        }
+        match_data.append(simplified_info)
+    
+    return jsonify({
+        'success': True,
+        'matches': match_data,
+        'timestamp': datetime.now().isoformat()
+    })
+
+
+@admin_bp.route('/admin/match_management/schedule/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def schedule_match_tasks(match_id):
+    """
+    Schedule both thread creation and live reporting tasks for a match.
+    """
+    try:
+        from app.match_scheduler import MatchScheduler
+        from app.bot_admin import get_scheduler
+        
+        session = g.db_session
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        
+        if not match:
+            return jsonify({
+                'success': False,
+                'message': 'Match not found'
+            })
+        
+        # Use the scheduler directly
+        scheduler = get_scheduler()
+        result = scheduler.schedule_match_tasks(match_id, force=True)
+        
+        return jsonify(result)
+            
+    except Exception as e:
+        logging.error(f"Error scheduling match {match_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error scheduling match: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/create-thread/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def create_thread_now(match_id):
+    """
+    Create Discord thread immediately for a match.
+    """
+    try:
+        from app.tasks.tasks_live_reporting import force_create_mls_thread_task
+        
+        session = g.db_session
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        
+        if not match:
+            return jsonify({
+                'success': False,
+                'message': 'Match not found'
+            })
+        
+        # Create thread using the Celery task directly
+        result = force_create_mls_thread_task.delay(match_id)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thread creation task started',
+            'task_id': result.id
+        })
+            
+    except Exception as e:
+        logging.error(f"Error creating thread for match {match_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error creating thread: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/start-reporting/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def start_reporting(match_id):
+    """
+    Start live reporting for a match.
+    """
+    try:
+        from app.tasks.tasks_live_reporting import start_live_reporting
+        
+        session = g.db_session
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        
+        if not match:
+            return jsonify({
+                'success': False,
+                'message': 'Match not found'
+            })
+        
+        # Check if already running
+        if match.live_reporting_status == 'running':
+            return jsonify({
+                'success': False,
+                'message': 'Live reporting is already running for this match'
+            })
+        
+        # Start live reporting using the Celery task directly
+        result = start_live_reporting.delay(match_id)
+        
+        # Update match status
+        match.live_reporting_started = True
+        match.live_reporting_status = 'running'
+        match.live_reporting_task_id = result.id
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Live reporting started successfully',
+            'task_id': result.id
+        })
+            
+    except Exception as e:
+        logging.error(f"Error starting reporting for match {match_id}: {str(e)}")
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error starting reporting: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/stop-reporting/<int:match_id>', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def stop_reporting(match_id):
+    """
+    Stop live reporting for a match.
+    """
+    try:
+        session = g.db_session
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        
+        if not match:
+            return jsonify({
+                'success': False,
+                'message': 'Match not found'
+            })
+        
+        # Check if reporting is running
+        if not match.live_reporting_started or match.live_reporting_status != 'running':
+            return jsonify({
+                'success': False,
+                'message': 'Live reporting is not currently running for this match'
+            })
+        
+        # Stop the Celery task if it exists
+        if match.live_reporting_task_id:
+            try:
+                celery.control.revoke(match.live_reporting_task_id, terminate=True)
+            except Exception as e:
+                logging.warning(f"Could not revoke task {match.live_reporting_task_id}: {e}")
+        
+        # Update match status
+        match.live_reporting_started = False
+        match.live_reporting_status = 'stopped'
+        match.live_reporting_task_id = None
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Live reporting stopped successfully'
+        })
+            
+    except Exception as e:
+        logging.error(f"Error stopping reporting for match {match_id}: {str(e)}")
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error stopping reporting: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/task-details/<task_id>')
+@login_required
+@role_required('Global Admin')
+def get_task_details(task_id):
+    """
+    Get detailed information about a Celery task.
+    """
+    try:
+        task_info = get_task_info(task_id)
+        return jsonify({
+            'success': True,
+            'task_id': task_id,
+            'status': task_info.get('state', 'UNKNOWN'),
+            'result': task_info.get('result'),
+            'date_started': task_info.get('date_started'),
+            'duration': task_info.get('duration')
+        })
+    except Exception as e:
+        logging.error(f"Error getting task details for {task_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error getting task details: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/schedule-all', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def schedule_all_matches():
+    """
+    Schedule thread creation and live reporting for all unscheduled matches.
+    """
+    try:
+        from app.bot_admin import get_scheduler
+        
+        session = g.db_session
+        matches = session.query(MLSMatch).all()
+        
+        scheduler = get_scheduler()
+        scheduled_count = 0
+        errors = []
+        
+        for match in matches:
+            try:
+                result = scheduler.schedule_match_tasks(match.id, force=True)
+                if result.get('success'):
+                    scheduled_count += 1
+                else:
+                    errors.append(f"Match {match.id}: {result.get('message', 'Unknown error')}")
+            except Exception as e:
+                errors.append(f"Match {match.id}: {str(e)}")
+                logging.warning(f"Error scheduling match {match.id}: {e}")
+        
+        if errors:
+            return jsonify({
+                'success': True,
+                'message': f'Scheduled {scheduled_count} matches with {len(errors)} errors',
+                'count': scheduled_count,
+                'errors': errors[:5]  # Limit error details to first 5
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'message': f'Successfully scheduled {scheduled_count} matches',
+                'count': scheduled_count
+            })
+            
+    except Exception as e:
+        logging.error(f"Error scheduling all matches: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error scheduling all matches: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/add-by-date', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def add_match_by_date():
+    """
+    Add a single match by date using ESPN API.
+    """
+    try:
+        date = request.form.get('date')
+        competition = request.form.get('competition')
+        
+        if not date or not competition:
+            return jsonify({
+                'success': False,
+                'message': 'Date and competition are required'
+            })
+        
+        # Use existing bot_admin endpoint internally
+        from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
+        from app.db_utils import insert_mls_match
+        from app.bot_admin import COMPETITION_MAPPINGS, ensure_utc, get_scheduler
+        
+        # Map competition name to code
+        competition_code = COMPETITION_MAPPINGS.get(competition)
+        if not competition_code:
+            return jsonify({
+                'success': False,
+                'message': f'Unknown competition: {competition}'
+            })
+        
+        # Format date for ESPN API
+        date_only = date.split(" ")[0]
+        formatted_date = datetime.strptime(date_only, "%Y-%m-%d").strftime("%Y%m%d")
+        endpoint = f"sports/soccer/{competition_code}/scoreboard?dates={formatted_date}"
+        
+        # Fetch match data from ESPN
+        match_data = async_to_sync(fetch_espn_data(endpoint))
+        
+        if not match_data or 'events' not in match_data:
+            return jsonify({
+                'success': False,
+                'message': f'No events found for {date} in {competition}'
+            })
+        
+        session = g.db_session
+        
+        # Look for Seattle Sounders match
+        for event in match_data['events']:
+            if 'Seattle Sounders FC' in event.get("name", ""):
+                try:
+                    match_details = extract_match_details(event)
+                    match_details['date_time'] = ensure_utc(match_details['date_time'])
+                    
+                    # Check if match already exists
+                    existing_match = session.query(MLSMatch).filter_by(
+                        match_id=match_details['match_id']
+                    ).first()
+                    
+                    if existing_match:
+                        return jsonify({
+                            'success': False,
+                            'message': f'Match against {match_details["opponent"]} already exists'
+                        })
+                    
+                    # Insert new match
+                    match = insert_mls_match(
+                        match_id=match_details['match_id'],
+                        opponent=match_details['opponent'],
+                        date_time=match_details['date_time'],
+                        is_home_game=match_details['is_home_game'],
+                        summary_link=match_details['match_summary_link'],
+                        stats_link=match_details['match_stats_link'],
+                        commentary_link=match_details['match_commentary_link'],
+                        venue=match_details['venue'],
+                        competition=competition_code,
+                        session=session
+                    )
+                    
+                    if not match:
+                        return jsonify({
+                            'success': False,
+                            'message': 'Failed to create match record'
+                        })
+                    
+                    session.flush()
+                    
+                    # Schedule match tasks
+                    try:
+                        scheduler = get_scheduler()
+                        scheduler_result = scheduler.schedule_match_tasks(match.id)
+                        if not scheduler_result.get('success'):
+                            logging.warning(f"Failed to schedule match tasks: {scheduler_result.get('message')}")
+                    except Exception as e:
+                        logging.warning(f"Could not schedule tasks for match {match.id}: {e}")
+                    
+                    session.commit()
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': f'Match added: Sounders vs {match_details["opponent"]} on {match_details["date_time"].strftime("%m/%d/%Y %I:%M %p")}'
+                    })
+                    
+                except Exception as e:
+                    session.rollback()
+                    logging.error(f"Error processing match: {str(e)}")
+                    return jsonify({
+                        'success': False,
+                        'message': f'Error processing match: {str(e)}'
+                    })
+        
+        return jsonify({
+            'success': False,
+            'message': f'No Seattle Sounders match found on {date} in {competition}'
+        })
+            
+    except Exception as e:
+        logging.error(f"Error adding match by date: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error adding match: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/fetch-all-from-espn', methods=['POST'])
+@login_required
+@role_required('Global Admin')  
+def fetch_all_matches_from_espn():
+    """
+    Fetch all upcoming matches from ESPN API for multiple competitions.
+    """
+    try:
+        from app.api_utils import async_to_sync, fetch_espn_data, extract_match_details
+        from app.db_utils import insert_mls_match
+        from app.match_scheduler import MatchScheduler
+        from datetime import datetime, timedelta
+        
+        # Competition mappings
+        COMPETITION_MAPPINGS = {
+            "MLS": "usa.1",
+            "US Open Cup": "usa.open",
+            "FIFA Club World Cup": "fifa.cwc",
+            "Concacaf": "concacaf.league",
+            "Concacaf Champions League": "concacaf.champions",
+        }
+        
+        session = g.db_session
+        added_count = 0
+        
+        # Get date range for the next 6 months
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=180)
+        
+        current_date = start_date
+        while current_date <= end_date:
+            formatted_date = current_date.strftime("%Y%m%d")
+            
+            for competition_name, competition_code in COMPETITION_MAPPINGS.items():
+                try:
+                    endpoint = f"sports/soccer/{competition_code}/scoreboard?dates={formatted_date}"
+                    match_data = async_to_sync(fetch_espn_data(endpoint))
+                    
+                    if match_data and 'events' in match_data:
+                        for event in match_data['events']:
+                            if 'Seattle Sounders FC' in event.get("name", ""):
+                                try:
+                                    match_details = extract_match_details(event)
+                                    
+                                    # Check if match already exists
+                                    existing_match = session.query(MLSMatch).filter_by(
+                                        match_id=match_details['match_id']
+                                    ).first()
+                                    
+                                    if not existing_match:
+                                        # Convert to UTC
+                                        from app.bot_admin import ensure_utc
+                                        match_details['date_time'] = ensure_utc(match_details['date_time'])
+                                        
+                                        # Insert match
+                                        match = insert_mls_match(
+                                            match_id=match_details['match_id'],
+                                            opponent=match_details['opponent'],
+                                            date_time=match_details['date_time'],
+                                            is_home_game=match_details['is_home_game'],
+                                            summary_link=match_details['match_summary_link'],
+                                            stats_link=match_details['match_stats_link'],
+                                            commentary_link=match_details['match_commentary_link'],
+                                            venue=match_details['venue'],
+                                            competition=competition_code,
+                                            session=session
+                                        )
+                                        
+                                        if match:
+                                            # Schedule match tasks
+                                            try:
+                                                from app.bot_admin import get_scheduler
+                                                scheduler = get_scheduler()
+                                                scheduler.schedule_match_tasks(match.id)
+                                            except Exception as e:
+                                                logging.warning(f"Could not schedule tasks for match {match.id}: {e}")
+                                            
+                                            added_count += 1
+                                            
+                                except Exception as e:
+                                    logging.warning(f"Error processing match on {formatted_date} for {competition_name}: {e}")
+                                    continue
+                                    
+                except Exception as e:
+                    logging.debug(f"No matches found for {competition_name} on {formatted_date}: {e}")
+                    continue
+            
+            current_date += timedelta(days=1)
+        
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully fetched and added {added_count} new matches',
+            'count': added_count
+        })
+        
+    except Exception as e:
+        logging.error(f"Error fetching all matches from ESPN: {str(e)}")
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching matches: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/clear-all', methods=['POST'])
+@login_required
+@role_required('Global Admin')
+def clear_all_matches():
+    """
+    Clear all matches and stop running tasks.
+    """
+    try:
+        session = g.db_session
+        
+        # Get all matches to stop their tasks
+        matches = session.query(MLSMatch).all()
+        
+        stopped_tasks = 0
+        for match in matches:
+            if match.live_reporting_task_id:
+                try:
+                    # Stop running tasks
+                    celery.control.revoke(match.live_reporting_task_id, terminate=True)
+                    stopped_tasks += 1
+                except Exception as e:
+                    logging.warning(f"Could not stop task {match.live_reporting_task_id}: {e}")
+        
+        # Delete all matches
+        match_count = len(matches)
+        session.query(MLSMatch).delete()
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {match_count} matches and stopped {stopped_tasks} tasks'
+        })
+        
+    except Exception as e:
+        logging.error(f"Error clearing all matches: {str(e)}")
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error clearing matches: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/remove/<int:match_id>', methods=['DELETE'])
+@login_required
+@role_required('Global Admin')
+def remove_match(match_id):
+    """
+    Remove a specific match and stop any running tasks.
+    """
+    try:
+        session = g.db_session
+        match = session.query(MLSMatch).filter_by(id=match_id).first()
+        
+        if not match:
+            return jsonify({
+                'success': False,
+                'message': 'Match not found'
+            })
+        
+        # Stop any running tasks first
+        if match.live_reporting_task_id:
+            try:
+                # Stop the Celery task directly
+                celery.control.revoke(match.live_reporting_task_id, terminate=True)
+                logging.info(f"Stopped task {match.live_reporting_task_id} for match {match_id}")
+            except Exception as e:
+                logging.warning(f"Could not stop reporting for match {match_id}: {str(e)}")
+        
+        # Remove the match
+        session.delete(match)
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Match removed successfully'
+        })
+        
+    except Exception as e:
+        logging.error(f"Error removing match {match_id}: {str(e)}")
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error removing match: {str(e)}'
+        })
+
+
+@admin_bp.route('/admin/match_management/queue-status')
+@login_required
+@role_required('Global Admin')
+def get_queue_status():
+    """
+    Get detailed information about Celery queue status for match tasks with match details.
+    """
+    try:
+        from celery import current_app as celery_app
+        from app.core import celery
+        
+        # Get active tasks
+        inspect = celery.control.inspect()
+        active_tasks = inspect.active()
+        scheduled_tasks = inspect.scheduled()
+        reserved_tasks = inspect.reserved()
+        
+        # Get match data for context
+        session = g.db_session
+        matches = session.query(MLSMatch).all()
+        match_lookup = {str(match.id): match for match in matches}
+        match_lookup.update({match.match_id: match for match in matches})  # Also index by match_id
+        
+        def enhance_task_info(task, task_type):
+            """Add match context to task information."""
+            enhanced_task = {
+                'worker': task.get('worker'),
+                'task_id': task.get('id'),
+                'name': task.get('name'),
+                'args': task.get('args', []),
+                'kwargs': task.get('kwargs', {}),
+                'match_info': None,
+                'description': 'Unknown Task'
+            }
+            
+            # Add time-specific fields
+            if task_type == 'active':
+                enhanced_task['time_start'] = task.get('time_start')
+            elif task_type == 'scheduled':
+                enhanced_task['eta'] = task.get('eta')
+                
+            # Try to extract match information from task args/kwargs
+            match_id = None
+            task_name = task.get('name', '')
+            
+            # Look for match ID in args (usually first argument)
+            if task.get('args') and len(task['args']) > 0:
+                potential_match_id = str(task['args'][0])
+                if potential_match_id in match_lookup:
+                    match_id = potential_match_id
+            
+            # Look for match_id in kwargs
+            if not match_id and task.get('kwargs', {}).get('match_id'):
+                potential_match_id = str(task['kwargs']['match_id'])
+                if potential_match_id in match_lookup:
+                    match_id = potential_match_id
+            
+            # If we found a match, add detailed info
+            if match_id and match_id in match_lookup:
+                match = match_lookup[match_id]
+                enhanced_task['match_info'] = {
+                    'id': match.id,
+                    'match_id': match.match_id,
+                    'opponent': match.opponent,
+                    'date': match.date_time.strftime('%m/%d %I:%M %p') if match.date_time else 'TBD',
+                    'is_home': match.is_home_game,
+                    'competition': match.competition
+                }
+                
+                # Create a descriptive task name
+                home_away = "vs" if match.is_home_game else "@"
+                match_desc = f"Sounders {home_away} {match.opponent}"
+                
+                if 'thread' in task_name.lower():
+                    enhanced_task['description'] = f"Thread Creation: {match_desc}"
+                elif 'live_reporting' in task_name.lower() or 'match_update' in task_name.lower():
+                    enhanced_task['description'] = f"Live Reporting: {match_desc}"
+                elif 'schedule' in task_name.lower():
+                    enhanced_task['description'] = f"Schedule Tasks: {match_desc}"
+                else:
+                    enhanced_task['description'] = f"Match Task: {match_desc}"
+            else:
+                # Try to make a human-readable description from task name
+                if 'thread' in task_name.lower():
+                    enhanced_task['description'] = 'Thread Creation Task'
+                elif 'live_reporting' in task_name.lower() or 'match_update' in task_name.lower():
+                    enhanced_task['description'] = 'Live Reporting Task'
+                elif 'schedule' in task_name.lower():
+                    enhanced_task['description'] = 'Scheduling Task'
+                else:
+                    enhanced_task['description'] = task_name.split('.')[-1] if '.' in task_name else task_name
+                    
+            return enhanced_task
+        
+        # Parse task information with enhanced context
+        queue_info = {
+            'active': [],
+            'scheduled': [],
+            'reserved': []
+        }
+        
+        if active_tasks:
+            for worker, tasks in active_tasks.items():
+                for task in tasks:
+                    enhanced_task = enhance_task_info(dict(task, worker=worker), 'active')
+                    queue_info['active'].append(enhanced_task)
+        
+        if scheduled_tasks:
+            for worker, tasks in scheduled_tasks.items():
+                for task in tasks:
+                    enhanced_task = enhance_task_info(dict(task, worker=worker), 'scheduled')
+                    queue_info['scheduled'].append(enhanced_task)
+        
+        if reserved_tasks:
+            for worker, tasks in reserved_tasks.items():
+                for task in tasks:
+                    enhanced_task = enhance_task_info(dict(task, worker=worker), 'reserved')
+                    queue_info['reserved'].append(enhanced_task)
+        
+        return jsonify({
+            'success': True,
+            'queue_info': queue_info,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        logging.error(f"Error getting queue status: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error getting queue status: {str(e)}'
+        })
 
 
 @admin_bp.route('/admin/schedule_mls_match_thread/<int:match_id>', endpoint='schedule_mls_match_thread_route', methods=['POST'])

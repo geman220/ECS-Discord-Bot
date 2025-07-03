@@ -25,14 +25,14 @@ class VirtualScrolling {
     
     init() {
         if (!this.container) {
-            console.warn('Virtual scrolling container not found');
+            // console.warn('Virtual scrolling container not found');
             return;
         }
         
         this.setupContainer();
         this.bindEvents();
         
-        console.log('🚀 Virtual scrolling initialized');
+        // console.log('🚀 Virtual scrolling initialized');
     }
     
     setupContainer() {

@@ -230,6 +230,91 @@ class TaskMonitor:
         return stats
 
 
+def get_task_info(task_id: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a Celery task.
+    
+    Args:
+        task_id: The ID of the task to get information for.
+        
+    Returns:
+        A dictionary containing task information.
+    """
+    try:
+        # Get task result from Celery
+        task_result = AsyncResult(task_id)
+        
+        # Get basic task info
+        task_info = {
+            'task_id': task_id,
+            'state': task_result.state,
+            'result': None,
+            'date_started': None,
+            'duration': None
+        }
+        
+        # Try to get additional info from task result
+        try:
+            if hasattr(task_result, 'info') and task_result.info:
+                if isinstance(task_result.info, dict):
+                    task_info.update(task_result.info)
+                else:
+                    task_info['result'] = str(task_result.info)
+        except Exception as e:
+            logger.debug(f"Could not get task info for {task_id}: {e}")
+        
+        # Get date started if available
+        try:
+            if hasattr(task_result, 'date_done') and task_result.date_done:
+                task_info['date_done'] = task_result.date_done.isoformat()
+        except Exception as e:
+            logger.debug(f"Could not get date_done for {task_id}: {e}")
+        
+        # Try to get additional info from our task monitor
+        try:
+            redis = RedisManager().client
+            monitor_key = f"task_monitor:{task_id}"
+            monitor_info = redis.hgetall(monitor_key)
+            
+            if monitor_info:
+                start_time = monitor_info.get('start_time')
+                if start_time:
+                    start_timestamp = float(start_time)
+                    task_info['date_started'] = datetime.fromtimestamp(start_timestamp).isoformat()
+                    
+                    # Calculate duration if task is completed
+                    end_time = monitor_info.get('end_time')
+                    if end_time:
+                        end_timestamp = float(end_time)
+                        duration_seconds = end_timestamp - start_timestamp
+                        task_info['duration'] = f"{duration_seconds:.1f} seconds"
+                    elif task_result.state == STARTED:
+                        # Task is still running
+                        current_time = time.time()
+                        duration_seconds = current_time - start_timestamp
+                        task_info['duration'] = f"{duration_seconds:.1f} seconds (running)"
+                
+                # Add task name if available
+                task_name = monitor_info.get('task_name')
+                if task_name:
+                    task_info['task_name'] = task_name
+                    
+        except Exception as e:
+            logger.debug(f"Could not get monitor info for {task_id}: {e}")
+        
+        return task_info
+        
+    except Exception as e:
+        logger.error(f"Error getting task info for {task_id}: {e}")
+        return {
+            'task_id': task_id,
+            'state': 'UNKNOWN',
+            'result': f'Error getting task info: {str(e)}',
+            'date_started': None,
+            'duration': None
+        }
+
+
 # Initialize a global TaskMonitor instance
 task_monitor = TaskMonitor()
 

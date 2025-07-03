@@ -1,10 +1,22 @@
+<!--
+DEPRECATED TEMPLATE - MARKED FOR DELETION
+This template has been replaced by /app/templates/admin/match_management.html
+TODO: Remove this template after new system is verified in production
+-->
 {% extends "base.html" %}
-{% block title %}MLS Matches{% endblock %}
+{% block title %}MLS Matches [DEPRECATED]{% endblock %}
 {% block main_content %}
 
 <div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Deprecation Notice -->
+    <div class="alert alert-warning alert-dismissible" role="alert">
+        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Deprecated Page</h6>
+        <p>This page has been replaced by the new <a href="{{ url_for('admin.match_management') }}" class="alert-link">Match Management</a> interface, which combines thread scheduling and live reporting in one unified view.</p>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
     <h4 class="fw-bold py-3 mb-4">
-        <span class="text-muted fw-light">Discord /</span> MLS Matches
+        <span class="text-muted fw-light">Discord /</span> MLS Matches [DEPRECATED]
     </h4>
 
     <div class="card">

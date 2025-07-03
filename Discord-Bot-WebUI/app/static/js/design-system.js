@@ -529,7 +529,7 @@
               'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({ theme: newStyle })
-          }).catch(error => console.error('Error saving theme preference:', error));
+          }).catch(error => // console.error('Error saving theme preference:', error));
         });
       }
       */
@@ -582,7 +582,7 @@
         });
       });
       
-      console.log('Ripple effect added with scaling fix');
+      // console.log('Ripple effect added with scaling fix');
     },
     
     // Improve keyboard navigation for better accessibility

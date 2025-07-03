@@ -1,0 +1,998 @@
+{% extends "base.html" %}
+{% block title %}Match Management{% endblock %}
+{% block main_content %}
+
+<div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="fw-bold py-3 mb-4">
+        <span class="text-muted fw-light">Admin /</span> Match Management
+    </h4>
+
+    <!-- Quick Actions Card -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Quick Actions</h5>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addMatchModal">
+                    <i class="fas fa-plus"></i> Add by Date
+                </button>
+                <button class="btn btn-primary" onclick="fetchAllFromESPN()">
+                    <i class="fas fa-download"></i> Fetch All from ESPN
+                </button>
+                <button class="btn btn-success" onclick="scheduleAllMatches()">
+                    <i class="fas fa-calendar-check"></i> Schedule All
+                </button>
+                <button class="btn btn-warning" onclick="refreshStatuses()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+                <button class="btn btn-info" onclick="showQueueStatus()">
+                    <i class="fas fa-list-ul"></i> Queue Status
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matches Table Card -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Match Schedule & Live Reporting</h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-info me-2" id="lastUpdated">Last updated: {{ current_time.strftime('%I:%M %p') }}</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="clearAllMatches()">
+                    <i class="fas fa-trash-alt"></i> Clear All
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Match</th>
+                            <th>Date & Time</th>
+                            <th>Competition</th>
+                            <th>Thread Status</th>
+                            <th>Live Reporting</th>
+                            <th>Task Details</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for match in matches %}
+                        <tr id="match-row-{{ match.id }}" data-match-id="{{ match.id }}">
+                            <!-- Match Info -->
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold">
+                                        {% if match.is_home_game %}
+                                        <i class="fas fa-home text-success me-1" title="Home Game"></i>
+                                        Sounders vs {{ match.opponent }}
+                                        {% else %}
+                                        <i class="fas fa-plane text-warning me-1" title="Away Game"></i>
+                                        {{ match.opponent }} vs Sounders
+                                        {% endif %}
+                                    </span>
+                                    <small class="text-muted">{{ match.venue or 'TBD' }}</small>
+                                </div>
+                            </td>
+
+                            <!-- Date & Time -->
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span>{{ match.date_time.strftime('%m/%d/%Y') }}</span>
+                                    <small class="text-muted">{{ match.date_time.strftime('%I:%M %p PT') }}</small>
+                                </div>
+                            </td>
+
+                            <!-- Competition -->
+                            <td>
+                                <span class="badge bg-light text-dark">{{ match.competition }}</span>
+                            </td>
+
+                            <!-- Thread Status -->
+                            <td>
+                                <div class="d-flex flex-column">
+                                    {% if match.thread_created %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Created
+                                    </span>
+                                    {% if match.discord_thread_id %}
+                                    <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" 
+                                       class="btn btn-sm btn-outline-primary mt-1" target="_blank">
+                                        <i class="fab fa-discord"></i> View
+                                    </a>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                    {% if match.thread_creation_time %}
+                                    <small class="text-muted">
+                                        Due: {{ match.thread_creation_time.strftime('%m/%d %I:%M %p') }}
+                                    </small>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Live Reporting Status -->
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <span class="badge bg-{{ get_status_color(match.live_reporting_status) }}" id="status-{{ match.id }}">
+                                        <i class="fas {{ get_status_icon(match.live_reporting_status) }}"></i>
+                                        {{ get_status_display(match.live_reporting_status) }}
+                                    </span>
+                                    {% if match.live_reporting_scheduled and not match.live_reporting_started %}
+                                    <small class="text-muted">
+                                        Start: {{ (match.date_time - timedelta(minutes=5)).strftime('%I:%M %p') }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Task Details -->
+                            <td>
+                                <div class="d-flex flex-column" id="task-details-{{ match.id }}">
+                                    {% set match_task_info = matches_with_tasks|selectattr('id', 'equalto', match.id)|first %}
+                                    {% if match_task_info %}
+                                        {% set scheduled_tasks = match_task_info.scheduled_tasks %}
+                                        {% set active_task_id = match.live_reporting_task_id %}
+                                        
+                                        <!-- Active Task -->
+                                        {% if active_task_id %}
+                                        <div class="mb-2">
+                                            <span class="badge bg-success mb-1">
+                                                <i class="fas fa-play"></i> Running
+                                            </span>
+                                            <div class="font-monospace small text-truncate" style="max-width: 120px;" title="{{ active_task_id }}">
+                                                {{ active_task_id[:8] }}...
+                                            </div>
+                                            <button class="btn btn-xs btn-outline-info mt-1" onclick="showTaskDetails('{{ match.id }}', '{{ active_task_id }}')">
+                                                <i class="fas fa-info-circle"></i> Details
+                                            </button>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Scheduled Thread Task -->
+                                        {% if scheduled_tasks.thread.scheduled %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-warning text-dark mb-1">
+                                                <i class="fas fa-comments"></i> Thread Queued
+                                            </span>
+                                            <div class="small">
+                                                <div class="font-monospace text-truncate" style="max-width: 120px;" title="{{ scheduled_tasks.thread.task_id }}">
+                                                    {{ scheduled_tasks.thread.task_id[:8] + '...' if scheduled_tasks.thread.task_id else 'N/A' }}
+                                                </div>
+                                                <div class="text-muted">Due: 
+                                                    {% if scheduled_tasks.thread.scheduled_time %}
+                                                        <span class="scheduled-time" data-time="{{ scheduled_tasks.thread.scheduled_time }}">{{ scheduled_tasks.thread.scheduled_time }}</span>
+                                                    {% else %}
+                                                        Unknown
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- Scheduled Reporting Task -->
+                                        {% if scheduled_tasks.reporting.scheduled %}
+                                        <div class="mb-1">
+                                            <span class="badge bg-info mb-1">
+                                                <i class="fas fa-broadcast-tower"></i> Reporting Queued
+                                            </span>
+                                            <div class="small">
+                                                <div class="font-monospace text-truncate" style="max-width: 120px;" title="{{ scheduled_tasks.reporting.task_id }}">
+                                                    {{ scheduled_tasks.reporting.task_id[:8] + '...' if scheduled_tasks.reporting.task_id else 'N/A' }}
+                                                </div>
+                                                <div class="text-muted">Due: 
+                                                    {% if scheduled_tasks.reporting.scheduled_time %}
+                                                        <span class="scheduled-time" data-time="{{ scheduled_tasks.reporting.scheduled_time }}">{{ scheduled_tasks.reporting.scheduled_time }}</span>
+                                                    {% else %}
+                                                        Unknown
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <!-- No tasks message -->
+                                        {% if not active_task_id and not scheduled_tasks.thread.scheduled and not scheduled_tasks.reporting.scheduled %}
+                                        <small class="text-muted">No scheduled tasks</small>
+                                        {% endif %}
+                                    {% else %}
+                                    <small class="text-muted">No task info</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="text-center">
+                                <div class="btn-group-vertical btn-group-sm">
+                                    <div class="btn-group">
+                                        <!-- Thread Actions -->
+                                        {% if not match.thread_created %}
+                                        <button class="btn btn-outline-primary btn-sm" 
+                                                onclick="scheduleMatch('{{ match.id }}')"
+                                                title="Schedule thread creation">
+                                            <i class="fas fa-calendar-plus"></i>
+                                        </button>
+                                        <button class="btn btn-success btn-sm" 
+                                                onclick="createThreadNow('{{ match.id }}')"
+                                                title="Create thread now">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        {% endif %}
+                                        
+                                        <!-- Live Reporting Actions -->
+                                        {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
+                                        <button class="btn btn-warning btn-sm" 
+                                                onclick="startLiveReporting('{{ match.id }}')"
+                                                title="Start live reporting">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        {% elif match.live_reporting_status == 'running' %}
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="stopLiveReporting('{{ match.id }}')"
+                                                title="Stop live reporting">
+                                            <i class="fas fa-stop"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="btn-group mt-1">
+                                        <!-- Edit/Remove -->
+                                        <button class="btn btn-outline-secondary btn-sm" 
+                                                onclick="editMatch('{{ match.id }}')"
+                                                title="Edit match">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" 
+                                                onclick="removeMatch('{{ match.id }}')"
+                                                title="Remove match">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match by Date Modal -->
+<div class="modal fade" id="addMatchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Match by Date</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Enter a date and competition to fetch Seattle Sounders match information from ESPN.</p>
+                <form id="addMatchForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="matchDate" class="form-label">Match Date</label>
+                        <input type="date" class="form-control" id="matchDate" name="date" required>
+                        <div class="form-text">System will search ESPN for Seattle Sounders matches on this date.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="matchCompetition" class="form-label">Competition</label>
+                        <select class="form-control" id="matchCompetition" name="competition" required>
+                            <option value="MLS">MLS</option>
+                            <option value="US Open Cup">US Open Cup</option>
+                            <option value="Concacaf Champions League">Concacaf Champions League</option>
+                            <option value="Concacaf">Concacaf</option>
+                            <option value="FIFA Club World Cup">FIFA Club World Cup</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addMatchByDate()">Fetch Match from ESPN</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Details Modal -->
+<div class="modal fade" id="taskDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="taskDetailsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Queue Status Modal -->
+<div class="modal fade" id="queueStatusModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Celery Queue Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="queueStatusContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="refreshQueueStatus()">
+                    <i class="fas fa-sync"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Format scheduled times on initial page load
+    document.addEventListener('DOMContentLoaded', function() {
+        formatScheduledTimes();
+    });
+    
+    // Auto-refresh every 30 seconds
+    setInterval(refreshStatuses, 30000);
+
+    function refreshStatuses() {
+        fetch('/admin/match_management/statuses')
+            .then(response => response.json())
+            .then(data => {
+                data.matches.forEach(match => {
+                    updateMatchRow(match);
+                });
+                document.getElementById('lastUpdated').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()}`;
+            })
+            .catch(error => console.error('Error refreshing statuses:', error));
+    }
+
+    function updateMatchRow(match) {
+        const statusBadge = document.getElementById(`status-${match.id}`);
+        if (statusBadge) {
+            statusBadge.className = `badge bg-${getStatusColor(match.live_reporting_status)}`;
+            statusBadge.innerHTML = `<i class="fas ${getStatusIcon(match.live_reporting_status)}"></i> ${getStatusDisplay(match.live_reporting_status)}`;
+        }
+        
+        // Update task details with scheduled task information
+        const taskDetailsContainer = document.getElementById(`task-details-${match.id}`);
+        if (taskDetailsContainer && match.scheduled_tasks) {
+            updateTaskDetails(match.id, match.scheduled_tasks, match.live_reporting_task_id);
+        }
+    }
+
+    function updateTaskDetails(matchId, scheduledTasks, activeTaskId) {
+        const container = document.getElementById(`task-details-${matchId}`);
+        if (!container) return;
+        
+        let html = '';
+        let hasScheduledTasks = false;
+        
+        // Check for active task first
+        if (activeTaskId) {
+            html += `
+                <div class="mb-2">
+                    <span class="badge bg-success mb-1">
+                        <i class="fas fa-play"></i> Running
+                    </span>
+                    <div class="font-monospace small text-truncate" style="max-width: 120px;" title="${activeTaskId}">
+                        ${activeTaskId.substring(0, 8)}...
+                    </div>
+                    <button class="btn btn-xs btn-outline-info mt-1" onclick="showTaskDetails('${matchId}', '${activeTaskId}')">
+                        <i class="fas fa-info-circle"></i> Details
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Show scheduled thread task
+        if (scheduledTasks.thread && scheduledTasks.thread.scheduled) {
+            hasScheduledTasks = true;
+            const scheduledTime = formatScheduledTime(scheduledTasks.thread.scheduled_time);
+            html += `
+                <div class="mb-1">
+                    <span class="badge bg-warning text-dark mb-1">
+                        <i class="fas fa-comments"></i> Thread Queued
+                    </span>
+                    <div class="small">
+                        <div class="font-monospace text-truncate" style="max-width: 120px;" title="${scheduledTasks.thread.task_id}">
+                            ${scheduledTasks.thread.task_id ? scheduledTasks.thread.task_id.substring(0, 8) + '...' : 'N/A'}
+                        </div>
+                        <div class="text-muted">Due: ${scheduledTime}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show scheduled reporting task
+        if (scheduledTasks.reporting && scheduledTasks.reporting.scheduled) {
+            hasScheduledTasks = true;
+            const scheduledTime = formatScheduledTime(scheduledTasks.reporting.scheduled_time);
+            html += `
+                <div class="mb-1">
+                    <span class="badge bg-info mb-1">
+                        <i class="fas fa-broadcast-tower"></i> Reporting Queued
+                    </span>
+                    <div class="small">
+                        <div class="font-monospace text-truncate" style="max-width: 120px;" title="${scheduledTasks.reporting.task_id}">
+                            ${scheduledTasks.reporting.task_id ? scheduledTasks.reporting.task_id.substring(0, 8) + '...' : 'N/A'}
+                        </div>
+                        <div class="text-muted">Due: ${scheduledTime}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // If no tasks at all
+        if (!activeTaskId && !hasScheduledTasks) {
+            html = '<small class="text-muted">No scheduled tasks</small>';
+        }
+        
+        container.innerHTML = html;
+    }
+
+    function formatScheduledTime(isoString) {
+        if (!isoString) return 'Unknown';
+        
+        try {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diff = date - now;
+            
+            if (diff > 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                
+                if (hours > 24) {
+                    const days = Math.floor(hours / 24);
+                    const remainingHours = hours % 24;
+                    return `${days}d ${remainingHours}h`;
+                } else if (hours > 0) {
+                    return `${hours}h ${minutes}m`;
+                } else {
+                    return `${minutes}m`;
+                }
+            } else {
+                return 'Overdue';
+            }
+        } catch (e) {
+            return 'Invalid';
+        }
+    }
+
+    function formatScheduledTimes() {
+        // Format all scheduled time elements on the page
+        document.querySelectorAll('.scheduled-time').forEach(element => {
+            const isoTime = element.getAttribute('data-time');
+            element.textContent = formatScheduledTime(isoTime);
+        });
+    }
+
+    function getStatusColor(status) {
+        const colors = {
+            'not_started': 'secondary',
+            'scheduled': 'warning', 
+            'running': 'success',
+            'completed': 'info',
+            'stopped': 'danger',
+            'failed': 'danger'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    function getStatusIcon(status) {
+        const icons = {
+            'not_started': 'fa-circle',
+            'scheduled': 'fa-clock',
+            'running': 'fa-play-circle',
+            'completed': 'fa-check-circle',
+            'stopped': 'fa-stop-circle',
+            'failed': 'fa-exclamation-triangle'
+        };
+        return icons[status] || 'fa-circle';
+    }
+
+    function getStatusDisplay(status) {
+        const displays = {
+            'not_started': 'Not Started',
+            'scheduled': 'Scheduled',
+            'running': 'Running',
+            'completed': 'Completed', 
+            'stopped': 'Stopped',
+            'failed': 'Failed'
+        };
+        return displays[status] || status;
+    }
+
+    function scheduleMatch(matchId) {
+        fetch(`/admin/match_management/schedule/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', 'Match scheduled successfully', 'success');
+                refreshStatuses();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to schedule match', 'error');
+        });
+    }
+
+    function createThreadNow(matchId) {
+        fetch(`/admin/match_management/create-thread/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', 'Thread creation started', 'success');
+                refreshStatuses();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to create thread', 'error');
+        });
+    }
+
+    function startLiveReporting(matchId) {
+        fetch(`/admin/match_management/start-reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', `Live reporting started. Task ID: ${data.task_id}`, 'success');
+                refreshStatuses();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to start live reporting', 'error');
+        });
+    }
+
+    function stopLiveReporting(matchId) {
+        fetch(`/admin/match_management/stop-reporting/${matchId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', 'Live reporting stopped', 'success');
+                refreshStatuses();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to stop live reporting', 'error');
+        });
+    }
+
+    function showTaskDetails(matchId, taskId) {
+        const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+        modal.show();
+        
+        fetch(`/admin/match_management/task-details/${taskId}`)
+            .then(response => response.json())
+            .then(data => {
+                const content = document.getElementById('taskDetailsContent');
+                content.innerHTML = `
+                    <table class="table table-sm">
+                        <tr><th>Task ID:</th><td class="font-monospace">${taskId}</td></tr>
+                        <tr><th>Status:</th><td><span class="badge bg-${getTaskStatusColor(data.status)}">${data.status}</span></td></tr>
+                        <tr><th>Started:</th><td>${data.date_started || 'N/A'}</td></tr>
+                        <tr><th>Duration:</th><td>${data.duration || 'N/A'}</td></tr>
+                        <tr><th>Result:</th><td><pre>${JSON.stringify(data.result, null, 2)}</pre></td></tr>
+                    </table>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('taskDetailsContent').innerHTML = 
+                    `<div class="alert alert-danger">Error loading task details: ${error.message}</div>`;
+            });
+    }
+
+    function getTaskStatusColor(status) {
+        const colors = {
+            'PENDING': 'warning',
+            'STARTED': 'info', 
+            'SUCCESS': 'success',
+            'FAILURE': 'danger',
+            'REVOKED': 'secondary'
+        };
+        return colors[status] || 'secondary';
+    }
+
+    function addMatchByDate() {
+        const form = document.getElementById('addMatchForm');
+        const formData = new FormData(form);
+        
+        if (!formData.get('date') || !formData.get('competition')) {
+            Swal.fire('Error', 'Please fill in all required fields', 'error');
+            return;
+        }
+
+        fetch('/admin/match_management/add-by-date', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire('Success', data.message || 'Match added successfully', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addMatchModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                Swal.fire('Error', data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to add match', 'error');
+        });
+    }
+
+    function scheduleAllMatches() {
+        Swal.fire({
+            title: 'Schedule All Matches?',
+            text: 'This will schedule thread creation and live reporting for all unscheduled matches.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, schedule all'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/match_management/schedule-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success', `Scheduled ${data.count} matches`, 'success');
+                        refreshStatuses();
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Failed to schedule matches', 'error');
+                });
+            }
+        });
+    }
+
+    function fetchAllFromESPN() {
+        Swal.fire({
+            title: 'Fetch All Matches from ESPN?',
+            text: 'This will fetch all upcoming Seattle Sounders matches from ESPN API for the current season. This may take a few minutes.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, fetch all matches'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading indicator
+                Swal.fire({
+                    title: 'Fetching Matches...',
+                    text: 'Please wait while we search ESPN for Seattle Sounders matches.',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('/admin/match_management/fetch-all-from-espn', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success', `Fetched ${data.count} new matches`, 'success');
+                        location.reload();
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Failed to fetch matches from ESPN', 'error');
+                });
+            }
+        });
+    }
+
+    function clearAllMatches() {
+        Swal.fire({
+            title: 'Clear All Matches?',
+            text: 'This will remove all matches and stop any running tasks. This cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, clear all',
+            confirmButtonColor: '#d33'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/match_management/clear-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success', 'All matches cleared', 'success');
+                        location.reload();
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Failed to clear matches', 'error');
+                });
+            }
+        });
+    }
+
+    function editMatch(matchId) {
+        // TODO: Implement inline editing
+        Swal.fire('Info', 'Edit functionality coming soon', 'info');
+    }
+
+    function removeMatch(matchId) {
+        Swal.fire({
+            title: 'Remove Match?', 
+            text: 'This will remove the match and stop any running tasks.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove',
+            confirmButtonColor: '#d33'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(`/admin/match_management/remove/${matchId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById(`match-row-${matchId}`).remove();
+                        Swal.fire('Success', 'Match removed', 'success');
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Failed to remove match', 'error');
+                });
+            }
+        });
+    }
+
+    function showQueueStatus() {
+        const modal = new bootstrap.Modal(document.getElementById('queueStatusModal'));
+        modal.show();
+        refreshQueueStatus();
+    }
+
+    function refreshQueueStatus() {
+        const content = document.getElementById('queueStatusContent');
+        content.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading queue status...</p>
+            </div>
+        `;
+
+        fetch('/admin/match_management/queue-status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayQueueStatus(data.queue_info);
+                } else {
+                    content.innerHTML = `<div class="alert alert-danger">Error loading queue status: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                content.innerHTML = `<div class="alert alert-danger">Error loading queue status: ${error.message}</div>`;
+            });
+    }
+
+    function displayQueueStatus(queueInfo) {
+        const content = document.getElementById('queueStatusContent');
+        
+        let html = `
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0"><i class="fas fa-play"></i> Active Tasks (${queueInfo.active.length})</h6>
+                        </div>
+                        <div class="card-body">
+        `;
+        
+        if (queueInfo.active.length === 0) {
+            html += '<p class="text-muted">No active tasks</p>';
+        } else {
+            queueInfo.active.forEach(task => {
+                const isMatchTask = task.match_info !== null;
+                
+                html += `
+                    <div class="mb-2 p-2 border rounded ${isMatchTask ? 'border-primary bg-light' : ''}">
+                        <div class="font-monospace small">${task.task_id ? task.task_id.substring(0, 12) + '...' : 'No ID'}</div>
+                        <div class="fw-bold small">${task.description || 'Unknown Task'}</div>
+                        ${task.match_info ? `
+                            <div class="small text-primary">
+                                <i class="fas ${task.match_info.is_home ? 'fa-home' : 'fa-plane'}"></i>
+                                ${task.match_info.date} | ${task.match_info.competition}
+                            </div>
+                        ` : ''}
+                        <div class="small text-muted">Worker: ${task.worker || 'Unknown'}</div>
+                        ${task.time_start ? `<div class="small text-muted">Started: ${new Date(task.time_start * 1000).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+            });
+        }
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0"><i class="fas fa-clock"></i> Scheduled Tasks (${queueInfo.scheduled.length})</h6>
+                        </div>
+                        <div class="card-body">
+        `;
+        
+        if (queueInfo.scheduled.length === 0) {
+            html += '<p class="text-muted">No scheduled tasks</p>';
+        } else {
+            queueInfo.scheduled.forEach(task => {
+                const isMatchTask = task.match_info !== null;
+                
+                html += `
+                    <div class="mb-2 p-2 border rounded ${isMatchTask ? 'border-primary bg-light' : ''}">
+                        <div class="font-monospace small">${task.task_id ? task.task_id.substring(0, 12) + '...' : 'No ID'}</div>
+                        <div class="fw-bold small">${task.description || 'Unknown Task'}</div>
+                        ${task.match_info ? `
+                            <div class="small text-primary">
+                                <i class="fas ${task.match_info.is_home ? 'fa-home' : 'fa-plane'}"></i>
+                                ${task.match_info.date} | ${task.match_info.competition}
+                            </div>
+                        ` : ''}
+                        <div class="small text-muted">Worker: ${task.worker || 'Unknown'}</div>
+                        ${task.eta ? `<div class="small text-muted">ETA: ${new Date(task.eta).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+            });
+        }
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0"><i class="fas fa-inbox"></i> Reserved Tasks (${queueInfo.reserved.length})</h6>
+                        </div>
+                        <div class="card-body">
+        `;
+        
+        if (queueInfo.reserved.length === 0) {
+            html += '<p class="text-muted">No reserved tasks</p>';
+        } else {
+            queueInfo.reserved.forEach(task => {
+                const isMatchTask = task.match_info !== null;
+                
+                html += `
+                    <div class="mb-2 p-2 border rounded ${isMatchTask ? 'border-primary bg-light' : ''}">
+                        <div class="font-monospace small">${task.task_id ? task.task_id.substring(0, 12) + '...' : 'No ID'}</div>
+                        <div class="fw-bold small">${task.description || 'Unknown Task'}</div>
+                        ${task.match_info ? `
+                            <div class="small text-primary">
+                                <i class="fas ${task.match_info.is_home ? 'fa-home' : 'fa-plane'}"></i>
+                                ${task.match_info.date} | ${task.match_info.competition}
+                            </div>
+                        ` : ''}
+                        <div class="small text-muted">Worker: ${task.worker || 'Unknown'}</div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += `
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">Last updated: ${new Date().toLocaleString()}</small>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+    }
+
+</script>
+{% endblock %}

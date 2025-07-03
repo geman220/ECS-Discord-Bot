@@ -37,7 +37,7 @@ function initLiveReporting(config) {
     
     // Join the match room when connected
     socket.on('connect', () => {
-        console.log('Connected to live reporting server');
+        // Connected to live reporting server
         joinMatch();
     });
 }
@@ -48,7 +48,7 @@ function initLiveReporting(config) {
 function setupSocketListeners() {
     // Connection events
     socket.on('disconnect', () => {
-        console.log('Disconnected from live reporting server');
+        // Disconnected from live reporting server
         showNotification('Connection lost. Attempting to reconnect...', 'warning');
         
         // Stop the timer if it's running
@@ -59,32 +59,32 @@ function setupSocketListeners() {
     });
     
     socket.on('error', (error) => {
-        console.error('Socket error:', error);
+        // Socket error
         showNotification('Error: ' + error.message, 'danger');
     });
     
     // Match state events
     socket.on('match_state', (state) => {
-        console.log('Received match state:', state);
+        // Received match state
         matchState = state;
         updateMatchUI(state);
     });
     
     socket.on('active_reporters', (reporters) => {
-        console.log('Active reporters:', reporters);
+        // Active reporters
         activeReporters = reporters;
         updateReportersUI(reporters);
     });
     
     socket.on('player_shifts', (shifts) => {
-        console.log('Player shifts:', shifts);
+        // Player shifts
         playerShifts = shifts;
         updateShiftsUI(shifts);
     });
     
     // Live updates
     socket.on('reporter_joined', (data) => {
-        console.log('Reporter joined:', data);
+        // Reporter joined
         showNotification(`${data.username} joined as a reporter for ${data.team_name}`, 'info');
         
         // Add to active reporters if not already present
@@ -95,7 +95,7 @@ function setupSocketListeners() {
     });
     
     socket.on('reporter_left', (data) => {
-        console.log('Reporter left:', data);
+        // Reporter left
         showNotification(`${data.username} is no longer reporting`, 'info');
         
         // Remove from active reporters
@@ -104,7 +104,7 @@ function setupSocketListeners() {
     });
     
     socket.on('score_updated', (data) => {
-        console.log('Score updated:', data);
+        // Score updated
         
         // Update match state
         if (matchState) {
@@ -117,7 +117,7 @@ function setupSocketListeners() {
     });
     
     socket.on('timer_updated', (data) => {
-        console.log('Timer updated:', data);
+        // Timer updated
         
         // Update match state
         if (matchState) {
@@ -134,7 +134,7 @@ function setupSocketListeners() {
     });
     
     socket.on('event_added', (data) => {
-        console.log('Event added:', data);
+        // Event added
         const event = data.event;
         
         // Add to match events
@@ -158,7 +158,7 @@ function setupSocketListeners() {
     });
     
     socket.on('player_shift_updated', (data) => {
-        console.log('Player shift updated:', data);
+        // Player shift updated
         
         // Only process shift updates for our team
         if (data.team_id === teamId) {
@@ -183,7 +183,7 @@ function setupSocketListeners() {
     });
     
     socket.on('report_submitted', (data) => {
-        console.log('Report submitted:', data);
+        // Report submitted
         
         // Update match state
         if (matchState) {
@@ -202,7 +202,7 @@ function setupSocketListeners() {
     });
     
     socket.on('report_submission_error', (data) => {
-        console.error('Report submission error:', data);
+        // Report submission error
         showNotification(`Error submitting report: ${data.message}`, 'danger');
     });
 }
