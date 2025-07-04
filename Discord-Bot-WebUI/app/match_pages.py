@@ -79,16 +79,15 @@ def view_match(match_id):
     # Global Admin always has access
     is_global_admin = 'Global Admin' in user_roles
     
-    # Check if user is a player on either team (for team-specific access)
-    has_team_access = False
+    # Check if user is a referee for this match (refs can view matches they're assigned to)
+    is_assigned_ref = False
     if hasattr(safe_current_user, 'player') and safe_current_user.player:
         player = safe_current_user.player
-        user_team_ids = [team.id for team in player.teams]
-        has_team_access = (match.home_team_id in user_team_ids or 
-                          match.away_team_id in user_team_ids)
+        if player.is_ref and match.referee_id == player.id:
+            is_assigned_ref = True
     
-    # Deny access if user doesn't have proper permissions
-    if not (is_global_admin or can_view_match or has_team_access):
+    # Players cannot view match pages at all - only coaches, admins, and assigned refs
+    if not (is_global_admin or can_view_match or is_assigned_ref):
         show_error('Access denied: You do not have permission to view this match.')
         return redirect(url_for('main.index'))
 
