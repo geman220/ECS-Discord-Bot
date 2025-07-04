@@ -32,7 +32,7 @@ user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_ma
 
 @user_management_bp.route('/manage_users', endpoint='manage_users', methods=['GET', 'POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def manage_users():
     """
     Render the user management page with a list of users filtered by search criteria.
@@ -315,7 +315,7 @@ def manage_users():
 
 @user_management_bp.route('/create_user', methods=['GET', 'POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def create_user():
     """
     Create a new user along with an optional player profile if a league is selected.
@@ -370,7 +370,7 @@ def create_user():
 
 @user_management_bp.route('/edit_user/<int:user_id>', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def edit_user(user_id):
     """
     Edit an existing user's information including roles, league, team, and secondary leagues.
@@ -474,7 +474,7 @@ def edit_user(user_id):
 
 @user_management_bp.route('/remove_user/<int:user_id>', endpoint='remove_user', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def remove_user(user_id):
     """
     Remove a user and their associated player profile from the database.
@@ -511,7 +511,7 @@ def remove_user(user_id):
 
 @user_management_bp.route('/delete_user/<int:user_id>', endpoint='delete_user', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def delete_user(user_id):
     """
     Completely delete a user and all associated data (player, stats, records, etc.).
@@ -604,7 +604,7 @@ def delete_user(user_id):
 
 @user_management_bp.route('/approve_user/<int:user_id>', endpoint='approve_user', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def approve_user(user_id):
     """
     Approve a user if they are not already approved.
@@ -626,7 +626,7 @@ def approve_user(user_id):
 
 @user_management_bp.route('/get_user_data', endpoint='get_user_data')
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def get_user_data():
     """
     Retrieve detailed user data, including roles, league, team, and secondary leagues, as JSON.
@@ -676,7 +676,7 @@ def get_user_data():
 
 @user_management_bp.route('/update_players', endpoint='update_players', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def update_players():
     """
     Trigger asynchronous synchronization of players with WooCommerce.
@@ -687,7 +687,7 @@ def update_players():
 
 @user_management_bp.route('/confirm_update', endpoint='confirm_update', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def confirm_update():
     """
     Confirm and process the sync update data.
@@ -773,7 +773,7 @@ def confirm_update():
 
 @user_management_bp.route('/update_status/<task_id>', endpoint='update_status')
 @login_required
-@role_required('Global Admin')
+@role_required(['Pub League Admin', 'Global Admin'])
 def update_status(task_id):
     """
     Get the status of a player sync task.

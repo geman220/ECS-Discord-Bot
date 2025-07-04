@@ -407,7 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDate = new Date();
     const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
     const isReferee = {{ 'true' if is_referee else 'false' }};
+    const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    let refereeAssignedMatches = [];
     
     // Initialize tooltips
     const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -433,15 +435,13 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleAssignmentMode.addEventListener('click', function() {
             isAssignmentMode = !isAssignmentMode;
             this.classList.toggle('btn-primary', isAssignmentMode);
-            this.classList.toggle('btn-light', !isAssignmentMode);
+            this.classList.toggle('btn-outline-primary', !isAssignmentMode);
             this.innerHTML = isAssignmentMode 
-                ? '<i class="ti ti-user-check me-1"></i> Exit Assignment Mode' 
+                ? '<i class="ti ti-x me-1"></i> Exit Assignment Mode' 
                 : '<i class="ti ti-user-check me-1"></i> Assignment Mode';
-                
-            // Update the UI to show assignment controls
-            document.querySelectorAll('.match-ref-controls').forEach(el => {
-                el.style.display = isAssignmentMode ? 'flex' : 'none';
-            });
+            
+            // Toggle assignment mode UI
+            toggleAssignmentModeUI(isAssignmentMode);
         });
     }
     
@@ -589,6 +589,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update stats
             updateQuickStats(data.stats);
             
+            // Store referee assigned matches if available
+            if (data.referee_assigned_matches) {
+                refereeAssignedMatches = data.referee_assigned_matches;
+            }
+            
             // Render the schedule with the loaded events
             renderSchedule();
             
@@ -689,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const highlightClass = ref.matches_assigned_in_week === 0 ? 'referee-available' : '';
             
             refItem.innerHTML = `
-                <div class="card mb-2 ${highlightClass}">
+                <div class="card mb-2 ${highlightClass} referee-card" data-ref-id="${ref.id}" data-ref-name="${ref.name}">
                     <div class="card-body p-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="d-flex align-items-center">
@@ -715,6 +720,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 aria-valuenow="${ref.matches_assigned_in_week}" 
                                 aria-valuemin="0" 
                                 aria-valuemax="3">
+                            </div>
+                        </div>
+                        <div class="assignment-mode-overlay d-none">
+                            <div class="text-center">
+                                <i class="ti ti-click text-primary mb-1" style="font-size: 1.5rem;"></i>
+                                <div class="small text-primary fw-medium">Click to Select</div>
                             </div>
                         </div>
                     </div>
@@ -845,8 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
             timeSlots[time].forEach(event => {
                 const isAssigned = event.ref !== 'Unassigned';
                 
+                const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
+                
                 html += `
-                    <div class="match-item card mb-3" data-event-id="${event.id}">
+                    <div class="match-item card mb-3 ${assignmentClass}" data-event-id="${event.id}">
                         <div class="card-body p-3">
                             <div class="match-header d-flex justify-content-between align-items-center mb-2">
                                 <span class="badge bg-${event.division === 'Premier' ? 'primary' : 'success'} me-2">${event.division}</span>
@@ -863,9 +876,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="ref-badge ${isAssigned ? 'ref-assigned' : 'ref-unassigned'}">
                                     <i class="ti ti-user-circle me-1"></i>
                                     <span>${event.ref}</span>
+                                    ${(!isAssigned && isAssignmentMode) ? '<i class="ti ti-alert-triangle text-warning ms-1" title="Needs referee assignment"></i>' : ''}
                                 </div>
                                 
                                 <div class="match-actions">
+                                    ${!isAssignmentMode ? `
                                     <button class="btn btn-sm btn-outline-secondary view-match-btn">
                                         <i class="ti ti-eye me-1"></i>View
                                     </button>
@@ -874,6 +889,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>
                                     ` : ''}
+                                    ${(canEditRefereeMatches && refereeAssignedMatches.includes(event.id)) ? `
+                                    <button class="btn btn-sm btn-outline-primary edit-match-btn" title="Edit Match Report">
+                                        <i class="ti ti-edit me-1"></i>Edit
+                                    </button>
+                                    ` : ''}
+                                    ` : `
+                                    ${!isAssigned ? `
+                                    <div class="assignment-hint text-primary small">
+                                        <i class="ti ti-click me-1"></i>Click to assign selected referee
+                                    </div>
+                                    ` : `
+                                    <div class="assigned-indicator text-success small">
+                                        <i class="ti ti-check me-1"></i>Assigned
+                                    </div>
+                                    `}
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -890,6 +921,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add event listeners to the match items
         addMatchItemEventListeners();
+        
+        // Update assignment mode count if active
+        if (isAssignmentMode) {
+            updateUnassignedCount();
+        }
     }
     
     function renderWeekView() {
@@ -996,6 +1032,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add event listeners to the match items
         addMatchItemEventListeners();
+        
+        // Update assignment mode count if active
+        if (isAssignmentMode) {
+            updateUnassignedCount();
+        }
     }
     
     function renderMonthView() {
@@ -1185,9 +1226,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             eventsByDate[dateKey].forEach(event => {
                 const isAssigned = event.ref !== 'Unassigned';
+                const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
                 
                 html += `
-                    <div class="match-item card mb-3" data-event-id="${event.id}">
+                    <div class="match-item card mb-3 ${assignmentClass}" data-event-id="${event.id}">
                         <div class="card-body p-3">
                             <div class="match-header d-flex justify-content-between align-items-center mb-2">
                                 <div>
@@ -1222,6 +1264,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>
                                     ` : ''}
+                                    ${(canEditRefereeMatches && refereeAssignedMatches.includes(event.id)) ? `
+                                    <button class="btn btn-sm btn-outline-primary edit-match-btn" title="Edit Match Report">
+                                        <i class="ti ti-edit me-1"></i>Edit
+                                    </button>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
@@ -1238,6 +1285,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add event listeners to the match items
         addMatchItemEventListeners();
+        
+        // Update assignment mode count if active
+        if (isAssignmentMode) {
+            updateUnassignedCount();
+        }
     }
     
     function addMatchItemEventListeners() {
@@ -1281,6 +1333,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (event) {
                         showAssignRefModal(event);
                     }
+                });
+            }
+            
+            // Edit match button
+            const editBtn = item.querySelector('.edit-match-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const eventId = item.dataset.eventId;
+                    
+                    // Load match modals and show the edit modal
+                    loadMatchModals(eventId);
                 });
             }
         });
@@ -1617,9 +1681,453 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // Load referee assignments for the current user
+    async function loadRefereeAssignments() {
+        try {
+            const response = await fetch('/calendar/my_assignments');
+            if (!response.ok) throw new Error('Failed to fetch assignments.');
+            
+            const data = await response.json();
+            renderRefereeAssignments(data.assignments);
+            
+            // Update assignment count
+            document.getElementById('myAssignmentsCount').textContent = data.total_assignments;
+            
+        } catch (error) {
+            console.error('Error loading referee assignments:', error);
+            document.getElementById('myAssignmentsList').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                    <p class="text-danger mb-1 fw-medium">Failed to load assignments</p>
+                    <button class="btn btn-sm btn-outline-danger mt-2" onclick="loadRefereeAssignments()">
+                        <i class="ti ti-refresh me-1"></i> Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
+    function renderRefereeAssignments(assignments) {
+        const assignmentsList = document.getElementById('myAssignmentsList');
+        
+        if (assignments.length === 0) {
+            assignmentsList.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="avatar avatar-lg bg-label-primary mx-auto mb-2">
+                        <i class="ti ti-calendar-off"></i>
+                    </div>
+                    <h6 class="text-muted mb-1">No Assignments Yet</h6>
+                    <p class="text-muted small mb-0">You don't have any upcoming referee assignments</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="list-group list-group-flush">';
+        
+        assignments.forEach(assignment => {
+            const matchDate = new Date(assignment.start);
+            const isUpcoming = matchDate > new Date();
+            
+            html += `
+                <div class="list-group-item border-0 px-3 py-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1 fw-semibold">${assignment.title}</h6>
+                            <div class="d-flex align-items-center text-muted small mb-1">
+                                <i class="ti ti-calendar me-1"></i>
+                                <span>${assignment.date}</span>
+                                <i class="ti ti-clock ms-2 me-1"></i>
+                                <span>${assignment.time}</span>
+                            </div>
+                            <div class="d-flex align-items-center text-muted small">
+                                <i class="ti ti-map-pin me-1"></i>
+                                <span>${assignment.location}</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-${assignment.division === 'Premier' ? 'primary' : 'success'} mb-1">${assignment.division}</span>
+                            <br>
+                            <span class="badge bg-${isUpcoming ? 'info' : 'secondary'} small">
+                                ${isUpcoming ? 'Upcoming' : 'Completed'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        assignmentsList.innerHTML = html;
+    }
+    
+    // Load referee availability status
+    async function loadRefereeAvailabilityStatus() {
+        try {
+            const response = await fetch('/calendar/availability_status');
+            if (!response.ok) throw new Error('Failed to fetch availability status.');
+            
+            const data = await response.json();
+            renderAvailabilityStatus(data.is_available, data.referee_name);
+            
+        } catch (error) {
+            console.error('Error loading availability status:', error);
+            document.getElementById('availabilityStatus').innerHTML = `
+                <i class="ti ti-alert-triangle text-danger mb-2" style="font-size: 2rem;"></i>
+                <p class="text-danger">Failed to load status</p>
+            `;
+        }
+    }
+    
+    function renderAvailabilityStatus(isAvailable, refereeName) {
+        const statusEl = document.getElementById('availabilityStatus');
+        const toggleBtn = document.getElementById('toggleAvailabilityBtn');
+        
+        statusEl.innerHTML = `
+            <div class="avatar avatar-lg bg-${isAvailable ? 'success' : 'secondary'} mx-auto mb-2">
+                <i class="ti ti-${isAvailable ? 'check' : 'x'}"></i>
+            </div>
+            <h6 class="mb-1">You are ${isAvailable ? 'Available' : 'Unavailable'}</h6>
+            <p class="text-muted small mb-0">for referee assignments</p>
+        `;
+        
+        toggleBtn.disabled = false;
+        toggleBtn.innerHTML = `
+            <i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} me-1"></i>
+            ${isAvailable ? 'Set Unavailable' : 'Set Available'}
+        `;
+        
+        // Add click handler for toggle button
+        toggleBtn.onclick = async function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Updating...';
+            
+            try {
+                const response = await fetch('/calendar/toggle_availability', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to update availability.');
+                
+                const result = await response.json();
+                renderAvailabilityStatus(result.is_available, refereeName);
+                showToast('success', result.message);
+                
+            } catch (error) {
+                console.error('Error toggling availability:', error);
+                showToast('danger', 'Failed to update availability');
+                this.disabled = false;
+                this.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} me-1"></i> ${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
+            }
+        };
+    }
+    
+    // Assignment Mode Functions
+    function toggleAssignmentModeUI(enabled) {
+        const assignmentModeOverlay = document.getElementById('assignmentModeOverlay');
+        const scheduleContent = document.getElementById('scheduleContent');
+        const sidebar = document.querySelector('.col-lg-4.col-xl-3');
+        
+        if (enabled) {
+            // Show assignment mode overlay
+            if (assignmentModeOverlay) {
+                assignmentModeOverlay.style.display = 'block';
+            }
+            
+            // Add assignment mode classes to existing elements
+            document.body.classList.add('assignment-mode-active');
+            
+            // Hide stats cards for referees
+            if (isReferee) {
+                const refereeCards = document.querySelectorAll('#myAssignmentsList, .availability-container');
+                refereeCards.forEach(card => {
+                    const cardParent = card.closest('.card');
+                    if (cardParent) cardParent.style.display = 'none';
+                });
+            }
+            
+            // Enhance referee list for assignment mode
+            enhanceRefereeListForAssignment();
+            
+            // Re-render schedule with assignment mode styling
+            renderSchedule();
+            
+            // Show assignment helper
+            showAssignmentHelper();
+            
+        } else {
+            // Hide assignment mode overlay
+            if (assignmentModeOverlay) {
+                assignmentModeOverlay.style.display = 'none';
+            }
+            
+            // Remove assignment mode classes
+            document.body.classList.remove('assignment-mode-active');
+            
+            // Restore referee cards
+            if (isReferee) {
+                const refereeCards = document.querySelectorAll('#myAssignmentsList, .availability-container');
+                refereeCards.forEach(card => {
+                    const cardParent = card.closest('.card');
+                    if (cardParent) cardParent.style.display = 'block';
+                });
+            }
+            
+            // Restore normal referee list
+            fetchAvailableReferees();
+            
+            // Re-render schedule in normal mode
+            renderSchedule();
+            
+            // Hide assignment helper
+            hideAssignmentHelper();
+        }
+    }
+    
+    function enhanceRefereeListForAssignment() {
+        const refereeList = document.getElementById('refereeList');
+        if (!refereeList) return;
+        
+        // Add assignment mode header to referee list
+        const currentHeader = refereeList.previousElementSibling;
+        if (currentHeader && currentHeader.classList.contains('card-header')) {
+            const titleElement = currentHeader.querySelector('.card-title');
+            if (titleElement && !titleElement.innerHTML.includes('Quick Assign')) {
+                titleElement.innerHTML = '<i class="ti ti-user-plus me-2"></i>Quick Assign Referees';
+            }
+        }
+        
+        // Add click handlers to referee items for quick assignment
+        refereeList.addEventListener('click', handleRefereeAssignmentClick);
+    }
+    
+    function handleRefereeAssignmentClick(event) {
+        if (!isAssignmentMode) return;
+        
+        const refItem = event.target.closest('[data-ref-id]');
+        if (!refItem) return;
+        
+        const refId = refItem.dataset.refId;
+        const refName = refItem.dataset.refName;
+        
+        // Highlight selected referee
+        document.querySelectorAll('[data-ref-id]').forEach(item => {
+            item.classList.remove('selected-referee');
+        });
+        refItem.classList.add('selected-referee');
+        
+        // Enable quick assignment mode for matches
+        enableQuickAssignmentForMatches(refId, refName);
+        
+        showToast('info', `Click on any unassigned match to assign ${refName}`);
+    }
+    
+    function enableQuickAssignmentForMatches(refId, refName) {
+        // Store selected referee for quick assignment
+        window.selectedRefereeForAssignment = { id: refId, name: refName };
+        
+        // Highlight unassigned matches
+        document.querySelectorAll('.match-item').forEach(matchItem => {
+            const eventId = matchItem.dataset.eventId;
+            const event = allEvents.find(evt => evt.id == eventId);
+            
+            if (event && event.ref === 'Unassigned') {
+                matchItem.classList.add('assignable-match');
+                
+                // Add click handler for quick assignment
+                const quickAssignHandler = function(e) {
+                    e.stopPropagation();
+                    performQuickAssignment(eventId, refId, refName);
+                };
+                
+                // Remove existing handlers
+                matchItem.removeEventListener('click', quickAssignHandler);
+                // Add new handler
+                matchItem.addEventListener('click', quickAssignHandler);
+            }
+        });
+    }
+    
+    function performQuickAssignment(matchId, refId, refName) {
+        // Disable the match item temporarily
+        const matchItem = document.querySelector(`[data-event-id="${matchId}"]`);
+        if (matchItem) {
+            matchItem.style.pointerEvents = 'none';
+            matchItem.style.opacity = '0.6';
+        }
+        
+        // Perform the assignment
+        fetch('/calendar/assign_ref', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                match_id: parseInt(matchId),
+                ref_id: parseInt(refId)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                // Success - update the UI
+                const event = allEvents.find(evt => evt.id == matchId);
+                if (event) {
+                    event.ref = refName;
+                }
+                
+                // Re-render the schedule to reflect changes
+                renderSchedule();
+                
+                // Update stats
+                loadScheduleEvents();
+                
+                showToast('success', `${refName} assigned successfully!`);
+                
+                // Clear selection
+                clearQuickAssignmentSelection();
+                
+            } else {
+                throw new Error(data.error || 'Assignment failed');
+            }
+        })
+        .catch(error => {
+            console.error('Assignment error:', error);
+            showToast('danger', `Failed to assign referee: ${error.message}`);
+            
+            // Re-enable the match item
+            if (matchItem) {
+                matchItem.style.pointerEvents = 'auto';
+                matchItem.style.opacity = '1';
+            }
+        });
+    }
+    
+    function clearQuickAssignmentSelection() {
+        // Clear selected referee
+        window.selectedRefereeForAssignment = null;
+        
+        // Remove highlighting
+        document.querySelectorAll('[data-ref-id]').forEach(item => {
+            item.classList.remove('selected-referee');
+        });
+        
+        document.querySelectorAll('.match-item').forEach(item => {
+            item.classList.remove('assignable-match');
+        });
+    }
+    
+    function showAssignmentHelper() {
+        // Create and show assignment helper overlay
+        const helper = document.createElement('div');
+        helper.id = 'assignmentHelper';
+        helper.className = 'assignment-helper';
+        helper.innerHTML = `
+            <div class="assignment-helper-content">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="mb-0 text-primary">
+                        <i class="ti ti-info-circle me-1"></i>
+                        Assignment Mode Active
+                    </h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('toggleAssignmentMode').click()">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <p class="small mb-2">
+                    1. Click a referee in the sidebar to select them<br>
+                    2. Click any unassigned match to quickly assign the selected referee<br>
+                    3. Unassigned matches are highlighted in red
+                </p>
+                <div class="assignment-stats small text-muted">
+                    <span id="unassignedCount">0</span> unassigned matches
+                </div>
+            </div>
+        `;
+        
+        // Remove existing helper
+        const existing = document.getElementById('assignmentHelper');
+        if (existing) existing.remove();
+        
+        // Add to the top of the schedule content
+        const scheduleContent = document.getElementById('scheduleContent');
+        scheduleContent.insertBefore(helper, scheduleContent.firstChild);
+        
+        // Update unassigned count
+        updateUnassignedCount();
+    }
+    
+    function hideAssignmentHelper() {
+        const helper = document.getElementById('assignmentHelper');
+        if (helper) helper.remove();
+        
+        // Clear any selection
+        clearQuickAssignmentSelection();
+    }
+    
+    function updateUnassignedCount() {
+        const unassignedMatches = allEvents.filter(event => event.ref === 'Unassigned');
+        const countElement = document.getElementById('unassignedCount');
+        if (countElement) {
+            countElement.textContent = unassignedMatches.length;
+        }
+    }
+    
+    // Function to load match modals and show the edit modal
+    async function loadMatchModals(matchId) {
+        try {
+            // Load the modals for this specific match
+            const response = await fetch(`/render_modals?match_ids=${matchId}`);
+            if (!response.ok) throw new Error('Failed to load match modals');
+            
+            const modalHtml = await response.text();
+            
+            // Create a temporary container to hold the modal
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = modalHtml;
+            
+            // Find the modal and append it to the body
+            const modal = tempDiv.querySelector(`#reportMatchModal-${matchId}`);
+            if (modal) {
+                // Remove any existing modal with the same ID
+                const existingModal = document.querySelector(`#reportMatchModal-${matchId}`);
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                // Append the new modal to the body
+                document.body.appendChild(modal);
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                
+                // Clean up when modal is hidden
+                modal.addEventListener('hidden.bs.modal', function() {
+                    modal.remove();
+                });
+            } else {
+                showToast('danger', 'Failed to load match edit modal');
+            }
+        } catch (error) {
+            console.error('Error loading match modals:', error);
+            showToast('danger', 'Failed to load match edit interface');
+        }
+    }
+    
     // Initialize the page
     loadScheduleEvents();
     fetchAvailableReferees();
+    
+    // Load referee assignments if user is a referee
+    if (isReferee) {
+        loadRefereeAssignments();
+        loadRefereeAvailabilityStatus();
+    }
 });
 </script>
 {% endblock %}
@@ -2294,6 +2802,159 @@ document.addEventListener('DOMContentLoaded', () => {
 
 #scheduleContent {
     animation: fadeIn 0.3s ease-out;
+}
+/* Assignment Mode Styles */
+.assignment-mode-active .referee-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.assignment-mode-active .referee-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.assignment-mode-active .referee-card .assignment-mode-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(var(--bs-primary-rgb), 0.95);
+    color: white;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: 0.375rem;
+}
+
+.assignment-mode-active .referee-card:hover .assignment-mode-overlay {
+    opacity: 1;
+}
+
+.selected-referee {
+    border: 2px solid var(--bs-primary) !important;
+    background: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.selected-referee .assignment-mode-overlay {
+    opacity: 1 !important;
+    background: rgba(var(--bs-success-rgb), 0.95) !important;
+}
+
+/* Assignment Mode - Unassigned Match Highlighting */
+.unassigned-match {
+    border: 2px solid var(--bs-danger) !important;
+    background: rgba(var(--bs-danger-rgb), 0.05) !important;
+    animation: pulse-unassigned 2s infinite;
+}
+
+@keyframes pulse-unassigned {
+    0% { box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(var(--bs-danger-rgb), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--bs-danger-rgb), 0); }
+}
+
+.assignable-match {
+    cursor: pointer !important;
+    border: 2px solid var(--bs-warning) !important;
+    background: rgba(var(--bs-warning-rgb), 0.1) !important;
+}
+
+.assignable-match:hover {
+    border-color: var(--bs-success) !important;
+    background: rgba(var(--bs-success-rgb), 0.1) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Assignment Helper */
+.assignment-helper {
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-info-rgb), 0.1));
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+    animation: slideInDown 0.3s ease;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.assignment-helper-content h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.assignment-helper-content p {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.assignment-stats {
+    padding: 0.25rem 0.5rem;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0.25rem;
+    display: inline-block;
+}
+
+/* Assignment Mode Match Actions */
+.assignment-hint {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    animation: fadeInOut 2s infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+.assigned-indicator {
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+/* Assignment Mode Enhancements */
+.assignment-mode-active .match-item {
+    transition: all 0.2s ease;
+}
+
+.assignment-mode-active .unassigned-match .ref-badge {
+    color: var(--bs-danger) !important;
+    font-weight: 600;
+}
+
+/* Hide normal buttons in assignment mode */
+.assignment-mode-active .assign-ref-btn,
+.assignment-mode-active .view-match-btn,
+.assignment-mode-active .edit-match-btn {
+    display: none !important;
+}
+
+/* Show assignment hints only in assignment mode */
+.assignment-hint,
+.assigned-indicator {
+    display: none;
+}
+
+.assignment-mode-active .assignment-hint,
+.assignment-mode-active .assigned-indicator {
+    display: flex !important;
 }
 </style>
 {% endblock %}

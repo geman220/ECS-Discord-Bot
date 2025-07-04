@@ -105,6 +105,24 @@ def get_schedule():
             })
 
         unassigned_matches = total_matches - assigned_refs
+        
+        # For referees, also include which matches they can edit
+        referee_assigned_matches = []
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        
+        if is_impersonation_active():
+            user_roles = get_effective_roles()
+            is_referee_role = 'Pub League Ref' in user_roles
+        else:
+            from app.utils.user_helpers import safe_current_user
+            user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
+            is_referee_role = 'Pub League Ref' in user_roles
+        
+        if is_referee_role and not is_impersonation_active():
+            # Get actual referee assignments for real users
+            referee_player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+            if referee_player:
+                referee_assigned_matches = [match.id for match in matches if hasattr(match, 'id') and match.id in [m.id for m in session_db.query(Match).filter_by(ref_id=referee_player.id).all()]]
 
         return jsonify({
             'events': events,
@@ -112,7 +130,8 @@ def get_schedule():
                 'totalMatches': total_matches,
                 'assignedRefs': assigned_refs,
                 'unassignedMatches': unassigned_matches
-            }
+            },
+            'referee_assigned_matches': referee_assigned_matches
         })
 
     except Exception as e:
@@ -350,6 +369,17 @@ def my_assignments():
     """
     session_db = g.db_session
     try:
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        
+        # Check if role impersonation is active
+        if is_impersonation_active():
+            # When impersonating, return empty assignments for testing purposes
+            return jsonify({
+                'assignments': [],
+                'total_assignments': 0,
+                'message': 'Role impersonation active - no assignments shown'
+            })
+        
         # Get the current user's player record
         player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
         if not player:
@@ -423,6 +453,16 @@ def toggle_availability():
     """
     session_db = g.db_session
     try:
+        from app.role_impersonation import is_impersonation_active
+        
+        # Check if role impersonation is active
+        if is_impersonation_active():
+            # When impersonating, return a mock response
+            return jsonify({
+                'message': 'Availability toggled (impersonation mode)',
+                'is_available': True
+            }), 200
+        
         # Get the current user's player record
         player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
         if not player:
@@ -458,6 +498,16 @@ def availability_status():
     """
     session_db = g.db_session
     try:
+        from app.role_impersonation import is_impersonation_active
+        
+        # Check if role impersonation is active
+        if is_impersonation_active():
+            # When impersonating, return a mock response
+            return jsonify({
+                'is_available': True,
+                'referee_name': 'Impersonated Referee'
+            }), 200
+        
         # Get the current user's player record
         player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
         if not player:
@@ -480,31 +530,38 @@ def calendar_view():
     """
     Render the calendar view page.
     """
-    # Check if user is a referee
-    session_db = g.db_session
-    is_referee = False
-    if current_user.is_authenticated:
-        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
-        is_referee = player is not None
-    
-    # Check permissions for template
-    from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+    # Check permissions for template based on roles
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
     
     if is_impersonation_active():
         user_roles = get_effective_roles()
-        can_assign_referee = has_effective_permission('assign_referee')
-        can_view_schedule_stats = has_effective_permission('view_schedule_stats')
-        can_view_available_referees = has_effective_permission('view_available_referees')
     else:
         from app.utils.user_helpers import safe_current_user
         user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
-        can_assign_referee = safe_current_user.has_permission('assign_referee')
-        can_view_schedule_stats = safe_current_user.has_permission('view_schedule_stats')  
-        can_view_available_referees = safe_current_user.has_permission('view_available_referees')
+    
+    # Check if user is a referee (either through actual player record or role impersonation)
+    session_db = g.db_session
+    is_referee = False
+    if current_user.is_authenticated:
+        if is_impersonation_active():
+            # When impersonating, check if the impersonated role is 'Pub League Ref'
+            is_referee = 'Pub League Ref' in user_roles
+        else:
+            # When not impersonating, check the actual player record
+            player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+            is_referee = player is not None
+    
+    # Pub League Admin and Global Admin have full calendar access
+    # Pub League Coaches and Refs have limited access
+    is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+    can_assign_referee = is_admin
+    can_view_schedule_stats = is_admin
+    can_view_available_referees = is_admin
     
     return render_template('calendar.html', 
                          title='Pub League Calendar', 
                          is_referee=is_referee,
                          can_assign_referee=can_assign_referee,
                          can_view_schedule_stats=can_view_schedule_stats,
-                         can_view_available_referees=can_view_available_referees)
+                         can_view_available_referees=can_view_available_referees,
+                         can_edit_referee_matches=is_referee)
