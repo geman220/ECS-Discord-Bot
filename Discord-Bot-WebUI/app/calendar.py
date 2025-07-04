@@ -487,4 +487,24 @@ def calendar_view():
         player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
         is_referee = player is not None
     
-    return render_template('calendar.html', title='Pub League Calendar', is_referee=is_referee)
+    # Check permissions for template
+    from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+    
+    if is_impersonation_active():
+        user_roles = get_effective_roles()
+        can_assign_referee = has_effective_permission('assign_referee')
+        can_view_schedule_stats = has_effective_permission('view_schedule_stats')
+        can_view_available_referees = has_effective_permission('view_available_referees')
+    else:
+        from app.utils.user_helpers import safe_current_user
+        user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
+        can_assign_referee = safe_current_user.has_permission('assign_referee')
+        can_view_schedule_stats = safe_current_user.has_permission('view_schedule_stats')  
+        can_view_available_referees = safe_current_user.has_permission('view_available_referees')
+    
+    return render_template('calendar.html', 
+                         title='Pub League Calendar', 
+                         is_referee=is_referee,
+                         can_assign_referee=can_assign_referee,
+                         can_view_schedule_stats=can_view_schedule_stats,
+                         can_view_available_referees=can_view_available_referees)

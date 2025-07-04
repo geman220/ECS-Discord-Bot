@@ -25,7 +25,7 @@
                         <button class="btn btn-primary btn-icon-text" id="refreshScheduleBtn">
                             <i class="ti ti-refresh me-1"></i> Refresh
                         </button>
-                        {% if has_permission('assign_referee') and not is_referee %}
+                        {% if can_assign_referee and not is_referee %}
                         <button class="btn btn-outline-primary btn-icon-text" id="toggleAssignmentMode">
                             <i class="ti ti-user-check me-1"></i> Assignment Mode
                         </button>
@@ -146,6 +146,7 @@
         <!-- Sidebar -->
         <div class="col-lg-4 col-xl-3">
             <!-- Quick Stats Card -->
+            {% if can_view_schedule_stats %}
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <div class="d-flex align-items-center">
@@ -204,9 +205,10 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Referee List Card - Only show for admins -->
-            {% if not is_referee %}
+            {% if not is_referee and can_view_available_referees %}
             <div class="card">
                 <div class="card-header border-bottom">
                     <div class="d-flex align-items-center justify-content-between">
@@ -364,9 +366,11 @@
                     <div class="referee-section mt-4 bg-label-primary rounded-3 p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h6 class="fw-bold mb-0">Referee Assignment</h6>
+                            {% if can_assign_referee %}
                             <button type="button" class="btn btn-sm btn-primary" id="openAssignRefBtnTop">
                                 <i class="ti ti-user-check me-1"></i> Assign Referee
                             </button>
+                            {% endif %}
                         </div>
                         <div class="referee-detail">
                             <div class="d-flex align-items-center">
@@ -381,9 +385,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                {% if can_assign_referee %}
                 <button type="button" class="btn btn-primary" id="openAssignRefBtn">
                     <i class="ti ti-user-check me-1"></i> Assign Referee
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -399,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentViewEvents = [];
     let currentView = 'day';
     let currentDate = new Date();
-    const isAdmin = true; // Always enable admin features
+    const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
     const isReferee = {{ 'true' if is_referee else 'false' }};
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
@@ -863,7 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <button class="btn btn-sm btn-outline-secondary view-match-btn">
                                         <i class="ti ti-eye me-1"></i>View
                                     </button>
-                                    ${isAdmin ? `
+                                    ${canAssignReferee ? `
                                     <button class="btn btn-sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>
@@ -968,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <button class="btn btn-sm btn-icon btn-outline-secondary view-match-btn" title="View Details">
                                             <i class="ti ti-eye"></i>
                                         </button>
-                                        ${isAdmin ? `
+                                        ${canAssignReferee ? `
                                         <button class="btn btn-sm btn-icon ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                             <i class="ti ti-user-check"></i>
                                         </button>
@@ -1070,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="month-event-title">${event.homeTeam} vs ${event.awayTeam}</div>
                             <div class="month-event-ref ${isAssigned ? 'assigned' : 'unassigned'}" title="${isAssigned ? 'Referee: ' + event.ref : 'No referee assigned'}">
                                 <i class="ti ti-user-circle"></i>
-                                ${isAdmin && !isAssigned ? '<i class="ti ti-plus ref-add-icon" title="Assign Referee"></i>' : ''}
+                                ${canAssignReferee && !isAssigned ? '<i class="ti ti-plus ref-add-icon" title="Assign Referee"></i>' : ''}
                             </div>
                         </div>
                     `;
@@ -1109,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const event = allEvents.find(e => e.id == eventId);
                 
                 if (event) {
-                    if (isAssignmentMode && isAdmin) {
+                    if (isAssignmentMode && canAssignReferee) {
                         showAssignRefModal(event);
                     } else {
                         showMatchDetailsModal(event);
@@ -1211,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <button class="btn btn-sm btn-outline-secondary view-match-btn">
                                         <i class="ti ti-eye me-1"></i>View
                                     </button>
-                                    ${isAdmin ? `
+                                    ${canAssignReferee ? `
                                     <button class="btn btn-sm ${isAssigned ? 'btn-outline-success' : 'btn-primary'} assign-ref-btn" title="${isAssigned ? 'Change Referee' : 'Assign Referee'}">
                                         <i class="ti ti-user-check me-1"></i>${isAssigned ? 'Change' : 'Assign'}
                                     </button>

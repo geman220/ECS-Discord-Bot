@@ -550,9 +550,11 @@
                             <div class="card shadow-sm">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                                     <h5 class="card-title mb-0">Admin/Coach Notes</h5>
+                                    {% if can_edit_admin_notes %}
                                     <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="admin-notes">
                                         <i class="ti ti-pencil"></i> Edit
                                     </button>
+                                    {% endif %}
                                 </div>
                                 <div class="card-body">
                                     <form method="POST" enctype="multipart/form-data" id="admin-notes-form">
@@ -612,7 +614,7 @@
                                         </div>
                                         <div class="card-body">
                                             <div class="row g-3">
-                                                <div class="col-md-6 d-flex align-items-center">
+                                                <div class="col-md-6 d-flex align-items-start">
                                                     <div class="avatar avatar-sm me-3 bg-label-primary">
                                                         <i class="ti ti-user"></i>
                                                     </div>
@@ -622,7 +624,7 @@
                                                     </div>
                                                 </div>
                                                 {% if can_view_contact_info %}
-                                                <div class="col-md-6 d-flex align-items-center">
+                                                <div class="col-md-6 d-flex align-items-start">
                                                     <div class="avatar avatar-sm me-3 bg-label-info">
                                                         <i class="ti ti-mail"></i>
                                                     </div>
@@ -631,7 +633,7 @@
                                                         <span>{{ user.email }}</span>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6 d-flex align-items-center">
+                                                <div class="col-md-6 d-flex align-items-start">
                                                     <div class="avatar avatar-sm me-3 bg-label-success">
                                                         <i class="ti ti-phone"></i>
                                                     </div>
@@ -641,7 +643,7 @@
                                                     </div>
                                                 </div>
                                                 {% endif %}
-                                                <div class="col-md-6 d-flex align-items-center">
+                                                <div class="col-md-6 d-flex align-items-start">
                                                     <div class="avatar avatar-sm me-3 bg-label-warning">
                                                         <i class="ti ti-shirt"></i>
                                                     </div>
@@ -661,46 +663,46 @@
                                         <div class="card-body">
                                             <div class="row g-3">
                                                 <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
+                                                    <div class="d-flex align-items-start">
                                                         <div class="avatar avatar-sm me-3 bg-label-primary">
                                                             <i class="ti ti-id"></i>
                                                         </div>
                                                         <div>
                                                             <h6 class="mb-0">Pronouns</h6>
-                                                            <span>{{ player.pronouns }}</span>
+                                                            <span>{{ player.pronouns or 'Not specified' }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
+                                                    <div class="d-flex align-items-start">
                                                         <div class="avatar avatar-sm me-3 bg-label-info">
                                                             <i class="ti ti-calendar-stats"></i>
                                                         </div>
                                                         <div>
                                                             <h6 class="mb-0">Expected Weeks Available</h6>
-                                                            <span>{{ player.expected_weeks_available }}</span>
+                                                            <span>{{ player.expected_weeks_available or 'Not specified' }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
+                                                    <div class="d-flex align-items-start">
                                                         <div class="avatar avatar-sm me-3 bg-label-success">
                                                             <i class="ti ti-trophy"></i>
                                                         </div>
                                                         <div>
                                                             <h6 class="mb-0">Favorite Position</h6>
-                                                            <span>{{ format_position(player.favorite_position) }}</span>
+                                                            <span>{{ format_position(player.favorite_position) if player.favorite_position else 'Not specified' }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
-                                                    <div class="d-flex align-items-center">
+                                                    <div class="d-flex align-items-start">
                                                         <div class="avatar avatar-sm me-3 bg-label-warning">
                                                             <i class="ti ti-ball-football"></i>
                                                         </div>
                                                         <div>
                                                             <h6 class="mb-0">Frequency Play Goal</h6>
-                                                            <span>{{ goal_frequency_map[player.frequency_play_goal] }}</span>
+                                                            <span>{{ goal_frequency_map.get(player.frequency_play_goal, 'Not specified') if player.frequency_play_goal else 'Not specified' }}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -713,13 +715,14 @@
                                                             <h6 class="mb-0">Other Positions</h6>
                                                             <span>
                                                                 {% if player.other_positions %}
-                                                                {% if player.other_positions is string %}
-                                                                {{ format_position(player.other_positions) }}
-                                                                {% else %}
-                                                                {% for position in player.other_positions %}
-                                                                    {{ format_position(position) }}{% if not loop.last %}, {% endif %}
-                                                                {% endfor %}
-                                                                {% endif %}
+                                                                    {% set cleaned_positions = player.other_positions.strip('{}').split(',') if player.other_positions %}
+                                                                    {% if cleaned_positions and cleaned_positions[0] %}
+                                                                        {% for position in cleaned_positions %}
+                                                                            {{ format_position(position.strip()) }}{% if not loop.last %}, {% endif %}
+                                                                        {% endfor %}
+                                                                    {% else %}
+                                                                        <span class="text-muted">None selected</span>
+                                                                    {% endif %}
                                                                 {% else %}
                                                                 <span class="text-muted">None selected</span>
                                                                 {% endif %}
@@ -736,13 +739,14 @@
                                                             <h6 class="mb-0">Positions Not to Play</h6>
                                                             <span>
                                                                 {% if player.positions_not_to_play %}
-                                                                {% if player.positions_not_to_play is string %}
-                                                                {{ format_position(player.positions_not_to_play) }}
-                                                                {% else %}
-                                                                {% for position in player.positions_not_to_play %}
-                                                                    {{ format_position(position) }}{% if not loop.last %}, {% endif %}
-                                                                {% endfor %}
-                                                                {% endif %}
+                                                                    {% set cleaned_positions = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play %}
+                                                                    {% if cleaned_positions and cleaned_positions[0] %}
+                                                                        {% for position in cleaned_positions %}
+                                                                            {{ format_position(position.strip()) }}{% if not loop.last %}, {% endif %}
+                                                                        {% endfor %}
+                                                                    {% else %}
+                                                                        <span class="text-muted">None selected</span>
+                                                                    {% endif %}
                                                                 {% else %}
                                                                 <span class="text-muted">None selected</span>
                                                                 {% endif %}

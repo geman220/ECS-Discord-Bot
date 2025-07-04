@@ -206,6 +206,31 @@ def team_details(team_id):
         if not next_match_date:
             next_match_date = match_dates[-1]
 
+    # Check permissions for template
+    from app.role_impersonation import is_impersonation_active, has_effective_permission
+    
+    if is_impersonation_active():
+        user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
+        can_report_match = has_effective_permission('report_match')
+        can_upload_kit = has_effective_permission('upload_team_kit')
+        can_add_player = has_effective_permission('add_player')
+        can_add_match = has_effective_permission('add_match')
+        can_view_player_stats = has_effective_permission('view_player_goals_assists')
+        can_view_player_cards = has_effective_permission('view_player_cards')
+        can_view_game_results = has_effective_permission('view_game_results')
+    else:
+        user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
+        can_report_match = safe_current_user.has_permission('report_match')
+        can_upload_kit = safe_current_user.has_permission('upload_team_kit')
+        can_add_player = safe_current_user.has_permission('add_player')
+        can_add_match = safe_current_user.has_permission('add_match')
+        can_view_player_stats = safe_current_user.has_permission('view_player_goals_assists')
+        can_view_player_cards = safe_current_user.has_permission('view_player_cards')
+        can_view_game_results = safe_current_user.has_permission('view_game_results')
+    
+    # Global Admin always has access
+    is_global_admin = 'Global Admin' in user_roles
+
     return render_template(
         'team_details.html',
         report_form=report_form,
@@ -216,7 +241,15 @@ def team_details(team_id):
         schedule=schedule,
         safe_current_user=safe_current_user,
         next_match_date=next_match_date,
-        player_choices=player_choices
+        player_choices=player_choices,
+        can_report_match=can_report_match,
+        can_upload_kit=can_upload_kit,
+        can_add_player=can_add_player,
+        can_add_match=can_add_match,
+        can_view_player_stats=can_view_player_stats,
+        can_view_player_cards=can_view_player_cards,
+        can_view_game_results=can_view_game_results,
+        is_global_admin=is_global_admin
     )
 
 
