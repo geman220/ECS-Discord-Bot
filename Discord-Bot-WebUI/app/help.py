@@ -19,6 +19,7 @@ from app.models import Role, HelpTopic
 from app.forms import HelpTopicForm
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_warning, show_info
+from app.utils.user_helpers import safe_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,8 +51,14 @@ def index():
     Returns:
         Rendered template of the help topics index.
     """
-    # Get topics allowed based on the current user's roles.
-    user_role_names = [role.name for role in current_user.roles]
+    # Get topics allowed based on the current user's effective roles (considering impersonation)
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
+    
+    if is_impersonation_active():
+        user_role_names = get_effective_roles()
+    else:
+        user_role_names = [role.name for role in safe_current_user.roles]
+    
     topics = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(user_role_names)).all()
     return render_template('help/index.html', topics=topics, title="Help Topics")
 
@@ -69,9 +76,20 @@ def view_topic(topic_id):
     """
     topic = HelpTopic.query.get_or_404(topic_id)
     allowed_role_names = [role.name for role in topic.allowed_roles]
-    if not set(allowed_role_names) & set(role.name for role in current_user.roles):
+    
+    # Check effective roles (considering impersonation)
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
+    
+    if is_impersonation_active():
+        user_role_names = get_effective_roles()
+    else:
+        user_role_names = [role.name for role in safe_current_user.roles]
+    
+    # Check if user has permission to view this topic
+    if not set(allowed_role_names) & set(user_role_names):
         show_error('You do not have permission to view this help topic.')
         return redirect(url_for('help.index'))
+        
     # Convert Markdown to HTML using the fenced code extension for code blocks.
     html_content = markdown.markdown(topic.markdown_content, extensions=['fenced_code'])
     return render_template('help/view_topic.html', topic=topic, content=html_content, title=topic.title)
@@ -86,8 +104,15 @@ def search_topics():
         JSON response containing a list of help topics matching the query.
     """
     query = request.args.get('query', '').strip()
-    # Get topics allowed based on the current user's roles.
-    user_role_names = [role.name for role in current_user.roles]
+    
+    # Get topics allowed based on the current user's effective roles (considering impersonation)
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
+    
+    if is_impersonation_active():
+        user_role_names = get_effective_roles()
+    else:
+        user_role_names = [role.name for role in safe_current_user.roles]
+    
     topics_query = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(user_role_names))
     if query:
         topics_query = topics_query.filter(HelpTopic.title.ilike(f"%{query}%"))

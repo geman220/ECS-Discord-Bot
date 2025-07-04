@@ -513,10 +513,11 @@
                                 </div>
                             </div>
                             
-                            {% if can_view_admin_notes %}
+                            {% if can_view_admin_notes or is_own_profile %}
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">Player Notes (Admin Only)</h5>
+                                    <h5 class="card-title mb-0">Player Notes</h5>
+                                    <small class="text-muted">{% if is_own_profile %}Notes to share with coaches/admins{% else %}Notes from the player{% endif %}</small>
                                     <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="player-notes">
                                         <i class="ti ti-pencil"></i> Edit
                                     </button>
@@ -575,6 +576,21 @@
                                             </div>
                                         </div>
                                     </form>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Player Notes Display Section (for editable view) -->
+                            {% if player.player_notes %}
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header border-bottom">
+                                    <h5 class="card-title mb-0">Player Notes</h5>
+                                    <small class="text-muted">Notes from the player to coaches/admins</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="bg-label-primary bg-opacity-10 p-3 rounded">
+                                        <p class="mb-0">{{ player.player_notes }}</p>
+                                    </div>
                                 </div>
                             </div>
                             {% endif %}
