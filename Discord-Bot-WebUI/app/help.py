@@ -60,7 +60,14 @@ def index():
         user_role_names = [role.name for role in safe_current_user.roles]
     
     topics = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(user_role_names)).all()
-    return render_template('help/index.html', topics=topics, title="Help Topics")
+    
+    # Check if user can access admin dashboard
+    if is_impersonation_active():
+        can_access_admin = 'Global Admin' in user_role_names
+    else:
+        can_access_admin = 'Global Admin' in [role.name for role in safe_current_user.roles]
+    
+    return render_template('help/index.html', topics=topics, title="Help Topics", can_access_admin=can_access_admin)
 
 @help_bp.route('/<int:topic_id>')
 @login_required
@@ -124,7 +131,7 @@ def search_topics():
 
 @help_bp.route('/admin')
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin'])
 def admin_help_topics():
     """
     Display all help topics for administrative management.
@@ -137,7 +144,7 @@ def admin_help_topics():
 
 @help_bp.route('/admin/new', methods=['GET', 'POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin'])
 def new_help_topic():
     """
     Create a new help topic.
@@ -163,7 +170,7 @@ def new_help_topic():
 
 @help_bp.route('/admin/edit/<int:topic_id>', methods=['GET', 'POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin'])
 def edit_help_topic(topic_id):
     """
     Edit an existing help topic.
@@ -192,7 +199,7 @@ def edit_help_topic(topic_id):
 
 @help_bp.route('/admin/delete/<int:topic_id>', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin'])
 def delete_help_topic(topic_id):
     """
     Delete a help topic.
@@ -211,7 +218,7 @@ def delete_help_topic(topic_id):
 
 @help_bp.route('/admin/upload_image', methods=['POST'])
 @login_required
-@role_required('Global Admin')
+@role_required(['Global Admin'])
 def upload_image():
     """
     Handle image uploads for help topics.

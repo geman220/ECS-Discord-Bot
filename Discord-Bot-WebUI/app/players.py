@@ -299,12 +299,14 @@ def player_profile(player_id):
             can_edit_stats = has_effective_permission('edit_player_stats')
             can_view_contact_info = has_effective_permission('view_player_contact_info')
             can_view_admin_notes = has_effective_permission('view_player_admin_notes')
+            can_edit_admin_notes = has_effective_permission('edit_player_admin_notes')
             can_edit_any_profile = has_effective_permission('edit_any_player_profile')
             can_edit_own_profile = has_effective_permission('edit_own_profile')
         else:
             can_edit_stats = safe_current_user.has_permission('edit_player_stats')
             can_view_contact_info = safe_current_user.has_permission('view_player_contact_info')
             can_view_admin_notes = safe_current_user.has_permission('view_player_admin_notes')
+            can_edit_admin_notes = safe_current_user.has_permission('edit_player_admin_notes')
             can_edit_any_profile = safe_current_user.has_permission('edit_any_player_profile')
             can_edit_own_profile = safe_current_user.has_permission('edit_own_profile')
         
@@ -349,7 +351,7 @@ def player_profile(player_id):
                     show_error('You do not have permission to update this profile.')
                     return redirect(url_for('players.player_profile', player_id=player.id))
             elif form.validate_on_submit() and 'update_admin_notes' in request.form:
-                if can_view_admin_notes and (is_admin or 'Pub League Coach' in user_roles):
+                if can_edit_admin_notes:
                     return handle_admin_notes_update(player, form)
                 else:
                     show_error('You do not have permission to update admin notes.')
@@ -386,6 +388,7 @@ def player_profile(player_id):
             can_edit_stats=can_edit_stats,
             can_view_contact_info=can_view_contact_info,
             can_view_admin_notes=can_view_admin_notes,
+            can_edit_admin_notes=can_edit_admin_notes,
             can_edit_profile=can_edit_profile
         )
     except Exception as e:

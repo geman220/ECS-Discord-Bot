@@ -30,7 +30,7 @@
                 {% endif %}
                 
                 <!-- Upload buttons for team kit and background -->
-                {% if safe_current_user.has_permission('upload_kit') %}
+                {% if can_upload_kit %}
                 <div class="position-absolute top-0 end-0 p-3">
                     <div class="btn-group-vertical" role="group">
                         <!-- Team Kit Upload -->
@@ -66,7 +66,7 @@
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Team Members</h5>
-                        {% if safe_current_user.has_permission('add_player') %}
+                        {% if can_add_player %}
                         <a href="{{ url_for('teams.add_player', team_id=team.id) }}" class="btn btn-primary btn-sm">
                             <i class="ti ti-plus me-1"></i>Add Player
                         </a>
@@ -93,7 +93,7 @@
                                 </div>
                             </a>
                             <div class="player-stats hstack gap-2">
-                                {% if safe_current_user.has_permission('view_player_goals_assists') %}
+                                {% if can_view_player_stats %}
                                 <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Goals">
                                     <i class="ti ti-ball-football text-primary"></i> {{ player.season_goals(season.id) }}
                                 </div>
@@ -102,7 +102,7 @@
                                 </div>
                                 {% endif %}
                                 
-                                {% if safe_current_user.has_permission('view_player_cards') %}
+                                {% if can_view_player_cards %}
                                 <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Yellow Cards">
                                     <span class="card-indicator card-yellow"></span> {{ player.season_yellow_cards(season.id) }}
                                 </div>
@@ -133,7 +133,7 @@
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Team Schedule</h5>
-                        {% if safe_current_user.has_permission('add_match') %}
+                        {% if can_add_match %}
                         <a href="{{ url_for('matches.add_match', team_id=team.id) }}" class="btn btn-primary btn-sm">
                             <i class="ti ti-plus me-1"></i>Add Match
                         </a>
@@ -200,7 +200,7 @@
                                                 </a>
                                             </div>
                                             <div class="d-flex align-items-center">
-                                                {% if safe_current_user.has_permission('view_game_results') %}
+                                                {% if can_view_game_results %}
                                                 <div class="match-result me-2">
                                                     <span class="badge bg-{{ result_class }}">
                                                         {{ result_text }} ({{ match.display_score }})
@@ -208,7 +208,7 @@
                                                 </div>
                                                 {% endif %}
                                                 
-                                                {% if safe_current_user.has_permission('view_match_reporting') %}
+                                                {% if can_report_match %}
                                                 <button class="btn btn-icon btn-sm {% if match.reported %}btn-label-warning{% else %}btn-label-primary{% endif %} edit-match-btn"
                                                         data-match-id="{{ match.id }}" 
                                                         aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}"
