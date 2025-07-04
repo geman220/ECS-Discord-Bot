@@ -117,16 +117,35 @@ def handle_ref_status_update(player, user):
         player.discord_needs_update = True
 
         session = g.db_session
+        
+        # Update Flask roles to match referee status
+        if player.user:
+            from app.models import Role
+            ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
+            if ref_role:
+                if is_ref:
+                    # Add referee role if not already assigned
+                    if ref_role not in player.user.roles:
+                        player.user.roles.append(ref_role)
+                        logger.info(f"Added 'Pub League Ref' Flask role to player {player.id}")
+                else:
+                    # Remove referee role if assigned
+                    if ref_role in player.user.roles:
+                        player.user.roles.remove(ref_role)
+                        logger.info(f"Removed 'Pub League Ref' Flask role from player {player.id}")
+            else:
+                logger.warning("'Pub League Ref' role not found in database")
+        
         session.commit()  # Commit changes first
 
         if player.discord_id:
             discord_task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
             if discord_task:
-                logger.info(f"Discord role update task queued for player {player.id}")
+                logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_ref else 'remove'} referee roles.")
             else:
                 logger.error(f"Failed to queue Discord role update for player {player.id}")
 
-        logger.info(f"{player.name}'s referee status updated successfully.")
+        logger.info(f"{player.name}'s referee status updated successfully to {is_ref}")
         show_success(f"{player.name}'s referee status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:

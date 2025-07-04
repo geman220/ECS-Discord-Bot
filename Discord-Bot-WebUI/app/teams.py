@@ -318,6 +318,40 @@ def report_match(match_id):
     if not match:
         show_error('Match not found.')
         return redirect(url_for('teams.teams_overview'))
+    
+    # Check if user has permission to access this match
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
+    
+    current_user_obj = session.query(User).get(safe_current_user.id)
+    current_user_player = None
+    if current_user_obj.player:
+        current_user_player = current_user_obj.player
+    
+    user_team_ids = []
+    is_admin = current_user_obj.has_role('admin')
+    is_assigned_referee = False
+    
+    if current_user_player:
+        user_team_ids = [team.id for team in current_user_player.teams]
+        if current_user_player.is_ref and match.ref_id == current_user_player.id:
+            is_assigned_referee = True
+    
+    # Handle role impersonation
+    if is_impersonation_active():
+        user_roles = get_effective_roles()
+        is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+        # For impersonation, we don't check is_assigned_referee since impersonated users 
+        # don't have actual player records with referee assignments
+    
+    # Check if user has access to this match
+    has_access = (is_admin or 
+                  match.home_team_id in user_team_ids or 
+                  match.away_team_id in user_team_ids or 
+                  is_assigned_referee)
+    
+    if not has_access:
+        show_error('You do not have permission to access this match.')
+        return redirect(url_for('teams.teams_overview'))
 
     if request.method == 'GET':
         try:
@@ -376,9 +410,19 @@ def report_match(match_id):
             if current_user_player:
                 user_team_ids = [team.id for team in current_user_player.teams]
             
+            # Check if user is the assigned referee for this match
+            is_assigned_referee = False
+            if current_user_player and current_user_player.is_ref and match.ref_id == current_user_player.id:
+                is_assigned_referee = True
+            
+            # Handle role impersonation for verification permissions
+            if is_impersonation_active():
+                user_roles = get_effective_roles()
+                is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+            
             # Determine if the user can verify for either team
-            can_verify_home = is_admin or match.home_team_id in user_team_ids
-            can_verify_away = is_admin or match.away_team_id in user_team_ids
+            can_verify_home = is_admin or match.home_team_id in user_team_ids or is_assigned_referee
+            can_verify_away = is_admin or match.away_team_id in user_team_ids or is_assigned_referee
             
             data = {
                 'goal_scorers': [],
