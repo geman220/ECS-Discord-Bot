@@ -207,6 +207,11 @@ def player_profile(player_id):
     """
     Display and update a player's profile.
     Handles both GET (display) and POST (update) requests.
+    
+    Access Control:
+    - Own profile: Always accessible for editing
+    - Other profiles: Requires 'view_all_player_profiles' permission
+    - Global Admin: Always has full access
     """
     session = g.db_session
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
@@ -224,6 +229,29 @@ def player_profile(player_id):
 
     if not player:
         abort(404)
+        
+    # Check access permissions
+    from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+    
+    if is_impersonation_active():
+        user_roles = get_effective_roles()
+        can_view_all_profiles = has_effective_permission('view_all_player_profiles')
+    else:
+        user = session.merge(safe_current_user)
+        user_roles = [role.name for role in user.roles]
+        can_view_all_profiles = safe_current_user.has_permission('view_all_player_profiles')
+    
+    # Check if user can access this profile
+    is_own_profile = (safe_current_user.id == player.user_id)
+    is_global_admin = 'Global Admin' in user_roles
+    
+    # Players can view basic profile info of others, but coaches/admins can view full profiles
+    can_view_basic_profile = True  # Everyone can see basic profile info
+    
+    # Only deny access if no authentication
+    if not safe_current_user.is_authenticated:
+        show_error('Please log in to view player profiles.')
+        return redirect(url_for('auth.login'))
 
     try:
         events = list(player.events)
@@ -264,8 +292,29 @@ def player_profile(player_id):
             session.add(new_career_stats)
 
         is_classic_league_player = player.league_id == classic_league.id
-        is_player = (player.user_id == safe_current_user.id)
-        is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in safe_current_user.roles)
+        is_player = is_own_profile  # Use the permission check we already did
+        
+        # Determine what the user can see/edit based on permissions
+        if is_impersonation_active():
+            can_edit_stats = has_effective_permission('edit_player_stats')
+            can_view_contact_info = has_effective_permission('view_player_contact_info')
+            can_view_admin_notes = has_effective_permission('view_player_admin_notes')
+            can_edit_any_profile = has_effective_permission('edit_any_player_profile')
+            can_edit_own_profile = has_effective_permission('edit_own_profile')
+        else:
+            can_edit_stats = safe_current_user.has_permission('edit_player_stats')
+            can_view_contact_info = safe_current_user.has_permission('view_player_contact_info')
+            can_view_admin_notes = safe_current_user.has_permission('view_player_admin_notes')
+            can_edit_any_profile = safe_current_user.has_permission('edit_any_player_profile')
+            can_edit_own_profile = safe_current_user.has_permission('edit_own_profile')
+        
+        # Special case: Allow viewing own contact info even without permission
+        can_view_contact_info = can_view_contact_info or is_own_profile
+        
+        # Determine if user can edit this profile
+        can_edit_profile = is_global_admin or (is_own_profile and can_edit_own_profile) or can_edit_any_profile
+        
+        is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
 
         form = PlayerProfileForm(obj=player)
         form.jersey_size.choices = jersey_size_choices
@@ -284,32 +333,32 @@ def player_profile(player_id):
         if is_classic_league_player and hasattr(form, 'team_swap'):
             form.team_swap.data = player.team_swap
 
-        season_stats_form = SeasonStatsForm(obj=season_stats) if is_admin else None
+        season_stats_form = SeasonStatsForm(obj=season_stats) if can_edit_stats else None
         career_stats_form = (CareerStatsForm(obj=player.career_stats[0])
-                             if is_admin and player.career_stats else None)
+                             if can_edit_stats and player.career_stats else None)
 
         if request.method == 'POST':
-            if is_admin and 'update_coach_status' in request.form:
+            if can_edit_stats and 'update_coach_status' in request.form:
                 return handle_coach_status_update(player, user)
-            elif is_admin and 'update_ref_status' in request.form:
+            elif can_edit_stats and 'update_ref_status' in request.form:
                 return handle_ref_status_update(player, user)
             elif form.validate_on_submit() and 'update_profile' in request.form:
-                if is_player or is_admin:
+                if can_edit_profile:
                     return handle_profile_update(form, player, user)
                 else:
                     show_error('You do not have permission to update this profile.')
                     return redirect(url_for('players.player_profile', player_id=player.id))
             elif form.validate_on_submit() and 'update_admin_notes' in request.form:
-                if is_admin or safe_current_user.has_role('Pub League Coach'):
+                if can_view_admin_notes and (is_admin or 'Pub League Coach' in user_roles):
                     return handle_admin_notes_update(player, form)
                 else:
                     show_error('You do not have permission to update admin notes.')
                     return redirect(url_for('players.player_profile', player_id=player.id))
-            elif is_admin and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
+            elif can_edit_stats and season_stats_form and season_stats_form.validate_on_submit() and 'update_season_stats' in request.form:
                 return handle_season_stats_update(player, season_stats_form, season.id)
-            elif is_admin and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
+            elif can_edit_stats and career_stats_form and career_stats_form.validate_on_submit() and 'update_career_stats' in request.form:
                 return handle_career_stats_update(player, career_stats_form)
-            elif is_admin and 'add_stat_manually' in request.form:
+            elif can_edit_stats and 'add_stat_manually' in request.form:
                 return handle_add_stat_manually(player)
 
         audit_logs = session.query(PlayerStatAudit).filter_by(
@@ -326,12 +375,18 @@ def player_profile(player_id):
             season=season,
             is_admin=is_admin,
             is_player=is_player,
+            is_own_profile=is_own_profile,
             is_classic_league_player=is_classic_league_player,
             form=form,
             season_stats_form=season_stats_form,
             career_stats_form=career_stats_form,
             audit_logs=audit_logs,
-            team_history=player.season_assignments
+            team_history=player.season_assignments,
+            # Permission-based access variables
+            can_edit_stats=can_edit_stats,
+            can_view_contact_info=can_view_contact_info,
+            can_view_admin_notes=can_view_admin_notes,
+            can_edit_profile=can_edit_profile
         )
     except Exception as e:
         logger.error(f"Error in player_profile: {str(e)}", exc_info=True)
@@ -341,16 +396,13 @@ def player_profile(player_id):
 
 @players_bp.route('/add_stat_manually/<int:player_id>', endpoint='add_stat_manually', methods=['POST'])
 @login_required
+@role_required(['Pub League Admin', 'Global Admin'])
 def add_stat_manually_route(player_id):
     """
     Allow an admin to add a player's stat manually.
     """
     session = g.db_session
     player = session.query(Player).get_or_404(player_id)
-
-    if not safe_current_user.has_role('Pub League Admin') and not safe_current_user.has_role('Global Admin'):
-        show_error('You do not have permission to perform this action.')
-        return redirect(url_for('players.player_profile', player_id=player_id))
 
     try:
         new_stat_data = {
@@ -466,6 +518,7 @@ def create_profile():
 
 @players_bp.route('/edit_match_stat/<int:stat_id>', endpoint='edit_match_stat', methods=['GET', 'POST'])
 @login_required
+@role_required(['Pub League Admin', 'Global Admin'])
 def edit_match_stat(stat_id):
     """
     Edit match stat details.
@@ -499,6 +552,7 @@ def edit_match_stat(stat_id):
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', endpoint='remove_match_stat', methods=['POST'])
 @login_required
+@role_required(['Pub League Admin', 'Global Admin'])
 def remove_match_stat(stat_id):
     """
     Remove a match stat and adjust the player's overall stats accordingly.

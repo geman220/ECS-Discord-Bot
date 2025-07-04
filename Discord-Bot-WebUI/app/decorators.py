@@ -108,9 +108,16 @@ def role_required(roles):
                 show_error('Database session not available.')
                 return redirect(url_for('auth.login'))
 
-            # Merge user to refresh role data
-            user = session.merge(user)
-            user_roles = [role.name for role in user.roles]
+            # Check for role impersonation first, then fall back to real roles
+            from app.role_impersonation import is_impersonation_active, get_effective_roles
+            
+            if is_impersonation_active():
+                user_roles = get_effective_roles()
+            else:
+                # Merge user to refresh role data
+                user = session.merge(user)
+                user_roles = [role.name for role in user.roles]
+            
             if not any(role in user_roles for role in roles):
                 show_error(f'Access denied: Required roles: {", ".join(roles)}')
                 return abort(403)
@@ -149,8 +156,16 @@ def permission_required(permission_name):
                 show_error('Database session not available.')
                 return redirect(url_for('auth.login'))
 
-            user = session.merge(user)
-            if not user.has_permission(permission_name):
+            # Check for role impersonation first, then fall back to real permissions
+            from app.role_impersonation import is_impersonation_active, has_effective_permission
+            
+            if is_impersonation_active():
+                has_perm = has_effective_permission(permission_name)
+            else:
+                user = session.merge(user)
+                has_perm = user.has_permission(permission_name)
+            
+            if not has_perm:
                 show_error(f'Access denied: {permission_name} permission required.')
                 return abort(403)
 
@@ -193,8 +208,15 @@ def admin_or_owner_required(func):
             return abort(404)
 
         admin_roles = ['Global Admin', 'Pub League Admin']
-        user = session.merge(user)
-        user_roles = [role.name for role in user.roles]
+        
+        # Check for role impersonation first, then fall back to real roles
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        
+        if is_impersonation_active():
+            user_roles = get_effective_roles()
+        else:
+            user = session.merge(user)
+            user_roles = [role.name for role in user.roles]
 
         is_admin = any(role in user_roles for role in admin_roles)
         is_owner = (user.id == player.user_id)

@@ -43,7 +43,7 @@
                                 </div>
                                 {% endif %}
                                 
-                                {% if player.discord_id %}
+                                {% if player.discord_id and (has_permission('view_discord_info') or is_own_profile) %}
                                 <div class="badge bg-label-success fs-6">
                                     <i class="fab fa-discord me-1"></i>Discord Linked
                                 </div>
@@ -63,7 +63,7 @@
                         </button>
                         {% endif %}
                         
-                        {% if player.discord_id and (is_admin or safe_current_user.has_role('Pub League Coach')) %}
+                        {% if player.discord_id and (is_admin or 'Pub League Coach' in user_roles) %}
                         <a href="#" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#discordContactModal">
                             <i class="fab fa-discord me-1"></i> Contact
                         </a>
@@ -86,12 +86,13 @@
         <!-- Left Column: Player Info -->
         <div class="col-xl-4 col-lg-5 col-md-5 col-12 mb-4">
             <!-- Contact Info Card -->
-            {% if is_admin or is_player or safe_current_user.has_role('Pub League Coach') %}
+            {% if can_view_contact_info or is_own_profile %}
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <h5 class="card-title mb-0">Contact Information</h5>
                 </div>
                 <div class="card-body">
+                    {% if can_view_contact_info %}
                     <div class="d-flex align-items-center mb-3">
                         <div class="avatar avatar-sm me-3 bg-label-primary">
                             <i class="ti ti-mail"></i>
@@ -110,6 +111,7 @@
                             <span>{{ player.phone }}</span>
                         </div>
                     </div>
+                    {% endif %}
                     <div class="d-flex align-items-center">
                         <div class="avatar avatar-sm me-3 bg-label-success">
                             <i class="ti ti-shirt"></i>
@@ -124,7 +126,7 @@
             {% endif %}
 
             <!-- Stats Card -->
-            {% if safe_current_user.has_permission('view_player_goals_assists') or safe_current_user.has_permission('view_player_cards') or safe_current_user.has_role('Pub League Coach') or is_admin %}
+            {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <h5 class="card-title mb-0">Player Statistics</h5>
@@ -230,7 +232,7 @@
             </div>
 
             <!-- Admin Actions Card -->
-            {% if has_permission('edit_player_stats') %}
+            {% if can_edit_stats %}
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <button class="btn btn-link p-0 fw-semibold text-start w-100 text-decoration-none" 
@@ -308,7 +310,7 @@
             {% endwith %}
 
             <!-- Main Tabs Card -->
-            {% if safe_current_user.id == player.user.id or is_admin or safe_current_user.has_role('Pub League Coach') %}
+            {% if can_edit_profile or can_view_contact_info %}
             <div class="card">
                 <div class="card-header">
                     <ul class="nav nav-tabs card-header-tabs ecs-nav ecs-nav-tabs" role="tablist">
@@ -317,7 +319,7 @@
                                 <i class="ti ti-user me-1"></i> Player Details
                             </button>
                         </li>
-                        {% if is_admin and has_permission('edit_player_stats') %}
+                        {% if can_edit_stats %}
                         <li class="nav-item" role="presentation">
                             <button type="button" class="nav-link waves-effect ecs-nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#admin-settings" aria-controls="admin-settings" aria-selected="false">
                                 <i class="ti ti-lock me-1"></i> Admin Settings
@@ -511,9 +513,10 @@
                                 </div>
                             </div>
                             
+                            {% if can_view_admin_notes %}
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
-                                    <h5 class="card-title mb-0">Player Notes</h5>
+                                    <h5 class="card-title mb-0">Player Notes (Admin Only)</h5>
                                     <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="player-notes">
                                         <i class="ti ti-pencil"></i> Edit
                                     </button>
@@ -540,8 +543,9 @@
                                     </form>
                                 </div>
                             </div>
+                            {% endif %}
                             
-                            {% if is_admin or safe_current_user.has_role('Pub League Coach') %}
+                            {% if can_view_admin_notes %}
                             <div class="card shadow-sm">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                                     <h5 class="card-title mb-0">Admin/Coach Notes</h5>
@@ -601,6 +605,7 @@
                                                         <span>{{ player.name }}</span>
                                                     </div>
                                                 </div>
+                                                {% if can_view_contact_info %}
                                                 <div class="col-md-6 d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-3 bg-label-info">
                                                         <i class="ti ti-mail"></i>
@@ -619,6 +624,7 @@
                                                         <span>{{ player.phone }}</span>
                                                     </div>
                                                 </div>
+                                                {% endif %}
                                                 <div class="col-md-6 d-flex align-items-center">
                                                     <div class="avatar avatar-sm me-3 bg-label-warning">
                                                         <i class="ti ti-shirt"></i>
@@ -743,7 +749,7 @@
                                         </div>
                                     </div>
                                     
-                                    {% if is_admin or safe_current_user.has_role('Pub League Coach') %}
+                                    {% if can_view_admin_notes %}
                                     <div class="card shadow-sm">
                                         <div class="card-header border-bottom">
                                             <h5 class="card-title mb-0">Admin/Coach Notes</h5>
@@ -762,7 +768,7 @@
                         </div>
                         
                         <!-- Admin Settings Tab (Admins Only) -->
-                        {% if is_admin and has_permission('edit_player_stats') %}
+                        {% if can_edit_stats %}
                         <div class="tab-pane fade" id="admin-settings" role="tabpanel">
                             <!-- Match Stats Management Section -->
                             <div class="card shadow-sm mb-4">

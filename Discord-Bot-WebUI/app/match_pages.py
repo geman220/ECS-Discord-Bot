@@ -23,6 +23,7 @@ from app.models import Match, Availability, Player, Team
 from app.tasks.tasks_rsvp import update_rsvp
 from app.utils.user_helpers import safe_current_user
 from app.database.db_models import ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
+from app.decorators import role_required
 
 # Get the logger for this module
 logger = logging.getLogger(__name__)
@@ -38,6 +39,11 @@ def view_match(match_id):
 
     The match details are fetched with relationships for home and away team players,
     their availability statuses, and the match schedule. RSVP data is grouped for each team.
+    
+    Access is restricted to:
+    - Admins (Global Admin, Pub League Admin)
+    - Coaches (Pub League Coach)
+    - Players on the teams playing in the match
     
     Parameters:
         match_id (int): The ID of the match to view.
@@ -56,6 +62,34 @@ def view_match(match_id):
 
     if not match:
         # If no match is found, redirect to index (or optionally abort with 404)
+        return redirect(url_for('main.index'))
+
+    # Check access permissions using the permission system
+    from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+    from app.alert_helpers import show_error
+    
+    if is_impersonation_active():
+        user_roles = get_effective_roles()
+        can_view_match = has_effective_permission('view_match_page')
+    else:
+        user = session.merge(safe_current_user)
+        user_roles = [role.name for role in user.roles]
+        can_view_match = safe_current_user.has_permission('view_match_page')
+    
+    # Global Admin always has access
+    is_global_admin = 'Global Admin' in user_roles
+    
+    # Check if user is a player on either team (for team-specific access)
+    has_team_access = False
+    if hasattr(safe_current_user, 'player') and safe_current_user.player:
+        player = safe_current_user.player
+        user_team_ids = [team.id for team in player.teams]
+        has_team_access = (match.home_team_id in user_team_ids or 
+                          match.away_team_id in user_team_ids)
+    
+    # Deny access if user doesn't have proper permissions
+    if not (is_global_admin or can_view_match or has_team_access):
+        show_error('Access denied: You do not have permission to view this match.')
         return redirect(url_for('main.index'))
 
     schedule = match.schedule
@@ -172,6 +206,7 @@ def view_match(match_id):
 # Debug route to trace RSVP issues
 @match_pages.route('/rsvp/debug/<int:match_id>', methods=['GET'])
 @login_required
+@role_required(['Global Admin', 'Pub League Admin'])
 def debug_rsvp(match_id):
     """Debug endpoint to help troubleshoot RSVP issues."""
     try:
@@ -298,6 +333,17 @@ def rsvp(match_id):
         JSON response indicating success or failure.
     """
     try:
+        # Check RSVP permissions
+        from app.role_impersonation import is_impersonation_active, has_effective_permission
+        
+        if is_impersonation_active():
+            can_rsvp = has_effective_permission('view_rsvps')
+        else:
+            can_rsvp = safe_current_user.has_permission('view_rsvps')
+        
+        if not can_rsvp:
+            return jsonify({"success": False, "message": "Access denied: You do not have permission to RSVP"}), 403
+        
         # Log request info for debugging
         logger.debug(f"RSVP request for match {match_id} with content type: {request.content_type}")
         
