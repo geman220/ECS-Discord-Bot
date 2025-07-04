@@ -1446,6 +1446,70 @@ class TemporarySubAssignment(db.Model):
         return f"<TemporarySubAssignment: {self.player_id} for {self.team_id} in match {self.match_id}>"
 
 
+class AutoScheduleConfig(db.Model):
+    """Model for storing automatic schedule generation configuration."""
+    __tablename__ = 'auto_schedule_configs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    start_time = db.Column(db.Time, nullable=False)  # e.g., 8:00 AM
+    match_duration_minutes = db.Column(db.Integer, default=70, nullable=False)
+    weeks_count = db.Column(db.Integer, default=7, nullable=False)
+    fields = db.Column(db.String(255), default='North,South', nullable=False)  # Comma-separated field names
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    league = db.relationship('League', backref=db.backref('auto_schedule_configs', lazy='dynamic'))
+    creator = db.relationship('User', backref=db.backref('created_schedule_configs', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<AutoScheduleConfig {self.league_id} starts at {self.start_time}>'
+
+
+class ScheduleTemplate(db.Model):
+    """Model for storing generated schedule templates before committing to actual schedule."""
+    __tablename__ = 'schedule_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    week_number = db.Column(db.Integer, nullable=False)
+    home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    away_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
+    scheduled_date = db.Column(db.Date, nullable=False)
+    scheduled_time = db.Column(db.Time, nullable=False)
+    field_name = db.Column(db.String(50), nullable=False)  # North, South, etc.
+    match_order = db.Column(db.Integer, nullable=False)  # 1st or 2nd match for teams that day
+    week_type = db.Column(db.String(20), default='REGULAR', nullable=False)  # REGULAR, FUN, TST, BYE
+    is_special_week = db.Column(db.Boolean, default=False)  # True for FUN/TST/BYE weeks
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_committed = db.Column(db.Boolean, default=False)  # Whether this template has been converted to actual schedule
+    
+    league = db.relationship('League', backref=db.backref('schedule_templates', lazy='dynamic'))
+    home_team = db.relationship('Team', foreign_keys=[home_team_id], backref=db.backref('home_schedule_templates', lazy='dynamic'))
+    away_team = db.relationship('Team', foreign_keys=[away_team_id], backref=db.backref('away_schedule_templates', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<ScheduleTemplate W{self.week_number}: {self.home_team_id} vs {self.away_team_id} ({self.week_type})>'
+
+
+class WeekConfiguration(db.Model):
+    """Model for configuring special weeks in a season schedule."""
+    __tablename__ = 'week_configurations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    week_date = db.Column(db.Date, nullable=False)
+    week_type = db.Column(db.String(20), nullable=False)  # REGULAR, FUN, TST, BYE
+    week_order = db.Column(db.Integer, nullable=False)  # Order in the season (1, 2, 3, etc.)
+    description = db.Column(db.String(255), nullable=True)  # Optional description
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    league = db.relationship('League', backref=db.backref('week_configurations', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<WeekConfiguration {self.week_type} on {self.week_date}>'
+
+
 class SubRequest(db.Model):
     """Model representing a substitute request from a coach."""
     __tablename__ = 'sub_requests'

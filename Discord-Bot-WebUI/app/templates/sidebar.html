@@ -103,6 +103,18 @@
                         <div>ECS FC Schedule</div>
                     </a>
                 </li>
+                <li class="menu-item {{ 'active' if 'auto-schedule' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('auto_schedule.schedule_manager') }}">
+                        <div><i class="fas fa-magic"></i> Auto Schedule (NEW)</div>
+                    </a>
+                </li>
+                {% if current_pub_league_season %}
+                <li class="menu-item {{ 'active' if request.endpoint == 'auto_schedule.view_seasonal_schedule' }}">
+                    <a class="menu-link" href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=current_pub_league_season.id) }}">
+                        <div><i class="ti ti-calendar-event"></i> View Season Schedule</div>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </li>
         {% endif %}

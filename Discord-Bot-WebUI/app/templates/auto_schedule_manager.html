@@ -1,0 +1,1085 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card welcome-header">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="text-primary mb-1">
+                                <i class="fas fa-magic me-2"></i>Season Builder Pro
+                                <span class="badge bg-success ms-2">NEW</span>
+                            </h2>
+                            <p class="text-muted mb-0">
+                                Create complete seasons with intelligent scheduling, field balancing, and special weeks
+                            </p>
+                        </div>
+                        <div>
+                            <!-- Navigation actions can be added here if needed -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Start Actions -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <div class="avatar mx-auto mb-3">
+                        <span class="avatar-initial rounded-circle bg-label-primary">
+                            <i class="ti ti-plus ti-lg"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title">Create New Season</h5>
+                    <p class="card-text text-muted">
+                        Build a complete season from scratch with our step-by-step wizard
+                    </p>
+                    <button class="btn btn-primary" onclick="startSeasonWizard()">
+                        <i class="ti ti-wand me-1"></i>Start Season Wizard
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <div class="avatar mx-auto mb-3">
+                        <span class="avatar-initial rounded-circle bg-label-info">
+                            <i class="ti ti-calendar-stats ti-lg"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title">Manage Existing Seasons</h5>
+                    <p class="card-text text-muted">
+                        Generate schedules for existing seasons or modify current schedules
+                    </p>
+                    <button class="btn btn-info" onclick="showExistingSeasons()">
+                        <i class="ti ti-list me-1"></i>View Seasons
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Season Wizard Modal -->
+    <div class="modal fade" id="seasonWizardModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">
+                        <i class="ti ti-wand me-2 text-primary"></i>Season Builder Wizard
+                    </h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <!-- Progress Steps -->
+                    <div class="wizard-progress bg-light p-3 border-bottom">
+                        <div class="d-flex justify-content-between">
+                            <div class="step active" data-step="1">
+                                <div class="step-circle">1</div>
+                                <div class="step-label">Basic Info</div>
+                            </div>
+                            <div class="step" data-step="2">
+                                <div class="step-circle">2</div>
+                                <div class="step-label">Calendar</div>
+                            </div>
+                            <div class="step" data-step="3">
+                                <div class="step-circle">3</div>
+                                <div class="step-label">Schedule Config</div>
+                            </div>
+                            <div class="step" data-step="4">
+                                <div class="step-circle">4</div>
+                                <div class="step-label">Teams</div>
+                            </div>
+                            <div class="step" data-step="5">
+                                <div class="step-circle">5</div>
+                                <div class="step-label">Preview</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wizard Content -->
+                    <div class="wizard-content p-4">
+                        <!-- Step 1: Basic Info -->
+                        <div class="wizard-step active" data-step="1">
+                            <h5>Season Basic Information</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Season Name *</label>
+                                        <input type="text" class="form-control" id="seasonName" 
+                                               placeholder="e.g., 2025 Spring" required>
+                                        <div class="form-text">Enter the name for your new season</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">League Type *</label>
+                                        <select class="form-select" id="leagueType" required>
+                                            <option value="">Select league type...</option>
+                                            <option value="Pub League">Pub League (Premier + Classic)</option>
+                                            <option value="ECS FC">ECS FC</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="setAsCurrent" checked>
+                                    <label class="form-check-label" for="setAsCurrent">
+                                        Set as current season
+                                    </label>
+                                    <div class="form-text">
+                                        <small class="text-info">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            When enabled, this will perform season rollover - moving player team history from the previous season and updating all league associations.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Calendar Setup -->
+                        <div class="wizard-step" data-step="2">
+                            <h5>Season Calendar</h5>
+                            <p class="text-muted">Configure your season dates and special weeks - all dates must be Sundays</p>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <label class="form-label">Season Start Date * <small class="text-muted">(Will adjust to nearest Sunday)</small></label>
+                                    <input type="date" class="form-control" id="seasonStartDate" required>
+                                    <div class="form-text" id="startDateWarning">
+                                        <small class="text-info">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            Select any date - it will automatically adjust to the nearest Sunday
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Regular Season Weeks *</label>
+                                    <input type="number" class="form-control" id="regularWeeks" value="7" min="4" max="20" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Total Weeks (Auto-calculated)</label>
+                                    <input type="number" class="form-control" id="totalWeeks" value="10" readonly>
+                                    <div class="form-text">Regular + Special weeks</div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h6><i class="ti ti-info-circle me-1"></i>Special Weeks Configuration:</h6>
+                                <p class="mb-2">Drag weeks in the calendar below or use these controls to add special weeks.</p>
+                                
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeTST">
+                                            <label class="form-check-label" for="includeTST">
+                                                Include TST Week
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="includeFUN">
+                                            <label class="form-check-label" for="includeFUN">
+                                                Include FUN Week
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">BYE Weeks</label>
+                                        <input type="number" class="form-control form-control-sm" id="byeWeekCount" value="0" min="0" max="5">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-3" onclick="resetCalendar()">
+                                            <i class="ti ti-refresh"></i> Reset Calendar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="calendar-preview mt-4">
+                                <h6>Season Calendar Preview <small class="text-muted">(Drag weeks to reorder - Sundays only)</small></h6>
+                                <div id="calendarPreview" class="border rounded p-3 bg-light">
+                                    <p class="text-muted">Configure dates above to see calendar preview</p>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="ti ti-info-circle"></i> Drag and drop weeks to reorder. Dates will automatically adjust to maintain Sunday scheduling.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Schedule Configuration -->
+                        <div class="wizard-step" data-step="3">
+                            <h5>Schedule Configuration</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Premier League Start Time</label>
+                                        <input type="time" class="form-control" id="premierStartTime" value="08:00">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Classic League Start Time</label>
+                                        <input type="time" class="form-control" id="classicStartTime" value="12:00">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Match Duration (minutes)</label>
+                                        <input type="number" class="form-control" id="matchDuration" value="70" min="30" max="120">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Available Fields</label>
+                                        <input type="text" class="form-control" id="fields" value="North,South">
+                                        <div class="form-text">Comma-separated field names</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Teams -->
+                        <div class="wizard-step" data-step="4">
+                            <h5>Team Creation</h5>
+                            <div class="alert alert-info">
+                                <i class="ti ti-info-circle me-1"></i>
+                                <strong>Automatic Setup:</strong> The wizard will create placeholder teams with Discord channels and roles.
+                                You can rename teams later through the team management interface.
+                            </div>
+                            
+                            <div id="pubLeagueTeams" class="d-none">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier League Teams</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Number of Teams</label>
+                                                    <select class="form-select" id="premierTeamCount">
+                                                        <option value="6">6 Teams</option>
+                                                        <option value="8" selected>8 Teams (Recommended)</option>
+                                                        <option value="10">10 Teams</option>
+                                                        <option value="12">12 Teams</option>
+                                                    </select>
+                                                </div>
+                                                <div class="team-preview" id="premierTeamPreview">
+                                                    <!-- Dynamic team list will be generated here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0"><i class="ti ti-shield me-1"></i>Classic League Teams</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Number of Teams</label>
+                                                    <select class="form-select" id="classicTeamCount">
+                                                        <option value="4" selected>4 Teams (Recommended)</option>
+                                                        <option value="6">6 Teams</option>
+                                                        <option value="8">8 Teams</option>
+                                                    </select>
+                                                </div>
+                                                <div class="team-preview" id="classicTeamPreview">
+                                                    <!-- Dynamic team list will be generated here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="ecsFcTeams" class="d-none">
+                                <div class="row justify-content-center">
+                                    <div class="col-md-8">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0"><i class="ti ti-users me-1"></i>ECS FC Teams</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Number of Teams</label>
+                                                    <select class="form-select" id="ecsFcTeamCount">
+                                                        <option value="4">4 Teams</option>
+                                                        <option value="6">6 Teams</option>
+                                                        <option value="8" selected>8 Teams (Recommended)</option>
+                                                        <option value="10">10 Teams</option>
+                                                    </select>
+                                                </div>
+                                                <div class="team-preview" id="ecsFcTeamPreview">
+                                                    <!-- Dynamic team list will be generated here -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-light mt-3">
+                                <h6><i class="ti ti-settings me-1"></i>What happens next:</h6>
+                                <ul class="mb-0">
+                                    <li>Placeholder teams will be created (Team A, Team B, etc.)</li>
+                                    <li>Discord channels will be created for each team</li>
+                                    <li>Discord roles and permissions will be set up</li>
+                                    <li>Teams can be renamed later through the team management interface</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Preview -->
+                        <div class="wizard-step" data-step="5">
+                            <h5>Season Summary</h5>
+                            <div id="seasonSummary">
+                                <!-- Dynamic content will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="prevBtn" onclick="previousStep()">Previous</button>
+                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="nextStep()">Next</button>
+                    <button type="button" class="btn btn-success d-none" id="createBtn" onclick="createSeason()">Create Season</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Seasons View -->
+    <div id="existingSeasons" class="d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">Manage Existing Seasons</h4>
+            <button class="btn btn-outline-secondary" onclick="showMainView()">
+                <i class="ti ti-arrow-left me-1"></i>Back to Main
+            </button>
+        </div>
+        
+        <div class="row">
+            {% for season in pub_league_seasons %}
+            <div class="col-md-6 mb-3">
+                <div class="card {{ 'border-primary' if season.is_current }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">
+                                    {{ season.name }}
+                                    {% if season.is_current %}
+                                        <span class="badge bg-primary">Current</span>
+                                    {% endif %}
+                                </h6>
+                                <p class="text-muted">Pub League</p>
+                                <small class="text-muted">{{ season.leagues|length }} league(s)</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if not season.is_current %}
+                                    <li><a class="dropdown-item" href="#" onclick="setActiveSeason({{ season.id }}, 'Pub League')">
+                                        <i class="ti ti-star me-1"></i>Set as Current
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}">
+                                        <i class="ti ti-calendar-event me-1"></i>View Complete Season Schedule
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for league in season.leagues %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auto_schedule.manage_league_season', league_id=league.id) }}">
+                                        <i class="ti ti-calendar me-1"></i>Manage {{ league.name }} Schedule
+                                    </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% for season in ecs_fc_seasons %}
+            <div class="col-md-6 mb-3">
+                <div class="card {{ 'border-primary' if season.is_current }}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="card-title">
+                                    {{ season.name }}
+                                    {% if season.is_current %}
+                                        <span class="badge bg-primary">Current</span>
+                                    {% endif %}
+                                </h6>
+                                <p class="text-muted">ECS FC</p>
+                                <small class="text-muted">{{ season.leagues|length }} league(s)</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% if not season.is_current %}
+                                    <li><a class="dropdown-item" href="#" onclick="setActiveSeason({{ season.id }}, 'ECS FC')">
+                                        <i class="ti ti-star me-1"></i>Set as Current
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}">
+                                        <i class="ti ti-calendar-event me-1"></i>View Complete Season Schedule
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for league in season.leagues %}
+                                    <li><a class="dropdown-item" href="{{ url_for('auto_schedule.manage_league_season', league_id=league.id) }}">
+                                        <i class="ti ti-calendar me-1"></i>Manage {{ league.name }} Schedule
+                                    </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+.wizard-progress .step {
+    text-align: center;
+    position: relative;
+    flex: 1;
+}
+
+.wizard-progress .step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: #e9ecef;
+    z-index: 1;
+}
+
+.wizard-progress .step.active:not(:last-child)::after,
+.wizard-progress .step.completed:not(:last-child)::after {
+    background: #28a745;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 8px;
+}
+
+.step.active .step-circle {
+    background: #007bff;
+    color: white;
+}
+
+.step.completed .step-circle {
+    background: #28a745;
+    color: white;
+}
+
+.step-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.wizard-step {
+    display: none;
+    min-height: 400px;
+}
+
+.wizard-step.active {
+    display: block;
+}
+
+/* Drag and drop styling */
+.badge[draggable="true"] {
+    cursor: move;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.badge[draggable="true"]:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.badge[draggable="true"].dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.calendar-preview {
+    min-height: 200px;
+}
+
+.calendar-preview .badge {
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Add visual feedback for drag operations */
+.drop-zone {
+    border: 2px dashed #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.btn-group .btn {
+    white-space: nowrap;
+}
+
+/* Better spacing for special week inputs */
+.input-group .btn {
+    z-index: 1;
+}
+</style>
+
+<script>
+let currentStep = 1;
+const maxSteps = 5;
+
+function startSeasonWizard() {
+    document.getElementById('seasonWizardModal').style.display = 'block';
+    const modal = new bootstrap.Modal(document.getElementById('seasonWizardModal'));
+    modal.show();
+    
+    // Set default start date to next Sunday
+    const today = new Date();
+    const nextSunday = new Date(today);
+    nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
+    document.getElementById('seasonStartDate').value = nextSunday.toISOString().split('T')[0];
+    
+    updateCalendarPreview();
+}
+
+function showExistingSeasons() {
+    document.getElementById('existingSeasons').classList.remove('d-none');
+    document.querySelector('.row.mb-4:nth-child(2)').style.display = 'none';
+}
+
+function showMainView() {
+    document.getElementById('existingSeasons').classList.add('d-none');
+    document.querySelector('.row.mb-4:nth-child(2)').style.display = '';
+}
+
+function setActiveSeason(seasonId, leagueType) {
+    if (confirm(`Are you sure you want to set this season as the current ${leagueType} season?`)) {
+        fetch('{{ url_for("auto_schedule.set_active_season") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                season_id: seasonId,
+                league_type: leagueType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Refresh the page to show updated season status
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the active season');
+        });
+    }
+}
+
+function nextStep() {
+    if (currentStep < maxSteps) {
+        if (validateStep(currentStep)) {
+            updateStepDisplay(currentStep + 1);
+        }
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        updateStepDisplay(currentStep - 1);
+    }
+}
+
+function updateStepDisplay(step) {
+    // Hide current step
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
+    
+    // Show new step
+    currentStep = step;
+    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
+    
+    // Update previous steps as completed
+    for (let i = 1; i < currentStep; i++) {
+        document.querySelector(`.step[data-step="${i}"]`).classList.add('completed');
+    }
+    
+    // Update buttons
+    document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'block';
+    document.getElementById('nextBtn').style.display = currentStep === maxSteps ? 'none' : 'block';
+    document.getElementById('createBtn').classList.toggle('d-none', currentStep !== maxSteps);
+    
+    if (currentStep === 4) {
+        updateTeamSections();
+    } else if (currentStep === 5) {
+        generateSeasonSummary();
+    }
+}
+
+function validateStep(step) {
+    // Add validation logic for each step
+    return true;
+}
+
+// Global state for calendar
+let calendarState = {
+    weeks: [],
+    startDate: null,
+    regularWeeks: 7,
+    includeTST: false,
+    includeFUN: false,
+    byeWeeks: 0
+};
+
+// Team management functions
+function updateTeamSections() {
+    const leagueType = document.getElementById('leagueType').value;
+    const pubLeagueSection = document.getElementById('pubLeagueTeams');
+    const ecsFcSection = document.getElementById('ecsFcTeams');
+    
+    if (leagueType === 'Pub League') {
+        pubLeagueSection.classList.remove('d-none');
+        ecsFcSection.classList.add('d-none');
+        updateTeamPreview('premier');
+        updateTeamPreview('classic');
+    } else if (leagueType === 'ECS FC') {
+        pubLeagueSection.classList.add('d-none');
+        ecsFcSection.classList.remove('d-none');
+        updateTeamPreview('ecsFc');
+    }
+}
+
+function updateTeamPreview(leagueType) {
+    let count, previewId;
+    
+    if (leagueType === 'premier') {
+        count = parseInt(document.getElementById('premierTeamCount').value);
+        previewId = 'premierTeamPreview';
+    } else if (leagueType === 'classic') {
+        count = parseInt(document.getElementById('classicTeamCount').value);
+        previewId = 'classicTeamPreview';
+    } else if (leagueType === 'ecsFc') {
+        count = parseInt(document.getElementById('ecsFcTeamCount').value);
+        previewId = 'ecsFcTeamPreview';
+    }
+    
+    const previewDiv = document.getElementById(previewId);
+    const teamLabels = [];
+    
+    // Generate team names (Team A, Team B, etc.)
+    for (let i = 0; i < count; i++) {
+        const letter = String.fromCharCode(65 + i); // A, B, C, etc.
+        teamLabels.push(`Team ${letter}`);
+    }
+    
+    previewDiv.innerHTML = `
+        <div class="small text-muted mb-2">Teams to be created:</div>
+        <div class="d-flex flex-wrap gap-1">
+            ${teamLabels.map(name => `<span class="badge bg-light text-dark border">${name}</span>`).join('')}
+        </div>
+    `;
+}
+
+// Helper to get next Sunday from a date (or same day if already Sunday)
+function getNextSunday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    // If it's already Sunday (0), keep it. Otherwise, find the next Sunday
+    const daysUntilSunday = day === 0 ? 0 : 7 - day;
+    d.setDate(d.getDate() + daysUntilSunday);
+    return d;
+}
+
+// Helper to check if date is Sunday
+function isSunday(date) {
+    return new Date(date).getDay() === 0;
+}
+
+// Initialize calendar from inputs
+function initializeCalendar() {
+    const startDateInput = document.getElementById('seasonStartDate');
+    const startDate = startDateInput.value;
+    
+    if (!startDate) return;
+    
+    const selectedDate = new Date(startDate);
+    const warningDiv = document.getElementById('startDateWarning');
+    
+    // Always adjust to Sunday for consistency
+    if (!isSunday(startDate)) {
+        const nextSunday = getNextSunday(startDate);
+        const originalDate = selectedDate.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        const adjustedDate = nextSunday.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        warningDiv.innerHTML = `
+            <small class="text-warning">
+                <i class="ti ti-alert-triangle me-1"></i>
+                ${originalDate} adjusted to ${adjustedDate} (next Sunday)
+            </small>
+        `;
+        calendarState.startDate = nextSunday;
+        // Update the input to show the adjusted date
+        startDateInput.value = nextSunday.toISOString().split('T')[0];
+    } else {
+        warningDiv.innerHTML = `
+            <small class="text-success">
+                <i class="ti ti-check me-1"></i>
+                Perfect! ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} is a Sunday
+            </small>
+        `;
+        calendarState.startDate = selectedDate;
+    }
+    
+    // Get settings
+    calendarState.regularWeeks = parseInt(document.getElementById('regularWeeks').value) || 7;
+    calendarState.includeTST = document.getElementById('includeTST').checked;
+    calendarState.includeFUN = document.getElementById('includeFUN').checked;
+    calendarState.byeWeeks = parseInt(document.getElementById('byeWeekCount').value) || 0;
+    
+    // Build week array
+    rebuildWeekArray();
+    
+    // Update UI
+    updateCalendarPreview();
+    updateTotalWeeks();
+}
+
+// Rebuild the week array based on current settings
+function rebuildWeekArray() {
+    calendarState.weeks = [];
+    let currentDate = new Date(calendarState.startDate);
+    let weekNum = 1;
+    
+    // Add regular weeks
+    for (let i = 0; i < calendarState.regularWeeks; i++) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'Regular',
+            isSpecial: false
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    // Add special weeks at the end (will be dragged to position)
+    if (calendarState.includeTST) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'TST',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    if (calendarState.includeFUN) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'FUN',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    // Add BYE weeks
+    for (let i = 0; i < calendarState.byeWeeks; i++) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'BYE',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+}
+
+// Update calendar preview display
+function updateCalendarPreview() {
+    const preview = document.getElementById('calendarPreview');
+    let html = '<div class="row" id="calendarWeeks">';
+    
+    calendarState.weeks.forEach((week, index) => {
+        let badgeClass = 'bg-primary';
+        if (week.type === 'TST') badgeClass = 'bg-info';
+        else if (week.type === 'FUN') badgeClass = 'bg-warning';
+        else if (week.type === 'BYE') badgeClass = 'bg-secondary';
+        
+        html += `
+            <div class="col-md-3 mb-2 week-item" data-index="${index}">
+                <div class="text-center">
+                    <div class="badge ${badgeClass} w-100 p-3 week-badge" draggable="true" data-week-type="${week.type}">
+                        <div class="week-number">Week ${week.weekNumber}</div>
+                        <div class="week-date">${week.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div class="week-type"><strong>${week.type}</strong></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    preview.innerHTML = html;
+    
+    // Add drag and drop functionality
+    addDragAndDropToWeeks();
+}
+
+// Update total weeks counter
+function updateTotalWeeks() {
+    const total = calendarState.regularWeeks + 
+                  (calendarState.includeTST ? 1 : 0) + 
+                  (calendarState.includeFUN ? 1 : 0) + 
+                  calendarState.byeWeeks;
+    document.getElementById('totalWeeks').value = total;
+}
+
+// Reset calendar to default state
+function resetCalendar() {
+    calendarState.weeks = [];
+    initializeCalendar();
+}
+
+function addDragAndDropToWeeks() {
+    const weekItems = document.querySelectorAll('.week-item');
+    
+    weekItems.forEach(item => {
+        const badge = item.querySelector('.week-badge');
+        
+        badge.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragleave', handleDragLeave);
+        badge.addEventListener('dragend', handleDragEnd);
+    });
+}
+
+let draggedIndex = null;
+
+function handleDragStart(e) {
+    const weekItem = this.closest('.week-item');
+    draggedIndex = parseInt(weekItem.dataset.index);
+    e.dataTransfer.effectAllowed = 'move';
+    this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    this.classList.add('drop-zone');
+    return false;
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drop-zone');
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    
+    this.classList.remove('drop-zone');
+    
+    const dropIndex = parseInt(this.dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+        // Reorder the weeks array
+        const draggedWeek = calendarState.weeks[draggedIndex];
+        calendarState.weeks.splice(draggedIndex, 1);
+        calendarState.weeks.splice(dropIndex, 0, draggedWeek);
+        
+        // Recalculate all dates maintaining Sunday schedule
+        recalculateDatesAfterReorder();
+        
+        // Update the display
+        updateCalendarPreview();
+    }
+    
+    return false;
+}
+
+function handleDragEnd(e) {
+    document.querySelectorAll('.week-badge').forEach(badge => {
+        badge.classList.remove('dragging');
+    });
+    document.querySelectorAll('.week-item').forEach(item => {
+        item.classList.remove('drop-zone');
+    });
+    draggedIndex = null;
+}
+
+function recalculateDatesAfterReorder() {
+    let currentDate = new Date(calendarState.startDate);
+    
+    calendarState.weeks.forEach((week, index) => {
+        week.weekNumber = index + 1;
+        week.date = new Date(currentDate);
+        currentDate.setDate(currentDate.getDate() + 7);
+    });
+}
+
+function generateSeasonSummary() {
+    const seasonName = document.getElementById('seasonName').value;
+    const leagueType = document.getElementById('leagueType').value;
+    
+    const summary = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Season Details</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Name:</strong> ${seasonName}</li>
+                    <li><strong>Type:</strong> ${leagueType}</li>
+                    <li><strong>Start:</strong> ${document.getElementById('seasonStartDate').value}</li>
+                    <li><strong>Regular Weeks:</strong> ${document.getElementById('regularWeeks').value}</li>
+                    <li><strong>BYE Weeks:</strong> ${document.getElementById('byeWeeks').value}</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Schedule Configuration</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Premier Start:</strong> ${document.getElementById('premierStartTime').value}</li>
+                    <li><strong>Classic Start:</strong> ${document.getElementById('classicStartTime').value}</li>
+                    <li><strong>Match Duration:</strong> ${document.getElementById('matchDuration').value} min</li>
+                    <li><strong>Fields:</strong> ${document.getElementById('fields').value}</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('seasonSummary').innerHTML = summary;
+}
+
+function createSeason() {
+    // Build week configuration from calendar state
+    const weekConfigs = calendarState.weeks.map(week => ({
+        date: week.date.toISOString().split('T')[0],
+        type: week.type,
+        week_number: week.weekNumber
+    }));
+    
+    // Extract special week dates
+    const tstWeek = calendarState.weeks.find(w => w.type === 'TST');
+    const funWeek = calendarState.weeks.find(w => w.type === 'FUN');
+    const byeWeeks = calendarState.weeks.filter(w => w.type === 'BYE');
+    
+    // Collect team counts based on league type
+    const leagueType = document.getElementById('leagueType').value;
+    let teamCounts = {};
+    
+    if (leagueType === 'Pub League') {
+        teamCounts = {
+            premier_teams: parseInt(document.getElementById('premierTeamCount').value),
+            classic_teams: parseInt(document.getElementById('classicTeamCount').value)
+        };
+    } else if (leagueType === 'ECS FC') {
+        teamCounts = {
+            ecs_fc_teams: parseInt(document.getElementById('ecsFcTeamCount').value)
+        };
+    }
+    
+    // Collect form data and submit
+    const formData = {
+        season_name: document.getElementById('seasonName').value,
+        league_type: leagueType,
+        set_as_current: document.getElementById('setAsCurrent').checked,
+        season_start_date: calendarState.startDate.toISOString().split('T')[0],
+        regular_weeks: calendarState.regularWeeks,
+        total_weeks: calendarState.weeks.length,
+        week_configs: weekConfigs,
+        tst_week_date: tstWeek ? tstWeek.date.toISOString().split('T')[0] : null,
+        fun_week_date: funWeek ? funWeek.date.toISOString().split('T')[0] : null,
+        bye_week_dates: byeWeeks.map(w => w.date.toISOString().split('T')[0]),
+        premier_start_time: document.getElementById('premierStartTime').value,
+        classic_start_time: document.getElementById('classicStartTime').value,
+        match_duration: document.getElementById('matchDuration').value,
+        fields: document.getElementById('fields').value,
+        ...teamCounts
+    };
+    
+    // Submit to backend
+    fetch('{{ url_for("auto_schedule.create_season_wizard") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize calendar when wizard is shown
+    document.getElementById('seasonStartDate').addEventListener('change', initializeCalendar);
+    document.getElementById('regularWeeks').addEventListener('input', initializeCalendar);
+    document.getElementById('includeTST').addEventListener('change', initializeCalendar);
+    document.getElementById('includeFUN').addEventListener('change', initializeCalendar);
+    document.getElementById('byeWeekCount').addEventListener('input', initializeCalendar);
+    
+    // Team count change listeners
+    document.getElementById('premierTeamCount').addEventListener('change', () => updateTeamPreview('premier'));
+    document.getElementById('classicTeamCount').addEventListener('change', () => updateTeamPreview('classic'));
+    document.getElementById('ecsFcTeamCount').addEventListener('change', () => updateTeamPreview('ecsFc'));
+});
+</script>
+{% endblock %}
