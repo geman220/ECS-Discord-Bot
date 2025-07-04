@@ -47,6 +47,72 @@
                 </ul>
             </li>
             <!-- /Style Switcher -->
+            
+            <!-- Role Impersonation (Global Admin Only) -->
+            {% if 'Global Admin' in user_roles %}
+            <li class="nav-item dropdown-role-impersonation dropdown d-none d-md-block">
+                <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" 
+                   href="javascript:void(0);" data-bs-toggle="dropdown" id="roleImpersonationToggle">
+                    <i class="ti ti-user-check ti-md" id="roleImpersonationIcon"></i>
+                    <span class="badge bg-warning badge-dot position-absolute" id="impersonationActiveBadge" style="display: none;"></span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 320px;">
+                    <li>
+                        <div class="dropdown-header d-flex align-items-center py-3">
+                            <h6 class="mb-0 me-auto">View As Role</h6>
+                            <button class="btn btn-sm btn-outline-secondary" id="refreshRolesBtn">
+                                <i class="ti ti-refresh ti-xs"></i>
+                            </button>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    
+                    <!-- Current Status -->
+                    <li class="px-3 mb-2">
+                        <div id="currentRoleStatus" class="p-2 rounded bg-light">
+                            <div class="d-flex align-items-center">
+                                <i class="ti ti-user me-2 text-primary"></i>
+                                <span class="small text-muted">Loading status...</span>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- Stop Impersonation Button -->
+                    <li class="px-3 mb-2">
+                        <button class="btn btn-outline-danger btn-sm w-100" id="stopImpersonationBtn" style="display: none;">
+                            <i class="ti ti-x me-1"></i> Stop Impersonation
+                        </button>
+                    </li>
+                    
+                    <!-- Role Selection -->
+                    <li class="px-3 mb-2">
+                        <label class="form-label small mb-1">Select Role(s) to View As:</label>
+                        <select class="form-select form-select-sm" id="roleSelect" multiple style="height: auto;">
+                            <option value="">Loading roles...</option>
+                        </select>
+                    </li>
+                    
+                    <!-- Start Impersonation Button -->
+                    <li class="px-3 mb-2">
+                        <button class="btn btn-primary btn-sm w-100" id="startImpersonationBtn" disabled>
+                            <i class="ti ti-eye me-1"></i> Start Viewing As Selected Roles
+                        </button>
+                    </li>
+                    
+                    <li><hr class="dropdown-divider"></li>
+                    
+                    <!-- Help Text -->
+                    <li class="px-3">
+                        <div class="small text-muted">
+                            <i class="ti ti-info-circle me-1"></i>
+                            This allows you to view the application as if you have different roles. Perfect for testing permissions without switching accounts.
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <!-- /Role Impersonation -->
+            {% endif %}
+            
             <!-- Notifications -->
             <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
                 <a class="nav-link btn btn-text-secondary btn-icon rounded-pill dropdown-toggle hide-arrow waves-effect waves-light" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -249,4 +315,267 @@
             margin-right: 10px;
             vertical-align: middle;
         }
+
+    /* Role Impersonation Styles */
+    .dropdown-role-impersonation .dropdown-menu {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    #roleSelect {
+        min-height: 80px;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    .impersonation-active #roleImpersonationIcon {
+        color: #ff9f43 !important;
+    }
+    
+    .role-status-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+    }
+    
+    .role-status-card.impersonating {
+        background: linear-gradient(135deg, #ff9f43 0%, #ff6b35 100%);
+    }
 </style>
+
+<!-- Role Impersonation JavaScript -->
+{% if 'Global Admin' in user_roles %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleImpersonation = {
+        isActive: false,
+        availableRoles: [],
+        
+        // DOM elements
+        statusElement: document.getElementById('currentRoleStatus'),
+        roleSelect: document.getElementById('roleSelect'),
+        startBtn: document.getElementById('startImpersonationBtn'),
+        stopBtn: document.getElementById('stopImpersonationBtn'),
+        refreshBtn: document.getElementById('refreshRolesBtn'),
+        activeBadge: document.getElementById('impersonationActiveBadge'),
+        toggle: document.getElementById('roleImpersonationToggle'),
+        
+        async init() {
+            await this.loadStatus();
+            await this.loadAvailableRoles();
+            this.bindEvents();
+        },
+        
+        bindEvents() {
+            this.startBtn.addEventListener('click', () => this.startImpersonation());
+            this.stopBtn.addEventListener('click', () => this.stopImpersonation());
+            this.refreshBtn.addEventListener('click', () => this.loadAvailableRoles());
+            this.roleSelect.addEventListener('change', () => this.validateSelection());
+        },
+        
+        validateSelection() {
+            const selectedRoles = Array.from(this.roleSelect.selectedOptions).map(opt => opt.value);
+            this.startBtn.disabled = selectedRoles.length === 0;
+        },
+        
+        async loadStatus() {
+            try {
+                const response = await fetch('/api/role-impersonation/status');
+                if (!response.ok) throw new Error('Failed to load status');
+                
+                const data = await response.json();
+                this.updateStatusDisplay(data);
+            } catch (error) {
+                console.error('Error loading impersonation status:', error);
+                this.statusElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="ti ti-alert-triangle me-2 text-danger"></i>
+                        <span class="small text-danger">Error loading status</span>
+                    </div>
+                `;
+            }
+        },
+        
+        async loadAvailableRoles() {
+            this.refreshBtn.disabled = true;
+            this.refreshBtn.innerHTML = '<i class="ti ti-loader ti-spin ti-xs"></i>';
+            
+            try {
+                const response = await fetch('/api/role-impersonation/available-roles');
+                if (!response.ok) throw new Error('Failed to load roles');
+                
+                const data = await response.json();
+                this.availableRoles = data.roles;
+                this.populateRoleSelect();
+                this.updateStatusDisplay(data.current_impersonation);
+            } catch (error) {
+                console.error('Error loading available roles:', error);
+                this.roleSelect.innerHTML = '<option value="">Error loading roles</option>';
+            } finally {
+                this.refreshBtn.disabled = false;
+                this.refreshBtn.innerHTML = '<i class="ti ti-refresh ti-xs"></i>';
+            }
+        },
+        
+        populateRoleSelect() {
+            this.roleSelect.innerHTML = '';
+            
+            this.availableRoles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.name;
+                option.textContent = `${role.name} (${role.permissions.length} permissions)`;
+                option.title = role.description || '';
+                this.roleSelect.appendChild(option);
+            });
+            
+            this.validateSelection();
+        },
+        
+        updateStatusDisplay(data) {
+            this.isActive = data.active || false;
+            
+            if (this.isActive) {
+                this.statusElement.className = 'p-2 rounded role-status-card impersonating';
+                this.statusElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="ti ti-eye me-2"></i>
+                        <div>
+                            <div class="small fw-bold">Viewing as: ${data.roles.join(', ')}</div>
+                            <div class="small opacity-75">Original: ${data.original_roles.join(', ')}</div>
+                        </div>
+                    </div>
+                `;
+                this.stopBtn.style.display = 'block';
+                this.activeBadge.style.display = 'block';
+                this.toggle.classList.add('impersonation-active');
+            } else {
+                this.statusElement.className = 'p-2 rounded role-status-card';
+                this.statusElement.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="ti ti-user me-2"></i>
+                        <div>
+                            <div class="small fw-bold">Normal View</div>
+                            <div class="small opacity-75">Using your actual permissions</div>
+                        </div>
+                    </div>
+                `;
+                this.stopBtn.style.display = 'none';
+                this.activeBadge.style.display = 'none';
+                this.toggle.classList.remove('impersonation-active');
+            }
+        },
+        
+        async startImpersonation() {
+            const selectedRoles = Array.from(this.roleSelect.selectedOptions).map(opt => opt.value);
+            if (selectedRoles.length === 0) return;
+            
+            this.startBtn.disabled = true;
+            this.startBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Starting...';
+            
+            try {
+                const response = await fetch('/api/role-impersonation/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    },
+                    body: JSON.stringify({ roles: selectedRoles })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to start impersonation');
+                }
+                
+                // Show success notification
+                this.showToast('success', `Now viewing as: ${selectedRoles.join(', ')}`);
+                
+                // Reload page to apply new permissions
+                setTimeout(() => window.location.reload(), 1000);
+                
+            } catch (error) {
+                console.error('Error starting impersonation:', error);
+                this.showToast('danger', error.message);
+            } finally {
+                this.startBtn.disabled = false;
+                this.startBtn.innerHTML = '<i class="ti ti-eye me-1"></i> Start Viewing As Selected Roles';
+            }
+        },
+        
+        async stopImpersonation() {
+            this.stopBtn.disabled = true;
+            this.stopBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i> Stopping...';
+            
+            try {
+                const response = await fetch('/api/role-impersonation/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to stop impersonation');
+                }
+                
+                // Show success notification
+                this.showToast('success', 'Returned to normal view');
+                
+                // Reload page to apply original permissions
+                setTimeout(() => window.location.reload(), 1000);
+                
+            } catch (error) {
+                console.error('Error stopping impersonation:', error);
+                this.showToast('danger', error.message);
+            } finally {
+                this.stopBtn.disabled = false;
+                this.stopBtn.innerHTML = '<i class="ti ti-x me-1"></i> Stop Impersonation';
+            }
+        },
+        
+        showToast(type, message) {
+            // Create toast element
+            const toastId = 'roleImpersonationToast' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-body d-flex align-items-center">
+                        <i class="ti ti-${type === 'success' ? 'check-circle text-success' : 'alert-triangle text-danger'} me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Add to page
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            // Show toast
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Remove after hiding
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+    };
+    
+    // Initialize role impersonation
+    roleImpersonation.init();
+    
+    // Make available globally for debugging
+    window.roleImpersonation = roleImpersonation;
+});
+</script>
+{% endif %}

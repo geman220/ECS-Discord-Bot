@@ -19,8 +19,9 @@ import logging
 from flask import Blueprint, jsonify, render_template, request, g
 from flask_login import login_required
 from sqlalchemy.orm import aliased, joinedload
+from flask_login import current_user
 
-from app.models import Match, Team, Season, Player
+from app.models import Match, Team, Season, Player, player_teams
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -141,25 +142,36 @@ def get_refs():
         if not match:
             return jsonify({'error': 'Match not found.'}), 404
 
-        refs = session_db.query(Player).filter_by(is_ref=True).all()
+        refs = session_db.query(Player).filter_by(is_ref=True, is_available_for_ref=True).all()
         ref_list = []
         for ref in refs:
             # Get the team IDs this referee is associated with
             ref_team_ids = [team.id for team in ref.teams]
             
-            # Exclude refs who are players on the match teams
+            # Exclude refs who are players on the match teams or playing at the same time
             if match.home_team_id not in ref_team_ids and match.away_team_id not in ref_team_ids:
-                matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
-                    Match.date == match.date
-                ).count()
-                total_matches_assigned = session_db.query(Match).filter_by(ref_id=ref.id).count()
+                # Check if referee is playing in any match at the same date and time
+                conflicting_match = session_db.query(Match).join(
+                    player_teams, (Match.home_team_id == player_teams.c.team_id) | (Match.away_team_id == player_teams.c.team_id)
+                ).filter(
+                    player_teams.c.player_id == ref.id,
+                    Match.date == match.date,
+                    Match.time == match.time,
+                    Match.id != match.id
+                ).first()
+                
+                if not conflicting_match:
+                    matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
+                        Match.date == match.date
+                    ).count()
+                    total_matches_assigned = session_db.query(Match).filter_by(ref_id=ref.id).count()
 
-                ref_list.append({
-                    'id': ref.id,
-                    'name': ref.name,
-                    'matches_assigned_in_week': matches_assigned_in_week,
-                    'total_matches_assigned': total_matches_assigned
-                })
+                    ref_list.append({
+                        'id': ref.id,
+                        'name': ref.name,
+                        'matches_assigned_in_week': matches_assigned_in_week,
+                        'total_matches_assigned': total_matches_assigned
+                    })
 
         return jsonify(ref_list)
 
@@ -217,6 +229,20 @@ def assign_ref():
         if match.home_team_id in ref_team_ids or match.away_team_id in ref_team_ids:
             logger.error(f"Referee {ref.name} is a player on one of the teams.")
             return jsonify({'error': 'Referee is on one of the teams in this match.'}), 400
+        
+        # Check if referee is playing in any match at the same date and time
+        conflicting_player_match = session_db.query(Match).join(
+            player_teams, (Match.home_team_id == player_teams.c.team_id) | (Match.away_team_id == player_teams.c.team_id)
+        ).filter(
+            player_teams.c.player_id == ref.id,
+            Match.date == match.date,
+            Match.time == match.time,
+            Match.id != match.id
+        ).first()
+        
+        if conflicting_player_match:
+            logger.error(f"Referee {ref.name} is playing in another match at the same time.")
+            return jsonify({'error': 'Referee is playing in another match at this time.'}), 400
 
         logger.info(f"Assigning Referee {ref.name} (ID: {ref_id}) to Match ID {match_id}")
         match.ref = ref
@@ -252,7 +278,7 @@ def available_refs():
         start_date = datetime.fromisoformat(start_date_str)
         end_date = datetime.fromisoformat(end_date_str)
 
-        refs = session_db.query(Player).filter_by(is_ref=True).all()
+        refs = session_db.query(Player).filter_by(is_ref=True, is_available_for_ref=True).all()
         ref_list = []
         for ref in refs:
             matches_assigned_in_week = session_db.query(Match).filter_by(ref_id=ref.id).filter(
@@ -312,6 +338,141 @@ def remove_ref():
         raise
 
 
+@calendar_bp.route('/calendar/my_assignments', endpoint='my_assignments', methods=['GET'])
+@login_required
+@role_required(['Pub League Ref'])
+def my_assignments():
+    """
+    Get referee assignments for the current user.
+    
+    Returns:
+        JSON response with the referee's assigned matches.
+    """
+    session_db = g.db_session
+    try:
+        # Get the current user's player record
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        if not player:
+            return jsonify({'error': 'User is not a referee.'}), 404
+        
+        # Get current season leagues
+        seasons = session_db.query(Season).options(joinedload(Season.leagues)).filter_by(is_current=True).all()
+        if not seasons:
+            return jsonify({'message': 'No current season found.'}), 404
+        
+        league_ids = [league.id for season in seasons for league in season.leagues]
+        
+        # Aliases for join queries
+        home_team = aliased(Team)
+        away_team = aliased(Team)
+        
+        # Get matches assigned to this referee
+        matches = (session_db.query(Match)
+                   .join(home_team, Match.home_team_id == home_team.id)
+                   .join(away_team, Match.away_team_id == away_team.id)
+                   .filter(Match.ref_id == player.id)
+                   .filter(home_team.league_id.in_(league_ids))
+                   .with_entities(
+                       Match.id,
+                       Match.date,
+                       Match.time,
+                       Match.location,
+                       home_team.name.label('home_team_name'),
+                       away_team.name.label('away_team_name'),
+                       home_team.league_id.label('home_league_id')
+                   )
+                   .order_by(Match.date, Match.time)
+                   .all())
+        
+        assignments = []
+        for match in matches:
+            division = 'Premier' if match.home_league_id == 10 else 'Classic'
+            start_datetime = datetime.combine(match.date, match.time)
+            
+            assignments.append({
+                'id': match.id,
+                'title': f"{division}: {match.home_team_name} vs {match.away_team_name}",
+                'start': start_datetime.isoformat(),
+                'date': match.date.strftime('%Y-%m-%d'),
+                'time': match.time.strftime('%H:%M'),
+                'location': match.location,
+                'home_team': match.home_team_name,
+                'away_team': match.away_team_name,
+                'division': division
+            })
+        
+        return jsonify({
+            'assignments': assignments,
+            'total_assignments': len(assignments)
+        })
+        
+    except Exception as e:
+        logger.exception("An error occurred while fetching referee assignments.")
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
+
+@calendar_bp.route('/calendar/toggle_availability', endpoint='toggle_availability', methods=['POST'])
+@login_required
+@role_required(['Pub League Ref'])
+def toggle_availability():
+    """
+    Toggle referee availability for assignments.
+    
+    Returns:
+        JSON response indicating success or error.
+    """
+    session_db = g.db_session
+    try:
+        # Get the current user's player record
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        if not player:
+            return jsonify({'error': 'User is not a referee.'}), 404
+        
+        # Toggle availability
+        player.is_available_for_ref = not player.is_available_for_ref
+        session_db.commit()
+        
+        status = 'available' if player.is_available_for_ref else 'unavailable'
+        logger.info(f"Referee {player.name} (ID: {player.id}) set availability to {status}")
+        
+        return jsonify({
+            'message': f'Availability set to {status}',
+            'is_available': player.is_available_for_ref
+        }), 200
+        
+    except Exception as e:
+        logger.exception("An error occurred while toggling referee availability.")
+        session_db.rollback()
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
+
+@calendar_bp.route('/calendar/availability_status', endpoint='availability_status', methods=['GET'])
+@login_required
+@role_required(['Pub League Ref'])
+def availability_status():
+    """
+    Get current referee availability status.
+    
+    Returns:
+        JSON response with availability status.
+    """
+    session_db = g.db_session
+    try:
+        # Get the current user's player record
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        if not player:
+            return jsonify({'error': 'User is not a referee.'}), 404
+        
+        return jsonify({
+            'is_available': player.is_available_for_ref,
+            'referee_name': player.name
+        }), 200
+        
+    except Exception as e:
+        logger.exception("An error occurred while fetching referee availability.")
+        return jsonify({'error': 'An internal error occurred.'}), 500
+
+
 @calendar_bp.route('/calendar', endpoint='calendar_view', methods=['GET'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach'])
@@ -319,4 +480,11 @@ def calendar_view():
     """
     Render the calendar view page.
     """
-    return render_template('calendar.html', title='Pub League Calendar')
+    # Check if user is a referee
+    session_db = g.db_session
+    is_referee = False
+    if current_user.is_authenticated:
+        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
+        is_referee = player is not None
+    
+    return render_template('calendar.html', title='Pub League Calendar', is_referee=is_referee)

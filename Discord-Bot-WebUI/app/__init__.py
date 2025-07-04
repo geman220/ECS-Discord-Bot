@@ -485,6 +485,7 @@ def init_blueprints(app):
     from app.clear_cache import clear_cache_bp
     from app.external_api import external_api_bp
     from app.auto_schedule_routes import auto_schedule_bp
+    from app.role_impersonation import role_impersonation_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -514,6 +515,7 @@ def init_blueprints(app):
     app.register_blueprint(clear_cache_bp)
     app.register_blueprint(external_api_bp)
     app.register_blueprint(auto_schedule_bp, url_prefix='/auto-schedule')
+    app.register_blueprint(role_impersonation_bp)
 
 def init_context_processors(app):
     """
@@ -524,39 +526,34 @@ def init_context_processors(app):
     """
     @app.context_processor
     def utility_processor():
-        user_roles = []
-        user_permissions = []
-
-        if safe_current_user.is_authenticated and hasattr(g, 'db_session'):
-            try:
-                session = g.db_session
-                from app.models import User, Role
-                user = session.query(User).options(
-                    joinedload(User.roles).joinedload(Role.permissions)
-                ).get(safe_current_user.id)
-                if user:
-                    user_roles = [role.name for role in user.roles]
-                    user_permissions = [
-                        permission.name
-                        for role in user.roles
-                        for permission in role.permissions
-                    ]
-            except Exception as e:
-                logger.error(f"Error loading safe_current_user: {e}")
-                user_roles = []
-                user_permissions = []
+        from app.role_impersonation import (
+            is_impersonation_active, get_effective_roles, get_effective_permissions,
+            has_effective_permission, has_effective_role
+        )
+        
+        # Get effective roles and permissions (considering impersonation)
+        user_roles = get_effective_roles()
+        user_permissions = get_effective_permissions()
 
         def has_permission(permission_name):
-            return permission_name in user_permissions
+            return has_effective_permission(permission_name)
+
+        def has_role(role_name):
+            return has_effective_role(role_name)
 
         def is_admin():
             return 'Global Admin' in user_roles or 'Pub League Admin' in user_roles
+        
+        def is_role_impersonation_active():
+            return is_impersonation_active()
 
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
             'has_permission': has_permission,
-            'is_admin': is_admin
+            'has_role': has_role,
+            'is_admin': is_admin,
+            'is_role_impersonation_active': is_role_impersonation_active
         }
     
     @app.context_processor
