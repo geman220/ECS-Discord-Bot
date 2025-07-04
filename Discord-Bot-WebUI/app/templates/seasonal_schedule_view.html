@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-white">
+                            <h2 class="mb-1">{{ season.name }} Schedule</h2>
+                            <p class="mb-0">Complete season schedule for all leagues and divisions</p>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-light">
+                                <i class="ti ti-arrow-left me-1"></i>Back to Season Builder
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Filter Schedule</h5>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">League/Division</label>
+                            <select class="form-select" id="leagueFilter">
+                                <option value="">All Leagues</option>
+                                {% for league in leagues %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Team</label>
+                            <select class="form-select" id="teamFilter">
+                                <option value="">All Teams</option>
+                                {% for league in leagues %}
+                                    <optgroup label="{{ league.name }}">
+                                        {% for team in league.teams %}
+                                        <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+                                        {% endfor %}
+                                    </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Week Type</label>
+                            <select class="form-select" id="weekTypeFilter">
+                                <option value="">All Weeks</option>
+                                <option value="REGULAR">Regular Season</option>
+                                <option value="TST">TST Week</option>
+                                <option value="FUN">Fun Week</option>
+                                <option value="BYE">Bye Weeks</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Actions</label>
+                            <div>
+                                <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                    <i class="ti ti-filter me-1"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Display -->
+    <div id="scheduleContainer">
+        {% for week_num, week_data in schedule_by_week.items() %}
+        <div class="week-container mb-4" data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}
+                            {% if week_data.week_type == 'TST' %}
+                            <span class="badge bg-info ms-2">TST Week</span>
+                            {% elif week_data.week_type == 'FUN' %}
+                            <span class="badge bg-warning ms-2">Fun Week</span>
+                            {% elif week_data.week_type == 'BYE' %}
+                            <span class="badge bg-secondary ms-2">Bye Week</span>
+                            {% endif %}
+                        </h5>
+                        <div>
+                            <span class="text-muted">{{ week_data.matches|length }} matches</span>
+                            <button class="btn btn-sm btn-outline-primary ms-2" onclick="toggleWeek({{ week_num }})">
+                                <i class="ti ti-chevron-down" id="chevron-{{ week_num }}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body week-content" id="week-{{ week_num }}" style="display: block;">
+                    {% if week_data.week_type == 'BYE' %}
+                    <div class="alert alert-secondary mb-0">
+                        <i class="ti ti-moon me-2"></i>
+                        <strong>Bye Week</strong> - No matches scheduled. Teams have the week off.
+                    </div>
+                    {% elif week_data.week_type == 'FUN' %}
+                    <div class="alert alert-warning mb-3">
+                        <i class="ti ti-confetti me-2"></i>
+                        <strong>Fun Week</strong> - Special activities and fun matches for all teams.
+                    </div>
+                    {% elif week_data.week_type == 'TST' %}
+                    <div class="alert alert-info mb-3">
+                        <i class="ti ti-trophy me-2"></i>
+                        <strong>TST Week</strong> - The Soccer Tournament competition week.
+                    </div>
+                    {% endif %}
+                    
+                    {% if week_data.matches %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Field</th>
+                                    <th>League</th>
+                                    <th>Home Team</th>
+                                    <th>Away Team</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in week_data.matches|sort(attribute='time') %}
+                                <tr class="match-row" 
+                                    data-league="{{ match.home_team.league_id }}" 
+                                    data-home-team="{{ match.home_team_id }}"
+                                    data-away-team="{{ match.away_team_id }}">
+                                    <td>
+                                        <i class="ti ti-clock me-1"></i>
+                                        {{ match.time.strftime('%I:%M %p') }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-label-primary">{{ match.location }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ match.home_team.league.name }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" 
+                                           class="text-decoration-none">
+                                            {{ match.home_team.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" 
+                                           class="text-decoration-none">
+                                            {{ match.away_team.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if match.reported %}
+                                        <span class="badge bg-success">Reported</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Scheduled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="ti ti-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="ti ti-calendar-off ti-lg mb-3 text-muted"></i>
+                    <h5>No Schedule Found</h5>
+                    <p class="text-muted mb-3">No matches have been scheduled for this season yet.</p>
+                    <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Create Schedule
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Export Options -->
+    {% if schedule_by_week %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Export Options</h5>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary" onclick="exportToCSV()">
+                            <i class="ti ti-file-spreadsheet me-1"></i>Export to CSV
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="printSchedule()">
+                            <i class="ti ti-printer me-1"></i>Print Schedule
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="shareSchedule()">
+                            <i class="ti ti-share me-1"></i>Share Link
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.week-container {
+    transition: all 0.3s ease;
+}
+
+.week-content {
+    transition: all 0.3s ease;
+}
+
+.match-row {
+    transition: all 0.2s ease;
+}
+
+.match-row:hover {
+    background-color: var(--bs-gray-100);
+}
+
+.match-row.filtered-out {
+    display: none;
+}
+
+@media print {
+    .btn, .form-select, .card-header button {
+        display: none !important;
+    }
+    
+    .week-content {
+        display: block !important;
+    }
+}
+
+.badge {
+    font-weight: 500;
+}
+</style>
+
+<script>
+// Toggle week visibility
+function toggleWeek(weekNum) {
+    const content = document.getElementById(`week-${weekNum}`);
+    const chevron = document.getElementById(`chevron-${weekNum}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        chevron.classList.remove('ti-chevron-right');
+        chevron.classList.add('ti-chevron-down');
+    } else {
+        content.style.display = 'none';
+        chevron.classList.remove('ti-chevron-down');
+        chevron.classList.add('ti-chevron-right');
+    }
+}
+
+// League filter change handler
+document.getElementById('leagueFilter').addEventListener('change', function() {
+    const selectedLeague = this.value;
+    const teamFilter = document.getElementById('teamFilter');
+    
+    // Show/hide team options based on selected league
+    Array.from(teamFilter.options).forEach(option => {
+        if (option.value === '') return; // Skip "All Teams" option
+        
+        if (selectedLeague === '' || option.dataset.league === selectedLeague) {
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+    
+    // Reset team filter if current selection is hidden
+    if (teamFilter.value && teamFilter.options[teamFilter.selectedIndex].style.display === 'none') {
+        teamFilter.value = '';
+    }
+});
+
+// Apply filters
+function applyFilters() {
+    const leagueFilter = document.getElementById('leagueFilter').value;
+    const teamFilter = document.getElementById('teamFilter').value;
+    const weekTypeFilter = document.getElementById('weekTypeFilter').value;
+    
+    // Filter weeks
+    document.querySelectorAll('.week-container').forEach(weekContainer => {
+        const weekType = weekContainer.dataset.weekType;
+        let showWeek = true;
+        
+        if (weekTypeFilter && weekType !== weekTypeFilter) {
+            showWeek = false;
+        }
+        
+        weekContainer.style.display = showWeek ? 'block' : 'none';
+    });
+    
+    // Filter matches
+    document.querySelectorAll('.match-row').forEach(row => {
+        let show = true;
+        
+        if (leagueFilter && row.dataset.league !== leagueFilter) {
+            show = false;
+        }
+        
+        if (teamFilter) {
+            const homeTeam = row.dataset.homeTeam;
+            const awayTeam = row.dataset.awayTeam;
+            if (homeTeam !== teamFilter && awayTeam !== teamFilter) {
+                show = false;
+            }
+        }
+        
+        row.classList.toggle('filtered-out', !show);
+    });
+    
+    // Update match counts
+    document.querySelectorAll('.week-container').forEach(weekContainer => {
+        const visibleMatches = weekContainer.querySelectorAll('.match-row:not(.filtered-out)').length;
+        const matchCountSpan = weekContainer.querySelector('.text-muted');
+        if (matchCountSpan) {
+            matchCountSpan.textContent = `${visibleMatches} matches`;
+        }
+    });
+}
+
+// Export to CSV
+function exportToCSV() {
+    let csv = 'Week,Date,Time,Field,League,Home Team,Away Team,Status\n';
+    
+    document.querySelectorAll('.week-container:not([style*="display: none"])').forEach(weekContainer => {
+        const weekNum = weekContainer.dataset.week;
+        const weekDate = weekContainer.querySelector('.card-header h5').textContent.match(/- (.+?)(?:\s|$)/)[1];
+        
+        weekContainer.querySelectorAll('.match-row:not(.filtered-out)').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const time = cells[0].textContent.trim();
+            const field = cells[1].textContent.trim();
+            const league = cells[2].textContent.trim();
+            const homeTeam = cells[3].textContent.trim();
+            const awayTeam = cells[4].textContent.trim();
+            const status = cells[5].textContent.trim();
+            
+            csv += `${weekNum},"${weekDate}","${time}","${field}","${league}","${homeTeam}","${awayTeam}","${status}"\n`;
+        });
+    });
+    
+    // Download CSV
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ season.name }}_schedule.csv';
+    a.click();
+}
+
+// Print schedule
+function printSchedule() {
+    window.print();
+}
+
+// Share schedule
+function shareSchedule() {
+    const url = window.location.href;
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ season.name }} Schedule',
+            text: 'Check out the {{ season.name }} schedule',
+            url: url
+        });
+    } else {
+        // Copy to clipboard
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Schedule link copied to clipboard!');
+        });
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for filters in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const leagueId = urlParams.get('league');
+    const teamId = urlParams.get('team');
+    
+    if (leagueId) {
+        document.getElementById('leagueFilter').value = leagueId;
+    }
+    if (teamId) {
+        document.getElementById('teamFilter').value = teamId;
+    }
+    
+    if (leagueId || teamId) {
+        applyFilters();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-white">
+                            <h2 class="mb-1">{{ league.name }} Management</h2>
+                            <p class="mb-0">{{ season.name }} - Add weeks, manage matches, and modify schedule</p>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-light">
+                                <i class="ti ti-arrow-left me-1"></i>Back to Season Builder
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Quick Actions</h5>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-primary" onclick="showAddWeekModal()">
+                            <i class="ti ti-plus me-1"></i>Add New Week
+                        </button>
+                        <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}" class="btn btn-outline-primary">
+                            <i class="ti ti-calendar-event me-1"></i>View Full Season
+                        </a>
+                        <button class="btn btn-outline-info" onclick="toggleBulkActions()">
+                            <i class="ti ti-edit me-1"></i>Bulk Edit Mode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Schedule -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Current Schedule - {{ league.name }}</h5>
+                        <div>
+                            <span class="badge bg-label-info">{{ existing_weeks|length }} weeks scheduled</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if existing_weeks %}
+                    {% for week_num, week_data in existing_weeks.items() %}
+                    <div class="week-section mb-4" id="week-{{ week_num }}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">
+                                Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}
+                                {% if week_data.week_type != 'REGULAR' %}
+                                <span class="badge bg-warning ms-2">{{ week_data.week_type }}</span>
+                                {% endif %}
+                            </h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="editWeek({{ week_num }})">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="deleteWeek({{ week_num }})">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Field</th>
+                                        <th>Home Team</th>
+                                        <th>Away Team</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for match in week_data.matches %}
+                                    <tr>
+                                        <td>{{ match.time.strftime('%I:%M %p') }}</td>
+                                        <td><span class="badge bg-label-primary">{{ match.location }}</span></td>
+                                        <td>{{ match.home_team.name }}</td>
+                                        <td>{{ match.away_team.name }}</td>
+                                        <td>
+                                            {% if match.reported %}
+                                            <span class="badge bg-success">Reported</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Scheduled</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editMatch({{ match.id }})">
+                                                    <i class="ti ti-edit"></i>
+                                                </button>
+                                                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-outline-info">
+                                                    <i class="ti ti-eye"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="ti ti-calendar-off ti-lg mb-3 text-muted"></i>
+                        <h5>No Schedule Yet</h5>
+                        <p class="text-muted mb-3">No matches have been scheduled for this league.</p>
+                        <button class="btn btn-primary" onclick="showAddWeekModal()">
+                            <i class="ti ti-plus me-1"></i>Add First Week
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add New Week Modal -->
+<div class="modal fade" id="addWeekModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWeekForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Week Date *</label>
+                            <input type="date" class="form-control" id="weekDate" required>
+                            <div class="form-text">Will automatically adjust to Sunday</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Week Type</label>
+                            <select class="form-select" id="weekType">
+                                <option value="REGULAR">Regular Week</option>
+                                <option value="PLAYOFFS">Playoffs</option>
+                                <option value="CHAMPIONSHIP">Championship</option>
+                                <option value="TOURNAMENT">Tournament</option>
+                                <option value="FRIENDLY">Friendly</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="ti ti-info-circle me-1"></i>Match Setup</h6>
+                        <p class="mb-0">Add the matches for this week. Each team should play 2 consecutive matches.</p>
+                    </div>
+                    
+                    <div id="matchesContainer">
+                        <!-- Match slots will be dynamically added here -->
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="button" class="btn btn-outline-primary" onclick="addMatchSlot()">
+                            <i class="ti ti-plus me-1"></i>Add Match
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createWeek()">
+                    <i class="ti ti-check me-1"></i>Create Week
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Modal -->
+<div class="modal fade" id="editMatchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMatchForm">
+                    <input type="hidden" id="editMatchId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Time</label>
+                            <input type="time" class="form-control" id="editMatchTime">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Field</label>
+                            <select class="form-select" id="editMatchField">
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Home Team</label>
+                            <select class="form-select" id="editHomeTeam">
+                                {% for team in teams_full %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Away Team</label>
+                            <select class="form-select" id="editAwayTeam">
+                                {% for team in teams_full %}
+                                <option value="{{ team.id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMatchEdit()">
+                    <i class="ti ti-check me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.week-section {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: var(--bs-body-bg);
+}
+
+.match-slot {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: var(--bs-body-bg);
+}
+
+.match-slot-header {
+    background-color: var(--bs-gray-100);
+    padding: 0.5rem 1rem;
+    margin: -1rem -1rem 1rem -1rem;
+    border-radius: 0.375rem 0.375rem 0 0;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+</style>
+
+<script>
+let matchSlotCount = 0;
+const teams = {{ teams | tojson }};
+
+function showAddWeekModal() {
+    // Set default date to next Sunday
+    const today = new Date();
+    const nextSunday = new Date(today);
+    const daysUntilSunday = (7 - today.getDay()) % 7 || 7;
+    nextSunday.setDate(today.getDate() + daysUntilSunday);
+    document.getElementById('weekDate').value = nextSunday.toISOString().split('T')[0];
+    
+    // Clear previous matches
+    document.getElementById('matchesContainer').innerHTML = '';
+    matchSlotCount = 0;
+    
+    // Add initial match slots
+    addMatchSlot();
+    addMatchSlot();
+    
+    const modal = new bootstrap.Modal(document.getElementById('addWeekModal'));
+    modal.show();
+}
+
+function addMatchSlot() {
+    matchSlotCount++;
+    const container = document.getElementById('matchesContainer');
+    
+    const matchSlot = document.createElement('div');
+    matchSlot.className = 'match-slot';
+    matchSlot.innerHTML = `
+        <div class="match-slot-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Match ${matchSlotCount}</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMatchSlot(this)">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div class="row">
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Time</label>
+                <select class="form-select match-time">
+                    <option value="08:00">8:00 AM</option>
+                    <option value="09:10">9:10 AM</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Field</label>
+                <select class="form-select match-field">
+                    <option value="North">North</option>
+                    <option value="South">South</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Home Team</label>
+                <select class="form-select home-team">
+                    <option value="">Select Team...</option>
+                    ${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}
+                </select>
+            </div>
+            <div class="col-md-3 mb-3">
+                <label class="form-label">Away Team</label>
+                <select class="form-select away-team">
+                    <option value="">Select Team...</option>
+                    ${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}
+                </select>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(matchSlot);
+}
+
+function removeMatchSlot(button) {
+    button.closest('.match-slot').remove();
+}
+
+function createWeek() {
+    const weekDate = document.getElementById('weekDate').value;
+    const weekType = document.getElementById('weekType').value;
+    
+    if (!weekDate) {
+        alert('Please select a week date');
+        return;
+    }
+    
+    // Collect all matches
+    const matches = [];
+    document.querySelectorAll('.match-slot').forEach(slot => {
+        const time = slot.querySelector('.match-time').value;
+        const field = slot.querySelector('.match-field').value;
+        const homeTeam = slot.querySelector('.home-team').value;
+        const awayTeam = slot.querySelector('.away-team').value;
+        
+        if (homeTeam && awayTeam && homeTeam !== awayTeam) {
+            matches.push({
+                time: time,
+                field: field,
+                home_team_id: homeTeam,
+                away_team_id: awayTeam
+            });
+        }
+    });
+    
+    if (matches.length === 0) {
+        alert('Please add at least one valid match');
+        return;
+    }
+    
+    // Submit to server
+    fetch('{{ url_for("auto_schedule.add_week", league_id=league.id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        },
+        body: JSON.stringify({
+            week_date: weekDate,
+            week_type: weekType,
+            matches: matches
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while creating the week');
+    });
+}
+
+function editMatch(matchId) {
+    // Load match data and show edit modal
+    fetch(`{{ url_for("auto_schedule.get_match_data") }}?match_id=${matchId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('editMatchId').value = matchId;
+            document.getElementById('editMatchTime').value = data.match.time;
+            document.getElementById('editMatchField').value = data.match.field;
+            document.getElementById('editHomeTeam').value = data.match.home_team_id;
+            document.getElementById('editAwayTeam').value = data.match.away_team_id;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editMatchModal'));
+            modal.show();
+        }
+    });
+}
+
+function saveMatchEdit() {
+    const matchId = document.getElementById('editMatchId').value;
+    const formData = {
+        time: document.getElementById('editMatchTime').value,
+        field: document.getElementById('editMatchField').value,
+        home_team_id: document.getElementById('editHomeTeam').value,
+        away_team_id: document.getElementById('editAwayTeam').value
+    };
+    
+    fetch(`{{ url_for("auto_schedule.update_match") }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        },
+        body: JSON.stringify({
+            match_id: matchId,
+            ...formData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function deleteWeek(weekNum) {
+    if (confirm(`Are you sure you want to delete Week ${weekNum} and all its matches?`)) {
+        fetch('{{ url_for("auto_schedule.delete_week", league_id=league.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+            },
+            body: JSON.stringify({
+                week_number: weekNum
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function toggleBulkActions() {
+    alert('Bulk edit mode coming soon! This will allow you to move matches between weeks, swap teams, and make mass changes.');
+}
+
+// Auto-adjust date to Sunday
+document.getElementById('weekDate').addEventListener('change', function() {
+    const selectedDate = new Date(this.value);
+    if (selectedDate.getDay() !== 0) { // Not Sunday
+        const daysUntilSunday = 7 - selectedDate.getDay();
+        selectedDate.setDate(selectedDate.getDate() + daysUntilSunday);
+        this.value = selectedDate.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}
