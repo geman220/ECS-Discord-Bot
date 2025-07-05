@@ -1,0 +1,457 @@
+<!-- ECS FC Schedule Management Modals -->
+
+<!-- Create/Edit Match Modal -->
+<div class="modal fade" id="createMatchModal" tabindex="-1" aria-labelledby="createMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createMatchModalLabel">Create Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="ecs-fc-match-form" novalidate>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="opponent_name" class="form-label">Opponent Team <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="opponent_name" name="opponent_name" required>
+                                <div class="invalid-feedback">Please enter the opponent team name.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="match_date" class="form-label">Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="match_date" name="match_date" required>
+                                <div class="invalid-feedback">Please select a match date.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="match_time" class="form-label">Time <span class="text-danger">*</span></label>
+                                <input type="time" class="form-control" id="match_time" name="match_time" required>
+                                <div class="invalid-feedback">Please select a match time.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="location" name="location" 
+                                       placeholder="e.g., Magnuson Park, Seattle" required>
+                                <div class="invalid-feedback">Please enter the match location.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="field_name" class="form-label">Field Name</label>
+                                <input type="text" class="form-control" id="field_name" name="field_name" 
+                                       placeholder="e.g., Field 1">
+                                <small class="form-text text-muted">Optional specific field designation</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Home or Away</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="match_type" id="home_match" value="home" checked>
+                                    <label class="form-check-label" for="home_match">
+                                        <i class="fas fa-home me-1"></i>Home Match
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="match_type" id="away_match" value="away">
+                                    <label class="form-check-label" for="away_match">
+                                        <i class="fas fa-plane me-1"></i>Away Match
+                                    </label>
+                                </div>
+                                <input type="hidden" name="is_home_match" id="is_home_match" value="true">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="rsvp_deadline" class="form-label">RSVP Deadline</label>
+                                <input type="datetime-local" class="form-control" id="rsvp_deadline" name="rsvp_deadline">
+                                <small class="form-text text-muted">Optional deadline for player responses</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Additional information about the match..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save Match
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Import Matches Modal -->
+<div class="modal fade" id="importMatchesModal" tabindex="-1" aria-labelledby="importMatchesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importMatchesModalLabel">Import Matches from CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="ecs-fc-import-form" novalidate>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>CSV Format Instructions</h6>
+                        <p class="mb-2">Please format your CSV data with the following columns:</p>
+                        <code>Opponent,Date,Time,Location,Home/Away,Field,Notes</code>
+                        <hr>
+                        <p class="mb-1"><strong>Example:</strong></p>
+                        <small class="font-monospace">
+                            Seattle Sounders,2024-03-15,19:00,Magnuson Park,Home,Field 1,Important match<br>
+                            Portland Timbers,2024-03-22,14:00,Providence Park,Away,,Rivalry game
+                        </small>
+                        <hr>
+                        <ul class="mb-0 small">
+                            <li><strong>Date format:</strong> YYYY-MM-DD</li>
+                            <li><strong>Time format:</strong> HH:MM (24-hour)</li>
+                            <li><strong>Home/Away:</strong> "Home" or "Away"</li>
+                            <li><strong>Field and Notes:</strong> Optional columns</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="csv-matches" class="form-label">CSV Data <span class="text-danger">*</span></label>
+                        <textarea class="form-control font-monospace" id="csv-matches" name="csv_matches" rows="10" 
+                                  placeholder="Paste your CSV data here..." required></textarea>
+                        <div class="invalid-feedback">Please enter CSV data.</div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="preview-before-import" checked>
+                        <label class="form-check-label" for="preview-before-import">
+                            Preview matches before importing
+                        </label>
+                    </div>
+
+                    <div id="import-preview" class="d-none">
+                        <h6>Preview:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Opponent</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Location</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="preview-btn">
+                        <i class="fas fa-eye me-1"></i>Preview
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Import Matches
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Match Details Modal -->
+<div class="modal fade" id="matchDetailsModal" tabindex="-1" aria-labelledby="matchDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="matchDetailsModalLabel">Match Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="match-details-content">
+                <!-- Content will be populated by JavaScript -->
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RSVP Response Modal -->
+<div class="modal fade" id="rsvpModal" tabindex="-1" aria-labelledby="rsvpModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rsvpModalLabel">RSVP Response</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="rsvp-form">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Your Response</label>
+                        <div class="btn-group w-100" role="group" aria-label="RSVP Response">
+                            <input type="radio" class="btn-check" name="rsvp_response" id="rsvp_yes" value="yes">
+                            <label class="btn btn-outline-success" for="rsvp_yes">
+                                <i class="fas fa-check me-1"></i>Yes, I'll be there
+                            </label>
+
+                            <input type="radio" class="btn-check" name="rsvp_response" id="rsvp_no" value="no">
+                            <label class="btn btn-outline-danger" for="rsvp_no">
+                                <i class="fas fa-times me-1"></i>No, I can't make it
+                            </label>
+
+                            <input type="radio" class="btn-check" name="rsvp_response" id="rsvp_maybe" value="maybe">
+                            <label class="btn btn-outline-warning" for="rsvp_maybe">
+                                <i class="fas fa-question me-1"></i>Maybe
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="rsvp_notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="rsvp_notes" name="rsvp_notes" rows="2" 
+                                  placeholder="Any additional comments..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Submit Response
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Handle radio button changes for home/away
+document.addEventListener('DOMContentLoaded', function() {
+    const homeRadio = document.getElementById('home_match');
+    const awayRadio = document.getElementById('away_match');
+    const hiddenField = document.getElementById('is_home_match');
+
+    function updateHiddenField() {
+        hiddenField.value = homeRadio.checked ? 'true' : 'false';
+    }
+
+    if (homeRadio && awayRadio && hiddenField) {
+        homeRadio.addEventListener('change', updateHiddenField);
+        awayRadio.addEventListener('change', updateHiddenField);
+    }
+
+    // Preview functionality for CSV import
+    const previewBtn = document.getElementById('preview-btn');
+    const csvTextarea = document.getElementById('csv-matches');
+    const previewDiv = document.getElementById('import-preview');
+    const previewTbody = document.getElementById('preview-tbody');
+
+    if (previewBtn && csvTextarea && previewDiv && previewTbody) {
+        previewBtn.addEventListener('click', function() {
+            const csvText = csvTextarea.value.trim();
+            if (!csvText) {
+                showAlert('warning', 'Please enter CSV data first');
+                return;
+            }
+
+            try {
+                const matches = parseMatchesCsv(csvText);
+                if (matches.length === 0) {
+                    showAlert('warning', 'No valid matches found in CSV data');
+                    return;
+                }
+
+                // Clear previous preview
+                previewTbody.innerHTML = '';
+
+                // Add matches to preview
+                matches.forEach(match => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${match.opponent_name}</td>
+                        <td>${match.match_date}</td>
+                        <td>${match.match_time}</td>
+                        <td>${match.location}</td>
+                        <td>
+                            <span class="badge ${match.is_home_match ? 'bg-success' : 'bg-primary'}">
+                                ${match.is_home_match ? 'Home' : 'Away'}
+                            </span>
+                        </td>
+                    `;
+                    previewTbody.appendChild(row);
+                });
+
+                previewDiv.classList.remove('d-none');
+                showAlert('success', `Preview ready: ${matches.length} matches found`);
+            } catch (error) {
+                showAlert('error', 'Error parsing CSV data: ' + error.message);
+            }
+        });
+    }
+
+    // Auto-preview if checkbox is checked
+    const previewCheckbox = document.getElementById('preview-before-import');
+    if (previewCheckbox && csvTextarea) {
+        csvTextarea.addEventListener('input', function() {
+            if (previewCheckbox.checked && csvTextarea.value.trim()) {
+                setTimeout(() => previewBtn.click(), 500);
+            }
+        });
+    }
+});
+
+// Show match details modal
+function showMatchDetails(matchId) {
+    const modal = new bootstrap.Modal(document.getElementById('matchDetailsModal'));
+    const content = document.getElementById('match-details-content');
+    
+    // Show loading state
+    content.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Load match details
+    fetch(`/api/ecs-fc/matches/${matchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const match = data.data.match;
+                content.innerHTML = renderMatchDetails(match);
+            } else {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Failed to load match details: ${data.message}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error loading match details: ${error.message}
+                </div>
+            `;
+        });
+}
+
+// Render match details HTML
+function renderMatchDetails(match) {
+    const matchDate = new Date(match.match_date + 'T' + match.match_time);
+    const isUpcoming = matchDate > new Date();
+    
+    return `
+        <div class="match-header mb-4">
+            <h4 class="text-center">
+                <i class="fas fa-futbol me-2"></i>
+                ${match.team_name} vs ${match.opponent_name}
+            </h4>
+            <div class="text-center">
+                <span class="badge ${match.is_home_match ? 'bg-success' : 'bg-primary'} me-2">
+                    ${match.is_home_match ? 'Home' : 'Away'}
+                </span>
+                <span class="badge ${getStatusBadgeClass(match.status)}">
+                    ${match.status}
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-info-circle me-2"></i>Match Information</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Date:</th>
+                        <td>${formatDate(match.match_date)}</td>
+                    </tr>
+                    <tr>
+                        <th>Time:</th>
+                        <td>${formatTime(match.match_time)}</td>
+                    </tr>
+                    <tr>
+                        <th>Location:</th>
+                        <td>${match.location}</td>
+                    </tr>
+                    ${match.field_name ? `
+                    <tr>
+                        <th>Field:</th>
+                        <td>${match.field_name}</td>
+                    </tr>
+                    ` : ''}
+                    ${match.rsvp_deadline ? `
+                    <tr>
+                        <th>RSVP Deadline:</th>
+                        <td>${new Date(match.rsvp_deadline).toLocaleString()}</td>
+                    </tr>
+                    ` : ''}
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-users me-2"></i>RSVP Status</h6>
+                <div id="modal-rsvp-summary-${match.id}">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        ${match.notes ? `
+        <div class="mt-3">
+            <h6><i class="fas fa-sticky-note me-2"></i>Notes</h6>
+            <p class="text-muted">${match.notes}</p>
+        </div>
+        ` : ''}
+
+        ${isUpcoming ? `
+        <div class="mt-4 text-center">
+            <button class="btn btn-success me-2 rsvp-btn" data-match-id="${match.id}" data-response="yes">
+                <i class="fas fa-check me-1"></i>Yes
+            </button>
+            <button class="btn btn-danger me-2 rsvp-btn" data-match-id="${match.id}" data-response="no">
+                <i class="fas fa-times me-1"></i>No
+            </button>
+            <button class="btn btn-warning me-2 rsvp-btn" data-match-id="${match.id}" data-response="maybe">
+                <i class="fas fa-question me-1"></i>Maybe
+            </button>
+        </div>
+        ` : ''}
+    `;
+}
+
+function getStatusBadgeClass(status) {
+    switch (status) {
+        case 'SCHEDULED': return 'bg-info';
+        case 'COMPLETED': return 'bg-success';
+        case 'CANCELLED': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+</script>

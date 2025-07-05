@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}ECS FC RSVP Status - {{ match.team.name }} vs {{ match.opponent_name }}{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">Admin / ECS FC / RSVPs / </span>
+        {{ match.team.name }} vs {{ match.opponent_name }}
+    </h4>
+
+    <!-- Match Information Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar avatar-lg me-3">
+                                    <div class="avatar-initial rounded-circle bg-label-success">
+                                        <i class="ti ti-trophy"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1">{{ match.team.name }} vs {{ match.opponent_name }}</h3>
+                                    <div class="text-muted">
+                                        <span class="badge bg-success me-2">ECS FC</span>
+                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2">
+                                            {{ 'Home' if match.is_home_match else 'Away' }} Match
+                                        </span>
+                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}">
+                                            {{ match.status }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="sendReminder()">
+                                    <i class="ti ti-bell me-1"></i>Send Reminder
+                                </button>
+                                <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="ti ti-eye me-1"></i>View Match
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-calendar text-success me-2"></i>
+                                    <h6 class="mb-0">Match Date</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.match_date.strftime('%A, %B %d, %Y') }}</p>
+                                <small class="text-muted">{{ match.match_time.strftime('%I:%M %p') }}</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-map-pin text-success me-2"></i>
+                                    <h6 class="mb-0">Location</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.location }}</p>
+                                {% if match.field_name %}
+                                <small class="text-muted">{{ match.field_name }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-users text-success me-2"></i>
+                                    <h6 class="mb-0">Team</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.team.name }}</p>
+                                <small class="text-muted">{{ match.team.players|length }} players</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-percentage text-success me-2"></i>
+                                    <h6 class="mb-0">Response Rate</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ response_rate }}%</p>
+                                <small class="text-muted">{{ total_responses }}/{{ total_players }} responded</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-success">
+                            <i class="ti ti-check"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-success">{{ rsvp_summary.yes }}</h4>
+                    <p class="mb-0">Available</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-danger">
+                            <i class="ti ti-x"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-danger">{{ rsvp_summary.no }}</h4>
+                    <p class="mb-0">Unavailable</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-warning">
+                            <i class="ti ti-help"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-warning">{{ rsvp_summary.maybe }}</h4>
+                    <p class="mb-0">Maybe</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-secondary">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-muted">{{ rsvp_summary.no_response }}</h4>
+                    <p class="mb-0">No Response</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player RSVP Management Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Player RSVP Management</h5>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="filterResponses('all')" id="filter-all">All</button>
+                <button type="button" class="btn btn-outline-success" onclick="filterResponses('yes')" id="filter-yes">Available</button>
+                <button type="button" class="btn btn-outline-danger" onclick="filterResponses('no')" id="filter-no">Unavailable</button>
+                <button type="button" class="btn btn-outline-warning" onclick="filterResponses('maybe')" id="filter-maybe">Maybe</button>
+                <button type="button" class="btn btn-outline-secondary" onclick="filterResponses('no_response')" id="filter-no_response">No Response</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="rsvpTable" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Contact</th>
+                            <th>Response</th>
+                            <th>Response Time</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in match.team.players %}
+                        {% set availability = rsvp_responses.get(player.id) %}
+                        <tr data-response="{{ availability.response if availability else 'no_response' }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        {% if player.profile_picture %}
+                                        <img src="{{ player.profile_picture }}" alt="{{ player.player_name }}" class="rounded-circle">
+                                        {% else %}
+                                        <div class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ player.player_name[0] }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">{{ player.player_name }}</span>
+                                        {% if player.discord_id %}
+                                        <br><small class="text-muted">
+                                            <i class="ti ti-brand-discord me-1"></i>Discord User
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if player.email %}
+                                <small class="d-block">
+                                    <i class="ti ti-mail me-1"></i>{{ player.email }}
+                                </small>
+                                {% endif %}
+                                {% if player.phone %}
+                                <small class="d-block">
+                                    <i class="ti ti-phone me-1"></i>{{ player.phone }}
+                                </small>
+                                {% endif %}
+                                {% if not player.email and not player.phone %}
+                                <small class="text-muted">No contact info</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if availability %}
+                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">No Response</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if availability and availability.response_time %}
+                                <small>{{ availability.response_time.strftime('%m/%d/%Y %I:%M %p') }}</small>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if availability and availability.notes %}
+                                <small>{{ availability.notes }}</small>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'yes')" title="Mark Available">
+                                        <i class="ti ti-check"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'no')" title="Mark Unavailable">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-sm" onclick="updatePlayerRsvp({{ player.id }}, 'maybe')" title="Mark Maybe">
+                                        <i class="ti ti-help"></i>
+                                    </button>
+                                    {% if player.discord_id %}
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="sendIndividualReminder({{ player.id }})" title="Send Individual Reminder">
+                                        <i class="ti ti-bell"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update RSVP Modal -->
+<div class="modal fade" id="updateRsvpModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Player RSVP</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to update <strong id="playerName"></strong>'s RSVP to <strong id="responseType"></strong>?</p>
+                <div class="mb-3">
+                    <label for="adminNotes" class="form-label">Admin Notes (Optional)</label>
+                    <textarea class="form-control" id="adminNotes" rows="3" placeholder="Add any notes about this RSVP change..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmUpdate">Update RSVP</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+let currentPlayerId = null;
+let currentResponse = null;
+
+function filterResponses(response) {
+    // Remove active class from all filter buttons
+    document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-secondary');
+    });
+    
+    // Add active class to clicked button
+    const activeBtn = document.getElementById(`filter-${response}`);
+    activeBtn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-warning', 'btn-outline-secondary');
+    activeBtn.classList.add('btn-primary');
+    
+    // Filter table rows
+    const rows = document.querySelectorAll('#rsvpTable tbody tr');
+    rows.forEach(row => {
+        const rowResponse = row.dataset.response;
+        if (response === 'all' || rowResponse === response) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function updatePlayerRsvp(playerId, response) {
+    currentPlayerId = playerId;
+    currentResponse = response;
+    
+    // Get player name from the table
+    const row = document.querySelector(`tr[data-response] td div span.fw-semibold`);
+    const playerName = row ? row.textContent : 'Player';
+    
+    // Update modal content
+    document.getElementById('playerName').textContent = playerName;
+    document.getElementById('responseType').textContent = 
+        response === 'yes' ? 'Available' : 
+        response === 'no' ? 'Unavailable' : 'Maybe';
+    
+    // Clear notes
+    document.getElementById('adminNotes').value = '';
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('updateRsvpModal'));
+    modal.show();
+}
+
+function sendReminder() {
+    if (confirm('Send RSVP reminder to all players who haven\'t responded?')) {
+        fetch(`/api/ecs-fc/matches/{{ match.id }}/remind`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reminder Sent!',
+                        text: data.message,
+                        timer: 3000
+                    });
+                } else {
+                    alert('Reminder sent successfully!');
+                }
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to send reminder'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to send reminder'));
+            }
+        });
+    }
+}
+
+function sendIndividualReminder(playerId) {
+    if (confirm('Send individual RSVP reminder to this player?')) {
+        fetch(`/api/ecs-fc/matches/{{ match.id }}/remind`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ target_players: [playerId] })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reminder Sent!',
+                        text: 'Individual reminder sent successfully',
+                        timer: 3000
+                    });
+                } else {
+                    alert('Individual reminder sent successfully!');
+                }
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to send individual reminder'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to send individual reminder'));
+            }
+        });
+    }
+}
+
+// Handle confirm update button
+document.getElementById('confirmUpdate').addEventListener('click', function() {
+    const notes = document.getElementById('adminNotes').value.trim();
+    
+    fetch('/api/ecs-fc/rsvp/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            match_id: {{ match.id }},
+            player_id: currentPlayerId,
+            response: currentResponse,
+            notes: notes || null,
+            admin_override: true
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('updateRsvpModal'));
+            modal.hide();
+            
+            // Refresh page to show updated RSVP
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            throw new Error(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to update RSVP'
+            });
+        } else {
+            alert('Error: ' + (error.message || 'Failed to update RSVP'));
+        }
+    });
+});
+
+// Initialize filter to show all
+document.addEventListener('DOMContentLoaded', function() {
+    filterResponses('all');
+});
+</script>
+{% endblock %}

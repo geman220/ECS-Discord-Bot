@@ -99,6 +99,8 @@ class CeleryConfig:
         'app.tasks.tasks_live_reporting.*': {'queue': 'live_reporting'},
         'app.tasks.tasks_match_updates.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp.*': {'queue': 'celery'},
+        'app.tasks.tasks_rsvp_ecs.*': {'queue': 'discord'},
+        'app.tasks.tasks_ecs_fc_scheduled.*': {'queue': 'discord'},
         'app.tasks.monitoring_tasks.*': {'queue': 'celery'},
         'app.tasks.tasks_maintenance.*': {'queue': 'celery'},
         'app.tasks.player_sync.*': {'queue': 'player_sync'},
@@ -198,6 +200,14 @@ class CeleryConfig:
         'schedule-weekly-match-availability': {
             'task': 'app.tasks.tasks_rsvp.schedule_weekly_match_availability',
             'schedule': crontab(day_of_week='1', hour=8, minute=0),  # Every Monday at 8:00 AM
+            'options': {
+                'queue': 'discord',
+                'expires': 3600
+            }
+        },
+        'schedule-ecs-fc-reminders': {
+            'task': 'app.tasks.tasks_ecs_fc_scheduled.schedule_ecs_fc_reminders',
+            'schedule': crontab(hour=0, minute=0),  # Daily at midnight
             'options': {
                 'queue': 'discord',
                 'expires': 3600

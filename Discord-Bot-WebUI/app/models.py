@@ -1261,8 +1261,9 @@ class Note(db.Model):
 
 class ScheduledMessage(db.Model):
     """Model representing a scheduled message for a match."""
+    __tablename__ = 'scheduled_message'
     id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)  # Made nullable for ECS FC
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='PENDING')
     home_channel_id = db.Column(db.String(20), nullable=True)
@@ -1271,8 +1272,18 @@ class ScheduledMessage(db.Model):
     away_message_id = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # New fields for enhanced functionality and ECS FC support
+    message_type = db.Column(db.String(50), default='standard')
+    message_metadata = db.Column(JSON, nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    last_send_attempt = db.Column(db.DateTime, nullable=True)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    send_error = db.Column(db.String(255), nullable=True)
+    task_name = db.Column(db.String(255), nullable=True)
 
     match = db.relationship('Match', back_populates='scheduled_messages')
+    creator = db.relationship('User', backref='created_scheduled_messages')
 
 
 class Token(db.Model):

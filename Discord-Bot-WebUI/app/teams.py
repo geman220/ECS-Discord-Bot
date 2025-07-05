@@ -33,6 +33,8 @@ from app.models import (
     PlayerEventType, PlayerEvent, PlayerTeamSeason, User,
     PlayerSeasonStats, player_teams
 )
+from app.models_ecs import is_ecs_fc_team
+from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach
 from app.forms import ReportMatchForm
 from app.teams_helpers import populate_team_stats, update_standings, process_events, process_own_goals
 from app.utils.user_helpers import safe_current_user
@@ -230,6 +232,19 @@ def team_details(team_id):
     
     # Global Admin always has access
     is_global_admin = 'Global Admin' in user_roles
+    
+    # Check if this is an ECS FC team and if user can manage it
+    is_ecs_fc = is_ecs_fc_team(team_id)
+    can_manage_ecs_fc = False
+    ecs_fc_matches = []
+    
+    if is_ecs_fc:
+        coached_teams = is_user_ecs_fc_coach(safe_current_user.id)
+        can_manage_ecs_fc = team_id in coached_teams or is_global_admin
+        
+        # Get ECS FC matches for this team
+        if can_manage_ecs_fc:
+            ecs_fc_matches = EcsFcScheduleManager.get_team_matches(team_id, upcoming_only=False)
 
     return render_template(
         'team_details.html',
@@ -245,6 +260,10 @@ def team_details(team_id):
         can_report_match=can_report_match,
         can_upload_kit=can_upload_kit,
         can_add_player=can_add_player,
+        # ECS FC specific context
+        is_ecs_fc=is_ecs_fc,
+        can_manage_ecs_fc=can_manage_ecs_fc,
+        ecs_fc_matches=ecs_fc_matches,
         can_add_match=can_add_match,
         can_view_player_stats=can_view_player_stats,
         can_view_player_cards=can_view_player_cards,

@@ -21,9 +21,54 @@ from typing import Optional, Dict, Any, Tuple
 import aiohttp
 import pytz
 from dateutil import parser
-from flask import current_app
+from flask import current_app, request, jsonify
 
 logger = logging.getLogger(__name__)
+
+
+def validate_json_request(request_obj):
+    """
+    Validate and parse JSON from a Flask request object.
+    
+    Args:
+        request_obj: Flask request object
+        
+    Returns:
+        dict: Parsed JSON data if valid, None otherwise
+    """
+    try:
+        data = request_obj.get_json()
+        if data is None:
+            logger.error("No JSON data provided")
+            return None
+        return data
+    except Exception as e:
+        logger.error(f"Error parsing JSON request: {str(e)}")
+        return None
+
+
+def create_api_response(success: bool, message: str, data: Optional[Dict[str, Any]] = None, status_code: int = 200):
+    """
+    Create a standardized API response.
+    
+    Args:
+        success: Whether the operation was successful
+        message: Response message
+        data: Optional additional data to include
+        status_code: HTTP status code
+        
+    Returns:
+        Flask response object
+    """
+    response_data = {
+        'success': success,
+        'message': message
+    }
+    
+    if data:
+        response_data['data'] = data
+    
+    return jsonify(response_data), status_code
 
 
 def get_team_id() -> str:

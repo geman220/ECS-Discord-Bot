@@ -55,10 +55,10 @@
         {% endif %}
 
         {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
-        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'Pub League Player' in user_roles %}
-        {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
-        {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'Pub League Ref' in user_roles %}
+        {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
+        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Player' in user_roles %}
+        {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
+        {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
         {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_standings or can_view_calendar or can_view_teams %}
 
         <!-- ECS FC Leagues - Only show if user has permission to view at least one link -->
@@ -182,7 +182,7 @@
         </li>
         {% endif %}
 
-        <!-- Discord Tools - Global Admin / Pub League Admin -->
+        <!-- Discord Tools - Global Admin / Pub League Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'open' if 'admin' in request.path and ('scheduled_messages' in request.path) }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
@@ -209,8 +209,8 @@
         </li>
         {% endif %}
         
-        <!-- Match Verification - Pub League Admin / Global Admin / Team Coach -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Team Coach' in user_roles %}
+        <!-- Match Verification - Pub League Admin / Global Admin Only -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_verification_dashboard' }}">
             <a class="menu-link" href="{{ url_for('admin.match_verification_dashboard') }}">
                 <i class="ti ti-clipboard-check menu-icon"></i>

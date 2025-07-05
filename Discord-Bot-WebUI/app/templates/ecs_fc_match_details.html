@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}{{ match.team.name }} vs {{ match.opponent_name }} - ECS FC Match{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header with Breadcrumb -->
+    <h4 class="fw-bold py-3 mb-3">
+        <span class="text-muted fw-light">ECS FC / Matches / </span>
+        {{ match.team.name }} vs {{ match.opponent_name }}
+    </h4>
+
+    <!-- Match Information Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="avatar avatar-lg me-3">
+                                    <div class="avatar-initial rounded-circle bg-label-primary">
+                                        <i class="ti ti-soccer-field"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1">{{ match.team.name }} vs {{ match.opponent_name }}</h3>
+                                    <div class="text-muted">
+                                        <span class="badge {{ 'bg-success' if match.is_home_match else 'bg-primary' }} me-2">
+                                            {{ 'Home' if match.is_home_match else 'Away' }} Match
+                                        </span>
+                                        <span class="badge bg-label-{{ 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' }}">
+                                            {{ match.status }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            {% if can_manage %}
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="editMatch({{ match.id }})">
+                                    <i class="ti ti-edit me-1"></i>Edit Match
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" onclick="sendReminder({{ match.id }})">
+                                    <i class="ti ti-bell me-1"></i>Send Reminder
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-calendar text-primary me-2"></i>
+                                    <h6 class="mb-0">Match Date</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.match_date.strftime('%A, %B %d, %Y') }}</p>
+                                <small class="text-muted">{{ match.match_time.strftime('%I:%M %p') }}</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-map-pin text-primary me-2"></i>
+                                    <h6 class="mb-0">Location</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.location }}</p>
+                                {% if match.field_name %}
+                                <small class="text-muted">{{ match.field_name }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-users text-primary me-2"></i>
+                                    <h6 class="mb-0">Team</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">{{ match.team.name }}</p>
+                                <small class="text-muted">{{ match.team.players|length }} players</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="border rounded p-3 h-100">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="ti ti-trophy text-primary me-2"></i>
+                                    <h6 class="mb-0">League</h6>
+                                </div>
+                                <p class="mb-0 fw-semibold">ECS FC</p>
+                                <small class="text-muted">External Match</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if match.notes %}
+                    <div class="mt-3">
+                        <h6>Match Notes</h6>
+                        <div class="alert alert-info">
+                            {{ match.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-success">
+                            <i class="ti ti-check"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-success">{{ rsvp_summary.yes }}</h4>
+                    <p class="mb-0">Available</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-danger">
+                            <i class="ti ti-x"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-danger">{{ rsvp_summary.no }}</h4>
+                    <p class="mb-0">Unavailable</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-warning">
+                            <i class="ti ti-help"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-warning">{{ rsvp_summary.maybe }}</h4>
+                    <p class="mb-0">Maybe</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <div class="avatar-initial rounded-circle bg-label-secondary">
+                            <i class="ti ti-clock"></i>
+                        </div>
+                    </div>
+                    <h4 class="mb-1 text-muted">{{ rsvp_summary.no_response }}</h4>
+                    <p class="mb-0">No Response</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Details Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Player Availability</h5>
+            {% if can_manage %}
+            <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=match.id) }}" class="btn btn-primary btn-sm">
+                <i class="ti ti-settings me-1"></i>Manage RSVPs
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Response</th>
+                            <th>Response Time</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in match.team.players %}
+                        {% set availability = rsvp_responses.get(player.id) %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar avatar-sm me-2">
+                                        {% if player.profile_picture %}
+                                        <img src="{{ player.profile_picture }}" alt="{{ player.player_name }}" class="rounded-circle">
+                                        {% else %}
+                                        <div class="avatar-initial rounded-circle bg-label-primary">
+                                            {{ player.player_name[0] }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">{{ player.player_name }}</span>
+                                        {% if player.discord_id %}
+                                        <br><small class="text-muted">Discord User</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if availability %}
+                                <span class="badge {% if availability.response == 'yes' %}bg-success{% elif availability.response == 'no' %}bg-danger{% elif availability.response == 'maybe' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {% if availability.response == 'yes' %}Available{% elif availability.response == 'no' %}Unavailable{% elif availability.response == 'maybe' %}Maybe{% else %}No Response{% endif %}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">No Response</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if availability and availability.response_time %}
+                                <small class="text-muted">{{ availability.response_time.strftime('%m/%d %I:%M %p') }}</small>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if availability and availability.notes %}
+                                <small>{{ availability.notes }}</small>
+                                {% else %}
+                                <small class="text-muted">-</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+function editMatch(matchId) {
+    // Implement edit match modal
+    alert('Edit match functionality would go here');
+}
+
+function sendReminder(matchId) {
+    if (confirm('Send RSVP reminder to all players who haven\'t responded?')) {
+        fetch(`/api/ecs-fc/matches/${matchId}/remind`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reminder Sent!',
+                        text: data.message,
+                        timer: 3000
+                    });
+                } else {
+                    alert('Reminder sent successfully!');
+                }
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to send reminder'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to send reminder'));
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
