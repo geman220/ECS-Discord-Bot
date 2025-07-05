@@ -18,6 +18,7 @@ from typing import Optional, Dict, Any
 from app.core import socketio
 from app.decorators import celery_task
 from app.models import Match, Availability, Player, ScheduledMessage
+from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import SQLAlchemyError
 from app.tasks.tasks_rsvp_helpers import (
@@ -276,22 +277,45 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
             
             for j, message_data in enumerate(batch):
                 try:
-                    if not message_data['match_id']:
-                        logger.warning(f"Skipping message {message_data['id']} - no match associated")
-                        continue
+                    # Check message type - handle ECS FC messages separately
+                    msg = session.query(ScheduledMessage).get(message_data['id'])
+                    if msg and msg.message_type == 'ecs_fc_rsvp':
+                        # Handle ECS FC message
+                        from app.tasks.tasks_ecs_fc_scheduled import send_ecs_fc_availability_message
+                        
+                        # Add delays for rate limiting
+                        individual_delay = j * 5
+                        batch_delay = batch_num * stagger_seconds
+                        total_delay = batch_delay + individual_delay
+                        
+                        send_ecs_fc_availability_message.apply_async(
+                            kwargs={'scheduled_message_id': message_data['id']},
+                            countdown=total_delay,
+                            expires=3600
+                        )
+                        
+                        logger.info(
+                            f"Queued ECS FC message {message_data['id']} (batch {batch_num + 1}, position {j + 1}) "
+                            f"with {total_delay}s delay"
+                        )
+                    else:
+                        # Handle regular pub league message
+                        if not message_data['match_id']:
+                            logger.warning(f"Skipping message {message_data['id']} - no match associated")
+                            continue
 
-                    # Add a small delay (5 seconds) between messages in the same batch
-                    individual_delay = j * 5
-                    # Add larger delay (30 seconds) between batches
-                    batch_delay = batch_num * stagger_seconds
-                    total_delay = batch_delay + individual_delay
-                    
-                    # Queue each message for sending with appropriate delay
-                    send_availability_message.apply_async(
-                        kwargs={'scheduled_message_id': message_data['id']},
-                        countdown=total_delay,
-                        expires=3600
-                    )
+                        # Add a small delay (5 seconds) between messages in the same batch
+                        individual_delay = j * 5
+                        # Add larger delay (30 seconds) between batches
+                        batch_delay = batch_num * stagger_seconds
+                        total_delay = batch_delay + individual_delay
+                        
+                        # Queue each message for sending with appropriate delay
+                        send_availability_message.apply_async(
+                            kwargs={'scheduled_message_id': message_data['id']},
+                            countdown=total_delay,
+                            expires=3600
+                        )
                     
                     logger.info(
                         f"Queued message {message_data['id']} (batch {batch_num + 1}, position {j + 1}) "

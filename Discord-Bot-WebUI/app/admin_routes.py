@@ -489,11 +489,92 @@ def schedule_season():
 @role_required(['Global Admin', 'Pub League Admin'])
 def view_scheduled_messages():
     """
-    View a list of scheduled messages.
+    View a list of scheduled messages with enhanced filtering and ECS FC support.
     """
     session = g.db_session
-    messages = session.query(ScheduledMessage).order_by(ScheduledMessage.scheduled_send_time).all()
-    return render_template('admin/scheduled_messages.html', title='Discord Scheduled Messages', messages=messages)
+    
+    # Get filter parameters
+    status_filter = request.args.get('status', '')
+    message_type_filter = request.args.get('message_type', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    # Build base query with eager loading
+    query = session.query(ScheduledMessage).options(
+        joinedload(ScheduledMessage.match).joinedload(Match.home_team),
+        joinedload(ScheduledMessage.match).joinedload(Match.away_team),
+        joinedload(ScheduledMessage.creator)
+    )
+    
+    # Apply status filter
+    if status_filter:
+        query = query.filter(ScheduledMessage.status == status_filter.upper())
+    
+    # Apply message type filter
+    if message_type_filter:
+        if message_type_filter == 'pub_league':
+            # Standard messages (no message_type or standard)
+            query = query.filter(
+                (ScheduledMessage.message_type == None) |
+                (ScheduledMessage.message_type == 'standard')
+            )
+        elif message_type_filter == 'ecs_fc':
+            query = query.filter(ScheduledMessage.message_type == 'ecs_fc_rsvp')
+        else:
+            query = query.filter(ScheduledMessage.message_type == message_type_filter)
+    
+    # Apply date range filters
+    if date_from:
+        try:
+            from_date = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(ScheduledMessage.scheduled_send_time >= from_date)
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+    
+    if date_to:
+        try:
+            to_date = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(ScheduledMessage.scheduled_send_time < to_date)
+        except ValueError:
+            pass  # Invalid date format, ignore filter
+    
+    # Get messages and order by scheduled time
+    messages = query.order_by(ScheduledMessage.scheduled_send_time.desc()).all()
+    
+    # Calculate statistics
+    total_messages = len(messages)
+    
+    # Get all messages for global stats (not filtered)
+    all_messages = session.query(ScheduledMessage).all()
+    stats = {
+        'total': len(all_messages),
+        'pending': len([m for m in all_messages if m.status == 'PENDING']),
+        'sent': len([m for m in all_messages if m.status == 'SENT']),
+        'failed': len([m for m in all_messages if m.status == 'FAILED']),
+        'queued': len([m for m in all_messages if m.status == 'QUEUED']),
+        'pub_league': len([m for m in all_messages if not m.message_type or m.message_type == 'standard']),
+        'ecs_fc': len([m for m in all_messages if m.message_type == 'ecs_fc_rsvp']),
+        'filtered_count': total_messages
+    }
+    
+    # Get unique message types for filter dropdown
+    message_types = session.query(ScheduledMessage.message_type).distinct().all()
+    available_types = ['pub_league', 'ecs_fc']
+    for msg_type in message_types:
+        if msg_type[0] and msg_type[0] not in ['standard', 'ecs_fc_rsvp']:
+            available_types.append(msg_type[0])
+    
+    return render_template('admin/scheduled_messages.html', 
+                         title='Discord Scheduled Messages', 
+                         messages=messages,
+                         stats=stats,
+                         available_types=available_types,
+                         current_filters={
+                             'status': status_filter,
+                             'message_type': message_type_filter,
+                             'date_from': date_from,
+                             'date_to': date_to
+                         })
 
 
 @admin_bp.route('/admin/force_send/<int:message_id>', endpoint='force_send_message', methods=['POST'])

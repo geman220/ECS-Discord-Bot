@@ -486,6 +486,7 @@ def init_blueprints(app):
     from app.external_api import external_api_bp
     from app.auto_schedule_routes import auto_schedule_bp
     from app.role_impersonation import role_impersonation_bp
+    from app.ecs_fc_api import ecs_fc_api
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -516,6 +517,7 @@ def init_blueprints(app):
     app.register_blueprint(external_api_bp)
     app.register_blueprint(auto_schedule_bp, url_prefix='/auto-schedule')
     app.register_blueprint(role_impersonation_bp)
+    app.register_blueprint(ecs_fc_api)
 
 def init_context_processors(app):
     """
