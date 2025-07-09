@@ -142,6 +142,7 @@ def approve_user(user_id: int):
         
         # Update user approval status
         user.approval_status = 'approved'
+        user.is_approved = True
         user.approval_league = league_type
         user.approved_by = current_user.id
         user.approved_at = datetime.utcnow()
