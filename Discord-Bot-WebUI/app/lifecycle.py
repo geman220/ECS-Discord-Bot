@@ -120,17 +120,33 @@ class RequestLifecycle:
     def _get_template_vars(self) -> Dict[str, Any]:
         """Get template variables with caching."""
         from app.models import Season
+        from flask import current_app
         
-        if not hasattr(g, 'db_session'):
+        # Always create a separate short-lived session for template variables
+        # to avoid keeping the main request transaction open during template rendering
+        session = current_app.SessionLocal()
+        try:
+            seasons = session.query(Season).filter_by(is_current=True).all()
+            seasons_dict = {}
+            for s in seasons:
+                # Trigger loading of all needed attributes before expunging
+                _ = s.id, s.name, s.league_type, s.is_current
+                # Expunge the object so it's no longer bound to this session
+                session.expunge(s)
+                seasons_dict[s.league_type] = s
+            # Commit and close quickly
+            session.commit()
+            return {'current_seasons': seasons_dict}
+        except Exception as e:
+            # If database query fails (e.g., connection timeout), return empty data
+            # to prevent template rendering from crashing
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to get template variables due to database error: {e}")
+            session.rollback()
             return {'current_seasons': {}}
-
-        session = g.db_session
-        seasons = session.query(Season).filter_by(is_current=True).all()
-        return {
-            'current_seasons': {
-                s.league_type: s for s in seasons
-            }
-        }
+        finally:
+            session.close()
 
     def _clear_request_context(self):
         """Clear all request-specific attributes."""

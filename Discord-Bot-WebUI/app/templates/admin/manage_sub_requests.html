@@ -433,10 +433,16 @@
                                             {% if req.status == 'PENDING' %}
                                             <span class="badge status-pending">
                                                 <i class="ti ti-hand-stop me-1"></i>Sub Requested
+                                                {% if req.assignments_count > 0 %}
+                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
+                                                {% endif %}
                                             </span>
                                             {% elif req.status == 'APPROVED' %}
                                             <span class="badge status-approved">
                                                 <i class="ti ti-check me-1"></i>Request Approved
+                                                {% if req.assignments_count > 0 %}
+                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
+                                                {% endif %}
                                             </span>
                                             {% elif req.status == 'DECLINED' %}
                                             <span class="badge status-declined">
@@ -444,7 +450,7 @@
                                             </span>
                                             {% elif req.status == 'FULFILLED' %}
                                             <span class="badge status-fulfilled">
-                                                <i class="ti ti-user-check me-1"></i>Sub Assigned
+                                                <i class="ti ti-user-check me-1"></i>Sub Assigned ({{ req.assignments_count }} of {{ req.substitutes_needed }})
                                             </span>
                                             {% endif %}
                                         {% else %}
@@ -457,10 +463,16 @@
                                             {% if req.status == 'PENDING' %}
                                             <span class="badge status-pending">
                                                 <i class="ti ti-hand-stop me-1"></i>Sub Requested
+                                                {% if req.assignments_count > 0 %}
+                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
+                                                {% endif %}
                                             </span>
                                             {% elif req.status == 'APPROVED' %}
                                             <span class="badge status-approved">
                                                 <i class="ti ti-check me-1"></i>Request Approved
+                                                {% if req.assignments_count > 0 %}
+                                                    <br><small>({{ req.assignments_count }} of {{ req.substitutes_needed }} assigned)</small>
+                                                {% endif %}
                                             </span>
                                             {% elif req.status == 'DECLINED' %}
                                             <span class="badge status-declined">
@@ -468,7 +480,7 @@
                                             </span>
                                             {% elif req.status == 'FULFILLED' %}
                                             <span class="badge status-fulfilled">
-                                                <i class="ti ti-user-check me-1"></i>Sub Assigned
+                                                <i class="ti ti-user-check me-1"></i>Sub Assigned ({{ req.assignments_count }} of {{ req.substitutes_needed }})
                                             </span>
                                             {% endif %}
                                         {% else %}

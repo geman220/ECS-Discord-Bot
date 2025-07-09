@@ -226,8 +226,8 @@ class RateLimitedPool(QueuePool):
 # ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': 6,            # Increased to utilize 2 CPUs effectively
-    'max_overflow': 4,         # Increased to handle traffic spikes better
+    'pool_size': 6,            # Restored to normal level
+    'max_overflow': 4,         # Restored to normal level  
     'pool_recycle': 30,        # Keep this value for connection health
     'pool_timeout': 5,         # Keep this value for failing fast
     'poolclass': RateLimitedPool,

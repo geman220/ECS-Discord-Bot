@@ -583,16 +583,28 @@ function loadAvailableSubs() {
         return;
       }
       
-      // When the modal is shown, fetch available subs
+      // When the modal is shown, fetch substitute responses
       $('#assignSubModalRSVP').on('shown.bs.modal', function() {
         var subPlayerSelect = $('#subPlayerRSVP');
         
         // Clear existing options except the default
         subPlayerSelect.find('option:not(:first)').remove();
-        subPlayerSelect.append('<option value="loading" disabled>Loading available substitutes...</option>');
+        subPlayerSelect.append('<option value="loading" disabled>Loading substitute responses...</option>');
         
-        // Fetch available subs using AJAX
-        fetch('/admin/subs/available')
+        // Determine match type and ID from the form
+        var matchIdValue = $('input[name="match_id"]').val();
+        var matchType, matchId;
+        
+        if (matchIdValue.startsWith('ecs_')) {
+          matchType = 'ecs';
+          matchId = matchIdValue.substring(4); // Remove 'ecs_' prefix
+        } else {
+          matchType = 'regular';
+          matchId = matchIdValue;
+        }
+        
+        // Fetch substitute responses with color coding
+        fetch(`/api/substitute-pools/responses/${matchType}/${matchId}`)
           .then(response => {
             if (!response.ok) {
               throw new Error('Network response was not ok');
@@ -600,29 +612,45 @@ function loadAvailableSubs() {
             return response.json();
           })
           .then(data => {
-            // Get subs array from response
-            var subData = data.subs || [];
-            
             // Clear loading option
             subPlayerSelect.find('option[value="loading"]').remove();
             
-            // Add subs to select
-            if (subData.length > 0) {
-              subData.forEach(function(sub) {
-                subPlayerSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+            if (data.success && data.substitutes && data.substitutes.length > 0) {
+              // Update form text to show response status
+              if (data.has_responses) {
+                $('.form-text').html('<i class="ti ti-info-circle me-1"></i> <span class="text-success">Green = Available</span>, <span class="text-muted">Gray = No Response</span>, <span class="text-danger">Red = Not Available</span>');
+              }
+              
+              // Add substitutes to select with color coding
+              data.substitutes.forEach(function(sub) {
+                var option = new Option(sub.name, sub.id);
+                
+                // Add CSS classes for color coding
+                if (sub.response_status === 'available') {
+                  option.className = 'text-success fw-bold';
+                  option.textContent = `✓ ${sub.name}`;
+                } else if (sub.response_status === 'not_available') {
+                  option.className = 'text-danger';
+                  option.textContent = `✗ ${sub.name}`;
+                } else {
+                  option.className = 'text-muted';
+                  option.textContent = `- ${sub.name}`;
+                }
+                
+                subPlayerSelect.append(option);
               });
             } else {
-              subPlayerSelect.append('<option value="" disabled>No available substitutes found</option>');
+              subPlayerSelect.append('<option value="" disabled>No substitutes found</option>');
             }
           })
           .catch(error => {
-            // console.error('Error fetching substitutes:', error);
+            console.error('Error fetching substitute responses:', error);
             subPlayerSelect.find('option[value="loading"]').remove();
             subPlayerSelect.append('<option value="" disabled>Error loading substitutes</option>');
             
             // Show error toast if toastr is available
             if (window.toastr) {
-              toastr.error('Failed to load available substitutes. Please try again.');
+              toastr.error('Failed to load substitute responses. Please try again.');
             }
           });
       });

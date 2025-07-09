@@ -437,11 +437,11 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
         # Filter out matches that already have Redis-scheduled tasks
         filtered_matches = []
         for match in due_matches:
-            redis_key = f"match_scheduler:{match.match_id}:thread"
+            redis_key = f"match_scheduler:{match.id}:thread"
             if not redis.exists(redis_key):
                 filtered_matches.append(match)
             else:
-                logger.info(f"Skipping match {match.match_id} - already has Redis-scheduled thread task")
+                logger.info(f"Skipping match {match.id} - already has Redis-scheduled thread task")
         
         due_matches = filtered_matches
 
@@ -505,7 +505,7 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
             
             # Schedule thread creation with appropriate delay
             result = force_create_mls_thread_task.apply_async(
-                args=[match.match_id],
+                args=[match.id],
                 countdown=int(total_delay)
             )
             

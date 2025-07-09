@@ -41,7 +41,7 @@ async def send_ecs_fc_rsvp_message_async(match_data: Dict[str, Any]) -> Dict[str
     Returns:
         Dictionary with success status and message details
     """
-    bot_api_url = "http://discord-bot:5001/api/ecs_fc/post_rsvp_message"
+    bot_api_url = current_app.config.get('BOT_API_URL', 'http://discord-bot:5001') + "/api/ecs_fc/post_rsvp_message"
     max_retries = 3
     initial_backoff = 5
 
@@ -175,7 +175,7 @@ async def send_ecs_fc_dm_batch_async(dm_list: List[Dict[str, str]]) -> Dict[str,
     Returns:
         Dictionary with success counts and details
     """
-    bot_api_url = "http://discord-bot:5001/api/ecs_fc/send_dm_batch"
+    bot_api_url = current_app.config.get('BOT_API_URL', 'http://discord-bot:5001') + "/api/ecs_fc/send_dm_batch"
     
     payload = {
         "dm_list": dm_list
@@ -216,7 +216,7 @@ async def update_ecs_fc_rsvp_embed_async(match_id: int) -> Dict[str, Any]:
     Returns:
         Dictionary with success status and details
     """
-    bot_api_url = f"http://discord-bot:5001/api/ecs_fc/update_rsvp_embed/{match_id}"
+    bot_api_url = current_app.config.get('BOT_API_URL', 'http://discord-bot:5001') + f"/api/ecs_fc/update_rsvp_embed/{match_id}"
     max_retries = 3
     retry_delay = 2
     

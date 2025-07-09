@@ -53,6 +53,7 @@ def get_effective_roles():
         return get_impersonated_roles()
     else:
         if safe_current_user.is_authenticated:
+            # Access roles directly from the safe_current_user which has proper session binding
             return [role.name for role in safe_current_user.roles]
         return []
 
@@ -63,6 +64,7 @@ def get_effective_permissions():
         return get_impersonated_permissions()
     else:
         if safe_current_user.is_authenticated:
+            # Access roles and permissions directly from the safe_current_user which has proper session binding
             return [
                 permission.name
                 for role in safe_current_user.roles
@@ -142,6 +144,7 @@ def start_impersonation():
         
         # Store original roles if not already impersonating
         if not is_impersonation_active():
+            # Access roles directly from the safe_current_user which has proper session binding
             original_roles = [role.name for role in safe_current_user.roles]
             session[ORIGINAL_ROLES_KEY] = original_roles
         
@@ -205,6 +208,7 @@ def stop_impersonation_form():
     """Stop role impersonation via form submission (for the banner button)."""
     try:
         # Check REAL user roles (not impersonated), since we need to stop impersonation
+        # Access roles directly from the safe_current_user which has proper session binding
         real_user_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
         if 'Global Admin' not in real_user_roles:
             show_error('Access denied: Only Global Admins can use role impersonation.')
@@ -236,6 +240,7 @@ def debug_roles():
     from app.role_impersonation import is_impersonation_active, get_effective_roles, get_effective_permissions
     
     try:
+        # Access roles directly from the safe_current_user which has proper session binding
         real_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
         effective_roles = get_effective_roles()
         effective_permissions = get_effective_permissions()

@@ -426,7 +426,8 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         'response': availability.response if availability else 'No Response',
         'responded_at': availability.responded_at if availability else None,
         'discord_synced': availability.discord_id is not None if availability else False,
-        'is_temp_sub': False
+        'is_temp_sub': False,
+        'assignment_id': None  # Regular team players don't have assignment_id
     } for player, availability in players_with_availability]
     
     # Get temporary subs assigned to this match
@@ -456,6 +457,63 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
             'assignment_id': assignment.id,
             'assigned_by': assignment.assigner.username if hasattr(assignment, 'assigner') else 'Unknown'
         })
+    
+    # Add substitute assignments from unified substitute system
+    try:
+        from app.models_substitute_pools import SubstituteAssignment, SubstituteRequest
+        
+        # Determine league type from the match teams
+        home_team = match.home_team
+        if home_team and home_team.league:
+            league_name = home_team.league.name
+            if 'Premier' in league_name:
+                league_type = 'Premier'
+            elif 'Classic' in league_name:
+                league_type = 'Classic'
+            else:
+                league_type = 'Classic'  # Default
+        else:
+            league_type = 'Classic'  # Default
+        
+        # Get substitute assignments for this regular match
+        substitute_assignments = session.query(SubstituteAssignment).join(
+            SubstituteRequest
+        ).options(
+            joinedload(SubstituteAssignment.player).joinedload(Player.user),
+            joinedload(SubstituteAssignment.assigned_by)
+        ).filter(
+            SubstituteRequest.match_id == match.id,
+            SubstituteRequest.league_type == league_type
+        ).all()
+        
+        # Add substitute assignments to the data
+        for assignment in substitute_assignments:
+            player = assignment.player
+            assigned_by_user = assignment.assigned_by
+            
+            if player:
+                # Determine which team they're assigned to based on the request
+                request = assignment.request
+                assigned_team = session.query(Team).get(request.team_id) if request else match.home_team
+                
+                rsvp_data.append({
+                    'player': player,
+                    'team': assigned_team,
+                    'response': 'Substitute',
+                    'responded_at': assignment.created_at,
+                    'discord_synced': False,
+                    'is_temp_sub': True,
+                    'assigned_by': assigned_by_user.username if assigned_by_user else 'Admin',
+                    'assignment_notes': assignment.notes or '',
+                    'position_assigned': assignment.position_assigned or '',
+                    'assignment_id': assignment.id  # Add assignment_id for remove button
+                })
+    
+    except ImportError:
+        # Unified substitute system not available, skip
+        pass
+    except Exception as e:
+        logger.warning(f"Could not load substitute assignments for match {match.id}: {e}")
 
     return sorted(rsvp_data, key=lambda x: (x['team'].name, x['is_temp_sub'], x['player'].name))
 
@@ -505,11 +563,88 @@ def get_ecs_fc_rsvp_status_data(ecs_match, session=None):
         'response': availability.response if availability else 'No Response',
         'responded_at': availability.response_time if availability else None,
         'discord_synced': availability.discord_id is not None if availability else False,
-        'is_temp_sub': False
+        'is_temp_sub': False,
+        'assignment_id': None  # Regular team players don't have assignment_id
     } for player, availability in players_with_availability]
     
-    # Note: ECS FC matches don't currently support temporary subs, but the structure 
-    # is here for future expansion if needed
+    # Add substitute assignments from unified substitute system
+    try:
+        from app.models_substitute_pools import SubstituteAssignment, SubstituteRequest
+        
+        # Get substitute assignments for this ECS FC match
+        substitute_assignments = session.query(SubstituteAssignment).join(
+            SubstituteRequest
+        ).options(
+            joinedload(SubstituteAssignment.player).joinedload(Player.user),
+            joinedload(SubstituteAssignment.assigner)
+        ).filter(
+            SubstituteRequest.match_id == ecs_match.id,
+            SubstituteRequest.league_type == 'ECS FC'
+        ).all()
+        
+        # Add substitute assignments to the data
+        for assignment in substitute_assignments:
+            player = assignment.player
+            assigned_by_user = assignment.assigner
+            
+            if player:
+                rsvp_data.append({
+                    'player': player,
+                    'team': team,
+                    'response': 'Substitute',
+                    'responded_at': assignment.created_at,
+                    'discord_synced': False,
+                    'is_temp_sub': True,
+                    'assigned_by': assigned_by_user.username if assigned_by_user else 'Admin',
+                    'assignment_notes': assignment.notes or '',
+                    'position_assigned': assignment.position_assigned or '',
+                    'assignment_id': assignment.id  # Add assignment_id for remove button
+                })
+    
+    except ImportError:
+        # Unified substitute system not available, skip
+        pass
+    except Exception as e:
+        logger.warning(f"Could not load unified substitute assignments for ECS FC match {ecs_match.id}: {e}")
+    
+    # Add ECS FC specific substitute assignments
+    try:
+        from app.models_ecs_subs import EcsFcSubAssignment
+        
+        # Get ECS FC substitute assignments for this match
+        ecs_fc_assignments = session.query(EcsFcSubAssignment).join(
+            EcsFcSubAssignment.request
+        ).options(
+            joinedload(EcsFcSubAssignment.player).joinedload(Player.user),
+            joinedload(EcsFcSubAssignment.assigner)
+        ).filter(
+            EcsFcSubAssignment.request.has(match_id=ecs_match.id)
+        ).all()
+        
+        # Add ECS FC substitute assignments to the data
+        for assignment in ecs_fc_assignments:
+            player = assignment.player
+            assigned_by_user = assignment.assigner
+            
+            if player:
+                rsvp_data.append({
+                    'player': player,
+                    'team': team,
+                    'response': 'Substitute',
+                    'responded_at': assignment.assigned_at,
+                    'discord_synced': False,
+                    'is_temp_sub': True,
+                    'assigned_by': assigned_by_user.username if assigned_by_user else 'Admin',
+                    'assignment_notes': assignment.notes or '',
+                    'position_assigned': assignment.position_assigned or '',
+                    'assignment_id': assignment.id  # Add assignment_id for remove button
+                })
+    
+    except ImportError:
+        # ECS FC substitute system not available, skip
+        pass
+    except Exception as e:
+        logger.warning(f"Could not load ECS FC substitute assignments for ECS FC match {ecs_match.id}: {e}")
     
     return sorted(rsvp_data, key=lambda x: (x['player'].name))
 
@@ -835,6 +970,21 @@ def assign_sub_to_team(match_id: int, player_id: int, team_id: int, user_id: int
         if existing_assignment:
             return False, "Player is already assigned as a sub for this match"
             
+        # Check if team already has enough substitutes assigned
+        sub_request = session.query(SubRequest).filter_by(
+            match_id=match_id,
+            team_id=team_id
+        ).first()
+        
+        if sub_request:
+            current_assignments = session.query(TemporarySubAssignment).filter_by(
+                match_id=match_id,
+                team_id=team_id
+            ).count()
+            
+            if current_assignments >= sub_request.substitutes_needed:
+                return False, f"Team already has {current_assignments} of {sub_request.substitutes_needed} substitutes assigned"
+            
         # Create the assignment
         sub_assignment = TemporarySubAssignment(
             match_id=match_id,
@@ -1015,7 +1165,7 @@ def get_sub_requests(filters=None, session=None):
     return query
 
 
-def create_sub_request(match_id, team_id, requested_by, notes=None, session=None):
+def create_sub_request(match_id, team_id, requested_by, notes=None, substitutes_needed=1, session=None):
     """
     Create a new sub request.
     
@@ -1024,6 +1174,7 @@ def create_sub_request(match_id, team_id, requested_by, notes=None, session=None
         team_id: The ID of the team.
         requested_by: The ID of the user making the request.
         notes: (Optional) Additional notes for the request.
+        substitutes_needed: (Optional) Number of substitutes needed (default 1).
         session: (Optional) A SQLAlchemy session to use for the query.
         
     Returns:
@@ -1057,6 +1208,7 @@ def create_sub_request(match_id, team_id, requested_by, notes=None, session=None
             team_id=team_id,
             requested_by=requested_by,
             notes=notes,
+            substitutes_needed=substitutes_needed,
             status='PENDING',
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()

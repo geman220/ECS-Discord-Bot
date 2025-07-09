@@ -239,12 +239,52 @@ def team_details(team_id):
     ecs_fc_matches = []
     
     if is_ecs_fc:
-        coached_teams = is_user_ecs_fc_coach(safe_current_user.id)
-        can_manage_ecs_fc = team_id in coached_teams or is_global_admin
+        # Check for role impersonation first, then fall back to real roles
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        
+        if is_impersonation_active():
+            effective_roles = get_effective_roles()
+        else:
+            effective_roles = user_roles
+        
+        # Check if user has proper ECS FC permissions through roles
+        can_manage_ecs_fc = (
+            'Global Admin' in effective_roles or
+            'Pub League Admin' in effective_roles or
+            'ECS FC Coach' in effective_roles
+        )
+        
+        # Don't allow if user is ONLY a Pub League Player (even if they have other roles)
+        if effective_roles == ['Pub League Player']:
+            can_manage_ecs_fc = False
         
         # Get ECS FC matches for this team
         if can_manage_ecs_fc:
             ecs_fc_matches = EcsFcScheduleManager.get_team_matches(team_id, upcoming_only=False)
+            
+            # Add ECS FC matches to the main schedule
+            for ecs_match in ecs_fc_matches:
+                schedule[ecs_match.match_date].append({
+                    'id': f'ecs_{ecs_match.id}',  # Prefix to distinguish from regular matches
+                    'ecs_fc_match_id': ecs_match.id,  # Store the actual ECS FC match ID
+                    'time': ecs_match.match_time,
+                    'location': ecs_match.location,
+                    'opponent_name': ecs_match.opponent_name,
+                    'home_team_name': team.name if ecs_match.is_home_match else ecs_match.opponent_name,
+                    'away_team_name': ecs_match.opponent_name if ecs_match.is_home_match else team.name,
+                    'home_team_id': team_id if ecs_match.is_home_match else None,
+                    'away_team_id': None if ecs_match.is_home_match else team_id,
+                    'your_team_score': 'N/A',  # ECS FC matches don't have scores yet
+                    'opponent_score': 'N/A',
+                    'result_class': 'info',  # Use info class for ECS FC matches
+                    'result_text': 'ECS FC',  # Show ECS FC badge instead of W/L/T
+                    'display_score': 'ECS FC Match',
+                    'reported': False,  # ECS FC matches use different reporting system
+                    'is_ecs_fc': True,  # Flag to identify ECS FC matches in template
+                    'field_name': ecs_match.field_name,
+                    'notes': ecs_match.notes,
+                    'status': ecs_match.status
+                })
 
     return render_template(
         'team_details.html',
@@ -827,7 +867,6 @@ def season_overview():
         return (
             query.group_by(Player.id, Team.id, League.name)
             .order_by(
-                League.name,
                 func.sum(PlayerSeasonStats.goals).desc()
             )
             .all()
@@ -859,7 +898,6 @@ def season_overview():
         return (
             query.group_by(Player.id, Team.id, League.name)
             .order_by(
-                League.name,
                 func.sum(PlayerSeasonStats.assists).desc()
             )
             .all()

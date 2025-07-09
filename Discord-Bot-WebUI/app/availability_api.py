@@ -741,11 +741,13 @@ def is_user_on_team():
 def get_scheduled_messages():
     """
     Retrieve all scheduled messages along with associated match and team IDs.
+    Includes both pub league matches and ECS FC matches.
     """
     from app.core.session_manager import managed_session
 
     with managed_session() as session_db:
-        messages = (
+        # Get pub league messages (existing logic)
+        pub_league_messages = (
             session_db.query(
                 ScheduledMessage.match_id,
                 ScheduledMessage.home_channel_id,
@@ -759,17 +761,58 @@ def get_scheduled_messages():
             .all()
         )
 
-    messages_data = [{
+        # Get ECS FC messages (new logic)
+        ecs_fc_messages = (
+            session_db.query(ScheduledMessage)
+            .filter(
+                ScheduledMessage.message_type == 'ecs_fc_rsvp',
+                ScheduledMessage.match_id.is_(None)
+            )
+            .all()
+        )
+        
+        # Debug logging
+        logger.info(f"Found {len(pub_league_messages)} pub league messages and {len(ecs_fc_messages)} ECS FC messages")
+
+    # Format pub league messages (existing format)
+    pub_league_data = [{
         'match_id': m.match_id,
         'home_channel_id': m.home_channel_id,
         'home_message_id': m.home_message_id,
         'away_channel_id': m.away_channel_id,
         'away_message_id': m.away_message_id,
         'home_team_id': m.home_team_id,
-        'away_team_id': m.away_team_id
-    } for m in messages]
+        'away_team_id': m.away_team_id,
+        'message_type': 'pub_league'
+    } for m in pub_league_messages]
 
-    return jsonify(messages_data), 200
+    # Format ECS FC messages (new format)
+    ecs_fc_data = []
+    for m in ecs_fc_messages:
+        metadata = m.message_metadata or {}
+        discord_message_id = metadata.get('discord_message_id')
+        discord_channel_id = metadata.get('discord_channel_id')
+        ecs_fc_match_id = metadata.get('ecs_fc_match_id')
+        
+        logger.debug(f"ECS FC message {m.id}: metadata={metadata}")
+        
+        if discord_message_id and discord_channel_id:
+            ecs_fc_data.append({
+                'match_id': f'ecs_{ecs_fc_match_id}',  # Use ECS FC format
+                'ecs_fc_match_id': ecs_fc_match_id,
+                'home_channel_id': discord_channel_id,
+                'home_message_id': discord_message_id,
+                'away_channel_id': None,  # ECS FC only has one team
+                'away_message_id': None,
+                'home_team_id': ecs_fc_match_id,  # Use match ID as team identifier
+                'away_team_id': None,
+                'message_type': 'ecs_fc'
+            })
+
+    # Combine both types of messages
+    all_messages = pub_league_data + ecs_fc_data
+
+    return jsonify(all_messages), 200
 
 
 @availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])

@@ -1,11 +1,12 @@
 """
-ECS FC Discord Bot API
+ECS FC Discord Bot API Router
 
 This module provides REST API endpoints specifically for ECS FC Discord bot integration.
 It handles RSVP message posting, embed updates, and direct message batches for ECS FC matches.
+This router is designed to be included in the main bot API.
 """
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -18,11 +19,10 @@ from datetime import datetime
 from discord.ext import commands
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(title="ECS FC Discord Bot API", version="1.0.0")
+# Initialize FastAPI router
+router = APIRouter(prefix="/api/ecs_fc", tags=["ECS FC"])
 
 # Pydantic models for request/response validation
 class RSVPMessageRequest(BaseModel):
@@ -174,7 +174,7 @@ def create_ecs_fc_embed(request: RSVPMessageRequest, response_counts: Dict[str, 
     
     return embed
 
-@app.post("/api/ecs_fc/post_rsvp_message", response_model=RSVPMessageResponse)
+@router.post("/post_rsvp_message", response_model=RSVPMessageResponse)
 async def post_rsvp_message(request: RSVPMessageRequest, bot: commands.Bot = Depends(get_bot)):
     """
     Send an RSVP message to an ECS FC team's Discord channel.
@@ -247,7 +247,7 @@ async def store_rsvp_message_id(match_id: int, message_id: str, channel_id: str)
     except Exception as e:
         logger.error(f"Error storing RSVP message ID: {str(e)}")
 
-@app.post("/api/ecs_fc/update_rsvp_embed/{match_id}", response_model=UpdateEmbedResponse)
+@router.post("/update_rsvp_embed/{match_id}", response_model=UpdateEmbedResponse)
 async def update_rsvp_embed(match_id: int, bot: commands.Bot = Depends(get_bot)):
     """
     Update an existing ECS FC RSVP message with current response counts.
@@ -344,7 +344,7 @@ async def get_ecs_fc_match_details(match_id: int) -> Optional[Dict[str, Any]]:
         logger.error(f"Error getting match details for match {match_id}: {str(e)}")
         return None
 
-@app.post("/api/ecs_fc/send_dm_batch", response_model=DMBatchResponse)
+@router.post("/send_dm_batch", response_model=DMBatchResponse)
 async def send_dm_batch(request: DMBatchRequest, bot: commands.Bot = Depends(get_bot)):
     """
     Send direct messages to multiple players (for RSVP reminders).
@@ -436,12 +436,8 @@ async def send_dm_batch(request: DMBatchRequest, bot: commands.Bot = Depends(get
         details=details
     )
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=5002)
+# Health check endpoint for ECS FC functionality
+@router.get("/health")
+async def ecs_fc_health_check():
+    """Health check endpoint for ECS FC functionality."""
+    return {"status": "healthy", "service": "ecs_fc", "timestamp": datetime.utcnow().isoformat()}

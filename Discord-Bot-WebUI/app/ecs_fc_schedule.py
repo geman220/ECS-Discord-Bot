@@ -506,9 +506,9 @@ class EcsFcScheduleManager:
             # Create scheduled message with ECS FC metadata
             scheduled_message = ScheduledMessage(
                 scheduled_send_time=send_time,
-                status='PENDING',
+                status='QUEUED',
                 message_type='ecs_fc_rsvp',
-                metadata={
+                message_metadata={
                     'ecs_fc_match_id': match.id,
                     'team_id': team.id,
                     'team_name': team.name,

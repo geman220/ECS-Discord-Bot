@@ -184,7 +184,7 @@
 
         <!-- Discord Tools - Global Admin / Pub League Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'open' if 'admin' in request.path and ('scheduled_messages' in request.path) }}">
+        <li class="menu-item {{ 'open' if ('admin' in request.path and ('scheduled_messages' in request.path)) or request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i data-feather="link" class="menu-icon"></i>
                 <div>Discord Tools</div>
@@ -195,6 +195,57 @@
                         <div>Scheduled Messages</div>
                     </a>
                 </li>
+                <li class="menu-item {{ 'active' if request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}">
+                    <a class="menu-link" href="{{ url_for('admin.manage_polls') }}">
+                        <div>League Polls</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+        
+        <!-- Player Management - Pub League Admin / Global Admin Only -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'open' if request.endpoint == 'admin.user_approvals' or request.endpoint == 'user_management.manage_users' or 'user_management' in request.path or 'players' in request.path }}">
+            <a class="menu-link menu-toggle" href="javascript:void(0);">
+                <i class="ti ti-users menu-icon"></i>
+                <div>Player Management</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_approvals' }}">
+                    <a class="menu-link" href="{{ url_for('admin.user_approvals') }}">
+                        <div>User Approvals</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'user_management.manage_users' or 'user_management' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
+                        <div>Manage Players</div>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {% endif %}
+        
+        <!-- Substitute Management - Pub League Admin / Global Admin / ECS FC Coach -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'ECS FC Coach' in user_roles %}
+        <li class="menu-item {{ 'open' if 'substitute' in request.path or 'sub_requests' in request.path }}">
+            <a class="menu-link menu-toggle" href="javascript:void(0);">
+                <i class="ti ti-user-plus menu-icon"></i>
+                <div>Substitute Management</div>
+            </a>
+            <ul class="menu-sub">
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.substitute_pool.manage_substitute_pools' }}">
+                    <a class="menu-link" href="{{ url_for('admin.substitute_pool.manage_substitute_pools') }}">
+                        <div>Substitute Pools</div>
+                    </a>
+                </li>
+                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.manage_sub_requests' }}">
+                    <a class="menu-link" href="{{ url_for('admin.manage_sub_requests') }}">
+                        <div>Sub Requests</div>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </li>
         {% endif %}
@@ -219,35 +270,7 @@
         </li>
         {% endif %}
         
-        <!-- Sub Requests - Pub League Admin / Global Admin -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'admin.manage_sub_requests' }}">
-            <a class="menu-link" href="{{ url_for('admin.manage_sub_requests') }}">
-                <i class="ti ti-hand-stop menu-icon"></i>
-                <div>Sub Requests</div>
-            </a>
-        </li>
-        {% endif %}
-        
-        <!-- League Polls - Pub League Admin / Global Admin -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.endpoint in ['admin.manage_polls', 'admin.create_poll', 'admin.poll_results'] }}">
-            <a class="menu-link" href="{{ url_for('admin.manage_polls') }}">
-                <i class="ti ti-clipboard-list menu-icon"></i>
-                <div>League Polls</div>
-            </a>
-        </li>
-        {% endif %}
 
-        <!-- User & Player Management - Pub League Admin and Global Admin -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if 'manage_users' in request.path or 'players' in request.path }}">
-            <a class="menu-link" href="{{ url_for('user_management.manage_users') }}">
-                <i data-feather="users" class="menu-icon"></i>
-                <div>User & Player Management</div>
-            </a>
-        </li>
-        {% endif %}
 
         <!-- Discord Admin Section Header -->
         {% if 'Discord Admin' in user_roles or 'Global Admin' in user_roles %}

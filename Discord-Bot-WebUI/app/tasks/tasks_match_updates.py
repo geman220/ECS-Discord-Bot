@@ -121,7 +121,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
     Fetch match and team ID based on Discord message details.
 
     This task locates a ScheduledMessage record by matching the provided channel and message IDs.
-    Depending on which channel (home or away) the message came from, it returns the corresponding team ID.
+    Handles both regular pub league messages and ECS FC messages.
 
     Args:
         session: The database session.
@@ -135,33 +135,71 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
         Retries the task on SQLAlchemy or general errors.
     """
     try:
+        # First try regular pub league messages
         scheduled_message = session.query(ScheduledMessage).filter(
             ((ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id)) |
             ((ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id))
         ).first()
 
-        if not scheduled_message:
-            logger.error(f"No scheduled message found for message_id: {message_id}")
-            return {'success': False, 'message': 'Message ID not found'}
+        if scheduled_message:
+            # Regular pub league message
+            if scheduled_message.home_channel_id == channel_id and scheduled_message.home_message_id == message_id:
+                team_id = scheduled_message.match.home_team_id
+            elif scheduled_message.away_channel_id == channel_id and scheduled_message.away_message_id == message_id:
+                team_id = scheduled_message.match.away_team_id
+            else:
+                logger.error(f"Team ID not found for message: {message_id}")
+                return {'success': False, 'message': 'Team ID not found'}
 
-        # Determine the team ID based on the channel the message was sent in.
-        if scheduled_message.home_channel_id == channel_id and scheduled_message.home_message_id == message_id:
-            team_id = scheduled_message.match.home_team_id
-        elif scheduled_message.away_channel_id == channel_id and scheduled_message.away_message_id == message_id:
-            team_id = scheduled_message.match.away_team_id
-        else:
-            logger.error(f"Team ID not found for message: {message_id}")
-            return {'success': False, 'message': 'Team ID not found'}
+            # Update the last fetch timestamp
+            scheduled_message.last_fetch = datetime.utcnow()
 
-        # Update the last fetch timestamp.
-        scheduled_message.last_fetch = datetime.utcnow()
+            logger.info(f"Found pub league match_id: {scheduled_message.match_id}, team_id: {team_id}")
+            return {
+                'success': True,
+                'match_id': scheduled_message.match_id,
+                'team_id': team_id,
+                'match_type': 'pub_league'
+            }
+        
+        # Try ECS FC messages
+        ecs_message = session.query(ScheduledMessage).filter(
+            ScheduledMessage.message_type == 'ecs_fc_rsvp',
+            ScheduledMessage.message_metadata.op('->>')('discord_message_id') == str(message_id),
+            ScheduledMessage.message_metadata.op('->>')('discord_channel_id') == str(channel_id)
+        ).first()
+        
+        if ecs_message:
+            # Extract ECS FC match ID from metadata
+            metadata = ecs_message.message_metadata or {}
+            ecs_fc_match_id = metadata.get('ecs_fc_match_id')
+            
+            if not ecs_fc_match_id:
+                logger.error(f"No ECS FC match ID in metadata for message: {message_id}")
+                return {'success': False, 'message': 'ECS FC match ID not found in metadata'}
+            
+            # Get the ECS FC match to find team ID
+            from app.models_ecs import EcsFcMatch
+            ecs_match = session.query(EcsFcMatch).filter(EcsFcMatch.id == ecs_fc_match_id).first()
+            
+            if not ecs_match:
+                logger.error(f"ECS FC match {ecs_fc_match_id} not found")
+                return {'success': False, 'message': 'ECS FC match not found'}
+            
+            # Update the last fetch timestamp
+            ecs_message.last_fetch = datetime.utcnow()
+            
+            logger.info(f"Found ECS FC match_id: ecs_{ecs_fc_match_id}, team_id: {ecs_match.team_id}")
+            return {
+                'success': True,
+                'match_id': f'ecs_{ecs_fc_match_id}',
+                'team_id': ecs_match.team_id,
+                'match_type': 'ecs_fc',
+                'ecs_fc_match_id': ecs_fc_match_id
+            }
 
-        logger.info(f"Found match_id: {scheduled_message.match_id}, team_id: {team_id}")
-        return {
-            'success': True,
-            'match_id': scheduled_message.match_id,
-            'team_id': team_id
-        }
+        logger.error(f"No scheduled message found for message_id: {message_id}")
+        return {'success': False, 'message': 'Message ID not found'}
 
     except SQLAlchemyError as e:
         logger.error(f"Database error fetching match and team ID: {str(e)}", exc_info=True)

@@ -480,18 +480,18 @@ def register_with_discord():
                         logger.error(f"Error inviting user to Discord server: {str(e)}")
                         # Continue despite invite failure - we'll handle Discord role assignment separately
                 
-                # Try to assign the SUB role (ID: 1357770021157212430)
+                # Try to assign the ECS-FC-PL-UNVERIFIED role (previously SUB role)
                 try:
-                    sub_role_id = "1357770021157212430"
+                    unverified_role_id = "1357770021157212430"  # Reuse the same Discord role ID
                     await assign_role_to_member(
                         int(current_app.config['SERVER_ID']), 
                         discord_id, 
-                        sub_role_id, 
+                        unverified_role_id, 
                         session
                     )
-                    logger.info(f"Successfully assigned SUB role to Discord user {discord_id}")
+                    logger.info(f"Successfully assigned ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}")
                 except Exception as e:
-                    logger.error(f"Error assigning SUB role to Discord user {discord_id}: {str(e)}")
+                    logger.error(f"Error assigning ECS-FC-PL-UNVERIFIED role to Discord user {discord_id}: {str(e)}")
                     # Continue despite role assignment failure - registration can still proceed
                 
                 return {'success': True}
@@ -508,12 +508,12 @@ def register_with_discord():
             logger.error(f"Error with Discord server integration: {str(e)}")
             show_warning("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.")
         
-        # Find the SUB role in database
-        sub_role = db_session.query(Role).filter_by(name='SUB').first()
-        if not sub_role:
+        # Find the pl-unverified role in database
+        unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+        if not unverified_role:
             # Create the role if it doesn't exist
-            sub_role = Role(name='SUB', description='Substitute Player')
-            db_session.add(sub_role)
+            unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
+            db_session.add(unverified_role)
             db_session.flush()
         
         # Create the user
@@ -527,7 +527,8 @@ def register_with_discord():
             username=username,
             email=discord_email,
             is_approved=True,  # Auto-approve Discord users
-            roles=[sub_role]   # Assign SUB role
+            approval_status='pending',  # Set to pending for approval workflow
+            roles=[unverified_role]   # Assign pl-unverified role
         )
         new_user.set_password(temp_password)
         db_session.add(new_user)
@@ -539,7 +540,7 @@ def register_with_discord():
             user_id=new_user.id,
             discord_id=discord_id,
             is_current_player=True,
-            is_sub=True  # Set is_sub flag since SUB role is assigned
+            is_sub=True  # Set is_sub flag since pl-unverified role is assigned
         )
         db_session.add(player)
         db_session.flush()

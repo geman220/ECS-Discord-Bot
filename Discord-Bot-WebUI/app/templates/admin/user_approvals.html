@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+
+{% block title %}User Approvals{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Card hover effect */
+    .shadow-sm {
+        transition: all 0.2s ease;
+    }
+    
+    .shadow-sm:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        font-weight: normal;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .badge.bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+        color: #696cff !important;
+    }
+    
+    .badge.bg-label-success {
+        background-color: rgba(40, 199, 111, 0.16) !important;
+        color: #28c76f !important;
+    }
+    
+    .badge.bg-label-warning {
+        background-color: rgba(255, 159, 67, 0.16) !important;
+        color: #ff9f43 !important;
+    }
+    
+    .badge.bg-label-danger {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    .status-pending {
+        background-color: rgba(255, 171, 0, 0.16) !important;
+        color: #ffab00 !important;
+    }
+    
+    .status-approved {
+        background-color: rgba(3, 195, 236, 0.16) !important;
+        color: #03c3ec !important;
+    }
+    
+    .status-denied {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    /* Table styling */
+    .table th {
+        border-top: none;
+        font-weight: 500;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    /* Modal styling */
+    .modal-header {
+        background-color: var(--bs-gray-100);
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    .modal-footer {
+        background-color: var(--bs-gray-100);
+        border-top: 1px solid var(--bs-border-color);
+    }
+    
+    /* Dark mode modal styling */
+    html[data-style="dark"] .modal-header {
+        background-color: var(--bs-gray-800);
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    html[data-style="dark"] .modal-footer {
+        background-color: var(--bs-gray-800);
+        border-top: 1px solid var(--bs-border-color);
+    }
+    
+    html[data-style="dark"] .modal-content {
+        background-color: var(--bs-gray-900);
+        color: var(--bs-body-color);
+    }
+    
+    /* Action buttons */
+    .btn-approve {
+        background-color: #28c76f;
+        border-color: #28c76f;
+        color: white;
+    }
+    
+    .btn-approve:hover {
+        background-color: #20a85a;
+        border-color: #20a85a;
+        color: white;
+    }
+    
+    .btn-deny {
+        background-color: #ea5455;
+        border-color: #ea5455;
+        color: white;
+    }
+    
+    .btn-deny:hover {
+        background-color: #e04142;
+        border-color: #e04142;
+        color: white;
+    }
+    
+    /* User info styling */
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #696cff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+    
+    .user-avatar:hover {
+        border-color: #696cff;
+        transform: scale(1.1);
+    }
+    
+    .user-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .user-details h6 {
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .user-details small {
+        color: #6c757d;
+    }
+    
+    .user-name-link {
+        text-decoration: none;
+        color: inherit;
+        transition: color 0.2s ease;
+    }
+    
+    .user-name-link:hover {
+        color: #696cff;
+        text-decoration: underline;
+    }
+    
+    /* Player profile modal */
+    .player-profile-image {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    .profile-info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .profile-info-label {
+        font-weight: 500;
+        color: var(--bs-secondary);
+    }
+    
+    .profile-info-value {
+        color: var(--bs-body-color);
+    }
+    
+    /* Stats cards */
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 0.375rem;
+        padding: 1.5rem;
+    }
+    
+    .stats-card.pending {
+        background: linear-gradient(135deg, #ffab00 0%, #ff8a00 100%);
+    }
+    
+    .stats-card.approved {
+        background: linear-gradient(135deg, #28c76f 0%, #1fa65b 100%);
+    }
+    
+    .stats-card.denied {
+        background: linear-gradient(135deg, #ea5455 0%, #e04142 100%);
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stats-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+    
+    /* Player Details Modal */
+    .player-details-header {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .player-details-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .player-details-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background-color: #696cff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 4rem;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .player-details-info h3 {
+        margin-bottom: 0.5rem;
+        color: var(--bs-body-color);
+    }
+    
+    .player-details-info .text-muted {
+        font-size: 1.1rem;
+    }
+    
+    .player-details-section {
+        margin-bottom: 2rem;
+    }
+    
+    .player-details-section h5 {
+        margin-bottom: 1rem;
+        color: var(--bs-secondary);
+        font-weight: 600;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+    
+    .info-item {
+        padding: 0.75rem;
+        background-color: var(--bs-gray-100);
+        border-radius: 0.375rem;
+        border-left: 3px solid #696cff;
+    }
+    
+    html[data-style="dark"] .info-item {
+        background-color: var(--bs-gray-800);
+    }
+    
+    .info-label {
+        font-size: 0.875rem;
+        color: var(--bs-secondary);
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        font-weight: 500;
+        color: var(--bs-body-color);
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1">User Approvals</h4>
+                    <p class="text-muted mb-0">Review and approve new user applications for league placement</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="refreshStats()">
+                        <i class="ti ti-refresh"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="stats-card pending">
+                <div class="stats-number">{{ stats.pending_count }}</div>
+                <div class="stats-label">Pending Approval</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card approved">
+                <div class="stats-number">{{ stats.total_approved }}</div>
+                <div class="stats-label">Total Approved</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card denied">
+                <div class="stats-number">{{ stats.total_denied }}</div>
+                <div class="stats-label">Total Denied</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="stats-number">{{ stats.pending_count + stats.total_approved + stats.total_denied }}</div>
+                <div class="stats-label">Total Applications</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Users Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Pending Approvals</h5>
+                    <span class="badge bg-label-warning">{{ stats.pending_count }} pending</span>
+                </div>
+                <div class="card-body">
+                    {% if pending_users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Discord ID</th>
+                                    <th>Registered</th>
+                                    <th>Current Roles</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in pending_users %}
+                                <tr>
+                                    <td>
+                                        <div class="user-info">
+                                            <div class="user-avatar" onclick="showPlayerDetails({{ user.id }})">
+                                                {% if user.player and user.player.profile_picture_url %}
+                                                    <img src="{{ user.player.profile_picture_url }}" alt="{{ user.player.name }}">
+                                                {% else %}
+                                                    {{ user.username[0].upper() }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="user-details">
+                                                <h6>
+                                                    <a href="#" class="user-name-link" onclick="showPlayerDetails({{ user.id }}); return false;">
+                                                        {{ user.username }}
+                                                    </a>
+                                                </h6>
+                                                <small>{{ user.player.name if user.player else 'No player record' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.player and user.player.discord_id %}
+                                            <code>{{ user.player.discord_id }}</code>
+                                        {% else %}
+                                            <span class="text-muted">No Discord ID</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
+                                    <td>
+                                        {% for role in user.roles %}
+                                            <span class="badge bg-label-primary me-1">{{ role.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-approve me-2" onclick="showApprovalModal({{ user.id }})">
+                                            <i class="ti ti-check"></i> Approve
+                                        </button>
+                                        <button class="btn btn-sm btn-deny" onclick="showDenialModal({{ user.id }})">
+                                            <i class="ti ti-x"></i> Deny
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="ti ti-users" style="font-size: 3rem; color: #6c757d;"></i>
+                        <h6 class="mt-3">No pending approvals</h6>
+                        <p class="text-muted">All users have been processed</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Actions -->
+    {% if recent_actions %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>League</th>
+                                    <th>Processed By</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in recent_actions %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>
+                                        {% if user.approval_status == 'approved' %}
+                                            <span class="badge status-approved">Approved</span>
+                                        {% elif user.approval_status == 'denied' %}
+                                            <span class="badge status-denied">Denied</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.approval_league %}
+                                            {% if user.approval_league.startswith('sub-') %}
+                                                <span class="badge bg-label-warning">{{ user.approval_league[4:].title() }} Sub</span>
+                                            {% else %}
+                                                <span class="badge bg-label-primary">{{ user.approval_league.title() }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.approved_by_user.username if user.approved_by_user else 'Unknown' }}</td>
+                                    <td>{{ user.approved_at.strftime('%Y-%m-%d %H:%M') if user.approved_at else 'Unknown' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Approve User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="approvalForm">
+                    <div class="mb-3">
+                        <label for="leagueSelect" class="form-label">Assign to League <span class="text-danger">*</span></label>
+                        <select class="form-select" id="leagueSelect" name="league_type" required>
+                            <option value="">Select a league...</option>
+                            <optgroup label="Full League Roles">
+                                <option value="classic">Classic League</option>
+                                <option value="premier">Premier League</option>
+                                <option value="ecs-fc">ECS FC League</option>
+                            </optgroup>
+                            <optgroup label="Substitute Roles (Mid-Season)">
+                                <option value="sub-classic">Classic Substitute</option>
+                                <option value="sub-premier">Premier Substitute</option>
+                                <option value="sub-ecs-fc">ECS FC Substitute</option>
+                            </optgroup>
+                        </select>
+                        <small class="form-text text-muted">
+                            Substitute roles are for mid-season signups who will join as subs initially.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="approvalNotes" class="form-label">Notes (optional)</label>
+                        <textarea class="form-control" id="approvalNotes" name="notes" rows="3" placeholder="Add any notes about the approval..."></textarea>
+                    </div>
+                    <input type="hidden" id="approvalUserId" name="user_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-approve" onclick="submitApproval()">Approve User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Denial Modal -->
+<div class="modal fade" id="denialModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deny User Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="denialForm">
+                    <div class="alert alert-warning">
+                        <i class="ti ti-alert-triangle"></i>
+                        <strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.
+                    </div>
+                    <div class="mb-3">
+                        <label for="denialNotes" class="form-label">Reason for Denial <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="denialNotes" name="notes" rows="3" placeholder="Explain why this application is being denied..." required></textarea>
+                    </div>
+                    <input type="hidden" id="denialUserId" name="user_id">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-deny" onclick="submitDenial()">Deny Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Details Modal -->
+<div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Player Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="playerDetailsContent">
+                    <!-- Player details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="profileLink" href="#" target="_blank" class="btn btn-primary">
+                    <i class="ti ti-external-link"></i> View Full Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script src="{{ url_for('static', filename='custom_js/user-approval-management.js') }}"></script>
+{% endblock %}

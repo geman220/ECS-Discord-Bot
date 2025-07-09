@@ -42,10 +42,15 @@ class CeleryConfig:
         'app.tasks.tasks_live_reporting',
         'app.tasks.tasks_match_updates',
         'app.tasks.tasks_rsvp',
+        'app.tasks.tasks_rsvp_ecs',
+        'app.tasks.tasks_ecs_fc_scheduled',
         'app.tasks.tasks_discord',
         'app.tasks.monitoring_tasks',
         'app.tasks.tasks_maintenance',
-        'app.tasks.player_sync'
+        'app.tasks.player_sync',
+        'app.tasks.tasks_substitute_pools',
+        'app.tasks.tasks_image_optimization',
+        'app.tasks.tasks_ecs_fc_subs'
     )
 
     # Task Settings
@@ -104,18 +109,13 @@ class CeleryConfig:
         'app.tasks.monitoring_tasks.*': {'queue': 'celery'},
         'app.tasks.tasks_maintenance.*': {'queue': 'celery'},
         'app.tasks.player_sync.*': {'queue': 'player_sync'},
+        'app.tasks.tasks_substitute_pools.*': {'queue': 'celery'},
+        'app.tasks.tasks_image_optimization.*': {'queue': 'celery'},
+        'app.tasks.tasks_ecs_fc_subs.*': {'queue': 'celery'},
     }
 
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
-        'check-upcoming-matches': {
-            'task': 'app.tasks.tasks_live_reporting.check_upcoming_matches',
-            'schedule': crontab(minute='*/5'),
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 270
-            }
-        },
         'check-create-match-threads': {
             'task': 'app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
             'schedule': crontab(minute='*/10'),
@@ -130,22 +130,6 @@ class CeleryConfig:
             'options': {
                 'queue': 'live_reporting',
                 'expires': 840
-            }
-        },
-        'verify-scheduled-tasks': {
-            'task': 'app.tasks.tasks_live_reporting.verify_scheduled_tasks',
-            'schedule': crontab(minute='*/15'),
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 840
-            }
-        },
-        'check-redis-connection': {
-            'task': 'app.tasks.tasks_live_reporting.check_redis_connection',
-            'schedule': crontab(minute='*/30'),
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 1740
             }
         },
         'collect-db-stats': {
@@ -211,30 +195,6 @@ class CeleryConfig:
             'options': {
                 'queue': 'discord',
                 'expires': 3600
-            }
-        },
-        'monitor-scheduled-tasks': {
-            'task': 'app.tasks.tasks_live_reporting.verify_scheduled_tasks',
-            'schedule': crontab(minute='*/5'),  # Run every 5 minutes
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 270
-            }
-        },
-        'monitor-all-matches': {
-            'task': 'app.tasks.tasks_live_reporting.monitor_all_matches',
-            'schedule': crontab(minute='*/15'),  # Run every 15 minutes
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 840
-            }
-        },
-        'verify-redis-tasks': {
-            'task': 'app.tasks.tasks_live_reporting.verify_redis_tasks',
-            'schedule': crontab(minute='*/10'),  # Run every 10 minutes
-            'options': {
-                'queue': 'live_reporting',
-                'expires': 540
             }
         },
         'monitor-rsvp-health': {

@@ -16,7 +16,9 @@ from app import csrf
 from app.core import db
 from app.models import Team, League, Player, User
 from app.models_ecs import EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate
+from app.models_ecs_subs import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment, EcsFcSubPool
 from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach, get_upcoming_ecs_fc_matches
+from app.tasks.tasks_ecs_fc_subs import process_sub_response
 from app.decorators import role_required
 from app.api_utils import validate_json_request, create_api_response
 from app.utils.user_helpers import safe_current_user
@@ -733,6 +735,105 @@ def get_upcoming_matches():
         
     except Exception as e:
         logger.error(f"Error getting upcoming matches: {str(e)}")
+        return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
+
+
+@ecs_fc_api.route('/process-sub-response', methods=['POST'])
+def process_ecs_fc_sub_response():
+    """
+    Process a substitute response from Discord or SMS.
+    
+    Expected JSON payload:
+    {
+        "discord_id": "123456789012345678",
+        "response_text": "YES",
+        "response_method": "DISCORD"
+    }
+    Optional fields:
+    {
+        "request_id": 1,
+        "response_id": 1
+    }
+    """
+    try:
+        if not request.is_json:
+            return create_api_response(False, "Request must be JSON", status_code=400)
+        
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['discord_id', 'response_text', 'response_method']
+        for field in required_fields:
+            if field not in data:
+                return create_api_response(False, f"Missing required field: {field}", status_code=400)
+        
+        discord_id = data['discord_id']
+        response_text = data['response_text']
+        response_method = data['response_method']
+        request_id = data.get('request_id')
+        response_id = data.get('response_id')
+        
+        # Find the player by Discord ID
+        player = db.session.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            return create_api_response(False, f"No player found with Discord ID {discord_id}", status_code=404)
+        
+        # If request_id and response_id are provided, validate them
+        if request_id and response_id:
+            # Find the specific response record
+            response_record = db.session.query(EcsFcSubResponse).filter_by(
+                id=response_id,
+                request_id=request_id,
+                player_id=player.id
+            ).first()
+            
+            if not response_record:
+                return create_api_response(False, "Response record not found", status_code=404)
+            
+            # Validate that the request is still open
+            sub_request = db.session.query(EcsFcSubRequest).filter_by(
+                id=request_id,
+                status='OPEN'
+            ).first()
+            
+            if not sub_request:
+                return create_api_response(False, "This substitute request is no longer open", status_code=400)
+        else:
+            # Find the most recent open request that this player was notified about
+            from sqlalchemy import and_
+            
+            response_record = db.session.query(EcsFcSubResponse).join(
+                EcsFcSubRequest, EcsFcSubResponse.request_id == EcsFcSubRequest.id
+            ).filter(
+                and_(
+                    EcsFcSubResponse.player_id == player.id,
+                    EcsFcSubRequest.status == 'OPEN',
+                    EcsFcSubResponse.notification_sent_at.isnot(None)
+                )
+            ).order_by(
+                EcsFcSubResponse.notification_sent_at.desc()
+            ).first()
+            
+            if not response_record:
+                return create_api_response(False, "No active substitute request found for this player", status_code=404)
+        
+        # Process the response using the Celery task
+        result = process_sub_response.apply_async(
+            args=[player.id, response_text, response_method]
+        ).get(timeout=10)
+        
+        if result.get('success'):
+            return create_api_response(True, "Response processed successfully", {
+                'is_available': result.get('is_available'),
+                'request_id': result.get('request_id'),
+                'player_id': player.id
+            })
+        else:
+            return create_api_response(False, result.get('error', 'Unknown error'), status_code=500)
+            
+    except Exception as e:
+        logger.error(f"Error processing ECS FC sub response: {str(e)}", exc_info=True)
+        db.session.rollback()
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 

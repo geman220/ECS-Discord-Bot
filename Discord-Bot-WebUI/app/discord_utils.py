@@ -755,6 +755,11 @@ async def get_app_managed_roles(session: Session) -> List[str]:
         "ECS-FC-PL-CLASSIC",
         "ECS-FC-PL-PREMIER-COACH",
         "ECS-FC-PL-CLASSIC-COACH",
+        "ECS-FC-PL-UNVERIFIED",  # New unverified role
+        "ECS-FC-LEAGUE",  # ECS FC league role
+        "ECS-FC-PL-PREMIER-SUB",  # Premier substitute role
+        "ECS-FC-PL-CLASSIC-SUB",  # Classic substitute role
+        "ECS-FC-LEAGUE-SUB",  # ECS FC substitute role
         "Referee"
     ]
     teams = session.query(Team).all()
@@ -789,6 +794,62 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         user_roles = [role.name for role in player.user.roles]
         logger.info(f"Player {player.id} has Flask roles: {user_roles}")
 
+    # Check user approval status for the new approval system
+    approval_status = getattr(player.user, 'approval_status', 'pending') if player.user else 'pending'
+    approval_league = getattr(player.user, 'approval_league', None) if player.user else None
+    
+    logger.info(f"Player {player.id} has approval_status='{approval_status}', approval_league='{approval_league}'")
+
+    # Handle unverified users (pending approval)
+    if approval_status == 'pending' and 'pl-unverified' in user_roles:
+        roles.append(normalize_name("ECS-FC-PL-UNVERIFIED"))
+        logger.info(f"Player {player.id} assigned ECS-FC-PL-UNVERIFIED role (pending approval)")
+        # Return early for unverified users - they only get the unverified role
+        return roles
+
+    # Handle denied users (remove all roles)
+    if approval_status == 'denied':
+        logger.info(f"Player {player.id} is denied - no league roles assigned")
+        # Return early for denied users - they only get preserved non-managed roles
+        return roles
+
+    # Handle approved users
+    if approval_status == 'approved':
+        # Check if user has appropriate approved role (including substitute roles)
+        approved_roles = ['pl-classic', 'pl-premier', 'pl-ecs-fc', 'Classic Sub', 'Premier Sub', 'ECS FC Sub']
+        has_approved_role = any(role in user_roles for role in approved_roles)
+        
+        if not has_approved_role:
+            logger.warning(f"Player {player.id} is approved but lacks appropriate approved role")
+            # Fall back to old league detection for backward compatibility
+        else:
+            # Check if user has substitute role
+            has_sub_role = any(role in user_roles for role in ['Classic Sub', 'Premier Sub', 'ECS FC Sub'])
+            
+            # Use approval league for Discord role assignment
+            if approval_league:
+                league_name = approval_league.upper()
+                
+                # Handle substitute roles
+                if has_sub_role:
+                    if 'Classic Sub' in user_roles:
+                        roles.append(normalize_name("ECS-FC-PL-CLASSIC-SUB"))
+                    elif 'Premier Sub' in user_roles:
+                        roles.append(normalize_name("ECS-FC-PL-PREMIER-SUB"))
+                    elif 'ECS FC Sub' in user_roles:
+                        roles.append(normalize_name("ECS-FC-LEAGUE-SUB"))
+                    logger.info(f"Player {player.id} assigned substitute role for league: {league_name}")
+                else:
+                    # Handle full league roles
+                    if league_name == "CLASSIC":
+                        roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
+                    elif league_name == "PREMIER":
+                        roles.append(normalize_name("ECS-FC-PL-PREMIER"))
+                    elif league_name == "ECS-FC":
+                        roles.append(normalize_name("ECS-FC-LEAGUE"))
+                    
+                    logger.info(f"Player {player.id} assigned role for approved league: {league_name}")
+
     # Check if the player has the "Pub League Coach" role in the Flask app
     has_coach_role_in_flask = "Pub League Coach" in user_roles
     
@@ -799,7 +860,16 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     logger.info(f"Player {player.id} has database is_coach={player.is_coach}, Flask 'Pub League Coach'={has_coach_role_in_flask}")
     logger.info(f"Final determination - should have coach status: {should_have_coach_status}")
 
-    # Determine leagues associated with the player
+    # Add coach roles if approved and has coach status
+    if approval_status == 'approved' and should_have_coach_status and approval_league:
+        league_name = approval_league.upper()
+        if league_name == "CLASSIC":
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+        elif league_name == "PREMIER":
+            roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
+        logger.info(f"Player {player.id} assigned coach role for league: {league_name}")
+
+    # Determine leagues associated with the player (fallback for backward compatibility)
     leagues_for_user = set()
     if player.league_id:
         league_obj = session.query(League).filter_by(id=player.league_id).first()
@@ -813,16 +883,17 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if t.league and t.league.name:
             leagues_for_user.add(t.league.name.strip().upper())
 
-    # Append league-based roles, normalizing the constructed role names
-    for league_name in leagues_for_user:
-        if league_name == "PREMIER":
-            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-            if should_have_coach_status:
-                roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-        elif league_name == "CLASSIC":
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-            if should_have_coach_status:
-                roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+    # Append league-based roles only if not already handled by approval system
+    if approval_status != 'approved' or not approval_league:
+        for league_name in leagues_for_user:
+            if league_name == "PREMIER":
+                roles.append(normalize_name("ECS-FC-PL-PREMIER"))
+                if should_have_coach_status:
+                    roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
+            elif league_name == "CLASSIC":
+                roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
+                if should_have_coach_status:
+                    roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
 
     # Append team-based roles using normalized role names
     for t in player.teams:

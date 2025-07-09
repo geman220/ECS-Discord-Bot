@@ -345,6 +345,38 @@
                             {% endif %}
                         </div>
                         {% endfor %}
+                        
+                        <!-- Display substitute assignments -->
+                        {% for player in home_rsvp_data['available'] %}
+                            {% if player not in team.players %}
+                            <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom bg-light">
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                   class="d-flex align-items-center text-decoration-none">
+                                    <div class="avatar avatar-sm me-2">
+                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                             alt="{{ player.name }}" class="rounded-circle">
+                                        {% if player.is_coach %}
+                                        <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                        {% endif %}
+                                        {% if player.is_ref %}
+                                        <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="player-details">
+                                        <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                        <small class="text-muted">Substitute</small>
+                                    </div>
+                                </a>
+                                {% if safe_current_user.has_permission('view_rsvps') %}
+                                <div class="player-status ms-auto">
+                                    <span class="badge bg-success">
+                                        <i class="ti ti-check"></i> Sub
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -495,6 +527,38 @@
                                     {% endif %}
                                 </div>
                                 {% endfor %}
+                                
+                                <!-- Display substitute assignments for mobile home team -->
+                                {% for player in home_rsvp_data['available'] %}
+                                    {% if player not in match.home_team.players %}
+                                    <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom bg-light">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                           class="d-flex align-items-center text-decoration-none">
+                                            <div class="avatar avatar-sm me-2">
+                                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                     alt="{{ player.name }}" class="rounded-circle">
+                                                {% if player.is_coach %}
+                                                <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                                {% endif %}
+                                                {% if player.is_ref %}
+                                                <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="player-details">
+                                                <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                                <small class="text-muted">Substitute</small>
+                                            </div>
+                                        </a>
+                                        {% if safe_current_user.has_permission('view_rsvps') %}
+                                        <div class="player-status ms-auto">
+                                            <span class="badge bg-success">
+                                                <i class="ti ti-check"></i> Sub
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
                         </div>
                         
@@ -604,6 +668,38 @@
                                     </div>
                                     {% endif %}
                                 </div>
+                                {% endfor %}
+                                
+                                <!-- Display substitute assignments for mobile away team -->
+                                {% for player in away_rsvp_data['available'] %}
+                                    {% if player not in match.away_team.players %}
+                                    <div class="player-item d-flex justify-content-between align-items-center p-2 border-bottom bg-light">
+                                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                           class="d-flex align-items-center text-decoration-none">
+                                            <div class="avatar avatar-sm me-2">
+                                                <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                                     alt="{{ player.name }}" class="rounded-circle">
+                                                {% if player.is_coach %}
+                                                <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                                {% endif %}
+                                                {% if player.is_ref %}
+                                                <span class="avatar-status bg-warning" style="bottom: auto; top: 0;" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="player-details">
+                                                <span class="fw-semibold d-block text-truncate" style="max-width: 120px;">{{ player.name }}</span>
+                                                <small class="text-muted">Substitute</small>
+                                            </div>
+                                        </a>
+                                        {% if safe_current_user.has_permission('view_rsvps') %}
+                                        <div class="player-status ms-auto">
+                                            <span class="badge bg-success">
+                                                <i class="ti ti-check"></i> Sub
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
@@ -716,6 +812,40 @@
                             {% endif %}
                         </div>
                         {% endfor %}
+                        
+                        <!-- Display substitute assignments for desktop home team -->
+                        {% for player in home_rsvp_data['available'] %}
+                            {% if player not in match.home_team.players %}
+                            <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                   class="d-flex align-items-center text-decoration-none">
+                                    <div class="avatar avatar-md me-2 me-sm-3">
+                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                             alt="{{ player.name }}" class="rounded-circle">
+                                        {% if player.is_coach %}
+                                        <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                        {% endif %}
+                                        {% if player.is_ref %}
+                                        <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="player-details">
+                                        <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
+                                        <small class="text-muted d-block text-truncate">
+                                            Substitute
+                                        </small>
+                                    </div>
+                                </a>
+                                {% if safe_current_user.has_permission('view_rsvps') %}
+                                <div class="player-status ms-auto ps-1">
+                                    <span class="badge bg-success d-inline-flex align-items-center">
+                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Sub</span>
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -824,6 +954,40 @@
                             </div>
                             {% endif %}
                         </div>
+                        {% endfor %}
+                        
+                        <!-- Display substitute assignments for desktop away team -->
+                        {% for player in away_rsvp_data['available'] %}
+                            {% if player not in match.away_team.players %}
+                            <div class="player-item d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+                                <a href="{{ url_for('players.player_profile', player_id=player.id) }}" 
+                                   class="d-flex align-items-center text-decoration-none">
+                                    <div class="avatar avatar-md me-2 me-sm-3">
+                                        <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" 
+                                             alt="{{ player.name }}" class="rounded-circle">
+                                        {% if player.is_coach %}
+                                        <span class="avatar-status bg-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="Coach"></span>
+                                        {% endif %}
+                                        {% if player.is_ref %}
+                                        <span class="avatar-status bg-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Referee"></span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="player-details">
+                                        <h6 class="mb-0 text-truncate">{{ player.name }}</h6>
+                                        <small class="text-muted d-block text-truncate">
+                                            Substitute
+                                        </small>
+                                    </div>
+                                </a>
+                                {% if safe_current_user.has_permission('view_rsvps') %}
+                                <div class="player-status ms-auto ps-1">
+                                    <span class="badge bg-success d-inline-flex align-items-center">
+                                        <i class="ti ti-check me-1"></i><span class="d-none d-sm-inline">Sub</span>
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>

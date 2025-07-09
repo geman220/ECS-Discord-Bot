@@ -30,12 +30,13 @@ WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 session = None
 
 # Configure logging
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    logger = logging.getLogger(__name__)
 
 # Initialize Discord bot with intents
 intents = discord.Intents.default()
@@ -1326,10 +1327,112 @@ async def delayed_restart(delay_seconds=60):
     # Force exit the process so Docker can restart cleanly
     os._exit(0)
 
+async def handle_ecs_fc_sub_dm_response(message):
+    """
+    Handle ECS FC substitute availability responses via Discord DM.
+    
+    Args:
+        message: The Discord DM message
+    """
+    try:
+        response_text = message.content.strip().upper()
+        discord_id = str(message.author.id)
+        
+        # Check if this is a substitute availability response
+        if response_text not in ['YES', 'Y', 'NO', 'N', 'AVAILABLE', 'NOT AVAILABLE', '1', '0']:
+            return False  # Not a substitute response
+        
+        # Make API call to Flask to check for pending substitute requests
+        async with session.post(
+            f'{WEBUI_API_URL}/ecs-fc/process-sub-response',
+            json={
+                'discord_id': discord_id,
+                'response_text': response_text,
+                'response_method': 'DISCORD'
+            }
+        ) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                if result.get('success'):
+                    # Send confirmation message
+                    if result.get('is_available'):
+                        await message.author.send("✅ I've marked you as available. Please wait for confirmation before heading to the pitch.")
+                    else:
+                        await message.author.send("👍 Thanks for letting us know you're not available.")
+                    
+                    logger.info(f"ECS FC substitute response processed for Discord user {discord_id}")
+                    return True
+                else:
+                    # No pending request found - this is normal, just ignore
+                    return False
+            elif resp.status == 404:
+                # No pending request found - normal case
+                return False
+            else:
+                # Error occurred
+                logger.error(f"Error processing ECS FC sub response for {discord_id}: {resp.status}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Error handling ECS FC sub DM response: {e}", exc_info=True)
+        return False
+
+
+async def handle_substitute_pool_dm_response(message):
+    """
+    Handle unified substitute pool availability responses via Discord DM.
+    
+    Args:
+        message: The Discord DM message
+    """
+    try:
+        response_text = message.content.strip().upper()
+        discord_id = str(message.author.id)
+        
+        # Check if this is a substitute availability response
+        if response_text not in ['YES', 'Y', 'NO', 'N', 'AVAILABLE', 'NOT AVAILABLE', '1', '0']:
+            return False  # Not a substitute response
+        
+        # Make API call to Flask to check for pending substitute requests
+        async with session.post(
+            f'{WEBUI_API_URL}/substitute-pools/process-response',
+            json={
+                'discord_id': discord_id,
+                'response_text': response_text,
+                'response_method': 'DISCORD'
+            }
+        ) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                if result.get('success'):
+                    # Send confirmation message
+                    if result.get('is_available'):
+                        await message.author.send("✅ I've marked you as available. Please wait for confirmation before heading to the pitch.")
+                    else:
+                        await message.author.send("👍 Thanks for letting us know you're not available.")
+                    
+                    logger.info(f"Substitute pool response processed for Discord user {discord_id}")
+                    return True
+                else:
+                    # No pending request found - this is normal, just ignore
+                    return False
+            elif resp.status == 404:
+                # No pending request found - normal case
+                return False
+            else:
+                # Error occurred
+                logger.error(f"Error processing substitute response for {discord_id}: {resp.status}")
+                return False
+                
+    except Exception as e:
+        logger.error(f"Error handling substitute pool DM response: {e}", exc_info=True)
+        return False
+
+
 @bot.event
 async def on_message(message):
     """
-    Event handler for when a message is sent in a guild.
+    Event handler for when a message is sent in a guild or as a DM.
     """
     if message.author == bot.user:
         return
@@ -1351,6 +1454,18 @@ async def on_message(message):
             except discord.Forbidden:
                 logging.warning("Unable to send DM to the user.")
         return  # Stop processing further if this was in a verification channel
+
+    # Handle DM messages
+    if isinstance(message.channel, discord.DMChannel):
+        # Try to handle unified substitute pool response first
+        if await handle_substitute_pool_dm_response(message):
+            return  # Response was handled, don't process further
+        
+        # Try to handle ECS FC substitute response
+        if await handle_ecs_fc_sub_dm_response(message):
+            return  # Response was handled, don't process further
+        
+        # Could add other DM handlers here in the future
 
     # Process other messages as usual
     await bot.process_commands(message)

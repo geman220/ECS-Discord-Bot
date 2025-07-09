@@ -197,41 +197,41 @@
                     </thead>
                     <tbody>
                         {% for message in messages %}
-                        <tr data-league="{{ message.league_type }}">
+                        <tr data-league="{{ 'pub_league' if not message.message_type or message.message_type == 'standard' else 'ecs_fc' }}">
                             <td>
-                                <span class="badge {{ 'bg-primary' if message.league_type == 'pub_league' else 'bg-success' }}">
-                                    <i class="ti {{ 'ti-soccer-field' if message.league_type == 'pub_league' else 'ti-trophy' }} me-1"></i>
-                                    {{ 'Pub League' if message.league_type == 'pub_league' else 'ECS FC' }}
+                                <span class="badge {{ 'bg-primary' if not message.message_type or message.message_type == 'standard' else 'bg-success' }}">
+                                    <i class="ti {{ 'ti-soccer-field' if not message.message_type or message.message_type == 'standard' else 'ti-trophy' }} me-1"></i>
+                                    {{ 'Pub League' if not message.message_type or message.message_type == 'standard' else 'ECS FC' }}
                                 </span>
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar avatar-sm me-2">
-                                        <div class="avatar-initial rounded-circle {{ 'bg-label-primary' if message.league_type == 'pub_league' else 'bg-label-success' }}">
-                                            <i class="ti {{ 'ti-soccer-field' if message.league_type == 'pub_league' else 'ti-trophy' }}"></i>
+                                        <div class="avatar-initial rounded-circle {{ 'bg-label-primary' if not message.message_type or message.message_type == 'standard' else 'bg-label-success' }}">
+                                            <i class="ti {{ 'ti-soccer-field' if not message.message_type or message.message_type == 'standard' else 'ti-trophy' }}"></i>
                                         </div>
                                     </div>
                                     <div class="d-flex flex-column">
-                                        {% if message.league_type == 'pub_league' %}
+                                        {% if not message.message_type or message.message_type == 'standard' %}
                                         <span class="fw-semibold">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</span>
                                         <small class="text-muted">{{ message.match.location }}</small>
                                         {% else %}
-                                        <span class="fw-semibold">{{ message.ecs_fc_match.team.name }} vs {{ message.ecs_fc_match.opponent_name }}</span>
-                                        <small class="text-muted">{{ message.ecs_fc_match.location }}</small>
+                                        <span class="fw-semibold">ECS FC Match</span>
+                                        <small class="text-muted">{{ message.message_type }}</small>
                                         {% endif %}
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                {% if message.league_type == 'pub_league' %}
+                                {% if not message.message_type or message.message_type == 'standard' %}
                                 <div class="d-flex flex-column" data-sort="{{ message.match.date.strftime('%Y-%m-%d') }}T{{ message.match.time.strftime('%H:%M:%S') }}">
                                     <span class="fw-semibold">{{ message.match.date.strftime('%a, %b %d, %Y') }}</span>
                                     <small class="text-muted">{{ message.match.time.strftime('%I:%M %p') }}</small>
                                 </div>
                                 {% else %}
-                                <div class="d-flex flex-column" data-sort="{{ message.ecs_fc_match.match_date.strftime('%Y-%m-%d') }}T{{ message.ecs_fc_match.match_time.strftime('%H:%M:%S') }}">
-                                    <span class="fw-semibold">{{ message.ecs_fc_match.match_date.strftime('%a, %b %d, %Y') }}</span>
-                                    <small class="text-muted">{{ message.ecs_fc_match.match_time.strftime('%I:%M %p') }}</small>
+                                <div class="d-flex flex-column" data-sort="{{ message.scheduled_send_time.strftime('%Y-%m-%d') }}T{{ message.scheduled_send_time.strftime('%H:%M:%S') }}">
+                                    <span class="fw-semibold">{{ message.scheduled_send_time.strftime('%a, %b %d, %Y') }}</span>
+                                    <small class="text-muted">{{ message.scheduled_send_time.strftime('%I:%M %p') }}</small>
                                 </div>
                                 {% endif %}
                             </td>
@@ -254,7 +254,7 @@
                                             <i class="ti ti-send"></i>
                                         </button>
                                     </form>
-                                    {% if message.league_type == 'pub_league' %}
+                                    {% if not message.message_type or message.message_type == 'standard' %}
                                     <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" 
                                        class="btn btn-sm btn-icon btn-primary me-1"
                                        data-bs-toggle="tooltip" 
@@ -263,13 +263,15 @@
                                         <i class="ti ti-list-check"></i>
                                     </a>
                                     {% else %}
-                                    <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=message.ecs_fc_match.id) }}" 
+                                    {% if message.message_metadata and message.message_metadata.get('match_id') %}
+                                    <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" 
                                        class="btn btn-sm btn-icon btn-success me-1"
                                        data-bs-toggle="tooltip" 
                                        data-bs-placement="top" 
                                        title="View ECS FC RSVPs">
                                         <i class="ti ti-list-check"></i>
                                     </a>
+                                    {% endif %}
                                     {% endif %}
                                     <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="delete-message-form">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

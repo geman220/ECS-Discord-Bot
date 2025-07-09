@@ -286,3 +286,65 @@
   .ecs-d-print-inline-flex { display: inline-flex !important; }
   .ecs-d-print-grid { display: grid !important; }
 }
+
+/* --------------------------------------------------------------
+   9. Dark Mode Form Fixes
+-------------------------------------------------------------- */
+
+/* Dark mode select dropdown options fix */
+[data-bs-theme="dark"] select.form-select option,
+[data-bs-theme="dark"] select.form-control option,
+[data-bs-theme="dark"] select.ecs-form-control option,
+html[data-style="dark"] select.form-select option,
+html[data-style="dark"] select.form-control option,
+html[data-style="dark"] select.ecs-form-control option {
+  background-color: #2f3349 !important;
+  color: rgba(225, 222, 245, 0.9) !important;
+}
+
+/* Dark mode select dropdown options on hover */
+[data-bs-theme="dark"] select.form-select option:hover,
+[data-bs-theme="dark"] select.form-control option:hover,
+[data-bs-theme="dark"] select.ecs-form-control option:hover,
+html[data-style="dark"] select.form-select option:hover,
+html[data-style="dark"] select.form-control option:hover,
+html[data-style="dark"] select.ecs-form-control option:hover {
+  background-color: #44475b !important;
+  color: #fff !important;
+}
+
+/* Dark mode select dropdown options selected */
+[data-bs-theme="dark"] select.form-select option:checked,
+[data-bs-theme="dark"] select.form-control option:checked,
+[data-bs-theme="dark"] select.ecs-form-control option:checked,
+html[data-style="dark"] select.form-select option:checked,
+html[data-style="dark"] select.form-control option:checked,
+html[data-style="dark"] select.ecs-form-control option:checked {
+  background-color: #7367f0 !important;
+  color: #fff !important;
+}
+
+/* Dark mode select element itself */
+[data-bs-theme="dark"] select.form-select,
+[data-bs-theme="dark"] select.form-control,
+[data-bs-theme="dark"] select.ecs-form-control,
+html[data-style="dark"] select.form-select,
+html[data-style="dark"] select.form-control,
+html[data-style="dark"] select.ecs-form-control {
+  background-color: #2f3349 !important;
+  color: rgba(225, 222, 245, 0.9) !important;
+  border-color: #44475b !important;
+}
+
+/* Dark mode select focus state */
+[data-bs-theme="dark"] select.form-select:focus,
+[data-bs-theme="dark"] select.form-control:focus,
+[data-bs-theme="dark"] select.ecs-form-control:focus,
+html[data-style="dark"] select.form-select:focus,
+html[data-style="dark"] select.form-control:focus,
+html[data-style="dark"] select.ecs-form-control:focus {
+  background-color: #2f3349 !important;
+  color: rgba(225, 222, 245, 0.9) !important;
+  border-color: #7367f0 !important;
+  box-shadow: 0 0 0 0.2rem rgba(115, 103, 240, 0.25) !important;
+}

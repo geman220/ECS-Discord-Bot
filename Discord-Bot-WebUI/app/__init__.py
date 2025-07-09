@@ -27,11 +27,16 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate
 from werkzeug.routing import BuildError
 from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy import text
 
 from app.assets import init_assets
 from app.log_config.logging_config import LOGGING_CONFIG
 from app.utils.user_helpers import safe_current_user
 from app.models import User, Role, Season
+from app.models_substitute_pools import (
+    SubstitutePool, SubstitutePoolHistory, SubstituteRequest, 
+    SubstituteResponse, SubstituteAssignment
+)
 from app.lifecycle import request_lifecycle
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.utils.display_helpers import format_position_name, format_field_name
@@ -128,19 +133,23 @@ def create_app(config_object='web_config.Config'):
         SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
         app.SessionLocal = SessionLocal
         
-        # Ensure the SUB role exists
+        # Import ECS FC models to ensure they are registered
+        from app.models_ecs import EcsFcMatch, EcsFcAvailability
+        from app.models_ecs_subs import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment, EcsFcSubPool
+        
+        # Ensure the pl-unverified role exists
         try:
             session = SessionLocal()
-            sub_role = session.query(Role).filter_by(name='SUB').first()
+            sub_role = session.query(Role).filter_by(name='pl-unverified').first()
             if not sub_role:
-                logger.info("Creating SUB role in database")
-                sub_role = Role(name='SUB', description='Substitute Player')
+                logger.info("Creating pl-unverified role in database")
+                sub_role = Role(name='pl-unverified', description='Substitute Player')
                 session.add(sub_role)
                 session.commit()
-                logger.info("SUB role created successfully")
+                logger.info("pl-unverified role created successfully")
             session.close()
         except Exception as e:
-            logger.error(f"Error ensuring SUB role exists: {e}", exc_info=True)
+            logger.error(f"Error ensuring pl-unverified role exists: {e}", exc_info=True)
 
     # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)
@@ -194,6 +203,13 @@ def create_app(config_object='web_config.Config'):
         if request.path.startswith('/static/') or request.method == 'GET':
             return None
         
+        # Skip for API routes that should be exempt from CSRF
+        if (request.path.startswith('/api/substitute-pools/') or 
+            request.path.startswith('/api/ecs-fc/') or
+            request.path.startswith('/api/availability/') or
+            request.path.startswith('/api/predictions/')):
+            return None
+        
         # Get session from flask
         from flask import session as flask_session
         
@@ -231,14 +247,56 @@ def create_app(config_object='web_config.Config'):
 
     @login_manager.user_loader
     def load_user(user_id):
+        """
+        Load user for Flask-Login with proper session management.
+        
+        Uses a dedicated short-lived session to avoid connection leaks.
+        This is called frequently and must not hold connections open.
+        """
+        if not user_id:
+            return None
+            
         try:
-            return User.query.options(
-                joinedload(User.roles).joinedload(Role.permissions),
-                joinedload(User.notifications),
-                joinedload(User.player)
-            ).get(int(user_id))
+            # Use a dedicated short-lived session for user loading
+            session = app.SessionLocal()
+            try:
+                user = session.query(User).options(
+                    joinedload(User.roles).joinedload(Role.permissions),
+                    joinedload(User.notifications),
+                    joinedload(User.player)
+                ).get(int(user_id))
+                
+                if user:
+                    # Trigger loading of all needed attributes before expunging
+                    _ = user.id, user.username, user.email
+                    if user.roles:
+                        for role in user.roles:
+                            _ = role.id, role.name
+                            if role.permissions:
+                                for perm in role.permissions:
+                                    _ = perm.id, perm.name
+                    if user.notifications:
+                        for notif in user.notifications:
+                            _ = notif.id, notif.content
+                    if user.player:
+                        _ = user.player.id, user.player.name
+                    
+                    # Expunge the user so it's no longer bound to this session
+                    session.expunge(user)
+                
+                # Commit quickly to release any locks
+                session.commit()
+                return user
+                
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
+                return None
+            finally:
+                session.close()
+                
         except Exception as e:
-            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
+            logger.error(f"Critical error in user loader for user {user_id}: {str(e)}", exc_info=True)
             return None
 
     # Initialize SocketIO with Redis as the message queue
@@ -352,35 +410,61 @@ def create_app(config_object='web_config.Config'):
         # Create a new database session for each request (excluding static assets).
         if not request.path.startswith('/static/'):
             g.db_session = app.SessionLocal()
+            
+            # Register session with monitor
+            session_id = str(id(g.db_session))
+            from app.utils.session_monitor import get_session_monitor
+            from app.utils.user_helpers import safe_current_user
+            
+            user_id = None
+            if safe_current_user and safe_current_user.is_authenticated:
+                user_id = safe_current_user.id
+                
+            get_session_monitor().register_session_start(session_id, request.path, user_id)
+            g.session_id = session_id
+            
+            # Set appropriate timeouts for this session based on request type
+            try:
+                if request.path.startswith('/admin/'):
+                    # Admin routes may need longer timeouts for complex operations
+                    g.db_session.execute(text("SET LOCAL statement_timeout = '15s'"))
+                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '10s'"))
+                elif request.path.startswith('/api/'):
+                    # API routes should be fast
+                    g.db_session.execute(text("SET LOCAL statement_timeout = '5s'"))
+                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '3s'"))
+                else:
+                    # Regular routes get standard timeouts
+                    g.db_session.execute(text("SET LOCAL statement_timeout = '8s'"))
+                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '5s'"))
+            except Exception as e:
+                logger.warning(f"Failed to set session timeouts: {e}")
 
     @app.context_processor
     def inject_current_pub_league_season():
         """Inject the current Pub League season into every template's context."""
-        # Use g.db_session instead of creating a new session
-        if hasattr(g, 'db_session'):
-            try:
-                season = g.db_session.query(Season).filter_by(
-                    league_type='Pub League',
-                    is_current=True
-                ).first()
-            except Exception as e:
-                logger.error(f"Error fetching pub league season: {e}", exc_info=True)
-                season = None
-            return dict(current_pub_league_season=season)
-        else:
-            # Only create a new session if no request context
-            session = app.SessionLocal()
-            try:
-                season = session.query(Season).filter_by(
-                    league_type='Pub League',
-                    is_current=True
-                ).first()
-            except Exception as e:
-                logger.error(f"Error fetching pub league season: {e}", exc_info=True)
-                season = None
-            finally:
-                session.close()
-            return dict(current_pub_league_season=season)
+        # Always create a separate short-lived session for context processors
+        # to avoid keeping the main request transaction open during template rendering
+        session = app.SessionLocal()
+        try:
+            season = session.query(Season).filter_by(
+                league_type='Pub League',
+                is_current=True
+            ).first()
+            if season:
+                # Trigger loading of all needed attributes before expunging
+                _ = season.id, season.name, season.league_type, season.is_current
+                # Expunge the object so it's no longer bound to this session
+                session.expunge(season)
+            # Commit and close quickly
+            session.commit()
+        except Exception as e:
+            logger.error(f"Error fetching pub league season: {e}", exc_info=True)
+            season = None
+            session.rollback()
+        finally:
+            session.close()
+        return dict(current_pub_league_season=season)
 
     # Register template filter and global functions for display formatting
     @app.template_filter('format_position')
@@ -407,10 +491,7 @@ def create_app(config_object='web_config.Config'):
         """
         return format_field_name(field_name)
 
-    @app.teardown_request
-    def teardown_request(exception):
-        from app.core.session_manager import cleanup_request
-        cleanup_request(exception)
+    # Note: teardown_request is handled by lifecycle.py to avoid duplicate cleanup
         
     @app.teardown_appcontext
     def teardown_appcontext(exception):
@@ -487,6 +568,7 @@ def init_blueprints(app):
     from app.auto_schedule_routes import auto_schedule_bp
     from app.role_impersonation import role_impersonation_bp
     from app.ecs_fc_api import ecs_fc_api
+    from app.admin.substitute_pool_routes import substitute_pool_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -517,7 +599,8 @@ def init_blueprints(app):
     app.register_blueprint(external_api_bp)
     app.register_blueprint(auto_schedule_bp, url_prefix='/auto-schedule')
     app.register_blueprint(role_impersonation_bp)
-    app.register_blueprint(ecs_fc_api)
+    app.register_blueprint(ecs_fc_api)  # Blueprint has url_prefix='/api/ecs-fc'
+    app.register_blueprint(substitute_pool_bp)
 
 def init_context_processors(app):
     """

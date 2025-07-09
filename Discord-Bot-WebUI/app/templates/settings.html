@@ -421,7 +421,7 @@
 
 {% endblock %}
 
-{% block scripts %}
+{% block custom_js %}
 {{ super() }}
 <script src="{{ url_for('static', filename='custom_js/settings.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/handle_2fa.js') }}"></script>
