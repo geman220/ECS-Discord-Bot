@@ -2,6 +2,8 @@
 
 {% import 'macros.html' as macros %}
 
+{% block title %}{{ team.name }} - Team Details{% endblock %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Team Header -->
@@ -182,9 +184,27 @@
                                     {% set result_class = match.result_class %}
                                     {% endif %}
                                     
-                                    <div class="match-item border-bottom p-3">
+                                    <div class="match-item border-bottom p-3 {% if match.is_ecs_fc %}ecs-fc-match{% endif %}">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div class="match-details">
+                                                {% if match.is_ecs_fc %}
+                                                <!-- ECS FC Match - no link yet, just display -->
+                                                <div class="d-flex align-items-center">
+                                                    <div class="match-time me-3">
+                                                        <i class="fas fa-futbol text-primary"></i> {{ match.time.strftime('%I:%M %p') }}
+                                                    </div>
+                                                    <div class="match-teams">
+                                                        <h6 class="mb-0">{{ display_home }} vs {{ display_away }}</h6>
+                                                        <small class="text-muted">
+                                                            <i class="ti ti-map-pin"></i> {{ match.location }}
+                                                            {% if match.field_name %}
+                                                            - {{ match.field_name }}
+                                                            {% endif %}
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                {% else %}
+                                                <!-- Regular Match -->
                                                 <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-decoration-none">
                                                     <div class="d-flex align-items-center">
                                                         <div class="match-time me-3">
@@ -198,9 +218,18 @@
                                                         </div>
                                                     </div>
                                                 </a>
+                                                {% endif %}
                                             </div>
                                             <div class="d-flex align-items-center">
-                                                {% if can_view_game_results %}
+                                                {% if match.is_ecs_fc %}
+                                                <!-- ECS FC Match result -->
+                                                <div class="match-result me-2">
+                                                    <span class="badge bg-{{ result_class }}">
+                                                        <i class="fas fa-futbol me-1"></i>{{ result_text }}
+                                                    </span>
+                                                </div>
+                                                {% elif can_view_game_results %}
+                                                <!-- Regular match result -->
                                                 <div class="match-result me-2">
                                                     <span class="badge bg-{{ result_class }}">
                                                         {{ result_text }} ({{ match.display_score }})
@@ -208,7 +237,30 @@
                                                 </div>
                                                 {% endif %}
                                                 
-                                                {% if can_report_match %}
+                                                {% if match.is_ecs_fc and can_manage_ecs_fc %}
+                                                <!-- ECS FC Match actions -->
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + match.ecs_fc_match_id|string) }}" 
+                                                       class="btn btn-outline-primary btn-icon btn-sm" 
+                                                       title="View ECS FC Match">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <button class="btn btn-outline-warning btn-icon btn-sm edit-match-btn" 
+                                                            title="Edit ECS FC Match"
+                                                            data-match-id="{{ match.ecs_fc_match_id }}"
+                                                            data-is-ecs-fc="true">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger btn-icon btn-sm delete-ecs-fc-match-btn" 
+                                                            title="Delete ECS FC Match"
+                                                            data-match-id="{{ match.ecs_fc_match_id }}"
+                                                            data-opponent-name="{{ match.opponent_name }}"
+                                                            data-match-date="{{ match.match_date }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                {% elif can_report_match and not match.is_ecs_fc %}
+                                                <!-- Regular match actions -->
                                                 <button class="btn btn-icon btn-sm {% if match.reported %}btn-label-warning{% else %}btn-label-primary{% endif %} edit-match-btn"
                                                         data-match-id="{{ match.id }}" 
                                                         aria-label="{{ 'Edit Match' if match.reported else 'Report Match' }}"
@@ -467,6 +519,16 @@
         background-color: var(--bs-body-bg);
     }
     
+    /* ECS FC Match Styling */
+    .ecs-fc-match {
+        border-left: 4px solid #007bff !important;
+        background: linear-gradient(90deg, rgba(0,123,255,0.05) 0%, transparent 100%);
+    }
+    
+    .ecs-fc-match:hover {
+        background: linear-gradient(90deg, rgba(0,123,255,0.1) 0%, transparent 100%);
+    }
+    
     /* Empty State Styling */
     .empty-state {
         display: flex;
@@ -643,5 +705,125 @@
             `;
         {% endfor %}
     {% endfor %}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle ECS FC match deletion
+    const deleteButtons = document.querySelectorAll('.delete-ecs-fc-match-btn');
+    
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const matchId = this.dataset.matchId;
+            const opponentName = this.dataset.opponentName;
+            const matchDate = this.dataset.matchDate;
+            
+            // Show confirmation dialog
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Delete ECS FC Match?',
+                    html: `Are you sure you want to delete the match against <strong>${opponentName}</strong> on <strong>${matchDate}</strong>?<br><br><small class="text-danger">This action cannot be undone.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Delete Match',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        deleteEcsFcMatch(matchId, opponentName);
+                    }
+                });
+            } else {
+                // Fallback to native confirm dialog
+                const confirmed = confirm(`Are you sure you want to delete the ECS FC match against ${opponentName} on ${matchDate}? This action cannot be undone.`);
+                if (confirmed) {
+                    deleteEcsFcMatch(matchId, opponentName);
+                }
+            }
+        });
+    });
+    
+    function deleteEcsFcMatch(matchId, opponentName) {
+        // Show loading state
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Deleting Match...',
+                text: 'Please wait while we delete the match.',
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // Send delete request
+        fetch(`/api/ecs-fc/matches/${matchId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            console.log('Delete response headers:', [...response.headers.entries()]);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Response is not JSON, content-type:', contentType);
+                return response.text().then(text => {
+                    console.error('Response body:', text);
+                    throw new Error('Server returned non-JSON response');
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Match Deleted!',
+                        text: `The match against ${opponentName} has been successfully deleted.`,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    alert(`Match against ${opponentName} deleted successfully!`);
+                }
+                
+                // Refresh the page to update the schedule
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                throw new Error(data.message || 'Failed to delete match');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting match:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to delete match. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to delete match. Please try again.'));
+            }
+        });
+    }
+});
 </script>
 {% endblock %}

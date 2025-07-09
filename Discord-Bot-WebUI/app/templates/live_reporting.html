@@ -251,7 +251,7 @@
 <div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" style="display: none;"></div>
 {% endblock %}
 
-{% block scripts %}
+{% block custom_js %}
 {{ super() }}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="{{ url_for('static', filename='custom_js/live_reporting.js') }}"></script>

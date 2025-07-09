@@ -1215,6 +1215,70 @@ def handle_incoming_text_command(phone_number, message_text):
         success, message = handle_rsvp(player, response_type, match_id)
         return jsonify({'status': 'success' if success else 'error', 'message': 'RSVP processed'})
     
+    # Check for substitute responses (YES/NO)
+    if cmd in ['yes', 'y', 'available', '1', 'no', 'n', 'not available', '0']:
+        # First check unified substitute pool system
+        from app.models_substitute_pools import SubstituteResponse, SubstituteRequest
+        from app.tasks.tasks_substitute_pools import process_substitute_response
+        
+        # Find the most recent open request for this player in unified system
+        recent_response = session.query(SubstituteResponse).join(
+            SubstituteRequest
+        ).filter(
+            SubstituteResponse.player_id == player.id,
+            SubstituteRequest.status == 'OPEN'
+        ).order_by(
+            SubstituteResponse.notification_sent_at.desc()
+        ).first()
+        
+        if recent_response:
+            # Process as unified substitute response
+            result = process_substitute_response(player.id, message_text, 'SMS')
+            
+            if result.get('success'):
+                is_available = result.get('is_available')
+                if is_available:
+                    send_sms(phone_number, 
+                        "I've marked you as available. Please wait for confirmation before heading to the pitch.",
+                        user_id)
+                else:
+                    send_sms(phone_number, 
+                        "Thanks for letting us know you're not available.",
+                        user_id)
+                return jsonify({'status': 'success', 'message': 'Substitute response recorded'})
+        
+        # Fall back to ECS FC specific system if no unified response found
+        from app.models_ecs_subs import EcsFcSubResponse, EcsFcSubRequest
+        from app.tasks.tasks_ecs_fc_subs import process_sub_response
+        
+        # Find the most recent open request for this player in ECS FC system
+        ecs_response = session.query(EcsFcSubResponse).join(
+            EcsFcSubRequest
+        ).filter(
+            EcsFcSubResponse.player_id == player.id,
+            EcsFcSubRequest.status == 'OPEN'
+        ).order_by(
+            EcsFcSubResponse.notification_sent_at.desc()
+        ).first()
+        
+        if ecs_response:
+            # Process as ECS FC sub response
+            result = process_sub_response.apply_async(
+                args=[player.id, message_text, 'SMS']
+            ).get(timeout=10)
+            
+            if result.get('success'):
+                is_available = cmd in ['yes', 'y', 'available', '1']
+                if is_available:
+                    send_sms(phone_number, 
+                        "I've marked you as available. Please wait for confirmation before heading to the pitch.",
+                        user_id)
+                else:
+                    send_sms(phone_number, 
+                        "Thanks for letting us know you're not available.",
+                        user_id)
+                return jsonify({'status': 'success', 'message': 'ECS FC sub response recorded'})
+    
     # Standard command handling
     if cmd in ['end', 'stop', 'unsubscribe', 'stopall', 'cancel', 'quit']:
         handle_opt_out(player)

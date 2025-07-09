@@ -25,6 +25,8 @@ flask_app = create_app()
 
 # Update Celery configuration using Flask app settings
 celery_app.conf.update(flask_app.config)
+# Apply the CeleryConfig class configuration including imports
+celery_app.config_from_object(CeleryConfig)
 celery_app.flask_app = flask_app
 
 # Export the necessary components for worker scripts

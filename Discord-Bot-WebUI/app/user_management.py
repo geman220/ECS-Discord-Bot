@@ -10,6 +10,7 @@ The module interacts with the database and enforces role-based access control fo
 """
 
 import logging
+from datetime import datetime
 
 from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g
 from flask_login import login_required
@@ -414,10 +415,21 @@ def edit_user(user_id):
 
         # Update user roles
         new_roles = session.query(Role).filter(Role.id.in_(form.roles.data)).all()
+        
+        # Keep track of current league roles to update them based on league assignments
+        league_roles = session.query(Role).filter(Role.name.in_([
+            'pl-classic', 'pl-premier', 'pl-ecs-fc',
+            'Classic Sub', 'Premier Sub', 'ECS FC Sub'
+        ])).all()
+        
+        # Remove all league-related roles from new_roles
+        new_roles = [r for r in new_roles if r not in league_roles]
+        
+        # We'll add the appropriate league roles after processing league assignments
         user.roles = new_roles
         
-        # Check if SUB role is assigned
-        has_sub_role = any(role.name == 'SUB' for role in new_roles)
+        # Check if SUB role is assigned (pl-unverified)
+        has_sub_role = any(role.name == 'pl-unverified' for role in new_roles)
 
         # Update player information if available
         if user.player:
@@ -459,8 +471,55 @@ def edit_user(user_id):
                     user.player.other_leagues = []
             else:
                 user.player.other_leagues = []
+            
+            # Now automatically assign league roles based on league assignments
+            assigned_leagues = set()
+            
+            # Get primary league
+            if user.player.primary_league_id:
+                primary_league = session.query(League).get(user.player.primary_league_id)
+                if primary_league:
+                    assigned_leagues.add(primary_league.name)
+            
+            # Get secondary leagues
+            for league in user.player.other_leagues:
+                assigned_leagues.add(league.name)
+            
+            # Also check team assignments for leagues
+            for team in user.player.teams:
+                if team.league:
+                    assigned_leagues.add(team.league.name)
+            
+            # Assign appropriate league roles
+            for league_name in assigned_leagues:
+                if league_name == 'Classic':
+                    classic_role = session.query(Role).filter_by(name='pl-classic').first()
+                    if classic_role and classic_role not in user.roles:
+                        user.roles.append(classic_role)
+                elif league_name == 'Premier':
+                    premier_role = session.query(Role).filter_by(name='pl-premier').first()
+                    if premier_role and premier_role not in user.roles:
+                        user.roles.append(premier_role)
+                elif league_name == 'ECS FC':
+                    ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+                    if ecs_fc_role and ecs_fc_role not in user.roles:
+                        user.roles.append(ecs_fc_role)
+            
+            # Update approval status if user has league roles
+            if assigned_leagues and user.approval_status != 'approved':
+                user.approval_status = 'approved'
+                user.approval_league = list(assigned_leagues)[0].lower().replace(' ', '-')
+                user.approved_at = datetime.utcnow()
+                # Note: approved_by would need to be set to current user if we track that
 
         session.commit()
+        
+        # Trigger Discord role sync if player has Discord ID
+        if user.player and user.player.discord_id:
+            from app.tasks.tasks_discord import assign_roles_to_player_task
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id} after edit")
+        
         show_success(f'User {user.username} updated successfully.')
     else:
         # Display validation errors

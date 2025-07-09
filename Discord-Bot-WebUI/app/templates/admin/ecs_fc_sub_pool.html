@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}ECS FC Substitute Pool - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">ECS FC Substitute Pool Management</h3>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Active Substitutes -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5>Active Substitutes ({{ sub_pool_entries|length }})</h5>
+                            {% if sub_pool_entries %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Player</th>
+                                                <th>Preferred Positions</th>
+                                                <th>Notifications</th>
+                                                <th>Stats</th>
+                                                <th>Joined</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for entry in sub_pool_entries %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ entry.player.name }}</strong>
+                                                    {% if entry.player.phone_number %}
+                                                        <br><small class="text-muted">{{ entry.player.phone_number }}</small>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-secondary">
+                                                        {{ entry.preferred_positions or 'Any' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="notification-badges">
+                                                        {% if entry.sms_for_sub_requests %}
+                                                            <span class="badge badge-success badge-sm">SMS</span>
+                                                        {% endif %}
+                                                        {% if entry.discord_for_sub_requests %}
+                                                            <span class="badge badge-info badge-sm">Discord</span>
+                                                        {% endif %}
+                                                        {% if entry.email_for_sub_requests %}
+                                                            <span class="badge badge-warning badge-sm">Email</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ entry.requests_accepted }}/{{ entry.requests_received }} accepted<br>
+                                                        {{ entry.matches_played }} matches played
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ entry.joined_pool_at.strftime('%m/%d/%Y') }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <button class="btn btn-outline-primary" 
+                                                                onclick="editSubPreferences({{ entry.id }})">
+                                                            Edit
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" 
+                                                                onclick="removeFromPool({{ entry.id }})">
+                                                            Remove
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> No active substitutes in the pool.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Eligible Players -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5>Add Players to Substitute Pool</h5>
+                            {% if eligible_players %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Player</th>
+                                                <th>Team</th>
+                                                <th>Phone</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for player in eligible_players %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ player.name }}</strong>
+                                                    {% if player.user and player.user.email %}
+                                                        <br><small class="text-muted">{{ player.user.email }}</small>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if player.teams %}
+                                                        {% for team in player.teams %}
+                                                            <span class="badge badge-primary">{{ team.name }}</span>
+                                                        {% endfor %}
+                                                    {% else %}
+                                                        <span class="text-muted">No team</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <small class="text-muted">
+                                                        {{ player.phone_number or 'Not provided' }}
+                                                    </small>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-success" 
+                                                            onclick="addToPool({{ player.id }})">
+                                                        Add to Pool
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> All players with 'ECS FC Sub' role are already in the pool.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Preferences Modal -->
+<div class="modal fade" id="editPreferencesModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Substitute Preferences</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="editPreferencesForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="preferredPositions">Preferred Positions</label>
+                        <input type="text" class="form-control" id="preferredPositions" 
+                               placeholder="e.g., Forward, Midfield">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxMatchesPerWeek">Max Matches per Week</label>
+                        <input type="number" class="form-control" id="maxMatchesPerWeek" 
+                               min="1" max="7" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label>Notification Preferences</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="smsNotifications">
+                            <label class="form-check-label" for="smsNotifications">
+                                SMS Notifications
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="discordNotifications">
+                            <label class="form-check-label" for="discordNotifications">
+                                Discord Notifications
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="emailNotifications">
+                            <label class="form-check-label" for="emailNotifications">
+                                Email Notifications
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Pool Modal -->
+<div class="modal fade" id="addToPoolModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Player to Substitute Pool</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="addToPoolForm">
+                <div class="modal-body">
+                    <p>Configure initial preferences for this substitute:</p>
+                    <div class="form-group">
+                        <label for="newPreferredPositions">Preferred Positions</label>
+                        <input type="text" class="form-control" id="newPreferredPositions" 
+                               placeholder="e.g., Forward, Midfield">
+                    </div>
+                    <div class="form-group">
+                        <label>Notification Preferences</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newSmsNotifications" checked>
+                            <label class="form-check-label" for="newSmsNotifications">
+                                SMS Notifications
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newDiscordNotifications" checked>
+                            <label class="form-check-label" for="newDiscordNotifications">
+                                Discord Notifications
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="newEmailNotifications" checked>
+                            <label class="form-check-label" for="newEmailNotifications">
+                                Email Notifications
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add to Pool</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPoolId = null;
+let currentPlayerId = null;
+
+function editSubPreferences(poolId) {
+    currentPoolId = poolId;
+    // In a real implementation, you'd populate the form with existing values
+    $('#editPreferencesModal').modal('show');
+}
+
+function addToPool(playerId) {
+    currentPlayerId = playerId;
+    $('#addToPoolModal').modal('show');
+}
+
+function removeFromPool(poolId) {
+    if (confirm('Are you sure you want to remove this player from the substitute pool?')) {
+        fetch(`/admin/ecs-fc/sub-pool/${poolId}/remove`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while removing the player.');
+        });
+    }
+}
+
+$('#editPreferencesForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('preferred_positions', $('#preferredPositions').val());
+    formData.append('max_matches_per_week', $('#maxMatchesPerWeek').val());
+    formData.append('sms_notifications', $('#smsNotifications').prop('checked'));
+    formData.append('discord_notifications', $('#discordNotifications').prop('checked'));
+    formData.append('email_notifications', $('#emailNotifications').prop('checked'));
+    
+    fetch(`/admin/ecs-fc/sub-pool/${currentPoolId}/update`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#editPreferencesModal').modal('hide');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating preferences.');
+    });
+});
+
+$('#addToPoolForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData();
+    formData.append('player_id', currentPlayerId);
+    formData.append('preferred_positions', $('#newPreferredPositions').val());
+    formData.append('sms_notifications', $('#newSmsNotifications').prop('checked'));
+    formData.append('discord_notifications', $('#newDiscordNotifications').prop('checked'));
+    formData.append('email_notifications', $('#newEmailNotifications').prop('checked'));
+    
+    fetch('/admin/ecs-fc/sub-pool/add', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#addToPoolModal').modal('hide');
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while adding the player.');
+    });
+});
+</script>
+{% endblock %}

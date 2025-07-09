@@ -136,7 +136,7 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
             }
             
             # Use the actual Discord API to send RSVP message
-            result = async_to_sync(send_ecs_fc_rsvp_message_async)(match_data)
+            result = async_to_sync(send_ecs_fc_rsvp_message_async(match_data))
             
             if result['success']:
                 # Update scheduled message

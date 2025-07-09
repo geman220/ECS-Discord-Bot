@@ -110,12 +110,13 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
 )
 def send_availability_message_task(self, session, scheduled_message_id: int) -> Dict[str, Any]:
     """
-    Send an availability message for a match (handles both Pub League and MLSMatch).
+    Send an availability message for a match (handles Pub League, MLSMatch, and ECS FC matches).
 
     The task:
-      - Retrieves the ScheduledMessage and its associated match.
-      - Extracts and formats match details differently based on match type.
-      - Invokes an asynchronous helper to send the message via an HTTP call.
+      - Retrieves the ScheduledMessage and routes to appropriate handler based on message type.
+      - For ECS FC messages: Routes to dedicated ECS FC handler.
+      - For regular matches: Extracts and formats match details based on match type.
+      - Invokes appropriate helper to send the message via Discord API.
       - Updates the ScheduledMessage status to 'SENT' upon success.
 
     Returns:
@@ -130,8 +131,25 @@ def send_availability_message_task(self, session, scheduled_message_id: int) -> 
             joinedload(ScheduledMessage.match)
         ).get(scheduled_message_id)
 
-        if not message or not message.match:
-            raise ValueError(f"Message or match not found for ID {scheduled_message_id}")
+        if not message:
+            raise ValueError(f"Message not found for ID {scheduled_message_id}")
+
+        # Check if this is an ECS FC message
+        if message.message_type == 'ecs_fc_rsvp' or (message.message_metadata and message.message_metadata.get('ecs_fc_match_id')):
+            # Route to ECS FC handler by queueing the dedicated task
+            from app.tasks.tasks_ecs_fc_scheduled import send_ecs_fc_availability_message
+            # Queue the ECS FC task and return immediately
+            task_result = send_ecs_fc_availability_message.delay(scheduled_message_id)
+            return {
+                'success': True,
+                'message': 'ECS FC availability message queued',
+                'task_id': task_result.id,
+                'routed_to': 'ecs_fc_handler'
+            }
+
+        # For regular pub league and MLS matches
+        if not message.match:
+            raise ValueError(f"Regular match not found for scheduled message ID {scheduled_message_id}")
 
         match = message.match
 

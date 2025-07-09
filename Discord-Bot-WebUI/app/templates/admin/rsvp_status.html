@@ -307,7 +307,7 @@
 </div>
 <!-- Store user role data for JavaScript -->
 <script type="text/javascript">
-    document.body.dataset.userRoles = "{{ current_user.roles|map(attribute='name')|join(',') }}";
+    document.body.dataset.userRoles = "{{ user_roles|join(',') }}";
 </script>
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Header with Breadcrumb -->
@@ -322,6 +322,29 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
                         <div class="mb-3 mb-md-0">
+                            {% if is_ecs_fc_match %}
+                            <h4 class="mb-1">{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }}</h4>
+                            <div class="d-flex align-items-center gap-3 text-muted">
+                                <div>
+                                    <i class="ti ti-calendar me-1"></i> 
+                                    <span>{{ ecs_match.match_date.strftime('%a, %b %d, %Y') }}</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-clock me-1"></i>
+                                    <span>{{ ecs_match.match_time.strftime('%I:%M %p') }}</span>
+                                </div>
+                                <div>
+                                    <i class="ti ti-map-pin me-1"></i>
+                                    <span>{{ ecs_match.location }}</span>
+                                </div>
+                                {% if ecs_match.field_name %}
+                                <div>
+                                    <i class="ti ti-world me-1"></i>
+                                    <span>{{ ecs_match.field_name }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
                             <h4 class="mb-1">{{ match.home_team.name }} vs {{ match.away_team.name }}</h4>
                             <div class="d-flex align-items-center gap-3 text-muted">
                                 <div>
@@ -337,25 +360,25 @@
                                     <span>{{ match.location }}</span>
                                 </div>
                             </div>
+                            {% endif %}
                         </div>
                         <div class="d-flex gap-2">
                             <a href="{{ url_for('admin.view_scheduled_messages') }}" class="btn btn-outline-secondary ecs-btn ecs-btn-icon">
                                 <i class="ti ti-arrow-left me-1"></i> Back to Messages
                             </a>
+                            {% if is_ecs_fc_match %}
+                            <a href="{{ url_for('match_pages.view_match', match_id='ecs_' + ecs_match.id|string) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
+                            {% else %}
                             <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="btn btn-primary ecs-btn ecs-btn-icon">
+                            {% endif %}
                                 <i class="ti ti-eye me-1"></i> View Match Page
                             </a>
-                            {% if current_user.is_admin %}
-                            <button type="button" id="syncDiscordButton" class="btn btn-info ecs-btn ecs-btn-icon">
-                                <i class="ti ti-refresh me-1"></i> Sync Discord RSVPs
-                            </button>
-                            {% endif %}
-                            {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                            {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                             <button type="button" class="btn btn-success ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#assignSubModalRSVP">
                                 <i class="ti ti-user-plus me-1"></i> Assign Substitute
                             </button>
                             {% endif %}
-                            {% if current_user.has_role('Pub League Coach') or current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                            {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') %}
                             <button type="button" class="btn btn-warning ecs-btn ecs-btn-icon" data-bs-toggle="modal" data-bs-target="#requestSubModal">
                                 <i class="ti ti-hand-stop me-1"></i> Request Substitute
                             </button>
@@ -455,6 +478,13 @@
                                 All Responses
                             </button>
                         </li>
+                        {% if is_ecs_fc_match %}
+                        <li class="nav-item">
+                            <button class="nav-link" id="team-tab" data-bs-toggle="tab" data-bs-target="#team-responses" type="button" role="tab" aria-controls="team-responses" aria-selected="false">
+                                {{ ecs_match.team.name }} ({{ rsvps|count }})
+                            </button>
+                        </li>
+                        {% else %}
                         {% set home_team_responses = rsvps|selectattr('team.id', 'equalto', match.home_team.id)|list %}
                         {% set away_team_responses = rsvps|selectattr('team.id', 'equalto', match.away_team.id)|list %}
                         
@@ -468,6 +498,7 @@
                                 {{ match.away_team.name }} ({{ away_team_responses|count }})
                             </button>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
                 <div class="card-body">
@@ -516,9 +547,15 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                {% if is_ecs_fc_match %}
+                                                <span class="badge bg-primary">
+                                                    {{ rsvp['team'].name }}
+                                                </span>
+                                                {% else %}
                                                 <span class="badge bg-{{ 'primary' if rsvp['team'].id == match.home_team.id else 'info' }}">
                                                     {{ rsvp['team'].name }}
                                                 </span>
+                                                {% endif %}
                                             </td>
                                             <td>
                                                 <div class="d-flex align-items-center">
@@ -584,16 +621,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="yes">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="maybe">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -601,7 +638,7 @@
                                                         <!-- Sub Management Options -->
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
-                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="redirect_to" value="rsvp_status">
                                                             <button type="submit" class="dropdown-item text-danger">
@@ -610,7 +647,7 @@
                                                         </form>
                                                         {% else %}
                                                         <!-- Add as Sub Option -->
-                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
                                                         <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
@@ -726,16 +763,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="yes">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="maybe">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -743,7 +780,7 @@
                                                         <!-- Sub Management Options -->
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
-                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="redirect_to" value="rsvp_status">
                                                             <button type="submit" class="dropdown-item text-danger">
@@ -752,7 +789,7 @@
                                                         </form>
                                                         {% else %}
                                                         <!-- Add as Sub Option -->
-                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
                                                         <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
@@ -868,16 +905,16 @@
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Update RSVP</h6>
                                                         
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="yes">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="yes">
                                                             <i class="ti ti-check text-success me-1"></i> Set as Yes
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="maybe">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="maybe">
                                                             <i class="ti ti-help text-warning me-1"></i> Set as Maybe
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no">
                                                             <i class="ti ti-x text-danger me-1"></i> Set as No
                                                         </a>
-                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{{ match.id }}" data-response="no_response">
+                                                        <a class="dropdown-item update-rsvp-btn" href="javascript:void(0);" data-player-id="{{ rsvp['player'].id }}" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}" data-response="no_response">
                                                             <i class="ti ti-trash me-1"></i> Clear Response
                                                         </a>
                                                         
@@ -885,7 +922,7 @@
                                                         <!-- Sub Management Options -->
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
-                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp['assignment_id']) }}" method="POST" class="d-inline">
+                                                        <form action="{{ url_for('admin.remove_sub', assignment_id=rsvp.get('assignment_id', 0)) }}" method="POST" class="d-inline">
                                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                             <input type="hidden" name="redirect_to" value="rsvp_status">
                                                             <button type="submit" class="dropdown-item text-danger">
@@ -894,7 +931,7 @@
                                                         </form>
                                                         {% else %}
                                                         <!-- Add as Sub Option -->
-                                                        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+                                                        {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                                                         <div class="dropdown-divider"></div>
                                                         <h6 class="dropdown-header">Sub Management</h6>
                                                         <a class="dropdown-item" href="{{ url_for('admin.manage_subs') }}" target="_blank">
@@ -932,7 +969,7 @@
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="player_id" id="smsPlayerId">
-                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
                     <input type="hidden" name="phone" id="smsPlayerPhone">
                     
                     <!-- Player Info -->
@@ -952,7 +989,7 @@
                     <div class="mb-4">
                         <div class="d-flex align-items-center p-2 bg-light rounded mb-3">
                             <i class="ti ti-calendar-event me-2 text-primary"></i>
-                            <span>{{ match.home_team.name }} vs {{ match.away_team.name }} ({{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }})</span>
+                            <span>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} ({{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}){% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} ({{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}){% endif %}</span>
                         </div>
                     </div>
                     
@@ -997,7 +1034,7 @@
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="player_id" id="discordPlayerId">
-                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
                     <input type="hidden" name="discord_id" id="discordId">
                     
                     <!-- Player Info -->
@@ -1017,7 +1054,7 @@
                     <div class="mb-4">
                         <div class="d-flex align-items-center p-2 bg-light rounded mb-3">
                             <i class="ti ti-calendar-event me-2 text-indigo"></i>
-                            <span>{{ match.home_team.name }} vs {{ match.away_team.name }} ({{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }})</span>
+                            <span>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} ({{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}){% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} ({{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}){% endif %}</span>
                         </div>
                     </div>
                     
@@ -1058,10 +1095,10 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="assignSubFormRSVP" action="{{ url_for('admin.assign_sub') }}" method="POST">
+            <form id="assignSubFormRSVP" action="{% if is_ecs_fc_match and ecs_sub_request %}{{ url_for('admin.ecs_fc_subs.assign_substitute', request_id=ecs_sub_request.id) }}{% else %}{{ url_for('admin.assign_sub') }}{% endif %}" method="POST">
                 <div class="modal-body p-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="match_id" value="{{ match.id }}">
+                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
                     <input type="hidden" name="redirect_to" value="rsvp_status">
                     
                     <div class="row mb-4">
@@ -1072,7 +1109,7 @@
                                     <i class="ti ti-info-circle me-2 fs-3"></i>
                                     <div>
                                         <h5 class="alert-heading mb-1">Match Information</h5>
-                                        <p class="mb-0">{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}</p>
+                                        <p class="mb-0">{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1094,8 +1131,12 @@
                             <label for="subTeamRSVP" class="form-label fw-semibold">Team</label>
                             <select class="form-select" id="subTeamRSVP" name="team_id" required>
                                 <option value="" selected disabled>Select a team for this match...</option>
+                                {% if is_ecs_fc_match %}
+                                <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
+                                {% else %}
                                 <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
                                 <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                                {% endif %}
                             </select>
                         </div>
                     </div>
@@ -1159,68 +1200,194 @@
 
 <!-- Request Sub Modal -->
 <div class="modal fade" id="requestSubModal" tabindex="-1" aria-labelledby="requestSubModalLabel" aria-hidden="true" 
+    {% if is_ecs_fc_match %}
+    data-team-id="{{ ecs_match.team_id }}" data-team-name="{{ ecs_match.team.name }}" data-league-type="ECS FC"
+    {% else %}
     data-home-team-id="{{ match.home_team_id }}" data-away-team-id="{{ match.away_team_id }}"
-    data-home-team-name="{{ match.home_team.name }}" data-away-team-name="{{ match.away_team.name }}">
-    <div class="modal-dialog modal-dialog-centered">
+    data-home-team-name="{{ match.home_team.name }}" data-away-team-name="{{ match.away_team.name }}" data-league-type="Classic"
+    {% endif %}>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content shadow-lg border-0">
             <div class="modal-header bg-warning text-white">
                 <h5 class="modal-title" id="requestSubModalLabel">
-                    <i class="ti ti-hand-stop me-2"></i>Request Substitute
+                    <i class="ti ti-hand-stop me-2"></i>Substitute Request Management
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="requestSubForm" action="{{ url_for('admin.request_sub') }}" method="POST">
-                <div class="modal-body p-4">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="match_id" value="{{ match.id }}">
-                    
-                    <div class="mb-4">
-                        <div class="alert alert-info">
-                            <div class="d-flex align-items-center">
-                                <i class="ti ti-info-circle me-2 fs-3"></i>
-                                <div>
-                                    <h5 class="alert-heading mb-1">Match Information</h5>
-                                    <p class="mb-0">{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}</p>
-                                </div>
+            <div class="modal-body p-0">
+                <!-- Tab Navigation -->
+                <ul class="nav nav-tabs" id="subRequestTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="existing-requests-tab" data-bs-toggle="tab" data-bs-target="#existing-requests" type="button" role="tab">
+                            <i class="ti ti-list me-1"></i>Current Requests
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="new-request-tab" data-bs-toggle="tab" data-bs-target="#new-request" type="button" role="tab">
+                            <i class="ti ti-plus me-1"></i>Create New Request
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="subRequestTabContent">
+                    <!-- Existing Requests Tab -->
+                    <div class="tab-pane fade show active" id="existing-requests" role="tabpanel">
+                        <div class="p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">
+                                    <i class="ti ti-messages me-2"></i>Recent Substitute Requests for this Match
+                                </h6>
+                                <button class="btn btn-sm btn-outline-primary" id="refreshMatchRequestsBtn">
+                                    <i class="ti ti-refresh"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Created</th>
+                                            <th>Team</th>
+                                            <th>Status</th>
+                                            <th>Responses</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="matchSubstituteRequestsTable">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted py-3">Loading...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="team_id" class="form-label fw-semibold">Team Needing Substitute</label>
-                        <select class="form-select" id="team_id" name="team_id" required>
-                            <option value="" selected disabled>Select team...</option>
-                            {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
-                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
-                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
-                            {% elif current_user.has_role('Pub League Coach') and current_user.player %}
-                                <!-- Simpler coach check: Just show teams in this match for coaches -->
-                                {% for team in current_user.player.teams %}
-                                    {% if team.id == match.home_team_id %}
-                                        <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
-                                    {% endif %}
-                                    {% if team.id == match.away_team_id %}
-                                        <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="notes" class="form-label fw-semibold">Additional Notes</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add any details about why you need a sub or specific requirements..."></textarea>
+                    <!-- New Request Tab -->
+                    <div class="tab-pane fade" id="new-request" role="tabpanel">
+                        <form id="requestSubForm" action="{{ url_for('admin.request_sub') }}" method="POST">
+                            <div class="p-4">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
+                                
+                                <div class="mb-4">
+                                    <div class="alert alert-info">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-info-circle me-2 fs-3"></i>
+                                            <div>
+                                                <h5 class="alert-heading mb-1">Match Information</h5>
+                                                <p class="mb-0">{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="team_id" class="form-label fw-semibold">Team Needing Substitute</label>
+                                    <select class="form-select" id="team_id" name="team_id" required>
+                                        <option value="" selected disabled>Select team...</option>
+                                        {% if is_ecs_fc_match %}
+                                            <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
+                                        {% else %}
+                                            {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+                                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                                            {% elif has_role('Pub League Coach') and safe_current_user.player %}
+                                                <!-- Simpler coach check: Just show teams in this match for coaches -->
+                                                {% for team in safe_current_user.player.teams %}
+                                                    {% if team.id == match.home_team_id %}
+                                                        <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                                                    {% endif %}
+                                                    {% if team.id == match.away_team_id %}
+                                                        <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endif %}
+                                    </select>
+                                </div>
+                                
+                                {% if is_ecs_fc_match %}
+                                <!-- ECS FC Advanced System -->
+                                <div class="mb-3">
+                                    <label for="substitutes_needed" class="form-label fw-semibold">Number of Substitutes Needed</label>
+                                    <select class="form-select" id="substitutes_needed" name="substitutes_needed" onchange="updateSubstituteSlots()">
+                                        <option value="1" selected>1 substitute</option>
+                                        <option value="2">2 substitutes</option>
+                                        <option value="3">3 substitutes</option>
+                                        <option value="4">4 substitutes</option>
+                                        <option value="5">5 substitutes</option>
+                                    </select>
+                                    <div class="form-text">How many substitutes do you need for this match?</div>
+                                </div>
+                                
+                                <!-- Substitute Slots Section -->
+                                <div id="substitute-slots-section" class="mb-3">
+                                    <label class="form-label fw-semibold">Substitute Requirements</label>
+                                    <div class="form-text mb-2">Specify position and gender for each substitute needed</div>
+                                    
+                                    <!-- Header row -->
+                                    <div class="row mb-1 text-muted small">
+                                        <div class="col-1">#</div>
+                                        <div class="col-6">Position Needed</div>
+                                        <div class="col-5">Gender Needed</div>
+                                    </div>
+                                    
+                                    <div id="substitute-slots-container">
+                                        <!-- Slots will be dynamically generated here -->
+                                    </div>
+                                </div>
+                                {% else %}
+                                <!-- Pub League Simple System -->
+                                <div class="alert alert-info">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-info-circle me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="mb-1">Pub League Substitute Request</h6>
+                                            <p class="mb-0">Your request will be sent to pub league administrators who will assign an approved substitute from the {{ match.home_team.league.name if match.home_team.league else 'league' }} substitute pool.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="substitutes_needed" class="form-label fw-semibold">Number of Substitutes Needed</label>
+                                    <select class="form-select" id="substitutes_needed" name="substitutes_needed">
+                                        <option value="1" selected>1 substitute</option>
+                                        <option value="2">2 substitutes</option>
+                                        <option value="3">3 substitutes</option>
+                                        <option value="4">4 substitutes</option>
+                                        <option value="5">5 substitutes</option>
+                                    </select>
+                                    <div class="form-text">How many substitutes do you need for this match?</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="positions_needed" class="form-label fw-semibold">Position Preferences (Optional)</label>
+                                    <input type="text" class="form-control" id="positions_needed" name="positions_needed" placeholder="e.g., Goalkeeper, Defender, Midfielder">
+                                    <div class="form-text">Let admins know if you need specific positions covered</div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label fw-semibold">Additional Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                              placeholder="{% if is_ecs_fc_match %}e.g., Bring black shirt, meet at north parking lot, game starts at 7pm sharp...{% else %}e.g., Need sub for injured player, specific position preferences, etc.{% endif %}"></textarea>
+                                    <div class="form-text">{% if is_ecs_fc_match %}Optional: Include any special instructions for all substitutes{% else %}Optional: Include details about why you need a substitute or position preferences{% endif %}</div>
+                                </div>
+                            </div>
+                            <div class="modal-footer bg-light">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="ti ti-x me-1"></i>Cancel
+                                </button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="ti ti-hand-stop me-1"></i>{% if is_ecs_fc_match %}Request Substitute{% else %}Send Request to Admin{% endif %}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                        <i class="ti ti-x me-1"></i>Cancel
-                    </button>
-                    <button type="submit" class="btn btn-warning">
-                        <i class="ti ti-hand-stop me-1"></i>Request Substitute
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -1233,4 +1400,92 @@
 <!-- Custom scripts with proper asset versioning for cache busting -->
 <script src="{{ asset_version('custom_js/design-system-override.js') }}"></script>
 <script src="{{ asset_version('custom_js/rsvp-unified.js') }}"></script>
+<script src="{{ url_for('static', filename='custom_js/substitute-request-management.js') }}"></script>
+
+<!-- Match-specific initialization -->
+<script>
+// Global variables for match info
+const matchId = "{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}";
+const isEcsFcMatch = {{ 'true' if is_ecs_fc_match else 'false' }};
+const leagueType = "{% if is_ecs_fc_match %}ECS FC{% else %}Classic{% endif %}";
+
+// Substitute Slots Management
+function updateSubstituteSlots() {
+    const count = parseInt(document.getElementById('substitutes_needed').value);
+    const container = document.getElementById('substitute-slots-container');
+    
+    // Clear existing slots
+    container.innerHTML = '';
+    
+    // Create slots for each substitute needed
+    for (let i = 1; i <= count; i++) {
+        const slotHtml = `
+            <div class="row mb-2 substitute-slot" data-slot="${i}">
+                <div class="col-1">
+                    <span class="badge bg-primary">${i}</span>
+                </div>
+                <div class="col-6">
+                    <select class="form-select form-select-sm" name="slot_${i}_position">
+                        <option value="">Any Position</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Center Back">Center Back</option>
+                        <option value="Left Back">Left Back</option>
+                        <option value="Right Back">Right Back</option>
+                        <option value="Defensive Midfielder">Defensive Midfielder</option>
+                        <option value="Central Midfielder">Central Midfielder</option>
+                        <option value="Attacking Midfielder">Attacking Midfielder</option>
+                        <option value="Left Midfielder">Left Midfielder</option>
+                        <option value="Right Midfielder">Right Midfielder</option>
+                        <option value="Left Winger">Left Winger</option>
+                        <option value="Right Winger">Right Winger</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Striker">Striker</option>
+                    </select>
+                </div>
+                <div class="col-5">
+                    <select class="form-select form-select-sm" name="slot_${i}_gender">
+                        <option value="">Any Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', slotHtml);
+    }
+}
+
+// Initialize match substitute request management when page loads
+$(document).ready(function() {
+    // Only initialize substitute slots for ECS FC matches
+    if (isEcsFcMatch) {
+        updateSubstituteSlots();
+    }
+    
+    // Load substitute requests when the modal is shown
+    $('#requestSubModal').on('shown.bs.modal', function() {
+        // Load existing requests when modal opens
+        loadMatchSubstituteRequests(matchId);
+        // Reset and initialize slots for ECS FC matches only
+        if (isEcsFcMatch) {
+            updateSubstituteSlots();
+        }
+    });
+
+    // Handle form submission
+    $('#requestSubForm').on('submit', function(e) {
+        const form = this;
+        
+        // Add a small delay to let the form submit, then refresh the requests
+        setTimeout(function() {
+            if (!form.checkValidity || form.checkValidity()) {
+                loadMatchSubstituteRequests(matchId);
+            }
+        }, 2000);
+    });
+});
+
+// Legacy function for compatibility - removed to prevent recursion
+// The loadMatchSubstituteRequests function is now handled directly by the external module
+</script>
 {% endblock %}

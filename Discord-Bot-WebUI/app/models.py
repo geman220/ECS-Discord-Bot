@@ -126,6 +126,16 @@ class User(UserMixin, db.Model):
     notes = db.relationship('Note', back_populates='author', lazy=True)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
     feedback_replies = db.relationship('FeedbackReply', back_populates='user', lazy=True)
+    
+    # User approval fields
+    approval_status = db.Column(db.String(20), nullable=False, default='pending')
+    approval_league = db.Column(db.String(50), nullable=True)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    approval_notes = db.Column(db.Text, nullable=True)
+    
+    # Approval relationships
+    approved_by_user = db.relationship('User', remote_side=[id], backref='approved_users')
 
     @hybrid_property
     def email(self):
@@ -907,6 +917,9 @@ class Availability(db.Model):
     discord_id = db.Column(db.String(100), nullable=False)
     response = db.Column(db.String(20), nullable=False)
     responded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    discord_sync_status = db.Column(db.String(20), nullable=True)
+    last_sync_attempt = db.Column(db.DateTime, nullable=True)
+    sync_error = db.Column(db.String(255), nullable=True)
     match = db.relationship('Match', back_populates='availability')
     player = db.relationship('Player', back_populates='availability')
 
@@ -918,6 +931,9 @@ class Availability(db.Model):
             'discord_id': self.discord_id,
             'response': self.response,
             'responded_at': self.responded_at.isoformat() if self.responded_at else None,
+            'discord_sync_status': self.discord_sync_status,
+            'last_sync_attempt': self.last_sync_attempt.isoformat() if self.last_sync_attempt else None,
+            'sync_error': self.sync_error,
         }
 
 
@@ -1531,6 +1547,7 @@ class SubRequest(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
     requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status = db.Column(db.String(20), default='PENDING')  # PENDING, APPROVED, DECLINED, FULFILLED
+    substitutes_needed = db.Column(db.Integer, default=1, nullable=False)  # Number of substitutes needed
     notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
