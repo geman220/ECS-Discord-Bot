@@ -1007,13 +1007,32 @@ def clear_sweet_alert():
     it from appearing again on page refresh.
     
     Returns:
-        An empty response with HTTP 204 status code.
+        JSON response indicating success or failure.
     """
     from flask import session as flask_session
-    if 'sweet_alert' in flask_session:
-        flask_session.pop('sweet_alert', None)
-        logger.info("Sweet alert cleared from session")
-    return '', 204
+    try:
+        if 'sweet_alert' in flask_session:
+            alert_data = flask_session.pop('sweet_alert', None)
+            logger.info(f"Sweet alert cleared from session: {alert_data}")
+            
+            # Force session save to ensure the change is persisted
+            flask_session.permanent = True
+            flask_session.modified = True
+            
+            return jsonify({'success': True, 'message': 'Alert cleared successfully'})
+        else:
+            logger.debug("No sweet alert found in session to clear")
+            return jsonify({'success': True, 'message': 'No alert to clear'})
+    except Exception as e:
+        logger.error(f"Error clearing sweet alert: {str(e)}")
+        # Try to force clear even if there's an error
+        try:
+            flask_session.pop('sweet_alert', None)
+            flask_session.permanent = True
+            flask_session.modified = True
+        except:
+            pass
+        return jsonify({'success': False, 'message': 'Error clearing alert'}), 500
 
 
 @main.route('/save_phone_for_verification', methods=['POST'])
