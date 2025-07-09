@@ -16,7 +16,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
-from app.models import User, Role, Player, League, Season, Team
+from app.models import User, Role, Player, League, Season, Team, user_roles
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.tasks.player_sync import sync_players_with_woocommerce
@@ -413,7 +413,7 @@ def edit_user(user_id):
         user.username = form.username.data
         user.email = form.email.data
 
-        # Update user roles
+        # Update user roles using direct SQL to avoid SQLAlchemy relationship issues
         new_roles = session.query(Role).filter(Role.id.in_(form.roles.data)).all()
         
         # Keep track of current league roles to update them based on league assignments
@@ -425,8 +425,38 @@ def edit_user(user_id):
         # Remove all league-related roles from new_roles
         new_roles = [r for r in new_roles if r not in league_roles]
         
-        # We'll add the appropriate league roles after processing league assignments
-        user.roles = new_roles
+        # Get current non-league role IDs
+        current_role_ids = [role.id for role in user.roles if role not in league_roles]
+        new_role_ids = [role.id for role in new_roles]
+        
+        # Remove roles that are no longer assigned
+        roles_to_remove = [rid for rid in current_role_ids if rid not in new_role_ids]
+        if roles_to_remove:
+            session.execute(
+                user_roles.delete().where(
+                    user_roles.c.user_id == user.id,
+                    user_roles.c.role_id.in_(roles_to_remove)
+                )
+            )
+        
+        # Add new roles that aren't already assigned
+        roles_to_add = [rid for rid in new_role_ids if rid not in current_role_ids]
+        if roles_to_add:
+            for role_id in roles_to_add:
+                # Check if the relationship already exists to avoid duplicates
+                existing = session.execute(
+                    user_roles.select().where(
+                        user_roles.c.user_id == user.id,
+                        user_roles.c.role_id == role_id
+                    )
+                ).first()
+                if not existing:
+                    session.execute(
+                        user_roles.insert().values(user_id=user.id, role_id=role_id)
+                    )
+        
+        # Refresh the user to pick up role changes
+        session.refresh(user)
         
         # Check if SUB role is assigned (pl-unverified)
         has_sub_role = any(role.name == 'pl-unverified' for role in new_roles)
@@ -508,6 +538,7 @@ def edit_user(user_id):
             # Update approval status if user has league roles
             if assigned_leagues and user.approval_status != 'approved':
                 user.approval_status = 'approved'
+                user.is_approved = True
                 user.approval_league = list(assigned_leagues)[0].lower().replace(' ', '-')
                 user.approved_at = datetime.utcnow()
                 # Note: approved_by would need to be set to current user if we track that
