@@ -230,16 +230,16 @@ def add_mls_match():
                 match_details['date_time'] = ensure_utc(match_details['date_time'])
                 try:
                     match = insert_mls_match(
-                        match_id=match_details['match_id'],
-                        opponent=match_details['opponent'],
-                        date_time=match_details['date_time'],
-                        is_home_game=match_details['is_home_game'],
-                        summary_link=match_details['match_summary_link'],
-                        stats_link=match_details['match_stats_link'],
-                        commentary_link=match_details['match_commentary_link'],
-                        venue=match_details['venue'],
-                        competition=competition,
-                        session=session_db
+                        session_db,
+                        match_details['match_id'],
+                        match_details['opponent'],
+                        match_details['date_time'],
+                        match_details['is_home_game'],
+                        match_details['match_summary_link'],
+                        match_details['match_stats_link'],
+                        match_details['match_commentary_link'],
+                        match_details['venue'],
+                        competition
                     )
                     session_db.flush()
                     if not match:
