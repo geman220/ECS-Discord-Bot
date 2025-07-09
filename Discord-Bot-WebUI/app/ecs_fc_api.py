@@ -12,17 +12,22 @@ from flask import Blueprint, request, jsonify, g
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
+from app import csrf
 from app.core import db
 from app.models import Team, League, Player, User
 from app.models_ecs import EcsFcMatch, EcsFcAvailability, EcsFcScheduleTemplate
 from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach, get_upcoming_ecs_fc_matches
 from app.decorators import role_required
 from app.api_utils import validate_json_request, create_api_response
+from app.utils.user_helpers import safe_current_user
 
 logger = logging.getLogger(__name__)
 
 # Create blueprint
 ecs_fc_api = Blueprint('ecs_fc_api', __name__, url_prefix='/api/ecs-fc')
+
+# Exempt from CSRF protection since it's an API used by Discord bot
+csrf.exempt(ecs_fc_api)
 
 
 def validate_ecs_fc_coach_access(team_id: int) -> bool:
@@ -35,13 +40,29 @@ def validate_ecs_fc_coach_access(team_id: int) -> bool:
     Returns:
         True if user has access, False otherwise
     """
-    # Check if user is admin
-    if (current_user.has_role('Global Admin') or 
-        current_user.has_role('Pub League Admin')):
-        return True
+    # Check for role impersonation first, then fall back to real roles
+    from app.role_impersonation import is_impersonation_active, get_effective_roles
     
-    coached_teams = is_user_ecs_fc_coach(current_user.id)
-    return team_id in coached_teams
+    if is_impersonation_active():
+        effective_roles = get_effective_roles()
+    else:
+        effective_roles = [role.name for role in safe_current_user.roles]
+    
+    # Check if user has proper ECS FC permissions through roles
+    has_ecs_fc_access = (
+        'Global Admin' in effective_roles or
+        'Pub League Admin' in effective_roles or
+        'ECS FC Coach' in effective_roles
+    )
+    
+    if not has_ecs_fc_access:
+        return False
+    
+    # Don't allow if user is ONLY a Pub League Player
+    if effective_roles == ['Pub League Player']:
+        return False
+    
+    return True
 
 
 @ecs_fc_api.route('/matches', methods=['POST'])
@@ -481,15 +502,27 @@ def store_rsvp_message():
             if field not in data:
                 return create_api_response(False, f"Missing required field: {field}", status_code=400)
         
-        # Store in scheduled_message table with ECS FC metadata
+        # Check if this message is already stored (idempotency)
         from app.models import ScheduledMessage
         
+        existing_message = db.session.query(ScheduledMessage).filter(
+            ScheduledMessage.message_type == 'ecs_fc_rsvp',
+            ScheduledMessage.message_metadata.op('->>')('discord_message_id') == str(data['message_id'])
+        ).first()
+        
+        if existing_message:
+            logger.info(f"ECS FC RSVP message {data['message_id']} already stored with ID {existing_message.id}")
+            return create_api_response(True, "RSVP message information already stored", {
+                'scheduled_message_id': existing_message.id
+            })
+        
+        # Store in scheduled_message table with ECS FC metadata
         scheduled_message = ScheduledMessage(
-            match_id=data['match_id'],
-            message_id=data['message_id'],
-            channel_id=data['channel_id'],
+            match_id=None,  # ECS FC matches don't use the regular match_id field
+            scheduled_send_time=datetime.utcnow(),  # Required field - set to now since already sent
+            status='SENT',  # Message has already been sent
             message_type='ecs_fc_rsvp',
-            metadata={
+            message_metadata={
                 'ecs_fc_match_id': data['match_id'],
                 'discord_message_id': data['message_id'],
                 'discord_channel_id': data['channel_id']
@@ -499,6 +532,8 @@ def store_rsvp_message():
         
         db.session.add(scheduled_message)
         db.session.commit()
+        
+        logger.info(f"Stored ECS FC RSVP message {data['message_id']} with scheduled_message_id {scheduled_message.id}")
         
         return create_api_response(True, "RSVP message information stored", {
             'scheduled_message_id': scheduled_message.id
@@ -516,18 +551,21 @@ def get_rsvp_message(match_id: int):
     try:
         from app.models import ScheduledMessage
         
+        # Look specifically for the message that contains Discord message ID
         scheduled_message = db.session.query(ScheduledMessage).filter(
-            ScheduledMessage.match_id == match_id,
-            ScheduledMessage.message_type == 'ecs_fc_rsvp'
+            ScheduledMessage.message_type == 'ecs_fc_rsvp',
+            ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match_id),
+            ScheduledMessage.message_metadata.has_key('discord_message_id')
         ).first()
         
         if not scheduled_message:
             return create_api_response(False, "RSVP message not found", status_code=404)
         
+        metadata = scheduled_message.message_metadata or {}
         return create_api_response(True, "RSVP message found", {
-            'message_id': scheduled_message.message_id,
-            'channel_id': scheduled_message.channel_id,
-            'metadata': scheduled_message.metadata
+            'message_id': metadata.get('discord_message_id'),
+            'channel_id': metadata.get('discord_channel_id'),
+            'metadata': metadata
         })
         
     except Exception as e:
@@ -543,15 +581,24 @@ def update_rsvp():
         if not data:
             return create_api_response(False, "Invalid JSON data", status_code=400)
         
-        required_fields = ['match_id', 'player_id', 'response']
+        required_fields = ['match_id', 'response']
         for field in required_fields:
             if field not in data:
                 return create_api_response(False, f"Missing required field: {field}", status_code=400)
         
         match_id = data['match_id']
-        player_id = data['player_id']
         response = data['response']
         discord_id = data.get('discord_id')
+        player_id = data.get('player_id')
+        
+        # If no player_id provided, look up by discord_id
+        if not player_id and discord_id:
+            player = db.session.query(Player).filter(Player.discord_id == str(discord_id)).first()
+            if not player:
+                return create_api_response(False, f"No player found with Discord ID {discord_id}", status_code=404)
+            player_id = player.id
+        elif not player_id:
+            return create_api_response(False, "Either player_id or discord_id must be provided", status_code=400)
         
         # Validate response value
         if response not in ['yes', 'no', 'maybe', 'no_response']:

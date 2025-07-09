@@ -14,13 +14,20 @@ from discord import app_commands
 from discord.ext import commands
 from common import bot_token, server_id
 import uvicorn
-from bot_rest_api import app, bot_ready, update_embed_for_message, get_team_id_for_message, poll_task_result, session
+from bot_rest_api import app
+from shared_states import bot_ready
+from api.utils.rsvp_utils import update_embed_for_message
+from api.utils.discord_utils import get_team_id_for_message, poll_task_result
+from api.utils.api_client import get_session
 import signal
 import sys
 import traceback
-from shared_states import bot_ready, bot_state, set_bot_instance, periodic_check
+from shared_states import bot_state, set_bot_instance, periodic_check
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
+
+# Global session variable for HTTP requests
+session = None
 
 # Configure logging
 if __name__ == "__main__":
@@ -863,15 +870,31 @@ async def sync_rsvp_with_web_ui(match_id, discord_id, response):
     Syncs RSVP data with the web UI by sending a POST request.
     Uses a semaphore to limit concurrent operations per match.
     Includes retries with exponential backoff.
+    Handles both regular pub league and ECS FC matches.
     """
     logger.debug(f"Syncing RSVP with Web UI for match {match_id}, user {discord_id}, response {response}")
-    api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
-    data = {
-        "match_id": match_id,
-        "discord_id": discord_id,
-        "response": response,
-        "responded_at": datetime.utcnow().isoformat()
-    }
+    
+    # Check if this is an ECS FC match (has 'ecs_' prefix)
+    if isinstance(match_id, str) and match_id.startswith('ecs_'):
+        # Extract the numeric ECS FC match ID
+        ecs_fc_match_id = match_id.replace('ecs_', '')
+        api_url = f"{WEBUI_API_URL}/ecs-fc/rsvp/update"
+        data = {
+            "match_id": int(ecs_fc_match_id),
+            "discord_id": str(discord_id),
+            "response": response,
+            "player_id": None  # Will be looked up by discord_id
+        }
+        logger.info(f"Processing ECS FC RSVP for match {ecs_fc_match_id}")
+    else:
+        # Regular pub league match
+        api_url = f"{WEBUI_API_URL}/update_availability_from_discord"
+        data = {
+            "match_id": match_id,
+            "discord_id": discord_id,
+            "response": response,
+            "responded_at": datetime.utcnow().isoformat()
+        }
 
     # Get the semaphore for this match
     semaphore = rsvp_semaphore.get_semaphore(match_id)
@@ -944,7 +967,7 @@ async def get_match_and_team_id_from_message(message_id: int, channel_id: int):
         return None, None
 
 async def is_user_on_team(discord_id: str, team_id: int) -> bool:
-    api_url = f"http://webui:5000/api/is_user_on_team"
+    api_url = f"{WEBUI_API_URL}/is_user_on_team"
     payload = {'discord_id': str(discord_id), 'team_id': team_id}
     try:
         async with session.post(api_url, json=payload) as response:
@@ -1101,17 +1124,30 @@ async def get_user_team_id(discord_id: str, match_id: int) -> int:
         logger.error(f"Error determining team for user {discord_id}: {str(e)}")
         return None
 
-async def update_discord_embed(match_id: int):
+async def update_discord_embed(match_id):
     """
     Updates the Discord embed for a given match.
     Has retry logic for failed connections.
+    Handles both regular pub league and ECS FC matches.
     """
-    # Try localhost first, then try the container name
-    api_urls = [
-        f"http://localhost:5001/api/update_availability_embed/{match_id}",
-        f"http://127.0.0.1:5001/api/update_availability_embed/{match_id}",
-        f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
-    ]
+    # Check if this is an ECS FC match
+    if isinstance(match_id, str) and match_id.startswith('ecs_'):
+        # Extract the numeric ECS FC match ID
+        ecs_fc_match_id = match_id.replace('ecs_', '')
+        # Try localhost first, then try the container name
+        api_urls = [
+            f"http://localhost:5001/api/ecs_fc/update_rsvp_embed/{ecs_fc_match_id}",
+            f"http://127.0.0.1:5001/api/ecs_fc/update_rsvp_embed/{ecs_fc_match_id}",
+            f"http://discord-bot:5001/api/ecs_fc/update_rsvp_embed/{ecs_fc_match_id}"
+        ]
+        logger.info(f"Updating ECS FC RSVP embed for match {ecs_fc_match_id}")
+    else:
+        # Regular pub league match
+        api_urls = [
+            f"http://localhost:5001/api/update_availability_embed/{match_id}",
+            f"http://127.0.0.1:5001/api/update_availability_embed/{match_id}",
+            f"http://discord-bot:5001/api/update_availability_embed/{match_id}"
+        ]
     
     for api_url in api_urls:
         try:
@@ -1476,7 +1512,9 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     """
     Core logic for processing a reaction, separated for better rate limit handling.
     """
-    logger.debug(f"Processing reaction for message {message_id}, poll_messages has {len(bot_state.poll_messages)} entries")
+    active_managed_count = len(bot_state.get_managed_message_ids(days_limit=14))
+    poll_count = len(bot_state.poll_messages)
+    logger.debug(f"Processing reaction for message {message_id}. Active managed messages: {active_managed_count}, Poll messages: {poll_count}")
     
     # Check if this is a poll message first
     if message_id in bot_state.poll_messages:
@@ -1487,26 +1525,34 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     # Only look at relevant messages (within 14 days of today)
     active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
     if message_id not in active_message_ids:
-        # Check if this might be a poll message that wasn't properly loaded
+        # Check if this might be a poll message or ECS FC message that wasn't properly loaded
         all_managed = bot_state.get_managed_message_ids()
         is_in_all_managed = message_id in all_managed
         poll_count = len(bot_state.poll_messages)
         
-        logger.debug(f"Message ID {message_id} is not an active managed message. Ignoring reaction. "
+        logger.debug(f"Message ID {message_id} is not an active managed message. Attempting to reload messages. "
                     f"(In all managed: {is_in_all_managed}, Poll messages count: {poll_count})")
         
-        # If it's in managed messages but not in poll_messages, try to reload poll messages
-        if is_in_all_managed and poll_count > 0:
-            logger.warning(f"Message {message_id} is managed but not in poll_messages. Attempting to reload poll messages.")
-            await load_poll_message_ids()
-            
-            # Try again after reloading
-            if message_id in bot_state.poll_messages:
-                logger.info(f"Found message {message_id} in poll_messages after reload. Processing as poll.")
-                await process_poll_reaction(message_id, emoji, user_id, channel_id, payload)
-                return
+        # Try to reload both poll messages and ECS FC RSVP messages
+        logger.info(f"Message {message_id} not found in active managed messages. Reloading managed message IDs...")
+        await load_managed_message_ids()  # Load ECS FC RSVP messages
+        await load_poll_message_ids()     # Load poll messages
         
-        return
+        # Check again after reloading
+        active_message_ids = bot_state.get_managed_message_ids(days_limit=14)
+        if message_id in bot_state.poll_messages:
+            logger.info(f"Found message {message_id} in poll_messages after reload. Processing as poll.")
+            await process_poll_reaction(message_id, emoji, user_id, channel_id, payload)
+            return
+        elif message_id in active_message_ids:
+            logger.info(f"Found message {message_id} in managed messages after reload. Processing as ECS FC RSVP.")
+            # Continue with ECS FC processing below
+        else:
+            logger.warning(f"Message ID {message_id} still not found after reload. Trying to process as ECS FC RSVP anyway...")
+            # Try to process it as an ECS FC message even if not in managed messages
+            # This handles cases where the message wasn't properly stored in the database
+            logger.info(f"Attempting to process message {message_id} as ECS FC RSVP (not in managed messages)")
+            # Continue with ECS FC processing below
 
     # Fetch match_id and team_id from the web app
     match_id, team_id = await get_team_id_for_message(message_id, channel_id)
@@ -1525,6 +1571,12 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     if not match_id or not team_id:
         logger.error(f"Could not find match or team for message {message_id}")
         return
+    
+    # If we successfully found match/team info but the message wasn't in managed messages,
+    # add it now for future reactions
+    if message_id not in bot_state.get_managed_message_ids():
+        logger.info(f"Adding message {message_id} to managed messages for future tracking")
+        bot_state.add_managed_message_id(message_id, team_id=team_id)
 
     # Fetch user object
     user = bot.get_user(user_id)
@@ -1555,8 +1607,11 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     # Process the RSVP using simplified approach
     emoji_to_response = {
         "👍": "yes",
-        "👎": "no",
-        "🤷": "maybe"
+        "👎": "no", 
+        "🤷": "maybe",
+        "✅": "yes",    # ECS FC style check mark
+        "❌": "no",     # ECS FC style X mark
+        "❓": "maybe"   # ECS FC style question mark (maybe)
     }
     response = emoji_to_response.get(emoji, None)
     if response:

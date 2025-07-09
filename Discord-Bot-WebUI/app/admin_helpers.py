@@ -460,6 +460,60 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
     return sorted(rsvp_data, key=lambda x: (x['team'].name, x['is_temp_sub'], x['player'].name))
 
 
+def get_ecs_fc_rsvp_status_data(ecs_match, session=None):
+    """
+    Retrieve RSVP status data for an ECS FC match.
+    
+    Similar to get_rsvp_status_data but for ECS FC matches, which only have one team
+    (the ECS FC team) since opponents are external teams.
+
+    Args:
+        ecs_match: The EcsFcMatch object.
+        session: (Optional) A SQLAlchemy session to use for the query.
+
+    Returns:
+        A sorted list of dictionaries containing RSVP status data.
+    """
+    if session is None:
+        from app.core import db
+        session = db.session
+    
+    from app.models import Player, Team, TemporarySubAssignment
+    from app.models_ecs import EcsFcAvailability
+    from sqlalchemy.orm import joinedload
+    
+    # Get the ECS FC team
+    team = session.query(Team).get(ecs_match.team_id)
+    if not team:
+        return []
+    
+    # Get team players with their ECS FC availability
+    # Use the many-to-many relationship to get all players on the team
+    players_with_availability = session.query(Player, EcsFcAvailability).\
+        outerjoin(
+            EcsFcAvailability,
+            (Player.id == EcsFcAvailability.player_id) & (EcsFcAvailability.ecs_fc_match_id == ecs_match.id)
+        ).\
+        join(Player.teams).\
+        filter(Team.id == ecs_match.team_id).\
+        options(joinedload(Player.primary_team), joinedload(Player.user)).\
+        all()
+
+    rsvp_data = [{
+        'player': player,
+        'team': team,
+        'response': availability.response if availability else 'No Response',
+        'responded_at': availability.response_time if availability else None,
+        'discord_synced': availability.discord_id is not None if availability else False,
+        'is_temp_sub': False
+    } for player, availability in players_with_availability]
+    
+    # Note: ECS FC matches don't currently support temporary subs, but the structure 
+    # is here for future expansion if needed
+    
+    return sorted(rsvp_data, key=lambda x: (x['player'].name))
+
+
 # --------------------
 # Match Statistics Helpers
 # --------------------
