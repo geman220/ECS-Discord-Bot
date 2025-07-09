@@ -56,7 +56,7 @@
 
         {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
-        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Player' in user_roles %}
+        {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'pl-classic' in user_roles or 'pl-ecs-fc' in user_roles or 'pl-premier' in user_roles %}
         {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
         {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
         {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_standings or can_view_calendar or can_view_teams %}

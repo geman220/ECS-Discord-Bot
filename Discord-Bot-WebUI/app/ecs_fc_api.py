@@ -60,8 +60,8 @@ def validate_ecs_fc_coach_access(team_id: int) -> bool:
     if not has_ecs_fc_access:
         return False
     
-    # Don't allow if user is ONLY a Pub League Player
-    if effective_roles == ['Pub League Player']:
+    # Don't allow if user is ONLY a player role
+    if effective_roles == ['pl-classic'] or effective_roles == ['pl-ecs-fc'] or effective_roles == ['pl-premier']:
         return False
     
     return True
