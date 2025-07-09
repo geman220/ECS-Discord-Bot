@@ -254,8 +254,8 @@ def team_details(team_id):
             'ECS FC Coach' in effective_roles
         )
         
-        # Don't allow if user is ONLY a Pub League Player (even if they have other roles)
-        if effective_roles == ['Pub League Player']:
+        # Don't allow if user is ONLY a player role (even if they have other roles)
+        if effective_roles == ['pl-classic'] or effective_roles == ['pl-ecs-fc'] or effective_roles == ['pl-premier']:
             can_manage_ecs_fc = False
         
         # Get ECS FC matches for this team

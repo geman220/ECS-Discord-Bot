@@ -33,7 +33,7 @@ auto_schedule_bp = Blueprint('auto_schedule', __name__)
 
 @auto_schedule_bp.route('/season/<int:season_id>/view')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Pub League Player'])
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'pl-classic', 'pl-ecs-fc', 'pl-premier'])
 def view_seasonal_schedule(season_id):
     """
     Display complete seasonal schedule view for all leagues in a season.
