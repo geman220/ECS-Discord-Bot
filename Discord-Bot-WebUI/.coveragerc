@@ -1,0 +1,29 @@
+[run]
+source = app
+omit = 
+    app/__init__.py
+    app/core/__init__.py
+    */migrations/*
+    */venv/*
+    */env/*
+    */tests/*
+    */test_*
+    wsgi.py
+    */celery_*.py
+    healthcheck.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+[html]
+directory = htmlcov

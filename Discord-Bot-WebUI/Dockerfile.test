@@ -1,0 +1,36 @@
+# Dockerfile.test
+# Multi-stage Dockerfile for testing
+
+# Base stage with common dependencies
+FROM python:3.11-slim as base
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libffi-dev \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt requirements-test.txt ./
+
+# Test stage
+FROM base as test
+
+# Install all dependencies including test
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-test.txt
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app
+ENV TESTING=true
+
+# Copy application code
+COPY . .
+
+# Run tests by default
+CMD ["pytest", "-v", "--cov=app", "--cov-report=term-missing"]
