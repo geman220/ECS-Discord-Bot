@@ -19,13 +19,11 @@ services:
           memory: 200M
 
   pgbouncer:
-    image: edoburu/pgbouncer:latest        # env-aware entrypoint
+    image: edoburu/pgbouncer:v1.24.1-p1
     hostname: pgbouncer
     env_file: [.env]
     environment:
-      # DigitalOcean target (private network)
-      - PGBOUNCER_DATABASES=defaultdb=host=${DB_HOST:-10.124.0.4} port=${DB_PORT:-25061} dbname=${DB_NAME:-defaultdb} user=${DB_USER} password=${DB_PASSWORD}
-      # Pool & limits
+      - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       - PGBOUNCER_POOL_MODE=transaction
       - PGBOUNCER_MAX_CLIENT_CONN=100
       - PGBOUNCER_DEFAULT_POOL_SIZE=20
@@ -33,14 +31,13 @@ services:
       - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
       - PGBOUNCER_MAX_DB_CONNECTIONS=25
       - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
-      # TLS *to the cluster*
-      - PGBOUNCER_SERVER_TLS_SSLMODE=${TLS_MODE:-disable}
-      - PGBOUNCER_SERVER_TLS_CA_FILE=${TLS_MODE:+/etc/ssl/do-ca.pem}
-      - PGBOUNCER_AUTH_TYPE=scram-sha-256
-      # TLS *from your app* (local, so plaintext is fine)
+      - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE}
+      - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE}
+      - PGBOUNCER_AUTH_TYPE=${AUTH_TYPE}
+      - PGBOUNCER_LISTEN_PORT=6432
       - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
     volumes:
-      - ./do-ca.pem:/etc/ssl/do-ca.pem:ro   # download once from the DB “Overview → Download CA cert” button
+      - ${SERVER_TLS_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}:/etc/ssl/do-ca.pem:ro
     ports: ["6432:6432"]
     healthcheck:
       test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "${DB_USER}"]
