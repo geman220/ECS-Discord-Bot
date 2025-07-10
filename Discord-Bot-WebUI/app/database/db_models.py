@@ -10,7 +10,24 @@ This module defines models for:
 
 from datetime import datetime
 from app.core import db
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, TypeDecorator, String
+import json
+
+
+class FlexibleJSON(TypeDecorator):
+    """
+    JSON column type that works with both PostgreSQL and SQLite.
+    Uses JSONB for PostgreSQL, JSON for others.
+    """
+    impl = JSON
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            from sqlalchemy.dialects.postgresql import JSONB
+            return dialect.type_descriptor(JSONB())
+        else:
+            return dialect.type_descriptor(JSON())
 
 class DBMonitoringSnapshot(db.Model):
     """
@@ -24,11 +41,11 @@ class DBMonitoringSnapshot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     timestamp = db.Column(db.DateTime, nullable=False, index=True)  # Snapshot creation time
-    pool_stats = db.Column(JSONB)             # Database connection pool statistics
-    active_connections = db.Column(JSONB)     # Data on current active connections
-    long_running_transactions = db.Column(JSONB)  # Information about long-running transactions
-    recent_events = db.Column(JSONB)          # Recent events or errors recorded
-    session_monitor = db.Column(JSONB)        # Additional session monitoring metrics
+    pool_stats = db.Column(FlexibleJSON())             # Database connection pool statistics
+    active_connections = db.Column(FlexibleJSON())     # Data on current active connections
+    long_running_transactions = db.Column(FlexibleJSON())  # Information about long-running transactions
+    recent_events = db.Column(FlexibleJSON())          # Recent events or errors recorded
+    session_monitor = db.Column(FlexibleJSON())        # Additional session monitoring metrics
 
 class ActiveMatchReporter(db.Model):
     """
@@ -93,7 +110,7 @@ class MatchEvent(db.Model):
     period = db.Column(db.String(20))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reported_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    additional_data = db.Column(JSONB)  # For flexible storage of event-specific details
+    additional_data = db.Column(FlexibleJSON())  # For flexible storage of event-specific details
     
     team = db.relationship('Team', backref=db.backref('match_events', lazy='dynamic'))
     player = db.relationship('Player', backref=db.backref('match_events', lazy='dynamic'))

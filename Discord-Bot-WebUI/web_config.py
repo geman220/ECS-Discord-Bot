@@ -117,3 +117,49 @@ class Config:
     def get_current_time():
         """Return the current time in the configured timezone (PST)."""
         return datetime.now(pytz.timezone('America/Los_Angeles'))
+
+
+class TestingConfig(Config):
+    """Testing configuration settings."""
+    TESTING = True
+    
+    # Use in-memory SQLite for testing
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    
+    # Remove PostgreSQL-specific pool settings for SQLite
+    SQLALCHEMY_POOL_SIZE = None
+    SQLALCHEMY_MAX_OVERFLOW = None
+    SQLALCHEMY_POOL_TIMEOUT = None
+    SQLALCHEMY_POOL_RECYCLE = None
+    
+    # SQLite engine options
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': False,  # Not needed for SQLite
+        'echo': False
+    }
+    
+    # Disable CSRF for testing
+    WTF_CSRF_ENABLED = False
+    
+    # Disable Redis session storage for tests - use Flask's default
+    SESSION_TYPE = None  # Use Flask's default session implementation  
+    SESSION_REDIS = None
+    REDIS_URL = 'redis://localhost:6379/15'  # Will be mocked anyway
+    
+    # Test secrets
+    SECRET_KEY = 'test-secret-key-for-testing'
+    JWT_SECRET_KEY = 'test-jwt-secret-for-testing'
+    
+    # Disable security features for testing
+    SESSION_COOKIE_SECURE = False
+    PREFERRED_URL_SCHEME = 'http'
+    
+    # Mock external services
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+    
+    # Server name for URL generation in tests
+    SERVER_NAME = 'localhost:5000'
+    
+    # Disable file logging for tests to avoid permission issues
+    LOG_TO_FILE = False

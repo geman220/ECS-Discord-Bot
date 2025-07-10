@@ -77,10 +77,28 @@ def create_app(config_object='web_config.Config'):
     app.assets = init_assets(app)
 
     # Configure logging using a dictConfig.
-    logging.config.dictConfig(LOGGING_CONFIG)
-    app.logger.setLevel(logging.DEBUG)
-    if app.debug:
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+    # Use simplified logging for testing to avoid file permission issues
+    if app.config.get('TESTING'):
+        # Simple console-only logging for tests
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s [%(levelname)s] %(name)s - %(message)s'
+        ))
+        
+        # Configure root logger for tests
+        root_logger = logging.getLogger()
+        root_logger.handlers = [console_handler]
+        root_logger.setLevel(logging.WARNING)
+        
+        # Configure app logger
+        app.logger.handlers = [console_handler]
+        app.logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
+    else:
+        # Use full logging configuration for production
+        logging.config.dictConfig(LOGGING_CONFIG)
+        app.logger.setLevel(logging.DEBUG)
+        if app.debug:
+            logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
     # SECRET_KEY is mandatory.
     if not app.config.get('SECRET_KEY'):
@@ -356,15 +374,19 @@ def create_app(config_object='web_config.Config'):
     app.cli.add_command(init_discord_roles)
     app.cli.add_command(sync_coach_roles)
 
-    # Configure session management to use Redis.
-    app.config.update({
-        'SESSION_TYPE': 'redis',
-        'SESSION_REDIS': session_redis,
-        'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
-        'SESSION_KEY_PREFIX': 'session:',
-        'SESSION_USE_SIGNER': True
-    })
-    Session(app)
+    # Configure session management to use Redis (skip in testing).
+    if not app.config.get('TESTING'):
+        app.config.update({
+            'SESSION_TYPE': 'redis',
+            'SESSION_REDIS': session_redis,
+            'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
+            'SESSION_KEY_PREFIX': 'session:',
+            'SESSION_USE_SIGNER': True
+        })
+        Session(app)
+    else:
+        # Use Flask's default session implementation for testing
+        app.logger.info("Testing mode: Using Flask default sessions instead of Redis")
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # Initialize JWT for API authentication.
