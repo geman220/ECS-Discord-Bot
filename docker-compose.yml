@@ -21,9 +21,11 @@ services:
   pgbouncer:
     image: edoburu/pgbouncer:v1.24.1-p1
     hostname: pgbouncer
-    env_file: [.env]
+    env_file: [.env]          # ← single file; comment-toggle dev vs prod
     environment:
+      # ── where PgBouncer should forward connections ────────────────────
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+      # ── pool tuning ───────────────────────────────────────────────────
       - PGBOUNCER_POOL_MODE=transaction
       - PGBOUNCER_MAX_CLIENT_CONN=100
       - PGBOUNCER_DEFAULT_POOL_SIZE=20
@@ -31,16 +33,19 @@ services:
       - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
       - PGBOUNCER_MAX_DB_CONNECTIONS=25
       - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
-      - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE}
-      - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE}
-      - PGBOUNCER_AUTH_TYPE=${AUTH_TYPE}
+      # ── upstream TLS & auth (left blank/disabled in dev .env) ─────────
+      - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE:-disable}
+      - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE:-}
+      - PGBOUNCER_AUTH_TYPE=${AUTH_TYPE:-trust}
+      # ── listener (PgBouncer ⇆ your apps) ──────────────────────────────
       - PGBOUNCER_LISTEN_PORT=6432
-      - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
+      - PGBOUNCER_CLIENT_TLS_SSLMODE=disable     # local traffic, no need for TLS
+    # dev: mounts system CA bundle; prod: mounts do-ca.pem
     volumes:
       - ${SERVER_TLS_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}:/etc/ssl/do-ca.pem:ro
-    ports: ["6432:6432"]
+    ports: ["6432:5432"]  # ← Map internal 5432 to external 6432
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "${DB_USER}"]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432", "-U", "${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
