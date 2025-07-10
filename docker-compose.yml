@@ -50,6 +50,8 @@ services:
       timeout: 5s
       retries: 5
     networks: [web]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   celery-worker:
     build:
