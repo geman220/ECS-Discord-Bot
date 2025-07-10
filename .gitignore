@@ -60,9 +60,14 @@ htmlcov/
 coverage.xml
 bandit-report.json
 safety-report.json
+test-results.xml
 Discord-Bot-WebUI/htmlcov/
 Discord-Bot-WebUI/.pytest_cache/
 Discord-Bot-WebUI/.coverage
 Discord-Bot-WebUI/coverage.xml
 Discord-Bot-WebUI/bandit-report.json
 Discord-Bot-WebUI/safety-report.json
+Discord-Bot-WebUI/test-results.xml
+
+# Flask session files during testing
+Discord-Bot-WebUI/flask_session/

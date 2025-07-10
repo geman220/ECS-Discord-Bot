@@ -38,14 +38,19 @@ def get_backend_pid(conn):
     """
     Retrieve the backend PID from the raw DB connection (works for psycopg2).
     Accepts either a raw connection or an object with a .connection attribute.
+    Returns None for non-PostgreSQL databases.
     """
     try:
         if hasattr(conn, 'connection'):
-            return conn.connection.get_backend_pid()
-        else:
+            # Check if it's a PostgreSQL connection with get_backend_pid method
+            if hasattr(conn.connection, 'get_backend_pid'):
+                return conn.connection.get_backend_pid()
+        elif hasattr(conn, 'get_backend_pid'):
             return conn.get_backend_pid()
+        # For non-PostgreSQL databases (like SQLite), return None
+        return None
     except Exception as e:
-        logger.error(f"Unable to get backend PID: {e}", exc_info=True)
+        logger.debug(f"Unable to get backend PID (likely non-PostgreSQL database): {e}")
         return None
 
 def get_transaction_details(pid):
@@ -223,13 +228,16 @@ class DatabaseManager:
             self._active_connections[conn_id] = time.time()
             self.pool_stats['checkouts'] += 1
             try:
-                cursor = dbapi_conn.cursor()
-                cursor.execute("""
-                    SET LOCAL statement_timeout = '30s';
-                    SET LOCAL idle_in_transaction_session_timeout = '30s';
-                    SET LOCAL lock_timeout = '10s';
-                """)
-                cursor.close()
+                # Only set PostgreSQL-specific session variables for PostgreSQL
+                if self._engine.url.drivername.startswith('postgresql'):
+                    cursor = dbapi_conn.cursor()
+                    cursor.execute("""
+                        SET LOCAL statement_timeout = '30s';
+                        SET LOCAL idle_in_transaction_session_timeout = '30s';
+                        SET LOCAL lock_timeout = '10s';
+                    """)
+                    cursor.close()
+                # For SQLite and other databases, skip session configuration
             except Exception as e:
                 self.pool_stats['failed_connections'] += 1
                 logger.error(f"Connection checkout failed: {e}", exc_info=True)

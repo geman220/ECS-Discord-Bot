@@ -24,4 +24,7 @@ responses==0.25.3
 freezegun==1.5.1
 
 # Database testing
-pytest-postgresql==6.0.0
+# pytest-postgresql==6.0.0  # Disabled due to psycopg dependency issues
+
+# Performance testing
+pytest-benchmark==4.0.0

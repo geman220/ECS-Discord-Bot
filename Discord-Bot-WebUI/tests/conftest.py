@@ -16,11 +16,14 @@ from app.models import User, Role, League, Season, Team, Player, Match
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
+# Import test helpers
+from tests.helpers import SMSTestHelper, AuthTestHelper
+
 
 @pytest.fixture(scope='session')
 def app():
     """Create application for testing."""
-    app = create_app('testing')
+    app = create_app('web_config.TestingConfig')
     
     # Override config for testing
     app.config.update({
@@ -34,6 +37,10 @@ def app():
         'CELERY_TASK_EAGER_PROPAGATES': True,
         'SERVER_NAME': 'localhost:5000',
         'PREFERRED_URL_SCHEME': 'http',
+        # Disable Redis-based session storage for tests
+        'SESSION_TYPE': 'filesystem',
+        'SESSION_USE_SIGNER': False,
+        'SESSION_PERMANENT': False,
     })
     
     # Create application context
@@ -130,10 +137,7 @@ def user(db, user_role):
     user = User(
         username='testuser',
         email='test@example.com',
-        discord_id='123456789',
-        discord_username='TestUser#1234',
-        approved=True,
-        approved_date=datetime.utcnow()
+        is_approved=True
     )
     user.set_password('password123')
     user.roles.append(user_role)
@@ -148,10 +152,7 @@ def admin_user(db, admin_role):
     admin = User(
         username='admin',
         email='admin@example.com',
-        discord_id='987654321',
-        discord_username='Admin#1234',
-        approved=True,
-        approved_date=datetime.utcnow()
+        is_approved=True
     )
     admin.set_password('admin123')
     admin.roles.append(admin_role)
@@ -162,24 +163,10 @@ def admin_user(db, admin_role):
 
 # League/Season fixtures
 @pytest.fixture
-def league(db):
-    """Create test league."""
-    league = League(
-        name='Test League',
-        description='Test league for testing',
-        is_active=True
-    )
-    db.session.add(league)
-    db.session.commit()
-    return league
-
-
-@pytest.fixture
-def season(db, league):
+def season(db):
     """Create test season."""
     season = Season(
         name='Test Season 2024',
-        league_id=league.id,
         start_date=datetime(2024, 1, 1),
         end_date=datetime(2024, 12, 31),
         is_active=True
@@ -190,11 +177,25 @@ def season(db, league):
 
 
 @pytest.fixture
-def team(db, season):
+def league(db, season):
+    """Create test league."""
+    league = League(
+        name='Test League',
+        season_id=season.id
+    )
+    db.session.add(league)
+    db.session.commit()
+    return league
+
+
+
+
+@pytest.fixture
+def team(db, league):
     """Create test team."""
     team = Team(
         name='Test Team',
-        season_id=season.id,
+        league_id=league.id,
         captain_id=None  # Will be set when needed
     )
     db.session.add(team)
@@ -223,7 +224,7 @@ def match(db, season, team):
     # Create opponent team
     opponent = Team(
         name='Opponent Team',
-        season_id=season.id
+        league_id=team.league_id
     )
     db.session.add(opponent)
     db.session.commit()
@@ -242,11 +243,35 @@ def match(db, season, team):
 
 
 # Mock fixtures
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def mock_redis(monkeypatch):
-    """Mock Redis client."""
+    """Mock Redis client - applied automatically to all tests."""
     mock = Mock()
-    monkeypatch.setattr('app.core.redis_client', mock)
+    mock.get.return_value = None
+    mock.set.return_value = True
+    mock.delete.return_value = 1
+    mock.exists.return_value = 0
+    mock.expire.return_value = True
+    mock.incr.return_value = 1
+    mock.pipeline.return_value = mock
+    mock.execute.return_value = []
+    mock.ping.return_value = True
+    
+    # Mock the RedisManager class completely
+    mock_redis_manager = Mock()
+    mock_redis_manager.client = mock
+    mock_redis_manager._client = mock
+    
+    # Replace RedisManager class with our mock
+    monkeypatch.setattr('app.utils.redis_manager.RedisManager', lambda: mock_redis_manager)
+    
+    # Mock Redis connection completely to avoid connection attempts
+    def mock_redis_init(*args, **kwargs):
+        return mock
+    
+    monkeypatch.setattr('redis.Redis', mock_redis_init)
+    monkeypatch.setattr('redis.from_url', lambda url: mock)
+    
     return mock
 
 
