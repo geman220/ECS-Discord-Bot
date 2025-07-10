@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Bulk Upload Help Topics{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">Bulk Upload Help Topics</h4>
+        <a href="{{ url_for('help.admin_help_topics') }}" class="btn btn-secondary">Back to Help Topics</a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Upload Multiple Help Topics</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label for="files" class="form-label">Select Markdown Files</label>
+                            <input type="file" class="form-control" name="files" id="files" multiple accept=".md" required>
+                            <div class="form-text">
+                                Select one or more markdown (.md) files to upload. Each file will become a separate help topic.
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <h6><i class="ti ti-info-circle me-2"></i>File Format Requirements:</h6>
+                            <ul class="mb-0">
+                                <li>Files must have a <code>.md</code> extension</li>
+                                <li>Each file must start with a heading (e.g., <code># Topic Title</code>)</li>
+                                <li>Include <code>**Role Access**: Role Name</code> to specify which roles can access the topic</li>
+                                <li>Use <code>**Role Access**: Public</code> to make the topic visible to all users</li>
+                                <li>Supported roles: Global Admin, Pub League Admin, ECS FC Coach, Pub League Coach, etc.</li>
+                                <li>If no role is specified, the topic will default to Global Admin access</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-upload me-2"></i>Upload Help Topics
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Example Format</h5>
+                </div>
+                <div class="card-body">
+                    <pre><code># Topic Title
+
+**Role Access**: Global Admin, Pub League Admin
+**Priority**: High
+
+## What is this feature?
+
+Description of the feature...
+
+## When to use it:
+- Point 1
+- Point 2
+
+## How to use it:
+1. Step 1
+2. Step 2
+
+**[ADD SCREENSHOT: Description]**
+
+## Why this matters:
+Explanation of importance...
+
+---
+
+# Public Topic Example
+
+**Role Access**: Public
+
+This topic will be visible to all users
+regardless of their role.</code></pre>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Available Roles</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><code>Public</code> <span class="text-muted">(visible to all users)</span></li>
+                        <li><code>Global Admin</code></li>
+                        <li><code>Pub League Admin</code></li>
+                        <li><code>ECS FC Coach</code></li>
+                        <li><code>Pub League Coach</code></li>
+                        <li><code>Discord Admin</code></li>
+                        <li><code>pl-classic</code></li>
+                        <li><code>pl-premier</code></li>
+                        <li><code>pl-ecs-fc</code></li>
+                        <li><code>Classic Sub</code></li>
+                        <li><code>Premier Sub</code></li>
+                        <li><code>ECS FC Sub</code></li>
+                    </ul>
+                    <div class="form-text">
+                        You can specify multiple roles separated by commas, or use "Public" for all users.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.getElementById('files').addEventListener('change', function(e) {
+    const files = e.target.files;
+    const fileList = Array.from(files);
+    
+    // Check if all files are markdown
+    const nonMarkdownFiles = fileList.filter(file => !file.name.endsWith('.md'));
+    if (nonMarkdownFiles.length > 0) {
+        alert('Please select only markdown (.md) files.');
+        e.target.value = '';
+        return;
+    }
+    
+    // Show selected files count
+    if (files.length > 0) {
+        const fileNames = fileList.map(file => file.name).join(', ');
+        console.log(`Selected ${files.length} file(s): ${fileNames}`);
+    }
+});
+</script>
+{% endblock %}
