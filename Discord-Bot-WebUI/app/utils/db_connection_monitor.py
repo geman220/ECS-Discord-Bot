@@ -410,7 +410,7 @@ def monitor_connections_background() -> None:
                     
                 # Force terminate these extremely old connections
                 try:
-                    monitor = DBConnectionMonitor(current_app._get_current_object())
+                    monitor = DBConnectionMonitor()
                     terminated = monitor.terminate_stuck_connections(age_threshold_seconds=3600)
                     logger.info(f"Terminated {terminated} zombie connections via database")
                 except Exception as e:

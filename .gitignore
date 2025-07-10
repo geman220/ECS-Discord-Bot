@@ -51,3 +51,18 @@ Discord-Bot-WebUI/app/static/.webassets-cache/
 /Discord-Bot-WebUI/EXTERNAL_API_SCHEMA.md
 /Discord-Bot-WebUI/app/static/img/cache/players
 /Discord-Bot-WebUI/help_topics_import
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+bandit-report.json
+safety-report.json
+Discord-Bot-WebUI/htmlcov/
+Discord-Bot-WebUI/.pytest_cache/
+Discord-Bot-WebUI/.coverage
+Discord-Bot-WebUI/coverage.xml
+Discord-Bot-WebUI/bandit-report.json
+Discord-Bot-WebUI/safety-report.json

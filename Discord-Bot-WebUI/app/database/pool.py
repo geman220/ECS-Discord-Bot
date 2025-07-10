@@ -16,6 +16,7 @@ from flask import has_request_context, request
 import traceback
 import time
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -226,21 +227,21 @@ class RateLimitedPool(QueuePool):
 # ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
-    'pool_size': 6,            # Restored to normal level
-    'max_overflow': 4,         # Restored to normal level  
-    'pool_recycle': 30,        # Keep this value for connection health
-    'pool_timeout': 5,         # Keep this value for failing fast
+    'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 5)),
+    'max_overflow': int(os.getenv('SQLALCHEMY_MAX_OVERFLOW', 10)),
+    'pool_recycle': int(os.getenv('SQLALCHEMY_POOL_RECYCLE', 1800)),
+    'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 20)),
     'poolclass': RateLimitedPool,
     'pool_use_lifo': True,
     'connect_args': {
-        'connect_timeout': 3,
+        'connect_timeout': int(os.getenv('SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT', 5)),
         'options': (
-            '-c statement_timeout=8000 '                   # Increased from 5000ms to 8000ms
-            '-c idle_in_transaction_session_timeout=5000 ' # Increased from 3000ms to 5000ms
-            '-c lock_timeout=3000 '                        # Increased from 2000ms to 3000ms
-            '-c tcp_keepalives_idle=60 '                   # Keep TCP keepalive after 60s of inactivity
-            '-c tcp_keepalives_interval=60 '               # Keep resending keepalives every 60s
-            '-c tcp_keepalives_count=3'                    # Keep drop connection after 3 failed keepalives
+            f'-c statement_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT", 30000)} '
+            f'-c idle_in_transaction_session_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", 30000)} '
+            '-c lock_timeout=3000 '
+            '-c tcp_keepalives_idle=60 '
+            '-c tcp_keepalives_interval=60 '
+            '-c tcp_keepalives_count=3'
         )
     },
     'echo': False,
