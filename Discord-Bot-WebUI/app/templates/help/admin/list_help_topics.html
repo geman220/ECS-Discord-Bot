@@ -5,7 +5,10 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold mb-0">Admin - Help Topics</h4>
-        <a href="{{ url_for('help.new_help_topic') }}" class="btn btn-primary">Create New Help Topic</a>
+        <div>
+            <a href="{{ url_for('help.bulk_upload_help_topics') }}" class="btn btn-secondary me-2">Bulk Upload</a>
+            <a href="{{ url_for('help.new_help_topic') }}" class="btn btn-primary">Create New Help Topic</a>
+        </div>
     </div>
     <div class="card">
         <div class="card-body">

@@ -27,6 +27,51 @@ logger = logging.getLogger(__name__)
 # Define blueprint for the help system.
 help_bp = Blueprint('help', __name__, template_folder='templates/help', static_folder='static/help')
 
+def get_accessible_roles(user_role_names):
+    """
+    Get all roles accessible to the user based on hierarchical permissions.
+    
+    Hierarchy:
+    - Global Admin: sees everything
+    - Pub League Admin: sees all pub league content (coaches, players, subs)
+    - Coaches: see their own content plus player content
+    - Players: see their own content
+    
+    Parameters:
+        user_role_names (list): List of role names the user has
+        
+    Returns:
+        list: All role names the user can access content for
+    """
+    accessible_roles = set(user_role_names)
+    
+    # Global Admin sees everything
+    if 'Global Admin' in user_role_names:
+        accessible_roles.update([
+            'Global Admin', 'Pub League Admin', 'Discord Admin',
+            'ECS FC Coach', 'Pub League Coach',
+            'pl-classic', 'pl-premier', 'pl-ecs-fc',
+            'Classic Sub', 'Premier Sub', 'ECS FC Sub'
+        ])
+    
+    # Pub League Admin sees all pub league related content
+    if 'Pub League Admin' in user_role_names:
+        accessible_roles.update([
+            'Pub League Admin', 'ECS FC Coach', 'Pub League Coach',
+            'pl-classic', 'pl-premier', 'pl-ecs-fc',
+            'Classic Sub', 'Premier Sub', 'ECS FC Sub'
+        ])
+    
+    # ECS FC Coach sees ECS FC player content
+    if 'ECS FC Coach' in user_role_names:
+        accessible_roles.update(['ECS FC Coach', 'pl-ecs-fc', 'ECS FC Sub'])
+    
+    # Pub League Coach sees pub league player content
+    if 'Pub League Coach' in user_role_names:
+        accessible_roles.update(['Pub League Coach', 'pl-classic', 'pl-premier', 'Classic Sub', 'Premier Sub'])
+    
+    return list(accessible_roles)
+
 # Allowed file extensions for image uploads.
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -59,7 +104,13 @@ def index():
     else:
         user_role_names = [role.name for role in safe_current_user.roles]
     
-    topics = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(user_role_names)).all()
+    # Get user's effective roles with hierarchical access
+    accessible_role_names = get_accessible_roles(user_role_names)
+    
+    # Get topics that either have no roles assigned (public) or have roles accessible to user
+    topics_with_roles = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(accessible_role_names)).all()
+    topics_without_roles = HelpTopic.query.filter(~HelpTopic.allowed_roles.any()).all()
+    topics = list(set(topics_with_roles + topics_without_roles))
     
     # Check if user can access admin dashboard
     if is_impersonation_active():
@@ -93,7 +144,9 @@ def view_topic(topic_id):
         user_role_names = [role.name for role in safe_current_user.roles]
     
     # Check if user has permission to view this topic
-    if not set(allowed_role_names) & set(user_role_names):
+    # Allow access if topic has no roles (public) or user has hierarchical access to the roles
+    accessible_role_names = get_accessible_roles(user_role_names)
+    if allowed_role_names and not set(allowed_role_names) & set(accessible_role_names):
         show_error('You do not have permission to view this help topic.')
         return redirect(url_for('help.index'))
         
@@ -120,10 +173,20 @@ def search_topics():
     else:
         user_role_names = [role.name for role in safe_current_user.roles]
     
-    topics_query = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(user_role_names))
+    # Get user's effective roles with hierarchical access
+    accessible_role_names = get_accessible_roles(user_role_names)
+    
+    # Get topics that either have no roles assigned (public) or have roles accessible to user
+    topics_with_roles_query = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(accessible_role_names))
+    topics_without_roles_query = HelpTopic.query.filter(~HelpTopic.allowed_roles.any())
+    
     if query:
-        topics_query = topics_query.filter(HelpTopic.title.ilike(f"%{query}%"))
-    topics = topics_query.all()
+        topics_with_roles_query = topics_with_roles_query.filter(HelpTopic.title.ilike(f"%{query}%"))
+        topics_without_roles_query = topics_without_roles_query.filter(HelpTopic.title.ilike(f"%{query}%"))
+    
+    topics_with_roles = topics_with_roles_query.all()
+    topics_without_roles = topics_without_roles_query.all()
+    topics = list(set(topics_with_roles + topics_without_roles))
     topics_data = [{"id": topic.id, "title": topic.title} for topic in topics]
     return jsonify({"topics": topics_data})
 
@@ -240,3 +303,139 @@ def upload_image():
         return jsonify({'url': image_url}), 200
     else:
         return jsonify({'error': 'File type not allowed'}), 400
+
+@help_bp.route('/admin/bulk_upload', methods=['GET', 'POST'])
+@login_required
+@role_required(['Global Admin'])
+def bulk_upload_help_topics():
+    """
+    Handle bulk upload of help topics from markdown files.
+    
+    Returns:
+        GET: Renders the bulk upload form
+        POST: Processes uploaded files and creates help topics
+    """
+    if request.method == 'GET':
+        return render_template('help/admin/bulk_upload.html', title="Bulk Upload Help Topics")
+    
+    if 'files' not in request.files:
+        show_error('No files selected for upload')
+        return redirect(url_for('help.bulk_upload_help_topics'))
+    
+    files = request.files.getlist('files')
+    if not files or all(file.filename == '' for file in files):
+        show_error('No files selected for upload')
+        return redirect(url_for('help.bulk_upload_help_topics'))
+    
+    success_count = 0
+    error_count = 0
+    errors = []
+    
+    for file in files:
+        if file.filename == '':
+            continue
+            
+        if not file.filename.endswith('.md'):
+            error_count += 1
+            errors.append(f'{file.filename}: Only markdown (.md) files are supported')
+            continue
+        
+        try:
+            content = file.read().decode('utf-8')
+            
+            # Parse the markdown content to extract title and role information
+            lines = content.split('\n')
+            title = None
+            role_access = None
+            markdown_content = content
+            
+            # Extract title from first heading
+            for line in lines:
+                if line.startswith('# '):
+                    title = line[2:].strip()
+                    break
+            
+            # Extract role access information
+            for line in lines:
+                if line.startswith('**Role Access**:'):
+                    role_access = line.split(':', 1)[1].strip()
+                    break
+            
+            if not title:
+                error_count += 1
+                errors.append(f'{file.filename}: No title found (missing # heading)')
+                continue
+            
+            # Check if topic already exists
+            existing_topic = HelpTopic.query.filter_by(title=title).first()
+            if existing_topic:
+                # Update existing topic
+                existing_topic.markdown_content = markdown_content
+                
+                # Update roles based on role_access string
+                if role_access:
+                    role_access_clean = role_access.strip()
+                    if role_access_clean.lower() == 'public':
+                        # Public topic - no roles assigned (visible to all)
+                        existing_topic.allowed_roles = []
+                    else:
+                        role_names = [name.strip() for name in role_access_clean.split(',')]
+                        roles = Role.query.filter(Role.name.in_(role_names)).all()
+                        existing_topic.allowed_roles = roles
+                else:
+                    # Default to Global Admin if no role specified
+                    admin_role = Role.query.filter_by(name='Global Admin').first()
+                    if admin_role:
+                        existing_topic.allowed_roles = [admin_role]
+                
+                success_count += 1
+                continue
+            
+            # Create new help topic
+            topic = HelpTopic(
+                title=title,
+                markdown_content=markdown_content
+            )
+            
+            # Assign roles based on role_access string
+            if role_access:
+                role_access_clean = role_access.strip()
+                if role_access_clean.lower() == 'public':
+                    # Public topic - no roles assigned (visible to all)
+                    topic.allowed_roles = []
+                else:
+                    role_names = [name.strip() for name in role_access_clean.split(',')]
+                    roles = Role.query.filter(Role.name.in_(role_names)).all()
+                    topic.allowed_roles = roles
+            else:
+                # Default to Global Admin if no role specified
+                admin_role = Role.query.filter_by(name='Global Admin').first()
+                if admin_role:
+                    topic.allowed_roles = [admin_role]
+            
+            db.session.add(topic)
+            success_count += 1
+            
+        except Exception as e:
+            error_count += 1
+            errors.append(f'{file.filename}: Error processing file - {str(e)}')
+            logger.error(f'Error processing help topic file {file.filename}: {str(e)}')
+    
+    try:
+        if success_count > 0:
+            db.session.commit()
+            show_success(f'Successfully uploaded {success_count} help topics')
+        else:
+            db.session.rollback()
+    except Exception as e:
+        db.session.rollback()
+        show_error(f'Error saving help topics: {str(e)}')
+        logger.error(f'Error saving bulk uploaded help topics: {str(e)}')
+    
+    if errors:
+        error_message = f'{error_count} files had errors: ' + '; '.join(errors[:5])
+        if len(errors) > 5:
+            error_message += f' (and {len(errors) - 5} more)'
+        show_warning(error_message)
+    
+    return redirect(url_for('help.admin_help_topics'))
