@@ -19,42 +19,37 @@ services:
           memory: 200M
 
   pgbouncer:
-    image: pgbouncer/pgbouncer:latest
+    image: edoburu/pgbouncer:1.20.1        # env-aware entrypoint
     hostname: pgbouncer
-    env_file:
-      - .env
+    env_file: [.env]
+
     environment:
-      # Use environment variables from .env for flexibility
-      - DATABASES_HOST=${DB_HOST:-host.docker.internal}
-      - DATABASES_PORT=${DB_PORT:-5432}
-      - DATABASES_USER=${DB_USER:-ecs-admin}
-      - DATABASES_PASSWORD=${DB_PASSWORD}
-      - DATABASES_DBNAME=${DB_NAME:-ecs-bot-db}
-      - POOL_MODE=transaction
-      - MAX_CLIENT_CONN=100
-      - DEFAULT_POOL_SIZE=20
-      - RESERVE_POOL_SIZE=5
-      - RESERVE_POOL_TIMEOUT=3
-      - MAX_DB_CONNECTIONS=25
-      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
-    ports:
-      - "6432:6432"
-    dns:
-      - 8.8.8.8
-      - 1.1.1.1
+      # DigitalOcean target (private network)
+      - PGBOUNCER_DATABASES=defaultdb=host=${DB_HOST:-10.124.0.4} port=${DB_PORT:-25061} dbname=${DB_NAME:-defaultdb} user=${DB_USER} password=${DB_PASSWORD}
+      # Pool & limits
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=100
+      - PGBOUNCER_DEFAULT_POOL_SIZE=20
+      - PGBOUNCER_RESERVE_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
+      - PGBOUNCER_MAX_DB_CONNECTIONS=25
+      - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      # TLS *to the cluster*
+      - PGBOUNCER_SERVER_TLS_SSLMODE=require
+      - PGBOUNCER_SERVER_TLS_CA_FILE=/etc/ssl/do-ca.pem
+      - PGBOUNCER_AUTH_TYPE=scram-sha-256
+      # TLS *from your app* (local, so plaintext is fine)
+      - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
+
+    volumes:
+      - ./do-ca.pem:/etc/ssl/do-ca.pem:ro   # download once from the DB “Overview → Download CA cert” button
+    ports: ["6432:6432"]
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "6432"]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432", "-U", "${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - web
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    deploy:
-      resources:
-        limits:
-          memory: 100M
+    networks: [web]
 
   celery-worker:
     build:
