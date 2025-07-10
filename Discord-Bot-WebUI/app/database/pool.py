@@ -224,7 +224,32 @@ class RateLimitedPool(QueuePool):
                 logger.debug(message)
 
 
+# Check if using PgBouncer (detect from DATABASE_URL)
+def _is_using_pgbouncer():
+    """Check if the database URL indicates PgBouncer usage."""
+    database_url = os.getenv('DATABASE_URL', '')
+    return 'pgbouncer' in database_url.lower() or ':6432' in database_url
+
 # ENGINE_OPTIONS for SQLAlchemy engine creation using RateLimitedPool.
+def _get_connect_args():
+    """Get connection arguments, conditionally including options for direct PostgreSQL connections."""
+    connect_args = {
+        'connect_timeout': int(os.getenv('SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT', 5)),
+    }
+    
+    # Only add PostgreSQL-specific options if not using PgBouncer
+    if not _is_using_pgbouncer():
+        connect_args['options'] = (
+            f'-c statement_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT", 30000)} '
+            f'-c idle_in_transaction_session_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", 30000)} '
+            '-c lock_timeout=3000 '
+            '-c tcp_keepalives_idle=60 '
+            '-c tcp_keepalives_interval=60 '
+            '-c tcp_keepalives_count=3'
+        )
+    
+    return connect_args
+
 ENGINE_OPTIONS = {
     'pool_pre_ping': True,
     'pool_size': int(os.getenv('SQLALCHEMY_POOL_SIZE', 5)),
@@ -233,17 +258,7 @@ ENGINE_OPTIONS = {
     'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 20)),
     'poolclass': RateLimitedPool,
     'pool_use_lifo': True,
-    'connect_args': {
-        'connect_timeout': int(os.getenv('SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT', 5)),
-        'options': (
-            f'-c statement_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT", 30000)} '
-            f'-c idle_in_transaction_session_timeout={os.getenv("SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT", 30000)} '
-            '-c lock_timeout=3000 '
-            '-c tcp_keepalives_idle=60 '
-            '-c tcp_keepalives_interval=60 '
-            '-c tcp_keepalives_count=3'
-        )
-    },
+    'connect_args': _get_connect_args(),
     'echo': False,
     'echo_pool': False,
 }

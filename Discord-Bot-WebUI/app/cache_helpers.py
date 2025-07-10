@@ -4,7 +4,10 @@ import json
 import logging
 from functools import wraps
 from flask import current_app
-from app.core.redis_manager import redis_client
+from app.utils.redis_manager import get_redis_connection
+
+# Get Redis client
+redis_client = get_redis_connection()
 
 logger = logging.getLogger(__name__)
 
