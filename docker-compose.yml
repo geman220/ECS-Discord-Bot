@@ -34,8 +34,8 @@ services:
       - PGBOUNCER_MAX_DB_CONNECTIONS=25
       - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
       # TLS *to the cluster*
-      - PGBOUNCER_SERVER_TLS_SSLMODE=require
-      - PGBOUNCER_SERVER_TLS_CA_FILE=/etc/ssl/do-ca.pem
+      - PGBOUNCER_SERVER_TLS_SSLMODE=${TLS_MODE:-disable}
+      - PGBOUNCER_SERVER_TLS_CA_FILE=${TLS_MODE:+/etc/ssl/do-ca.pem}
       - PGBOUNCER_AUTH_TYPE=scram-sha-256
       # TLS *from your app* (local, so plaintext is fine)
       - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
