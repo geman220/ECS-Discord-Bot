@@ -18,6 +18,41 @@ services:
         limits:
           memory: 200M
 
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    hostname: pgbouncer
+    env_file:
+      - .env
+    environment:
+      # Use environment variables from .env for flexibility
+      - DATABASES_HOST=${DB_HOST:-host.docker.internal}
+      - DATABASES_PORT=${DB_PORT:-5432}
+      - DATABASES_USER=${DB_USER:-ecs-admin}
+      - DATABASES_PASSWORD=${DB_PASSWORD}
+      - DATABASES_DBNAME=${DB_NAME:-ecs-bot-db}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=20
+      - RESERVE_POOL_SIZE=5
+      - RESERVE_POOL_TIMEOUT=3
+      - MAX_DB_CONNECTIONS=25
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+    ports:
+      - "6432:6432"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "6432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - web
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+
   celery-worker:
     build:
       context: ./Discord-Bot-WebUI
@@ -38,6 +73,8 @@ services:
       retries: 3
     depends_on:
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     networks:
       - web
@@ -69,6 +106,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
     networks:
       - web
     extra_hosts:
@@ -99,6 +138,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
     networks:
       - web
     extra_hosts:
@@ -128,6 +169,8 @@ services:
       retries: 3
     depends_on:
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     networks:
       - web
@@ -161,6 +204,8 @@ services:
       start_period: 30s
     depends_on:
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     networks:
       - web
@@ -230,6 +275,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
     networks:
       - web
     extra_hosts:
@@ -247,6 +294,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
@@ -277,6 +326,8 @@ services:
       - .:/app
     depends_on:
       redis:
+        condition: service_healthy
+      pgbouncer:
         condition: service_healthy
       webui:
         condition: service_healthy
