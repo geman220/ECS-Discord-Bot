@@ -19,10 +19,9 @@ services:
           memory: 200M
 
   pgbouncer:
-    image: edoburu/pgbouncer:1.20.1        # env-aware entrypoint
+    image: edoburu/pgbouncer:latest        # env-aware entrypoint
     hostname: pgbouncer
     env_file: [.env]
-
     environment:
       # DigitalOcean target (private network)
       - PGBOUNCER_DATABASES=defaultdb=host=${DB_HOST:-10.124.0.4} port=${DB_PORT:-25061} dbname=${DB_NAME:-defaultdb} user=${DB_USER} password=${DB_PASSWORD}
@@ -40,7 +39,6 @@ services:
       - PGBOUNCER_AUTH_TYPE=scram-sha-256
       # TLS *from your app* (local, so plaintext is fine)
       - PGBOUNCER_CLIENT_TLS_SSLMODE=disable
-
     volumes:
       - ./do-ca.pem:/etc/ssl/do-ca.pem:ro   # download once from the DB “Overview → Download CA cert” button
     ports: ["6432:6432"]
