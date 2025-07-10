@@ -569,6 +569,7 @@ def init_blueprints(app):
     from app.role_impersonation import role_impersonation_bp
     from app.ecs_fc_api import ecs_fc_api
     from app.admin.substitute_pool_routes import substitute_pool_bp
+    from app.batch_api import batch_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -576,6 +577,7 @@ def init_blueprints(app):
     app.register_blueprint(players_bp, url_prefix='/players')
     app.register_blueprint(teams_bp, url_prefix='/teams')
     app.register_blueprint(availability_bp, url_prefix='/api')
+    app.register_blueprint(batch_bp)
     app.register_blueprint(account_bp, url_prefix='/account')
     app.register_blueprint(match_pages)
     app.register_blueprint(bot_admin_bp)

@@ -897,19 +897,28 @@ def get_message_info(message_id):
     """
     logger.info(f"Looking up message info for message ID: {message_id}")
     try:
+        # Try cache first to reduce database connections
+        from app.cache_helpers import get_cached_message_info
+        cached_result = get_cached_message_info(message_id)
+        if cached_result:
+            logger.info(f"Found cached message info for {message_id}: {cached_result}")
+            return jsonify(cached_result)
+        
+        # Cache miss - continue with database lookup
         # Convert the message ID to a string for lookups (database columns are VARCHAR)
         message_id_str = str(message_id)
         
         # Find a scheduled message with this home or away message ID
         logger.debug(f"Querying for scheduled message with home_message_id or away_message_id = {message_id_str}")
-        scheduled_msg = db.session.query(ScheduledMessage).filter(
+        session_db = g.db_session
+        scheduled_msg = session_db.query(ScheduledMessage).filter(
             (ScheduledMessage.home_message_id == message_id_str) | 
             (ScheduledMessage.away_message_id == message_id_str)
         ).first()
         
         if not scheduled_msg:
             # Let's log all message IDs for debugging
-            all_msgs = db.session.query(
+            all_msgs = session_db.query(
                 ScheduledMessage.id, 
                 ScheduledMessage.home_message_id, 
                 ScheduledMessage.away_message_id
