@@ -39,6 +39,9 @@ services:
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
     ports:
       - "6432:6432"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "6432"]
       interval: 10s
