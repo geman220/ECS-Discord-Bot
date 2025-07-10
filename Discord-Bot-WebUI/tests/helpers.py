@@ -149,7 +149,7 @@ class AuthTestHelper:
     def login_user(client, user, password='password123'):
         """Log in a user and return the response."""
         return client.post('/auth/login', data={
-            'username': user.username,
+            'email': user.email,
             'password': password
         }, follow_redirects=True)
     
