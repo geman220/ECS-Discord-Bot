@@ -137,7 +137,8 @@ def user(db, user_role):
     user = User(
         username='testuser',
         email='test@example.com',
-        is_approved=True
+        is_approved=True,
+        approval_status='approved'
     )
     user.set_password('password123')
     user.roles.append(user_role)
@@ -152,7 +153,8 @@ def admin_user(db, admin_role):
     admin = User(
         username='admin',
         email='admin@example.com',
-        is_approved=True
+        is_approved=True,
+        approval_status='approved'
     )
     admin.set_password('admin123')
     admin.roles.append(admin_role)

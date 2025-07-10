@@ -29,7 +29,18 @@ class UserFactory(BaseFactory):
     email_notifications = True
     sms_notifications = True
     discord_notifications = True
-    password_hash = 'scrypt:32768:8:1$lZ4Iiodi7zOg5UQP$81eefaadc425ceb006b08da7f5c86b3d63e06cbdc37803a3dc9a88de7a4171c188df847d9b54afad4a3cff3882e843e85ef10210bf236cff3f1b3594fd3ab411'
+    approval_status = 'approved'
+    
+    @classmethod
+    def _create(cls, model_class, *args, **kwargs):
+        """Override create to ensure password is set properly."""
+        password = kwargs.pop('password', 'password123')
+        instance = model_class(*args, **kwargs)
+        instance.set_password(password)
+        if cls._meta.sqlalchemy_session:
+            cls._meta.sqlalchemy_session.add(instance)
+            cls._meta.sqlalchemy_session.flush()
+        return instance
 
 
 class LeagueFactory(BaseFactory):
