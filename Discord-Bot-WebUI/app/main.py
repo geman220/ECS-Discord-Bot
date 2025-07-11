@@ -875,6 +875,8 @@ def set_tour_skipped():
     session = g.db_session
     try:
         safe_current_user.has_completed_tour = False
+        session.add(safe_current_user)
+        session.commit()
         logger.info(f"User {safe_current_user.id} set tour as skipped.")
     except Exception as e:
         logger.error(f"Error setting tour skipped for user {safe_current_user.id}: {str(e)}")
@@ -894,6 +896,8 @@ def set_tour_complete():
     session = g.db_session
     try:
         safe_current_user.has_completed_tour = True
+        session.add(safe_current_user)
+        session.commit()
         logger.info(f"User {safe_current_user.id} completed the tour.")
     except Exception as e:
         logger.error(f"Error setting tour complete for user {safe_current_user.id}: {str(e)}")
@@ -1009,10 +1013,11 @@ def set_theme():
                 preferences = user.preferences or {}
                 preferences['theme'] = theme
                 user.preferences = preferences
+                g.db_session.add(user)
                 try:
-                    db.session.commit()
+                    g.db_session.commit()
                 except Exception as e:
-                    db.session.rollback()
+                    g.db_session.rollback()
                     logger.exception(f"Error saving theme preference for user {current_user.id}: {e}")
         except Exception as e:
             logger.error(f"Error saving theme preference for user {current_user.id}: {e}")

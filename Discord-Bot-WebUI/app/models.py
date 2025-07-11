@@ -291,7 +291,7 @@ class Team(db.Model):
     def coaches(self):
         """Get all coaches for this team."""
         return [
-            player for player, is_coach in db.session.query(Team, player_teams.c.is_coach)
+            player for player, is_coach in g.db_session.query(Team, player_teams.c.is_coach)
             .join(player_teams)
             .filter(player_teams.c.team_id == self.id, player_teams.c.is_coach == True)
         ]
@@ -319,7 +319,7 @@ class Team(db.Model):
 
     @property
     def top_scorer(self):
-        top_scorer = db.session.query(
+        top_scorer = g.db_session.query(
             Player, func.sum(PlayerSeasonStats.goals).label('total_goals')
         ).join(
             player_teams, Player.id == player_teams.c.player_id
@@ -334,7 +334,7 @@ class Team(db.Model):
 
     @property
     def top_assist(self):
-        top_assist = db.session.query(
+        top_assist = g.db_session.query(
             Player, func.sum(PlayerSeasonStats.assists).label('total_assists')
         ).join(
             player_teams, Player.id == player_teams.c.player_id
@@ -349,7 +349,7 @@ class Team(db.Model):
 
     @property
     def avg_goals_per_match(self):
-        total_goals = db.session.query(
+        total_goals = g.db_session.query(
             func.sum(PlayerSeasonStats.goals)
         ).join(
             Player, Player.id == PlayerSeasonStats.player_id
@@ -359,7 +359,7 @@ class Team(db.Model):
             player_teams.c.team_id == self.id
         ).scalar() or 0
 
-        matches_played = db.session.query(func.count(Match.id)).filter(
+        matches_played = g.db_session.query(func.count(Match.id)).filter(
             or_(Match.home_team_id == self.id, Match.away_team_id == self.id)
         ).scalar() or 1
 
@@ -482,7 +482,7 @@ class Player(db.Model):
     def current_teams(self):
         """Return a list of tuples containing teams and associated coach status."""
         return [
-            (team, is_coach) for team, is_coach in db.session.query(Team, player_teams.c.is_coach)
+            (team, is_coach) for team, is_coach in g.db_session.query(Team, player_teams.c.is_coach)
             .join(player_teams)
             .filter(player_teams.c.player_id == self.id)
         ]
@@ -565,7 +565,7 @@ class Player(db.Model):
             season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
             if not season_stats:
                 season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
-                db.session.add(season_stats)
+                g.db_session.add(season_stats)
 
             for stat, increment in stats_changes.items():
                 if hasattr(season_stats, stat):
@@ -592,9 +592,9 @@ class Player(db.Model):
         try:
             if not self.career_stats:
                 new_career_stats = PlayerCareerStats(player_id=self.id)
-                db.session.add(new_career_stats)
+                g.db_session.add(new_career_stats)
                 self.career_stats = [new_career_stats]
-                db.session.flush()
+                g.db_session.flush()
 
             for stat, increment in stats_changes.items():
                 if hasattr(self.career_stats[0], stat):
@@ -627,7 +627,7 @@ class Player(db.Model):
                 user_id=user_id,
                 season_id=season_id
             )
-            db.session.add(log_entry)
+            g.db_session.add(log_entry)
             logger.info(
                 f"Logged stat change for Player ID {self.id}: {stat} {change_type} "
                 f"from {old_value} to {new_value} by User ID {user_id}."
@@ -665,7 +665,7 @@ class Player(db.Model):
     def get_current_teams(self, with_coach_status=False):
         if with_coach_status:
             return [
-                (team, is_coach) for team, is_coach in db.session.query(Team, player_teams.c.is_coach)
+                (team, is_coach) for team, is_coach in g.db_session.query(Team, player_teams.c.is_coach)
                 .join(player_teams)
                 .filter(player_teams.c.player_id == self.id)
             ]
@@ -842,7 +842,7 @@ class PlayerCareerStats(db.Model):
 
     @classmethod 
     def get_stats_by_team(cls, team_id):
-        return db.session.query(cls).join(Player).join(player_teams).filter(
+        return g.db_session.query(cls).join(Player).join(player_teams).filter(
             player_teams.c.team_id == team_id
         ).all()
 
@@ -882,7 +882,7 @@ class Standings(db.Model):
 
     @property
     def team_goals(self):
-        return db.session.query(
+        return g.db_session.query(
             func.sum(PlayerSeasonStats.goals)
         ).join(Player).join(player_teams).filter(
             player_teams.c.team_id == self.team_id
@@ -978,13 +978,13 @@ class PlayerAttendanceStats(db.Model):
         stats = cls.query.filter_by(player_id=player_id).first()
         if not stats:
             stats = cls(player_id=player_id, current_season_id=season_id)
-            db.session.add(stats)
+            g.db_session.add(stats)
         return stats
     
     def update_stats(self, session=None):
         """Recalculate all statistics from availability data."""
         if session is None:
-            session = db.session
+            session = g.db_session
             
         # Get all availability records for this player
         availability_records = session.query(Availability).filter_by(player_id=self.player_id).all()
@@ -1233,7 +1233,7 @@ class Feedback(db.Model):
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             old_closed_tickets = cls.query.filter(cls.closed_at <= thirty_days_ago).all()
             for ticket in old_closed_tickets:
-                db.session.delete(ticket)
+                g.db_session.delete(ticket)
             logger.info(f"Successfully deleted old closed tickets older than {thirty_days_ago}")
         except Exception as e:
             logger.error(f"Error deleting old closed tickets: {str(e)}")
@@ -1590,7 +1590,7 @@ class LeaguePoll(db.Model):
     def get_response_counts(self):
         """Get counts of responses by type."""
         from sqlalchemy import func
-        response_counts = db.session.query(
+        response_counts = g.db_session.query(
             LeaguePollResponse.response,
             func.count(LeaguePollResponse.id).label('count')
         ).filter(
@@ -1605,7 +1605,7 @@ class LeaguePoll(db.Model):
     def get_team_breakdown(self):
         """Get response breakdown by team."""
         from sqlalchemy import func
-        team_breakdown = db.session.query(
+        team_breakdown = g.db_session.query(
             Team.name,
             Team.id,
             LeaguePollResponse.response,

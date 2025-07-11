@@ -379,6 +379,7 @@ def discord_callback():
 
         # Log in the user normally.
         user.last_login = datetime.utcnow()
+        db_session.add(user)
         
         # Enhanced login flow with stronger session handling for Docker environments
         login_user(user, remember=True)  # Always set remember=True for persistence
@@ -803,6 +804,7 @@ def verify_2fa_login():
                     # Success! TOTP token is correct
                     logger.info(f"2FA token verified via fallback method for user {user.id}")
                     user.last_login = datetime.utcnow()
+                    g.db_session.add(user)
                     sync_discord_for_user(user)
                     
                     # Login the user

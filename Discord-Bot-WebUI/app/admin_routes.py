@@ -316,6 +316,7 @@ def edit_announcement(announcement_id):
 
     announcement.title = title
     announcement.content = content
+    session.add(announcement)
     try:
         session.commit()
         if request.method == 'PUT':
@@ -372,6 +373,7 @@ def reorder_announcements():
         announcement = session.query(Announcement).get(announcement_id)
         if announcement:
             announcement.position = idx + 1
+            session.add(announcement)
     
     session.commit()
     return jsonify({'success': True})
@@ -588,6 +590,7 @@ def close_poll(poll_id):
     try:
         poll.status = 'CLOSED'
         poll.closed_at = datetime.utcnow()
+        session.add(poll)
         session.commit()
         
         show_success(f'Poll {poll.title} has been closed.')
@@ -615,6 +618,7 @@ def delete_poll(poll_id):
     try:
         poll_title = poll.title
         poll.status = 'DELETED'
+        session.add(poll)
         session.commit()
         
         show_success(f'Poll {poll_title} has been deleted.')
@@ -670,6 +674,7 @@ def update_poll_response():
             # Update existing response
             existing_response.response = response
             existing_response.responded_at = datetime.utcnow()
+            session.add(existing_response)
         else:
             # Create new response
             new_response = LeaguePollResponse(

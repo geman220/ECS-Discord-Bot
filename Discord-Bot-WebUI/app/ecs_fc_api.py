@@ -507,7 +507,7 @@ def store_rsvp_message():
         # Check if this message is already stored (idempotency)
         from app.models import ScheduledMessage
         
-        existing_message = db.session.query(ScheduledMessage).filter(
+        existing_message = g.db_session.query(ScheduledMessage).filter(
             ScheduledMessage.message_type == 'ecs_fc_rsvp',
             ScheduledMessage.message_metadata.op('->>')('discord_message_id') == str(data['message_id'])
         ).first()
@@ -532,8 +532,8 @@ def store_rsvp_message():
             sent_at=datetime.utcnow()
         )
         
-        db.session.add(scheduled_message)
-        db.session.commit()
+        g.db_session.add(scheduled_message)
+        g.db_session.commit()
         
         logger.info(f"Stored ECS FC RSVP message {data['message_id']} with scheduled_message_id {scheduled_message.id}")
         
@@ -543,7 +543,7 @@ def store_rsvp_message():
         
     except Exception as e:
         logger.error(f"Error storing RSVP message: {str(e)}")
-        db.session.rollback()
+        g.db_session.rollback()
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 
@@ -554,7 +554,7 @@ def get_rsvp_message(match_id: int):
         from app.models import ScheduledMessage
         
         # Look specifically for the message that contains Discord message ID
-        scheduled_message = db.session.query(ScheduledMessage).filter(
+        scheduled_message = g.db_session.query(ScheduledMessage).filter(
             ScheduledMessage.message_type == 'ecs_fc_rsvp',
             ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match_id),
             ScheduledMessage.message_metadata.has_key('discord_message_id')
@@ -595,7 +595,7 @@ def update_rsvp():
         
         # If no player_id provided, look up by discord_id
         if not player_id and discord_id:
-            player = db.session.query(Player).filter(Player.discord_id == str(discord_id)).first()
+            player = g.db_session.query(Player).filter(Player.discord_id == str(discord_id)).first()
             if not player:
                 return create_api_response(False, f"No player found with Discord ID {discord_id}", status_code=404)
             player_id = player.id
@@ -609,7 +609,7 @@ def update_rsvp():
         # Get or create availability record
         from app.models_ecs import EcsFcAvailability
         
-        availability = db.session.query(EcsFcAvailability).filter(
+        availability = g.db_session.query(EcsFcAvailability).filter(
             EcsFcAvailability.ecs_fc_match_id == match_id,
             EcsFcAvailability.player_id == player_id
         ).first()
@@ -617,7 +617,7 @@ def update_rsvp():
         if response == 'no_response':
             # Remove the availability record
             if availability:
-                db.session.delete(availability)
+                g.db_session.delete(availability)
         else:
             # Update or create availability record
             if availability:
@@ -632,9 +632,9 @@ def update_rsvp():
                     response_time=datetime.utcnow(),
                     discord_id=discord_id
                 )
-                db.session.add(availability)
+                g.db_session.add(availability)
         
-        db.session.commit()
+        g.db_session.commit()
         
         return create_api_response(True, "RSVP updated successfully", {
             'match_id': match_id,
@@ -644,7 +644,7 @@ def update_rsvp():
         
     except Exception as e:
         logger.error(f"Error updating RSVP: {str(e)}")
-        db.session.rollback()
+        g.db_session.rollback()
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 
@@ -654,7 +654,7 @@ def get_team_channel_id(team_id: int):
     try:
         from app.models import Team
         
-        team = db.session.query(Team).filter(Team.id == team_id).first()
+        team = g.db_session.query(Team).filter(Team.id == team_id).first()
         if not team:
             return create_api_response(False, "Team not found", status_code=404)
         
@@ -684,7 +684,7 @@ def get_user_teams():
             return create_api_response(True, "No teams found", {'teams': []})
         
         # Get team details
-        teams = db.session.query(Team).filter(Team.id.in_(coached_teams)).all()
+        teams = g.db_session.query(Team).filter(Team.id.in_(coached_teams)).all()
         
         teams_data = []
         for team in teams:
@@ -774,14 +774,14 @@ def process_ecs_fc_sub_response():
         response_id = data.get('response_id')
         
         # Find the player by Discord ID
-        player = db.session.query(Player).filter_by(discord_id=str(discord_id)).first()
+        player = g.db_session.query(Player).filter_by(discord_id=str(discord_id)).first()
         if not player:
             return create_api_response(False, f"No player found with Discord ID {discord_id}", status_code=404)
         
         # If request_id and response_id are provided, validate them
         if request_id and response_id:
             # Find the specific response record
-            response_record = db.session.query(EcsFcSubResponse).filter_by(
+            response_record = g.db_session.query(EcsFcSubResponse).filter_by(
                 id=response_id,
                 request_id=request_id,
                 player_id=player.id
@@ -791,7 +791,7 @@ def process_ecs_fc_sub_response():
                 return create_api_response(False, "Response record not found", status_code=404)
             
             # Validate that the request is still open
-            sub_request = db.session.query(EcsFcSubRequest).filter_by(
+            sub_request = g.db_session.query(EcsFcSubRequest).filter_by(
                 id=request_id,
                 status='OPEN'
             ).first()
@@ -802,7 +802,7 @@ def process_ecs_fc_sub_response():
             # Find the most recent open request that this player was notified about
             from sqlalchemy import and_
             
-            response_record = db.session.query(EcsFcSubResponse).join(
+            response_record = g.db_session.query(EcsFcSubResponse).join(
                 EcsFcSubRequest, EcsFcSubResponse.request_id == EcsFcSubRequest.id
             ).filter(
                 and_(
@@ -833,7 +833,7 @@ def process_ecs_fc_sub_response():
             
     except Exception as e:
         logger.error(f"Error processing ECS FC sub response: {str(e)}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 

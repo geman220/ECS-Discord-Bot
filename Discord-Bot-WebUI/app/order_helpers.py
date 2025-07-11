@@ -110,7 +110,7 @@ def determine_league(product_name, current_seasons, session=None):
     """
     if session is None:
         # When not in a request context, use the global session.
-        session = db.session
+        session = g.db_session
     product_name = product_name.upper().strip()
     logger.debug(f"Determining league for product name: '{product_name}'")
 

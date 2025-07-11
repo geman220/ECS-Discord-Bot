@@ -33,7 +33,7 @@ class AttendanceService:
                 # Use a fresh transaction for each attempt
                 if attempt > 0:
                     # Close any existing session state
-                    db.session.rollback()
+                    g.db_session.rollback()
                 
                 # Get or create attendance stats record
                 stats = PlayerAttendanceStats.get_or_create(player_id, season_id)
@@ -41,12 +41,12 @@ class AttendanceService:
                 # Update the statistics
                 stats.update_stats()
                 
-                db.session.commit()
+                g.db_session.commit()
                 logger.debug(f"Updated attendance stats for player {player_id}")
                 return  # Success
                 
             except Exception as e:
-                db.session.rollback()
+                g.db_session.rollback()
                 
                 if attempt < max_retries - 1:
                     logger.warning(f"Attempt {attempt + 1} failed for player {player_id}, retrying: {e}")
@@ -72,7 +72,7 @@ class AttendanceService:
         for i, player_id in enumerate(player_ids):
             try:
                 # Use individual transaction for each player to prevent cascade failures
-                with db.session.begin():
+                with g.db_session.begin():
                     stats = PlayerAttendanceStats.get_or_create(player_id, season_id)
                     stats.update_stats()
                     updated_count += 1
@@ -227,11 +227,11 @@ class AttendanceService:
                 except Exception as e:
                     logger.warning(f"Failed to refresh stats for player {stats.player_id}: {e}")
             
-            db.session.commit()
+            g.db_session.commit()
             logger.info(f"Refreshed {len(stale_stats)} stale attendance records")
             
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             logger.error(f"Error refreshing stale stats: {e}")
             raise
 

@@ -65,7 +65,7 @@ def create_feedback_entry(form_data, user_id=None, username=None):
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
-        db.session.add(new_feedback)
+        g.db_session.add(new_feedback)
         logger.info(f"Created new feedback: {new_feedback.id}")
         return new_feedback
     except Exception as e:
@@ -199,7 +199,7 @@ def view_feedback(feedback_id):
                     content=form.content.data,
                     created_at=datetime.utcnow()
                 )
-                db.session.add(reply)
+                g.db_session.add(reply)
                 feedback.replies.append(reply)
                 
                 show_success('Reply added successfully!')

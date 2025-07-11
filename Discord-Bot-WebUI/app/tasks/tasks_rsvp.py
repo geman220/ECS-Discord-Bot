@@ -84,6 +84,7 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             else:
                 availability.response = new_response
                 availability.responded_at = datetime.utcnow()
+                session.add(availability)
         else:
             if new_response != 'no_response':
                 availability = Availability(
@@ -217,6 +218,7 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
             else:
                 message.status = 'FAILED'
                 message.send_error = result.get('message')
+            session.add(message)
         return result
     except SQLAlchemyError as e:
         logger.error(f"Database error sending availability message: {str(e)}", exc_info=True)

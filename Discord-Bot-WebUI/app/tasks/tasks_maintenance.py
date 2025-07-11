@@ -9,7 +9,8 @@ Specifically, it cleans up idle transactions and connection pools every 5 minute
 
 import logging
 from datetime import datetime, timedelta
-from app.core import celery, db
+from app.core import celery
+from app.decorators import celery_task
 from app.db_management import db_manager
 from app.models import TemporarySubAssignment, Match
 from celery.schedules import crontab
@@ -62,8 +63,8 @@ def cleanup_database_connections():
         return {"status": "error", "message": str(e)}
 
 
-@celery.task
-def cleanup_old_sub_assignments():
+@celery_task
+def cleanup_old_sub_assignments(self, session):
     """
     Clean up temporary sub assignments for matches that have already occurred.
     This task runs every Monday to clean up the previous week's matches.
@@ -76,17 +77,16 @@ def cleanup_old_sub_assignments():
         current_date = datetime.utcnow().date()
         
         # Find all assignments for matches that have already occurred
-        with db.session.begin():
-            old_assignments = db.session.query(TemporarySubAssignment).join(
-                Match, TemporarySubAssignment.match_id == Match.id
-            ).filter(
-                Match.date < current_date
-            ).all()
-            
-            assignment_count = len(old_assignments)
-            if assignment_count > 0:
-                for assignment in old_assignments:
-                    db.session.delete(assignment)
+        old_assignments = session.query(TemporarySubAssignment).join(
+            Match, TemporarySubAssignment.match_id == Match.id
+        ).filter(
+            Match.date < current_date
+        ).all()
+        
+        assignment_count = len(old_assignments)
+        if assignment_count > 0:
+            for assignment in old_assignments:
+                session.delete(assignment)
                 
                 logger.info(f"Successfully deleted {assignment_count} old sub assignments for past matches")
                 

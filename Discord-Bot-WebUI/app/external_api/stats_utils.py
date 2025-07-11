@@ -49,7 +49,7 @@ def get_season_goal_leaders(season_id=None, limit=10):
             return []
     
     # First try PlayerSeasonStats
-    stats_query = db.session.query(
+    stats_query = g.db_session.query(
         Player.id,
         Player.name,
         func.coalesce(func.sum(PlayerSeasonStats.goals), 0).label('season_goals')
@@ -82,7 +82,7 @@ def get_season_goal_leaders(season_id=None, limit=10):
         
         if team_ids:
             # Calculate goals from PlayerEvent records for matches involving teams in this season
-            events_query = db.session.query(
+            events_query = g.db_session.query(
                 Player.id,
                 Player.name,
                 func.count(PlayerEvent.id).label('season_goals')
@@ -120,7 +120,7 @@ def get_career_goal_leaders(limit=10):
     Returns:
         List of (player_id, player_name, career_goals) tuples
     """
-    query = db.session.query(
+    query = g.db_session.query(
         Player.id,
         Player.name,
         func.coalesce(PlayerCareerStats.goals, 0).label('career_goals')
@@ -158,7 +158,7 @@ def get_season_assist_leaders(season_id=None, limit=10):
             return []
     
     # First try PlayerSeasonStats
-    stats_query = db.session.query(
+    stats_query = g.db_session.query(
         Player.id,
         Player.name,
         func.coalesce(func.sum(PlayerSeasonStats.assists), 0).label('season_assists')
@@ -191,7 +191,7 @@ def get_season_assist_leaders(season_id=None, limit=10):
         
         if team_ids:
             # Calculate assists from PlayerEvent records for matches involving teams in this season
-            events_query = db.session.query(
+            events_query = g.db_session.query(
                 Player.id,
                 Player.name,
                 func.count(PlayerEvent.id).label('season_assists')

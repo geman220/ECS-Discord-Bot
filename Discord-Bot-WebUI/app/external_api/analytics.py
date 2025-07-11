@@ -26,7 +26,7 @@ def calculate_career_absence_patterns(player_id):
     """Calculate career-wide absence patterns for draft insights."""
     try:
         # Get all matches player could have participated in (across all seasons)
-        all_player_matches = db.session.query(Match).join(
+        all_player_matches = g.db_session.query(Match).join(
             Team, or_(Match.home_team_id == Team.id, Match.away_team_id == Team.id)
         ).join(
             player_teams, Team.id == player_teams.c.team_id
@@ -231,7 +231,7 @@ def get_player_analytics():
         min_matches = request.args.get('min_matches', 0, type=int)
         
         # Build base query - LEFT JOIN to include players even without stats
-        query = db.session.query(
+        query = g.db_session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
@@ -386,7 +386,7 @@ def get_attendance_analytics():
         
         # Get attendance data for these matches
         from sqlalchemy import case
-        attendance_query = db.session.query(
+        attendance_query = g.db_session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
@@ -747,7 +747,7 @@ def get_substitute_requests():
         end_date = (datetime.now() + timedelta(days=days_ahead)).date()
         
         # Get substitute assignments for upcoming matches
-        assignments_query = db.session.query(
+        assignments_query = g.db_session.query(
             TemporarySubAssignment.match_id,
             TemporarySubAssignment.player_id,
             TemporarySubAssignment.team_id,

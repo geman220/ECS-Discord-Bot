@@ -87,7 +87,7 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
         try:
             for team in player.teams:
                 # Check if player is coach for this team
-                team_association = db.session.query(player_teams).filter_by(
+                team_association = g.db_session.query(player_teams).filter_by(
                     player_id=player.id, 
                     team_id=team.id
                 ).first()

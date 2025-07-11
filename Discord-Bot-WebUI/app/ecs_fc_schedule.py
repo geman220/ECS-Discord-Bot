@@ -63,7 +63,7 @@ class EcsFcScheduleManager:
                 return False, "Missing required fields", None
             
             # Check for date conflicts
-            existing_match = db.session.query(EcsFcMatch).filter(
+            existing_match = g.db_session.query(EcsFcMatch).filter(
                 EcsFcMatch.team_id == team_id,
                 EcsFcMatch.match_date == match_date,
                 EcsFcMatch.match_time == match_time
@@ -86,8 +86,8 @@ class EcsFcScheduleManager:
                 rsvp_deadline=rsvp_deadline
             )
             
-            db.session.add(match)
-            db.session.commit()
+            g.db_session.add(match)
+            g.db_session.commit()
             
             # Send Discord notification
             EcsFcScheduleManager._send_match_notification(match, "created")
@@ -99,7 +99,7 @@ class EcsFcScheduleManager:
             return True, "Match created successfully", match
             
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             logger.error(f"Error creating ECS FC match: {str(e)}")
             return False, f"Error creating match: {str(e)}", None
     
@@ -119,7 +119,7 @@ class EcsFcScheduleManager:
             Tuple of (success, message, match_object)
         """
         try:
-            match = db.session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
+            match = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
             if not match:
                 return False, "Match not found", None
             
@@ -139,7 +139,7 @@ class EcsFcScheduleManager:
                     changes_made = True
             
             if changes_made:
-                db.session.commit()
+                g.db_session.commit()
                 
                 # Send notification for significant changes
                 if any(field in kwargs for field in ['match_date', 'match_time', 'location']):
@@ -151,7 +151,7 @@ class EcsFcScheduleManager:
                 return False, "No changes to update", match
                 
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             logger.error(f"Error updating ECS FC match {match_id}: {str(e)}")
             return False, f"Error updating match: {str(e)}", None
     
@@ -167,7 +167,7 @@ class EcsFcScheduleManager:
             Tuple of (success, message)
         """
         try:
-            match = db.session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
+            match = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
             if not match:
                 return False, "Match not found"
             
@@ -177,8 +177,8 @@ class EcsFcScheduleManager:
             match_date = match.match_date
             
             # Delete the match (cascading will handle availability records)
-            db.session.delete(match)
-            db.session.commit()
+            g.db_session.delete(match)
+            g.db_session.commit()
             
             # Send cancellation notification
             EcsFcScheduleManager._send_match_notification(match, "cancelled")
@@ -187,7 +187,7 @@ class EcsFcScheduleManager:
             return True, "Match deleted successfully"
             
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             logger.error(f"Error deleting ECS FC match {match_id}: {str(e)}")
             return False, f"Error deleting match: {str(e)}"
     
@@ -211,7 +211,7 @@ class EcsFcScheduleManager:
             List of ECS FC matches
         """
         try:
-            query = db.session.query(EcsFcMatch).filter(EcsFcMatch.team_id == team_id)
+            query = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.team_id == team_id)
             
             if upcoming_only:
                 query = query.filter(EcsFcMatch.match_date >= datetime.now().date())
@@ -242,7 +242,7 @@ class EcsFcScheduleManager:
             ECS FC match or None
         """
         try:
-            return db.session.query(EcsFcMatch).options(
+            return g.db_session.query(EcsFcMatch).options(
                 joinedload(EcsFcMatch.team),
                 joinedload(EcsFcMatch.availabilities)
             ).filter(EcsFcMatch.id == match_id).first()
@@ -269,7 +269,7 @@ class EcsFcScheduleManager:
             List of ECS FC matches
         """
         try:
-            return db.session.query(EcsFcMatch).filter(
+            return g.db_session.query(EcsFcMatch).filter(
                 EcsFcMatch.team_id == team_id,
                 EcsFcMatch.match_date >= start_date,
                 EcsFcMatch.match_date <= end_date
@@ -308,12 +308,12 @@ class EcsFcScheduleManager:
                 return False, "Invalid RSVP response"
             
             # Check if match exists
-            match = db.session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
+            match = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
             if not match:
                 return False, "Match not found"
             
             # Check if player is on the team
-            player = db.session.query(Player).filter(Player.id == player_id).first()
+            player = g.db_session.query(Player).filter(Player.id == player_id).first()
             if not player:
                 return False, "Player not found"
             
@@ -322,7 +322,7 @@ class EcsFcScheduleManager:
                 return False, "Player is not on this team"
             
             # Check for existing availability record
-            availability = db.session.query(EcsFcAvailability).filter(
+            availability = g.db_session.query(EcsFcAvailability).filter(
                 EcsFcAvailability.ecs_fc_match_id == match_id,
                 EcsFcAvailability.player_id == player_id
             ).first()
@@ -345,15 +345,15 @@ class EcsFcScheduleManager:
                     notes=notes.strip() if notes else None,
                     response_time=datetime.utcnow()
                 )
-                db.session.add(availability)
+                g.db_session.add(availability)
             
-            db.session.commit()
+            g.db_session.commit()
             
             logger.info(f"RSVP submitted for match {match_id}, player {player_id}: {response}")
             return True, "RSVP submitted successfully"
             
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             logger.error(f"Error submitting RSVP: {str(e)}")
             return False, f"Error submitting RSVP: {str(e)}"
     
@@ -369,7 +369,7 @@ class EcsFcScheduleManager:
             Dictionary with RSVP summary
         """
         try:
-            match = db.session.query(EcsFcMatch).options(
+            match = g.db_session.query(EcsFcMatch).options(
                 joinedload(EcsFcMatch.team),
                 joinedload(EcsFcMatch.availabilities)
             ).filter(EcsFcMatch.id == match_id).first()
@@ -430,7 +430,7 @@ class EcsFcScheduleManager:
             Tuple of (success, message)
         """
         try:
-            match = db.session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
+            match = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.id == match_id).first()
             if not match:
                 return False, "Match not found"
             
@@ -489,7 +489,7 @@ class EcsFcScheduleManager:
                 )
             
             # Check if a scheduled message already exists for this match
-            existing = db.session.query(ScheduledMessage).filter(
+            existing = g.db_session.query(ScheduledMessage).filter(
                 ScheduledMessage.message_metadata.op('->>')('ecs_fc_match_id') == str(match.id)
             ).first()
             
@@ -520,15 +520,15 @@ class EcsFcScheduleManager:
                 created_by=match.created_by
             )
             
-            db.session.add(scheduled_message)
-            db.session.commit()
+            g.db_session.add(scheduled_message)
+            g.db_session.commit()
             
             logger.info(f"Scheduled RSVP reminder for ECS FC match {match.id} at {send_time}")
             
         except Exception as e:
             logger.error(f"Error scheduling RSVP reminder for match {match.id}: {str(e)}")
             # Don't fail the match creation if scheduling fails
-            db.session.rollback()
+            g.db_session.rollback()
     
     @staticmethod
     def _send_match_notification(match: EcsFcMatch, action: str):
@@ -666,7 +666,7 @@ class EcsFcScheduleManager:
 def get_ecs_fc_team_ids() -> List[int]:
     """Get all ECS FC team IDs."""
     try:
-        teams = db.session.query(Team).join(League).filter(
+        teams = g.db_session.query(Team).join(League).filter(
             League.name == 'ECS FC'
         ).all()
         return [team.id for team in teams]
@@ -686,7 +686,7 @@ def is_user_ecs_fc_coach(user_id: int) -> List[int]:
         List of team IDs the user coaches (empty if none)
     """
     try:
-        user = db.session.query(User).filter(User.id == user_id).first()
+        user = g.db_session.query(User).filter(User.id == user_id).first()
         if not user:
             return []
         
@@ -699,7 +699,7 @@ def is_user_ecs_fc_coach(user_id: int) -> List[int]:
         
         # Query player_teams table to find teams where user's player is a coach
         from app.models import player_teams
-        coached_ecs_fc_teams = db.session.query(player_teams.c.team_id).filter(
+        coached_ecs_fc_teams = g.db_session.query(player_teams.c.team_id).filter(
             player_teams.c.player_id == user.player.id,
             player_teams.c.is_coach == True,
             player_teams.c.team_id.in_(ecs_fc_team_ids)
@@ -728,7 +728,7 @@ def get_upcoming_ecs_fc_matches(team_id: int = None, days_ahead: int = 7) -> Lis
     try:
         end_date = datetime.now().date() + timedelta(days=days_ahead)
         
-        query = db.session.query(EcsFcMatch).filter(
+        query = g.db_session.query(EcsFcMatch).filter(
             EcsFcMatch.match_date >= datetime.now().date(),
             EcsFcMatch.match_date <= end_date
         )

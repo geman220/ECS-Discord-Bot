@@ -1056,7 +1056,7 @@ def sync_discord_rsvps():
             return jsonify({'error': 'Invalid data format'}), 400
             
         # Verify the match exists
-        match = db.session.query(Match).get(match_id)
+        match = g.db_session.query(Match).get(match_id)
         if not match:
             return jsonify({'error': f'Match {match_id} not found'}), 404
             
@@ -1070,13 +1070,13 @@ def sync_discord_rsvps():
                 continue
                 
             # Find the player by Discord ID
-            player = db.session.query(Player).filter_by(discord_id=discord_id).first()
+            player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
             if not player:
                 logger.warning(f"Player with Discord ID {discord_id} not found")
                 continue
                 
             # Check if an availability record exists
-            availability = db.session.query(Availability).filter_by(
+            availability = g.db_session.query(Availability).filter_by(
                 match_id=match_id, 
                 player_id=player.id
             ).first()
@@ -1101,7 +1101,7 @@ def sync_discord_rsvps():
                     discord_id=discord_id,
                     responded_at=datetime.utcnow()
                 )
-                db.session.add(new_availability)
+                g.db_session.add(new_availability)
                 updates.append({
                     'player_id': player.id,
                     'name': player.name,
@@ -1110,7 +1110,7 @@ def sync_discord_rsvps():
                 })
                 
         # Commit all changes
-        db.session.commit()
+        g.db_session.commit()
         
         # If we made any updates, notify the frontend
         if updates:
@@ -1205,13 +1205,13 @@ def record_poll_response():
                 response=response,
                 responded_at=datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
             )
-            db.session.add(new_response)
+            g.db_session.add(new_response)
             action = 'created'
             
             logger.info(f"Created new poll response for player {player.name} ({player.id}) "
                        f"with response {response} for poll {poll_id}")
         
-        db.session.commit()
+        g.db_session.commit()
         
         # Get updated response counts
         response_counts = poll.get_response_counts()
@@ -1227,7 +1227,7 @@ def record_poll_response():
         
     except Exception as e:
         logger.exception(f"Error recording poll response: {str(e)}")
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({
             'error': f'Error recording poll response: {str(e)}'
         }), 500
@@ -1269,7 +1269,7 @@ def update_poll_message():
         message_record.message_id = message_id
         message_record.sent_at = datetime.fromisoformat(sent_at) if sent_at else datetime.utcnow()
         
-        db.session.commit()
+        g.db_session.commit()
         
         logger.info(f"Updated poll message record {message_record_id} with Discord message ID {message_id}")
         
@@ -1280,7 +1280,7 @@ def update_poll_message():
         
     except Exception as e:
         logger.exception(f"Error updating poll message: {str(e)}")
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({
             'error': f'Error updating poll message: {str(e)}'
         }), 500
@@ -1296,7 +1296,7 @@ def get_active_poll_messages():
         from app.models import LeaguePoll, LeaguePollDiscordMessage
         
         # Get all active polls with their Discord messages
-        active_poll_messages = db.session.query(
+        active_poll_messages = g.db_session.query(
             LeaguePollDiscordMessage
         ).join(
             LeaguePoll, LeaguePoll.id == LeaguePollDiscordMessage.poll_id

@@ -21,7 +21,7 @@ def transactional(f):
     """
     Decorator to manage database transactions for Flask routes or functions.
 
-    Commits the current Flask‑SQLAlchemy db.session on success and rolls back
+    Commits the current Flask‑SQLAlchemy g.db_session on success and rolls back
     on error. The session is automatically removed at the end of the request.
     
     Args:
@@ -34,10 +34,10 @@ def transactional(f):
     def wrapped(*args, **kwargs):
         try:
             result = f(*args, **kwargs)
-            db.session.commit()
+            g.db_session.commit()
             return result
         except Exception as e:
-            db.session.rollback()
+            g.db_session.rollback()
             current_app.logger.exception("Error in transactional function %s", f.__name__)
             raise
     return wrapped

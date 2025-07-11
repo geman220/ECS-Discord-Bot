@@ -331,7 +331,7 @@ def get_eligible_players(league_type: str, session=None) -> List[Any]:
         List of Player objects with the appropriate substitute role
     """
     if session is None:
-        session = db.session
+        session = g.db_session
     
     from app.models import Player, User, Role
     
@@ -367,7 +367,7 @@ def get_active_substitutes(league_type: str, session=None, gender_filter: str = 
         List of active SubstitutePool objects
     """
     if session is None:
-        session = db.session
+        session = g.db_session
     
     from app.models import Player
     
@@ -408,7 +408,7 @@ def log_pool_action(pool_id: int, action: str, performed_by: int, notes: str = N
         session: Database session (optional)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
     
     history_entry = SubstitutePoolHistory(
         pool_id=pool_id,

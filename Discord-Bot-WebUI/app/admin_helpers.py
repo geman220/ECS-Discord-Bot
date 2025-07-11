@@ -171,7 +171,7 @@ def handle_user_action(action: str, user_id: int) -> bool:
     if action == 'approve':
         user.is_approved = True
     elif action == 'remove':
-        db.session.delete(user)
+        g.db_session.delete(user)
     # Additional actions (e.g., password reset) can be implemented as needed.
     return True
 
@@ -330,13 +330,13 @@ def handle_announcement_update(title: str = None, content: str = None,
             announcement.title = title or announcement.title
             announcement.content = content or announcement.content
         else:
-            max_position = db.session.query(db.func.max(Announcement.position)).scalar() or 0
+            max_position = g.db_session.query(db.func.max(Announcement.position)).scalar() or 0
             announcement = Announcement(
                 title=title,
                 content=content,
                 position=max_position + 1
             )
-            db.session.add(announcement)
+            g.db_session.add(announcement)
         return True
     except Exception as e:
         logger.error(f"Error handling announcement: {e}")
@@ -355,7 +355,7 @@ def get_role_permissions_data(role_id: int, session=None) -> Optional[List[int]]
         A list of permission IDs for the role, or None if the role is not found.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
     role = session.query(Role).get(role_id)
     if not role:
         return None
@@ -376,7 +376,7 @@ def handle_permissions_update(role_id: int, permission_ids: List[int], session=N
     """
     try:
         if session is None:
-            session = db.session
+            session = g.db_session
         role = session.query(Role).get_or_404(role_id)
         role.permissions = session.query(Permission).filter(Permission.id.in_(permission_ids)).all()
         session.add(role)
@@ -407,7 +407,7 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         A sorted list of dictionaries containing RSVP status data.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     # Get regular team players with their availability
     players_with_availability = session.query(Player, Availability).\
@@ -535,7 +535,7 @@ def get_ecs_fc_rsvp_status_data(ecs_match, session=None):
     """
     if session is None:
         from app.core import db
-        session = db.session
+        session = g.db_session
     
     from app.models import Player, Team, TemporarySubAssignment
     from app.models_ecs import EcsFcAvailability
@@ -707,7 +707,7 @@ def check_system_health() -> Dict[str, Any]:
 def check_database_health() -> bool:
     """Check database connection health."""
     try:
-        db.session.execute('SELECT 1')
+        g.db_session.execute('SELECT 1')
         return True
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
@@ -863,7 +863,7 @@ def get_available_subs(session=None) -> List[Dict[str, Any]]:
         A list of dictionaries containing sub player information.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     subs = session.query(Player).filter(
         Player.is_sub == True,
@@ -897,7 +897,7 @@ def get_match_subs(match_id: int, session=None) -> Dict[str, List[Dict[str, Any]
         A dictionary with team IDs as keys and lists of sub information as values.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     sub_assignments = session.query(TemporarySubAssignment).filter(
         TemporarySubAssignment.match_id == match_id
@@ -943,7 +943,7 @@ def assign_sub_to_team(match_id: int, player_id: int, team_id: int, user_id: int
         A tuple of (success: bool, message: str)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     try:
         # Check if player is marked as a substitute
@@ -1020,7 +1020,7 @@ def remove_sub_assignment(assignment_id: int, user_id: int, session=None) -> Tup
         A tuple of (success: bool, message: str)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     try:
         assignment = session.query(TemporarySubAssignment).get(assignment_id)
@@ -1056,7 +1056,7 @@ def get_player_active_sub_assignments(player_id: int, session=None) -> List[Dict
         A list of dictionaries containing assignment information.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     current_date = datetime.utcnow().date()
     
@@ -1098,7 +1098,7 @@ def cleanup_old_sub_assignments(session=None) -> Tuple[int, str]:
         A tuple of (count_deleted: int, message: str)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     try:
         current_date = datetime.utcnow().date()
@@ -1141,7 +1141,7 @@ def get_sub_requests(filters=None, session=None):
         A SQLAlchemy query object for SubRequest objects that match the filters.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     query = session.query(SubRequest).options(
         joinedload(SubRequest.match),
@@ -1182,7 +1182,7 @@ def create_sub_request(match_id, team_id, requested_by, notes=None, substitutes_
         A tuple of (success: bool, message: str, request_id: int)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     try:
         # Check if the match exists
@@ -1244,7 +1244,7 @@ def update_sub_request_status(request_id, status, fulfilled_by=None, session=Non
         A tuple of (success: bool, message: str)
     """
     if session is None:
-        session = db.session
+        session = g.db_session
         
     try:
         sub_request = session.query(SubRequest).get(request_id)

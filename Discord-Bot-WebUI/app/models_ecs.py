@@ -138,7 +138,7 @@ class EcsFcMatch(db.Model):
         if self.team and user.player:
             from app.models import player_teams
             from app.core import db
-            is_coach = db.session.query(player_teams.c.is_coach).filter(
+            is_coach = g.db_session.query(player_teams.c.is_coach).filter(
                 player_teams.c.player_id == user.player.id,
                 player_teams.c.team_id == self.team.id,
                 player_teams.c.is_coach == True
@@ -280,7 +280,7 @@ def get_ecs_fc_teams():
     """Get all ECS FC teams."""
     from app.models import Team, League
     
-    return db.session.query(Team).join(League).filter(
+    return g.db_session.query(Team).join(League).filter(
         League.name == 'ECS FC'
     ).all()
 
@@ -289,7 +289,7 @@ def is_ecs_fc_team(team_id: int) -> bool:
     """Check if a team is an ECS FC team."""
     from app.models import Team, League
     
-    team = db.session.query(Team).join(League).filter(
+    team = g.db_session.query(Team).join(League).filter(
         Team.id == team_id,
         League.name == 'ECS FC'
     ).first()
@@ -299,7 +299,7 @@ def is_ecs_fc_team(team_id: int) -> bool:
 
 def get_ecs_fc_matches_for_team(team_id: int, upcoming_only: bool = False) -> List[EcsFcMatch]:
     """Get ECS FC matches for a specific team."""
-    query = db.session.query(EcsFcMatch).filter(EcsFcMatch.team_id == team_id)
+    query = g.db_session.query(EcsFcMatch).filter(EcsFcMatch.team_id == team_id)
     
     if upcoming_only:
         query = query.filter(EcsFcMatch.match_date >= datetime.now().date())
@@ -309,7 +309,7 @@ def get_ecs_fc_matches_for_team(team_id: int, upcoming_only: bool = False) -> Li
 
 def get_ecs_fc_matches_for_date_range(team_id: int, start_date: datetime, end_date: datetime) -> List[EcsFcMatch]:
     """Get ECS FC matches for a team within a date range."""
-    return db.session.query(EcsFcMatch).filter(
+    return g.db_session.query(EcsFcMatch).filter(
         EcsFcMatch.team_id == team_id,
         EcsFcMatch.match_date >= start_date.date(),
         EcsFcMatch.match_date <= end_date.date()

@@ -400,7 +400,7 @@ async def async_session_context():
             session.close()
 
 
-def celery_task(**task_kwargs):
+def celery_task(func=None, **task_kwargs):
     """
     Decorator for wrapping functions as Celery tasks with session management.
 
@@ -408,6 +408,7 @@ def celery_task(**task_kwargs):
     database session from the Flask app context.
 
     Args:
+        func: The function to decorate (when used without parentheses)
         **task_kwargs: Keyword arguments for Celery task configuration.
 
     Returns:
@@ -472,7 +473,14 @@ def celery_task(**task_kwargs):
                         logger.error(f"Failed to register session end: {str(e)}")
                         
         return wrapped
-    return celery_task_decorator
+    
+    # Handle both @celery_task and @celery_task() usage
+    if func is None:
+        # Called with parentheses: @celery_task()
+        return celery_task_decorator
+    else:
+        # Called without parentheses: @celery_task
+        return celery_task_decorator(func)
 
 
 def async_task(**task_kwargs):

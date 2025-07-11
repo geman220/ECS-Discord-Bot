@@ -135,6 +135,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                 match.live_reporting_status = 'completed'
                 match.live_reporting_started = False
                 match.live_reporting_task_id = None  # ADDED CODE: Clear task ID
+                session.add(match)
 
             # Return the update data so that the Discord bot can use it to build the full-time embed.
             return {
@@ -156,6 +157,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
             match.current_status = new_status
             match.current_score = new_score
             match.last_update_time = datetime.utcnow()
+            session.add(match)
 
         # Schedule the next update with updated parameters.
         # Store the task ID to prevent duplicate executions
@@ -274,6 +276,7 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
         match.reporting_start_time = datetime.utcnow()
         # Clear any previous task ID
         match.live_reporting_task_id = None
+        session.add(match)
 
         match_data = {
             'match_id': match.match_id,
@@ -602,6 +605,7 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
             if thread_id:
                 match.thread_created = True
                 match.discord_thread_id = thread_id
+                session.add(match)
                 session.commit()
 
                 logger.info(f"Created thread {thread_id} for match {match_id}")
@@ -729,6 +733,7 @@ async def end_match_reporting(match_id: str) -> None:
         if match:
             match.live_reporting_status = 'completed'
             match.live_reporting_started = False
+            session.add(match)
             logger.info(f"Live reporting ended for match {match_id}")
 
         if new_session:
