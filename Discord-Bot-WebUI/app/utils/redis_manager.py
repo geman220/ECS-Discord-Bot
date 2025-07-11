@@ -94,11 +94,13 @@ class RedisManager:
                     host=redis_host,
                     port=redis_port,
                     db=redis_db,
-                    socket_timeout=2.0,  # Increased to allow slightly longer operations
-                    socket_connect_timeout=1.5,  # Increased to allow for network latency
+                    socket_timeout=10.0,  # Increased to match session pool
+                    socket_connect_timeout=10.0,  # Increased to match session pool
                     decode_responses=True,
-                    health_check_interval=60,  # Increased to reduce overhead
-                    max_connections=30,  # Increased for 2 CPU / 4GB RAM environment
+                    socket_keepalive=True,
+                    socket_keepalive_options={},
+                    health_check_interval=30,  # Match session pool settings
+                    max_connections=50,  # Match session pool size
                     retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
@@ -236,6 +238,14 @@ class RedisManager:
                 # Log warning if too many connections are in use
                 if max_conn and in_use > max_conn * 0.8:  # 80% of max connections
                     logger.warning(f"Redis connection pool nearing capacity: {in_use}/{max_conn} connections in use")
+            elif hasattr(pool, 'max_connections'):
+                # Fallback for different Redis versions
+                max_conn = pool.max_connections
+                stats.update({
+                    'max': max_conn,
+                    'created': getattr(pool, '_created_connections', 0),
+                    'in_use': 'unknown'
+                })
         
         return stats
 

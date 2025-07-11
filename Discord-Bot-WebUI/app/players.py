@@ -726,8 +726,26 @@ def contact_player_discord(player_id):
         if response.status_code == 200:
             show_success("Message sent successfully on Discord.")
         else:
-            show_error("Failed to send the message on Discord.")
+            # Try to get detailed error information from the bot service
+            try:
+                error_data = response.json()
+                error_detail = error_data.get('detail', 'Unknown error')
+                
+                # Provide user-friendly error messages based on status code
+                if response.status_code == 403:
+                    show_error(f"Cannot send Discord message: {error_detail}. The user likely has DMs disabled or has blocked the bot.")
+                elif response.status_code == 404:
+                    show_error(f"Discord user not found: {error_detail}. The player's Discord account may be invalid or deleted.")
+                else:
+                    show_error(f"Failed to send Discord message (Status {response.status_code}): {error_detail}")
+            except ValueError:
+                # Response is not JSON, use raw text
+                show_error(f"Failed to send Discord message (Status {response.status_code}): {response.text[:200]}")
+    except requests.exceptions.Timeout:
+        show_error("Discord bot service timed out. Please try again later.")
+    except requests.exceptions.ConnectionError:
+        show_error("Cannot connect to Discord bot service. Please contact an administrator.")
     except Exception as e:
-         show_error("Error contacting Discord bot: " + str(e))
+        show_error(f"Error contacting Discord bot: {str(e)}")
     
     return redirect(url_for('players.player_profile', player_id=player_id))

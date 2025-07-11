@@ -270,6 +270,16 @@
         </li>
         {% endif %}
         
+        <!-- Draft History - Pub League Admin / Global Admin Only -->
+        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if request.endpoint == 'admin.draft_history' }}">
+            <a class="menu-link" href="{{ url_for('admin.draft_history') }}">
+                <i class="ti ti-history menu-icon"></i>
+                <div>Draft History</div>
+            </a>
+        </li>
+        {% endif %}
+        
 
 
         <!-- Discord Admin Section Header -->

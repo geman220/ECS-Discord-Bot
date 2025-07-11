@@ -26,7 +26,8 @@ from app.db_utils import mark_player_for_discord_update
 from app.models import (
     League, Player, Team, Season, PlayerSeasonStats, PlayerCareerStats,
     Match, PlayerEvent, player_teams, player_league, Availability,
-    PlayerTeamHistory, Schedule, PlayerAttendanceStats, PlayerImageCache
+    PlayerTeamHistory, Schedule, PlayerAttendanceStats, PlayerImageCache,
+    DraftOrderHistory
 )
 from app.attendance_service import AttendanceService
 from app.image_cache_service import ImageCacheService
@@ -56,6 +57,76 @@ class DraftService:
         )
         
         return current_league, all_leagues
+    
+    @staticmethod
+    def record_draft_pick(session, player_id: int, team_id: int, league_id: int, season_id: int, drafted_by_user_id: int, notes: str = None) -> int:
+        """Record a draft pick in the draft order history table."""
+        try:
+            # Get the next draft position for this season/league
+            max_position = session.query(func.max(DraftOrderHistory.draft_position)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar() or 0
+            
+            next_position = max_position + 1
+            
+            # Create the draft order record
+            draft_record = DraftOrderHistory(
+                season_id=season_id,
+                league_id=league_id,
+                player_id=player_id,
+                team_id=team_id,
+                draft_position=next_position,
+                drafted_by=drafted_by_user_id,
+                notes=notes
+            )
+            
+            session.add(draft_record)
+            session.flush()  # Flush to get the ID but don't commit yet
+            
+            logger.info(f"Recorded draft pick #{next_position}: Player {player_id} to Team {team_id} in Season {season_id}/League {league_id}")
+            
+            return next_position
+            
+        except Exception as e:
+            logger.error(f"Error recording draft pick: {str(e)}")
+            raise
+    
+    @staticmethod
+    def remove_draft_pick(session, player_id: int, season_id: int, league_id: int):
+        """Remove a player from draft history and adjust subsequent picks."""
+        try:
+            # Find the draft record for this player
+            draft_record = session.query(DraftOrderHistory).filter(
+                DraftOrderHistory.player_id == player_id,
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).first()
+            
+            if not draft_record:
+                logger.warning(f"No draft record found for player {player_id}")
+                return
+            
+            removed_position = draft_record.draft_position
+            
+            # Delete the record
+            session.delete(draft_record)
+            
+            # Adjust all subsequent draft positions down by 1
+            subsequent_picks = session.query(DraftOrderHistory).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id,
+                DraftOrderHistory.draft_position > removed_position
+            ).all()
+            
+            for pick in subsequent_picks:
+                pick.draft_position -= 1
+            
+            logger.info(f"Removed draft pick #{removed_position} for player {player_id} and adjusted {len(subsequent_picks)} subsequent picks")
+            
+        except Exception as e:
+            logger.error(f"Error removing draft pick: {str(e)}")
+            raise
     
     @staticmethod
     def get_enhanced_player_data(players: List[Player], current_season_id: Optional[int] = None) -> List[Dict]:
@@ -125,6 +196,7 @@ class DraftService:
                 'unavailable_dates': player.unavailable_dates or '',
                 'jersey_number': player.jersey_number,
                 'is_sub': player.is_sub,
+                'is_ref': player.is_ref,
                 'willing_to_referee': player.willing_to_referee == 'Yes',
                 
                 # Career stats with safe access
@@ -132,6 +204,16 @@ class DraftService:
                 'career_assists': player.career_stats[0].assists if player.career_stats else 0,
                 'career_yellow_cards': player.career_stats[0].yellow_cards if player.career_stats else 0,
                 'career_red_cards': player.career_stats[0].red_cards if player.career_stats else 0,
+                
+                # Average stats per season
+                'avg_goals_per_season': (
+                    round(player.career_stats[0].goals / max(teams_played_on, 1), 1) 
+                    if player.career_stats and teams_played_on > 0 else 0
+                ),
+                'avg_assists_per_season': (
+                    round(player.career_stats[0].assists / max(teams_played_on, 1), 1) 
+                    if player.career_stats and teams_played_on > 0 else 0
+                ),
                 
                 # Season stats
                 'season_goals': season_stats.goals if season_stats else 0,
@@ -675,6 +757,23 @@ def api_draft_player():
         
         # Add player to team
         team.players.append(player)
+        
+        # Record the draft pick in history
+        try:
+            draft_position = DraftService.record_draft_pick(
+                session=session,
+                player_id=player_id,
+                team_id=team_id,
+                league_id=league.id,
+                season_id=league.season_id,
+                drafted_by_user_id=current_user.id,
+                notes=f"Drafted via HTTP API by {current_user.username}"
+            )
+            logger.info(f"Draft pick #{draft_position} recorded for {player.name} to {team.name}")
+        except Exception as e:
+            logger.error(f"Failed to record draft pick: {str(e)}")
+            # Don't fail the entire operation if draft history fails
+        
         session.commit()
         
         # Mark player for Discord update

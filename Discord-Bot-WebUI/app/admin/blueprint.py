@@ -16,3 +16,9 @@ admin_bp.register_blueprint(ecs_fc_subs_bp)
 # Import and register substitute pool routes
 from app.admin.substitute_pool_routes import substitute_pool_bp
 admin_bp.register_blueprint(substitute_pool_bp)
+
+# Import main admin routes to register them with this blueprint
+from app import admin_routes
+
+# Import draft history routes (no separate blueprint needed, uses admin_bp directly)
+from app.admin import draft_history_routes

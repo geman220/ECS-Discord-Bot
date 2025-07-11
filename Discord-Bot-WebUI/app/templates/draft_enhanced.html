@@ -133,6 +133,23 @@
     font-weight: 900;
     letter-spacing: 0;
 }
+
+/* Referee corner tag */
+.referee-corner-tag {
+    width: 24px;
+    height: 24px;
+    border-radius: 0 0 12px 0; /* Rounded bottom-right corner only */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    border: 2px solid rgba(255,255,255,0.8);
+    border-top: none;
+    border-left: none;
+}
 </style>
 {% endblock %}
 
@@ -268,6 +285,15 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Referee Badge - Small Corner Tag (opposite corner) -->
+                                {% if player.is_ref %}
+                                <div class="position-absolute top-0 start-0" style="z-index: 2;">
+                                    <div class="referee-corner-tag bg-danger text-white" title="Referee" style="font-size: 9px; font-weight: bold;">
+                                        REF
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
                                 <!-- Player Name Overlay -->
                                 <div class="position-absolute bottom-0 start-0 p-2" style="z-index: 2;">
                                     <h6 class="text-white fw-bold mb-0 text-shadow-sm">{{ player.name }}</h6>
@@ -290,10 +316,16 @@
                                     <div class="col-6">
                                         <div class="fw-bold text-success">{{ player.career_goals }}</div>
                                         <div class="text-muted">Goals</div>
+                                        <div class="small text-success" style="font-size: 0.65rem;">
+                                            Avg: {{ player.avg_goals_per_season }}/season
+                                        </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="fw-bold text-info">{{ player.career_assists }}</div>
                                         <div class="text-muted">Assists</div>
+                                        <div class="small text-info" style="font-size: 0.65rem;">
+                                            Avg: {{ player.avg_assists_per_season }}/season
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -430,7 +462,12 @@
                                                                  loading="lazy"
                                                                  onerror="this.src='/static/img/default_player.png';">
                                                             <div class="flex-grow-1 min-width-0">
-                                                                <div class="fw-semibold text-truncate small">{{ player.name }}</div>
+                                                                <div class="fw-semibold text-truncate small">
+                                                                    {{ player.name }}
+                                                                    {% if player.is_ref %}
+                                                                    <i class="ti ti-whistle text-dark ms-1" title="Referee" style="font-size: 0.75rem;"></i>
+                                                                    {% endif %}
+                                                                </div>
                                                                 <div class="text-muted" style="font-size: 0.75rem;">
                                                                     {{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}
                                                                 </div>
@@ -445,10 +482,12 @@
                                                             <div>
                                                                 <div class="fw-bold text-success">{{ player.career_goals }}</div>
                                                                 <div class="text-muted" style="font-size: 0.7rem;">Goals</div>
+                                                                <div class="text-success" style="font-size: 0.6rem;">{{ player.avg_goals_per_season }}/s</div>
                                                             </div>
                                                             <div>
                                                                 <div class="fw-bold text-info">{{ player.career_assists }}</div>
                                                                 <div class="text-muted" style="font-size: 0.7rem;">Assists</div>
+                                                                <div class="text-info" style="font-size: 0.6rem;">{{ player.avg_assists_per_season }}/s</div>
                                                             </div>
                                                             <div>
                                                                 <div class="fw-bold">
