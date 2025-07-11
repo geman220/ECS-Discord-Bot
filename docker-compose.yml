@@ -4,6 +4,7 @@ services:
   redis:
     image: redis:alpine
     hostname: redis
+    command: redis-server --maxclients 300 --tcp-keepalive 60 --timeout 300
     volumes:
       - redis_data:/data
     healthcheck:

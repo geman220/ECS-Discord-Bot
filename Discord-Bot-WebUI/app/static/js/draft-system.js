@@ -599,11 +599,18 @@ class DraftSystemV2 {
         const profilePictureUrl = player.profile_picture_url || '/static/img/default_player.png';
         
         playerCard.innerHTML = `
-            <div class="card border-0 shadow-sm" 
+            <div class="card border-0 shadow-sm position-relative" 
                  style="min-height: 120px; cursor: grab;"
                  draggable="true"
                  ondragstart="handleDragStart(event, ${player.id})"
                  ondragend="handleDragEnd(event)">
+                ${player.is_ref ? `
+                <div class="position-absolute top-0 start-0" style="z-index: 2;">
+                    <div class="bg-danger text-white" style="padding: 2px 4px; border-radius: 0 0 8px 0; font-size: 10px; font-weight: bold;" title="Referee">
+                        REF
+                    </div>
+                </div>
+                ` : ''}
                 <div class="card-body p-2">
                     <div class="d-flex align-items-center mb-2">
                         <img src="${profilePictureUrl}" 

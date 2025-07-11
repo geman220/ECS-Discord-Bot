@@ -1666,3 +1666,35 @@ class LeaguePollDiscordMessage(db.Model):
     
     def __repr__(self):
         return f"<LeaguePollDiscordMessage: Poll {self.poll_id}, Team {self.team_id}, Channel {self.channel_id}>"
+
+
+class DraftOrderHistory(db.Model):
+    """Model representing the historical draft order of players."""
+    __tablename__ = 'draft_order_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
+    draft_position = db.Column(db.Integer, nullable=False)  # 1, 2, 3, etc.
+    drafted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    drafted_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    season = db.relationship('Season', backref=db.backref('draft_orders', lazy='dynamic'))
+    league = db.relationship('League', backref=db.backref('draft_orders', lazy='dynamic'))
+    player = db.relationship('Player', backref=db.backref('draft_history', lazy='dynamic'))
+    team = db.relationship('Team', backref=db.backref('draft_picks', lazy='dynamic'))
+    drafter = db.relationship('User', backref=db.backref('draft_picks_made', lazy='dynamic'))
+    
+    __table_args__ = (
+        db.UniqueConstraint('season_id', 'league_id', 'player_id', name='uq_draft_order_player_season_league'),
+        db.UniqueConstraint('season_id', 'league_id', 'draft_position', name='uq_draft_order_position_season_league'),
+    )
+    
+    def __repr__(self):
+        return f"<DraftOrderHistory: #{self.draft_position} {self.player_id} to {self.team_id} in S{self.season_id}>"

@@ -117,12 +117,13 @@ def create_app(config_object='web_config.Config'):
     session_pool = ConnectionPool.from_url(
         redis_url,
         decode_responses=False,
-        socket_timeout=5,
-        socket_connect_timeout=5,
+        socket_timeout=10,
+        socket_connect_timeout=10,
         socket_keepalive=True,
-        health_check_interval=15,
+        socket_keepalive_options={},
+        health_check_interval=30,
         retry_on_timeout=True,
-        max_connections=20
+        max_connections=50
     )
     session_redis = Redis(connection_pool=session_pool)
     
@@ -131,6 +132,12 @@ def create_app(config_object='web_config.Config'):
         app.redis.ping()
         session_redis.ping()
         logger.info("Redis connections established successfully")
+        
+        # Log initial connection pool stats
+        if hasattr(redis_manager, 'get_connection_stats'):
+            stats = redis_manager.get_connection_stats()
+            logger.info(f"Redis connection pool initialized: {stats}")
+            
     except Exception as e:
         logger.error(f"Redis connection failed: {e}")
         # Continue anyway - the Redis manager will handle reconnection attempts
@@ -568,7 +575,7 @@ def init_blueprints(app):
     from app.teams import teams_bp
     from app.bot_admin import bot_admin_bp
     from app.availability_api import availability_bp
-    from app.admin_routes import admin_bp
+    from app.admin.blueprint import admin_bp
     from app.match_pages import match_pages
     from app.account import account_bp
     from app.email import email_bp

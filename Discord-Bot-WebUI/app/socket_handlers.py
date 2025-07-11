@@ -169,6 +169,26 @@ def handle_draft_player_enhanced(data):
         
         # Execute the draft
         team.players.append(player)
+        
+        # Record the draft pick in history
+        try:
+            from app.draft_enhanced import DraftService
+            draft_position = DraftService.record_draft_pick(
+                session=session,
+                player_id=player_id,
+                team_id=team_id,
+                league_id=league.id,
+                season_id=league.season_id,
+                drafted_by_user_id=current_user.id,
+                notes=f"Drafted via Socket by {current_user.username}"
+            )
+            print(f"📊 Draft pick #{draft_position} recorded for {player.name} to {team.name}")
+            logger.info(f"📊 Draft pick #{draft_position} recorded for {player.name} to {team.name}")
+        except Exception as e:
+            print(f"⚠️ Failed to record draft pick: {str(e)}")
+            logger.error(f"Failed to record draft pick: {str(e)}")
+            # Don't fail the entire operation if draft history fails
+        
         session.commit()
         
         # Mark for Discord update
@@ -194,10 +214,20 @@ def handle_draft_player_enhanced(data):
                 'profile_picture_medium': getattr(player, 'profile_picture_medium', None) or player.profile_picture_url or '/static/img/default_player.png',
                 'profile_picture_webp': getattr(player, 'profile_picture_webp', None) or player.profile_picture_url or '/static/img/default_player.png',
                 'favorite_position': player.favorite_position or 'Any',
+                'is_ref': player.is_ref,
                 'career_goals': player.career_stats[0].goals if player.career_stats else 0,
                 'career_assists': player.career_stats[0].assists if player.career_stats else 0,
                 'career_yellow_cards': player.career_stats[0].yellow_cards if player.career_stats else 0,
                 'career_red_cards': player.career_stats[0].red_cards if player.career_stats else 0,
+                # Calculate average stats per season
+                'avg_goals_per_season': (
+                    round(player.career_stats[0].goals / max(len(player.teams) or 1, 1), 1) 
+                    if player.career_stats else 0
+                ),
+                'avg_assists_per_season': (
+                    round(player.career_stats[0].assists / max(len(player.teams) or 1, 1), 1) 
+                    if player.career_stats else 0
+                ),
                 'league_experience_seasons': 0,  # Could be calculated if needed
                 'attendance_estimate': 75,  # Default value
                 'experience_level': 'New Player'  # Default value
@@ -369,6 +399,23 @@ def handle_remove_player_enhanced(data):
         
         # Remove player from team
         team.players.remove(player)
+        
+        # Remove from draft history and adjust subsequent picks
+        try:
+            from app.draft_enhanced import DraftService
+            DraftService.remove_draft_pick(
+                session=session,
+                player_id=player_id,
+                season_id=league.season_id,
+                league_id=league.id
+            )
+            print(f"📊 Removed draft history for {player.name} and adjusted subsequent picks")
+            logger.info(f"📊 Removed draft history for {player.name} and adjusted subsequent picks")
+        except Exception as e:
+            print(f"⚠️ Failed to remove draft history: {str(e)}")
+            logger.error(f"Failed to remove draft history: {str(e)}")
+            # Don't fail the entire operation if draft history removal fails
+        
         session.commit()
         
         # Mark for Discord update
