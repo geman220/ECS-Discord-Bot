@@ -9,10 +9,9 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any
 
-from celery import shared_task
 from sqlalchemy.orm import joinedload
 
-from app.core import db
+from app.decorators import celery_task
 from app.models import User, Player
 from app.models_ecs import EcsFcMatch
 from app.models_ecs_subs import (
@@ -26,8 +25,8 @@ from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name='notify_sub_pool_of_request')
-def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
+@celery_task(name='notify_sub_pool_of_request')
+def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]:
     """
     Send notifications to all active substitutes in the pool about a new request.
     
@@ -39,7 +38,7 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
     """
     try:
         # Get the request with related data
-        sub_request = db.session.query(EcsFcSubRequest).options(
+        sub_request = session.query(EcsFcSubRequest).options(
             joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
             joinedload(EcsFcSubRequest.team)
         ).get(request_id)
@@ -54,7 +53,7 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
             return {'success': False, 'error': 'Match not found'}
         
         # Get all active subs from the pool
-        active_subs = db.session.query(EcsFcSubPool).options(
+        active_subs = session.query(EcsFcSubPool).options(
             joinedload(EcsFcSubPool.player).joinedload(Player.user)
         ).filter_by(is_active=True).all()
         
@@ -130,8 +129,8 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
                         notification_sent_at=datetime.utcnow(),
                         notification_methods='DISCORD'
                     )
-                    db.session.add(response)
-                    db.session.flush()  # Get the ID
+                    session.add(response)
+                    session.flush()  # Get the ID
                     
                     # Send DM using existing proven system
                     dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
@@ -182,7 +181,7 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
             # Create or update response record
             if notification_methods and not (pool_entry.discord_for_sub_requests and 'DISCORD' in notification_methods):
                 # For non-Discord notifications, create a response record
-                response = db.session.query(EcsFcSubResponse).filter_by(
+                response = session.query(EcsFcSubResponse).filter_by(
                     request_id=request_id,
                     player_id=player.id
                 ).first()
@@ -196,9 +195,9 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
                         notification_sent_at=datetime.utcnow(),
                         notification_methods=','.join(notification_methods)
                     )
-                    db.session.add(response)
+                    session.add(response)
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         results['success'] = True
         results['message'] = (
@@ -211,12 +210,12 @@ def notify_sub_pool_of_request(request_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error in notify_sub_pool_of_request: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
-@shared_task(name='notify_assigned_substitute')
-def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
+@celery_task(name='notify_assigned_substitute')
+def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, Any]:
     """
     Send notification to the assigned substitute with match details.
     
@@ -228,7 +227,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
     """
     try:
         # Get assignment with related data
-        assignment = db.session.query(EcsFcSubAssignment).options(
+        assignment = session.query(EcsFcSubAssignment).options(
             joinedload(EcsFcSubAssignment.request).joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
             joinedload(EcsFcSubAssignment.player).joinedload(Player.user)
         ).get(assignment_id)
@@ -267,7 +266,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         }
         
         # Get sub pool preferences
-        pool_entry = db.session.query(EcsFcSubPool).filter_by(
+        pool_entry = session.query(EcsFcSubPool).filter_by(
             player_id=player.id,
             is_active=True
         ).first()
@@ -363,7 +362,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         if pool_entry:
             pool_entry.matches_played += 1
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         results['success'] = len(results['methods_successful']) > 0
         results['message'] = (
@@ -377,12 +376,12 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error in notify_assigned_substitute: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
-@shared_task(name='process_ecs_fc_sub_response')
-def process_sub_response(player_id: int, response_text: str, response_method: str) -> Dict[str, Any]:
+@celery_task(name='process_ecs_fc_sub_response')
+def process_sub_response(self, session, player_id: int, response_text: str, response_method: str) -> Dict[str, Any]:
     """
     Process a substitute's response to a request.
     
@@ -400,7 +399,7 @@ def process_sub_response(player_id: int, response_text: str, response_method: st
         is_available = response_text in ['YES', 'Y', 'AVAILABLE', '1']
         
         # Find the most recent open request that this player was notified about
-        response = db.session.query(EcsFcSubResponse).join(
+        response = session.query(EcsFcSubResponse).join(
             EcsFcSubRequest
         ).filter(
             EcsFcSubResponse.player_id == player_id,
@@ -423,7 +422,7 @@ def process_sub_response(player_id: int, response_text: str, response_method: st
         response.responded_at = datetime.utcnow()
         
         # Update pool stats
-        pool_entry = db.session.query(EcsFcSubPool).filter_by(
+        pool_entry = session.query(EcsFcSubPool).filter_by(
             player_id=player_id,
             is_active=True
         ).first()
@@ -431,7 +430,7 @@ def process_sub_response(player_id: int, response_text: str, response_method: st
         if pool_entry and is_available:
             pool_entry.requests_accepted += 1
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         return {
             'success': True,
@@ -442,12 +441,12 @@ def process_sub_response(player_id: int, response_text: str, response_method: st
         
     except Exception as e:
         logger.error(f"Error processing sub response: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
-@shared_task(name='notify_sub_pool_with_slots')
-def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
+@celery_task(name='notify_sub_pool_with_slots')
+def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]:
     """
     Send consolidated gender-specific notifications to substitutes about a new request with slots.
     Groups notifications by gender and sends one message per gender with all positions needed.
@@ -462,7 +461,7 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
         from collections import defaultdict
         
         # Get the request with related data
-        sub_request = db.session.query(EcsFcSubRequest).options(
+        sub_request = session.query(EcsFcSubRequest).options(
             joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
             joinedload(EcsFcSubRequest.team)
         ).get(request_id)
@@ -477,17 +476,15 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
             return {'success': False, 'error': 'Match not found'}
         
         # Get all slots for this request
-        from app.database.pool import get_db_session
-        with get_db_session() as session:
-            slots_query = session.execute(
-                "SELECT slot_number, position_needed, gender_needed FROM ecs_fc_sub_slots WHERE request_id = :request_id ORDER BY slot_number",
-                {"request_id": request_id}
-            )
-            slots = slots_query.fetchall()
+        slots_query = session.execute(
+            "SELECT slot_number, position_needed, gender_needed FROM ecs_fc_sub_slots WHERE request_id = :request_id ORDER BY slot_number",
+            {"request_id": request_id}
+        )
+        slots = slots_query.fetchall()
         
         if not slots:
             # No slots defined, fall back to original notification method
-            return notify_sub_pool_of_request(request_id)
+            return notify_sub_pool_of_request(self, session, request_id)
         
         # Group slots by gender
         gender_slots = defaultdict(list)
@@ -497,7 +494,7 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
             gender_slots[gender].append(position)
         
         # Get all active subs from the pool
-        active_subs = db.session.query(EcsFcSubPool).options(
+        active_subs = session.query(EcsFcSubPool).options(
             joinedload(EcsFcSubPool.player).joinedload(Player.user)
         ).filter_by(is_active=True).all()
         
@@ -651,7 +648,7 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
                 
                 # Create response record
                 if notification_methods:
-                    response = db.session.query(EcsFcSubResponse).filter_by(
+                    response = session.query(EcsFcSubResponse).filter_by(
                         request_id=request_id,
                         player_id=player.id
                     ).first()
@@ -665,14 +662,14 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
                             notification_sent_at=datetime.utcnow(),
                             notification_methods=','.join(notification_methods)
                         )
-                        db.session.add(response)
+                        session.add(response)
                     
                     results['total_notified'] += 1
             
             results['by_gender'][gender] = gender_results
             results['messages_sent'] += 1
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         return {
             'success': True,
@@ -682,5 +679,5 @@ def notify_sub_pool_with_slots(request_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error in notify_sub_pool_with_slots: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}

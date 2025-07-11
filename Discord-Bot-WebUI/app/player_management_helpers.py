@@ -425,13 +425,13 @@ def record_order_history(order_id, player_id, league_id, season_id, profile_coun
         league_id (int): The league's identifier.
         season_id (int): The season's identifier.
         profile_count (int): The number of player profiles created.
-        session (Session, optional): The database session to use; defaults to global db.session.
+        session (Session, optional): The database session to use; defaults to global g.db_session.
 
     Returns:
         PlayerOrderHistory: The created order history record.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
     try:
         order_history = PlayerOrderHistory(
             player_id=player_id,

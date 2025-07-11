@@ -42,8 +42,8 @@ def init_discord_roles():
         if not unverified_role:
             click.echo("Creating pl-unverified role in database...")
             unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
-            db.session.add(unverified_role)
-            db.session.commit()
+            g.db_session.add(unverified_role)
+            g.db_session.commit()
             click.echo("pl-unverified role created in database.")
         else:
             click.echo("pl-unverified role already exists in database.")
@@ -73,7 +73,7 @@ def init_discord_roles():
         
     except Exception as e:
         click.echo(f"Error initializing Discord roles: {str(e)}")
-        db.session.rollback()
+        g.db_session.rollback()
         raise
 
 @click.command()
@@ -157,7 +157,7 @@ def sync_coach_roles():
                 click.echo(f"Updated player {player.name} is_coach to {has_coach_role}")
         
         if updated_players > 0:
-            db.session.commit()
+            g.db_session.commit()
             click.echo(f"Updated is_coach flag for {updated_players} players")
         else:
             click.echo("No players needed is_coach flag updates")

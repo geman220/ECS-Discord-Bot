@@ -24,7 +24,7 @@ def populate_team_stats(team, season):
     Calculate and return statistical data for a given team and season.
     """
     # Calculate top scorer using the many-to-many relationship with player_teams
-    top_scorer = db.session.query(Player.name, PlayerSeasonStats.goals).join(
+    top_scorer = g.db_session.query(Player.name, PlayerSeasonStats.goals).join(
         PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
     ).join(
         player_teams, Player.id == player_teams.c.player_id
@@ -38,7 +38,7 @@ def populate_team_stats(team, season):
     )
 
     # Calculate top assister using the many-to-many relationship with player_teams
-    top_assister = db.session.query(Player.name, PlayerSeasonStats.assists).join(
+    top_assister = g.db_session.query(Player.name, PlayerSeasonStats.assists).join(
         PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
     ).join(
         player_teams, Player.id == player_teams.c.player_id
@@ -74,7 +74,7 @@ def populate_team_stats(team, season):
     recent_form = ' '.join(recent_form_list) if recent_form_list else "N/A"
 
     # Calculate average goals per match using the many-to-many relationship
-    total_goals = db.session.query(func.sum(PlayerSeasonStats.goals)).join(
+    total_goals = g.db_session.query(func.sum(PlayerSeasonStats.goals)).join(
         Player, PlayerSeasonStats.player_id == Player.id
     ).join(
         player_teams, Player.id == player_teams.c.player_id
@@ -83,7 +83,7 @@ def populate_team_stats(team, season):
         player_teams.c.team_id == team.id
     ).scalar() or 0
 
-    matches_played = db.session.query(func.count(Match.id)).join(
+    matches_played = g.db_session.query(func.count(Match.id)).join(
         Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))
     ).join(
         League, Team.league_id == League.id

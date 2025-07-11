@@ -187,16 +187,17 @@ class RateLimitedPool(QueuePool):
         try:
             if dbapi_conn and not dbapi_conn.closed:
                 dbapi_conn.rollback()
-                
-            # Unregister from global connection tracker if it exists
+        except Exception as e:
+            logger.error(f"Error during connection {conn_id} rollback: {e}", exc_info=True)
+        finally:
+            # Always unregister from global connection tracker, even if rollback fails
             try:
                 from app.utils.db_connection_monitor import unregister_connection
                 unregister_connection(conn_id)
             except ImportError:
                 pass
-                
-        except Exception as e:
-            logger.error(f"Error during connection {conn_id} cleanup: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"Error unregistering connection {conn_id}: {e}", exc_info=True)
 
     def _on_reset(self, dbapi_conn, record):
         """

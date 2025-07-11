@@ -171,7 +171,7 @@ def serialize_player(player, include_stats=False, include_teams=False, include_d
         try:
             for team in player.teams:
                 # Check if player is coach for this team
-                team_association = db.session.query(player_teams).filter_by(
+                team_association = g.db_session.query(player_teams).filter_by(
                     player_id=player.id, 
                     team_id=team.id
                 ).first()
@@ -310,7 +310,7 @@ def serialize_team(team, include_players=False, include_matches=False, include_s
             player_data = serialize_player(player, include_stats=False, include_demographics=False)
             
             # Check if player is coach for this team
-            team_association = db.session.query(player_teams).filter_by(
+            team_association = g.db_session.query(player_teams).filter_by(
                 player_id=player.id, 
                 team_id=team.id
             ).first()
@@ -1083,13 +1083,13 @@ def get_stats_summary():
         ).count()
         
         # Top performers - filter by season if provided
-        scorer_query = db.session.query(
+        scorer_query = g.db_session.query(
             PlayerSeasonStats.player_id,
             Player.name,
             func.sum(PlayerSeasonStats.goals).label('total_goals')
         ).join(Player).group_by(PlayerSeasonStats.player_id, Player.name)
         
-        assist_query = db.session.query(
+        assist_query = g.db_session.query(
             PlayerSeasonStats.player_id,
             Player.name,
             func.sum(PlayerSeasonStats.assists).label('total_assists')
@@ -1222,7 +1222,7 @@ def get_player_analytics():
         min_matches = request.args.get('min_matches', 0, type=int)  # Default to 0 to include all players
         
         # Build base query - LEFT JOIN to include players even without stats
-        query = db.session.query(
+        query = g.db_session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
@@ -1369,7 +1369,7 @@ def get_attendance_analytics():
             })
         
         # Get attendance data for these matches
-        attendance_query = db.session.query(
+        attendance_query = g.db_session.query(
             Player.id,
             Player.name,
             Player.favorite_position,
@@ -2333,7 +2333,7 @@ def get_substitute_requests():
         for match in matches:
             # Check for temporary sub assignments for this match
             try:
-                temp_subs = db.session.query(TemporarySubAssignment).filter(
+                temp_subs = g.db_session.query(TemporarySubAssignment).filter(
                     TemporarySubAssignment.match_id == match.id
                 ).all()
             except:
@@ -2447,7 +2447,7 @@ def get_substitute_requests():
         for sub in sub_players:
             # Count how many matches this sub is assigned to
             try:
-                assigned_matches = db.session.query(TemporarySubAssignment).filter(
+                assigned_matches = g.db_session.query(TemporarySubAssignment).filter(
                     and_(
                         TemporarySubAssignment.player_id == sub.id,
                         TemporarySubAssignment.match_id.in_([m.id for m in matches])
@@ -3045,5 +3045,5 @@ def not_found_error(error):
 
 @external_api_bp.errorhandler(500)
 def internal_error(error):
-    db.session.rollback()
+    g.db_session.rollback()
     return jsonify({'error': 'Internal server error'}), 500

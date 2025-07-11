@@ -225,8 +225,8 @@ def new_help_topic():
         )
         selected_roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
         topic.allowed_roles = selected_roles
-        db.session.add(topic)
-        db.session.commit()
+        g.db_session.add(topic)
+        g.db_session.commit()
         show_success('Help topic created successfully!')
         return redirect(url_for('help.admin_help_topics'))
     return render_template('help/admin/new_help_topic.html', form=form, title="Create New Help Topic")
@@ -255,7 +255,7 @@ def edit_help_topic(topic_id):
         topic.markdown_content = form.markdown_content.data
         selected_roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
         topic.allowed_roles = selected_roles
-        db.session.commit()
+        g.db_session.commit()
         show_success('Help topic updated successfully!')
         return redirect(url_for('help.admin_help_topics'))
     return render_template('help/admin/edit_help_topic.html', form=form, topic=topic, title="Edit Help Topic")
@@ -274,8 +274,8 @@ def delete_help_topic(topic_id):
         Redirects to the admin help topics list after deletion.
     """
     topic = HelpTopic.query.get_or_404(topic_id)
-    db.session.delete(topic)
-    db.session.commit()
+    g.db_session.delete(topic)
+    g.db_session.commit()
     show_success('Help topic deleted successfully!')
     return redirect(url_for('help.admin_help_topics'))
 
@@ -413,7 +413,7 @@ def bulk_upload_help_topics():
                 if admin_role:
                     topic.allowed_roles = [admin_role]
             
-            db.session.add(topic)
+            g.db_session.add(topic)
             success_count += 1
             
         except Exception as e:
@@ -423,12 +423,12 @@ def bulk_upload_help_topics():
     
     try:
         if success_count > 0:
-            db.session.commit()
+            g.db_session.commit()
             show_success(f'Successfully uploaded {success_count} help topics')
         else:
-            db.session.rollback()
+            g.db_session.rollback()
     except Exception as e:
-        db.session.rollback()
+        g.db_session.rollback()
         show_error(f'Error saving help topics: {str(e)}')
         logger.error(f'Error saving bulk uploaded help topics: {str(e)}')
     

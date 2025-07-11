@@ -52,13 +52,13 @@ class ImageCacheService:
             from app.core import db
             
             # Get cached image data with a single query
-            cached_images_query = db.session.query(PlayerImageCache).filter(
+            cached_images_query = g.db_session.query(PlayerImageCache).filter(
                 PlayerImageCache.player_id.in_(player_ids),
                 PlayerImageCache.cache_status == 'ready'
             )
             
             # Get players data in the same transaction for missing cache entries
-            players_query = db.session.query(Player).filter(
+            players_query = g.db_session.query(Player).filter(
                 Player.id.in_(player_ids)
             )
             
@@ -140,12 +140,12 @@ class ImageCacheService:
                     original_url=image_url,
                     cache_status='pending'
                 )
-                db.session.add(cache_entry)
+                g.db_session.add(cache_entry)
             else:
                 cache_entry.original_url = image_url
                 cache_entry.cache_status = 'pending'
             
-            db.session.commit()
+            g.db_session.commit()
             
         except Exception as e:
             logger.warning(f"Failed to queue image optimization for player {player_id}: {e}")
@@ -186,9 +186,9 @@ class ImageCacheService:
             
             # Bulk insert new entries
             if new_entries:
-                db.session.bulk_save_objects(new_entries)
+                g.db_session.bulk_save_objects(new_entries)
             
-            db.session.commit()
+            g.db_session.commit()
             
             logger.debug(f"Batch queued {len(new_entries)} new + {updated_count} updated images for optimization")
             
@@ -198,7 +198,7 @@ class ImageCacheService:
             
         except Exception as e:
             logger.warning(f"Failed to batch queue image optimization: {e}")
-            db.session.rollback()
+            g.db_session.rollback()
             # Fallback to individual queuing
             for player_id, image_url in optimization_queue:
                 ImageCacheService._queue_for_optimization(player_id, image_url)
@@ -226,8 +226,8 @@ class ImageCacheService:
                     original_url=player.profile_picture_url,
                     cache_status='pending'
                 )
-                db.session.add(cache_entry)
-                db.session.commit()
+                g.db_session.add(cache_entry)
+                g.db_session.commit()
                 logger.debug(f"Created cache entry for player {player_id}")
             
             # Skip if already optimized and not forced
@@ -235,7 +235,7 @@ class ImageCacheService:
                 return True
             
             cache_entry.cache_status = 'processing'
-            db.session.commit()
+            g.db_session.commit()
             
             # Download/load original image
             original_url = cache_entry.original_url
@@ -251,7 +251,7 @@ class ImageCacheService:
                 else:
                     logger.warning(f"Local image not found: {original_path}")
                     cache_entry.cache_status = 'failed'
-                    db.session.commit()
+                    g.db_session.commit()
                     return False
             elif original_url and original_url.startswith('http'):
                 # Download from URL
@@ -263,18 +263,18 @@ class ImageCacheService:
                 except Exception as e:
                     logger.warning(f"Failed to download image from {original_url}: {e}")
                     cache_entry.cache_status = 'failed'
-                    db.session.commit()
+                    g.db_session.commit()
                     return False
             else:
                 logger.warning(f"Invalid image URL for player {player_id}: {original_url}")
                 cache_entry.cache_status = 'failed'
-                db.session.commit()
+                g.db_session.commit()
                 return False
             
             if not image_data:
                 logger.warning(f"No image data loaded for player {player_id}")
                 cache_entry.cache_status = 'failed'
-                db.session.commit()
+                g.db_session.commit()
                 return False
             
             # Open and validate image
@@ -317,7 +317,7 @@ class ImageCacheService:
             cache_entry.last_cached = datetime.utcnow()
             cache_entry.cache_expiry = datetime.utcnow() + timedelta(days=ImageCacheService.CACHE_EXPIRY_DAYS)
             
-            db.session.commit()
+            g.db_session.commit()
             
             logger.info(f"Successfully optimized image for player {player_id}")
             return True
@@ -328,7 +328,7 @@ class ImageCacheService:
                 cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
                 if cache_entry:
                     cache_entry.cache_status = 'failed'
-                    db.session.commit()
+                    g.db_session.commit()
             except:
                 pass
             return False
@@ -406,9 +406,9 @@ class ImageCacheService:
                             file_path.unlink()
                 
                 # Remove database entry
-                db.session.delete(entry)
+                g.db_session.delete(entry)
             
-            db.session.commit()
+            g.db_session.commit()
             logger.info(f"Cleaned up {len(expired_entries)} expired cache entries")
             
         except Exception as e:

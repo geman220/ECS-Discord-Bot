@@ -330,7 +330,7 @@ def match_player(player_data, league, user=None, session=None):
         Player or None: The matching player, or None if no match is found.
     """
     if session is None:
-        session = db.session
+        session = g.db_session
 
     logger.debug("Entering match_player")
     logger.debug(f"Player data received: {player_data}")

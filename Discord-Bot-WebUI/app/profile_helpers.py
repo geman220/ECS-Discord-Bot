@@ -46,6 +46,7 @@ def handle_coach_status_update(player, user):
         player.discord_needs_update = True
 
         session = g.db_session
+        session.add(player)
         
         # Update coach status in the player_teams association table for all teams
         from app.models import player_teams
@@ -342,6 +343,7 @@ def handle_admin_notes_update(player, form):
         player.notes = form.notes.data
         
         session = g.db_session
+        session.add(player)
         session.commit()
         
         logger.info(f"Admin notes for player {player.id} updated successfully.")

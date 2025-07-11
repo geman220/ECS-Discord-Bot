@@ -212,6 +212,7 @@ def add_player_to_pool(league_type: str):
             else:
                 # Reactivate
                 existing_pool.activate(safe_current_user.id)
+                session.add(existing_pool)
                 log_pool_action(
                     existing_pool.id, 'REACTIVATED', safe_current_user.id,
                     f"Player reactivated in {league_type} pool", session=session
@@ -288,6 +289,7 @@ def remove_player_from_pool(league_type: str):
         
         # Deactivate the pool entry
         pool_entry.deactivate()
+        session.add(pool_entry)
         
         log_pool_action(
             pool_entry.id, 'REMOVED', safe_current_user.id,
@@ -345,6 +347,8 @@ def update_pool_preferences(league_type: str):
         pool_entry.max_matches_per_week = request.json.get('max_matches_per_week', pool_entry.max_matches_per_week)
         pool_entry.notes = request.json.get('notes', pool_entry.notes)
         pool_entry.last_active_at = datetime.utcnow()
+        
+        session.add(pool_entry)
         
         new_status = pool_entry.to_dict()
         

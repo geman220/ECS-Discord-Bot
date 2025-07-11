@@ -85,6 +85,7 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
         match.current_score = f"{home_score}-{away_score}"
         match.current_minute = current_minute
         match.last_update_time = datetime.utcnow()
+        session.add(match)
 
         # Use async_to_sync utility instead of creating a new event loop
         from app.api_utils import async_to_sync
@@ -153,6 +154,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
 
             # Update the last fetch timestamp
             scheduled_message.last_fetch = datetime.utcnow()
+            session.add(scheduled_message)
 
             logger.info(f"Found pub league match_id: {scheduled_message.match_id}, team_id: {team_id}")
             return {
@@ -188,6 +190,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
             
             # Update the last fetch timestamp
             ecs_message.last_fetch = datetime.utcnow()
+            session.add(ecs_message)
             
             logger.info(f"Found ECS FC match_id: ecs_{ecs_fc_match_id}, team_id: {ecs_match.team_id}")
             return {

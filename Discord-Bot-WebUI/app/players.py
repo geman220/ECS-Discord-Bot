@@ -321,19 +321,21 @@ def player_profile(player_id):
         form = PlayerProfileForm(obj=player)
         form.jersey_size.choices = jersey_size_choices
         
-        # Always initialize all fields with current data to preserve existing values
-        form.email.data = user.email
-        form.other_positions.data = (
-            player.other_positions.strip('{}').split(',')
-            if player.other_positions else []
-        )
-        form.positions_not_to_play.data = (
-            player.positions_not_to_play.strip('{}').split(',')
-            if player.positions_not_to_play else []
-        )
+        # Only initialize form data with current values on GET requests
+        # On POST requests, we want to preserve the submitted form data
+        if request.method == 'GET':
+            form.email.data = user.email
+            form.other_positions.data = (
+                player.other_positions.strip('{}').split(',')
+                if player.other_positions else []
+            )
+            form.positions_not_to_play.data = (
+                player.positions_not_to_play.strip('{}').split(',')
+                if player.positions_not_to_play else []
+            )
 
-        if is_classic_league_player and hasattr(form, 'team_swap'):
-            form.team_swap.data = player.team_swap
+            if is_classic_league_player and hasattr(form, 'team_swap'):
+                form.team_swap.data = player.team_swap
 
         season_stats_form = SeasonStatsForm(obj=season_stats) if can_edit_stats else None
         career_stats_form = (CareerStatsForm(obj=player.career_stats[0])

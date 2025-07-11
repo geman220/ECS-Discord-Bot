@@ -410,11 +410,11 @@ def monitor_connections_background() -> None:
                     
                 # Force terminate these extremely old connections
                 try:
-                    monitor = DBConnectionMonitor()
-                    terminated = monitor.terminate_stuck_connections(age_threshold_seconds=3600)
-                    logger.info(f"Terminated {terminated} zombie connections via database")
+                    # Skip database termination in background thread since we don't have Flask app context
+                    # This prevents the AttributeError while still logging the zombie connections
+                    logger.info("Zombie connections detected - manual intervention may be required")
                 except Exception as e:
-                    logger.error(f"Failed to terminate zombie connections: {e}", exc_info=True)
+                    logger.error(f"Failed to process zombie connections: {e}", exc_info=True)
             
             # Now check for normal leaked connections
             leaked_connections = find_leaked_connections()

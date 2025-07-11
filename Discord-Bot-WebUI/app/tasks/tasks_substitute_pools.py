@@ -9,10 +9,9 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from celery import shared_task
 from sqlalchemy.orm import joinedload
 
-from app.core import db
+from app.decorators import celery_task
 from app.models import User, Player, Team
 from app.models_substitute_pools import (
     SubstitutePool, SubstituteRequest, SubstituteResponse, SubstituteAssignment,
@@ -25,8 +24,8 @@ from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
 logger = logging.getLogger(__name__)
 
 
-@shared_task(name='notify_substitute_pool_of_request')
-def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict[str, Any]:
+@celery_task(name='notify_substitute_pool_of_request')
+def notify_substitute_pool_of_request(self, session, request_id: int, league_type: str) -> Dict[str, Any]:
     """
     Send notifications to all active substitutes in the pool about a new request.
     
@@ -39,7 +38,7 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
     """
     try:
         # Get the request with related data
-        sub_request = db.session.query(SubstituteRequest).options(
+        sub_request = session.query(SubstituteRequest).options(
             joinedload(SubstituteRequest.team)
         ).get(request_id)
         
@@ -58,12 +57,12 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
         
         # Get gender-specific subs if filter is applied
         if gender_filter:
-            gender_specific_subs = get_active_substitutes(league_type, db.session, gender_filter)
+            gender_specific_subs = get_active_substitutes(league_type, session, gender_filter)
         else:
             gender_specific_subs = []
             
         # Get all subs with they/them or null pronouns (they get all notifications)
-        all_subs = get_active_substitutes(league_type, db.session, None)
+        all_subs = get_active_substitutes(league_type, session, None)
         from app.models import Player
         inclusive_subs = []
         for sub in all_subs:
@@ -162,8 +161,8 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
                         notification_sent_at=datetime.utcnow(),
                         notification_methods='DISCORD'
                     )
-                    db.session.add(response)
-                    db.session.flush()  # Get the ID
+                    session.add(response)
+                    session.flush()  # Get the ID
                     
                     # Send DM using existing system
                     dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
@@ -217,7 +216,7 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
             
             # Create or update response record for non-Discord notifications
             if notification_methods and 'DISCORD' not in notification_methods:
-                response = db.session.query(SubstituteResponse).filter_by(
+                response = session.query(SubstituteResponse).filter_by(
                     request_id=request_id,
                     player_id=player.id
                 ).first()
@@ -231,9 +230,9 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
                         notification_sent_at=datetime.utcnow(),
                         notification_methods=','.join(notification_methods)
                     )
-                    db.session.add(response)
+                    session.add(response)
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         results['success'] = True
         results['message'] = (
@@ -246,12 +245,12 @@ def notify_substitute_pool_of_request(request_id: int, league_type: str) -> Dict
         
     except Exception as e:
         logger.error(f"Error in notify_substitute_pool_of_request: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
-@shared_task(name='notify_assigned_substitute')
-def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
+@celery_task(name='notify_assigned_substitute')
+def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, Any]:
     """
     Send notification to the assigned substitute with match details.
     
@@ -263,7 +262,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
     """
     try:
         # Get assignment with related data
-        assignment = db.session.query(SubstituteAssignment).options(
+        assignment = session.query(SubstituteAssignment).options(
             joinedload(SubstituteAssignment.request).joinedload(SubstituteRequest.team),
             joinedload(SubstituteAssignment.player).joinedload(Player.user)
         ).get(assignment_id)
@@ -303,7 +302,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         }
         
         # Get sub pool preferences
-        pool_entry = db.session.query(SubstitutePool).filter_by(
+        pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player.id,
             league_type=assignment.request.league_type,
             is_active=True
@@ -409,7 +408,7 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         if pool_entry:
             pool_entry.matches_played += 1
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         results['success'] = len(results['methods_successful']) > 0
         results['message'] = (
@@ -423,12 +422,12 @@ def notify_assigned_substitute(assignment_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Error in notify_assigned_substitute: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
-@shared_task(name='process_substitute_response')
-def process_substitute_response(player_id: int, response_text: str, response_method: str) -> Dict[str, Any]:
+@celery_task(name='process_substitute_response')
+def process_substitute_response(self, session, player_id: int, response_text: str, response_method: str) -> Dict[str, Any]:
     """
     Process a substitute's response to a request.
     
@@ -446,7 +445,7 @@ def process_substitute_response(player_id: int, response_text: str, response_met
         is_available = response_text in ['YES', 'Y', 'AVAILABLE', '1']
         
         # Find the most recent open request that this player was notified about
-        response = db.session.query(SubstituteResponse).join(
+        response = session.query(SubstituteResponse).join(
             SubstituteRequest
         ).filter(
             SubstituteResponse.player_id == player_id,
@@ -469,7 +468,7 @@ def process_substitute_response(player_id: int, response_text: str, response_met
         response.responded_at = datetime.utcnow()
         
         # Update pool stats
-        pool_entry = db.session.query(SubstitutePool).filter_by(
+        pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player_id,
             league_type=response.request.league_type,
             is_active=True
@@ -478,7 +477,7 @@ def process_substitute_response(player_id: int, response_text: str, response_met
         if pool_entry and is_available:
             pool_entry.requests_accepted += 1
         
-        db.session.commit()
+        # Session will be committed by decorator
         
         return {
             'success': True,
@@ -489,7 +488,7 @@ def process_substitute_response(player_id: int, response_text: str, response_met
         
     except Exception as e:
         logger.error(f"Error processing substitute response: {e}", exc_info=True)
-        db.session.rollback()
+        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
@@ -508,7 +507,7 @@ def get_match_info_for_league(sub_request: SubstituteRequest, league_type: str) 
         if league_type == 'ECS FC':
             # For ECS FC, get match from ECS FC tables
             from app.models_ecs import EcsFcMatch
-            match = db.session.query(EcsFcMatch).get(sub_request.match_id)
+            match = session.query(EcsFcMatch).get(sub_request.match_id)
             if match:
                 return {
                     'date': match.match_date,
@@ -519,7 +518,7 @@ def get_match_info_for_league(sub_request: SubstituteRequest, league_type: str) 
         else:
             # For Pub League (Classic/Premier), get match from regular Match table
             from app.models import Match
-            match = db.session.query(Match).get(sub_request.match_id)
+            match = session.query(Match).get(sub_request.match_id)
             if match:
                 return {
                     'date': match.date,

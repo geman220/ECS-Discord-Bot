@@ -37,7 +37,7 @@ def create_sub_request(match_id):
     """Create a substitute request for an ECS FC match."""
     try:
         # Get the match
-        match = db.session.query(EcsFcMatch).get(match_id)
+        match = g.db_session.query(EcsFcMatch).get(match_id)
         if not match:
             show_error("Match not found")
             return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{match_id}'))
@@ -60,7 +60,7 @@ def create_sub_request(match_id):
             return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{match_id}'))
         
         # Check if there's already an open request
-        existing_request = db.session.query(EcsFcSubRequest).filter_by(
+        existing_request = g.db_session.query(EcsFcSubRequest).filter_by(
             match_id=match.id,
             status='OPEN'
         ).first()
@@ -91,8 +91,8 @@ def create_sub_request(match_id):
             status='OPEN'
         )
         
-        db.session.add(sub_request)
-        db.session.commit()
+        g.db_session.add(sub_request)
+        g.db_session.commit()
         
         # Create slots from form data
         from app.database.pool import get_db_session
@@ -137,7 +137,7 @@ def create_sub_request(match_id):
         
     except Exception as e:
         logger.error(f"Error creating sub request: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         show_error("An error occurred while creating the substitute request")
         return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{match_id}'))
 
@@ -148,7 +148,7 @@ def create_sub_request(match_id):
 def cancel_sub_request(request_id):
     """Cancel an open substitute request."""
     try:
-        sub_request = db.session.query(EcsFcSubRequest).get(request_id)
+        sub_request = g.db_session.query(EcsFcSubRequest).get(request_id)
         if not sub_request:
             return jsonify({'success': False, 'message': 'Request not found'}), 404
         
@@ -166,13 +166,14 @@ def cancel_sub_request(request_id):
         sub_request.status = 'CANCELLED'
         sub_request.updated_at = datetime.utcnow()
         
-        db.session.commit()
+        g.db_session.add(sub_request)
+        g.db_session.commit()
         
         return jsonify({'success': True, 'message': 'Request cancelled successfully'})
         
     except Exception as e:
         logger.error(f"Error cancelling sub request: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 
@@ -182,7 +183,7 @@ def cancel_sub_request(request_id):
 def get_available_subs(request_id):
     """Get list of available substitutes for a request."""
     try:
-        sub_request = db.session.query(EcsFcSubRequest).options(
+        sub_request = g.db_session.query(EcsFcSubRequest).options(
             joinedload(EcsFcSubRequest.responses).joinedload(EcsFcSubResponse.player)
         ).get(request_id)
         
@@ -219,7 +220,7 @@ def get_available_subs(request_id):
 def assign_substitute(request_id):
     """Assign a substitute from the available pool."""
     try:
-        sub_request = db.session.query(EcsFcSubRequest).options(
+        sub_request = g.db_session.query(EcsFcSubRequest).options(
             joinedload(EcsFcSubRequest.match)
         ).get(request_id)
         
@@ -238,7 +239,7 @@ def assign_substitute(request_id):
             return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{sub_request.match_id}'))
         
         # Verify the player is available
-        response = db.session.query(EcsFcSubResponse).filter_by(
+        response = g.db_session.query(EcsFcSubResponse).filter_by(
             request_id=request_id,
             player_id=player_id,
             is_available=True
@@ -255,7 +256,7 @@ def assign_substitute(request_id):
             return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{sub_request.match_id}'))
         
         # Check if this player is already assigned to this request
-        existing_assignment = db.session.query(EcsFcSubAssignment).filter_by(
+        existing_assignment = g.db_session.query(EcsFcSubAssignment).filter_by(
             request_id=request_id,
             player_id=player_id
         ).first()
@@ -273,15 +274,16 @@ def assign_substitute(request_id):
             notes=request.form.get('notes', '')
         )
         
-        db.session.add(assignment)
+        g.db_session.add(assignment)
         
         # Update request status - only mark as FILLED if we've reached the limit
         new_assignment_count = current_assignments + 1
         if new_assignment_count >= sub_request.substitutes_needed:
             sub_request.status = 'FILLED'
             sub_request.filled_at = datetime.utcnow()
+            g.db_session.add(sub_request)
         
-        db.session.commit()
+        g.db_session.commit()
         
         # Send notification to assigned player
         notify_assigned_substitute.delay(assignment.id)
@@ -297,7 +299,7 @@ def assign_substitute(request_id):
         
     except Exception as e:
         logger.error(f"Error assigning substitute: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         show_error("An error occurred while assigning the substitute")
         return redirect(request.referrer or url_for('admin.index'))
 
@@ -309,17 +311,17 @@ def manage_sub_pool():
     """View and manage the ECS FC substitute pool."""
     try:
         # Get all players in the sub pool
-        sub_pool_entries = db.session.query(EcsFcSubPool).options(
+        sub_pool_entries = g.db_session.query(EcsFcSubPool).options(
             joinedload(EcsFcSubPool.player)
         ).filter_by(is_active=True).all()
         
         # Get players with ECS FC Sub role but not in pool
-        ecs_fc_sub_role = db.session.query(Role).filter_by(name='ECS FC Sub').first()
+        ecs_fc_sub_role = g.db_session.query(Role).filter_by(name='ECS FC Sub').first()
         
         eligible_players = []
         if ecs_fc_sub_role:
             # Get all players with the role
-            players_with_role = db.session.query(Player).join(
+            players_with_role = g.db_session.query(Player).join(
                 User, Player.user_id == User.id
             ).filter(
                 User.roles.contains(ecs_fc_sub_role)
@@ -350,7 +352,7 @@ def add_to_sub_pool():
             return jsonify({'success': False, 'message': 'No player specified'}), 400
         
         # Check if already in pool
-        existing = db.session.query(EcsFcSubPool).filter_by(player_id=player_id).first()
+        existing = g.db_session.query(EcsFcSubPool).filter_by(player_id=player_id).first()
         if existing:
             if existing.is_active:
                 return jsonify({'success': False, 'message': 'Player already in pool'}), 400
@@ -358,6 +360,7 @@ def add_to_sub_pool():
                 # Reactivate
                 existing.is_active = True
                 existing.last_active_at = datetime.utcnow()
+                g.db_session.add(existing)
         else:
             # Create new entry
             pool_entry = EcsFcSubPool(
@@ -367,14 +370,14 @@ def add_to_sub_pool():
                 discord_for_sub_requests=request.form.get('discord_notifications', 'true') == 'true',
                 email_for_sub_requests=request.form.get('email_notifications', 'true') == 'true'
             )
-            db.session.add(pool_entry)
+            g.db_session.add(pool_entry)
         
-        db.session.commit()
+        g.db_session.commit()
         return jsonify({'success': True, 'message': 'Player added to substitute pool'})
         
     except Exception as e:
         logger.error(f"Error adding to sub pool: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 
@@ -384,7 +387,7 @@ def add_to_sub_pool():
 def update_sub_pool_entry(pool_id):
     """Update a substitute pool entry."""
     try:
-        pool_entry = db.session.query(EcsFcSubPool).get(pool_id)
+        pool_entry = g.db_session.query(EcsFcSubPool).get(pool_id)
         if not pool_entry:
             return jsonify({'success': False, 'message': 'Entry not found'}), 404
         
@@ -395,12 +398,13 @@ def update_sub_pool_entry(pool_id):
         pool_entry.email_for_sub_requests = request.form.get('email_notifications', 'true') == 'true'
         pool_entry.max_matches_per_week = request.form.get('max_matches_per_week', type=int)
         
-        db.session.commit()
+        g.db_session.add(pool_entry)
+        g.db_session.commit()
         return jsonify({'success': True, 'message': 'Preferences updated'})
         
     except Exception as e:
         logger.error(f"Error updating sub pool entry: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
 
 
@@ -410,17 +414,18 @@ def update_sub_pool_entry(pool_id):
 def remove_from_sub_pool(pool_id):
     """Remove a player from the substitute pool."""
     try:
-        pool_entry = db.session.query(EcsFcSubPool).get(pool_id)
+        pool_entry = g.db_session.query(EcsFcSubPool).get(pool_id)
         if not pool_entry:
             return jsonify({'success': False, 'message': 'Entry not found'}), 404
         
         pool_entry.is_active = False
         pool_entry.last_active_at = datetime.utcnow()
         
-        db.session.commit()
+        g.db_session.add(pool_entry)
+        g.db_session.commit()
         return jsonify({'success': True, 'message': 'Player removed from pool'})
         
     except Exception as e:
         logger.error(f"Error removing from sub pool: {e}", exc_info=True)
-        db.session.rollback()
+        g.db_session.rollback()
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
