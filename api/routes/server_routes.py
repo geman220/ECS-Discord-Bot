@@ -317,3 +317,37 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
     except Exception as e:
         logger.error(f"Failed to remove role: {e}")
         raise HTTPException(status_code=500, detail="Failed to remove role")
+
+@router.post("/guilds/{guild_id}/invites")
+async def create_invite(guild_id: int, request: dict, bot: commands.Bot = Depends(get_bot)):
+    """Create a server invite."""
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        raise HTTPException(status_code=404, detail="Guild not found")
+
+    try:
+        # Get the default channel or a general channel to create invite from
+        channel = None
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).create_instant_invite:
+                channel = ch
+                break
+        
+        if not channel:
+            raise HTTPException(status_code=403, detail="No channel found where bot can create invites")
+
+        invite = await channel.create_invite(
+            max_uses=request.get("max_uses", 1),
+            max_age=request.get("max_age", 86400),  # 24 hours default
+            unique=True
+        )
+        
+        return {
+            "invite_url": invite.url,
+            "invite_code": invite.code,
+            "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
+            "max_uses": invite.max_uses
+        }
+    except Exception as e:
+        logger.error(f"Failed to create invite: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create invite: {e}")

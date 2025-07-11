@@ -8,11 +8,15 @@ message parsing, and API interactions.
 import asyncio
 import json
 import logging
+import os
 from typing import Optional, Tuple
 
 import aiohttp
 from aiohttp import ClientError
 from discord.ext import commands
+
+# Environment variables
+WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 from fastapi import HTTPException
 
 from shared_states import get_bot_instance, bot_ready
@@ -90,7 +94,7 @@ async def get_team_id_for_message(message_id: int, channel_id: int, max_retries=
     Returns:
         Tuple[Optional[int], Optional[int]]: (match_id, team_id) or (None, None) if not found
     """
-    api_url = "http://webui:5000/api/get_match_and_team_id_from_message"
+    api_url = f"{WEBUI_API_URL}/get_match_and_team_id_from_message"
     params = {'message_id': str(message_id), 'channel_id': str(channel_id)}
 
     async with aiohttp.ClientSession() as session:
@@ -165,7 +169,7 @@ async def poll_task_result(task_id, max_retries=30, delay=3):
     Returns:
         dict: Task result data or error information
     """
-    poll_url = f"http://webui:5000/api/task_status/{task_id}"
+    poll_url = f"{WEBUI_API_URL}/task_status/{task_id}"
 
     async with aiohttp.ClientSession() as session:
         for attempt in range(max_retries):

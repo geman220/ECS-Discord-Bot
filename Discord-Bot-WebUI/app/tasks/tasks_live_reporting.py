@@ -350,7 +350,8 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
         Retries the task on errors.
     """
     try:
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         upcoming_matches = session.query(MLSMatch).filter(
             MLSMatch.date_time >= now,
             MLSMatch.date_time <= now + timedelta(hours=48),
@@ -407,7 +408,8 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
         Retries the task on error.
     """
     try:
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
         # Include matches that are slightly overdue (up to 6 hours)
         # and sort by creation time to process oldest first
         # First, clean up any stale scheduled tasks (older than 2 hours)
@@ -495,7 +497,7 @@ def check_and_create_scheduled_threads(self, session) -> Dict[str, Any]:
             
             # Check if thread creation is already in progress for this match
             lock_key = f"thread_creation_lock:{match.match_id}"
-            redis_client = current_app.redis_client
+            redis_client = current_app.redis
             if redis_client.exists(lock_key):
                 logger.info(f"Thread creation already in progress for match {match.match_id}, skipping")
                 continue

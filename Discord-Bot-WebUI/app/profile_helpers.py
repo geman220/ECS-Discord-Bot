@@ -89,6 +89,8 @@ def handle_coach_status_update(player, user):
         show_success(f"{player.name}'s coach status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
+        session = g.db_session
+        session.rollback()
         logger.error(f"Error updating coach status: {str(e)}", exc_info=True)
         show_error('Error updating coach status.')
         raise
@@ -117,6 +119,7 @@ def handle_ref_status_update(player, user):
         player.discord_needs_update = True
 
         session = g.db_session
+        session.add(player)
         
         # Update Flask roles to match referee status
         if player.user:
@@ -149,6 +152,8 @@ def handle_ref_status_update(player, user):
         show_success(f"{player.name}'s referee status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
+        session = g.db_session
+        session.rollback()
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
         show_error('Error updating referee status.')
         raise
@@ -207,12 +212,16 @@ def handle_profile_update(form, player, user):
             logger.debug(f"Set player.team_swap to {player.team_swap}")
 
         session = g.db_session
+        session.add(user)
+        session.add(player)
         session.commit()
 
         show_success('Profile updated successfully.')
         logger.info(f"Profile for player {player.id} updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
+        session = g.db_session
+        session.rollback()
         logger.error(f"Error updating profile: {str(e)}", exc_info=True)
         show_error('Error updating profile.')
         raise
@@ -339,6 +348,8 @@ def handle_admin_notes_update(player, form):
         show_success('Admin notes updated successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
+        session = g.db_session
+        session.rollback()
         logger.error(f"Error updating admin notes: {str(e)}", exc_info=True)
         show_error('Error updating admin notes.')
         raise

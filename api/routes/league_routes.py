@@ -7,12 +7,16 @@ import logging
 import discord
 import asyncio
 import aiohttp
+import os
 from discord.ext import commands
 from datetime import datetime
 
 from api.models.schemas import LeaguePollRequest, PollResponseRequest
 from api.utils.discord_utils import get_bot
 from api.utils.api_client import get_session
+
+# Environment variables
+WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -90,7 +94,7 @@ async def send_league_poll(poll_request: LeaguePollRequest, bot: commands.Bot = 
                     
                     # Update the Discord message record in the Flask app
                     try:
-                        update_url = "http://webui:5000/api/update_poll_message"
+                        update_url = f"{WEBUI_API_URL}/update_poll_message"
                         update_data = {
                             'message_record_id': team_info['message_record_id'],
                             'message_id': str(message.id),
@@ -189,7 +193,7 @@ async def handle_poll_reaction(
             return {"success": False, "error": "Unknown reaction"}
         
         # Send the response to the Flask app
-        update_url = "http://webui:5000/api/update_poll_response_from_discord"
+        update_url = f"{WEBUI_API_URL}/update_poll_response_from_discord"
         update_data = {
             'poll_id': poll_id,
             'discord_id': discord_id,

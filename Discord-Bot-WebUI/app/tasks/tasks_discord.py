@@ -31,7 +31,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core import socketio
 from app.decorators import celery_task
-from app.models import Player, Team
+from app.models import Player, Team, User
 from app.discord_utils import (
     update_player_roles,
     rename_team_roles,
@@ -217,7 +217,8 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
             Player.discord_id.in_(discord_ids)
         ).options(
             joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league)
+            joinedload(Player.teams).joinedload(Team.league),
+            joinedload(Player.user).joinedload(User.roles)
         ).all()
 
         # Use async_to_sync utility instead of creating a new event loop
@@ -345,13 +346,13 @@ async def _assign_roles_async(session, player_id: int, team_id: Optional[int], o
                 if role_id:
                     await make_discord_request(
                         method='PUT',
-                        url=f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles/{role_id}",
+                        url=f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{player.discord_id}/roles/{role_id}",
                         session=aio_session
                     )
                 if league_role_id:
                     await make_discord_request(
                         method='PUT',
-                        url=f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles/{league_role_id}",
+                        url=f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{player.discord_id}/roles/{league_role_id}",
                         session=aio_session
                     )
                 return {'success': True}
@@ -387,7 +388,8 @@ def fetch_role_status(self, session) -> Dict[str, Any]:
             Player.discord_id.isnot(None)
         ).options(
             joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league)
+            joinedload(Player.teams).joinedload(Team.league),
+            joinedload(Player.user).joinedload(User.roles)
         ).all()
 
         # Use async_to_sync utility instead of creating a new event loop
@@ -615,6 +617,7 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
                             if player.is_coach:
                                 expected_roles.add("ECS-FC-PL-CLASSIC-COACH")
                     expected_roles.add(f"ECS-FC-PL-{team.name}-PLAYER")
+                
                 if player.is_ref:
                     expected_roles.add("Referee")
 
@@ -705,7 +708,8 @@ def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dic
     try:
         player = session.query(Player).options(
             joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league)
+            joinedload(Player.teams).joinedload(Team.league),
+            joinedload(Player.user).joinedload(User.roles)
         ).get(player_id)
         if not player:
             return {'success': False, 'message': 'Player not found'}
@@ -770,7 +774,7 @@ async def _remove_player_roles_async(session, player_id: int, team_id: Optional[
                 role_name = f"ECS-FC-PL-{team.name}-PLAYER"
                 guild_id = int(Config.SERVER_ID)
 
-                url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
+                url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{player.discord_id}/roles"
                 member_roles = await make_discord_request('GET', url, aio_session)
                 
                 if member_roles:
@@ -833,7 +837,7 @@ async def delete_channel(channel_id: str) -> bool:
     Returns:
         True if deletion was successful, False otherwise.
     """
-    url = f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/channels/{channel_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{Config.SERVER_ID}/channels/{channel_id}"
     async with aiohttp.ClientSession() as client:
         async with client.delete(url) as response:
             success = response.status == 200
@@ -852,7 +856,7 @@ async def delete_role(role_id: str) -> bool:
     Returns:
         True if deletion was successful, False otherwise.
     """
-    url = f"{Config.BOT_API_URL}/guilds/{Config.SERVER_ID}/roles/{role_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{Config.SERVER_ID}/roles/{role_id}"
     async with aiohttp.ClientSession() as client:
         async with client.delete(url) as response:
             success = response.status == 200

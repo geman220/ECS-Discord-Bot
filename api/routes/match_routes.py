@@ -12,7 +12,11 @@ import asyncio
 import aiohttp
 import time
 import json
+import os
 from aiohttp import ClientError
+
+# Environment variables
+WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 from discord.ext import commands
 from datetime import datetime
 
@@ -122,7 +126,7 @@ async def update_availability_embed(match_id: str, bot: commands.Bot = Depends(g
             try:
                 async with aiohttp.ClientSession() as session:
                     timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
-                    api_url = f"http://webui:5000/api/get_message_ids/{match_id}"
+                    api_url = f"{WEBUI_API_URL}/get_message_ids/{match_id}"
                     
                     logger.debug(f"Fetching message IDs (attempt {attempt+1}/{max_retries}) from {api_url}")
                     async with session.get(api_url, timeout=timeout) as response:
@@ -307,7 +311,7 @@ async def update_discord_rsvp(request: dict, bot: commands.Bot = Depends(get_bot
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(f"http://webui:5000/api/get_message_ids/{match_id}") as response:
+            async with session.get(f"{WEBUI_API_URL}/get_message_ids/{match_id}") as response:
                 if response.status != 200:
                     raise HTTPException(status_code=404, detail="Message IDs not found")
                 message_data = await response.json()
@@ -386,7 +390,7 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
             for attempt in range(max_retries):
                 try:
                     timeout = 10 * (attempt + 1)  # Increase timeout with each attempt
-                    async with session.get(f"http://webui:5000/api/get_message_ids/{match_id}", 
+                    async with session.get(f"{WEBUI_API_URL}/get_message_ids/{match_id}", 
                                         timeout=timeout) as response:
                         if response.status != 200:
                             error_text = await response.text()
@@ -518,7 +522,7 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
             
             # Try to determine if user is on home team
             if message_data.get('home_team_id'):
-                api_url = f"http://webui:5000/api/is_user_on_team"
+                api_url = f"{WEBUI_API_URL}/is_user_on_team"
                 payload = {'discord_id': user_id, 'team_id': message_data['home_team_id']}
                 
                 async with aiohttp.ClientSession() as check_session:
@@ -530,7 +534,7 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
             
             # If not on home team, check if on away team
             if not team_id and message_data.get('away_team_id'):
-                api_url = f"http://webui:5000/api/is_user_on_team"
+                api_url = f"{WEBUI_API_URL}/is_user_on_team"
                 payload = {'discord_id': user_id, 'team_id': message_data['away_team_id']}
                 
                 async with aiohttp.ClientSession() as check_session:
@@ -542,7 +546,7 @@ async def update_user_reaction(request: dict, bot: commands.Bot = Depends(get_bo
             
             # If we found a team, check current RSVP status in Flask
             if team_id:
-                api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}&include_discord_ids=true"
+                api_url = f"{WEBUI_API_URL}/get_match_rsvps/{match_id}?team_id={team_id}&include_discord_ids=true"
                 
                 async with aiohttp.ClientSession() as check_session:
                     async with check_session.get(api_url) as response:
@@ -673,7 +677,7 @@ async def store_message_ids_in_web_ui(match_id, home_channel_id=None, home_messa
     Returns:
         dict: A dictionary with the status of the operation
     """
-    api_url = "http://webui:5000/api/store_message_ids"
+    api_url = f"{WEBUI_API_URL}/store_message_ids"
     payload = {
         'match_id': match_id,
         'home_message_id': home_message_id,

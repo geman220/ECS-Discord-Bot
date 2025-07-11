@@ -604,6 +604,7 @@ def upload_profile_picture(player_id):
         image_url = save_cropped_profile_picture(cropped_image_data, player_id)
         player.profile_picture_url = image_url
         player.updated_at = datetime.utcnow()  # Update the timestamp to force a cache refresh
+        session.add(player)
         session.commit()
         
         # Trigger image optimization asynchronously

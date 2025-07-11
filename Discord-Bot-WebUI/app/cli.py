@@ -113,7 +113,7 @@ def sync_coach_roles():
         
         async with aiohttp.ClientSession() as session:
             for player in players:
-                url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{player.discord_id}/roles"
+                url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{player.discord_id}/roles"
                 try:
                     response = await make_discord_request('GET', url, session)
                     roles = []

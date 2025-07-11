@@ -496,16 +496,22 @@ def index():
                                 text("UPDATE users SET has_completed_onboarding = true WHERE id = :user_id"),
                                 {"user_id": safe_current_user.id}
                             )
-                            session.commit()
-                            session.refresh(safe_current_user)
-                            logger.info(f"Verified has_completed_onboarding after update: {safe_current_user.has_completed_onboarding}")
-                            result = session.execute(
-                                text("SELECT has_completed_onboarding FROM users WHERE id = :user_id"),
-                                {"user_id": safe_current_user.id}
-                            ).fetchone()
-                            logger.info(f"Direct query verification: has_completed_onboarding = {result[0]}")
-                        show_success('Profile updated successfully!')
-                        return redirect(url_for('main.index'))
+                            try:
+                                session.commit()
+                                session.refresh(safe_current_user)
+                                logger.info(f"Verified has_completed_onboarding after update: {safe_current_user.has_completed_onboarding}")
+                                result = session.execute(
+                                    text("SELECT has_completed_onboarding FROM users WHERE id = :user_id"),
+                                    {"user_id": safe_current_user.id}
+                                ).fetchone()
+                                logger.info(f"Direct query verification: has_completed_onboarding = {result[0]}")
+                                show_success('Profile updated successfully!')
+                                return redirect(url_for('main.index'))
+                            except Exception as e:
+                                session.rollback()
+                                logger.exception(f"Error completing onboarding for user {safe_current_user.id}: {str(e)}")
+                                show_error('Error updating profile. Please try again.')
+                                return redirect(url_for('main.index'))
 
                     except Exception as e:
                         session.rollback()
@@ -761,8 +767,15 @@ def mark_as_read(notification_id):
     if notification.user_id != safe_current_user.id:
         abort(403)
     notification.is_read = True
-    session.commit()
-    return redirect(url_for('main.notifications'))
+    try:
+        session.add(notification)
+        session.commit()
+        return redirect(url_for('main.notifications'))
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error marking notification {notification_id} as read: {str(e)}")
+        show_error('Error updating notification.')
+        return redirect(url_for('main.notifications'))
 
 
 @main.route('/onboarding', methods=['GET', 'POST'])
@@ -820,9 +833,15 @@ def onboarding():
                 # Mark onboarding as complete
                 safe_current_user.has_completed_onboarding = True
                 session.add(safe_current_user)
-                session.commit()
-                show_success('Profile created successfully!')
-                return redirect(url_for('main.index'))
+                try:
+                    session.commit()
+                    show_success('Profile created successfully!')
+                    return redirect(url_for('main.index'))
+                except Exception as e:
+                    session.rollback()
+                    logger.exception(f"Error completing onboarding for user {safe_current_user.id}: {str(e)}")
+                    show_error('Error saving profile. Please try again.')
+                    return redirect(url_for('main.onboarding'))
                 
         except Exception as e:
             session.rollback()
@@ -990,7 +1009,11 @@ def set_theme():
                 preferences = user.preferences or {}
                 preferences['theme'] = theme
                 user.preferences = preferences
-                db.session.commit()
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    logger.exception(f"Error saving theme preference for user {current_user.id}: {e}")
         except Exception as e:
             logger.error(f"Error saving theme preference for user {current_user.id}: {e}")
     
@@ -1174,7 +1197,12 @@ def verify_sms_code():
             safe_current_user.sms_confirmation_code = session_code
             db_session = g.db_session
             db_session.add(safe_current_user)
-            db_session.commit()
+            try:
+                db_session.commit()
+            except Exception as e:
+                db_session.rollback()
+                logger.exception(f"Error saving SMS confirmation code for user {safe_current_user.id}: {str(e)}")
+                return jsonify({"success": False, "message": "Error saving verification code"})
         
         # Verify the code
         logger.info(f"Verifying SMS code for user {safe_current_user.id}: {code}")
@@ -1199,8 +1227,13 @@ def verify_sms_code():
                     logger.info(f"Phone verified for player {player.id}: {player.phone}")
                     
                 session.add(player)
-                session.commit()
-                logger.info(f"Phone verification successful for user {safe_current_user.id}")
+                try:
+                    session.commit()
+                    logger.info(f"Phone verification successful for user {safe_current_user.id}")
+                except Exception as e:
+                    session.rollback()
+                    logger.exception(f"Error saving phone verification for user {safe_current_user.id}: {str(e)}")
+                    return jsonify({"success": False, "message": "Error saving phone verification"})
                 
                 # Clear the code from session
                 if 'sms_confirmation_code' in flask_session:
@@ -1252,8 +1285,13 @@ def test_sms_verification():
         if not safe_current_user.sms_confirmation_code:
             safe_current_user.sms_confirmation_code = test_code
             g.db_session.add(safe_current_user)
-            g.db_session.commit()
-            verification_status['debug_note'] = 'Created new test verification code'
+            try:
+                g.db_session.commit()
+                verification_status['debug_note'] = 'Created new test verification code'
+            except Exception as e:
+                g.db_session.rollback()
+                logger.exception(f"Error saving test verification code for user {safe_current_user.id}: {str(e)}")
+                verification_status['debug_note'] = 'Error creating test verification code'
             
         return jsonify(verification_status)
     except Exception as e:
@@ -1291,9 +1329,13 @@ def set_verification_code():
         # Save to database
         session = g.db_session
         session.add(safe_current_user)
-        session.commit()
-        
-        logger.info(f"[ADMIN] Manually set verification code {code} for user {safe_current_user.id}")
+        try:
+            session.commit()
+            logger.info(f"[ADMIN] Manually set verification code {code} for user {safe_current_user.id}")
+        except Exception as e:
+            session.rollback()
+            logger.exception(f"Error saving manual verification code for user {safe_current_user.id}: {str(e)}")
+            return jsonify({"success": False, "message": "Error saving verification code"})
         
         # Return the code for the user to enter
         return jsonify({

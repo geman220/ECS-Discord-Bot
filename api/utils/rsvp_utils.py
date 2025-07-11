@@ -4,12 +4,16 @@ import logging
 import discord
 import asyncio
 import aiohttp
+import os
 from datetime import datetime
 from typing import Tuple, Optional, Union
 from pydantic import BaseModel, Field
 from discord.ext import commands
 from aiohttp import ClientError
 from api.models.schemas import AvailabilityRequest, EmbedField, EmbedData
+
+# Environment variables
+WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -90,7 +94,7 @@ async def update_embed_message_with_players(message, rsvp_data):
 async def get_player_info_from_discord(discord_id: str):
     """Get player information from Discord ID."""
     session = await get_session()
-    api_url = f"http://webui:5000/get_player_id_from_discord/{discord_id}"
+    api_url = f"{WEBUI_API_URL.replace('/api', '')}/bot/admin/get_player_id_from_discord/{discord_id}"
     async with session.get(api_url) as response:
         if response.status == 200:
             data = await response.json()
@@ -102,7 +106,7 @@ async def get_player_info_from_discord(discord_id: str):
 async def fetch_team_rsvp_data(match_id: int, team_id: int):
     """Fetch RSVP data for a specific team and match."""
     try:
-        api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}"
+        api_url = f"{WEBUI_API_URL}/get_match_rsvps/{match_id}?team_id={team_id}"
         logger.info(f"Fetching RSVP data from {api_url}")
         
         async with aiohttp.ClientSession() as session:
@@ -124,7 +128,7 @@ async def fetch_team_rsvp_data(match_id: int, team_id: int):
 async def fetch_match_data(match_id: int):
     """Fetch match information by match ID."""
     try:
-        api_url = f"http://webui:5000/api/get_match_request/{match_id}"
+        api_url = f"{WEBUI_API_URL}/get_match_request/{match_id}"
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as response:
                 if response.status == 200:
@@ -193,7 +197,7 @@ async def update_embed_for_message(message_id: str, channel_id: str, match_id: i
         
         for attempt in range(max_retries):
             try:
-                api_url = f"http://webui:5000/api/get_match_rsvps/{match_id}?team_id={team_id}"
+                api_url = f"{WEBUI_API_URL}/get_match_rsvps/{match_id}?team_id={team_id}"
                 logger.debug(f"Fetching RSVP data (attempt {attempt+1}/{max_retries}) from {api_url}")
                 
                 async with aiohttp.ClientSession() as session:
@@ -227,7 +231,7 @@ async def update_embed_for_message(message_id: str, channel_id: str, match_id: i
         match_data = None
         for attempt in range(max_retries):
             try:
-                api_url = f"http://webui:5000/api/get_match_request/{match_id}"
+                api_url = f"{WEBUI_API_URL}/get_match_request/{match_id}"
                 logger.debug(f"Fetching match data (attempt {attempt+1}/{max_retries}) from {api_url}")
                 
                 async with aiohttp.ClientSession() as session:
@@ -307,7 +311,7 @@ async def fetch_match_request_data(match_id: int):
     """Fetch match request data by match ID."""
     try:
         session = await get_session()
-        api_url = f"http://webui:5000/api/get_match_request/{match_id}"
+        api_url = f"{WEBUI_API_URL}/get_match_request/{match_id}"
         async with session.get(api_url) as response:
             if response.status == 200:
                 return await response.json()
