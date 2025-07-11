@@ -1135,7 +1135,7 @@ def sync_discord_rsvps():
         }), 500
 
 
-@availability_bp.route('/api/record_poll_response', methods=['POST'])
+@availability_bp.route('/record_poll_response', methods=['POST'])
 def record_poll_response():
     """
     Records a poll response from Discord.
@@ -1286,7 +1286,7 @@ def update_poll_message():
         }), 500
 
 
-@availability_bp.route('/api/get_active_poll_messages', methods=['GET'])
+@availability_bp.route('/get_active_poll_messages', methods=['GET'])
 def get_active_poll_messages():
     """
     Get all active poll messages with their Discord message IDs.

@@ -842,7 +842,7 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         week_ago = datetime.utcnow().date() - timedelta(days=7)
         recent_match_ids = session.query(Match.id).filter(
             Match.date >= week_ago
-        ).subquery()
+        )
         
         total_avail = session.query(Availability).filter(
             Availability.match_id.in_(recent_match_ids)

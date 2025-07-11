@@ -456,7 +456,7 @@ def register_with_discord():
         async def check_server_membership():
             async with aiohttp.ClientSession() as session:
                 # Check if the user is already in the server
-                url = f"{current_app.config['BOT_API_URL']}/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
+                url = f"{current_app.config['BOT_API_URL']}/api/server/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
                 result = await make_discord_request('GET', url, session)
                 
                 if not result:

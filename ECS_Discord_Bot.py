@@ -292,7 +292,7 @@ async def load_poll_message_ids():
         bot_state.poll_messages.clear()
         
         # Get active polls from Flask
-        async with session.get(f"{WEBUI_API_URL}/api/get_active_poll_messages") as response:
+        async with session.get(f"{WEBUI_API_URL}/get_active_poll_messages") as response:
             if response.status == 200:
                 data = await response.json()
                 poll_count = 0

@@ -232,9 +232,15 @@ def manage_announcements():
             position=max_position + 1
         )
         session.add(new_announcement)
-        session.commit()
-        show_success("Announcement created successfully.")
-        return redirect(url_for('admin.manage_announcements'))
+        try:
+            session.commit()
+            show_success("Announcement created successfully.")
+            return redirect(url_for('admin.manage_announcements'))
+        except Exception as e:
+            session.rollback()
+            logger.exception(f"Error creating announcement: {str(e)}")
+            show_error('Error creating announcement.')
+            return redirect(url_for('admin.manage_announcements'))
 
     announcements = session.query(Announcement).order_by(Announcement.position).all()
 
@@ -310,12 +316,19 @@ def edit_announcement(announcement_id):
 
     announcement.title = title
     announcement.content = content
-    session.commit()
-    
-    if request.method == 'PUT':
-        return jsonify({'success': True})
-    else:
-        show_success('Announcement updated successfully.')
+    try:
+        session.commit()
+        if request.method == 'PUT':
+            return jsonify({'success': True})
+        else:
+            show_success('Announcement updated successfully.')
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error updating announcement {announcement_id}: {str(e)}")
+        if request.method == 'PUT':
+            return jsonify({'success': False, 'message': 'Error updating announcement'}), 500
+        else:
+            show_error('Error updating announcement.')
         return redirect(url_for('admin.admin_dashboard'))
 
 

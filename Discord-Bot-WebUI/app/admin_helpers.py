@@ -379,6 +379,7 @@ def handle_permissions_update(role_id: int, permission_ids: List[int], session=N
             session = db.session
         role = session.query(Role).get_or_404(role_id)
         role.permissions = session.query(Permission).filter(Permission.id.in_(permission_ids)).all()
+        session.add(role)
         session.commit()
         return True
     except Exception as e:

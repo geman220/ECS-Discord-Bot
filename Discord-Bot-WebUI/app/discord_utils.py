@@ -149,7 +149,7 @@ async def get_role_id(guild_id: int, role_name: str, session: aiohttp.ClientSess
             return rid
 
     # Fetch roles from Discord API and refresh cache
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles"
     response = await make_discord_request('GET', url, session)
     if response:
         role_name_cache.clear()
@@ -177,7 +177,7 @@ async def create_role(guild_id: int, role_name: str, session: aiohttp.ClientSess
     Returns:
         Optional[str]: The created role's ID if successful, else None.
     """
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles"
     payload = {"name": role_name}
     response = await make_discord_request('POST', url, session, json=payload)
     if response and 'id' in response:
@@ -229,7 +229,7 @@ async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str,
                 return
             role_id = resolved_id
 
-        url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+        url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
         result = await make_discord_request('PUT', url, session)
         if result:
             logger.info(f"Successfully assigned role {role_id} to user {user_id}")
@@ -260,7 +260,7 @@ async def remove_role_from_member(guild_id: int, user_id: str, role_id: Union[st
             return
         role_id = resolved_id
 
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
     await make_discord_request('DELETE', url, session)
     logger.info(f"Removed role '{role_id}' from user '{user_id}'")
 
@@ -282,7 +282,7 @@ async def delete_role(guild_id: int, role_id: Union[str, int], session: aiohttp.
             return
         role_id = resolved_id
 
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles/{role_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles/{role_id}"
     response = await make_discord_request('DELETE', url, session)
     if response:
         logger.info(f"Deleted role ID {role_id}")
@@ -309,7 +309,7 @@ async def get_member_roles(user_id: str, session: aiohttp.ClientSession) -> Opti
         Optional[List[str]]: List of role names, or None if failed.
     """
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}/roles"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}/roles"
     response = await make_discord_request('GET', url, session)
     if response is None:
         return None
@@ -341,7 +341,7 @@ async def get_role_names(guild_id: int, role_ids: List[str], session: aiohttp.Cl
     try:
         missing_role_ids = [r for r in role_ids if r not in role_name_cache.values()]
         if missing_role_ids:
-            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles"
+            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles"
             response = await make_discord_request('GET', url, session)
             if response:
                 for role in response:
@@ -368,7 +368,7 @@ async def get_or_create_category(guild_id: int, category_name: str, session: aio
     if category_name in category_cache:
         return category_cache[category_name]
 
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/channels"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels"
     channels = await make_discord_request('GET', url, session)
     if channels:
         for channel in channels:
@@ -391,7 +391,7 @@ async def create_category(guild_id: int, category_name: str, session: aiohttp.Cl
     Returns:
         Optional[str]: The newly created category ID.
     """
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/channels"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels"
     payload = {"name": category_name, "type": 4}
     response = await make_discord_request('POST', url, session, json=payload)
     if response and 'id' in response:
@@ -480,7 +480,7 @@ async def create_discord_channel(session: Session, team_name: str, division: str
                 "type": 0,  # text channel
                 "permission_overwrites": permission_overwrites,
             }
-            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/channels"
+            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels"
             response = await make_discord_request('POST', url, http_session, json=payload)
             if response and 'id' in response:
                 team.discord_channel_id = response['id']
@@ -581,7 +581,7 @@ async def rename_team_roles(session: Session, team: Team, new_team_name: str) ->
             new_player_role_name = f"ECS-FC-PL-{new_team_name}-Player"
             tasks.append(rename_role(guild_id, team.discord_player_role_id, new_player_role_name, http_session))
         if team.discord_channel_id:
-            url = f"{Config.BOT_API_URL}/channels/{team.discord_channel_id}"
+            url = f"{Config.BOT_API_URL}/api/server/channels/{team.discord_channel_id}"
             tasks.append(make_discord_request('PATCH', url, http_session, json={"new_name": new_team_name}))
         await asyncio.gather(*tasks)
 
@@ -604,7 +604,7 @@ async def rename_role(guild_id: int, role_id: Union[str, int], new_name: str, se
             return
         role_id_str = resolved_id
 
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/roles/{role_id_str}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles/{role_id_str}"
     payload = {"new_name": new_name}
     response = await make_discord_request('PATCH', url, session, json=payload)
     if response:
@@ -648,7 +648,7 @@ async def delete_team_channel(session: Session, team: Team) -> Dict[str, Any]:
         return {'success': False, 'error': 'No channel ID'}
 
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/channels/{team.discord_channel_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels/{team.discord_channel_id}"
     async with aiohttp.ClientSession() as http_session:
         response = await make_discord_request('DELETE', url, http_session)
         if response:
@@ -793,6 +793,8 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     if player.user and player.user.roles:
         user_roles = [role.name for role in player.user.roles]
         logger.info(f"Player {player.id} has Flask roles: {user_roles}")
+    else:
+        logger.info(f"Player {player.id} has no Flask user or roles")
 
     # Check user approval status for the new approval system
     approval_status = getattr(player.user, 'approval_status', 'pending') if player.user else 'pending'
@@ -813,42 +815,34 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         # Return early for denied users - they only get preserved non-managed roles
         return roles
 
-    # Handle approved users
+    # Handle approved users by directly mapping Flask roles to Discord roles
     if approval_status == 'approved':
-        # Check if user has appropriate approved role (including substitute roles)
-        approved_roles = ['pl-classic', 'pl-premier', 'pl-ecs-fc', 'Classic Sub', 'Premier Sub', 'ECS FC Sub']
-        has_approved_role = any(role in user_roles for role in approved_roles)
+        # Direct mapping of Flask roles to Discord roles (can have multiple)
+        # Base league roles
+        if 'pl-classic' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC based on Flask role 'pl-classic'")
         
-        if not has_approved_role:
-            logger.warning(f"Player {player.id} is approved but lacks appropriate approved role")
-            # Fall back to old league detection for backward compatibility
-        else:
-            # Check if user has substitute role
-            has_sub_role = any(role in user_roles for role in ['Classic Sub', 'Premier Sub', 'ECS FC Sub'])
-            
-            # Use approval league for Discord role assignment
-            if approval_league:
-                league_name = approval_league.upper()
-                
-                # Handle substitute roles
-                if has_sub_role:
-                    if 'Classic Sub' in user_roles:
-                        roles.append(normalize_name("ECS-FC-PL-CLASSIC-SUB"))
-                    elif 'Premier Sub' in user_roles:
-                        roles.append(normalize_name("ECS-FC-PL-PREMIER-SUB"))
-                    elif 'ECS FC Sub' in user_roles:
-                        roles.append(normalize_name("ECS-FC-LEAGUE-SUB"))
-                    logger.info(f"Player {player.id} assigned substitute role for league: {league_name}")
-                else:
-                    # Handle full league roles
-                    if league_name == "CLASSIC":
-                        roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-                    elif league_name == "PREMIER":
-                        roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-                    elif league_name == "ECS-FC":
-                        roles.append(normalize_name("ECS-FC-LEAGUE"))
-                    
-                    logger.info(f"Player {player.id} assigned role for approved league: {league_name}")
+        if 'pl-premier' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER based on Flask role 'pl-premier'")
+        
+        if 'pl-ecs-fc' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-ECS-FC"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC based on Flask role 'pl-ecs-fc'")
+        
+        # Substitute roles
+        if 'Classic Sub' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-CLASSIC-SUB"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC-SUB based on Flask role 'Classic Sub'")
+        
+        if 'Premier Sub' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-PREMIER-SUB"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER-SUB based on Flask role 'Premier Sub'")
+        
+        if 'ECS FC Sub' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-ECS-FC-SUB"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC-SUB based on Flask role 'ECS FC Sub'")
 
     # Check if the player has the "Pub League Coach" role in the Flask app
     has_coach_role_in_flask = "Pub League Coach" in user_roles
@@ -861,13 +855,19 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     logger.info(f"Final determination - should have coach status: {should_have_coach_status}")
 
     # Add coach roles if approved and has coach status
-    if approval_status == 'approved' and should_have_coach_status and approval_league:
-        league_name = approval_league.upper()
-        if league_name == "CLASSIC":
+    if approval_status == 'approved' and should_have_coach_status:
+        # Add coach roles based on the user's Flask league roles
+        if 'pl-classic' in user_roles:
             roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
-        elif league_name == "PREMIER":
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC-COACH based on Flask role 'pl-classic' and coach status")
+        
+        if 'pl-premier' in user_roles:
             roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-        logger.info(f"Player {player.id} assigned coach role for league: {league_name}")
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER-COACH based on Flask role 'pl-premier' and coach status")
+        
+        if 'pl-ecs-fc' in user_roles:
+            roles.append(normalize_name("ECS-FC-PL-ECS-FC-COACH"))
+            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC-COACH based on Flask role 'pl-ecs-fc' and coach status")
 
     # Determine leagues associated with the player (fallback for backward compatibility)
     leagues_for_user = set()
@@ -883,17 +883,9 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if t.league and t.league.name:
             leagues_for_user.add(t.league.name.strip().upper())
 
-    # Append league-based roles only if not already handled by approval system
-    if approval_status != 'approved' or not approval_league:
-        for league_name in leagues_for_user:
-            if league_name == "PREMIER":
-                roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-                if should_have_coach_status:
-                    roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-            elif league_name == "CLASSIC":
-                roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-                if should_have_coach_status:
-                    roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+    # For non-approved users, no league roles are assigned - they only get team-based roles
+    if approval_status != 'approved':
+        logger.info(f"Player {player.id} is not approved, only team-based roles will be assigned")
 
     # Append team-based roles using normalized role names
     for t in player.teams:
@@ -902,7 +894,16 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     if player.is_ref:
         roles.append(normalize_name("Referee"))
     
-    return roles
+    # Remove duplicates while preserving order
+    unique_roles = []
+    seen = set()
+    for role in roles:
+        if role not in seen:
+            seen.add(role)
+            unique_roles.append(role)
+    
+    logger.info(f"Player {player.id} final expected roles: {unique_roles}")
+    return unique_roles
 
 
 async def process_role_updates(session: Session, force_update: bool = False) -> None:
@@ -1074,7 +1075,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
     # Check if a thread with a similar name already exists to prevent duplicates
     async with aiohttp.ClientSession() as http_session:
         # Fetch existing threads in the channel
-        existing_threads_url = f"{Config.BOT_API_URL}/channels/{mls_channel_id}/threads/active"
+        existing_threads_url = f"{Config.BOT_API_URL}/api/server/channels/{mls_channel_id}/threads/active"
         existing_threads = await make_discord_request('GET', existing_threads_url, http_session)
         
         if existing_threads and isinstance(existing_threads, list):
@@ -1121,7 +1122,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
             }
         }
 
-        response = await make_discord_request('POST', f"{Config.BOT_API_URL}/channels/{mls_channel_id}/threads", http_session, json=payload)
+        response = await make_discord_request('POST', f"{Config.BOT_API_URL}/api/server/channels/{mls_channel_id}/threads", http_session, json=payload)
         if response and 'id' in response:
             thread_id = response['id']
             logger.info(f"Created thread '{thread_name}' with ID {thread_id}")
@@ -1151,7 +1152,7 @@ async def invite_user_to_server(user_id: str) -> Dict[str, Any]:
     try:
         async with aiohttp.ClientSession() as session:
             # Check if user is already in the server first
-            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}"
+            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}"
             member_check = await make_discord_request('GET', url, session)
             
             if member_check:
@@ -1169,7 +1170,7 @@ async def invite_user_to_server(user_id: str) -> Dict[str, Any]:
                 }
             
             # Generate a server invite for the user
-            url = f"{Config.BOT_API_URL}/guilds/{guild_id}/invites"
+            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/invites"
             payload = {
                 "target_user_id": user_id,
                 "max_uses": 1,
@@ -1216,7 +1217,7 @@ async def check_user_in_server(user_id: str, session: aiohttp.ClientSession) -> 
         bool: True if the user is in the server, False otherwise.
     """
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{user_id}"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}"
     
     try:
         response = await make_discord_request('GET', url, session)
@@ -1241,7 +1242,7 @@ async def fetch_user_roles(session: Session, discord_id: str, http_session: aioh
         List[str]: A list of role names.
     """
     guild_id = int(os.getenv('SERVER_ID'))
-    url = f"{Config.BOT_API_URL}/guilds/{guild_id}/members/{discord_id}/roles"
+    url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{discord_id}/roles"
     
     for attempt in range(retries):
         try:

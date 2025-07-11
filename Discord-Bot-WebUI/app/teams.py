@@ -1047,6 +1047,7 @@ def upload_team_kit(team_id):
         # Append a timestamp to bust the cache
         timestamp = int(time.time())
         team.kit_url = url_for('static', filename='img/uploads/kits/' + filename) + f'?v={timestamp}'
+        session.add(team)
         session.commit()
         
         show_success('Team kit updated successfully!')
@@ -1094,6 +1095,7 @@ def upload_team_background(team_id):
         # Append a timestamp to bust the cache
         timestamp = int(time.time())
         team.background_image_url = url_for('static', filename='img/uploads/backgrounds/' + filename) + f'?v={timestamp}'
+        session.add(team)
         session.commit()
         
         show_success('Team background updated successfully!')

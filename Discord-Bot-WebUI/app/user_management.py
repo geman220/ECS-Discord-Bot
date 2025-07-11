@@ -543,15 +543,23 @@ def edit_user(user_id):
                 user.approved_at = datetime.utcnow()
                 # Note: approved_by would need to be set to current user if we track that
 
-        session.commit()
-        
-        # Trigger Discord role sync if player has Discord ID
-        if user.player and user.player.discord_id:
-            from app.tasks.tasks_discord import assign_roles_to_player_task
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for user {user.id} after edit")
-        
-        show_success(f'User {user.username} updated successfully.')
+        try:
+            session.add(user)
+            if user.player:
+                session.add(user.player)
+            session.commit()
+            
+            # Trigger Discord role sync if player has Discord ID
+            if user.player and user.player.discord_id:
+                from app.tasks.tasks_discord import assign_roles_to_player_task
+                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+                logger.info(f"Triggered Discord role sync for user {user.id} after edit")
+            
+            show_success(f'User {user.username} updated successfully.')
+        except Exception as e:
+            session.rollback()
+            logger.exception(f"Error updating user {user_id}: {str(e)}")
+            show_error(f'Error updating user: {str(e)}')
     else:
         # Display validation errors
         for field_name, errors in form.errors.items():
