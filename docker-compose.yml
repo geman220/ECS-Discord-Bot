@@ -27,19 +27,20 @@ services:
       # ── where PgBouncer should forward connections ────────────────────
       - "DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
       # ── pool tuning ───────────────────────────────────────────────────
-      - PGBOUNCER_POOL_MODE=session
-      - PGBOUNCER_MAX_CLIENT_CONN=100
-      - PGBOUNCER_DEFAULT_POOL_SIZE=20
-      - PGBOUNCER_RESERVE_POOL_SIZE=5
-      - PGBOUNCER_RESERVE_POOL_TIMEOUT=5
-      - PGBOUNCER_MAX_DB_CONNECTIONS=20  # Leave buffer for DigitalOcean maintenance
-      - PGBOUNCER_IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=15
+      - RESERVE_POOL_SIZE=3
+      - RESERVE_POOL_TIMEOUT=5
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+      - IDLE_TRANSACTION_TIMEOUT=30
+      - CLIENT_IDLE_TIMEOUT=120  
+      - QUERY_TIMEOUT=15
       # ── upstream TLS & auth (left blank/disabled in dev .env) ─────────
       - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE:-disable}
       - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE:-}
       - PGBOUNCER_AUTH_TYPE=${AUTH_TYPE:-trust}
       # ── listener (PgBouncer ⇆ your apps) ──────────────────────────────
-      - PGBOUNCER_LISTEN_PORT=6432
       - PGBOUNCER_CLIENT_TLS_SSLMODE=disable     # local traffic, no need for TLS
     # dev: mounts system CA bundle; prod: mounts do-ca.pem
     volumes:
@@ -64,8 +65,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=4
-      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -99,8 +100,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=4
-      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -134,8 +135,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=4
-      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -169,8 +170,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=4
-      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -206,8 +207,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=3
-      - SQLALCHEMY_MAX_OVERFLOW=2
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -261,13 +262,14 @@ services:
       - FLASK_DEBUG=1
       - FLASK_ENV=development
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=6
-      - SQLALCHEMY_MAX_OVERFLOW=3
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
       - SQLALCHEMY_POOL_RECYCLE=300
       - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
-      - SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT=15000
-      - SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT=15000
+      - SQLALCHEMY_ENGINE_OPTIONS_STATEMENT_TIMEOUT=5000
+      - SQLALCHEMY_ENGINE_OPTIONS_IDLE_IN_TRANSACTION_SESSION_TIMEOUT=10000
+      - SQLALCHEMY_ENGINE_OPTIONS_QUERY_TIMEOUT=5000
     env_file:
       - .env
     volumes:
@@ -332,8 +334,8 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=5
-      - SQLALCHEMY_MAX_OVERFLOW=3
+      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
       - SQLALCHEMY_POOL_RECYCLE=300
       - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10

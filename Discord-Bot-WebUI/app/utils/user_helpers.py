@@ -12,7 +12,7 @@ A LocalProxy is used to lazily load the current user.
 import logging
 from flask_login import current_user
 from werkzeug.local import LocalProxy
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from flask import has_app_context, g
 from functools import wraps
 
@@ -86,8 +86,8 @@ def get_user():
             else:
                 # Import user-related models; eager-load frequently used relationships.
                 db_user = session.query(User).options(
-                    joinedload(User.roles).joinedload(Role.permissions),
-                    joinedload(User.player)
+                    selectinload(User.roles).selectinload(Role.permissions),
+                    selectinload(User.player)
                 ).get(current_user.id)
                 # Wrap the user; do not detach to allow lazy loading of additional attributes.
                 user = UserWrapper(db_user)

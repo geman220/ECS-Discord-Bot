@@ -26,7 +26,7 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_migrate import Migrate
 from werkzeug.routing import BuildError
-from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm import joinedload, selectinload, sessionmaker
 from sqlalchemy import text
 
 from app.assets import init_assets
@@ -147,6 +147,10 @@ def create_app(config_object='web_config.Config'):
     @app.teardown_appcontext
     def shutdown_redis_connections(exception=None):
         redis_manager.shutdown()
+    
+    # Register database session cleanup
+    from app.core.session_manager import cleanup_request
+    app.teardown_appcontext(cleanup_request)
 
     # Configure database settings.
     configure_db_settings(app)
@@ -166,16 +170,24 @@ def create_app(config_object='web_config.Config'):
         # Ensure the pl-unverified role exists
         try:
             session = SessionLocal()
-            sub_role = session.query(Role).filter_by(name='pl-unverified').first()
-            if not sub_role:
-                logger.info("Creating pl-unverified role in database")
-                sub_role = Role(name='pl-unverified', description='Substitute Player')
-                session.add(sub_role)
-                session.commit()
-                logger.info("pl-unverified role created successfully")
-            session.close()
+            try:
+                sub_role = session.query(Role).filter_by(name='pl-unverified').first()
+                if not sub_role:
+                    logger.info("Creating pl-unverified role in database")
+                    sub_role = Role(name='pl-unverified', description='Substitute Player')
+                    session.add(sub_role)
+                    session.commit()
+                    logger.info("pl-unverified role created successfully")
+                else:
+                    session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error ensuring pl-unverified role exists: {e}", exc_info=True)
+                raise
+            finally:
+                session.close()
         except Exception as e:
-            logger.error(f"Error ensuring pl-unverified role exists: {e}", exc_info=True)
+            logger.error(f"Failed to initialize pl-unverified role: {e}", exc_info=True)
 
     # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)
@@ -274,55 +286,18 @@ def create_app(config_object='web_config.Config'):
     @login_manager.user_loader
     def load_user(user_id):
         """
-        Load user for Flask-Login with proper session management.
+        Load user for Flask-Login with efficient session management.
         
-        Uses a dedicated short-lived session to avoid connection leaks.
-        This is called frequently and must not hold connections open.
+        Uses optimized query session to minimize connection holding time.
         """
         if not user_id:
             return None
             
         try:
-            # Use a dedicated short-lived session for user loading
-            session = app.SessionLocal()
-            try:
-                user = session.query(User).options(
-                    joinedload(User.roles).joinedload(Role.permissions),
-                    joinedload(User.notifications),
-                    joinedload(User.player)
-                ).get(int(user_id))
-                
-                if user:
-                    # Trigger loading of all needed attributes before expunging
-                    _ = user.id, user.username, user.email
-                    if user.roles:
-                        for role in user.roles:
-                            _ = role.id, role.name
-                            if role.permissions:
-                                for perm in role.permissions:
-                                    _ = perm.id, perm.name
-                    if user.notifications:
-                        for notif in user.notifications:
-                            _ = notif.id, notif.content
-                    if user.player:
-                        _ = user.player.id, user.player.name
-                    
-                    # Expunge the user so it's no longer bound to this session
-                    session.expunge(user)
-                
-                # Commit quickly to release any locks
-                session.commit()
-                return user
-                
-            except Exception as e:
-                session.rollback()
-                logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
-                return None
-            finally:
-                session.close()
-                
+            from app.utils.efficient_session_manager import EfficientQuery
+            return EfficientQuery.get_user_for_auth(user_id)
         except Exception as e:
-            logger.error(f"Critical error in user loader for user {user_id}: {str(e)}", exc_info=True)
+            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None
 
     # Initialize SocketIO with Redis as the message queue

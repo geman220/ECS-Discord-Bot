@@ -16,7 +16,7 @@ from flask import (
 )
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 import requests
 from werkzeug.exceptions import Forbidden
@@ -216,16 +216,9 @@ def player_profile(player_id):
     session = g.db_session
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
 
-    player = session.query(Player).options(
-        joinedload(Player.teams).joinedload(Team.league),
-        joinedload(Player.user).joinedload(User.roles),
-        joinedload(Player.career_stats),
-        joinedload(Player.season_stats),
-        joinedload(Player.events).joinedload(PlayerEvent.match),
-        joinedload(Player.events).joinedload(PlayerEvent.player),
-        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.team),
-        joinedload(Player.season_assignments).joinedload(PlayerTeamSeason.season)
-    ).get(player_id)
+    # Use efficient session manager for heavy profile loading
+    from app.utils.efficient_session_manager import EfficientQuery
+    player = EfficientQuery.get_player_profile(player_id)
 
     if not player:
         abort(404)

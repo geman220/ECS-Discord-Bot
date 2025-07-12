@@ -370,16 +370,9 @@ def teams_overview():
 def report_match(match_id):
     session = g.db_session
     logger.info(f"Starting report_match for Match ID: {match_id}")
-    match = (
-        session.query(Match)
-        .options(
-            joinedload(Match.home_team).joinedload(Team.players),
-            joinedload(Match.away_team).joinedload(Team.players),
-            joinedload(Match.home_verifier).joinedload(User.player),
-            joinedload(Match.away_verifier).joinedload(User.player)
-        )
-        .get(match_id)
-    )
+    # Use efficient session manager for heavy match loading
+    from app.utils.efficient_session_manager import EfficientQuery
+    match = EfficientQuery.get_match_details(match_id)
     if not match:
         show_error('Match not found.')
         return redirect(url_for('teams.teams_overview'))
