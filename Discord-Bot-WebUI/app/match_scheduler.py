@@ -151,6 +151,17 @@ class MatchScheduler:
         """
         thread_key = self._get_redis_key(str(match_id), "thread")
         logger.info(f"Checking thread Redis key: {thread_key}")
+        
+        # Check if the thread_time is in the past
+        now = datetime.utcnow()
+        if thread_time.tzinfo:
+            # Make now timezone-aware if thread_time is
+            import pytz
+            now = datetime.now(pytz.UTC)
+        
+        is_past_due = thread_time <= now
+        if is_past_due:
+            logger.info(f"Thread time {thread_time} is past due (now: {now}), will execute immediately")
     
         if force and self.redis.exists(thread_key):
             existing_data = self.redis.get(thread_key)
@@ -181,8 +192,14 @@ class MatchScheduler:
             return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
-            thread_task = force_create_mls_thread_task.apply_async(args=[match_id], eta=thread_time)
-            logger.info(f"Created thread task with ID: {thread_task.id}")
+            # If the time is past due, execute immediately without eta
+            if is_past_due:
+                thread_task = force_create_mls_thread_task.apply_async(args=[match_id])
+                logger.info(f"Created immediate thread task with ID: {thread_task.id}")
+            else:
+                thread_task = force_create_mls_thread_task.apply_async(args=[match_id], eta=thread_time)
+                logger.info(f"Created scheduled thread task with ID: {thread_task.id}")
+            
             expiry = int(timedelta(days=2).total_seconds())
             data_to_store = json.dumps({
                 "task_id": thread_task.id,
@@ -193,7 +210,8 @@ class MatchScheduler:
                 'scheduled': True,
                 'task_id': thread_task.id,
                 'expiry': expiry,
-                'eta': thread_time.isoformat()
+                'eta': thread_time.isoformat(),
+                'immediate': is_past_due
             }
         except Exception as e:
             logger.error(f"Failed to schedule thread task: {str(e)}")
@@ -213,6 +231,17 @@ class MatchScheduler:
         """
         reporting_key = self._get_redis_key(str(match_id), "reporting")
         logger.info(f"Checking reporting Redis key: {reporting_key}")
+        
+        # Check if the reporting_time is in the past
+        now = datetime.utcnow()
+        if reporting_time.tzinfo:
+            # Make now timezone-aware if reporting_time is
+            import pytz
+            now = datetime.now(pytz.UTC)
+        
+        is_past_due = reporting_time <= now
+        if is_past_due:
+            logger.info(f"Reporting time {reporting_time} is past due (now: {now}), will execute immediately")
     
         if force and self.redis.exists(reporting_key):
             existing_data = self.redis.get(reporting_key)
@@ -243,8 +272,14 @@ class MatchScheduler:
             return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
-            reporting_task = start_live_reporting.apply_async(args=[str(match_id)], eta=reporting_time)
-            logger.info(f"Created reporting task with ID: {reporting_task.id}")
+            # If the time is past due, execute immediately without eta
+            if is_past_due:
+                reporting_task = start_live_reporting.apply_async(args=[str(match_id)])
+                logger.info(f"Created immediate reporting task with ID: {reporting_task.id}")
+            else:
+                reporting_task = start_live_reporting.apply_async(args=[str(match_id)], eta=reporting_time)
+                logger.info(f"Created scheduled reporting task with ID: {reporting_task.id}")
+            
             expiry = int(timedelta(days=2).total_seconds())
             data_to_store = json.dumps({
                 "task_id": reporting_task.id,
@@ -255,7 +290,8 @@ class MatchScheduler:
                 'scheduled': True,
                 'task_id': reporting_task.id,
                 'expiry': expiry,
-                'eta': reporting_time.isoformat()
+                'eta': reporting_time.isoformat(),
+                'immediate': is_past_due
             }
         except Exception as e:
             logger.error(f"Failed to schedule reporting task: {str(e)}")

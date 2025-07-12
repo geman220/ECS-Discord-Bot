@@ -122,7 +122,7 @@ function updateTaskDetails(matchId, scheduledTasks, activeTaskId) {
 }
 
 function loadTaskDetails(matchId) {
-    fetch(`/admin/match_management/task_details/${matchId}`)
+    fetch(`/admin/match_management/task-details/${matchId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -365,7 +365,7 @@ function scheduleMatch(matchId) {
 }
 
 function createThreadNow(matchId) {
-    fetch(`/admin/match_management/create_thread/${matchId}`, {
+    fetch(`/admin/match_management/create-thread/${matchId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -388,7 +388,7 @@ function createThreadNow(matchId) {
 }
 
 function startLiveReporting(matchId) {
-    fetch(`/admin/match_management/start_reporting/${matchId}`, {
+    fetch(`/admin/match_management/start-reporting/${matchId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -411,7 +411,7 @@ function startLiveReporting(matchId) {
 }
 
 function stopLiveReporting(matchId) {
-    fetch(`/admin/match_management/stop_reporting/${matchId}`, {
+    fetch(`/admin/match_management/stop-reporting/${matchId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -468,13 +468,16 @@ function addMatchByDate() {
         return;
     }
     
-    fetch('/admin/match_management/add_by_date', {
+    const formData = new FormData();
+    formData.append('date', date);
+    formData.append('competition', 'MLS'); // Default competition
+    
+    fetch('/admin/match_management/add-by-date', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
-        body: JSON.stringify({ date: date })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -482,7 +485,7 @@ function addMatchByDate() {
             Swal.fire('Success!', data.message, 'success');
             setTimeout(() => location.reload(), 2000);
         } else {
-            Swal.fire('Error!', data.message, 'error');
+            Swal.fire('Error!', data.message || data.error, 'error');
         }
     })
     .catch(error => {
@@ -500,7 +503,7 @@ function scheduleAllMatches() {
         confirmButtonText: 'Yes, schedule all!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('/admin/match_management/schedule_all', {
+            fetch('/admin/match_management/schedule-all', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -542,7 +545,7 @@ function fetchAllFromESPN() {
                 }
             });
             
-            fetch('/admin/match_management/fetch_all_espn', {
+            fetch('/admin/match_management/fetch-all-from-espn', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -576,7 +579,7 @@ function clearAllMatches() {
         confirmButtonColor: '#d33'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('/admin/match_management/clear_all', {
+            fetch('/admin/match_management/clear-all', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -646,7 +649,7 @@ function showQueueStatus() {
 }
 
 function refreshQueueStatus() {
-    fetch('/admin/match_management/queue_status')
+    fetch('/admin/match_management/queue-status')
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -739,7 +742,7 @@ function displayQueueStatus(data) {
 
 // Debug functions
 function debugMatchTasks(matchId) {
-    fetch(`/admin/match_management/debug/${matchId}`)
+    fetch(`/admin/match_management/debug-tasks/${matchId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -796,7 +799,7 @@ function forceScheduleMatch(matchId) {
         confirmButtonText: 'Yes, force schedule!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/admin/match_management/force_schedule/${matchId}`, {
+            fetch(`/admin/match_management/force-schedule/${matchId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

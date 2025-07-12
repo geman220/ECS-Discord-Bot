@@ -258,6 +258,36 @@ async def create_thread(channel_id: int, request: dict, bot: commands.Bot = Depe
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
+@router.get("/channels/{channel_id}/threads/active")
+async def get_active_threads(channel_id: int, bot: commands.Bot = Depends(get_bot)):
+    """Get active threads for a forum channel."""
+    logger.info(f"Getting active threads for channel {channel_id}")
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        logger.error(f"Channel {channel_id} not found")
+        raise HTTPException(status_code=404, detail=f"Channel {channel_id} not found")
+    
+    try:
+        threads = []
+        if isinstance(channel, discord.ForumChannel):
+            # For forum channels, get active threads
+            active_threads = channel.threads
+            for thread in active_threads:
+                if not thread.archived:
+                    threads.append({
+                        "id": str(thread.id),
+                        "name": thread.name,
+                        "archived": thread.archived,
+                        "created_at": thread.created_at.isoformat() if thread.created_at else None
+                    })
+        
+        logger.info(f"Found {len(threads)} active threads in channel {channel_id}")
+        return threads
+    except Exception as e:
+        logger.error(f"Error getting active threads for channel {channel_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get active threads: {str(e)}")
+
+
 @router.post("/channels/{thread_id}/messages")
 async def send_message_to_thread(thread_id: int, content: str, bot: commands.Bot = Depends(get_bot)):
     thread = bot.get_channel(thread_id)
