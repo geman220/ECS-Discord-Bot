@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 
+from flask import g
 from sqlalchemy import event, func, Enum, JSON, DateTime, Boolean, Column, Integer, ForeignKey, or_, desc, String, Text, Date, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
