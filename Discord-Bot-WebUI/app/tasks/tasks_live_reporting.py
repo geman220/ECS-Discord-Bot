@@ -104,6 +104,7 @@ def process_match_update(self, session, match_id: str, thread_id: str, competiti
                 match_id=str(match_id),
                 thread_id=thread_id,
                 match_data=match_data,
+                session=session,
                 last_status=last_status,
                 last_score=last_score,
                 last_event_keys=last_event_keys

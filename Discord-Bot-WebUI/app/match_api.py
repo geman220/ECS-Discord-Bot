@@ -90,7 +90,7 @@ def limit_remote_addr():
     return "Access Denied", 403
 
 
-async def process_live_match_updates(match_id, thread_id, match_data, last_status=None, last_score=None, last_event_keys=None):
+async def process_live_match_updates(match_id, thread_id, match_data, session=None, last_status=None, last_score=None, last_event_keys=None):
     """
     Process live match updates for a given match.
 
@@ -98,6 +98,7 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
         match_id (str): The match identifier.
         thread_id (str): The Discord thread ID for updates.
         match_data (dict): The data for the current match.
+        session: Database session to use (optional).
         last_status (str, optional): The previous match status.
         last_score (str, optional): The previous score.
         last_event_keys (list, optional): Keys of previously processed events.
@@ -107,7 +108,24 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
     """
     logger.info(f"Processing live match updates for match_id={match_id}")
     try:
-        with managed_session() as session:
+        if session:
+            # Use provided session (from Celery task)
+            use_provided_session = True
+        else:
+            # Use managed session for non-Celery contexts
+            use_provided_session = False
+            
+        # Choose the appropriate session context
+        if use_provided_session:
+            # Use the provided session directly (from Celery task)
+            session_context = session
+        else:
+            # Use managed session for non-Celery contexts
+            session_context = managed_session()
+        
+        # Use the session context - either direct session or context manager
+        if use_provided_session:
+            # Direct session usage
             last_event_keys = last_event_keys or []
 
             competition = match_data["competitions"][0]
@@ -160,6 +178,61 @@ async def process_live_match_updates(match_id, thread_id, match_data, last_statu
             logger.info(f"Match ended: {match_ended} for match_id={match_id}")
 
             return match_ended, current_event_keys
+        else:
+            # Use managed session context manager
+            with managed_session() as session_to_use:
+                last_event_keys = last_event_keys or []
+
+                competition = match_data["competitions"][0]
+                status_type = competition["status"]["type"]["name"]
+                home_competitor = competition["competitors"][0]
+                away_competitor = competition["competitors"][1]
+                home_team = home_competitor["team"]
+                away_team = away_competitor["team"]
+                home_score = home_competitor.get("score", "0")
+                away_score = away_competitor.get("score", "0")
+                current_time = competition["status"].get("displayClock", "N/A")
+                current_score = f"{home_score}-{away_score}"
+
+                logger.debug(f"Match status: {status_type}, Current score: {current_score}, Time: {current_time}")
+
+                # Handle match status changes - only if the status has actually changed
+                if status_type != last_status and last_status is not None:
+                    logger.info(f"Match status changed from {last_status} to {status_type} for match_id={match_id}")
+                    # Pass the full match_data so that pre-match details can be extracted
+                    await handle_status_change(thread_id, status_type, home_team, away_team, home_score, away_score, match_data)
+                elif status_type == "STATUS_SCHEDULED" and last_status is None:
+                    # Only send pre-match info the first time we see STATUS_SCHEDULED
+                    logger.info(f"Initial pre-match info for match_id={match_id}")
+                    await send_pre_match_info(thread_id, match_data)
+
+                # Handle score changes - only if the score has actually changed and we have a previous score
+                if current_score != last_score and last_score is not None:
+                    logger.info(f"Score changed from {last_score} to {current_score} for match_id={match_id}")
+                    # Only send score updates if the match is in progress, not for pre-match
+                    if status_type not in ["STATUS_SCHEDULED", "STATUS_PRE_GAME"]:
+                        await send_score_update(thread_id, home_team, away_team, home_score, away_score, current_time)
+
+                # Process events
+                events = competition.get("details", [])
+                logger.debug(f"Total events fetched: {len(events)}")
+
+                team_map = {
+                    home_team['id']: home_team,
+                    away_team['id']: away_team
+                }
+
+                new_events, current_event_keys = get_new_events(events, last_event_keys)
+                logger.debug(f"Found {len(new_events)} new events to process")
+
+                for event in new_events:
+                    logger.debug(f"Processing event: {event}")
+                    await process_match_event(thread_id, event, team_map, home_team, away_team, home_score, away_score)
+
+                match_ended = status_type in ["STATUS_FULL_TIME", "STATUS_FINAL"]
+                logger.info(f"Match ended: {match_ended} for match_id={match_id}")
+
+                return match_ended, current_event_keys
 
     except Exception as e:
         logger.error(f"Error processing live match updates for match_id={match_id}: {str(e)}", exc_info=True)

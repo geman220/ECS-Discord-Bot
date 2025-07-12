@@ -305,6 +305,67 @@ async def send_message_to_thread(thread_id: int, content: str, bot: commands.Bot
         raise HTTPException(status_code=500, detail="Failed to send message to thread")
 
 
+@router.post("/thread/{thread_id}/update")
+async def update_thread(thread_id: int, request: dict, bot: commands.Bot = Depends(get_bot)):
+    """Send live match updates to a Discord thread."""
+    logger.info(f"Sending update to thread {thread_id}: {request.get('update_type', 'unknown')}")
+    
+    thread = bot.get_channel(thread_id)
+    if not thread or not isinstance(thread, discord.Thread):
+        logger.error(f"Thread {thread_id} not found")
+        raise HTTPException(status_code=404, detail="Thread not found")
+    
+    try:
+        update_type = request.get('update_type', '')
+        update_data = request.get('update_data', {})
+        
+        # Handle different types of updates
+        if update_type == 'score_update':
+            home_team = update_data.get('home_team', {})
+            away_team = update_data.get('away_team', {})
+            home_score = update_data.get('home_score', '0')
+            away_score = update_data.get('away_score', '0')
+            time = update_data.get('time', 'N/A')
+            
+            content = f"⚽ **SCORE UPDATE** ⚽\n{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}\n*{time}*"
+        
+        elif update_type == 'status_change':
+            status = update_data.get('status', '')
+            home_team = update_data.get('home_team', {})
+            away_team = update_data.get('away_team', {})
+            
+            if status in ['STATUS_IN_PROGRESS', 'STATUS_HALFTIME']:
+                content = f"🔴 **MATCH STARTED** 🔴\n{home_team.get('displayName', 'Home')} vs {away_team.get('displayName', 'Away')}"
+            elif status in ['STATUS_FULL_TIME', 'STATUS_FINAL']:
+                home_score = update_data.get('home_score', '0')
+                away_score = update_data.get('away_score', '0')
+                content = f"🏁 **FULL TIME** 🏁\n{home_team.get('displayName', 'Home')} {home_score} - {away_score} {away_team.get('displayName', 'Away')}"
+            else:
+                content = f"📢 **{status.replace('STATUS_', '').replace('_', ' ')}**\n{home_team.get('displayName', 'Home')} vs {away_team.get('displayName', 'Away')}"
+        
+        elif update_type == 'event':
+            event_text = update_data.get('text', 'Unknown event')
+            content = f"⚡ **MATCH EVENT** ⚡\n{event_text}"
+        
+        else:
+            # Generic update
+            content = f"📢 **UPDATE**\n{str(update_data)}"
+        
+        message = await thread.send(content)
+        logger.info(f"Sent {update_type} update to thread {thread_id}")
+        return {"success": True, "message_id": str(message.id)}
+        
+    except discord.errors.Forbidden:
+        logger.error(f"Bot doesn't have permission to send messages to thread {thread_id}")
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to send messages to this thread")
+    except discord.errors.HTTPException as e:
+        logger.error(f"Discord API error sending update to thread {thread_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send update: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error sending update to thread {thread_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
 @router.post("/post_match_update")
 async def post_match_update(update: dict, bot: commands.Bot = Depends(get_bot)):
     thread_id = update.get("thread_id")

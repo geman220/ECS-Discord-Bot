@@ -72,10 +72,14 @@ def get_cached_message_info(message_id):
     is_home = scheduled_msg.home_message_id == str(message_id)
     message_type = 'home' if is_home else 'away'
     
+    # Use the MLS match channel from environment
+    import os
+    channel_id = os.getenv('MATCH_CHANNEL_ID', '1194316942023077938')
+    
     return {
-        'channel_id': scheduled_msg.channel_id,
+        'channel_id': channel_id,
         'match_id': scheduled_msg.match_id,
-        'team_id': scheduled_msg.team_id,
+        'team_id': os.getenv('TEAM_ID', '9726'),  # Seattle Sounders team ID
         'is_home': is_home,
         'message_type': message_type,
         'match_date': str(scheduled_msg.match.date) if scheduled_msg.match else None,
