@@ -102,7 +102,7 @@ class EfficientQuery:
         Uses query session for heavy read operation.
         """
         with query_session() as session:
-            from app.models import Player
+            from app.models import Player, PlayerEvent
             from sqlalchemy.orm import selectinload
             
             player = session.query(Player).options(
@@ -110,7 +110,7 @@ class EfficientQuery:
                 selectinload(Player.user),
                 selectinload(Player.career_stats),
                 selectinload(Player.season_stats),
-                selectinload(Player.events)
+                selectinload(Player.events).selectinload(PlayerEvent.match)
             ).get(player_id)
             
             if player:
@@ -123,14 +123,14 @@ class EfficientQuery:
         Optimized match loading for reporting.
         """
         with query_session() as session:
-            from app.models import Match
+            from app.models import Match, User
             from sqlalchemy.orm import selectinload
             
             match = session.query(Match).options(
                 selectinload(Match.home_team),
                 selectinload(Match.away_team),
-                selectinload(Match.home_verifier),
-                selectinload(Match.away_verifier)
+                selectinload(Match.home_verifier).selectinload(User.player),
+                selectinload(Match.away_verifier).selectinload(User.player)
             ).get(match_id)
             
             if match:
