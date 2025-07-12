@@ -65,7 +65,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=1
+      - SQLALCHEMY_POOL_SIZE=2
       - SQLALCHEMY_MAX_OVERFLOW=0
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
@@ -100,8 +100,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=1
-      - SQLALCHEMY_MAX_OVERFLOW=0
+      - SQLALCHEMY_POOL_SIZE=2
+      - SQLALCHEMY_MAX_OVERFLOW=1
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -170,8 +170,8 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=1
-      - SQLALCHEMY_MAX_OVERFLOW=0
+      - SQLALCHEMY_POOL_SIZE=3
+      - SQLALCHEMY_MAX_OVERFLOW=2
       - SQLALCHEMY_POOL_TIMEOUT=10
     volumes:
       - ./Discord-Bot-WebUI:/app
@@ -262,8 +262,8 @@ services:
       - FLASK_DEBUG=1
       - FLASK_ENV=development
       - REDIS_URL=redis://redis:6379/0
-      - SQLALCHEMY_POOL_SIZE=1
-      - SQLALCHEMY_MAX_OVERFLOW=0
+      - SQLALCHEMY_POOL_SIZE=6
+      - SQLALCHEMY_MAX_OVERFLOW=2
       - SQLALCHEMY_POOL_TIMEOUT=10
       - SQLALCHEMY_POOL_RECYCLE=300
       - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10
@@ -335,7 +335,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - SQLALCHEMY_POOL_SIZE=1
-      - SQLALCHEMY_MAX_OVERFLOW=0
+      - SQLALCHEMY_MAX_OVERFLOW=1
       - SQLALCHEMY_POOL_TIMEOUT=10
       - SQLALCHEMY_POOL_RECYCLE=300
       - SQLALCHEMY_ENGINE_OPTIONS_CONNECT_TIMEOUT=10

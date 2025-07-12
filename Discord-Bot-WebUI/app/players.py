@@ -216,9 +216,16 @@ def player_profile(player_id):
     session = g.db_session
     logger.info(f"Accessing profile for player_id: {player_id} by user_id: {safe_current_user.id}")
 
-    # Use efficient session manager for heavy profile loading
-    from app.utils.efficient_session_manager import EfficientQuery
-    player = EfficientQuery.get_player_profile(player_id)
+    # Load player with all needed relationships using the main session
+    from sqlalchemy.orm import selectinload
+    from app.models import PlayerEvent
+    player = session.query(Player).options(
+        selectinload(Player.teams),
+        selectinload(Player.user),
+        selectinload(Player.career_stats),
+        selectinload(Player.season_stats),
+        selectinload(Player.events).selectinload(PlayerEvent.match)
+    ).get(player_id)
 
     if not player:
         abort(404)
