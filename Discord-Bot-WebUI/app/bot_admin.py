@@ -45,13 +45,11 @@ bot_admin_bp = Blueprint('bot_admin', __name__, url_prefix='/bot/admin')
 def ensure_utc(dt):
     """
     Convert a datetime object to UTC.
-    ESPN dates are naive but actually in Eastern Time, so we need to handle that correctly.
+    If the datetime is naive, assume it's in UTC.
+    Otherwise, convert it to UTC.
     """
     if dt.tzinfo is None:
-        # ESPN dates are naive but in Eastern Time (ET)
-        eastern = pytz.timezone('US/Eastern')
-        # First, localize to Eastern Time, then convert to UTC
-        return eastern.localize(dt).astimezone(pytz.UTC)
+        return dt.replace(tzinfo=pytz.UTC)
     else:
         return dt.astimezone(pytz.UTC)
 

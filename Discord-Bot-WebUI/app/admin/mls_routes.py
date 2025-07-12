@@ -506,7 +506,7 @@ def add_match_by_date():
             if 'Seattle Sounders FC' in event.get("name", ""):
                 try:
                     match_details = extract_match_details(event)
-                    match_details['date_time'] = ensure_utc(match_details['date_time'])
+                    # extract_match_details already converts to UTC, no need for ensure_utc()
                     
                     # Check if match already exists
                     existing_match = session.query(MLSMatch).filter_by(
@@ -612,7 +612,7 @@ def fetch_all_espn_matches():
                                 continue  # Skip past matches
                                 
                             match_details = extract_match_details(event)
-                            match_details['date_time'] = ensure_utc(match_details['date_time'])
+                            # extract_match_details already converts to UTC, no need for ensure_utc()
                             
                             # Check if match already exists
                             existing_match = session.query(MLSMatch).filter_by(
