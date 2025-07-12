@@ -26,6 +26,7 @@ from app.core import socketio
 from app.core.session_manager import managed_session
 from app.core.helpers import get_match
 from app.decorators import celery_task
+from app.utils.task_session_manager import task_session
 from app.models import MLSMatch, Prediction
 from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
@@ -313,16 +314,14 @@ def start_live_reporting(self, session, match_id: str) -> Dict[str, Any]:
     except SQLAlchemyError as e:
         logger.error(f"Database error in start_live_reporting: {str(e)}", exc_info=True)
         try:
-            app = current_app._get_current_object()
-            error_session = app.SessionLocal()
-            # Use get_match here as well.
-            match = get_match(error_session, match_id)
-            if match:
-                match.live_reporting_status = 'failed'
-                match.live_reporting_started = False
-                match.live_reporting_task_id = None
-            error_session.commit()
-            error_session.close()
+            with task_session() as error_session:
+                # Use get_match here as well.
+                match = get_match(error_session, match_id)
+                if match:
+                    match.live_reporting_status = 'failed'
+                    match.live_reporting_started = False
+                    match.live_reporting_task_id = None
+                # Commit happens automatically in task_session
         except Exception as inner_e:
             logger.error(f"Error updating match status on failure: {str(inner_e)}")
         raise self.retry(exc=e, countdown=60)
@@ -562,7 +561,6 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
     Force the immediate creation of a Discord thread for an MLS match.
     Returns a dictionary with the creation result and thread ID if successful.
     """
-    session = current_app.SessionLocal()
     try:
         logger.info(f"Starting thread creation for match {match_id}")
         
@@ -579,60 +577,58 @@ def force_create_mls_thread_task(self, injected_session, match_id: str, force: b
             import time
             time.sleep(5)
             
-            match = get_match(session, match_id)
-            if match and match.thread_created:
-                logger.info(f"Thread was created by another worker for match {match_id}")
-                return {'success': True, 'message': 'Thread already exists'}
-            else:
-                logger.warning(f"Lock held but thread not created yet for match {match_id}")
-                return {'success': False, 'message': 'Thread creation in progress by another worker'}
+            with task_session() as session:
+                match = get_match(session, match_id)
+                if match and match.thread_created:
+                    logger.info(f"Thread was created by another worker for match {match_id}")
+                    return {'success': True, 'message': 'Thread already exists'}
+                else:
+                    logger.warning(f"Lock held but thread not created yet for match {match_id}")
+                    return {'success': False, 'message': 'Thread creation in progress by another worker'}
         
         try:
-            match = get_match(session, match_id)
+            with task_session() as session:
+                match = get_match(session, match_id)
 
-            if not match:
-                logger.error(f"Match {match_id} not found")
-                return {'success': False, 'message': f'Match {match_id} not found'}
+                if not match:
+                    logger.error(f"Match {match_id} not found")
+                    return {'success': False, 'message': f'Match {match_id} not found'}
 
-            if match.thread_created and not force:
-                logger.info(f"Thread already exists for match {match_id}")
-                return {'success': True, 'message': 'Thread already exists'}
+                if match.thread_created and not force:
+                    logger.info(f"Thread already exists for match {match_id}")
+                    return {'success': True, 'message': 'Thread already exists'}
 
-            # Use async_to_sync utility instead of creating our own event loop
-            from app.api_utils import async_to_sync
-            thread_id = async_to_sync(create_match_thread(session, match))
-            
-            if thread_id:
-                match.thread_created = True
-                match.discord_thread_id = thread_id
-                session.add(match)
-                session.commit()
+                # Use async_to_sync utility instead of creating our own event loop
+                from app.api_utils import async_to_sync
+                thread_id = async_to_sync(create_match_thread(session, match))
+                
+                if thread_id:
+                    match.thread_created = True
+                    match.discord_thread_id = thread_id
+                    session.add(match)
+                    # Commit happens automatically in task_session
 
-                logger.info(f"Created thread {thread_id} for match {match_id}")
-                return {
-                    'success': True,
-                    'message': f'Thread created successfully. ID: {thread_id}',
-                    'thread_id': thread_id
-                }
+                    logger.info(f"Created thread {thread_id} for match {match_id}")
+                    return {
+                        'success': True,
+                        'message': f'Thread created successfully. ID: {thread_id}',
+                        'thread_id': thread_id
+                    }
 
-            logger.error(f"Failed to create thread for match {match_id}")
-            return {'success': False, 'message': 'Failed to create thread'}
-            
+                logger.error(f"Failed to create thread for match {match_id}")
+                return {'success': False, 'message': 'Failed to create thread'}
+                
         finally:
             # Release lock only if we own it
             if redis.get(lock_key) == lock_value:
                 redis.delete(lock_key)
 
     except SQLAlchemyError as e:
-        session.rollback()
         logger.error(f"Database error creating thread for match {match_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        session.rollback()
         logger.error(f"Error creating thread for match {match_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
-    finally:
-        session.close()
 
 
 @celery_task(
@@ -718,27 +714,18 @@ async def end_match_reporting(match_id: str) -> None:
     This async helper:
       - Retrieves the match via the current Flask application context.
       - Sets the live reporting status to 'completed' and marks reporting as stopped.
-      - Commits and closes the session if it was newly created.
+      - Uses managed_session for proper session handling.
     """
     try:
-        session = getattr(g, 'db_session', None)
-        if session is None:
-            app = current_app._get_current_object()
-            session = app.SessionLocal()
-            new_session = True
-        else:
-            new_session = False
-
-        match = get_match(session, match_id)
-        if match:
-            match.live_reporting_status = 'completed'
-            match.live_reporting_started = False
-            session.add(match)
-            logger.info(f"Live reporting ended for match {match_id}")
-
-        if new_session:
-            session.commit()
-            session.close()
+        # Use managed_session which handles Flask request context properly
+        with managed_session() as session:
+            match = get_match(session, match_id)
+            if match:
+                match.live_reporting_status = 'completed'
+                match.live_reporting_started = False
+                session.add(match)
+                logger.info(f"Live reporting ended for match {match_id}")
+                # Commit happens automatically in managed_session
 
     except Exception as e:
         logger.error(f"Error ending match reporting: {str(e)}")

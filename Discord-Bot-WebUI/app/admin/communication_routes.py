@@ -96,9 +96,16 @@ def send_custom_sms():
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
     
+    # Extract user_id before committing session
+    user_id = user.id
+    
+    # Commit the session before making the external SMS API call to avoid
+    # holding the database transaction open during the external call
+    session.commit()
+    
     # Send the SMS
     from app.sms_helpers import send_sms
-    success, result = send_sms(phone, message, user_id=user.id)
+    success, result = send_sms(phone, message, user_id=user_id)
     
     if success:
         # Log the SMS
@@ -161,10 +168,17 @@ def send_discord_dm():
             return redirect(url_for('admin.rsvp_status', match_id=match_id))
         return redirect(url_for('admin.admin_dashboard'))
     
+    # Extract discord_id before committing session
+    discord_id = player.discord_id
+    
+    # Commit the session before making the external API call to avoid
+    # holding the database transaction open during the 10-second timeout
+    session.commit()
+    
     # Send the Discord DM using the bot API
     payload = {
         "message": message,
-        "discord_id": player.discord_id
+        "discord_id": discord_id
     }
     
     bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'

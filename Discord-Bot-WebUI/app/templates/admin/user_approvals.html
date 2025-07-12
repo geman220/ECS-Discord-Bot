@@ -373,6 +373,7 @@
                                 <tr>
                                     <th>User</th>
                                     <th>Email</th>
+                                    <th>League Preference</th>
                                     <th>Discord ID</th>
                                     <th>Registered</th>
                                     <th>Current Roles</th>
@@ -402,6 +403,27 @@
                                         </div>
                                     </td>
                                     <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.preferred_league %}
+                                            {% if user.preferred_league == 'pub_league_classic' %}
+                                                <span class="badge bg-label-primary">🏆 Pub League Classic</span>
+                                            {% elif user.preferred_league == 'pub_league_premier' %}
+                                                <span class="badge bg-label-success">🌟 Pub League Premier</span>
+                                            {% elif user.preferred_league == 'ecs_fc' %}
+                                                <span class="badge bg-label-warning">⚽ ECS FC</span>
+                                            {% else %}
+                                                <span class="badge bg-label-secondary">{{ user.preferred_league }}</span>
+                                            {% endif %}
+                                            {% if user.league_selection_method %}
+                                                <br><small class="text-muted">via {{ user.league_selection_method.replace('_', ' ').title() }}</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Not selected</span>
+                                            {% if not user.has_completed_onboarding %}
+                                                <br><small class="text-warning">Onboarding incomplete</small>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if user.player and user.player.discord_id %}
                                             <code>{{ user.player.discord_id }}</code>

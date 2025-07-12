@@ -18,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import MLSMatch, Player, Team
 from app.core.helpers import get_match
+from app.core.session_manager import managed_session
 
 logger = logging.getLogger(__name__)
 

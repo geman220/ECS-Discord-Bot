@@ -164,6 +164,10 @@ def notify_substitute_pool_of_request(self, session, request_id: int, league_typ
                     session.add(response)
                     session.flush()  # Get the ID
                     
+                    # Commit the session before making the external API call to avoid
+                    # holding the database transaction open during the Discord API call
+                    # Commit happens automatically in @celery_task decorator
+                    
                     # Send DM using existing system
                     dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
                     if dm_result['success']:
@@ -351,6 +355,11 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
                 )
                 
                 results['methods_attempted'].append('Discord')
+                
+                # Commit the session before making the external API call to avoid
+                # holding the database transaction open during the Discord API call
+                # Commit happens automatically in @celery_task decorator
+                
                 dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
                 if dm_result['success']:
                     results['methods_successful'].append('Discord')

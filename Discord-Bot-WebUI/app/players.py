@@ -251,6 +251,7 @@ def player_profile(player_id):
     # Only deny access if no authentication
     if not safe_current_user.is_authenticated:
         show_error('Please log in to view player profiles.')
+        session.commit()
         return redirect(url_for('auth.login'))
 
     try:
@@ -262,6 +263,7 @@ def player_profile(player_id):
         season = session.query(Season).filter_by(name=current_season_name).first()
         if not season:
             show_error('Current season not found.')
+            session.commit()
             return redirect(url_for('main.index'))
 
         matches = session.query(Match).join(PlayerEvent).options(
@@ -276,6 +278,7 @@ def player_profile(player_id):
         classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
             show_error('Classic league not found')
+            session.commit()
             return redirect(url_for('players.player_profile', player_id=player.id))
 
         season_stats = session.query(PlayerSeasonStats).filter_by(
@@ -369,6 +372,11 @@ def player_profile(player_id):
             player_id=player_id
         ).order_by(PlayerStatAudit.timestamp.desc()).all()
 
+        # Commit the session before rendering the template to avoid holding
+        # the transaction open during template rendering, which can be slow
+        # and cause idle-in-transaction timeouts
+        session.commit()
+        
         return render_template(
             'player_profile.html',
             title='Player Profile',
@@ -714,9 +722,16 @@ def contact_player_discord(player_id):
          show_error("The player has opted out of Discord notifications.")
          return redirect(url_for('players.player_profile', player_id=player_id))
     
+    # Extract the data we need before making the external API call
+    discord_id = player.discord_id
+    
+    # Commit the session before making the external API call to avoid
+    # holding the database transaction open during the 10-second timeout
+    g.db_session.commit()
+    
     payload = {
         "message": message_text,
-        "discord_id": player.discord_id
+        "discord_id": discord_id
     }
     
     bot_api_url = current_app.config.get('BOT_API_URL', 'http://localhost:5001') + '/send_discord_dm'

@@ -49,9 +49,30 @@ async def send_discord_dm(
         dm_channel = await user.create_dm()
         dm_message = await dm_channel.send(message)
         return {"status": "sent", "message_id": dm_message.id}
-    except discord.Forbidden:
-        raise HTTPException(status_code=403, detail="Cannot send DM to this user. They may have DMs disabled.")
+    except discord.Forbidden as e:
+        # Extract specific error details from Discord API
+        error_code = getattr(e, 'code', None)
+        error_text = str(e)
+        
+        # Provide specific error messages based on Discord error codes
+        if error_code == 50007:
+            detail = "Cannot send DM to this user - they have disabled DMs from server members"
+        elif error_code == 50001:
+            detail = "Cannot send DM to this user - missing access (user may have blocked the bot)"
+        elif "Cannot send messages to this user" in error_text:
+            detail = "Cannot send DM to this user - they have disabled DMs or blocked the bot"
+        else:
+            detail = f"Cannot send DM to this user - Discord error {error_code}: {error_text}"
+            
+        logger.warning(f"Failed to send DM to user {discord_id}: {detail}")
+        raise HTTPException(status_code=403, detail=detail)
+    except discord.HTTPException as e:
+        # Handle other Discord HTTP errors
+        error_detail = f"Discord API error {e.status}: {e.text}"
+        logger.error(f"Discord HTTP error sending DM to {discord_id}: {error_detail}")
+        raise HTTPException(status_code=e.status, detail=error_detail)
     except Exception as e:
+        logger.error(f"Unexpected error sending DM to {discord_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send DM: {str(e)}")
 
 

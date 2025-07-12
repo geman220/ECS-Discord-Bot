@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import logging
 from sqlalchemy import text
 from app.core import db
+from app.utils.pgbouncer_utils import set_session_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,8 @@ def managed_session():
 
     try:
         # Set a local statement timeout of 10 seconds for this session.
-        session.execute(text("SET LOCAL statement_timeout = '10s'"))
+        # Automatically skipped for PgBouncer connections
+        set_session_timeout(session, statement_timeout_seconds=10)
         yield session
         session.commit()
     except Exception as e:

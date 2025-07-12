@@ -42,6 +42,7 @@ from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.utils.display_helpers import format_position_name, format_field_name
 from app.db_management import db_manager
 from app.database.config import configure_db_settings
+from app.utils.pgbouncer_utils import set_session_timeout
 
 # Initialize Flask extensions.
 login_manager = LoginManager()
@@ -453,21 +454,16 @@ def create_app(config_object='web_config.Config'):
             g.session_id = session_id
             
             # Set appropriate timeouts for this session based on request type
-            try:
-                if request.path.startswith('/admin/'):
-                    # Admin routes may need longer timeouts for complex operations
-                    g.db_session.execute(text("SET LOCAL statement_timeout = '15s'"))
-                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '10s'"))
-                elif request.path.startswith('/api/'):
-                    # API routes should be fast
-                    g.db_session.execute(text("SET LOCAL statement_timeout = '5s'"))
-                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '3s'"))
-                else:
-                    # Regular routes get standard timeouts
-                    g.db_session.execute(text("SET LOCAL statement_timeout = '8s'"))
-                    g.db_session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '5s'"))
-            except Exception as e:
-                logger.warning(f"Failed to set session timeouts: {e}")
+            # This will automatically skip timeout settings when using PgBouncer
+            if request.path.startswith('/admin/'):
+                # Admin routes may need longer timeouts for complex operations
+                set_session_timeout(g.db_session, statement_timeout_seconds=15, idle_timeout_seconds=10)
+            elif request.path.startswith('/api/'):
+                # API routes should be fast
+                set_session_timeout(g.db_session, statement_timeout_seconds=5, idle_timeout_seconds=3)
+            else:
+                # Regular routes get standard timeouts
+                set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
 
     @app.context_processor
     def inject_current_pub_league_season():
@@ -632,6 +628,10 @@ def init_blueprints(app):
     app.register_blueprint(role_impersonation_bp)
     app.register_blueprint(ecs_fc_api)  # Blueprint has url_prefix='/api/ecs-fc'
     app.register_blueprint(substitute_pool_bp)
+    
+    # Register cache admin routes
+    from app.cache_admin_routes import cache_admin_bp
+    app.register_blueprint(cache_admin_bp)
 
 def init_context_processors(app):
     """

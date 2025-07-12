@@ -59,7 +59,7 @@ html[data-style="dark"] .card.bg-primary {
 
 :root {
   /* Primary Color Palette */
-  --ecs-primary: #696cff;
+  --ecs-primary: #213e96;
   --ecs-primary-dark: #5f63e6;
   --ecs-primary-light: #a5a8ff;
   --ecs-secondary: #8592a3;
@@ -86,7 +86,7 @@ html[data-style="dark"] .card.bg-primary {
 /* Dark mode variables */
 html[data-style="dark"] {
   /* Primary Color Palette - Dark Mode */
-  --ecs-primary: #7a7fff;
+  --ecs-primary: #213e96;
   --ecs-primary-dark: #6166ff;
   --ecs-primary-light: #b4b7ff;
   --ecs-secondary: #8d9aab;

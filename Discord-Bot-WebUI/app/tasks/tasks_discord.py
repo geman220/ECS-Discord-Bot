@@ -32,6 +32,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio
 from app.decorators import celery_task
 from app.models import Player, Team, User
+from app.utils.task_session_manager import task_session
 from app.discord_utils import (
     update_player_roles,
     rename_team_roles,
@@ -903,11 +904,11 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
                 team.discord_player_role_id = None
                 session.flush()
         
-        session.commit()
+        # Commit happens automatically in @celery_task decorator
         return {'success': True, 'message': 'Discord resources cleaned up'}
             
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error cleaning up Discord resources: {str(e)}")
         raise self.retry(exc=e, countdown=30)
 
@@ -938,10 +939,10 @@ def update_team_discord_resources_task(self, session, team_id: int, new_team_nam
         # Use async_to_sync utility instead of creating a new event loop
         from app.api_utils import async_to_sync
         async_to_sync(rename_team_roles(session, team, new_team_name))
-        session.commit()
+        # Commit happens automatically in @celery_task decorator
         return {'success': True, 'message': 'Discord resources updated'}
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         raise self.retry(exc=e, countdown=30)
 
 
