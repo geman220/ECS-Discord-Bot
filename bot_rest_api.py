@@ -30,7 +30,7 @@ from api.routes.ecs_fc_sub_routes import router as ecs_fc_sub_router
 from api.routes.onboarding_routes import router as onboarding_router
 
 app.include_router(server_router)
-app.include_router(match_router)
+app.include_router(match_router, prefix="/api/server")
 app.include_router(league_router)
 app.include_router(communication_router)
 app.include_router(ecs_fc_sub_router)
@@ -47,4 +47,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=5001)
