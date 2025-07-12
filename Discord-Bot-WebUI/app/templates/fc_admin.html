@@ -1,173 +1,48 @@
+{% extends "base.html" %}
+
 {% block main_content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Page Heading -->
-
-
-    <!-- Manage Announcements Section -->
     <div class="row">
-        <div class="col-xl-12 col-md-12 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex align-items-start justify-content-between">
-                        <div>
-                            <h5 class="card-title">Manage Announcements</h5>
-                            <p class="text-muted mb-2">Create, edit, delete, or reorder announcements.</p>
-                        </div>
-                        <div>
-                            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#createAnnouncementModal">Create New Announcement</button>
-                        </div>
-                    </div>
-                    {% if announcements %}
-                    <ul class="list-group" id="sortable">
-                        {% for announcement in announcements %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center" data-id="{{ announcement.id }}">
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-primary me-3">{{ loop.index }}</span>
-                                <div>
-                                    <strong>{{ announcement.title }}</strong><br>
-                                    {{ announcement.content }}
-                                </div>
-                            </div>
-                            <div>
-                                <button class="btn btn-secondary btn-sm" onclick="openEditModal({{ announcement.id }}, '{{ announcement.title }}', '{{ announcement.content }}')">Edit</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement({{ announcement.id }})">Delete</button>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    {% else %}
-                    <p>No announcements found.</p>
-                    {% endif %}
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">FC Admin</h4>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Other admin features can be added here in the future -->
-
-</div>
-
-<!-- Create Announcement Modal -->
-<div class="modal fade" id="createAnnouncementModal" tabindex="-1" aria-labelledby="createAnnouncementModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createAnnouncementModalLabel">Create New Announcement</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Redirect Notice -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="ti ti-arrow-right" style="font-size: 4rem; color: #696cff;"></i>
+                    </div>
+                    <h4 class="mb-3">Announcement Management Moved</h4>
+                    <p class="text-muted mb-4">
+                        Website announcements are now managed through the centralized Message Management system.
+                        <br>This provides better organization and integration with Discord bot messaging.
+                    </p>
+                    <a href="{{ url_for('admin.message_config.list_categories') }}" class="btn btn-primary">
+                        <i class="ti ti-message-2 me-2"></i>Go to Message Management
+                    </a>
+                </div>
             </div>
-            <form method="POST" action="{{ url_for('admin.manage_announcements') }}">
-                {{ empty_form.hidden_tag() }}
-                <div class="modal-body">
-                    <div class="form-group">
-                        {{ form.title.label(class="form-label") }}
-                        {{ form.title(class="form-control") }}
-                    </div>
-                    <div class="form-group">
-                        {{ form.content.label(class="form-label") }}
-                        {{ form.content(class="form-control", rows="5") }}
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">{{ form.submit.label }}</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
-
 {% block custom_js %}
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 <script>
-    let currentEditId = null;
-
-    function openEditModal(id, title, content) {
-        currentEditId = id;
-        document.getElementById('editTitle').value = title;
-        document.getElementById('editContent').value = content;
-        new bootstrap.Modal(document.getElementById('editAnnouncementModal')).show();
+// Auto-redirect after 3 seconds if user doesn't interact
+setTimeout(function() {
+    if (document.visibilityState === 'visible') {
+        window.location.href = "{{ url_for('admin.message_config.list_categories') }}";
     }
-
-    function saveEdit() {
-        const title = document.getElementById('editTitle').value;
-        const content = document.getElementById('editContent').value;
-
-        fetch(`/admin/announcements/${currentEditId}/edit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({ title: title, content: content })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Announcement updated successfully!');
-                window.location.reload();
-            } else {
-                alert('Failed to update announcement.');
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    function deleteAnnouncement(id) {
-        if (confirm('Are you sure you want to delete this announcement?')) {
-            fetch(`/admin/announcements/${id}/delete`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token() }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Announcement deleted successfully!');
-                    window.location.reload();
-                } else {
-                    alert('Failed to delete announcement.');
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    }
-
-    // Make the list sortable
-    $(function () {
-        $("#sortable").sortable({
-            update: function (event, ui) {
-                let order = [];
-                $("#sortable > li").each(function (index, element) {
-                    order.push({ id: $(element).data('id'), position: index + 1 });
-                });
-
-                console.log("Sending order:", order);  // Debugging
-
-                fetch('/admin/announcements/reorder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ order: order })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("Response:", data);  // Debugging
-                        if (data.success) {
-                            // Optionally reload or update the page
-                        } else {
-                            alert('Failed to update announcement order.');
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            }
-        });
-        $("#sortable").disableSelection();
-    });
+}, 3000);
 </script>
 {% endblock %}

@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy.exc import SQLAlchemyError
 from app.models import MLSMatch, Match
 from app.core import celery
+from app.utils.task_session_manager import task_session
 from app.core.helpers import get_match
 
 logger = logging.getLogger(__name__)
@@ -45,23 +46,21 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
         # Retrieve match info synchronously in an executor
         def get_match_info_sync() -> Optional[Dict[str, Any]]:
             with app.app_context():
-                session = app.SessionLocal()
                 try:
-                    match = get_match(session, match_id)
-                    if not match:
-                        return None
-                    return {
-                        'id': match.id,
-                        'discord_thread_id': match.discord_thread_id,
-                        'home_team': match.home_team.name if match.home_team else None,
-                        'away_team': match.away_team.name if match.away_team else None,
-                        'current_status': match.current_status
-                    }
+                    with task_session() as session:
+                        match = get_match(session, match_id)
+                        if not match:
+                            return None
+                        return {
+                            'id': match.id,
+                            'discord_thread_id': match.discord_thread_id,
+                            'home_team': match.home_team.name if match.home_team else None,
+                            'away_team': match.away_team.name if match.away_team else None,
+                            'current_status': match.current_status
+                        }
                 except Exception as e:
                     logger.error(f"Error fetching match info: {e}", exc_info=True)
                     raise
-                finally:
-                    session.close()
 
         match_info = await asyncio.get_event_loop().run_in_executor(executor, get_match_info_sync)
         if not match_info:
@@ -101,22 +100,19 @@ async def _process_match_updates_async(match_id: str, match_data: Dict[str, Any]
         # Update match status synchronously in an executor.
         def update_match_status_sync():
             with app.app_context():
-                session = app.SessionLocal()
                 try:
-                    match = get_match(session, match_id)
-                    if match:
-                        match.last_update_time = datetime.utcnow()
-                        match.last_update_type = update_type
-                        match.current_status = update_info['match_status']
-                        match.current_score = f"{update_info['home_score']}-{update_info['away_score']}"
-                        match.current_minute = update_info['current_minute']
-                        session.commit()
+                    with task_session() as session:
+                        match = get_match(session, match_id)
+                        if match:
+                            match.last_update_time = datetime.utcnow()
+                            match.last_update_type = update_type
+                            match.current_status = update_info['match_status']
+                            match.current_score = f"{update_info['home_score']}-{update_info['away_score']}"
+                            match.current_minute = update_info['current_minute']
+                            # Commit happens automatically in task_session
                 except Exception as e:
-                    session.rollback()
                     logger.error(f"Error updating match status: {e}", exc_info=True)
                     raise
-                finally:
-                    session.close()
 
         await asyncio.get_event_loop().run_in_executor(executor, update_match_status_sync)
 

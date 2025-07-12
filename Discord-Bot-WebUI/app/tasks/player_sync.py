@@ -2,6 +2,7 @@
 
 from celery import shared_task
 from sqlalchemy import text
+from app.utils.pgbouncer_utils import set_session_timeout
 
 from app.players_helpers import extract_player_info, match_player_weighted
 from app.order_helpers import extract_jersey_size_from_product_name, determine_league
@@ -73,7 +74,8 @@ def sync_players_with_woocommerce(self):
                     })
 
                     # Set a high idle timeout to prevent transaction timeouts during order processing
-                    session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '60000'"))
+                    # Automatically skipped for PgBouncer connections
+                    set_session_timeout(session, idle_timeout_seconds=60)
     
                     orders_page = fetch_orders_from_woocommerce(
                         current_season_name=current_season.name,
@@ -120,7 +122,7 @@ def sync_players_with_woocommerce(self):
                                 'order_id': order['order_id'],
                                 'quantity': order['quantity']
                             })
-                    session.commit()
+                    # Commit happens automatically in managed_session
 
                     # Update progress state after processing each page
                     self.update_state(state='PROGRESS', meta={
@@ -152,7 +154,7 @@ def sync_players_with_woocommerce(self):
                 }
                 save_sync_data(self.request.id, sync_data)
 
-                session.commit()
+                # Commit happens automatically in managed_session
                 self.update_state(state='PROGRESS', meta={
                     'stage': 'complete',
                     'message': 'Processing complete',

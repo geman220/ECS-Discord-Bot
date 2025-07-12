@@ -228,20 +228,30 @@ class DatabaseManager:
             self._active_connections[conn_id] = time.time()
             self.pool_stats['checkouts'] += 1
             try:
-                # Only set PostgreSQL-specific session variables for PostgreSQL
+                # Only set PostgreSQL-specific session variables for direct PostgreSQL connections
+                # Skip for PgBouncer as it doesn't support session-level SET commands
                 if self._engine.url.drivername.startswith('postgresql'):
-                    cursor = dbapi_conn.cursor()
-                    cursor.execute("""
-                        SET LOCAL statement_timeout = '30s';
-                        SET LOCAL idle_in_transaction_session_timeout = '30s';
-                        SET LOCAL lock_timeout = '10s';
-                    """)
-                    cursor.close()
+                    database_url = str(self._engine.url)
+                    is_pgbouncer = 'pgbouncer' in database_url.lower() or ':6432' in database_url
+                    
+                    if not is_pgbouncer:
+                        try:
+                            cursor = dbapi_conn.cursor()
+                            # Use individual SET commands for better compatibility
+                            cursor.execute("SET statement_timeout = '30s'")
+                            cursor.execute("SET idle_in_transaction_session_timeout = '30s'")
+                            cursor.execute("SET lock_timeout = '10s'")
+                            cursor.close()
+                        except Exception as e:
+                            # Log but don't fail - connection might still be usable
+                            logger.warning(f"Could not set session parameters (this is normal with PgBouncer): {e}")
                 # For SQLite and other databases, skip session configuration
             except Exception as e:
                 self.pool_stats['failed_connections'] += 1
                 logger.error(f"Connection checkout failed: {e}", exc_info=True)
-                raise
+                # Only raise if it's not a session parameter issue
+                if "SET" not in str(e) and "statement_timeout" not in str(e):
+                    raise
             # Fallback: capture a stack trace on checkout if none exists.
             pid = get_backend_pid(connection_record)
             if pid and pid not in transaction_metadata:

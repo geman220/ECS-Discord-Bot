@@ -26,6 +26,16 @@ from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_r
 logger = logging.getLogger(__name__)
 
 
+@admin_bp.route('/admin/test-onboarding')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def test_onboarding():
+    """
+    Redirect to the onboarding testing interface.
+    """
+    return redirect(url_for('admin.discord_onboarding.admin_test_onboarding'))
+
+
 @admin_bp.route('/admin/user-approvals')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

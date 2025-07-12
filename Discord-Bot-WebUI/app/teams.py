@@ -356,6 +356,12 @@ def teams_overview():
         teams_query = teams_query.filter(or_(*conditions))
 
     teams = teams_query.order_by(Team.name).all()
+    
+    # Preload team stats to avoid N+1 queries
+    from app.team_performance_helpers import preload_team_stats_for_request
+    team_ids = [team.id for team in teams]
+    preload_team_stats_for_request(team_ids)
+    
     return render_template('teams_overview.html', title='Teams Overview', teams=teams)
 
 
@@ -670,9 +676,32 @@ def view_standings():
     premier_standings = get_standings('Premier')
     classic_standings = get_standings('Classic')
 
-    # Populate detailed stats for each team.
-    premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
-    classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
+    # Check Redis cache for standings first
+    from app.performance_cache import cache_standings_data, set_standings_cache
+    
+    cached_standings = cache_standings_data(league_id=None)  # Cache all standings together
+    
+    if cached_standings:
+        logger.debug("Using cached standings data")
+        premier_stats = cached_standings.get('premier_stats', {})
+        classic_stats = cached_standings.get('classic_stats', {})
+    else:
+        logger.debug("Generating fresh standings data")
+        # Preload team stats to avoid N+1 queries
+        from app.team_performance_helpers import preload_team_stats_for_request
+        all_team_ids = [s.team.id for s in premier_standings] + [s.team.id for s in classic_standings]
+        preload_team_stats_for_request(all_team_ids)
+
+        # Populate detailed stats for each team.
+        premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
+        classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
+        
+        # Cache the results
+        standings_data = {
+            'premier_stats': premier_stats,
+            'classic_stats': classic_stats
+        }
+        set_standings_cache(standings_data, league_id=None, ttl=300)  # Cache for 5 minutes
 
     return render_template(
         'view_standings.html',

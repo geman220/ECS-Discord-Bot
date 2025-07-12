@@ -13,6 +13,7 @@ import logging
 from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from app.utils.pgbouncer_utils import set_session_timeout
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,8 @@ def socket_session(engine):
     session = SessionLocal(bind=engine)
     try:
         # Increased timeouts for 2 CPU / 4GB RAM environment
-        session.execute(text("SET LOCAL statement_timeout = '10s'"))
-        session.execute(text("SET LOCAL idle_in_transaction_session_timeout = '15s'"))
+        # Automatically skipped for PgBouncer connections
+        set_session_timeout(session, statement_timeout_seconds=10, idle_timeout_seconds=15)
         yield session
         try:
             session.commit()

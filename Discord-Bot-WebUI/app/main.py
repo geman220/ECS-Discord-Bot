@@ -14,6 +14,8 @@ import os
 import subprocess
 import requests
 import logging
+import asyncio
+import aiohttp
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -165,6 +167,24 @@ def create_player_profile(onboarding_form):
     except Exception as e:
         logger.error(f"Error creating profile for user {safe_current_user.id}: {e}")
         raise
+
+
+def trigger_immediate_new_player_notification(discord_id: str):
+    """
+    Trigger immediate new player notification when onboarding is completed.
+    """
+    try:
+        response = requests.post(
+            "http://discord-bot:5001/onboarding/notify-new-player",
+            json={"discord_id": discord_id},
+            timeout=5
+        )
+        if response.status_code == 200:
+            logger.info(f"Triggered new player notification for {discord_id}")
+        else:
+            logger.error(f"Failed to trigger new player notification for {discord_id}: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Error triggering new player notification for {discord_id}: {e}")
 
 
 def handle_profile_update(player, onboarding_form):
@@ -821,6 +841,15 @@ def onboarding():
             else:
                 handle_profile_update(player, onboarding_form)
             
+            # Process league selection
+            preferred_league = request.form.get('preferred_league')
+            if preferred_league:
+                safe_current_user.preferred_league = preferred_league
+                safe_current_user.league_selection_method = 'onboarding'
+                logger.info(f"User {safe_current_user.id} selected league: {preferred_league}")
+            else:
+                logger.warning(f"User {safe_current_user.id} completed onboarding without selecting a league")
+            
             # Check SMS verification if needed
             sms_notifications = request.form.get('sms_notifications') == 'y'
             sms_verified = request.form.get('sms_verified') == 'true'
@@ -836,6 +865,11 @@ def onboarding():
                 try:
                     session.commit()
                     show_success('Profile created successfully!')
+                    
+                    # Trigger new player notification if user already has Discord linked
+                    if player and player.discord_id:
+                        trigger_immediate_new_player_notification(player.discord_id)
+                    
                     return redirect(url_for('main.index'))
                 except Exception as e:
                     session.rollback()

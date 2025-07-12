@@ -269,6 +269,10 @@ def discord_callback():
         return redirect(url_for('auth.login'))
 
     try:
+        # Commit any pending database changes before making external API calls
+        # to avoid holding the database transaction open during Discord API calls
+        db_session.commit()
+        
         # Get redirect URI (must match the one used in the initial request)
         redirect_uri = url_for('auth.discord_callback', _external=True)
         logger.info(f"Exchanging code for token with redirect_uri={redirect_uri}")

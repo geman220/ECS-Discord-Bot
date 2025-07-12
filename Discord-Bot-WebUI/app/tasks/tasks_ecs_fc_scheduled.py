@@ -148,7 +148,7 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                     if not message.message_metadata:
                         message.message_metadata = {}
                     message.message_metadata['discord_message_id'] = result['message_id']
-                session.commit()
+                # Commit happens automatically in @celery_task decorator
                 
                 logger.info(f"ECS FC RSVP reminder sent successfully for match {match.id}")
                 
@@ -164,7 +164,7 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                 message.status = 'FAILED'
                 message.send_error = result.get('message', 'Unknown Discord API error')
                 message.last_send_attempt = datetime.utcnow()
-                session.commit()
+                # Commit happens automatically in @celery_task decorator
                 
                 return {
                     'success': False,
@@ -177,7 +177,7 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
             message.status = 'FAILED'
             message.send_error = str(e)
             message.last_send_attempt = datetime.utcnow()
-            session.commit()
+            # Commit happens automatically in @celery_task decorator
             
             return {
                 'success': False,
@@ -185,11 +185,11 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
             }
             
     except SQLAlchemyError as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Database error processing ECS FC scheduled message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error processing ECS FC scheduled message: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
@@ -252,10 +252,10 @@ def schedule_ecs_fc_reminders(self, session, days_ahead: int = 90) -> Dict[str, 
         }
         
     except SQLAlchemyError as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Database error scheduling ECS FC reminders: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error scheduling ECS FC reminders: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)

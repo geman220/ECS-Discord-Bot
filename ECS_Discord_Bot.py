@@ -393,7 +393,11 @@ async def full_rsvp_sync(force_sync=False):
                         get_message_channel_from_web_ui(message_id),
                         timeout=10.0
                     )
-                    if not match_data or 'channel_id' not in match_data:
+                    if not match_data:
+                        logger.warning(f"Could not find message info for message {message_id}")
+                        return
+                    
+                    if 'channel_id' not in match_data:
                         logger.warning(f"Could not find channel ID for message {message_id}")
                         return
                         
@@ -1465,6 +1469,10 @@ async def on_message(message):
         if await handle_ecs_fc_sub_dm_response(message):
             return  # Response was handled, don't process further
         
+        # Handle onboarding responses
+        if await handle_onboarding_dm_response(message):
+            return  # Response was handled, don't process further
+        
         # Could add other DM handlers here in the future
 
     # Process other messages as usual
@@ -1891,13 +1899,16 @@ async def on_raw_reaction_add(payload):
 @bot.event
 async def on_member_join(member: discord.Member):
     """
-    When a member joins the server, check with the Flask app if the member is linked.
-    If linked, retrieve the expected roles and assign them using Discord API calls.
+    Enhanced member join handler that:
+    1. Assigns Discord roles based on Flask user data
+    2. Detects user onboarding status and triggers contextual DMs
+    3. Posts to #pl-new-players when appropriate
     """
     logger.info(f"Member join event triggered for {member.id} - {member.name}")
     # Wait a few seconds to allow for any asynchronous linking in Flask to complete.
     await asyncio.sleep(5)
     
+    # STEP 1: Handle existing role assignment logic
     flask_url = f"{WEBUI_API_URL}/player/by_discord/{member.id}"
     logger.info(f"Requesting expected roles from Flask at {flask_url}")
     
@@ -1933,12 +1944,195 @@ async def on_member_join(member: discord.Member):
                                     logger.error(f"Role '{role_name}' not found in guild {member.guild.name} for member {member.id}.")
                         else:
                             logger.info(f"No expected roles for linked player {member.id}.")
+                        
+                        # STEP 2: Handle onboarding logic for existing users
+                        await handle_user_onboarding_on_join(member, http_session, user_exists=True)
                     else:
                         logger.info(f"No linked player record found for member {member.id}.")
+                        # User not in database - no onboarding needed
                 else:
                     logger.error(f"Flask API returned status {resp.status} for member {member.id}. Response: {response_text}")
     except Exception as e:
         logger.exception(f"Error processing member join for {member.id}: {e}")
+
+
+async def handle_user_onboarding_on_join(member: discord.Member, http_session: aiohttp.ClientSession, user_exists: bool = True):
+    """
+    Handle onboarding flow when a user joins Discord.
+    This includes checking onboarding status and triggering appropriate actions.
+    """
+    discord_id = str(member.id)
+    logger.info(f"Processing onboarding for member {member.name} ({discord_id})")
+    
+    try:
+        # Step 1: Notify Flask that user joined Discord
+        async with http_session.post(f"{WEBUI_API_URL}/discord/user-joined/{discord_id}") as resp:
+            if resp.status == 200:
+                join_data = await resp.json()
+                logger.info(f"User join notification sent for {discord_id}: {join_data}")
+                
+                should_contact = join_data.get('should_contact', False)
+                if should_contact:
+                    # Step 2: Schedule delayed onboarding check (give user time to complete onboarding)
+                    logger.info(f"Scheduling delayed onboarding check for {discord_id}")
+                    asyncio.create_task(delayed_onboarding_check(member, delay_minutes=10))
+                else:
+                    # User has completed onboarding, trigger new player notification
+                    logger.info(f"User {discord_id} has completed onboarding, triggering immediate notification")
+                    asyncio.create_task(trigger_new_player_notification_task(member))
+                    
+            elif resp.status == 404:
+                logger.info(f"User {discord_id} not found in database - no onboarding needed")
+            else:
+                logger.error(f"Error notifying Flask of user join: {resp.status}")
+                
+    except Exception as e:
+        logger.error(f"Error in handle_user_onboarding_on_join for {discord_id}: {e}")
+
+
+async def delayed_onboarding_check(member: discord.Member, delay_minutes: int = 10):
+    """
+    Wait a specified time, then check if user needs onboarding assistance.
+    """
+    discord_id = str(member.id)
+    logger.info(f"Starting delayed onboarding check for {discord_id} (delay: {delay_minutes} minutes)")
+    
+    # Wait for the specified delay
+    await asyncio.sleep(delay_minutes * 60)
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Check current onboarding status
+            async with session.get(f"{WEBUI_API_URL}/discord/onboarding-status/{discord_id}") as resp:
+                if resp.status == 200:
+                    status_data = await resp.json()
+                    logger.info(f"Onboarding status for {discord_id}: {status_data}")
+                    
+                    if status_data.get('exists'):
+                        recommended_action = status_data.get('recommended_action', 'no_action')
+                        
+                        if recommended_action != 'send_welcome':
+                            # User still needs onboarding or league selection
+                            logger.info(f"Sending contextual welcome to {discord_id} (action: {recommended_action})")
+                            await send_contextual_welcome_message(member, session)
+                        else:
+                            # User completed onboarding during delay period
+                            logger.info(f"User {discord_id} completed onboarding during delay, sending notification")
+                            await trigger_new_player_notification_task(member)
+                    else:
+                        logger.warning(f"User {discord_id} no longer exists in database")
+                else:
+                    logger.error(f"Error checking onboarding status for {discord_id}: {resp.status}")
+                    
+    except Exception as e:
+        logger.error(f"Error in delayed_onboarding_check for {discord_id}: {e}")
+
+
+async def send_contextual_welcome_message(member: discord.Member, session: aiohttp.ClientSession):
+    """
+    Send contextual welcome message via bot API.
+    """
+    discord_id = str(member.id)
+    
+    try:
+        async with session.post(
+            "http://discord-bot:5001/onboarding/send-contextual-welcome",
+            json={"discord_id": discord_id}
+        ) as resp:
+            if resp.status == 200:
+                result = await resp.json()
+                logger.info(f"Contextual welcome sent to {discord_id}: {result}")
+            else:
+                logger.error(f"Error sending contextual welcome to {discord_id}: {resp.status}")
+                
+    except Exception as e:
+        logger.error(f"Error in send_contextual_welcome_message for {discord_id}: {e}")
+
+
+async def trigger_new_player_notification_task(member: discord.Member):
+    """
+    Trigger new player notification via bot API.
+    """
+    discord_id = str(member.id)
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "http://discord-bot:5001/onboarding/notify-new-player",
+                json={
+                    "discord_id": discord_id,
+                    "discord_username": member.name,
+                    "discord_display_name": member.display_name
+                }
+            ) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    logger.info(f"New player notification sent for {discord_id}: {result}")
+                else:
+                    logger.error(f"Error sending new player notification for {discord_id}: {resp.status}")
+                    
+    except Exception as e:
+        logger.error(f"Error in trigger_new_player_notification_task for {discord_id}: {e}")
+
+
+async def handle_onboarding_dm_response(message: discord.Message) -> bool:
+    """
+    Handle DM responses for onboarding (league selection).
+    Returns True if the message was processed as an onboarding response.
+    """
+    discord_id = str(message.author.id)
+    message_content = message.content.strip()
+    
+    # Skip if message is empty or is a command
+    if not message_content or message_content.startswith('!') or message_content.startswith('/'):
+        return False
+    
+    logger.info(f"Processing potential onboarding DM from {discord_id}: {message_content}")
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            # First check if this user needs onboarding assistance
+            async with session.get(f"{WEBUI_API_URL}/discord/onboarding-status/{discord_id}") as resp:
+                if resp.status == 404:
+                    # User not found in database, not an onboarding response
+                    return False
+                elif resp.status != 200:
+                    logger.error(f"Error checking onboarding status for {discord_id}: {resp.status}")
+                    return False
+                
+                status_data = await resp.json()
+                if not status_data.get('exists'):
+                    return False
+                
+                # Check if user is in a state where they might be responding to onboarding
+                bot_interaction_status = status_data.get('bot_interaction_status', 'not_contacted')
+                recommended_action = status_data.get('recommended_action', 'no_action')
+                
+                # Only process if user has been contacted or needs league selection
+                if bot_interaction_status in ['contacted', 'responded'] or recommended_action in ['ask_league_only', 'ask_league_and_onboarding']:
+                    # Process the message for league selection
+                    async with session.post(
+                        "http://discord-bot:5001/onboarding/process-user-message",
+                        json={
+                            "discord_id": discord_id,
+                            "message_content": message_content
+                        }
+                    ) as resp:
+                        if resp.status == 200:
+                            result = await resp.json()
+                            logger.info(f"Processed onboarding DM from {discord_id}: {result}")
+                            return result.get('processed', False)
+                        else:
+                            logger.error(f"Error processing onboarding DM from {discord_id}: {resp.status}")
+                            return False
+                else:
+                    # User doesn't need onboarding assistance, not an onboarding response
+                    return False
+                    
+    except Exception as e:
+        logger.error(f"Error in handle_onboarding_dm_response for {discord_id}: {e}")
+        return False
+
 
 async def process_reaction_removal(message_id, emoji, user_id, channel_id, payload):
     """

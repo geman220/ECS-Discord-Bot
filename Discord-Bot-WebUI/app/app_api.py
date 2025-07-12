@@ -502,13 +502,34 @@ def get_teams():
 
     teams = teams_query.order_by(Team.name).all()
 
-    teams_data = [
-        {
-            **team.to_dict(),
-            'league_name': team.league.name if team.league else "Unknown League"
-        }
-        for team in teams
-    ]
+    # Check cache first
+    from app.performance_cache import cache_match_results, set_match_results_cache
+    import hashlib
+    
+    # Create cache key based on query parameters
+    cache_key_data = f"{request.args.get('league_id', 'all')}:{request.args.get('season_id', 'current')}"
+    cache_hash = hashlib.md5(cache_key_data.encode()).hexdigest()
+    
+    cached_teams = cache_match_results(league_id=f"teams_{cache_hash}")
+    
+    if cached_teams:
+        teams_data = cached_teams
+    else:
+        # Preload team stats to avoid N+1 queries
+        from app.team_performance_helpers import preload_team_stats_for_request
+        team_ids = [team.id for team in teams]
+        preload_team_stats_for_request(team_ids)
+
+        teams_data = [
+            {
+                **team.to_dict(),
+                'league_name': team.league.name if team.league else "Unknown League"
+            }
+            for team in teams
+        ]
+        
+        # Cache the results for 10 minutes
+        set_match_results_cache(teams_data, league_id=f"teams_{cache_hash}", ttl=600)
     return jsonify(teams_data), 200
 
 
@@ -743,6 +764,10 @@ def get_team_stats(team_id: int):
         season_id=current_season.id if current_season else None
     ).first()
     
+    # Preload team stats to avoid N+1 queries
+    from app.team_performance_helpers import preload_team_stats_for_request
+    preload_team_stats_for_request([team.id])
+
     # Get team stats from model properties
     stats = {
         "name": team.name,
@@ -876,6 +901,11 @@ def get_my_teams():
     
     if not teams:
         return jsonify({"msg": "No teams found for this player"}), 404
+
+    # Preload team stats to avoid N+1 queries
+    from app.team_performance_helpers import preload_team_stats_for_request
+    team_ids = [team.id for team in teams]
+    preload_team_stats_for_request(team_ids)
 
     base_url = request.host_url.rstrip('/')
     teams_data = []

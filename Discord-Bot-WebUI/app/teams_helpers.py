@@ -10,6 +10,7 @@ retrieve the current season ID.
 """
 
 import logging
+from flask import g
 from sqlalchemy import func, or_
 from app.models import (
     db, Player, PlayerSeasonStats, PlayerCareerStats, Season, Standings,
@@ -22,79 +23,41 @@ logger = logging.getLogger(__name__)
 def populate_team_stats(team, season):
     """
     Calculate and return statistical data for a given team and season.
+    Uses optimized cached team stats to avoid N+1 queries.
     """
-    # Calculate top scorer using the many-to-many relationship with player_teams
-    top_scorer = g.db_session.query(Player.name, PlayerSeasonStats.goals).join(
-        PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
-    ).join(
-        player_teams, Player.id == player_teams.c.player_id
-    ).filter(
-        PlayerSeasonStats.season_id == season.id,
-        player_teams.c.team_id == team.id
-    ).order_by(PlayerSeasonStats.goals.desc()).first()
-
-    top_scorer_name, top_scorer_goals = (
-        top_scorer if top_scorer and top_scorer[1] > 0 else ("No goals scored", 0)
-    )
-
-    # Calculate top assister using the many-to-many relationship with player_teams
-    top_assister = g.db_session.query(Player.name, PlayerSeasonStats.assists).join(
-        PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
-    ).join(
-        player_teams, Player.id == player_teams.c.player_id
-    ).filter(
-        PlayerSeasonStats.season_id == season.id,
-        player_teams.c.team_id == team.id
-    ).order_by(PlayerSeasonStats.assists.desc()).first()
-
-    top_assister_name, top_assister_assists = (
-        top_assister if top_assister and top_assister[1] > 0 else ("No assists recorded", 0)
-    )
-
-    # Fetch the last 5 matches to determine recent form.
-    matches = Match.query.join(
-        Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))
-    ).join(
-        League, Team.league_id == League.id
-    ).filter(
-        ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-        League.season_id == season.id,
-        Match.home_team_score.isnot(None),
-        Match.away_team_score.isnot(None)
-    ).order_by(Match.date.desc()).limit(5).all()
-
-    recent_form_list = []
-    for match in matches:
-        if match.home_team_id == team.id:
-            result = 'W' if match.home_team_score > match.away_team_score else 'D' if match.home_team_score == match.away_team_score else 'L'
+    from app.team_performance_helpers import get_team_stats_cached
+    
+    # Get cached stats from our optimized helper
+    cached_stats = get_team_stats_cached(team.id)
+    
+    # Parse the formatted strings to extract names and numbers
+    top_scorer_text = cached_stats['top_scorer']
+    top_assist_text = cached_stats['top_assist']
+    
+    # Extract top scorer info
+    if top_scorer_text == "No data":
+        top_scorer_name, top_scorer_goals = "No goals scored", 0
+    else:
+        # Parse "Player Name (X goals)" format
+        import re
+        match = re.match(r'(.+?) \((\d+) goals?\)', top_scorer_text)
+        if match:
+            top_scorer_name, top_scorer_goals = match.groups()
+            top_scorer_goals = int(top_scorer_goals)
         else:
-            result = 'W' if match.away_team_score > match.home_team_score else 'D' if match.away_team_score == match.home_team_score else 'L'
-        recent_form_list.append(result)
-
-    recent_form = ' '.join(recent_form_list) if recent_form_list else "N/A"
-
-    # Calculate average goals per match using the many-to-many relationship
-    total_goals = g.db_session.query(func.sum(PlayerSeasonStats.goals)).join(
-        Player, PlayerSeasonStats.player_id == Player.id
-    ).join(
-        player_teams, Player.id == player_teams.c.player_id
-    ).filter(
-        PlayerSeasonStats.season_id == season.id,
-        player_teams.c.team_id == team.id
-    ).scalar() or 0
-
-    matches_played = g.db_session.query(func.count(Match.id)).join(
-        Team, ((Match.home_team_id == Team.id) | (Match.away_team_id == Team.id))
-    ).join(
-        League, Team.league_id == League.id
-    ).filter(
-        ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
-        League.season_id == season.id,
-        Match.home_team_score.isnot(None),
-        Match.away_team_score.isnot(None)
-    ).scalar() or 0
-
-    avg_goals_per_match = round(total_goals / matches_played, 2) if matches_played else 0
+            top_scorer_name, top_scorer_goals = "No goals scored", 0
+    
+    # Extract top assister info
+    if top_assist_text == "No data":
+        top_assister_name, top_assister_assists = "No assists recorded", 0
+    else:
+        # Parse "Player Name (X assists)" format
+        match = re.match(r'(.+?) \((\d+) assists?\)', top_assist_text)
+        if match:
+            top_assister_name, top_assister_assists = match.groups()
+            top_assister_assists = int(top_assister_assists)
+        else:
+            top_assister_name, top_assister_assists = "No assists recorded", 0
 
     return {
         "top_scorer_name": top_scorer_name,
@@ -102,7 +65,7 @@ def populate_team_stats(team, season):
         "top_assister_name": top_assister_name,
         "top_assister_assists": top_assister_assists,
         "recent_form": "N/A",  # Keep this simple for now
-        "avg_goals_per_match": 0  # Simplify for now
+        "avg_goals_per_match": cached_stats['avg_goals_per_match']
     }
 
 

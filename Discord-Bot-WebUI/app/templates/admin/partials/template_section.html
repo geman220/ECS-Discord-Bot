@@ -1,0 +1,132 @@
+<div class="card border">
+    <div class="card-header py-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0">{{ category.name }}</h6>
+                {% if category.description %}
+                <small class="text-muted">{{ category.description }}</small>
+                {% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-label-primary">{{ category.templates|length }} templates</span>
+                <button type="button" class="btn btn-sm btn-outline-success" 
+                        onclick="createTemplate({{ category.id }}, '{{ category.name }}')"
+                        data-bs-toggle="tooltip" title="Create New Template">
+                    <i class="ti ti-plus"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" 
+                        onclick="editCategory({{ category.id }}, '{{ category.name }}', '{{ category.description or '' }}')"
+                        data-bs-toggle="tooltip" title="Edit Category">
+                    <i class="ti ti-edit"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if category.templates %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Template</th>
+                        <th>Context</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for template in category.templates %}
+                    <tr>
+                        <td>
+                            <div>
+                                <h6 class="mb-1">{{ template.name }}</h6>
+                                <small class="text-muted">{{ template.description or 'Discord bot message template' }}</small>
+                                <br><code class="text-xs">{{ template.key }}</code>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                {% set context_info = {
+                                    'welcome': 'Sent when new users join Discord server',
+                                    'league_welcome': 'Sent when users join specific league channels', 
+                                    'match_reminder': 'Sent 24h before matches',
+                                    'availability_request': 'Sent weekly for availability collection',
+                                    'sub_request': 'Sent when substitute players are needed',
+                                    'error': 'Sent when bot encounters errors',
+                                    'maintenance': 'Sent during system maintenance'
+                                } %}
+                                
+                                {% for key_part in template.key.split('_') %}
+                                    {% if key_part in context_info %}
+                                    <small class="text-info">
+                                        <i class="ti ti-clock-hour-4 me-1"></i>{{ context_info[key_part] }}
+                                    </small>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if 'welcome' in template.key %}
+                                <small class="text-success">
+                                    <i class="ti ti-user-plus me-1"></i>Triggered: User joins
+                                </small>
+                                {% elif 'reminder' in template.key %}
+                                <small class="text-warning">
+                                    <i class="ti ti-bell me-1"></i>Triggered: Scheduled
+                                </small>
+                                {% elif 'error' in template.key %}
+                                <small class="text-danger">
+                                    <i class="ti ti-alert-triangle me-1"></i>Triggered: Error occurs
+                                </small>
+                                {% else %}
+                                <small class="text-muted">
+                                    <i class="ti ti-message me-1"></i>Manual/API trigger
+                                </small>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" 
+                                       id="template_{{ template.id }}_active" 
+                                       {{ 'checked' if template.is_active else '' }}
+                                       onchange="toggleTemplateStatus({{ template.id }}, this.checked)">
+                                <label class="form-check-label" for="template_{{ template.id }}_active">
+                                    <small class="text-muted">{{ 'Active' if template.is_active else 'Inactive' }}</small>
+                                </label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-icon btn-outline-primary" 
+                                        onclick="editTemplate({{ template.id }})" 
+                                        data-bs-toggle="tooltip" title="Edit">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-icon btn-outline-info" 
+                                        onclick="previewTemplate({{ template.id }})" 
+                                        data-bs-toggle="tooltip" title="Preview">
+                                    <i class="ti ti-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" 
+                                        onclick="copyTemplate({{ template.id }})" 
+                                        data-bs-toggle="tooltip" title="Copy">
+                                    <i class="ti ti-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="ti ti-message-plus text-muted" style="font-size: 2rem;"></i>
+            <p class="text-muted mb-2 mt-2">No templates in this category</p>
+            <button type="button" class="btn btn-sm btn-outline-success" 
+                    onclick="createTemplate({{ category.id }}, '{{ category.name }}')">
+                <i class="ti ti-plus me-1"></i>Create First Template
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>

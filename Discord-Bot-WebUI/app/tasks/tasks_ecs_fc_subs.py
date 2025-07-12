@@ -132,6 +132,10 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                     session.add(response)
                     session.flush()  # Get the ID
                     
+                    # Commit the session before making the external API call to avoid
+                    # holding the database transaction open during the Discord API call
+                    # Commit happens automatically in @celery_task decorator
+                    
                     # Send DM using existing proven system
                     dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
                     if dm_result['success']:
@@ -310,6 +314,11 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
                 )
                 
                 results['methods_attempted'].append('Discord')
+                
+                # Commit the session before making the external API call to avoid
+                # holding the database transaction open during the Discord API call
+                # Commit happens automatically in @celery_task decorator
+                
                 dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
                 if dm_result['success']:
                     results['methods_successful'].append('Discord')
@@ -616,6 +625,10 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                 # Send Discord DM if enabled
                 if pool_entry.discord_for_sub_requests and user.discord_notifications and player.discord_id:
                     try:
+                        # Commit the session before making the external API call to avoid
+                        # holding the database transaction open during the Discord API call
+                        # Commit happens automatically in @celery_task decorator
+                        
                         success, error = send_ecs_fc_dm_sync(
                             int(player.discord_id),
                             discord_message

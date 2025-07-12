@@ -134,6 +134,15 @@ class User(UserMixin, db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     approval_notes = db.Column(db.Text, nullable=True)
     
+    # Discord onboarding fields
+    preferred_league = db.Column(db.String(50), nullable=True)
+    discord_join_detected_at = db.Column(db.DateTime, nullable=True)
+    bot_interaction_status = db.Column(db.String(20), nullable=True, default='not_contacted')
+    league_selection_method = db.Column(db.String(20), nullable=True)
+    bot_interaction_attempts = db.Column(db.Integer, nullable=True, default=0)
+    last_bot_contact_at = db.Column(db.DateTime, nullable=True)
+    bot_response_received_at = db.Column(db.DateTime, nullable=True)
+    
     # Approval relationships
     approved_by_user = db.relationship('User', remote_side=[id], backref='approved_users')
 
@@ -319,51 +328,21 @@ class Team(db.Model):
 
     @property
     def top_scorer(self):
-        top_scorer = g.db_session.query(
-            Player, func.sum(PlayerSeasonStats.goals).label('total_goals')
-        ).join(
-            player_teams, Player.id == player_teams.c.player_id
-        ).join(
-            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
-        ).filter(
-            player_teams.c.team_id == self.id
-        ).group_by(Player.id).order_by(
-            desc('total_goals')
-        ).first()
-        return f"{top_scorer[0].name} ({top_scorer[1]} goals)" if top_scorer and top_scorer[1] > 0 else "No data"
+        from app.team_performance_helpers import get_team_stats_cached
+        stats = get_team_stats_cached(self.id)
+        return stats['top_scorer']
 
     @property
     def top_assist(self):
-        top_assist = g.db_session.query(
-            Player, func.sum(PlayerSeasonStats.assists).label('total_assists')
-        ).join(
-            player_teams, Player.id == player_teams.c.player_id
-        ).join(
-            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
-        ).filter(
-            player_teams.c.team_id == self.id
-        ).group_by(Player.id).order_by(
-            desc('total_assists')
-        ).first()
-        return f"{top_assist[0].name} ({top_assist[1]} assists)" if top_assist and top_assist[1] > 0 else "No data"
+        from app.team_performance_helpers import get_team_stats_cached
+        stats = get_team_stats_cached(self.id)
+        return stats['top_assist']
 
     @property
     def avg_goals_per_match(self):
-        total_goals = g.db_session.query(
-            func.sum(PlayerSeasonStats.goals)
-        ).join(
-            Player, Player.id == PlayerSeasonStats.player_id
-        ).join(
-            player_teams, Player.id == player_teams.c.player_id
-        ).filter(
-            player_teams.c.team_id == self.id
-        ).scalar() or 0
-
-        matches_played = g.db_session.query(func.count(Match.id)).filter(
-            or_(Match.home_team_id == self.id, Match.away_team_id == self.id)
-        ).scalar() or 1
-
-        return round(total_goals / matches_played, 2)
+        from app.team_performance_helpers import get_team_stats_cached
+        stats = get_team_stats_cached(self.id)
+        return stats['avg_goals_per_match']
 
     @property
     def popover_content(self):
@@ -1698,3 +1677,70 @@ class DraftOrderHistory(db.Model):
     
     def __repr__(self):
         return f"<DraftOrderHistory: #{self.draft_position} {self.player_id} to {self.team_id} in S{self.season_id}>"
+
+
+class MessageCategory(db.Model):
+    """Model representing categories for configurable messages."""
+    __tablename__ = 'message_categories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    templates = db.relationship('MessageTemplate', back_populates='category', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<MessageCategory: {self.name}>"
+
+
+class MessageTemplate(db.Model):
+    """Model representing configurable message templates."""
+    __tablename__ = 'message_templates'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('message_categories.id', ondelete='CASCADE'), nullable=False)
+    key = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    message_content = db.Column(db.Text, nullable=False)
+    variables = db.Column(JSON, nullable=True)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    updated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
+    # Relationships
+    category = db.relationship('MessageCategory', back_populates='templates')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_message_templates')
+    updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_message_templates')
+    
+    __table_args__ = (
+        db.UniqueConstraint('category_id', 'key', name='uq_message_template_category_key'),
+    )
+    
+    def format_message(self, **kwargs):
+        """Format the message content with provided variables."""
+        try:
+            return self.message_content.format(**kwargs)
+        except KeyError as e:
+            logger.warning(f"Missing variable for message template {self.key}: {e}")
+            return self.message_content
+        except Exception as e:
+            logger.error(f"Error formatting message template {self.key}: {e}")
+            return self.message_content
+    
+    @classmethod
+    def get_by_key(cls, category_name: str, template_key: str):
+        """Get a message template by category name and key."""
+        return cls.query.join(MessageCategory).filter(
+            MessageCategory.name == category_name,
+            cls.key == template_key,
+            cls.is_active == True
+        ).first()
+    
+    def __repr__(self):
+        return f"<MessageTemplate: {self.category.name}.{self.key}>"

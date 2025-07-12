@@ -119,7 +119,7 @@ def update_ecs_fc_rsvp(self, session, match_id: int, player_id: int, new_respons
             )
             session.add(availability)
 
-        session.commit()
+        # Commit happens automatically in @celery_task decorator
 
         # Notify frontend via WebSocket
         try:
@@ -149,11 +149,11 @@ def update_ecs_fc_rsvp(self, session, match_id: int, player_id: int, new_respons
         }
 
     except SQLAlchemyError as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Database error updating ECS FC RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error updating ECS FC RSVP: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
@@ -255,6 +255,10 @@ def send_ecs_fc_rsvp_reminder(self, session, match_id: int, target_players: Opti
                     f"📍 {match.location}\n\n"
                     f"Please respond in your team's Discord channel as soon as possible!"
                 )
+                
+                # Commit the session before making the external API call to avoid
+                # holding the database transaction open during the Discord API call
+                # Commit happens automatically in @celery_task decorator
                 
                 dm_result = send_ecs_fc_dm_sync(player.discord_id, reminder_message)
                 if dm_result['success']:
@@ -532,7 +536,7 @@ def cleanup_old_ecs_fc_availabilities(self, session, days_old: int = 90) -> Dict
                 batch = old_availabilities[i:i + batch_size]
                 for availability in batch:
                     session.delete(availability)
-                session.commit()
+                # Commit happens automatically in @celery_task decorator
                 logger.info(f"Deleted batch of {len(batch)} old ECS FC availability records")
 
         logger.info(f"Cleaned up {deleted_count} old ECS FC availability records older than {days_old} days")
@@ -546,11 +550,11 @@ def cleanup_old_ecs_fc_availabilities(self, session, days_old: int = 90) -> Dict
         }
 
     except SQLAlchemyError as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Database error cleaning up old ECS FC availabilities: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
-        session.rollback()
+        # Rollback happens automatically in @celery_task decorator
         logger.error(f"Error cleaning up old ECS FC availabilities: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 

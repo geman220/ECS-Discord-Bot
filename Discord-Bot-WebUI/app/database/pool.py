@@ -259,6 +259,7 @@ ENGINE_OPTIONS = {
     'pool_timeout': int(os.getenv('SQLALCHEMY_POOL_TIMEOUT', 20)),
     'poolclass': RateLimitedPool,
     'pool_use_lifo': True,
+    'pool_reset_on_return': 'rollback',  # Important for PgBouncer - always rollback on return
     'connect_args': _get_connect_args(),
     'echo': False,
     'echo_pool': False,

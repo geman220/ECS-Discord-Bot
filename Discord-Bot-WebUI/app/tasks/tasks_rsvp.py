@@ -101,6 +101,9 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
             discord_id = player.discord_id
             logger.debug(f"Using player's discord_id: {discord_id}")
 
+        # Note: Database changes are automatically committed by @celery_task decorator
+        # This ensures proper transaction handling without holding locks during external calls
+
         # Schedule Discord RSVP update if discord_id is available
         if discord_id:
             # Run reaction update with higher priority (lower countdown)
@@ -969,6 +972,9 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
             update_count += 1
             
         logger.info(f"Marked {update_count} failed records for resync (last 7 days only)")
+        
+        # Note: Database changes are automatically committed by @celery_task decorator
+        # This ensures proper transaction handling without holding locks during external calls
         
         # Call the Discord bot API to force a full sync
         discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"

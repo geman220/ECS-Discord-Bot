@@ -172,6 +172,12 @@ def admin_dashboard():
     total_users = users_query.count()
     users = users_query.offset((page - 1) * per_page).limit(per_page).all()
 
+    # Get teams and preload stats
+    teams = session.query(Team).all()
+    from app.team_performance_helpers import preload_team_stats_for_request
+    team_ids = [team.id for team in teams]
+    preload_team_stats_for_request(team_ids, session)
+
     template_data = {
         'users': users,
         'page': page,
@@ -180,11 +186,15 @@ def admin_dashboard():
         'roles': session.query(Role).all(),
         'permissions': session.query(Permission).all(),
         'announcements': session.query(Announcement).order_by(Announcement.created_at.desc()).all(),
-        'teams': session.query(Team).all(),
+        'teams': teams,
         'edit_form': EditUserForm(),
         'reset_password_form': ResetPasswordForm(),
         'announcement_form': AnnouncementForm()
     }
+
+    # Commit the session before rendering the template to avoid holding
+    # the database transaction open during template rendering
+    session.commit()
 
     return render_template('admin_dashboard.html', **template_data)
 
@@ -397,6 +407,10 @@ def manage_polls():
     for poll in polls:
         poll.response_counts = poll.get_response_counts()
         poll.total_responses = sum(poll.response_counts.values())
+    
+    # Commit the session before rendering the template to avoid holding
+    # the database transaction open during template rendering
+    session.commit()
     
     return render_template('admin/manage_polls.html', polls=polls)
 

@@ -18,6 +18,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
 from app.utils.redis_manager import RedisManager
+from app.utils.task_session_manager import task_session
 
 # Configure logger for this module.
 logger = logging.getLogger(__name__)
@@ -53,16 +54,15 @@ def collect_db_stats():
     
     with app.app_context():
         logger.info("Entered app context")
-        session = app.SessionLocal()
         try:
-            # Test the database connection.
-            session.execute(text('SELECT 1'))
-            logger.info("Database connection successful")
+            with task_session() as session:
+                # Test the database connection.
+                session.execute(text('SELECT 1'))
+                logger.info("Database connection successful")
 
-            # Import db_manager here to avoid circular dependencies.
-            from app.db_management import db_manager
-            
-            try:
+                # Import db_manager here to avoid circular dependencies.
+                from app.db_management import db_manager
+                
                 # Collect detailed statistics from the database.
                 stats = {}
                 if hasattr(db_manager, 'get_detailed_stats'):
@@ -106,28 +106,15 @@ def collect_db_stats():
 
                 # Save the snapshot to the database.
                 session.add(snapshot)
-                session.commit()
+                # Commit happens automatically in task_session
                 logger.info("Database stats collected and saved successfully")
-            except AttributeError as attr_err:
-                logger.error(f"Missing attribute in db_manager: {attr_err}")
-                session.rollback()
-            except Exception as stats_err:
-                logger.error(f"Error collecting database stats: {stats_err}", exc_info=True)
-                session.rollback()
 
         except SQLAlchemyError as e:
             logger.error(f"Database error collecting DB stats: {e}", exc_info=True)
-            session.rollback()
             raise
         except Exception as e:
             logger.error(f"Error collecting DB stats: {e}", exc_info=True)
-            session.rollback()
             raise
-        finally:
-            try:
-                session.close()
-            except Exception as close_err:
-                logger.error(f"Error closing session: {close_err}")
 
 
 @celery.task(name='app.tasks.monitoring_tasks.check_for_session_leaks')
@@ -149,79 +136,76 @@ def check_for_session_leaks():
     app = celery.flask_app
     
     with app.app_context():
-        session = app.SessionLocal()
         try:
-            # Find idle-in-transaction sessions
-            query = text("""
-                SELECT 
-                    pid, 
-                    usename, 
-                    application_name,
-                    client_addr,
-                    backend_start,
-                    xact_start,
-                    query_start,
-                    state_change,
-                    state,
-                    EXTRACT(EPOCH FROM (NOW() - state_change)) as idle_seconds,
-                    query
-                FROM 
-                    pg_stat_activity 
-                WHERE 
-                    pid <> pg_backend_pid() 
-                    AND state = 'idle in transaction'
-                    AND state_change < NOW() - interval '30 minutes'
-                ORDER BY 
-                    idle_seconds DESC;
-            """)
-            
-            potential_leaks = []
-            for row in session.execute(query).mappings():
-                leak_data = dict(row)
-                potential_leaks.append(leak_data)
-            
-            logger.info(f"Found {len(potential_leaks)} potential session leaks")
-            
-            # Terminate sessions that have been idle for too long (likely leaked)
-            terminated = 0
-            for leak in potential_leaks:
-                try:
-                    if leak.get('idle_seconds', 0) > 3600:  # Over 1 hour idle
-                        session.execute(
-                            text("SELECT pg_terminate_backend(:pid)"),
-                            {"pid": leak['pid']}
-                        )
-                        terminated += 1
-                        logger.warning(
-                            f"Terminated leaked session: PID={leak['pid']}, "
-                            f"Idle time={leak['idle_seconds']/60:.1f} minutes"
-                        )
-                except Exception as e:
-                    logger.error(f"Failed to terminate session {leak['pid']}: {e}")
-            
-            result = {
-                "potential_leaks": len(potential_leaks),
-                "terminated": terminated,
-                "details": [
-                    {
-                        "pid": leak['pid'],
-                        "application": leak.get('application_name', 'Unknown'),
-                        "idle_minutes": leak.get('idle_seconds', 0) / 60,
-                        "query": leak.get('query', 'No query')[:100]
-                    }
-                    for leak in potential_leaks
-                ]
-            }
-            
-            logger.info(f"Session leak check completed: {result['potential_leaks']} potential leaks, {result['terminated']} terminated")
-            return result
-            
+            with task_session() as session:
+                # Find idle-in-transaction sessions
+                query = text("""
+                    SELECT 
+                        pid, 
+                        usename, 
+                        application_name,
+                        client_addr,
+                        backend_start,
+                        xact_start,
+                        query_start,
+                        state_change,
+                        state,
+                        EXTRACT(EPOCH FROM (NOW() - state_change)) as idle_seconds,
+                        query
+                    FROM 
+                        pg_stat_activity 
+                    WHERE 
+                        pid <> pg_backend_pid() 
+                        AND state = 'idle in transaction'
+                        AND state_change < NOW() - interval '30 minutes'
+                    ORDER BY 
+                        idle_seconds DESC;
+                """)
+                
+                potential_leaks = []
+                for row in session.execute(query).mappings():
+                    leak_data = dict(row)
+                    potential_leaks.append(leak_data)
+                
+                logger.info(f"Found {len(potential_leaks)} potential session leaks")
+                
+                # Terminate sessions that have been idle for too long (likely leaked)
+                terminated = 0
+                for leak in potential_leaks:
+                    try:
+                        if leak.get('idle_seconds', 0) > 3600:  # Over 1 hour idle
+                            session.execute(
+                                text("SELECT pg_terminate_backend(:pid)"),
+                                {"pid": leak['pid']}
+                            )
+                            terminated += 1
+                            logger.warning(
+                                f"Terminated leaked session: PID={leak['pid']}, "
+                                f"Idle time={leak['idle_seconds']/60:.1f} minutes"
+                            )
+                    except Exception as e:
+                        logger.error(f"Failed to terminate session {leak['pid']}: {e}")
+                
+                result = {
+                    "potential_leaks": len(potential_leaks),
+                    "terminated": terminated,
+                    "details": [
+                        {
+                            "pid": leak['pid'],
+                            "application": leak.get('application_name', 'Unknown'),
+                            "idle_minutes": leak.get('idle_seconds', 0) / 60,
+                            "query": leak.get('query', 'No query')[:100]
+                        }
+                        for leak in potential_leaks
+                    ]
+                }
+                
+                logger.info(f"Session leak check completed: {result['potential_leaks']} potential leaks, {result['terminated']} terminated")
+                return result
+                
         except Exception as e:
             logger.error(f"Error checking for session leaks: {e}", exc_info=True)
-            session.rollback()
             raise
-        finally:
-            session.close()
 
 
 @celery.task(name='app.tasks.monitoring_tasks.monitor_redis_connections')

@@ -17,6 +17,8 @@ from functools import wraps
 from contextlib import asynccontextmanager
 from inspect import getouterframes, currentframe
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from flask import (
     redirect, url_for, abort, jsonify,
     current_app, has_app_context, g
@@ -24,6 +26,7 @@ from flask import (
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from app.core import celery
+from app.core.session_manager import managed_session
 from app.utils.user_helpers import safe_current_user
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 
@@ -367,37 +370,14 @@ async def async_session_context():
     Asynchronous session context manager for async operations.
 
     If within a request context, uses g.db_session; otherwise, creates a new session.
-    Properly commits or rolls back the session in all execution paths.
+    Uses the standardized managed_session context manager for proper session handling.
     
     Yields:
         A database session.
     """
-    app = current_app._get_current_object()
-    session = getattr(g, 'db_session', None)
-    new_session = False
-    if session is None:
-        session = app.SessionLocal()
-        new_session = True
-
-    try:
+    # Use the established managed_session context manager
+    with managed_session() as session:
         yield session
-        # Commit changes if this is our own session
-        if new_session:
-            try:
-                session.commit()
-            except Exception as e:
-                logger.error(f"Error committing async session: {e}", exc_info=True)
-                session.rollback()
-                raise
-    except Exception:
-        # Ensure rollback on exceptions
-        if new_session:
-            session.rollback()
-        raise
-    finally:
-        # Always close if we created this session
-        if new_session:
-            session.close()
 
 
 def celery_task(func=None, **task_kwargs):
@@ -437,36 +417,28 @@ def celery_task(func=None, **task_kwargs):
                 # Track session creation
                 register_session_start(session_id, self.request.id, stack_trace)
                 
-                # Create the session
-                session = app.SessionLocal()
+                # Use managed_session for proper session handling
                 try:
-                    if asyncio.iscoroutinefunction(f):
-                        # Use a smarter approach to avoid nested event loop issues
-                        from app.api_utils import async_to_sync
-                        result = async_to_sync(f(self, session, *args, **kwargs))
-                    else:
-                        result = f(self, session, *args, **kwargs)
-                    
-                    # Commit the session
-                    session.commit()
-                    
-                    # Record successful completion
-                    register_session_end(session_id, 'committed')
-                    return result
+                    with managed_session() as session:
+                        if asyncio.iscoroutinefunction(f):
+                            # Use a smarter approach to avoid nested event loop issues
+                            from app.api_utils import async_to_sync
+                            result = async_to_sync(f(self, session, *args, **kwargs))
+                        else:
+                            result = f(self, session, *args, **kwargs)
+                        
+                        # Commit happens automatically in managed_session
+                        # Record successful completion
+                        register_session_end(session_id, 'committed')
+                        return result
                 except Exception as e:
-                    # Roll back on error
-                    session.rollback()
-                    
-                    # Record error in session tracking
+                    # Record error in session tracking (rollback happens automatically in managed_session)
                     register_session_end(session_id, 'error-rollback')
                     
                     logger.error(f"Task {task_name} failed: {str(e)}", exc_info=True)
                     raise
                 finally:
-                    # Always close the session
-                    session.close()
-                    
-                    # Ensure session is marked as closed even if register_session_end wasn't reached
+                    # Ensure session is marked as closed
                     try:
                         register_session_end(session_id, 'closed')
                     except Exception as e:
@@ -514,28 +486,24 @@ def async_task(**task_kwargs):
                 # Use the new async_to_sync utility for safe async execution
                 from app.api_utils import async_to_sync
                 
-                # Define the actual async execution function
+                # Define the actual async execution function using managed_session
                 async def execute_async():
-                    session = app.SessionLocal()
+                    # Use managed_session in an async context
+                    from app.utils.task_session_manager import async_task_session
                     try:
-                        # Execute the task with session and args
-                        result = await f(session, *args, **kwargs)
-                        # Commit changes on success
-                        session.commit()
-                        return result
+                        async with async_task_session() as session:
+                            # Execute the task with session and args
+                            result = await f(session, *args, **kwargs)
+                            # Commit happens automatically in async_task_session
+                            return result
                     except SQLAlchemyError as e:
-                        # Roll back on database errors and retry the task
-                        session.rollback()
+                        # Rollback happens automatically, just handle retry
                         logger.error(f"Database error in {task_name}: {e}", exc_info=True)
                         raise self.retry(exc=e, countdown=60, max_retries=max_retries)
                     except Exception as e:
-                        # Roll back on any other errors
-                        session.rollback()
+                        # Rollback happens automatically, just log and re-raise
                         logger.error(f"Error in {task_name}: {e}", exc_info=True)
                         raise
-                    finally:
-                        # Always close the session
-                        session.close()
                 
                 # Use the safe async execution utility
                 return async_to_sync(execute_async())
