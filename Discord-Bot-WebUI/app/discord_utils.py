@@ -1066,9 +1066,16 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
         home_team_name = match.opponent
         away_team_name = local_team_name
 
-    # Convert match.date_time (assumed to be in UTC) to PST
-    utc_time = match.date_time.replace(tzinfo=ZoneInfo("UTC"))
+    # Convert match.date_time to PST for display
+    logger.info(f"DEBUG: Original match.date_time: {match.date_time}")
+    if match.date_time.tzinfo is None:
+        utc_time = match.date_time.replace(tzinfo=ZoneInfo("UTC"))
+    else:
+        utc_time = match.date_time.astimezone(ZoneInfo("UTC"))
+    logger.info(f"DEBUG: UTC time: {utc_time}")
     pst_time = utc_time.astimezone(ZoneInfo("America/Los_Angeles"))
+    logger.info(f"DEBUG: PST time: {pst_time}")
+    logger.info(f"DEBUG: Formatted time: {pst_time.strftime('%m/%d/%Y %I:%M %p %Z')}")
 
     thread_name = f"{home_team_name} vs {away_team_name} - {pst_time.strftime('%Y-%m-%d')}"
     
