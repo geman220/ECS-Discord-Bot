@@ -31,6 +31,7 @@ from api.routes.onboarding_routes import router as onboarding_router
 
 app.include_router(server_router)
 app.include_router(match_router, prefix="/api/server")
+app.include_router(match_router, prefix="/api")  # For /api/thread endpoints
 app.include_router(league_router)
 app.include_router(communication_router)
 app.include_router(ecs_fc_sub_router)
