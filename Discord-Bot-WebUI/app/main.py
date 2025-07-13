@@ -798,6 +798,34 @@ def mark_as_read(notification_id):
         return redirect(url_for('main.notifications'))
 
 
+@main.route('/profile/me', methods=['GET', 'POST'])
+def my_profile():
+    """
+    Direct users to their own profile or login if not authenticated.
+    Perfect for QR codes at registration events.
+    """
+    if not safe_current_user.is_authenticated:
+        # Store the intended destination
+        session['next'] = url_for('main.my_profile')
+        show_info('Please log in to access your profile.')
+        return redirect(url_for('auth.login'))
+    
+    # Get the player associated with current user
+    db_session = g.db_session
+    player = db_session.query(Player).filter_by(user_id=safe_current_user.id).first()
+    
+    if not player:
+        show_error('No player profile found. Please contact an administrator.')
+        return redirect(url_for('main.index'))
+    
+    # Check if mobile parameter is present (for mobile-optimized view)
+    if request.args.get('mobile') == '1':
+        return redirect(url_for('players.mobile_profile_update', player_id=player.id))
+    
+    # Otherwise redirect to regular profile page
+    return redirect(url_for('players.player_profile', player_id=player.id))
+
+
 @main.route('/onboarding', methods=['GET', 'POST'])
 @login_required
 def onboarding():

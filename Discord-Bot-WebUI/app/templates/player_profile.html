@@ -171,13 +171,37 @@
                     <small class="text-muted d-block text-center mt-2">
                         Click to confirm your profile information is current and accurate
                     </small>
+                    
+                    {% if not player.profile_last_updated %}
+                    <div class="alert alert-danger py-2 mt-3 mb-0">
+                        <i class="ti ti-alert-circle me-1"></i>
+                        <small>Your profile needs verification</small>
+                    </div>
+                    {% elif profile_expired %}
+                    <div class="alert alert-warning py-2 mt-3 mb-0">
+                        <i class="ti ti-alert-triangle me-1"></i>
+                        <small>Your profile verification expired - please review and update your information</small>
+                    </div>
+                    {% endif %}
                     {% else %}
                     <!-- Admin view - read-only -->
                     <div class="text-center">
-                        <div class="alert alert-info py-2 mb-0">
-                            <i class="ti ti-info-circle me-1"></i>
-                            <small>{% if player.profile_last_updated %}Player profile verification is current{% else %}Player needs to verify their profile information{% endif %}</small>
+                        {% if not player.profile_last_updated %}
+                        <div class="alert alert-danger py-2 mb-0">
+                            <i class="ti ti-alert-circle me-1"></i>
+                            <small>Player needs to verify their profile information</small>
                         </div>
+                        {% elif profile_expired %}
+                        <div class="alert alert-warning py-2 mb-0">
+                            <i class="ti ti-alert-triangle me-1"></i>
+                            <small>Profile verification expired - last updated {{ player.profile_last_updated.strftime('%B %d, %Y') }}</small>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success py-2 mb-0">
+                            <i class="ti ti-circle-check me-1"></i>
+                            <small>Player profile verification is current</small>
+                        </div>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
