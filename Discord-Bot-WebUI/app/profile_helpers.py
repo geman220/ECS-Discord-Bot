@@ -181,15 +181,20 @@ def handle_profile_update(form, player, user):
     try:
         logger.debug("Entering handle_profile_update")
 
-        # Check if the email is unique (excluding the current user)
-        if check_email_uniqueness(form.email.data, user.id):
+        # Check if the email is unique (excluding the current user) only if a new email is provided
+        if form.email.data and check_email_uniqueness(form.email.data, user.id):
             logger.debug("Email not unique. Aborting update.")
             return redirect(url_for('players.player_profile', player_id=player.id))
 
-        new_email = form.email.data.lower() if form.email.data else None
-        logger.debug(f"Updating user.email from {user.email} to {new_email}")
-        user.email = new_email
-        player.email = new_email
+        # Only update email if a new value is provided
+        if form.email.data:
+            new_email = form.email.data.lower()
+            logger.debug(f"Updating user.email from {user.email} to {new_email}")
+            user.email = new_email
+            player.email = new_email
+        else:
+            # Keep existing email if no new value provided
+            logger.debug(f"No email provided in form, keeping existing email: {user.email}")
 
         # Update player fields
         player.name = form.name.data.strip()
