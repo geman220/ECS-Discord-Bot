@@ -59,13 +59,30 @@ class RateLimitedPool(QueuePool):
         Logs the new connection and registers it with the global connection tracker.
         """
         conn_id = id(dbapi_conn)
-        logger.info(f"New database connection created: {conn_id}")
+        logger.warning(f"POOL EVENT: _on_connect fired for connection {conn_id}")
+        
         # Register with global connection tracker if it exists
         try:
             from app.utils.db_connection_monitor import register_connection
             register_connection(conn_id, "pool_connect")
+            logger.warning(f"POOL EVENT: Successfully registered connection {conn_id}")
+            
+            # Add a weakref finalizer to ensure cleanup even if events fail
+            import weakref
+            def cleanup_on_gc():
+                try:
+                    from app.utils.db_connection_monitor import unregister_connection
+                    unregister_connection(conn_id)
+                    logger.debug(f"Finalizer unregistered connection {conn_id}")
+                except:
+                    pass
+            
+            weakref.finalize(dbapi_conn, cleanup_on_gc)
+            
         except ImportError:
-            pass
+            logger.debug("Connection monitor not available")
+        except Exception as e:
+            logger.error(f"Error registering connection {conn_id}: {e}", exc_info=True)
 
     def _get_stack_info(self, depth=10):
         """
@@ -182,22 +199,42 @@ class RateLimitedPool(QueuePool):
         Removes the connection from the active connections tracker and attempts a rollback.
         """
         conn_id = id(dbapi_conn)
-        self._active_connections.pop(conn_id, None)
+        logger.warning(f"POOL EVENT: _on_checkin fired for connection {conn_id}")
+        
+        conn_info = self._active_connections.pop(conn_id, None)
+        
+        # Log if connection was checked out for too long
+        if conn_info:
+            checkout_time, _, route = conn_info
+            duration = time.time() - checkout_time
+            if duration > 30:
+                logger.warning(f"Connection {conn_id} was checked out for {duration:.1f}s (route: {route})")
 
         try:
             if dbapi_conn and not dbapi_conn.closed:
+                # Force rollback to clear any pending transactions
                 dbapi_conn.rollback()
+                # Reset connection state for PgBouncer
+                if hasattr(dbapi_conn, 'reset'):
+                    dbapi_conn.reset()
         except Exception as e:
             logger.error(f"Error during connection {conn_id} rollback: {e}", exc_info=True)
+            # Mark connection as invalid to force recreation
+            con_record.invalidate()
         finally:
             # Always unregister from global connection tracker, even if rollback fails
             try:
                 from app.utils.db_connection_monitor import unregister_connection
                 unregister_connection(conn_id)
+                logger.warning(f"POOL EVENT: Successfully unregistered connection {conn_id}")
             except ImportError:
-                pass
+                logger.debug("Connection monitor not available - skipping unregister")
             except Exception as e:
-                logger.error(f"Error unregistering connection {conn_id}: {e}", exc_info=True)
+                logger.error(f"CRITICAL: Failed to unregister connection {conn_id}: {e}", exc_info=True)
+                # Force cleanup by clearing from active connections manually
+                if hasattr(self, '_active_connections') and conn_id in self._active_connections:
+                    self._active_connections.pop(conn_id, None)
+                    logger.warning(f"Force removed connection {conn_id} from pool tracking")
 
     def _on_reset(self, dbapi_conn, record):
         """

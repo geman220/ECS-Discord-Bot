@@ -69,12 +69,41 @@
                     <a href="{{ url_for('user_management.create_user') }}" class="btn btn-primary me-2">
                         <i class="ti ti-user-plus me-1"></i> Create New User
                     </a>
-                    <form method="POST" action="{{ url_for('user_management.update_players') }}" class="d-inline">
+                    <form method="POST" action="{{ url_for('user_management.update_players') }}" class="d-inline me-2">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-success">
                             <i class="ti ti-refresh me-1"></i> Sync Players from WooCommerce
                         </button>
                     </form>
+                    
+                    <!-- Export Player Profiles Dropdown -->
+                    <div class="dropdown d-inline me-2">
+                        <button class="btn btn-info dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="ti ti-download me-1"></i> Export Player Profiles
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <li><h6 class="dropdown-header">Export Active Players</h6></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('user_management.export_player_profiles') }}">
+                                    <i class="ti ti-users me-2"></i>All Leagues
+                                </a>
+                            </li>
+                            {% for league in leagues %}
+                            {% if league.season.is_current %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('user_management.export_player_profiles', league_id=league.id) }}">
+                                    <i class="ti ti-trophy me-2"></i>{{ league.name }}
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <!-- Reset Profile Compliance Button -->
+                    <button type="button" class="btn btn-warning" id="resetComplianceBtn">
+                        <i class="ti ti-refresh-alert me-1"></i> Reset Profile Compliance
+                    </button>
                 </div>
                 <div class="d-flex align-items-center">
                     <span class="text-muted me-2">Total: {{ pagination.total }} users</span>
@@ -813,6 +842,56 @@
                 const userId = this.getAttribute('data-user-id');
                 const username = this.getAttribute('data-username');
                 handleDeleteUserClick(userId, username);
+            });
+        });
+
+        // Reset Profile Compliance functionality
+        document.getElementById('resetComplianceBtn').addEventListener('click', function() {
+            Swal.fire({
+                title: 'Reset Profile Compliance',
+                html: `<div class="text-start">
+                       <p class="mb-2">This will mark <strong>ALL players</strong> as non-compliant for profile updates.</p>
+                       <p class="mb-2">Players will need to either:</p>
+                       <ul class="mb-3">
+                           <li>Update their profile information, or</li>
+                           <li>Confirm their profile is accurate</li>
+                       </ul>
+                       <p class="fw-bold mb-0">This is typically done at the start of each season.</p>
+                       </div>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reset compliance',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#ff9800',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    return fetch("{{ url_for('user_management.reset_profile_compliance') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || 'An error occurred');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Compliance Reset!',
+                        text: result.value.message,
+                        icon: 'success'
+                    });
+                }
             });
         });
 

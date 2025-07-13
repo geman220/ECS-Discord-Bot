@@ -330,36 +330,48 @@ def close_leaked_connections(age_threshold_seconds: int = 300) -> int:
     """
     closed_count = 0
     
+    # First, identify leaked connections
+    leaked = find_leaked_connections(age_threshold_seconds)
+    leaked_ids = {conn['id'] for conn in leaked}
+    
+    if not leaked_ids:
+        return 0
+        
+    logger.info(f"Attempting to close {len(leaked_ids)} leaked connections")
+    
     # Search for connections in the garbage collector
     for obj in gc.get_objects():
         try:
-            if isinstance(obj, psycopg2.extensions.connection):
-                if not obj.closed:
-                    conn_id = id(obj)
-                    with _connection_lock:
-                        if conn_id in _active_connections:
-                            info = _active_connections[conn_id]
-                            age = (
-                                __import__('datetime').datetime.utcnow() - info['created_at']
-                            ).total_seconds()
-                            
-                            if age > age_threshold_seconds:
-                                try:
-                                    logger.warning(
-                                        f"Closing leaked connection {conn_id} from {info['origin']} "
-                                        f"(age: {age:.1f}s)"
-                                    )
-                                    obj.close()
-                                    unregister_connection(conn_id)
-                                    closed_count += 1
-                                except Exception as e:
-                                    logger.error(f"Error closing leaked connection {conn_id}: {e}")
+            # Check for both psycopg2 connections and dbapi connections
+            if (hasattr(obj, 'close') and hasattr(obj, 'closed') and 
+                (isinstance(obj, psycopg2.extensions.connection) or 
+                 type(obj).__name__ in ('connection', 'AsyncConnection', 'PoolProxiedConnection'))):
+                
+                obj_id = id(obj)
+                if obj_id in leaked_ids and not getattr(obj, 'closed', True):
+                    try:
+                        logger.warning(
+                            f"Force closing leaked connection {obj_id} "
+                            f"(type: {type(obj).__name__})"
+                        )
+                        obj.close()
+                        closed_count += 1
+                    except Exception as e:
+                        logger.error(f"Error closing connection {obj_id}: {e}")
+                        
         except ReferenceError:
             # Object was garbage collected while we were looking at it
             continue
         except Exception:
             # Skip objects that can't be safely introspected
             continue
+    
+    # Clean up our tracking regardless of whether we could close the connection
+    with _connection_lock:
+        for conn_id in leaked_ids:
+            if conn_id in _active_connections:
+                _active_connections.pop(conn_id)
+                logger.info(f"Removed leaked connection {conn_id} from tracking")
     
     return closed_count
 

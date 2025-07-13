@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold py-3 mb-2">
+                <i class="ti ti-shopping-cart me-2 text-primary"></i>League Store
+            </h2>
+            <div class="text-muted">
+                Order league merchandise and equipment
+                {% if current_season %}
+                <br><small class="fw-medium">Current Season: {{ current_season.name }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{{ url_for('store.my_orders') }}" class="btn btn-outline-primary me-2">
+                        <i class="ti ti-list me-1"></i> My Orders
+                    </a>
+                    {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+                    <a href="{{ url_for('store.admin') }}" class="btn btn-warning">
+                        <i class="ti ti-settings me-1"></i> Store Administration
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Season Order Status -->
+    {% if has_ordered_this_season and current_season_order %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="ti ti-info-circle me-2"></i>
+                <div>
+                    <strong>You have already placed your order for {{ current_season.name }}!</strong><br>
+                    <small>You ordered: <strong>{{ current_season_order.item.name if current_season_order.item else 'Unknown Item' }}</strong>
+                    {% if current_season_order.selected_color %} in {{ current_season_order.selected_color }}{% endif %}
+                    {% if current_season_order.selected_size %} ({{ current_season_order.selected_size }}){% endif %}
+                    - Status: {{ current_season_order.status }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Orders (if any) -->
+    {% if recent_orders %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                    <th>Season</th>
+                                    <th>Order Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                <tr>
+                                    <td>{{ order.item.name if order.item else 'Unknown Item' }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>
+                                        {% if order.selected_color %}
+                                        <span class="badge bg-label-info">{{ order.selected_color }}</span>
+                                        {% endif %}
+                                        {% if order.selected_size %}
+                                        <span class="badge bg-label-secondary">{{ order.selected_size }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.status == 'PENDING' %}
+                                        <span class="badge bg-label-warning">Pending</span>
+                                        {% elif order.status == 'PROCESSING' %}
+                                        <span class="badge bg-label-info">Processing</span>
+                                        {% elif order.status == 'ORDERED' %}
+                                        <span class="badge bg-label-primary">Ordered</span>
+                                        {% elif order.status == 'DELIVERED' %}
+                                        <span class="badge bg-label-success">Delivered</span>
+                                        {% elif order.status == 'CANCELLED' %}
+                                        <span class="badge bg-label-danger">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ order.season.name if order.season else 'Unknown' }}</td>
+                                    <td>{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Store Items -->
+    <div class="row">
+        {% if items %}
+        {% for item in items %}
+        <div class="col-xl-4 col-lg-6 col-md-6 col-12 mb-4">
+            <div class="card h-100">
+                {% if item.image_url %}
+                <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}" style="height: 200px; object-fit: contain; background-color: #f8f9fa;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="ti ti-photo text-muted" style="font-size: 3rem;"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body d-flex flex-column">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">{{ item.name }}</h5>
+                        {% if item.category %}
+                        <span class="badge bg-label-primary mb-2">{{ item.category }}</span>
+                        {% endif %}
+                        {% if item.description %}
+                        <p class="card-text">{{ item.description }}</p>
+                        {% endif %}
+                        
+                        <!-- Available Options -->
+                        <div class="mb-3">
+                            {% if item.available_colors %}
+                            {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                            {% if colors %}
+                            <h6 class="small mb-1">Available Colors:</h6>
+                            <div class="mb-2">
+                                {% for color in colors %}
+                                <span class="badge bg-label-info me-1">{{ color }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                            
+                            {% if item.available_sizes %}
+                            {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                            {% if sizes %}
+                            <h6 class="small mb-1">Available Sizes:</h6>
+                            <div class="mb-2">
+                                {% for size in sizes %}
+                                <span class="badge bg-label-secondary me-1">{{ size }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        {% if has_ordered_this_season %}
+                        <button type="button" class="btn btn-secondary w-100" disabled>
+                            <i class="ti ti-check me-1"></i> Already Ordered This Season
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#orderModal{{ item.id }}">
+                            <i class="ti ti-shopping-cart me-1"></i> Order Item
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Modal for this item -->
+        <div class="modal fade" id="orderModal{{ item.id }}" tabindex="-1" aria-labelledby="orderModalLabel{{ item.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form class="order-form" data-item-id="{{ item.id }}">
+                        <div class="modal-header bg-light">
+                            <h5 class="modal-title" id="orderModalLabel{{ item.id }}">
+                                <i class="ti ti-shopping-cart me-2"></i>Order: {{ item.name }}
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="quantity" value="1">
+                            
+                            <div class="alert alert-info alert-sm mb-3">
+                                <i class="ti ti-info-circle me-1"></i>
+                                <strong>Note:</strong> Both color and size selections are required for all orders.
+                            </div>
+                            
+                            {% if item.available_colors %}
+                            {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                            {% else %}
+                            {% set colors = [] %}
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="color{{ item.id }}" class="form-label">Color *</label>
+                                <select class="form-select" id="color{{ item.id }}" name="color" required>
+                                    {% if colors|length == 0 %}
+                                    <option value="N/A" selected>N/A (No color options)</option>
+                                    {% elif colors|length == 1 %}
+                                    <option value="{{ colors[0] }}" selected>{{ colors[0] }}</option>
+                                    {% else %}
+                                    <option value="">Select a color</option>
+                                    {% for color in colors %}
+                                    <option value="{{ color }}">{{ color }}</option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                            
+                            {% if item.available_sizes %}
+                            {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                            {% else %}
+                            {% set sizes = [] %}
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="size{{ item.id }}" class="form-label">Size *</label>
+                                <select class="form-select" id="size{{ item.id }}" name="size" required>
+                                    {% if sizes|length == 0 %}
+                                    <option value="One Size" selected>One Size</option>
+                                    {% elif sizes|length == 1 %}
+                                    <option value="{{ sizes[0] }}" selected>{{ sizes[0] }}</option>
+                                    {% else %}
+                                    <option value="">Select a size</option>
+                                    {% for size in sizes %}
+                                    <option value="{{ size }}">{{ size }}</option>
+                                    {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                <i class="ti ti-x me-1"></i>Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ti ti-shopping-cart me-1"></i>Place Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="ti ti-shopping-cart-off text-muted mb-3" style="font-size: 4rem;"></i>
+                    <h4 class="text-muted">No Items Available</h4>
+                    <p class="text-muted">There are currently no items available in the store.</p>
+                    {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+                    <a href="{{ url_for('store.admin') }}" class="btn btn-primary">
+                        <i class="ti ti-plus me-1"></i>Add Items
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle order form submissions
+    const orderForms = document.querySelectorAll('.order-form');
+    orderForms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const itemId = this.getAttribute('data-item-id');
+            const formData = new FormData(this);
+            const modalId = `orderModal${itemId}`;
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+            
+            // Validate color selection
+            const colorSelect = this.querySelector(`#color${itemId}`);
+            const sizeSelect = this.querySelector(`#size${itemId}`);
+            
+            if (colorSelect && !colorSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Color Required',
+                    text: 'Please select a color for this item.'
+                });
+                colorSelect.focus();
+                return;
+            }
+            
+            if (sizeSelect && !sizeSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Size Required',
+                    text: 'Please select a size for this item.'
+                });
+                sizeSelect.focus();
+                return;
+            }
+            
+            // Show loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Ordering...';
+            
+            fetch(`{{ url_for('store.place_order', item_id=0) }}`.replace('0', itemId), {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Placed!',
+                        text: data.message
+                    }).then(() => {
+                        modal.hide();
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Failed',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while placing your order.'
+                });
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

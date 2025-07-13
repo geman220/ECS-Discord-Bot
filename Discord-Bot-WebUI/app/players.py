@@ -434,6 +434,34 @@ def add_stat_manually_route(player_id):
     return redirect(url_for('players.player_profile', player_id=player_id))
 
 
+@players_bp.route('/profile/<int:player_id>/verify', endpoint='verify_profile', methods=['POST'])
+@login_required
+def verify_profile(player_id):
+    """
+    Verify a player's profile without making changes.
+    Updates the profile_last_updated timestamp to mark the profile as current.
+    Only the profile owner can verify their own profile.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
+    
+    # Check if user can verify this profile (only their own)
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        show_error('You can only verify your own profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+    
+    try:
+        from app.profile_helpers import handle_profile_verification
+        return handle_profile_verification(player)
+    except Exception as e:
+        logger.exception(f"Error verifying profile for player {player_id}: {str(e)}")
+        show_error('Error verifying profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+
+
 @players_bp.route('/api/player_profile/<int:player_id>', endpoint='api_player_profile', methods=['GET'])
 @login_required
 def api_player_profile(player_id):

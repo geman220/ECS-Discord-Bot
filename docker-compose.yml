@@ -29,13 +29,16 @@ services:
       # ── pool tuning ───────────────────────────────────────────────────
       - POOL_MODE=transaction
       - MAX_CLIENT_CONN=100
-      - DEFAULT_POOL_SIZE=15
-      - RESERVE_POOL_SIZE=3
+      - DEFAULT_POOL_SIZE=18
+      - RESERVE_POOL_SIZE=2
       - RESERVE_POOL_TIMEOUT=5
+      - QUERY_WAIT_TIMEOUT=30
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
-      - IDLE_TRANSACTION_TIMEOUT=30
-      - CLIENT_IDLE_TIMEOUT=120  
-      - QUERY_TIMEOUT=15
+      - IDLE_TRANSACTION_TIMEOUT=10
+      - CLIENT_IDLE_TIMEOUT=60  
+      - QUERY_TIMEOUT=30
+      - SERVER_IDLE_TIMEOUT=300
+      - SERVER_LIFETIME=3600
       # ── upstream TLS & auth (left blank/disabled in dev .env) ─────────
       - PGBOUNCER_SERVER_TLS_SSLMODE=${SERVER_TLS_SSLMODE:-disable}
       - PGBOUNCER_SERVER_TLS_CA_FILE=${SERVER_TLS_CA_FILE:-}

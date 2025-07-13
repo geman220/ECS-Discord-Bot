@@ -418,6 +418,7 @@ def celery_task(func=None, **task_kwargs):
                 register_session_start(session_id, self.request.id, stack_trace)
                 
                 # Use managed_session for proper session handling
+                session = None
                 try:
                     with managed_session() as session:
                         if asyncio.iscoroutinefunction(f):
@@ -441,6 +442,9 @@ def celery_task(func=None, **task_kwargs):
                     # Ensure session is marked as closed
                     try:
                         register_session_end(session_id, 'closed')
+                        # Force cleanup any lingering connections
+                        if session and hasattr(session, 'close'):
+                            session.close()
                     except Exception as e:
                         logger.error(f"Failed to register session end: {str(e)}")
                         

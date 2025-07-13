@@ -11,10 +11,17 @@ The module interacts with the database and enforces role-based access control fo
 
 import logging
 from datetime import datetime
+import io
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g, send_file, make_response
 from flask_login import login_required
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
+
+try:
+    import pandas as pd
+    PANDAS_AVAILABLE = True
+except ImportError:
+    PANDAS_AVAILABLE = False
 
 from app.models import User, Role, Player, League, Season, Team, user_roles
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
@@ -912,3 +919,169 @@ def update_status(task_id):
         }
     
     return jsonify(response)
+
+
+@user_management_bp.route('/export_player_profiles', endpoint='export_player_profiles', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def export_player_profiles():
+    """
+    Export player profiles to Excel, filtered by league for active players.
+    Players will be included if the league is their primary or secondary league.
+    Only accessible by Pub League Admin and Global Admin roles.
+    """
+    if not PANDAS_AVAILABLE:
+        show_error('Excel export functionality requires pandas. Please install pandas: pip install pandas openpyxl')
+        return redirect(url_for('user_management.manage_users'))
+    
+    session = g.db_session
+    
+    try:
+        # Get the league filter from request args
+        league_id = request.args.get('league_id', type=int)
+        
+        # Build base query for active players with efficient loading
+        query = session.query(Player).options(
+            selectinload(Player.user),
+            selectinload(Player.primary_league),
+            selectinload(Player.other_leagues)
+        ).filter(Player.is_current_player == True)
+        
+        # Filter by league if specified (check both primary and secondary leagues)
+        if league_id:
+            league = session.query(League).get(league_id)
+            league_name = league.name if league else "Unknown League"
+            
+            # Filter players who have this league as either primary or secondary
+            query = query.filter(
+                (Player.primary_league_id == league_id) |
+                (Player.other_leagues.any(League.id == league_id))
+            )
+        else:
+            league_name = "All Active Players"
+        
+        players = query.all()
+        
+        if not players:
+            show_warning(f'No active players found for {league_name}.')
+            return redirect(url_for('user_management.manage_users'))
+        
+        # Prepare data for Excel export
+        export_data = []
+        for player in players:
+            # Format last updated
+            last_updated = player.profile_last_updated.strftime('%Y-%m-%d %H:%M:%S') if player.profile_last_updated else 'Never'
+            
+            player_data = {
+                'Name': player.name,
+                'Username': player.user.username if player.user else '',
+                'Email': player.user.email if player.user else '',
+                'Phone': player.phone or '',
+                'Phone Verified': 'Yes' if player.is_phone_verified else 'No',
+                'SMS Consent': 'Yes' if player.sms_consent_given else 'No',
+                'Jersey Size': player.jersey_size or '',
+                'Jersey Number': player.jersey_number or '',
+                'Primary League': player.primary_league.name if player.primary_league else '',
+                'Secondary Leagues': ', '.join([league.name for league in player.other_leagues]) if player.other_leagues else '',
+                'Is Coach': 'Yes' if player.is_coach else 'No',
+                'Is Referee': 'Yes' if player.is_ref else 'No',
+                'Available for Ref': 'Yes' if player.is_available_for_ref else 'No',
+                'Is Sub': 'Yes' if player.is_sub else 'No',
+                'Discord ID': player.discord_id or '',
+                'Pronouns': player.pronouns or '',
+                'Expected Weeks Available': player.expected_weeks_available or '',
+                'Unavailable Dates': player.unavailable_dates or '',
+                'Willing to Referee': player.willing_to_referee or '',
+                'Favorite Position': player.favorite_position or '',
+                'Other Positions': player.other_positions or '',
+                'Positions NOT to Play': player.positions_not_to_play or '',
+                'Frequency Play Goal': player.frequency_play_goal or '',
+                'Additional Info': player.additional_info or '',
+                'Player Notes': player.player_notes or '',
+                'Team Swap': player.team_swap or '',
+                'Profile Last Updated': last_updated,
+                'User Approved': 'Yes' if player.user and player.user.is_approved else 'No'
+            }
+            export_data.append(player_data)
+        
+        # Create DataFrame
+        df = pd.DataFrame(export_data)
+        
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Player Profiles')
+            
+            # Get the workbook and worksheet to format
+            workbook = writer.book
+            worksheet = writer.sheets['Player Profiles']
+            
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        output.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'player_profiles_{league_name.replace(" ", "_")}_{timestamp}.xlsx'
+        
+        # Create response
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        
+        logger.info(f"Player profiles exported successfully for {league_name}: {len(players)} players")
+        show_success(f'Successfully exported {len(players)} player profiles for {league_name}.')
+        
+        return response
+        
+    except Exception as e:
+        logger.exception(f"Error exporting player profiles: {str(e)}")
+        show_error(f'Error exporting player profiles: {str(e)}')
+        return redirect(url_for('user_management.manage_users'))
+
+
+@user_management_bp.route('/reset_profile_compliance', endpoint='reset_profile_compliance', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def reset_profile_compliance():
+    """
+    Reset profile compliance status for all players by setting their profile_last_updated to None.
+    This marks all profiles as 'non-compliant' until players update or verify their profiles.
+    """
+    session = g.db_session
+    
+    try:
+        # Update all players to set profile_last_updated to None
+        updated_count = session.query(Player).update({
+            Player.profile_last_updated: None
+        })
+        
+        session.commit()
+        
+        logger.info(f"Profile compliance reset for {updated_count} players")
+        show_success(f'Profile compliance reset successfully. {updated_count} players need to verify their profiles.')
+        
+        return jsonify({
+            'success': True,
+            'message': f'Profile compliance reset for {updated_count} players.',
+            'updated_count': updated_count
+        })
+        
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error resetting profile compliance: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error resetting profile compliance: {str(e)}'
+        })
