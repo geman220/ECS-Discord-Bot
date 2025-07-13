@@ -127,6 +127,63 @@
             </div>
             {% endif %}
 
+            <!-- Profile Verification Card -->
+            {% if is_own_profile or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+            <div class="card mb-4">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Profile Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if player.profile_last_updated %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-sm me-3 bg-label-success">
+                            <i class="ti ti-check"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Last Updated</h6>
+                            <span class="text-success">{{ format_pacific_time(player.profile_last_updated) }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar avatar-sm me-3 bg-label-warning">
+                            <i class="ti ti-alert-triangle"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Profile Status</h6>
+                            <span class="text-warning">{% if is_own_profile %}Please verify your profile information{% else %}Player has not verified their profile{% endif %}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if is_own_profile %}
+                    <div class="text-center">
+                        <button type="button" class="btn btn-primary" id="verifyProfileBtn">
+                            <i class="ti ti-check-circle me-1"></i>
+                            {% if player.profile_last_updated %}
+                                Confirm Profile is Still Accurate
+                            {% else %}
+                                Verify My Profile Information
+                            {% endif %}
+                        </button>
+                    </div>
+                    
+                    <small class="text-muted d-block text-center mt-2">
+                        Click to confirm your profile information is current and accurate
+                    </small>
+                    {% else %}
+                    <!-- Admin view - read-only -->
+                    <div class="text-center">
+                        <div class="alert alert-info py-2 mb-0">
+                            <i class="ti ti-info-circle me-1"></i>
+                            <small>{% if player.profile_last_updated %}Player profile verification is current{% else %}Player needs to verify their profile information{% endif %}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Stats Card -->
             {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
             <div class="card mb-4">
@@ -1206,6 +1263,56 @@
                         iconElement.classList.add('ti-chevron-up');
                     }
                 }
+            });
+        }
+        
+        // Profile verification functionality
+        const verifyProfileBtn = document.getElementById('verifyProfileBtn');
+        if (verifyProfileBtn) {
+            verifyProfileBtn.addEventListener('click', function() {
+                Swal.fire({
+                    title: 'Verify Profile Information',
+                    html: `<div class="text-start">
+                           <p class="mb-2">Please confirm that your profile information is current and accurate.</p>
+                           <p class="mb-2">This includes:</p>
+                           <ul class="mb-3">
+                               <li>Contact information (email, phone)</li>
+                               <li>Player details (jersey size, positions, availability)</li>
+                               <li>Personal information (pronouns, notes)</li>
+                           </ul>
+                           <p class="fw-bold mb-0">By confirming, you verify that all information is up to date.</p>
+                           </div>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, my profile is accurate',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#28a745',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return fetch("{{ url_for('players.verify_profile', player_id=player.id) }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': "{{ csrf_token() }}"
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(`Request failed: ${error}`);
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Reload the page to show updated timestamp
+                        window.location.reload();
+                    }
+                });
             });
         }
     });

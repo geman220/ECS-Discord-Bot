@@ -668,6 +668,7 @@ def view_standings():
 
     premier_standings = get_standings('Premier')
     classic_standings = get_standings('Classic')
+    ecsfc_standings = get_standings('ECS FC')
 
     # Check Redis cache for standings first
     from app.performance_cache import cache_standings_data, set_standings_cache
@@ -678,21 +679,24 @@ def view_standings():
         logger.debug("Using cached standings data")
         premier_stats = cached_standings.get('premier_stats', {})
         classic_stats = cached_standings.get('classic_stats', {})
+        ecsfc_stats = cached_standings.get('ecsfc_stats', {})
     else:
         logger.debug("Generating fresh standings data")
         # Preload team stats to avoid N+1 queries
         from app.team_performance_helpers import preload_team_stats_for_request
-        all_team_ids = [s.team.id for s in premier_standings] + [s.team.id for s in classic_standings]
+        all_team_ids = [s.team.id for s in premier_standings] + [s.team.id for s in classic_standings] + [s.team.id for s in ecsfc_standings]
         preload_team_stats_for_request(all_team_ids)
 
         # Populate detailed stats for each team.
         premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
         classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
+        ecsfc_stats = {s.team.id: populate_team_stats(s.team, season) for s in ecsfc_standings}
         
         # Cache the results
         standings_data = {
             'premier_stats': premier_stats,
-            'classic_stats': classic_stats
+            'classic_stats': classic_stats,
+            'ecsfc_stats': ecsfc_stats
         }
         set_standings_cache(standings_data, league_id=None, ttl=300)  # Cache for 5 minutes
 
@@ -701,8 +705,10 @@ def view_standings():
         title='Standings',
         premier_standings=premier_standings,
         classic_standings=classic_standings,
+        ecsfc_standings=ecsfc_standings,
         premier_stats=premier_stats,
-        classic_stats=classic_stats
+        classic_stats=classic_stats,
+        ecsfc_stats=ecsfc_stats
     )
 
 

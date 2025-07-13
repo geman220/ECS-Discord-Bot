@@ -270,6 +270,16 @@
         </li>
         {% endif %}
         
+        <!-- League Store - Available for Coaches and Admins -->
+        {% if 'Pub League Coach' in user_roles or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+        <li class="menu-item {{ 'active' if 'store' in request.path }}">
+            <a class="menu-link" href="{{ url_for('store.index') }}">
+                <i class="ti ti-shopping-cart menu-icon"></i>
+                <div>League Store</div>
+            </a>
+        </li>
+        {% endif %}
+        
         <!-- Match Verification - Pub League Admin / Global Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         <li class="menu-item {{ 'active' if request.endpoint == 'admin.match_verification_dashboard' }}">

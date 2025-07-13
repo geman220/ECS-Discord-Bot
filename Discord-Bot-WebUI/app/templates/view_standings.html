@@ -80,7 +80,7 @@
                         </thead>
                         <tbody>
                             {% for standing in premier_standings %}
-                            {% set stats = premier_stats[standing.team.id] %}
+                            {% set stats = premier_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
                                 <td class="text-center fw-bold">{{ loop.index }}</td>
                                 <td>
@@ -95,10 +95,10 @@
                                            data-bs-title="{{ standing.team.name }}"
                                            data-bs-content="
                                            <div class='team-stats-popover'>
-                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)</div>
-                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)</div>
-                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats.recent_form }}</div>
-                                               <div><strong>Avg Goals:</strong> {{ stats.avg_goals_per_match }} per match</div>
+                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats['top_scorer_name'] }} ({{ stats['top_scorer_goals'] }} goals)</div>
+                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats['top_assister_name'] }} ({{ stats['top_assister_assists'] }} assists)</div>
+                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats['recent_form'] }}</div>
+                                               <div><strong>Avg Goals:</strong> {{ stats['avg_goals_per_match'] }} per match</div>
                                            </div>">
                                             {{ standing.team.name }}
                                         </a>
@@ -161,7 +161,7 @@
                         </thead>
                         <tbody>
                             {% for standing in classic_standings %}
-                            {% set stats = classic_stats[standing.team.id] %}
+                            {% set stats = classic_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
                                 <td class="text-center fw-bold">{{ loop.index }}</td>
                                 <td>
@@ -176,10 +176,10 @@
                                            data-bs-title="{{ standing.team.name }}"
                                            data-bs-content="
                                            <div class='team-stats-popover'>
-                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)</div>
-                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)</div>
-                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats.recent_form }}</div>
-                                               <div><strong>Avg Goals:</strong> {{ stats.avg_goals_per_match }} per match</div>
+                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats['top_scorer_name'] }} ({{ stats['top_scorer_goals'] }} goals)</div>
+                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats['top_assister_name'] }} ({{ stats['top_assister_assists'] }} assists)</div>
+                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats['recent_form'] }}</div>
+                                               <div><strong>Avg Goals:</strong> {{ stats['avg_goals_per_match'] }} per match</div>
                                            </div>">
                                             {{ standing.team.name }}
                                         </a>
@@ -243,7 +243,7 @@
                         </thead>
                         <tbody>
                             {% for standing in ecsfc_standings %}
-                            {% set stats = ecsfc_stats[standing.team.id] %}
+                            {% set stats = ecsfc_stats.get(standing.team.id, {'top_scorer_name': 'N/A', 'top_scorer_goals': 0, 'top_assister_name': 'N/A', 'top_assister_assists': 0, 'recent_form': 'N/A', 'avg_goals_per_match': 0}) %}
                             <tr>
                                 <td class="text-center fw-bold">{{ loop.index }}</td>
                                 <td>
@@ -260,10 +260,10 @@
                                            data-bs-title="{{ standing.team.name }}"
                                            data-bs-content="
                                            <div class='team-stats-popover'>
-                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats.top_scorer_name }} ({{ stats.top_scorer_goals }} goals)</div>
-                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats.top_assister_name }} ({{ stats.top_assister_assists }} assists)</div>
-                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats.recent_form }}</div>
-                                               <div><strong>Avg Goals:</strong> {{ stats.avg_goals_per_match }} per match</div>
+                                               <div class='mb-2'><strong>Top Scorer:</strong> {{ stats['top_scorer_name'] }} ({{ stats['top_scorer_goals'] }} goals)</div>
+                                               <div class='mb-2'><strong>Top Assister:</strong> {{ stats['top_assister_name'] }} ({{ stats['top_assister_assists'] }} assists)</div>
+                                               <div class='mb-2'><strong>Recent Form:</strong> {{ stats['recent_form'] }}</div>
+                                               <div><strong>Avg Goals:</strong> {{ stats['avg_goals_per_match'] }} per match</div>
                                            </div>">
                                             {{ standing.team.name }}
                                         </a>

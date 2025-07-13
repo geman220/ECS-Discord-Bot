@@ -1,0 +1,981 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold py-3 mb-2">
+                <i class="ti ti-settings me-2 text-primary"></i>Store Administration
+            </h2>
+            <div class="text-muted">
+                Manage store items and orders
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{{ url_for('store.index') }}" class="btn btn-outline-primary me-2">
+                        <i class="ti ti-arrow-left me-1"></i> Back to Store
+                    </a>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createItemModal">
+                        <i class="ti ti-plus me-1"></i> Add New Item
+                    </button>
+                    <button type="button" class="btn btn-warning ms-2" data-bs-toggle="modal" data-bs-target="#resetOrderingModal">
+                        <i class="ti ti-refresh me-1"></i> Reset Season Ordering
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Items Management -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <h5 class="card-title mb-0">Store Items</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Options</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.image_url %}
+                                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="avatar avatar-md bg-label-secondary me-3">
+                                            <i class="ti ti-photo"></i>
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ item.name }}</h6>
+                                            {% if item.description %}
+                                            <small class="text-muted">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.category %}
+                                    <span class="badge bg-label-primary">{{ item.category }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.price %}
+                                    <span class="fw-medium">${{ "%.2f"|format(item.price) }}</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.available_colors %}
+                                    {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                                    <small class="text-muted">Colors: {{ colors|length }}</small><br>
+                                    {% endif %}
+                                    {% if item.available_sizes %}
+                                    {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                                    <small class="text-muted">Sizes: {{ sizes|length }}</small>
+                                    {% endif %}
+                                    {% if not item.available_colors and not item.available_sizes %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.is_active %}
+                                    <span class="badge bg-label-success">Active</span>
+                                    {% else %}
+                                    <span class="badge bg-label-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ format_pacific_time_short(item.created_at) if item.created_at else '' }}<br>
+                                    <small class="text-muted">by {{ item.creator.username if item.creator else 'Unknown' }}</small>
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" type="button" data-bs-toggle="dropdown">
+                                            <i class="ti ti-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ url_for('store.edit_item', item_id=item.id) }}">
+                                                    <i class="ti ti-edit me-2"></i>Edit
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item text-danger delete-item-btn" href="#" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
+                                                    <i class="ti ti-trash me-2"></i>Delete
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Management -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Recent Orders</h5>
+                        <div class="d-flex gap-2">
+                            <select id="bulk-status-select" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Bulk Update Status</option>
+                                <option value="PENDING">Mark as Pending</option>
+                                <option value="PROCESSING">Mark as Processing</option>
+                                <option value="ORDERED">Mark as Ordered</option>
+                                <option value="DELIVERED">Mark as Delivered</option>
+                                <option value="CANCELLED">Mark as Cancelled</option>
+                            </select>
+                            <button type="button" class="btn btn-sm btn-primary" id="bulk-update-btn" disabled>
+                                <i class="ti ti-check me-1"></i>Update Selected
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" id="bulk-delete-btn" disabled>
+                                <i class="ti ti-trash me-1"></i>Delete Selected
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="select-all-orders">
+                                        <label class="form-check-label" for="select-all-orders"></label>
+                                    </div>
+                                </th>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Item</th>
+                                <th>Details</th>
+                                <th>Status</th>
+                                <th>Order Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input order-checkbox" type="checkbox" value="{{ order.id }}" id="order-{{ order.id }}">
+                                        <label class="form-check-label" for="order-{{ order.id }}"></label>
+                                    </div>
+                                </td>
+                                <td>#{{ order.id }}</td>
+                                <td>{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
+                                <td>
+                                    <div>
+                                        <strong>{{ order.item.name if order.item else 'Unknown Item' }}</strong>
+                                        <br><small class="text-muted">Qty: {{ order.quantity }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if order.selected_color %}
+                                    <span class="badge bg-label-info me-1">{{ order.selected_color }}</span>
+                                    {% endif %}
+                                    {% if order.selected_size %}
+                                    <span class="badge bg-label-secondary me-1">{{ order.selected_size }}</span>
+                                    {% endif %}
+                                    {% if order.notes %}
+                                    <br><small class="text-muted">{{ order.notes[:30] }}{% if order.notes|length > 30 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm order-status-select" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}">
+                                        <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                        <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                                        <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
+                                        <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                                        <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    {{ format_pacific_time_short(order.order_date) if order.order_date else '' }}
+                                    {% if order.processed_by %}
+                                    <br><small class="text-muted">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-info view-order-btn" data-order-id="{{ order.id }}" title="View Order">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger delete-order-btn" 
+                                                data-order-id="{{ order.id }}" 
+                                                data-order-info="Order #{{ order.id }} for {{ order.item.name if order.item else 'Unknown Item' }}"
+                                                data-customer-name="{{ order.orderer.username if order.orderer else 'Unknown Customer' }}"
+                                                title="Delete Order">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Item Modal -->
+<div class="modal fade" id="createItemModal" tabindex="-1" aria-labelledby="createItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="createItemForm" enctype="multipart/form-data">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title" id="createItemModalLabel">
+                        <i class="ti ti-plus me-2"></i>Add New Store Item
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="e.g. 0857 Pioneer Pullover">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="price" class="form-label">Price (Admin Only)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price" name="price" 
+                                           step="0.01" min="0" placeholder="15.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Describe the item, materials, features, etc."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category" name="category" 
+                               placeholder="e.g. Apparel, Equipment, Accessories">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Image</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="image_file" class="form-label">Upload Image</label>
+                                <input type="file" class="form-control" id="image_file" name="image_file" 
+                                       accept="image/*">
+                                <div class="form-text">Upload an image file</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="image_url" class="form-label">Or Image URL</label>
+                                <input type="url" class="form-control" id="image_url" name="image_url" 
+                                       placeholder="https://example.com/image.jpg">
+                                <div class="form-text">Provide a direct link to an image</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Available Colors</label>
+                                <div id="colors-container">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White">
+                                        <button type="button" class="btn btn-outline-danger remove-color" style="display: none;">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-color">
+                                    <i class="ti ti-plus me-1"></i>Add Color
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Available Sizes</label>
+                                <div id="sizes-container">
+                                    <div class="input-group mb-2">
+                                        <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL">
+                                        <button type="button" class="btn btn-outline-danger remove-size" style="display: none;">
+                                            <i class="ti ti-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="add-size">
+                                    <i class="ti ti-plus me-1"></i>Add Size
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="ti ti-x me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="ti ti-device-floppy me-1"></i>Create Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Season Ordering Modal -->
+<div class="modal fade" id="resetOrderingModal" tabindex="-1" aria-labelledby="resetOrderingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning-subtle">
+                <h5 class="modal-title" id="resetOrderingModalLabel">
+                    <i class="ti ti-refresh me-2"></i>Reset Season Ordering
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    <strong>Warning:</strong> This action will allow all coaches to place new orders for the current season, 
+                    even if they have already placed an order. Use this at the beginning of a new season.
+                </div>
+                
+                <p class="mb-3">Choose how to reset ordering eligibility:</p>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="resetType" id="resetAll" value="all" checked>
+                    <label class="form-check-label" for="resetAll">
+                        <strong>Delete all orders for current season</strong><br>
+                        <small class="text-muted">This will permanently delete all orders for the current season and allow everyone to order again.</small>
+                    </label>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="resetType" id="resetEligibility" value="eligibility">
+                    <label class="form-check-label" for="resetEligibility">
+                        <strong>Reset eligibility only</strong><br>
+                        <small class="text-muted">Keep existing orders but allow coaches to place additional orders (useful for special promotions).</small>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer bg-warning-subtle">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="ti ti-x me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" id="confirmResetBtn">
+                    <i class="ti ti-refresh me-1"></i>Reset Season Ordering
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create Item Modal functionality
+    const createItemForm = document.getElementById('createItemForm');
+    if (createItemForm) {
+        // Add color functionality
+        document.getElementById('add-color').addEventListener('click', function() {
+            const container = document.getElementById('colors-container');
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" class="form-control" name="colors[]" placeholder="e.g. Navy, Black, White">
+                <button type="button" class="btn btn-outline-danger remove-color">
+                    <i class="ti ti-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            updateRemoveButtons('color');
+        });
+        
+        // Add size functionality
+        document.getElementById('add-size').addEventListener('click', function() {
+            const container = document.getElementById('sizes-container');
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <input type="text" class="form-control" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL">
+                <button type="button" class="btn btn-outline-danger remove-size">
+                    <i class="ti ti-x"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            updateRemoveButtons('size');
+        });
+        
+        // Remove color/size functionality
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-color')) {
+                e.target.closest('.input-group').remove();
+                updateRemoveButtons('color');
+            }
+            if (e.target.closest('.remove-size')) {
+                e.target.closest('.input-group').remove();
+                updateRemoveButtons('size');
+            }
+        });
+        
+        // Update remove button visibility
+        function updateRemoveButtons(type) {
+            const container = document.getElementById(`${type}s-container`);
+            const groups = container.querySelectorAll('.input-group');
+            groups.forEach((group, index) => {
+                const removeBtn = group.querySelector(`.remove-${type}`);
+                if (groups.length > 1) {
+                    removeBtn.style.display = 'block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+        }
+        
+        // Handle create item form submission
+        createItemForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Creating...';
+            
+            fetch('{{ url_for("store.create_item") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Item Created!',
+                        text: data.message
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while creating the item.'
+                });
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+        
+        // Initial update for remove buttons
+        updateRemoveButtons('color');
+        updateRemoveButtons('size');
+    }
+    // Handle item deletion
+    const deleteButtons = document.querySelectorAll('.delete-item-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const itemId = this.getAttribute('data-item-id');
+            const itemName = this.getAttribute('data-item-name');
+            
+            Swal.fire({
+                title: 'Delete Item',
+                text: `Are you sure you want to delete "${itemName}"? This will also delete all associated orders.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url_for('store.delete_item', item_id=0) }}`.replace('0', itemId), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': "{{ csrf_token() }}"
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: data.message
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'An error occurred while deleting the item.'
+                        });
+                    });
+                }
+            });
+        });
+    });
+    
+    // Handle order status updates
+    const statusSelects = document.querySelectorAll('.order-status-select');
+    statusSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            const orderId = this.getAttribute('data-order-id');
+            const currentStatus = this.getAttribute('data-current-status');
+            const newStatus = this.value;
+            
+            if (newStatus === currentStatus) return;
+            
+            const formData = new FormData();
+            formData.append('status', newStatus);
+            formData.append('csrf_token', "{{ csrf_token() }}");
+            
+            fetch(`{{ url_for('store.update_order', order_id=0) }}`.replace('0', orderId), {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.setAttribute('data-current-status', newStatus);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Updated!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    // Revert the select back to the previous status
+                    this.value = currentStatus;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Revert the select back to the previous status
+                this.value = currentStatus;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An error occurred while updating the order status.'
+                });
+            });
+        });
+    });
+    
+    // Bulk order management
+    const selectAllCheckbox = document.getElementById('select-all-orders');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const bulkStatusSelect = document.getElementById('bulk-status-select');
+    const bulkUpdateBtn = document.getElementById('bulk-update-btn');
+    const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+    
+    // Select all functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        orderCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+        updateBulkUpdateButton();
+    });
+    
+    // Individual checkbox changes
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateSelectAllState();
+            updateBulkUpdateButton();
+        });
+    });
+    
+    // Bulk status select changes
+    bulkStatusSelect.addEventListener('change', function() {
+        updateBulkUpdateButton();
+    });
+    
+    // Update select all checkbox state
+    function updateSelectAllState() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked').length;
+        const totalBoxes = orderCheckboxes.length;
+        
+        if (checkedBoxes === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (checkedBoxes === totalBoxes) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+    
+    // Update bulk update button state
+    function updateBulkUpdateButton() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked').length;
+        const hasStatus = bulkStatusSelect.value !== '';
+        
+        bulkUpdateBtn.disabled = checkedBoxes === 0 || !hasStatus;
+        bulkDeleteBtn.disabled = checkedBoxes === 0;
+        
+        if (checkedBoxes > 0) {
+            bulkUpdateBtn.innerHTML = `<i class="ti ti-check me-1"></i>Update ${checkedBoxes} Selected`;
+            bulkDeleteBtn.innerHTML = `<i class="ti ti-trash me-1"></i>Delete ${checkedBoxes} Selected`;
+        } else {
+            bulkUpdateBtn.innerHTML = '<i class="ti ti-check me-1"></i>Update Selected';
+            bulkDeleteBtn.innerHTML = '<i class="ti ti-trash me-1"></i>Delete Selected';
+        }
+    }
+    
+    // Handle bulk update
+    bulkUpdateBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+        const newStatus = bulkStatusSelect.value;
+        
+        if (checkedBoxes.length === 0 || !newStatus) return;
+        
+        const orderIds = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        Swal.fire({
+            title: 'Bulk Update Orders',
+            text: `Are you sure you want to update ${orderIds.length} orders to "${newStatus}"?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, update them!',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#007bff'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkUpdate(orderIds, newStatus);
+            }
+        });
+    });
+    
+    // Perform the bulk update
+    function performBulkUpdate(orderIds, newStatus) {
+        const originalText = bulkUpdateBtn.innerHTML;
+        bulkUpdateBtn.disabled = true;
+        bulkUpdateBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Updating...';
+        
+        fetch('{{ url_for("store.bulk_update_orders") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({
+                order_ids: orderIds,
+                status: newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Orders Updated!',
+                    text: data.message
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while updating the orders.'
+            });
+        })
+        .finally(() => {
+            bulkUpdateBtn.disabled = false;
+            bulkUpdateBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Handle reset season ordering
+    const confirmResetBtn = document.getElementById('confirmResetBtn');
+    if (confirmResetBtn) {
+        confirmResetBtn.addEventListener('click', function() {
+            const resetType = document.querySelector('input[name="resetType"]:checked').value;
+            const modal = bootstrap.Modal.getInstance(document.getElementById('resetOrderingModal'));
+            
+            const actionText = resetType === 'all' ? 
+                'delete all orders for the current season' : 
+                'reset ordering eligibility for the current season';
+                
+            Swal.fire({
+                title: 'Confirm Reset',
+                text: `Are you sure you want to ${actionText}? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, reset it!',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#ffc107'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performSeasonReset(resetType, modal);
+                }
+            });
+        });
+    }
+    
+    // Perform the season reset
+    function performSeasonReset(resetType, modal) {
+        const originalText = confirmResetBtn.innerHTML;
+        confirmResetBtn.disabled = true;
+        confirmResetBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Resetting...';
+        
+        fetch('{{ url_for("store.reset_season_ordering") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({
+                reset_type: resetType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Season Reset Complete!',
+                    text: data.message
+                }).then(() => {
+                    modal.hide();
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Reset Failed',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while resetting season ordering.'
+            });
+        })
+        .finally(() => {
+            confirmResetBtn.disabled = false;
+            confirmResetBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Handle bulk delete
+    bulkDeleteBtn.addEventListener('click', function() {
+        const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) return;
+        
+        const orderIds = Array.from(checkedBoxes).map(cb => cb.value);
+        
+        Swal.fire({
+            title: 'Delete Orders',
+            text: `Are you sure you want to permanently delete ${orderIds.length} orders? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete them!',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                performBulkDelete(orderIds);
+            }
+        });
+    });
+    
+    // Perform bulk delete
+    function performBulkDelete(orderIds) {
+        const originalText = bulkDeleteBtn.innerHTML;
+        bulkDeleteBtn.disabled = true;
+        bulkDeleteBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1" role="status"></div>Deleting...';
+        
+        fetch('{{ url_for("store.bulk_delete_orders") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() }}"
+            },
+            body: JSON.stringify({
+                order_ids: orderIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Orders Deleted!',
+                    text: data.message
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Delete Failed',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while deleting the orders.'
+            });
+        })
+        .finally(() => {
+            bulkDeleteBtn.disabled = false;
+            bulkDeleteBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Handle individual order deletion
+    const deleteOrderButtons = document.querySelectorAll('.delete-order-btn');
+    deleteOrderButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const orderId = this.getAttribute('data-order-id');
+            const orderInfo = this.getAttribute('data-order-info');
+            const customerName = this.getAttribute('data-customer-name');
+            
+            Swal.fire({
+                title: 'Delete Order',
+                text: `Are you sure you want to delete ${orderInfo} from ${customerName}? This action cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    performSingleDelete(orderId, orderInfo);
+                }
+            });
+        });
+    });
+    
+    // Perform single order delete
+    function performSingleDelete(orderId, orderInfo) {
+        fetch(`{{ url_for('store.delete_order', order_id=0) }}`.replace('0', orderId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': "{{ csrf_token() }}"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Order Deleted!',
+                    text: data.message
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Delete Failed',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'An error occurred while deleting the order.'
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

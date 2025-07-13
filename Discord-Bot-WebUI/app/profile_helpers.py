@@ -212,6 +212,10 @@ def handle_profile_update(form, player, user):
             player.team_swap = form.team_swap.data if form.team_swap.data else None
             logger.debug(f"Set player.team_swap to {player.team_swap}")
 
+        # Update profile last updated timestamp
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+
         session = g.db_session
         session.add(user)
         session.add(player)
@@ -399,4 +403,40 @@ def handle_add_stat_manually(player):
     except Exception as e:
         logger.error(f"Error adding stats: {str(e)}", exc_info=True)
         show_error('Error adding stats.')
+        raise
+
+
+def handle_profile_verification(player):
+    """
+    Update a player's profile verification timestamp without changing any other data.
+    This is used when a player confirms their profile is accurate.
+
+    Args:
+        player: The player object to update.
+
+    Returns:
+        A redirect response to the player's profile page.
+
+    Raises:
+        Exception: Propagates any encountered exception.
+    """
+    try:
+        logger.debug(f"Entering handle_profile_verification for player {player.id}")
+        
+        # Update profile last updated timestamp
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+        
+        session = g.db_session
+        session.add(player)
+        session.commit()
+        
+        logger.info(f"Profile verification timestamp updated for player {player.id}")
+        show_success('Profile verified successfully. Thank you for confirming your information is current.')
+        return redirect(url_for('players.player_profile', player_id=player.id))
+    except Exception as e:
+        session = g.db_session
+        session.rollback()
+        logger.error(f"Error updating profile verification: {str(e)}", exc_info=True)
+        show_error('Error verifying profile.')
         raise

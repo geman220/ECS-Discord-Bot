@@ -39,7 +39,7 @@ from app.models_substitute_pools import (
 )
 from app.lifecycle import request_lifecycle
 from app.alert_helpers import show_success, show_error, show_warning, show_info
-from app.utils.display_helpers import format_position_name, format_field_name
+from app.utils.display_helpers import format_position_name, format_field_name, format_datetime_pacific, format_datetime_pacific_short
 from app.db_management import db_manager
 from app.database.config import configure_db_settings
 from app.utils.pgbouncer_utils import set_session_timeout
@@ -416,6 +416,19 @@ def create_app(config_object='web_config.Config'):
         if not request.path.startswith('/static/'):
             g.db_session = app.SessionLocal()
             
+            # CRITICAL: Register the underlying connection for tracking
+            try:
+                # Get the actual database connection
+                conn = g.db_session.connection()
+                if hasattr(conn, 'connection') and hasattr(conn.connection, 'dbapi_connection'):
+                    dbapi_conn = conn.connection.dbapi_connection
+                    conn_id = id(dbapi_conn)
+                    from app.utils.db_connection_monitor import register_connection
+                    register_connection(conn_id, "flask_request")
+                    logger.debug(f"Registered Flask request connection {conn_id}")
+            except Exception as e:
+                logger.error(f"Failed to register Flask connection: {e}", exc_info=True)
+            
             # Register session with monitor
             session_id = str(id(g.db_session))
             from app.utils.session_monitor import get_session_monitor
@@ -490,6 +503,36 @@ def create_app(config_object='web_config.Config'):
         Usage in templates: {{ format_field('favorite_position') }}
         """
         return format_field_name(field_name)
+    
+    @app.template_global()
+    def format_pacific_time(utc_dt):
+        """
+        Template global function to format UTC datetime as Pacific Time.
+        Usage in templates: {{ format_pacific_time(player.profile_last_updated) }}
+        """
+        return format_datetime_pacific(utc_dt)
+    
+    @app.template_global()
+    def format_pacific_time_short(utc_dt):
+        """
+        Template global function to format UTC datetime as Pacific Time (short format).
+        Usage in templates: {{ format_pacific_time_short(player.profile_last_updated) }}
+        """
+        return format_datetime_pacific_short(utc_dt)
+    
+    @app.template_filter('fromjson')
+    def fromjson_filter(json_string):
+        """
+        Template filter to parse JSON strings.
+        Usage in templates: {{ item.available_colors | fromjson }}
+        """
+        if not json_string:
+            return []
+        try:
+            import json
+            return json.loads(json_string)
+        except (ValueError, TypeError, json.JSONDecodeError):
+            return []
 
     # Note: teardown_request is handled by lifecycle.py to avoid duplicate cleanup
         
@@ -570,6 +613,7 @@ def init_blueprints(app):
     from app.ecs_fc_api import ecs_fc_api
     from app.admin.substitute_pool_routes import substitute_pool_bp
     from app.batch_api import batch_bp
+    from app.store import store_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -603,6 +647,7 @@ def init_blueprints(app):
     app.register_blueprint(role_impersonation_bp)
     app.register_blueprint(ecs_fc_api)  # Blueprint has url_prefix='/api/ecs-fc'
     app.register_blueprint(substitute_pool_bp)
+    app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
     
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp

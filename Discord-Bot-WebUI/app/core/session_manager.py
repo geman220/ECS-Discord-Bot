@@ -46,7 +46,14 @@ def managed_session():
         raise
     finally:
         if not use_global:
-            session.close()
+            try:
+                # Force close the connection to prevent leaks
+                session.close()
+                # Also close the underlying connection if it exists
+                if hasattr(session, 'bind') and hasattr(session.bind, 'dispose'):
+                    session.bind.dispose()
+            except Exception as e:
+                logger.error(f"Error closing session: {e}")
 
 
 def cleanup_request(exception=None):
@@ -99,6 +106,18 @@ def cleanup_request(exception=None):
                 pass
         finally:
             try:
+                # CRITICAL: Unregister the underlying connection before closing
+                try:
+                    conn = g.db_session.connection()
+                    if hasattr(conn, 'connection') and hasattr(conn.connection, 'dbapi_connection'):
+                        dbapi_conn = conn.connection.dbapi_connection
+                        conn_id = id(dbapi_conn)
+                        from app.utils.db_connection_monitor import unregister_connection
+                        unregister_connection(conn_id)
+                        logger.debug(f"Unregistered Flask request connection {conn_id}")
+                except Exception as e:
+                    logger.error(f"Failed to unregister Flask connection: {e}", exc_info=True)
+                
                 logger.debug(f"Closing session {session_id} (status: {status})")
                 g.db_session.close()
                 monitor.register_session_close(session_id)
