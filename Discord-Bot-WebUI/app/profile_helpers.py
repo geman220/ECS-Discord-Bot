@@ -445,3 +445,85 @@ def handle_profile_verification(player):
         logger.error(f"Error updating profile verification: {str(e)}", exc_info=True)
         show_error('Error verifying profile.')
         raise
+
+
+def handle_profile_verification_mobile(player):
+    """
+    Mobile version of profile verification that redirects to success page.
+    """
+    try:
+        logger.debug(f"Entering handle_profile_verification_mobile for player {player.id}")
+        
+        # Update profile last updated timestamp
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+        
+        session = g.db_session
+        session.add(player)
+        session.commit()
+        
+        logger.info(f"Profile verification timestamp updated for player {player.id}")
+        return redirect(url_for('players.mobile_profile_success', player_id=player.id, action='verified'))
+    except Exception as e:
+        session = g.db_session
+        session.rollback()
+        logger.error(f"Error updating profile verification: {str(e)}", exc_info=True)
+        show_error('Error verifying profile.')
+        raise
+
+
+def handle_profile_update_mobile(form, player, user):
+    """
+    Mobile version of profile update that redirects to success page.
+    """
+    try:
+        logger.debug("Entering handle_profile_update_mobile")
+
+        # Check if the email is unique (excluding the current user) only if a new email is provided
+        if form.email.data and check_email_uniqueness(form.email.data, user.id):
+            logger.debug("Email not unique. Aborting update.")
+            return redirect(url_for('players.mobile_profile_update', player_id=player.id))
+
+        # Only update email if a new value is provided
+        if form.email.data:
+            new_email = form.email.data.lower()
+            logger.debug(f"Updating user.email from {user.email} to {new_email}")
+            user.email = new_email
+            player.email = new_email
+        else:
+            # Keep existing email if no new value provided
+            logger.debug(f"No email provided in form, keeping existing email: {user.email}")
+
+        # Update player fields
+        player.name = form.name.data.strip()
+        player.phone = form.phone.data.strip()
+        player.jersey_size = form.jersey_size.data
+        player.pronouns = form.pronouns.data
+        player.expected_weeks_available = form.expected_weeks_available.data
+        player.favorite_position = form.favorite_position.data
+        player.frequency_play_goal = form.frequency_play_goal.data
+
+        # Update array fields separately
+        player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
+        player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
+        
+        # Update player notes
+        player.player_notes = form.player_notes.data.strip() if form.player_notes.data else None
+        
+        # Update profile last updated timestamp
+        from datetime import datetime
+        player.profile_last_updated = datetime.utcnow()
+
+        session = g.db_session
+        session.add(player)
+        session.add(user)
+        session.commit()
+
+        logger.info(f"Profile updated successfully for player {player.id}")
+        return redirect(url_for('players.mobile_profile_success', player_id=player.id, action='updated'))
+    except Exception as e:
+        session = g.db_session
+        session.rollback()
+        logger.error(f"Error updating player profile: {str(e)}", exc_info=True)
+        show_error('Error updating profile.')
+        raise
