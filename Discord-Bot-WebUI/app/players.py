@@ -520,6 +520,83 @@ def mobile_profile_update(player_id):
     )
 
 
+@players_bp.route('/profile/<int:player_id>/desktop', endpoint='desktop_profile_update', methods=['GET', 'POST'])
+@login_required
+def desktop_profile_update(player_id):
+    """
+    Desktop-optimized profile update page.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
+    
+    # Check if user can edit this profile
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        show_error('You can only update your own profile.')
+        return redirect(url_for('players.player_profile', player_id=player_id))
+    
+    user = player.user
+    
+    # Build jersey size choices from existing data
+    jersey_sizes = session.query(Player.jersey_size).distinct().all()
+    jersey_size_choices = [(size[0], size[0]) for size in jersey_sizes if size[0]]
+    
+    form = PlayerProfileForm(obj=player)
+    form.jersey_size.choices = jersey_size_choices
+    
+    # Handle profile verification
+    if request.method == 'POST' and 'verify_profile' in request.form:
+        try:
+            from app.profile_helpers import handle_profile_verification_mobile
+            return handle_profile_verification_mobile(player)
+        except Exception as e:
+            logger.exception(f"Error verifying profile for player {player_id}: {str(e)}")
+            show_error('Error verifying profile.')
+            return redirect(url_for('players.desktop_profile_update', player_id=player_id))
+    
+    # Handle profile update
+    if form.validate_on_submit() and 'update_profile' in request.form:
+        try:
+            from app.profile_helpers import handle_profile_update_mobile
+            return handle_profile_update_mobile(form, player, user)
+        except Exception as e:
+            logger.exception(f"Error updating profile for player {player_id}: {str(e)}")
+            show_error('Error updating profile.')
+            return redirect(url_for('players.desktop_profile_update', player_id=player_id))
+    
+    # Initialize form data on GET
+    if request.method == 'GET':
+        form.email.data = user.email
+        form.other_positions.data = (
+            player.other_positions.strip('{}').split(',')
+            if player.other_positions else []
+        )
+        form.positions_not_to_play.data = (
+            player.positions_not_to_play.strip('{}').split(',')
+            if player.positions_not_to_play else []
+        )
+    
+    # Check if profile is expired
+    from datetime import datetime, timedelta
+    profile_expired = False
+    if player.profile_last_updated:
+        five_months_ago = datetime.utcnow() - timedelta(days=150)
+        profile_expired = player.profile_last_updated < five_months_ago
+    
+    session.commit()
+    
+    return render_template(
+        'player_profile_desktop.html',
+        title='Update Your Profile',
+        player=player,
+        user=user,
+        form=form,
+        profile_expired=profile_expired
+    )
+
+
 @players_bp.route('/profile/<int:player_id>/mobile/success', endpoint='mobile_profile_success', methods=['GET'])
 @login_required
 def mobile_profile_success(player_id):

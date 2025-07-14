@@ -30,12 +30,12 @@
     </div>
 
     <!-- Welcome Message -->
-    <div class="card bg-gradient-primary text-white mb-4">
-        <div class="card-body text-center">
-            <h4 class="card-title mb-3">
+    <div class="card mb-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body text-center text-white">
+            <h4 class="card-title mb-3 text-white">
                 <i class="ti ti-trophy me-2"></i>Welcome to the New Season!
             </h4>
-            <p class="mb-0">We are so excited for this season! Please update your profile so your coaches have accurate information for this upcoming season.</p>
+            <p class="mb-0 text-white">We are so excited for this season! Please update your profile so your coaches have accurate information for this upcoming season.</p>
         </div>
     </div>
 
@@ -53,18 +53,12 @@
     </div>
     {% endif %}
 
-    <!-- Quick Verify Button (if profile is already accurate) -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Quick Actions</h5>
-            <form method="POST" action="{{ url_for('players.mobile_profile_update', player_id=player.id) }}">
-                {{ form.csrf_token }}
-                <button type="submit" name="verify_profile" class="btn btn-success btn-lg w-100 mb-3">
-                    <i class="ti ti-circle-check me-2"></i>Confirm Profile is Accurate
-                </button>
-            </form>
-            <p class="text-muted text-center mb-0">Or update your information below</p>
-        </div>
+    <!-- Instructions -->
+    <div class="alert alert-info mb-4" role="alert">
+        <h6 class="alert-heading mb-2">
+            <i class="ti ti-info-circle me-2"></i>Please Review Your Information
+        </h6>
+        <p class="mb-0">Check all your details below and make any necessary updates. If everything looks correct, you can confirm your profile at the bottom.</p>
     </div>
 
     <!-- Profile Update Form -->
@@ -160,12 +154,28 @@
         </div>
 
         <!-- Submit Buttons -->
-        <div class="d-grid gap-2 mb-4">
+        <div class="d-grid gap-2 mb-3">
             <button type="submit" name="update_profile" class="btn btn-primary btn-lg">
                 <i class="ti ti-device-floppy me-2"></i>Save All Changes
             </button>
         </div>
     </form>
+
+    <!-- Quick Confirm Section -->
+    <div class="card border-success mb-4">
+        <div class="card-body text-center">
+            <h5 class="card-title text-success mb-3">
+                <i class="ti ti-circle-check me-2"></i>Profile Review Complete?
+            </h5>
+            <p class="mb-3">If you've reviewed all your information above and everything is accurate, click below to confirm:</p>
+            <form method="POST" action="{{ url_for('players.mobile_profile_update', player_id=player.id) }}">
+                {{ form.csrf_token }}
+                <button type="submit" name="verify_profile" class="btn btn-success btn-lg w-100">
+                    <i class="ti ti-shield-check me-2"></i>Confirm Profile is Accurate
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
