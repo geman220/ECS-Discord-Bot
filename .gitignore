@@ -71,3 +71,4 @@ Discord-Bot-WebUI/test-results.xml
 
 # Flask session files during testing
 Discord-Bot-WebUI/flask_session/
+/Discord-Bot-WebUI/app/models_DEP.py
