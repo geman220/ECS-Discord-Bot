@@ -804,9 +804,21 @@ def my_profile():
     Direct users to their own profile or login if not authenticated.
     Perfect for QR codes at registration events.
     """
+    # Detect mobile from User-Agent or explicit mobile parameter
+    is_mobile_request = request.args.get('mobile') == '1'
+    if not is_mobile_request:
+        user_agent = request.headers.get('User-Agent', '').lower()
+        is_mobile_request = any(mobile_string in user_agent for mobile_string in [
+            'mobile', 'iphone', 'android', 'blackberry', 'ipad', 'tablet', 
+            'samsung', 'nokia', 'windows phone'
+        ])
+    
     if not safe_current_user.is_authenticated:
-        # Store the intended destination
-        session['next'] = url_for('main.my_profile')
+        # Store the intended destination WITH mobile parameter if needed
+        if is_mobile_request:
+            session['next'] = url_for('main.my_profile', mobile=1)
+        else:
+            session['next'] = url_for('main.my_profile')
         show_info('Please log in to access your profile.')
         return redirect(url_for('auth.login'))
     
@@ -818,12 +830,11 @@ def my_profile():
         show_error('No player profile found. Please contact an administrator.')
         return redirect(url_for('main.index'))
     
-    # Check if mobile parameter is present (for mobile-optimized view)
-    if request.args.get('mobile') == '1':
+    # Route to mobile or desktop version
+    if is_mobile_request:
         return redirect(url_for('players.mobile_profile_update', player_id=player.id))
-    
-    # Otherwise redirect to regular profile page
-    return redirect(url_for('players.player_profile', player_id=player.id))
+    else:
+        return redirect(url_for('players.desktop_profile_update', player_id=player.id))
 
 
 @main.route('/onboarding', methods=['GET', 'POST'])

@@ -383,7 +383,7 @@ def discord_callback():
 
         # Log in the user normally.
         user.last_login = datetime.utcnow()
-        db_session.add(user)
+        # User is already attached to db_session, no need to add
         
         # Enhanced login flow with stronger session handling for Docker environments
         login_user(user, remember=True)  # Always set remember=True for persistence
@@ -405,8 +405,18 @@ def discord_callback():
         session.permanent = True
         session.modified = True
         
+        # Check if there's a stored redirect URL
+        next_page = session.pop('next', None)
+        if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+            redirect_url = next_page
+            logger.info(f"Redirecting user {user.id} to stored next page: {redirect_url}")
+        else:
+            redirect_url = url_for('main.index')
+            logger.info(f"Redirecting user {user.id} to main index (no stored next page)")
+        
         # Create a response with secure cookie settings for better session persistence
-        response = make_response(redirect(url_for('main.index')))
+        from flask import make_response
+        response = make_response(redirect(redirect_url))
         response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
         
         # Force the session to be saved before redirecting
@@ -782,8 +792,8 @@ def verify_2fa_login():
     session.modified = True
     logger.info(f"Set pending_2fa_user_id={user_id} in session")
     
-    # Get the user
-    user = User.query.get(user_id)
+    # Get the user using the correct session
+    user = g.db_session.query(User).get(user_id)
     if not user:
         logger.warning(f"User not found for ID: {user_id}")
         show_error('Invalid user. Please log in again.')
@@ -808,7 +818,7 @@ def verify_2fa_login():
                     # Success! TOTP token is correct
                     logger.info(f"2FA token verified via fallback method for user {user.id}")
                     user.last_login = datetime.utcnow()
-                    g.db_session.add(user)
+                    # User is already attached to g.db_session, no need to add
                     sync_discord_for_user(user)
                     
                     # Login the user
@@ -819,8 +829,17 @@ def verify_2fa_login():
                     session.permanent = True
                     session.modified = True
                     
+                    # Check if there's a stored redirect URL
+                    next_page = session.pop('next', None)
+                    if next_page and next_page.startswith('/') and not next_page.startswith('//'):
+                        redirect_url = next_page
+                        logger.info(f"Redirecting user {user.id} to stored next page: {redirect_url}")
+                    else:
+                        redirect_url = url_for('main.index')
+                        logger.info(f"Redirecting user {user.id} to main index (no stored next page)")
+                    
                     # Create response with strong cookie settings
-                    response = make_response(redirect(url_for('main.index')))
+                    response = make_response(redirect(redirect_url))
                     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
                     
                     # Force the session to be saved to the response
@@ -828,7 +847,7 @@ def verify_2fa_login():
                     if hasattr(current_app, 'session_interface') and isinstance(current_app.session_interface, SessionInterface):
                         current_app.session_interface.save_session(current_app, session, response)
                     
-                    logger.info(f"Redirecting user {user.id} to main index after successful 2FA with enhanced session handling")
+                    logger.info(f"Redirecting user {user.id} to {redirect_url} after successful 2FA with enhanced session handling")
                     return response
                 else:
                     # Invalid token
@@ -943,7 +962,7 @@ def reset_password_token(token):
         show_error('Invalid or expired reset link.')
         return redirect(url_for('auth.forgot_password'))
 
-    user = User.query.get(user_id)
+    user = g.db_session.query(User).get(user_id)
     if not user:
         show_error('User not found.')
         return redirect(url_for('auth.forgot_password'))
