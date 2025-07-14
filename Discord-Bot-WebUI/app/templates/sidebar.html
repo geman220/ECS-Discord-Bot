@@ -56,10 +56,11 @@
 
         {% set can_view_season_management = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
         {% set can_view_draft = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
+        {% set can_view_draft_predictions = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
         {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'pl-classic' in user_roles or 'pl-ecs-fc' in user_roles or 'pl-premier' in user_roles %}
         {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
         {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
-        {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_standings or can_view_calendar or can_view_teams %}
+        {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_draft_predictions or can_view_standings or can_view_calendar or can_view_teams %}
 
         <!-- ECS FC Leagues - Only show if user has permission to view at least one link -->
         {% if can_view_any_ecsfc_section %}
@@ -142,9 +143,24 @@
                         <div>ECS FC Division</div>
                     </a>
                 </li>
+                {% if can_view_draft_predictions %}
+                <li class="menu-item {{ 'active' if 'draft-predictions' in request.path }}">
+                    <a class="menu-link" href="{{ url_for('draft_predictions.index') }}">
+                        <div>Draft Predictions</div>
+                    </a>
+                </li>
+                {% endif %}
+                {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.draft_history' }}">
+                    <a class="menu-link" href="{{ url_for('admin.draft_history') }}">
+                        <div>Draft History</div>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </li>
         {% endif %}
+
 
         <!-- Teams Overview -->
         {% if can_view_teams %}
@@ -290,15 +306,6 @@
         </li>
         {% endif %}
         
-        <!-- Draft History - Pub League Admin / Global Admin Only -->
-        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'active' if request.endpoint == 'admin.draft_history' }}">
-            <a class="menu-link" href="{{ url_for('admin.draft_history') }}">
-                <i class="ti ti-history menu-icon"></i>
-                <div>Draft History</div>
-            </a>
-        </li>
-        {% endif %}
         
 
 

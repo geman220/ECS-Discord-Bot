@@ -25,7 +25,7 @@ def optimize_player_image_task(self, session, player_id: int, force_refresh: boo
         logger.info(f"Starting image optimization for player {player_id}")
         
         # Perform the optimization
-        success = ImageCacheService.optimize_player_image(player_id, force_refresh)
+        success = ImageCacheService.optimize_player_image(player_id, force_refresh, session)
         
         if success:
             logger.info(f"Successfully optimized image for player {player_id}")
@@ -63,14 +63,14 @@ def bulk_optimize_images_task(self, session, player_ids: list = None):
         return {'success': 0, 'failed': len(player_ids or []), 'skipped': 0}
 
 
-def queue_image_optimization(player_id: int):
+def queue_image_optimization(player_id: int, force_refresh: bool = False):
     """
     Queue a player's image for optimization via Celery.
     This is the preferred method for production use.
     """
     try:
-        optimize_player_image_task.delay(player_id=player_id)
-        logger.info(f"Queued image optimization task for player {player_id}")
+        optimize_player_image_task.delay(player_id=player_id, force_refresh=force_refresh)
+        logger.info(f"Queued image optimization task for player {player_id} (force_refresh={force_refresh})")
         return True
     except Exception as e:
         logger.error(f"Failed to queue image optimization for player {player_id}: {e}")

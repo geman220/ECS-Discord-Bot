@@ -53,8 +53,41 @@ def get_effective_roles():
         return get_impersonated_roles()
     else:
         if safe_current_user.is_authenticated:
-            # Access roles directly from the safe_current_user which has proper session binding
-            return [role.name for role in safe_current_user.roles]
+            # Use session to get roles to avoid session binding issues
+            from flask import g
+            session_db = getattr(g, 'db_session', None)
+            if session_db:
+                from app.models import User
+                from sqlalchemy.orm import selectinload
+                
+                db_user = session_db.query(User).options(
+                    selectinload(User.roles)
+                ).get(safe_current_user.id)
+                
+                if db_user:
+                    # Extract role names immediately to avoid session binding issues
+                    role_names = [role.name for role in db_user.roles]
+                    return role_names
+            else:
+                # No session available (e.g., template context), create a temporary one
+                from flask import current_app
+                if hasattr(current_app, 'SessionLocal'):
+                    temp_session = current_app.SessionLocal()
+                    try:
+                        from app.models import User
+                        from sqlalchemy.orm import selectinload
+                        
+                        db_user = temp_session.query(User).options(
+                            selectinload(User.roles)
+                        ).get(safe_current_user.id)
+                        
+                        if db_user:
+                            # Extract role names immediately to avoid session binding issues
+                            role_names = [role.name for role in db_user.roles]
+                            return role_names
+                    finally:
+                        temp_session.close()
+            return []
         return []
 
 
@@ -64,12 +97,49 @@ def get_effective_permissions():
         return get_impersonated_permissions()
     else:
         if safe_current_user.is_authenticated:
-            # Access roles and permissions directly from the safe_current_user which has proper session binding
-            return [
-                permission.name
-                for role in safe_current_user.roles
-                for permission in role.permissions
-            ]
+            # Use session to get roles and permissions to avoid session binding issues
+            from flask import g
+            session_db = getattr(g, 'db_session', None)
+            if session_db:
+                from app.models import User
+                from sqlalchemy.orm import selectinload
+                
+                db_user = session_db.query(User).options(
+                    selectinload(User.roles).selectinload(Role.permissions)
+                ).get(safe_current_user.id)
+                
+                if db_user:
+                    # Extract permission names immediately to avoid session binding issues
+                    permission_names = [
+                        permission.name
+                        for role in db_user.roles
+                        for permission in role.permissions
+                    ]
+                    return permission_names
+            else:
+                # No session available (e.g., template context), create a temporary one
+                from flask import current_app
+                if hasattr(current_app, 'SessionLocal'):
+                    temp_session = current_app.SessionLocal()
+                    try:
+                        from app.models import User
+                        from sqlalchemy.orm import selectinload
+                        
+                        db_user = temp_session.query(User).options(
+                            selectinload(User.roles).selectinload(Role.permissions)
+                        ).get(safe_current_user.id)
+                        
+                        if db_user:
+                            # Extract permission names immediately to avoid session binding issues
+                            permission_names = [
+                                permission.name
+                                for role in db_user.roles
+                                for permission in role.permissions
+                            ]
+                            return permission_names
+                    finally:
+                        temp_session.close()
+            return []
         return []
 
 
@@ -144,8 +214,15 @@ def start_impersonation():
         
         # Store original roles if not already impersonating
         if not is_impersonation_active():
-            # Access roles directly from the safe_current_user which has proper session binding
-            original_roles = [role.name for role in safe_current_user.roles]
+            # Use session to get original roles to avoid session binding issues
+            from app.models import User
+            from sqlalchemy.orm import selectinload
+            
+            db_user = session_db.query(User).options(
+                selectinload(User.roles)
+            ).get(safe_current_user.id)
+            
+            original_roles = [role.name for role in db_user.roles] if db_user else []
             session[ORIGINAL_ROLES_KEY] = original_roles
         
         # Calculate permissions for the impersonated roles
@@ -208,8 +285,19 @@ def stop_impersonation_form():
     """Stop role impersonation via form submission (for the banner button)."""
     try:
         # Check REAL user roles (not impersonated), since we need to stop impersonation
-        # Access roles directly from the safe_current_user which has proper session binding
-        real_user_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
+        # Use session to get real user roles to avoid session binding issues
+        session_db = g.db_session
+        if session_db and safe_current_user.is_authenticated:
+            from app.models import User
+            from sqlalchemy.orm import selectinload
+            
+            db_user = session_db.query(User).options(
+                selectinload(User.roles)
+            ).get(safe_current_user.id)
+            
+            real_user_roles = [role.name for role in db_user.roles] if db_user else []
+        else:
+            real_user_roles = []
         if 'Global Admin' not in real_user_roles:
             show_error('Access denied: Only Global Admins can use role impersonation.')
             return redirect(request.referrer or '/')
@@ -240,8 +328,19 @@ def debug_roles():
     from app.role_impersonation import is_impersonation_active, get_effective_roles, get_effective_permissions
     
     try:
-        # Access roles directly from the safe_current_user which has proper session binding
-        real_roles = [role.name for role in safe_current_user.roles] if safe_current_user.is_authenticated else []
+        # Use session to get real roles to avoid session binding issues
+        session_db = g.db_session
+        if session_db and safe_current_user.is_authenticated:
+            from app.models import User
+            from sqlalchemy.orm import selectinload
+            
+            db_user = session_db.query(User).options(
+                selectinload(User.roles)
+            ).get(safe_current_user.id)
+            
+            real_roles = [role.name for role in db_user.roles] if db_user else []
+        else:
+            real_roles = []
         effective_roles = get_effective_roles()
         effective_permissions = get_effective_permissions()
         

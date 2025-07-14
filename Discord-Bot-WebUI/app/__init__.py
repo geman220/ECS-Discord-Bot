@@ -37,6 +37,9 @@ from app.models_substitute_pools import (
     SubstitutePool, SubstitutePoolHistory, SubstituteRequest, 
     SubstituteResponse, SubstituteAssignment
 )
+from app.models_draft_predictions import (
+    DraftSeason, DraftPrediction, DraftPredictionSummary
+)
 from app.lifecycle import request_lifecycle
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.utils.display_helpers import format_position_name, format_field_name, format_datetime_pacific, format_datetime_pacific_short
@@ -452,6 +455,26 @@ def create_app(config_object='web_config.Config'):
             else:
                 # Regular routes get standard timeouts
                 set_session_timeout(g.db_session, statement_timeout_seconds=8, idle_timeout_seconds=5)
+            
+            # Pre-load and cache user roles early in the request to avoid session binding issues during template rendering
+            from app.utils.user_helpers import safe_current_user
+            if safe_current_user and safe_current_user.is_authenticated:
+                try:
+                    from app.role_impersonation import get_effective_roles, get_effective_permissions
+                    # Cache roles for use in templates - ensure we get strings, not objects
+                    roles = get_effective_roles()
+                    permissions = get_effective_permissions()
+                    
+                    # Ensure these are simple lists of strings, not objects
+                    g._cached_user_roles = list(roles) if roles else []
+                    g._cached_user_permissions = list(permissions) if permissions else []
+                    
+                    logger.debug(f"Cached user roles: {g._cached_user_roles}")
+                    logger.debug(f"Cached user permissions: {g._cached_user_permissions}")
+                except Exception as e:
+                    logger.error(f"Error pre-loading user roles: {e}", exc_info=True)
+                    g._cached_user_roles = []
+                    g._cached_user_permissions = []
 
     @app.context_processor
     def inject_current_pub_league_season():
@@ -614,6 +637,7 @@ def init_blueprints(app):
     from app.admin.substitute_pool_routes import substitute_pool_bp
     from app.batch_api import batch_bp
     from app.store import store_bp
+    from app.draft_predictions_routes import draft_predictions_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(publeague_bp, url_prefix='/publeague')
@@ -648,6 +672,7 @@ def init_blueprints(app):
     app.register_blueprint(ecs_fc_api)  # Blueprint has url_prefix='/api/ecs-fc'
     app.register_blueprint(substitute_pool_bp)
     app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
+    app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
     
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp
@@ -668,14 +693,34 @@ def init_context_processors(app):
         )
         
         # Get effective roles and permissions (considering impersonation)
-        user_roles = get_effective_roles()
-        user_permissions = get_effective_permissions()
+        # Avoid database calls during template rendering by caching the results
+        user_roles = []
+        user_permissions = []
+        
+        # Only get roles if we have an active request context and user is authenticated
+        if safe_current_user and safe_current_user.is_authenticated:
+            try:
+                # Use the cached roles from the request context if available
+                if hasattr(g, '_cached_user_roles'):
+                    user_roles = g._cached_user_roles
+                    user_permissions = g._cached_user_permissions
+                else:
+                    # Get and cache roles for this request
+                    user_roles = get_effective_roles()
+                    user_permissions = get_effective_permissions()
+                    g._cached_user_roles = user_roles
+                    g._cached_user_permissions = user_permissions
+            except Exception as e:
+                logger.error(f"Error getting effective roles/permissions in template context: {e}")
+                # Fallback to empty lists if there's an issue
+                user_roles = []
+                user_permissions = []
 
         def has_permission(permission_name):
-            return has_effective_permission(permission_name)
+            return permission_name in user_permissions
 
         def has_role(role_name):
-            return has_effective_role(role_name)
+            return role_name in user_roles
 
         def is_admin():
             return 'Global Admin' in user_roles or 'Pub League Admin' in user_roles

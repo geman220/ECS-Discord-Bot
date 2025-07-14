@@ -190,8 +190,48 @@ class TeamRoleSelect(discord.ui.Select):
             await interaction.response.send_message("Selected team role not found.", ephemeral=True)
             return
         allowed_mentions = discord.AllowedMentions(roles=[selected_role])
-        output = f"{selected_role.mention} {self.message_text}"
-        await self.original_interaction.channel.send(output, allowed_mentions=allowed_mentions)
+        
+        # Check Discord message length limit and split if necessary
+        discord_max_length = 2000
+        role_mention_text = f"{selected_role.mention} "
+        role_mention_length = len(role_mention_text)
+        
+        # If the first message with role mention fits
+        if len(role_mention_text + self.message_text) <= discord_max_length:
+            output = f"{role_mention_text}{self.message_text}"
+            await self.original_interaction.channel.send(output, allowed_mentions=allowed_mentions)
+        else:
+            # Split message into chunks
+            max_chunk_length = discord_max_length - role_mention_length
+            chunks = []
+            remaining_message = self.message_text
+            
+            while remaining_message:
+                if len(remaining_message) <= max_chunk_length:
+                    chunks.append(remaining_message)
+                    break
+                else:
+                    # Find a good break point (space, newline, etc.)
+                    chunk = remaining_message[:max_chunk_length]
+                    last_space = chunk.rfind(' ')
+                    last_newline = chunk.rfind('\n')
+                    break_point = max(last_space, last_newline)
+                    
+                    if break_point > max_chunk_length * 0.8:  # If break point is reasonable
+                        chunks.append(remaining_message[:break_point])
+                        remaining_message = remaining_message[break_point:].lstrip()
+                    else:
+                        # No good break point, just split at max length
+                        chunks.append(remaining_message[:max_chunk_length])
+                        remaining_message = remaining_message[max_chunk_length:]
+            
+            # Send first chunk with role mention
+            first_output = f"{role_mention_text}{chunks[0]}"
+            await self.original_interaction.channel.send(first_output, allowed_mentions=allowed_mentions)
+            
+            # Send remaining chunks without role mention
+            for chunk in chunks[1:]:
+                await self.original_interaction.channel.send(chunk)
         await interaction.response.send_message("Team message sent.", ephemeral=True)
         self.view.stop()
 
@@ -232,8 +272,48 @@ class PubLeagueCommands(commands.Cog):
         if len(team_roles) == 1:
             team_role = team_roles[0]
             allowed_mentions = discord.AllowedMentions(roles=[team_role])
-            output = f"{team_role.mention} {message}"
-            await interaction.response.send_message(output, allowed_mentions=allowed_mentions)
+            
+            # Check Discord message length limit and split if necessary
+            discord_max_length = 2000
+            role_mention_text = f"{team_role.mention} "
+            role_mention_length = len(role_mention_text)
+            
+            # If the first message with role mention fits
+            if len(role_mention_text + message) <= discord_max_length:
+                output = f"{role_mention_text}{message}"
+                await interaction.response.send_message(output, allowed_mentions=allowed_mentions)
+            else:
+                # Split message into chunks
+                max_chunk_length = discord_max_length - role_mention_length
+                chunks = []
+                remaining_message = message
+                
+                while remaining_message:
+                    if len(remaining_message) <= max_chunk_length:
+                        chunks.append(remaining_message)
+                        break
+                    else:
+                        # Find a good break point (space, newline, etc.)
+                        chunk = remaining_message[:max_chunk_length]
+                        last_space = chunk.rfind(' ')
+                        last_newline = chunk.rfind('\n')
+                        break_point = max(last_space, last_newline)
+                        
+                        if break_point > max_chunk_length * 0.8:  # If break point is reasonable
+                            chunks.append(remaining_message[:break_point])
+                            remaining_message = remaining_message[break_point:].lstrip()
+                        else:
+                            # No good break point, just split at max length
+                            chunks.append(remaining_message[:max_chunk_length])
+                            remaining_message = remaining_message[max_chunk_length:]
+                
+                # Send first chunk with role mention
+                first_output = f"{role_mention_text}{chunks[0]}"
+                await interaction.response.send_message(first_output, allowed_mentions=allowed_mentions)
+                
+                # Send remaining chunks without role mention
+                for chunk in chunks[1:]:
+                    await interaction.channel.send(chunk)
         else:
             view = TeamRoleSelectView(team_roles, message, interaction)
             await interaction.response.send_message("Multiple team roles found. Please select the team you wish to message:", ephemeral=True, view=view)
