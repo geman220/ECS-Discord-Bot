@@ -26,6 +26,7 @@ from app.utils.user_helpers import safe_current_user
 from app.database.db_models import ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
 from app.decorators import role_required
 from app.ecs_fc_schedule import EcsFcScheduleManager
+from app.alert_helpers import show_error
 
 # Get the logger for this module
 logger = logging.getLogger(__name__)
@@ -56,304 +57,374 @@ def view_match(match_id):
         A rendered HTML page displaying match details and RSVP information.
     """
     session = g.db_session
-
-    # Check if this is an ECS FC match
-    is_ecs_fc_match = isinstance(match_id, str) and match_id.startswith('ecs_')
     
-    if is_ecs_fc_match:
-        # Extract the actual ECS FC match ID
-        actual_match_id = int(match_id[4:])  # Remove 'ecs_' prefix
-        
-        # Fetch ECS FC match details
-        ecs_match = EcsFcScheduleManager.get_match_by_id(actual_match_id)
-        if not ecs_match:
-            return redirect(url_for('main.index'))
-        
-        # Get the team for the ECS FC match
-        team = session.query(Team).options(joinedload(Team.players)).get(ecs_match.team_id)
-        if not team:
-            return redirect(url_for('main.index'))
-        
-        match = None  # No regular match object for ECS FC
-    else:
-        # Handle regular pub league match
+    try:
+        # Ensure we start with a clean transaction state
         try:
-            actual_match_id = int(match_id)
-        except ValueError:
-            return redirect(url_for('main.index'))
-        
-        # Fetch match details with necessary relationships eagerly loaded
-        match = session.query(Match).options(
-            joinedload(Match.home_team).joinedload(Team.players),
-            joinedload(Match.away_team).joinedload(Team.players),
-            joinedload(Match.schedule)
-        ).get(actual_match_id)
-        
-        ecs_match = None  # No ECS FC match object for regular matches
-
-    if not match and not ecs_match:
-        # If no match is found, redirect to index (or optionally abort with 404)
-        return redirect(url_for('main.index'))
-
-    # Check access permissions using the permission system
-    from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
-    from app.alert_helpers import show_error
-    
-    if is_impersonation_active():
-        user_roles = get_effective_roles()
-        can_view_match = has_effective_permission('view_match_page')
-    else:
-        user = session.merge(safe_current_user)
-        user_roles = [role.name for role in user.roles]
-        can_view_match = safe_current_user.has_permission('view_match_page')
-    
-    # Global Admin always has access
-    is_global_admin = 'Global Admin' in user_roles
-    
-    # Check if user is a referee for this match (refs can view matches they're assigned to)
-    is_assigned_ref = False
-    if not is_ecs_fc_match and hasattr(safe_current_user, 'player') and safe_current_user.player:
-        player = safe_current_user.player
-        if player.is_ref and match.referee_id == player.id:
-            is_assigned_ref = True
-    
-    # Check ECS FC access for ECS FC matches
-    can_view_ecs_fc = False
-    if is_ecs_fc_match:
-        from app.ecs_fc_api import validate_ecs_fc_coach_access
-        can_view_ecs_fc = validate_ecs_fc_coach_access(ecs_match.team_id)
-    
-    # Permission check: different rules for ECS FC vs regular matches
-    if is_ecs_fc_match:
-        if not (is_global_admin or can_view_ecs_fc):
-            show_error('Access denied: You do not have permission to view this ECS FC match.')
-            return redirect(url_for('main.index'))
-    else:
-        # Players cannot view match pages at all - only coaches, admins, and assigned refs
-        if not (is_global_admin or can_view_match or is_assigned_ref):
-            show_error('Access denied: You do not have permission to view this match.')
-            return redirect(url_for('main.index'))
-
-    schedule = match.schedule if match else None
-
-    def get_rsvp_data(team):
-        """
-        Aggregate RSVP data for a given team.
-        Handles both regular matches and ECS FC matches.
-
-        Parameters:
-            team (Team): The team whose players' RSVP statuses are to be processed.
-        
-        Returns:
-            dict: A dictionary containing lists of players for each RSVP category.
-        """
-        rsvp_data = {
-            'available': [],
-            'not_available': [],
-            'maybe': [],
-            'no_response': []
-        }
-        # Get availability records for this specific match and team players
-        player_ids = [p.id for p in team.players]
+            session.rollback()
+        except Exception:
+            pass  # Ignore any rollback errors at startup
+            
+        print(f"DEBUG: Starting view_match for match_id: {match_id}")
+        # Check if this is an ECS FC match
+        is_ecs_fc_match = isinstance(match_id, str) and match_id.startswith('ecs_')
+        print(f"DEBUG: is_ecs_fc_match: {is_ecs_fc_match}")
         
         if is_ecs_fc_match:
-            # Use ECS FC availability records
-            availability_records = session.query(EcsFcAvailability).filter(
-                EcsFcAvailability.ecs_fc_match_id == actual_match_id,
-                EcsFcAvailability.player_id.in_(player_ids)
-            ).all()
+            # Extract the actual ECS FC match ID
+            actual_match_id = int(match_id[4:])  # Remove 'ecs_' prefix
+        
+            # Fetch ECS FC match details
+            ecs_match = EcsFcScheduleManager.get_match_by_id(actual_match_id)
+            if not ecs_match:
+                return redirect(url_for('main.index'))
+            
+            # Get the team for the ECS FC match
+            team = session.query(Team).options(joinedload(Team.players)).get(ecs_match.team_id)
+            if not team:
+                return redirect(url_for('main.index'))
+            
+            match = None  # No regular match object for ECS FC
         else:
-            # Use regular availability records
-            availability_records = session.query(Availability).filter(
-                Availability.match_id == actual_match_id,
-                Availability.player_id.in_(player_ids)
-            ).all()
-        
-        # Create a lookup dict for faster access
-        availability_lookup = {a.player_id: a for a in availability_records}
-        
-        for player in team.players:
-            availability = availability_lookup.get(player.id)
-            if availability:
-                if availability.response == 'yes':
-                    rsvp_data['available'].append(player)
-                elif availability.response == 'no':
-                    rsvp_data['not_available'].append(player)
-                elif availability.response == 'maybe':
-                    rsvp_data['maybe'].append(player)
-            else:
-                rsvp_data['no_response'].append(player)
-        
-        # Add substitute assignments to the available list
-        try:
-            from app.models_substitute_pools import SubstituteAssignment, SubstituteRequest
-            
-            # Determine league type and match filter
-            if is_ecs_fc_match:
-                league_type = 'ECS FC'
-                match_filter = SubstituteRequest.match_id == actual_match_id
-            else:
-                # For regular pub league matches, could be Classic or Premier
-                league_type = None  # Will match any league type for regular matches
-                match_filter = SubstituteRequest.match_id == actual_match_id
-            
-            # Build query for unified substitute assignments
-            query = session.query(SubstituteAssignment).join(
-                SubstituteRequest
-            ).options(
-                joinedload(SubstituteAssignment.player)
-            ).filter(match_filter)
-            
-            # Add league type filter for ECS FC matches
-            if is_ecs_fc_match:
-                query = query.filter(SubstituteRequest.league_type == league_type)
-            
-            unified_assignments = query.all()
-            
-            for assignment in unified_assignments:
-                if assignment.player and assignment.player not in rsvp_data['available']:
-                    rsvp_data['available'].append(assignment.player)
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.warning(f"Could not load unified substitute assignments for match view {actual_match_id}: {e}")
-        
-        # Add ECS FC specific substitute assignments for ECS FC matches
-        if is_ecs_fc_match:
+            # Handle regular pub league match
             try:
-                from app.models_ecs_subs import EcsFcSubAssignment
-                
-                ecs_fc_assignments = session.query(EcsFcSubAssignment).join(
-                    EcsFcSubAssignment.request
+                actual_match_id = int(match_id)
+            except ValueError:
+                logger.error(f"Invalid match_id format: {match_id}")
+                return redirect(url_for('main.index'))
+            
+            # Fetch match details with necessary relationships eagerly loaded
+            match = session.query(Match).options(
+                joinedload(Match.home_team).joinedload(Team.players),
+                joinedload(Match.away_team).joinedload(Team.players),
+                joinedload(Match.schedule)
+            ).get(actual_match_id)
+            
+            logger.info(f"Fetched match for ID {actual_match_id}: {match}")
+            ecs_match = None  # No ECS FC match object for regular matches
+
+        if not match and not ecs_match:
+            # If no match is found, redirect to index (or optionally abort with 404)
+            logger.error(f"No match found - match: {match}, ecs_match: {ecs_match}")
+            return redirect(url_for('main.index'))
+
+        # Check access permissions using the permission system
+        from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+    
+        if is_impersonation_active():
+            user_roles = get_effective_roles()
+            can_view_match = has_effective_permission('view_match_page')
+        else:
+            user = session.merge(safe_current_user)
+            user_roles = [role.name for role in user.roles]
+            can_view_match = safe_current_user.has_permission('view_match_page')
+    
+        # Global Admin always has access
+        is_global_admin = 'Global Admin' in user_roles
+    
+        # Check if user is a referee for this match (refs can view matches they're assigned to)
+        is_assigned_ref = False
+        if not is_ecs_fc_match and hasattr(safe_current_user, 'player') and safe_current_user.player:
+            player = safe_current_user.player
+            if player.is_ref and match.ref_id == player.id:
+                is_assigned_ref = True
+    
+        # Check ECS FC access for ECS FC matches
+        can_view_ecs_fc = False
+        if is_ecs_fc_match:
+            from app.ecs_fc_api import validate_ecs_fc_coach_access
+            can_view_ecs_fc = validate_ecs_fc_coach_access(ecs_match.team_id)
+    
+        # Permission check: different rules for ECS FC vs regular matches
+        if is_ecs_fc_match:
+            if not (is_global_admin or can_view_ecs_fc):
+                show_error('Access denied: You do not have permission to view this ECS FC match.')
+                return redirect(url_for('main.index'))
+        else:
+            # Players cannot view match pages at all - only coaches, admins, and assigned refs
+            if not (is_global_admin or can_view_match or is_assigned_ref):
+                show_error('Access denied: You do not have permission to view this match.')
+                return redirect(url_for('main.index'))
+
+        schedule = match.schedule if match else None
+
+        def get_rsvp_data(team):
+            """
+            Aggregate RSVP data for a given team.
+            Handles both regular matches and ECS FC matches.
+
+            Parameters:
+                team (Team): The team whose players' RSVP statuses are to be processed.
+        
+            Returns:
+                dict: A dictionary containing lists of players for each RSVP category.
+            """
+            rsvp_data = {
+                'available': [],
+                'not_available': [],
+                'maybe': [],
+                'no_response': []
+            }
+            
+            try:
+                # Get availability records for this specific match and team players
+                player_ids = [p.id for p in team.players]
+            
+                if is_ecs_fc_match:
+                    # Use ECS FC availability records
+                    logger.debug(f"Querying ECS FC availability for match_id={actual_match_id}, player_ids={player_ids}")
+                    availability_records = session.query(EcsFcAvailability).filter(
+                        EcsFcAvailability.ecs_fc_match_id == actual_match_id,
+                        EcsFcAvailability.player_id.in_(player_ids)
+                    ).all()
+                else:
+                    # Use regular availability records
+                    logger.debug(f"Querying regular availability for match_id={actual_match_id}, player_ids={player_ids}")
+                    availability_records = session.query(Availability).filter(
+                        Availability.match_id == actual_match_id,
+                        Availability.player_id.in_(player_ids)
+                    ).all()
+            
+                # Create a lookup dict for faster access
+                availability_lookup = {a.player_id: a for a in availability_records}
+            except Exception as e:
+                logger.error(f"ERROR: Failed to query availability records for match {actual_match_id}")
+                logger.error(f"ERROR TYPE: {type(e)}")
+                logger.error(f"ERROR MESSAGE: {str(e)}")
+                logger.error(f"PLAYER IDS: {player_ids}")
+                logger.error(f"IS ECS FC MATCH: {is_ecs_fc_match}")
+                import traceback
+                logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
+                session.rollback()
+                availability_lookup = {}
+        
+            for player in team.players:
+                availability = availability_lookup.get(player.id)
+                if availability:
+                    if availability.response == 'yes':
+                        rsvp_data['available'].append(player)
+                    elif availability.response == 'no':
+                        rsvp_data['not_available'].append(player)
+                    elif availability.response == 'maybe':
+                        rsvp_data['maybe'].append(player)
+                else:
+                    rsvp_data['no_response'].append(player)
+        
+            # Add substitute assignments to the available list
+            try:
+                from app.models_substitute_pools import SubstituteAssignment, SubstituteRequest
+            
+                # Determine league type and match filter
+                if is_ecs_fc_match:
+                    league_type = 'ECS FC'
+                    match_filter = SubstituteRequest.match_id == actual_match_id
+                else:
+                    # For regular pub league matches, could be Classic or Premier
+                    league_type = None  # Will match any league type for regular matches
+                    match_filter = SubstituteRequest.match_id == actual_match_id
+            
+                # Build query for unified substitute assignments
+                query = session.query(SubstituteAssignment).join(
+                    SubstituteRequest
                 ).options(
-                    joinedload(EcsFcSubAssignment.player)
-                ).filter(
-                    EcsFcSubAssignment.request.has(match_id=actual_match_id)
-                ).all()
-                
-                for assignment in ecs_fc_assignments:
+                    joinedload(SubstituteAssignment.player)
+                ).filter(match_filter)
+            
+                # Add league type filter for ECS FC matches
+                if is_ecs_fc_match:
+                    query = query.filter(SubstituteRequest.league_type == league_type)
+            
+                unified_assignments = query.all()
+            
+                for assignment in unified_assignments:
                     if assignment.player and assignment.player not in rsvp_data['available']:
                         rsvp_data['available'].append(assignment.player)
             except ImportError:
                 pass
             except Exception as e:
-                logger.warning(f"Could not load ECS FC substitute assignments for ECS FC match view {actual_match_id}: {e}")
+                logger.error(f"ERROR: Failed to query unified substitute assignments for match {actual_match_id}")
+                logger.error(f"ERROR TYPE: {type(e)}")
+                logger.error(f"ERROR MESSAGE: {str(e)}")
+                import traceback
+                logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
+                session.rollback()
         
-        return rsvp_data
-
-    # Check for sorting parameter
-    sort_by = request.args.get('sort', 'default')  # Default to no sorting
-    
-    if is_ecs_fc_match:
-        # Handle ECS FC match data collection
-        if sort_by in ['name', 'response']:
-            team_player_ids = [p.id for p in team.players]
-            
-            # Get availability records for the team
+            # Add ECS FC specific substitute assignments for ECS FC matches
             if is_ecs_fc_match:
-                team_availability = session.query(EcsFcAvailability).filter(
-                    EcsFcAvailability.ecs_fc_match_id == actual_match_id,
-                    EcsFcAvailability.player_id.in_(team_player_ids)
-                ).all()
-            
-            # Create lookup dict
-            team_availability_lookup = {a.player_id: a for a in team_availability}
-            
-            # Sort based on selected option
-            if sort_by == 'name':
-                team.players.sort(key=lambda p: p.name.lower())
-            elif sort_by == 'response':
-                # Sort by response priority: yes, maybe, no, no_response
-                response_priority = {'yes': 1, 'maybe': 2, 'no': 3, None: 4}
+                try:
+                    from app.models_ecs_subs import EcsFcSubAssignment
                 
-                team.players.sort(key=lambda p: (
-                    response_priority.get(
-                        team_availability_lookup.get(p.id).response if team_availability_lookup.get(p.id) else None,
-                        4
-                    ),
-                    p.name.lower()  # Secondary sort by name
-                ))
-        
-        # For ECS FC matches, only get RSVP data for the one team
-        home_rsvp_data = get_rsvp_data(team)
-        away_rsvp_data = None  # No away team for ECS FC matches
-        
-        # Generate player choices for ECS FC match reporting (only one team)
-        player_choices = {}
-        team_players = {str(p.id): p.name for p in team.players}
-        player_choices[f'ecs_{actual_match_id}'] = {
-            team.name: team_players
-        }
-        
-    else:
-        # Handle regular pub league match data collection
-        if sort_by in ['name', 'response']:
-            home_player_ids = [p.id for p in match.home_team.players]
-            away_player_ids = [p.id for p in match.away_team.players]
-            
-            # Get availability records for both teams
-            home_availability = session.query(Availability).filter(
-                Availability.match_id == actual_match_id,
-                Availability.player_id.in_(home_player_ids)
-            ).all()
-            away_availability = session.query(Availability).filter(
-                Availability.match_id == actual_match_id,
-                Availability.player_id.in_(away_player_ids)
-            ).all()
-            
-            # Create lookup dicts
-            home_availability_lookup = {a.player_id: a for a in home_availability}
-            away_availability_lookup = {a.player_id: a for a in away_availability}
-            
-            # Sort based on selected option
-            if sort_by == 'name':
-                match.home_team.players.sort(key=lambda p: p.name.lower())
-                match.away_team.players.sort(key=lambda p: p.name.lower())
-            elif sort_by == 'response':
-                # Sort by response priority: yes, maybe, no, no_response
-                response_priority = {'yes': 1, 'maybe': 2, 'no': 3, None: 4}
+                    ecs_fc_assignments = session.query(EcsFcSubAssignment).join(
+                        EcsFcSubAssignment.request
+                    ).options(
+                        joinedload(EcsFcSubAssignment.player)
+                    ).filter(
+                        EcsFcSubAssignment.request.has(match_id=actual_match_id)
+                    ).all()
                 
-                match.home_team.players.sort(key=lambda p: (
-                    response_priority.get(
-                        home_availability_lookup.get(p.id).response if home_availability_lookup.get(p.id) else None,
-                        4
-                    ),
-                    p.name.lower()  # Secondary sort by name
-                ))
-                match.away_team.players.sort(key=lambda p: (
-                    response_priority.get(
-                        away_availability_lookup.get(p.id).response if away_availability_lookup.get(p.id) else None,
-                        4
-                    ),
-                    p.name.lower()  # Secondary sort by name
-                ))
+                    for assignment in ecs_fc_assignments:
+                        if assignment.player and assignment.player not in rsvp_data['available']:
+                            rsvp_data['available'].append(assignment.player)
+                except ImportError:
+                    pass
+                except Exception as e:
+                    logger.error(f"ERROR: Failed to query ECS FC substitute assignments for match {actual_match_id}")
+                    logger.error(f"ERROR TYPE: {type(e)}")
+                    logger.error(f"ERROR MESSAGE: {str(e)}")
+                    import traceback
+                    logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
+                    session.rollback()
         
-        home_rsvp_data = get_rsvp_data(match.home_team)
-        away_rsvp_data = get_rsvp_data(match.away_team)
-        
-        # Generate player choices dictionary for the report match modal
-        player_choices = {}
-        if match.home_team and match.away_team:
-            home_players = {str(p.id): p.name for p in match.home_team.players}
-            away_players = {str(p.id): p.name for p in match.away_team.players}
-            
-            player_choices[actual_match_id] = {
-                match.home_team.name: home_players,
-                match.away_team.name: away_players
-            }
+            return rsvp_data
 
-    return render_template(
-        'view_match.html',
-        match=match if not is_ecs_fc_match else None,
-        ecs_match=ecs_match if is_ecs_fc_match else None,
-        team=team if is_ecs_fc_match else None,
-        schedule=schedule,
-        home_rsvp_data=home_rsvp_data,
-        away_rsvp_data=away_rsvp_data,
-        player_choices=player_choices,
-        sort_by=sort_by,
-        is_ecs_fc_match=is_ecs_fc_match
-    )
+        # Check for sorting parameter
+        sort_by = request.args.get('sort', 'default')  # Default to no sorting
+    
+        if is_ecs_fc_match:
+            # Handle ECS FC match data collection
+            if sort_by in ['name', 'response']:
+                team_player_ids = [p.id for p in team.players]
+            
+                # Get availability records for the team
+                try:
+                    if is_ecs_fc_match:
+                        team_availability = session.query(EcsFcAvailability).filter(
+                            EcsFcAvailability.ecs_fc_match_id == actual_match_id,
+                            EcsFcAvailability.player_id.in_(team_player_ids)
+                        ).all()
+                except Exception as e:
+                    logger.error(f"ERROR: Failed to query ECS FC availability for sorting, match {actual_match_id}")
+                    logger.error(f"ERROR TYPE: {type(e)}")
+                    logger.error(f"ERROR MESSAGE: {str(e)}")
+                    logger.error(f"TEAM PLAYER IDS: {team_player_ids}")
+                    import traceback
+                    logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
+                    session.rollback()
+                    team_availability = []
+            
+                # Create lookup dict
+                team_availability_lookup = {a.player_id: a for a in team_availability}
+            
+                # Sort based on selected option
+                if sort_by == 'name':
+                    team.players.sort(key=lambda p: p.name.lower())
+                elif sort_by == 'response':
+                    # Sort by response priority: yes, maybe, no, no_response
+                    response_priority = {'yes': 1, 'maybe': 2, 'no': 3, None: 4}
+                
+                    team.players.sort(key=lambda p: (
+                        response_priority.get(
+                            team_availability_lookup.get(p.id).response if team_availability_lookup.get(p.id) else None,
+                            4
+                        ),
+                        p.name.lower()  # Secondary sort by name
+                    ))
+        
+            # For ECS FC matches, only get RSVP data for the one team
+            home_rsvp_data = get_rsvp_data(team)
+            away_rsvp_data = None  # No away team for ECS FC matches
+        
+            # Generate player choices for ECS FC match reporting (only one team)
+            player_choices = {}
+            team_players = {str(p.id): p.name for p in team.players}
+            player_choices[f'ecs_{actual_match_id}'] = {
+                team.name: team_players
+            }
+        
+        else:
+            # Handle regular pub league match data collection
+            if sort_by in ['name', 'response']:
+                home_player_ids = [p.id for p in match.home_team.players]
+                away_player_ids = [p.id for p in match.away_team.players]
+            
+                # Get availability records for both teams
+                try:
+                    home_availability = session.query(Availability).filter(
+                        Availability.match_id == actual_match_id,
+                        Availability.player_id.in_(home_player_ids)
+                    ).all()
+                    away_availability = session.query(Availability).filter(
+                        Availability.match_id == actual_match_id,
+                        Availability.player_id.in_(away_player_ids)
+                    ).all()
+                except Exception as e:
+                    logger.error(f"ERROR: Failed to query availability for sorting, match {actual_match_id}")
+                    logger.error(f"ERROR TYPE: {type(e)}")
+                    logger.error(f"ERROR MESSAGE: {str(e)}")
+                    logger.error(f"HOME PLAYER IDS: {home_player_ids}")
+                    logger.error(f"AWAY PLAYER IDS: {away_player_ids}")
+                    import traceback
+                    logger.error(f"FULL TRACEBACK: {traceback.format_exc()}")
+                    session.rollback()
+                    home_availability = []
+                    away_availability = []
+            
+                # Create lookup dicts
+                home_availability_lookup = {a.player_id: a for a in home_availability}
+                away_availability_lookup = {a.player_id: a for a in away_availability}
+            
+                # Sort based on selected option
+                if sort_by == 'name':
+                    match.home_team.players.sort(key=lambda p: p.name.lower())
+                    match.away_team.players.sort(key=lambda p: p.name.lower())
+                elif sort_by == 'response':
+                    # Sort by response priority: yes, maybe, no, no_response
+                    response_priority = {'yes': 1, 'maybe': 2, 'no': 3, None: 4}
+                
+                    match.home_team.players.sort(key=lambda p: (
+                        response_priority.get(
+                            home_availability_lookup.get(p.id).response if home_availability_lookup.get(p.id) else None,
+                            4
+                        ),
+                        p.name.lower()  # Secondary sort by name
+                    ))
+                    match.away_team.players.sort(key=lambda p: (
+                        response_priority.get(
+                            away_availability_lookup.get(p.id).response if away_availability_lookup.get(p.id) else None,
+                            4
+                        ),
+                        p.name.lower()  # Secondary sort by name
+                    ))
+        
+            home_rsvp_data = get_rsvp_data(match.home_team)
+            away_rsvp_data = get_rsvp_data(match.away_team)
+        
+            # Generate player choices dictionary for the report match modal
+            player_choices = {}
+            if match.home_team and match.away_team:
+                home_players = {str(p.id): p.name for p in match.home_team.players}
+                away_players = {str(p.id): p.name for p in match.away_team.players}
+            
+                player_choices[actual_match_id] = {
+                    match.home_team.name: home_players,
+                    match.away_team.name: away_players
+                }
+
+        return render_template(
+            'view_match.html',
+            match=match if not is_ecs_fc_match else None,
+            ecs_match=ecs_match if is_ecs_fc_match else None,
+            team=team if is_ecs_fc_match else None,
+            schedule=schedule,
+            home_rsvp_data=home_rsvp_data,
+            away_rsvp_data=away_rsvp_data,
+            player_choices=player_choices,
+            sort_by=sort_by,
+                is_ecs_fc_match=is_ecs_fc_match
+            )
+    except Exception as e:
+        print(f"EXCEPTION IN VIEW_MATCH FOR {match_id}: {str(e)}")
+        print(f"EXCEPTION TYPE: {type(e)}")
+        import traceback
+        print(f"FULL TRACEBACK: {traceback.format_exc()}")
+        logger.error(f"Error in view_match for match_id {match_id}: {str(e)}")
+        logger.exception("Full traceback:")
+        try:
+            session.rollback()
+        except Exception as rollback_error:
+            logger.error(f"Error during rollback: {str(rollback_error)}")
+        show_error('An error occurred while loading the match. Please try again.')
+        return redirect(url_for('main.index'))
 
 
 # Debug route to trace RSVP issues

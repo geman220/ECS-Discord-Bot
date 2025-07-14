@@ -101,8 +101,9 @@ def role_required(roles):
 
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user = safe_current_user
-            if not user or not user.is_authenticated:
+            from flask_login import current_user
+            
+            if not current_user.is_authenticated:
                 show_warning('Please log in to access this page.')
                 return redirect(url_for('auth.login'))
 
@@ -111,15 +112,30 @@ def role_required(roles):
                 show_error('Database session not available.')
                 return redirect(url_for('auth.login'))
 
+            logger.debug(f"Role decorator - Current user ID: {current_user.id}")
+            logger.debug(f"Role decorator - Session: {session}")
+
             # Check for role impersonation first, then fall back to real roles
             from app.role_impersonation import is_impersonation_active, get_effective_roles
             
             if is_impersonation_active():
                 user_roles = get_effective_roles()
+                logger.debug(f"Role decorator - Using impersonation roles: {user_roles}")
             else:
-                # Merge user to refresh role data
-                user = session.merge(user)
-                user_roles = [role.name for role in user.roles]
+                # Load user with roles from current session to avoid session binding issues
+                from app.models import User
+                from sqlalchemy.orm import selectinload
+                
+                db_user = session.query(User).options(
+                    selectinload(User.roles)
+                ).get(current_user.id)
+                
+                if not db_user:
+                    show_error('User not found.')
+                    return redirect(url_for('auth.login'))
+                
+                user_roles = [role.name for role in db_user.roles]
+                logger.debug(f"Role decorator - User roles from fresh query: {user_roles}")
             
             if not any(role in user_roles for role in roles):
                 show_error(f'Access denied: Required roles: {", ".join(roles)}')

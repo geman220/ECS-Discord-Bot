@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+
+{% block title %}{{ draft_season.name }} Analytics - Draft Predictions{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <nav aria-label="breadcrumb" class="mb-2">
+                        <ol class="breadcrumb breadcrumb-style1 mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('draft_predictions.index') }}">Draft Predictions</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ url_for('draft_predictions.admin_dashboard') }}">Admin</a>
+                            </li>
+                            <li class="breadcrumb-item active">{{ draft_season.name }} Analytics</li>
+                        </ol>
+                    </nav>
+                    <h1 class="h3 mb-2 text-primary">
+                        <i class="ti ti-chart-bar me-2"></i>{{ draft_season.name }} Analytics
+                    </h1>
+                    <p class="text-muted">Statistical analysis of draft predictions for this season</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <span class="avatar-initial rounded-circle bg-label-primary">
+                            <i class="ti ti-users"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title mb-1">{{ analytics.total_predictions }}</h5>
+                    <p class="text-muted small">Total Predictions</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <span class="avatar-initial rounded-circle bg-label-success">
+                            <i class="ti ti-user-check"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title mb-1">{{ analytics.unique_coaches }}</h5>
+                    <p class="text-muted small">Participating Coaches</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <span class="avatar-initial rounded-circle bg-label-info">
+                            <i class="ti ti-trophy"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title mb-1">{{ analytics.unique_players }}</h5>
+                    <p class="text-muted small">Players Predicted</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="avatar avatar-md mx-auto mb-2">
+                        <span class="avatar-initial rounded-circle bg-label-warning">
+                            <i class="ti ti-calculator"></i>
+                        </span>
+                    </div>
+                    <h5 class="card-title mb-1">{{ "%.1f"|format(analytics.average_predictions_per_player) }}</h5>
+                    <p class="text-muted small">Avg Predictions/Player</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Round Distribution -->
+    {% if analytics.round_distribution %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-chart-bar me-2"></i>Round Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for round, count in analytics.round_distribution.items() %}
+                        <div class="col-md-2 col-sm-3 col-6 mb-3">
+                            <div class="border rounded p-3 text-center">
+                                <div class="h5 mb-1">{{ count }}</div>
+                                <small class="text-muted">Round {{ round }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Most Predicted Players -->
+    {% if analytics.most_predicted_players %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-trending-up me-2"></i>Most Predicted Players
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Player Name</th>
+                                    <th>Predictions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player_name, count in analytics.most_predicted_players[:10] %}
+                                <tr>
+                                    <td>{{ player_name }}</td>
+                                    <td>
+                                        <span class="badge bg-label-primary">{{ count }}</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Coach Participation -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-users me-2"></i>Coach Participation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Coach Name</th>
+                                    <th>Predictions</th>
+                                    <th>Avg Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for coach_name, count in analytics.coach_participation.items() %}
+                                <tr>
+                                    <td>{{ coach_name }}</td>
+                                    <td>
+                                        <span class="badge bg-label-success">{{ count }}</span>
+                                    </td>
+                                    <td>
+                                        {% if analytics.coach_details[coach_name].avg_confidence %}
+                                            <span class="badge bg-label-info">{{ "%.1f"|format(analytics.coach_details[coach_name].avg_confidence) }}/5</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Player Prediction Summaries -->
+    {% if summaries %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-clipboard-data me-2"></i>Player Prediction Analytics
+                    </h5>
+                    <p class="text-muted mb-0">Average predicted rounds and consensus for each player</p>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Player Name</th>
+                                    <th>Avg Round</th>
+                                    <th>Range</th>
+                                    <th>Predictions</th>
+                                    <th>Variance</th>
+                                    <th>Actual</th>
+                                    <th>Avg Error</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for summary, player in summaries %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if player.profile_picture_url %}
+                                                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" 
+                                                     class="rounded-circle me-2" width="24" height="24">
+                                            {% endif %}
+                                            <strong>{{ player.name }}</strong>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if summary.avg_predicted_round %}
+                                            <span class="badge bg-label-primary">{{ "%.1f"|format(summary.avg_predicted_round) }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if summary.min_predicted_round and summary.max_predicted_round %}
+                                            <span class="text-muted">{{ summary.min_predicted_round }} - {{ summary.max_predicted_round }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-label-info">{{ summary.num_predictions or 0 }}</span>
+                                    </td>
+                                    <td>
+                                        {% if summary.prediction_variance %}
+                                            {% set variance = summary.prediction_variance %}
+                                            {% if variance > 4 %}
+                                                <span class="badge bg-label-danger">{{ "%.1f"|format(variance) }}</span>
+                                                <small class="text-muted d-block">High disagreement</small>
+                                            {% elif variance > 2 %}
+                                                <span class="badge bg-label-warning">{{ "%.1f"|format(variance) }}</span>
+                                                <small class="text-muted d-block">Some disagreement</small>
+                                            {% else %}
+                                                <span class="badge bg-label-success">{{ "%.1f"|format(variance) }}</span>
+                                                <small class="text-muted d-block">Strong consensus</small>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if summary.actual_round %}
+                                            <span class="badge bg-label-success">{{ summary.actual_round }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Pending</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if summary.avg_prediction_error %}
+                                            <span class="badge bg-label-{{ 'success' if summary.avg_prediction_error < 1 else 'warning' if summary.avg_prediction_error < 2 else 'danger' }}">
+                                                {{ "%.1f"|format(summary.avg_prediction_error) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if summary.actual_round %}
+                                            <span class="badge bg-label-success">
+                                                <i class="ti ti-check"></i> Drafted
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-label-secondary">
+                                                <i class="ti ti-clock"></i> Pending
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detailed Coach Predictions -->
+    {% if analytics.coach_details %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-user-check me-2"></i>Coach Prediction Details
+                    </h5>
+                    <p class="text-muted mb-0">Detailed breakdown of each coach's predictions</p>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="coachAccordion">
+                        {% for coach_name, details in analytics.coach_details.items() %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse{{ loop.index }}" aria-expanded="false" 
+                                        aria-controls="collapse{{ loop.index }}">
+                                    <strong>{{ coach_name }}</strong>
+                                    <span class="ms-auto me-3">
+                                        <span class="badge bg-label-primary me-2">{{ details.total_predictions }} predictions</span>
+                                        {% if details.avg_confidence %}
+                                            <span class="badge bg-label-info">{{ "%.1f"|format(details.avg_confidence) }}/5 avg confidence</span>
+                                        {% endif %}
+                                    </span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                 aria-labelledby="heading{{ loop.index }}" data-bs-parent="#coachAccordion">
+                                <div class="accordion-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Player</th>
+                                                    <th>Predicted Round</th>
+                                                    <th>Confidence</th>
+                                                    <th>Notes</th>
+                                                    <th>Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for prediction in details.predictions %}
+                                                <tr>
+                                                    <td><strong>{{ prediction.player_name }}</strong></td>
+                                                    <td>
+                                                        <span class="badge bg-label-primary">{{ prediction.predicted_round }}</span>
+                                                    </td>
+                                                    <td>
+                                                        {% if prediction.confidence_level %}
+                                                            <span class="badge bg-label-{{ 'success' if prediction.confidence_level >= 4 else 'warning' if prediction.confidence_level >= 3 else 'secondary' }}">
+                                                                {{ prediction.confidence_level }}/5
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="text-muted">-</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if prediction.notes %}
+                                                            <small class="text-muted">{{ prediction.notes[:50] }}{% if prediction.notes|length > 50 %}...{% endif %}</small>
+                                                        {% else %}
+                                                            <span class="text-muted">-</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <small class="text-muted">{{ prediction.created_at.strftime('%m/%d %H:%M') }}</small>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Coach Summary Stats -->
+                                    <div class="row mt-3">
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center py-2">
+                                                    <div class="h6 mb-0">{{ details.total_predictions }}</div>
+                                                    <small class="text-muted">Total Predictions</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center py-2">
+                                                    <div class="h6 mb-0">{{ details.rounds_predicted|length }}</div>
+                                                    <small class="text-muted">Unique Rounds</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center py-2">
+                                                    <div class="h6 mb-0">
+                                                        {% if details.avg_confidence %}
+                                                            {{ "%.1f"|format(details.avg_confidence) }}/5
+                                                        {% else %}
+                                                            -
+                                                        {% endif %}
+                                                    </div>
+                                                    <small class="text-muted">Avg Confidence</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actual Results -->
+    {% if has_actuals %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ti ti-check-circle me-2"></i>Actual Draft Results
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Round</th>
+                                    <th>Pick</th>
+                                    <th>Player</th>
+                                    <th>Team</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for actual in actuals %}
+                                <tr>
+                                    <td>{{ actual.round }}</td>
+                                    <td>{{ actual.pick }}</td>
+                                    <td>{{ actual.player_name }}</td>
+                                    <td>{{ actual.team_name }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- No Data Message -->
+    {% if not analytics.total_predictions %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="ti ti-chart-line text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">No Predictions Yet</h5>
+                    <p class="text-muted">
+                        No predictions have been made for this season yet. 
+                        <a href="{{ url_for('draft_predictions.season_predictions', season_id=draft_season.id) }}">
+                            Start making predictions
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="ti ti-arrow-left me-1"></i>Back to Admin Dashboard
+                </a>
+                <a href="{{ url_for('draft_predictions.season_predictions', season_id=draft_season.id) }}" class="btn btn-primary">
+                    <i class="ti ti-edit me-1"></i>Make Predictions
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

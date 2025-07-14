@@ -41,7 +41,7 @@ class ImageCacheService:
         (cls.CACHE_DIR / "webp").mkdir(exist_ok=True)
     
     @staticmethod
-    def get_player_image_data(player_ids: List[int]) -> Dict[int, Dict]:
+    def get_player_image_data(player_ids: List[int], session=None) -> Dict[int, Dict]:
         """
         OPTIMIZED: Fast bulk lookup of optimized image URLs for multiple players.
         Returns cached URLs for immediate loading with minimal database hits.
@@ -51,14 +51,21 @@ class ImageCacheService:
             from sqlalchemy.orm import joinedload
             from app.core import db
             
+            # Use provided session or fall back to managed session
+            if session is None:
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return ImageCacheService.get_player_image_data(player_ids, session)
+            
+            
             # Get cached image data with a single query
-            cached_images_query = g.db_session.query(PlayerImageCache).filter(
+            cached_images_query = session.query(PlayerImageCache).filter(
                 PlayerImageCache.player_id.in_(player_ids),
                 PlayerImageCache.cache_status == 'ready'
             )
             
             # Get players data in the same transaction for missing cache entries
-            players_query = g.db_session.query(Player).filter(
+            players_query = session.query(Player).filter(
                 Player.id.in_(player_ids)
             )
             
@@ -130,9 +137,15 @@ class ImageCacheService:
             }
     
     @staticmethod
-    def _queue_for_optimization(player_id: int, image_url: str):
+    def _queue_for_optimization(player_id: int, image_url: str, session=None):
         """Queue a player image for optimization."""
         try:
+            # Use provided session or fall back to managed session
+            if session is None:
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return ImageCacheService._queue_for_optimization(player_id, image_url, session)
+            
             cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
             if not cache_entry:
                 cache_entry = PlayerImageCache(
@@ -140,23 +153,29 @@ class ImageCacheService:
                     original_url=image_url,
                     cache_status='pending'
                 )
-                g.db_session.add(cache_entry)
+                session.add(cache_entry)
             else:
                 cache_entry.original_url = image_url
                 cache_entry.cache_status = 'pending'
             
-            g.db_session.commit()
+            session.commit()
             
         except Exception as e:
             logger.warning(f"Failed to queue image optimization for player {player_id}: {e}")
     
     @staticmethod
-    def _batch_queue_for_optimization(optimization_queue: List[Tuple[int, str]]):
+    def _batch_queue_for_optimization(optimization_queue: List[Tuple[int, str]], session=None):
         """OPTIMIZED: Batch queue multiple players for image optimization."""
         if not optimization_queue:
             return
             
         try:
+            # Use provided session or fall back to managed session
+            if session is None:
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return ImageCacheService._batch_queue_for_optimization(optimization_queue, session)
+            
             # Get existing cache entries for these players
             player_ids = [item[0] for item in optimization_queue]
             existing_entries = {
@@ -186,9 +205,9 @@ class ImageCacheService:
             
             # Bulk insert new entries
             if new_entries:
-                g.db_session.bulk_save_objects(new_entries)
+                session.bulk_save_objects(new_entries)
             
-            g.db_session.commit()
+            session.commit()
             
             logger.debug(f"Batch queued {len(new_entries)} new + {updated_count} updated images for optimization")
             
@@ -198,18 +217,24 @@ class ImageCacheService:
             
         except Exception as e:
             logger.warning(f"Failed to batch queue image optimization: {e}")
-            g.db_session.rollback()
+            session.rollback()
             # Fallback to individual queuing
             for player_id, image_url in optimization_queue:
-                ImageCacheService._queue_for_optimization(player_id, image_url)
+                ImageCacheService._queue_for_optimization(player_id, image_url, session)
     
     @staticmethod
-    def optimize_player_image(player_id: int, force_refresh: bool = False) -> bool:
+    def optimize_player_image(player_id: int, force_refresh: bool = False, session=None) -> bool:
         """
         Optimize a single player's image with multiple formats and sizes.
         Returns True if successful.
         """
         try:
+            # Use provided session or fall back to managed session
+            if session is None:
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return ImageCacheService.optimize_player_image(player_id, force_refresh, session)
+            
             ImageCacheService.initialize_cache_directory()
             
             # Get or create cache entry
@@ -226,8 +251,8 @@ class ImageCacheService:
                     original_url=player.profile_picture_url,
                     cache_status='pending'
                 )
-                g.db_session.add(cache_entry)
-                g.db_session.commit()
+                session.add(cache_entry)
+                session.commit()
                 logger.debug(f"Created cache entry for player {player_id}")
             
             # Skip if already optimized and not forced
@@ -235,7 +260,7 @@ class ImageCacheService:
                 return True
             
             cache_entry.cache_status = 'processing'
-            g.db_session.commit()
+            session.commit()
             
             # Download/load original image
             original_url = cache_entry.original_url
@@ -251,7 +276,7 @@ class ImageCacheService:
                 else:
                     logger.warning(f"Local image not found: {original_path}")
                     cache_entry.cache_status = 'failed'
-                    g.db_session.commit()
+                    session.commit()
                     return False
             elif original_url and original_url.startswith('http'):
                 # Download from URL
@@ -263,18 +288,18 @@ class ImageCacheService:
                 except Exception as e:
                     logger.warning(f"Failed to download image from {original_url}: {e}")
                     cache_entry.cache_status = 'failed'
-                    g.db_session.commit()
+                    session.commit()
                     return False
             else:
                 logger.warning(f"Invalid image URL for player {player_id}: {original_url}")
                 cache_entry.cache_status = 'failed'
-                g.db_session.commit()
+                session.commit()
                 return False
             
             if not image_data:
                 logger.warning(f"No image data loaded for player {player_id}")
                 cache_entry.cache_status = 'failed'
-                g.db_session.commit()
+                session.commit()
                 return False
             
             # Open and validate image
@@ -317,7 +342,7 @@ class ImageCacheService:
             cache_entry.last_cached = datetime.utcnow()
             cache_entry.cache_expiry = datetime.utcnow() + timedelta(days=ImageCacheService.CACHE_EXPIRY_DAYS)
             
-            g.db_session.commit()
+            session.commit()
             
             logger.info(f"Successfully optimized image for player {player_id}")
             return True
@@ -328,7 +353,7 @@ class ImageCacheService:
                 cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
                 if cache_entry:
                     cache_entry.cache_status = 'failed'
-                    g.db_session.commit()
+                    session.commit()
             except:
                 pass
             return False
@@ -390,10 +415,16 @@ class ImageCacheService:
             return {'success': 0, 'failed': len(player_ids or []), 'skipped': 0}
     
     @staticmethod
-    def cleanup_expired_cache():
+    def cleanup_expired_cache(session=None):
         """Remove expired cache entries and files."""
         try:
-            expired_entries = PlayerImageCache.query.filter(
+            # Use provided session or fall back to managed session
+            if session is None:
+                from app.core.session_manager import managed_session
+                with managed_session() as session:
+                    return ImageCacheService.cleanup_expired_cache(session)
+            
+            expired_entries = session.query(PlayerImageCache).filter(
                 PlayerImageCache.cache_expiry < datetime.utcnow()
             ).all()
             
@@ -406,16 +437,16 @@ class ImageCacheService:
                             file_path.unlink()
                 
                 # Remove database entry
-                g.db_session.delete(entry)
+                session.delete(entry)
             
-            g.db_session.commit()
+            session.commit()
             logger.info(f"Cleaned up {len(expired_entries)} expired cache entries")
             
         except Exception as e:
             logger.error(f"Error cleaning up expired cache: {e}")
 
 
-def handle_player_image_update(player_id: int):
+def handle_player_image_update(player_id: int, force_refresh: bool = True):
     """
     Event handler to be called when a player's profile picture changes.
     Queues the image for optimization.
@@ -426,14 +457,14 @@ def handle_player_image_update(player_id: int):
             # Try to use Celery for async processing if available
             try:
                 from app.tasks.tasks_image_optimization import queue_image_optimization
-                if queue_image_optimization(player_id):
-                    logger.info(f"Queued async image optimization for player {player_id}")
+                if queue_image_optimization(player_id, force_refresh=force_refresh):
+                    logger.info(f"Queued async image optimization for player {player_id} (force_refresh={force_refresh})")
                     return
             except ImportError:
                 logger.debug("Celery not available, using synchronous optimization")
             
             # Fallback to synchronous optimization
             ImageCacheService._queue_for_optimization(player_id, player.profile_picture_url)
-            ImageCacheService.optimize_player_image(player_id)
+            ImageCacheService.optimize_player_image(player_id, force_refresh=force_refresh)
     except Exception as e:
         logger.error(f"Failed to handle image update for player {player_id}: {e}")

@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% import 'macros.html' as macros %}
+
+{% block title %}Draft Predictions{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="h3 mb-2 text-primary">
+                                <i class="ti ti-list-numbers me-2"></i>Draft Round Estimates
+                                {% if active_seasons %}
+                                    <span class="badge bg-label-success ms-2">{{ active_seasons|length }} Active</span>
+                                {% endif %}
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Provide draft round estimates for players in your league before the draft
+                            </p>
+                        </div>
+                        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                        <div>
+                            <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="btn btn-outline-primary">
+                                <i class="ti ti-settings me-1"></i>Admin Dashboard
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Draft Seasons -->
+    <div class="row">
+        {% if active_seasons %}
+            {% for season in active_seasons %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">{{ season.name }}</h5>
+                                <span class="badge bg-label-{{ 'success' if season.league_type.lower() == 'premier' else 'primary' }} mb-2">
+                                    {{ season.league_type|title }}
+                                </span>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="ti ti-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('draft_predictions.season_predictions', season_id=season.id) }}">
+                                            <i class="ti ti-eye me-2"></i>View Details
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {% if season.description %}
+                        <p class="text-muted small mb-3">{{ season.description }}</p>
+                        {% endif %}
+
+                        <!-- Estimate Collection Period -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="ti ti-calendar-event me-2 text-primary"></i>
+                                <span class="fw-medium">Collection Period</span>
+                            </div>
+                            <div class="text-muted small">
+                                {{ season.prediction_start_date.strftime('%b %d, %Y') }} - 
+                                {{ season.prediction_end_date.strftime('%b %d, %Y') }}
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <i class="ti ti-info-circle me-1"></i>
+                                Submit your draft round estimates during this period
+                            </div>
+                        </div>
+
+                        <!-- Your Progress -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-medium">Your Estimates</span>
+                                <span class="badge bg-label-info">{{ user_predictions.get(season.id, 0) }}</span>
+                            </div>
+                            {% set prediction_count = user_predictions.get(season.id, 0) %}
+                            {% if prediction_count > 0 %}
+                                <div class="text-muted small">{{ prediction_count }} player estimates submitted</div>
+                            {% else %}
+                                <div class="text-muted small">No estimates submitted yet</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Status -->
+                        {% if season.prediction_start_date > now %}
+                            <div class="alert alert-info py-2 px-3 mb-3">
+                                <i class="ti ti-clock me-1"></i>
+                                Estimates open {{ season.prediction_start_date.strftime('%b %d') }}
+                            </div>
+                        {% elif season.prediction_end_date < now %}
+                            <div class="alert alert-warning py-2 px-3 mb-3">
+                                <i class="ti ti-clock-off me-1"></i>
+                                Estimate period ended
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success py-2 px-3 mb-3">
+                                <i class="ti ti-circle-check me-1"></i>
+                                Active - Estimates open
+                            </div>
+                        {% endif %}
+
+                        <!-- Actions -->
+                        <div class="d-grid">
+                            <a href="{{ url_for('draft_predictions.season_predictions', season_id=season.id) }}" 
+                               class="btn btn-primary">
+                                <i class="ti ti-edit me-1"></i>
+                                {% if user_predictions.get(season.id, 0) > 0 %}
+                                    View & Edit Estimates
+                                {% else %}
+                                    Submit Estimates
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- No Active Seasons -->
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="ti ti-trophy text-muted" style="font-size: 4rem;"></i>
+                        </div>
+                        <h4 class="mb-3">No Active Draft Estimate Periods</h4>
+                        <p class="text-muted mb-4">
+                            There are currently no active draft estimate periods. Draft estimate collection periods are set up by administrators for upcoming drafts.
+                        </p>
+                        <p class="text-muted mb-4">
+                            Contact an administrator to set up draft estimate collection for your league.
+                        </p>
+                        {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+                        <a href="{{ url_for('draft_predictions.create_season') }}" class="btn btn-primary">
+                            <i class="ti ti-plus me-1"></i>Create Draft Season
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="ti ti-help-circle me-2"></i>How Draft Estimates Work
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="badge bg-primary rounded-circle me-3 mt-1" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="small fw-bold">1</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Review Players</h6>
+                                    <p class="text-muted small mb-0">Review all current players in your league (Premier or Classic) before the draft.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="badge bg-primary rounded-circle me-3 mt-1" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="small fw-bold">2</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Estimate Draft Round</h6>
+                                    <p class="text-muted small mb-0">For each player, estimate which round they'll be drafted in. Skip players you're unsure about.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-flex align-items-start">
+                                <div class="badge bg-primary rounded-circle me-3 mt-1" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <span class="small fw-bold">3</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Submit Estimates</h6>
+                                    <p class="text-muted small mb-0">Submit your estimates before the deadline. Admins will analyze all responses to understand draft expectations.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+// Add any page-specific JavaScript here if needed
+</script>
+{% endblock %}
