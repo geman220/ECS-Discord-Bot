@@ -20,6 +20,7 @@ from . import core_endpoints
 from . import analytics
 from . import serializers
 from . import stats_utils
+from . import help_endpoints
 
 # Export the blueprint for registration in the main app
 __all__ = ['external_api_bp']
