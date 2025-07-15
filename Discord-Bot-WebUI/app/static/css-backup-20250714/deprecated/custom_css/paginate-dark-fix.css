@@ -1,0 +1,44 @@
+/**
+ * DataTables Pagination Dark Mode Fix
+ * 
+ * Improves visibility of pagination controls in dark mode
+ */
+
+/* Fix dark mode pagination colors for DataTables */
+.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button,
+html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button {
+  color: #e1e1e3 !important;
+  border: 1px solid #44485e !important;
+  background: #343756 !important;
+  margin: 0 3px;
+  padding: 5px 10px !important;
+  border-radius: 5px !important;
+}
+
+/* Current/active page */
+.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  color: #fff !important;
+  background: #7367f0 !important;
+  border-color: #7367f0 !important;
+}
+
+/* Hover state */
+.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled),
+html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled),
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
+  color: #fff !important;
+  background-color: #4a478a !important;
+  border-color: #6d62e4 !important;
+}
+
+/* Disabled state */
+.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+html.dark-style .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+[data-bs-theme="dark"] .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  color: #8f8fa6 !important;
+  background-color: #2f3349 !important;
+  border-color: #44485e !important;
+}

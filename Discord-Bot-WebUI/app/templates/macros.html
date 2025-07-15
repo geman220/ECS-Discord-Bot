@@ -25,183 +25,193 @@
 
             <!-- Modal Body -->
             <form id="reportMatchForm-{{ match.id }}" class="report-match-form" data-match-id="{{ match.id }}" action="{{ url_for('teams.report_match', match_id=match.id) }}" method="POST" novalidate>
-                <div class="modal-body ecs-modal-body">
+                <div class="modal-body ecs-modal-body compact-layout">
                     <!-- CSRF Token -->
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                    <!-- Home and Away Team Scores -->
-                    <div class="row mb-4">
-                        <!-- Home Team Score -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="home_team_score-{{ match.id }}" class="form-label">{{ match.home_team_name }} Score</label>
-                                <input type="number"
-                                       min="0"
-                                       class="form-control"
-                                       id="home_team_score-{{ match.id }}"
-                                       name="home_team_score"
-                                       value="{{ match.home_team_score }}" {# Pre-fill if editing #}
-                                       required />
-                            </div>
+                    <!-- Home and Away Team Scores - Always Full Width at Top -->
+                    <div class="row mb-3 compact-full-width">
+                        <div class="col-md-6 compact-form-group">
+                            <label for="home_team_score-{{ match.id }}" class="form-label">{{ match.home_team_name }} Score</label>
+                            <input type="number"
+                                   min="0"
+                                   class="form-control"
+                                   id="home_team_score-{{ match.id }}"
+                                   name="home_team_score"
+                                   value="{{ match.home_team_score }}"
+                                   required />
                         </div>
-                        <!-- Away Team Score -->
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="away_team_score-{{ match.id }}" class="form-label">{{ match.away_team_name }} Score</label>
-                                <input type="number"
-                                       min="0"
-                                       class="form-control"
-                                       id="away_team_score-{{ match.id }}"
-                                       name="away_team_score"
-                                       value="{{ match.away_team_score if match.away_team_score is not none else 0 }}"
-                                       required />
-                            </div>
+                        <div class="col-md-6 compact-form-group">
+                            <label for="away_team_score-{{ match.id }}" class="form-label">{{ match.away_team_name }} Score</label>
+                            <input type="number"
+                                   min="0"
+                                   class="form-control"
+                                   id="away_team_score-{{ match.id }}"
+                                   name="away_team_score"
+                                   value="{{ match.away_team_score if match.away_team_score is not none else 0 }}"
+                                   required />
                         </div>
                     </div>
 
-                    <!-- Goal Scorers -->
-                    <div class="mb-4">
-                        <label class="form-label">Goal Scorers</label>
-                        <div class="card p-3 border-1 shadow-sm">
-                            <div id="goalScorersContainer-{{ match.id }}" class="mb-2">
-                                {% for scorer in match.goal_scorers %}
-                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ scorer.id }}">
-                                    <input type="hidden" name="goal_scorers-stat_id[]" value="{{ scorer.id }}">
-                                    <select class="form-select" name="goal_scorers-player_id[]">
-                                        {% for team_name, players in player_choices[match.id].items() %}
-                                        <optgroup label="{{ team_name }}">
-                                            {% for player_id, player_name in players.items() %}
-                                            <option value="{{ player_id }}" {% if scorer.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
-                                            {% endfor %}
-                                        </optgroup>
+                    <!-- Two-Column Grid Layout for Events -->
+                    <div class="compact-two-column">
+                        <!-- Left Column: Goals and Assists -->
+                        <div>
+                            <!-- Goal Scorers -->
+                            <div class="compact-card">
+                                <div class="card-header">⚽ Goal Scorers</div>
+                                <div class="card-body">
+                                    <div id="goalScorersContainer-{{ match.id }}" class="mb-2">
+                                        {% for scorer in match.goal_scorers %}
+                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ scorer.id }}">
+                                            <input type="hidden" name="goal_scorers-stat_id[]" value="{{ scorer.id }}">
+                                            <select class="form-select" name="goal_scorers-player_id[]" style="min-width: 200px;">
+                                                {% for team_name, players in player_choices[match.id].items() %}
+                                                <optgroup label="{{ team_name }}">
+                                                    {% for player_id, player_name in players.items() %}
+                                                    <option value="{{ player_id }}" {% if scorer.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="text" class="form-control" name="goal_scorers-minute[]" placeholder="Min" value="{{ scorer.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter minute (e.g., '45' or '45+2')" style="max-width: 80px;">
+                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                        </div>
                                         {% endfor %}
-                                    </select>
-                                    <input type="text" class="form-control" name="goal_scorers-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ scorer.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
-                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                    </div>
+                                    <div class="compact-button-group">
+                                        <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'goalScorersContainer-{{ match.id }}')">
+                                            <i data-feather="plus"></i> Add Goal
+                                        </button>
+                                    </div>
                                 </div>
-                                {% endfor %}
                             </div>
-                            <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'goalScorersContainer-{{ match.id }}')">
-                                <i data-feather="plus" class="me-1"></i> Add Goal Scorer
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- Own Goals -->
-                    <div class="mb-4">
-                        <label class="form-label">Own Goals</label>
-                        <div class="card p-3 border-1 shadow-sm">
-                            <div id="ownGoalsContainer-{{ match.id }}" class="mb-2">
-                                {% for own_goal in match.own_goals %}
-                                <div class="input-group mb-2 own-goal-event-entry" data-unique-id="{{ own_goal.id }}">
-                                    <input type="hidden" name="own_goals-stat_id[]" value="{{ own_goal.id }}">
-                                    <select class="form-select" name="own_goals-team_id[]">
-                                        <option value="{{ match.home_team_id }}" {% if own_goal.team_id == match.home_team_id %}selected{% endif %}>{{ match.home_team_name }}</option>
-                                        <option value="{{ match.away_team_id }}" {% if own_goal.team_id == match.away_team_id %}selected{% endif %}>{{ match.away_team_name }}</option>
-                                    </select>
-                                    <input type="text" class="form-control" name="own_goals-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ own_goal.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
-                                    <button class="btn btn-danger" type="button" onclick="removeOwnGoalEvent(this)">Remove</button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <button class="btn btn-warning btn-sm" type="button" onclick="addOwnGoalEvent('{{ match.id }}', 'ownGoalsContainer-{{ match.id }}')">
-                                <i data-feather="plus" class="me-1"></i> Add Own Goal
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Assist Providers -->
-                    <div class="mb-4">
-                        <label class="form-label">Assist Providers</label>
-                        <div class="card p-3 border-1 shadow-sm">
-                            <div id="assistProvidersContainer-{{ match.id }}" class="mb-2">
-                                {% for assist in match.assist_providers %}
-                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ assist.id }}">
-                                    <input type="hidden" name="assist_providers-stat_id[]" value="{{ assist.id }}">
-                                    <select class="form-select" name="assist_providers-player_id[]">
-                                        {% for team_name, players in player_choices[match.id].items() %}
-                                        <optgroup label="{{ team_name }}">
-                                            {% for player_id, player_name in players.items() %}
-                                            <option value="{{ player_id }}" {% if assist.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
-                                            {% endfor %}
-                                        </optgroup>
+                            <!-- Assist Providers -->
+                            <div class="compact-card">
+                                <div class="card-header">🅰️ Assists</div>
+                                <div class="card-body">
+                                    <div id="assistProvidersContainer-{{ match.id }}" class="mb-2">
+                                        {% for assist in match.assist_providers %}
+                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ assist.id }}">
+                                            <input type="hidden" name="assist_providers-stat_id[]" value="{{ assist.id }}">
+                                            <select class="form-select" name="assist_providers-player_id[]" style="min-width: 200px;">
+                                                {% for team_name, players in player_choices[match.id].items() %}
+                                                <optgroup label="{{ team_name }}">
+                                                    {% for player_id, player_name in players.items() %}
+                                                    <option value="{{ player_id }}" {% if assist.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="text" class="form-control" name="assist_providers-minute[]" placeholder="Min" value="{{ assist.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter minute" style="max-width: 80px;">
+                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                        </div>
                                         {% endfor %}
-                                    </select>
-                                    <input type="text" class="form-control" name="assist_providers-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ assist.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
-                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                    </div>
+                                    <div class="compact-button-group">
+                                        <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'assistProvidersContainer-{{ match.id }}')">
+                                            <i data-feather="plus"></i> Add Assist
+                                        </button>
+                                    </div>
                                 </div>
-                                {% endfor %}
                             </div>
-                            <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'assistProvidersContainer-{{ match.id }}')">
-                                <i data-feather="plus" class="me-1"></i> Add Assist Provider
-                            </button>
                         </div>
-                    </div>
 
-                    <!-- Yellow Cards -->
-                    <div class="mb-4">
-                        <label class="form-label">Yellow Cards</label>
-                        <div class="card p-3 border-1 shadow-sm">
-                            <div id="yellowCardsContainer-{{ match.id }}" class="mb-2">
-                                {% for card in match.yellow_cards %}
-                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ card.id }}">
-                                    <input type="hidden" name="yellow_cards-stat_id[]" value="{{ card.id }}">
-                                    <select class="form-select" name="yellow_cards-player_id[]">
-                                        {% for team_name, players in player_choices[match.id].items() %}
-                                        <optgroup label="{{ team_name }}">
-                                            {% for player_id, player_name in players.items() %}
-                                            <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
-                                            {% endfor %}
-                                        </optgroup>
+                        <!-- Right Column: Cards and Own Goals -->
+                        <div>
+                            <!-- Cards Section -->
+                            <div class="compact-card">
+                                <div class="card-header">🟨🟥 Cards</div>
+                                <div class="card-body">
+                                    <!-- Yellow Cards -->
+                                    <div id="yellowCardsContainer-{{ match.id }}" class="mb-2">
+                                        {% for card in match.yellow_cards %}
+                                        <div class="input-group mb-1 player-event-entry" data-unique-id="{{ card.id }}">
+                                            <span class="input-group-text bg-warning text-dark" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟨</span>
+                                            <input type="hidden" name="yellow_cards-stat_id[]" value="{{ card.id }}">
+                                            <select class="form-select" name="yellow_cards-player_id[]" style="min-width: 200px;">
+                                                {% for team_name, players in player_choices[match.id].items() %}
+                                                <optgroup label="{{ team_name }}">
+                                                    {% for player_id, player_name in players.items() %}
+                                                    <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="text" class="form-control" name="yellow_cards-minute[]" placeholder="Min" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
+                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                        </div>
                                         {% endfor %}
-                                    </select>
-                                    <input type="text" class="form-control" name="yellow_cards-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
-                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'yellowCardsContainer-{{ match.id }}')">
-                                <i data-feather="plus" class="me-1"></i> Add Yellow Card
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Red Cards -->
-                    <div class="mb-4">
-                        <label class="form-label">Red Cards</label>
-                        <div class="card p-3 border-1 shadow-sm">
-                            <div id="redCardsContainer-{{ match.id }}" class="mb-2">
-                                {% for card in match.red_cards %}
-                                <div class="input-group mb-2 player-event-entry" data-unique-id="{{ card.id }}">
-                                    <input type="hidden" name="red_cards-stat_id[]" value="{{ card.id }}">
-                                    <select class="form-select" name="red_cards-player_id[]">
-                                        {% for team_name, players in player_choices[match.id].items() %}
-                                        <optgroup label="{{ team_name }}">
-                                            {% for player_id, player_name in players.items() %}
-                                            <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
-                                            {% endfor %}
-                                        </optgroup>
+                                    </div>
+                                    
+                                    <!-- Red Cards -->
+                                    <div id="redCardsContainer-{{ match.id }}" class="mb-2">
+                                        {% for card in match.red_cards %}
+                                        <div class="input-group mb-1 player-event-entry" data-unique-id="{{ card.id }}">
+                                            <span class="input-group-text bg-danger text-white" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟥</span>
+                                            <input type="hidden" name="red_cards-stat_id[]" value="{{ card.id }}">
+                                            <select class="form-select" name="red_cards-player_id[]" style="min-width: 200px;">
+                                                {% for team_name, players in player_choices[match.id].items() %}
+                                                <optgroup label="{{ team_name }}">
+                                                    {% for player_id, player_name in players.items() %}
+                                                    <option value="{{ player_id }}" {% if card.player_id == player_id %}selected{% endif %}>{{ player_name }}</option>
+                                                    {% endfor %}
+                                                </optgroup>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="text" class="form-control" name="red_cards-minute[]" placeholder="Min" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
+                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                        </div>
                                         {% endfor %}
-                                    </select>
-                                    <input type="text" class="form-control" name="red_cards-minute[]" placeholder="Minute (e.g., '45' or '45+2')" value="{{ card.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" title="Enter a valid minute (e.g., '45' or '45+2')">
-                                    <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
+                                    </div>
+                                    
+                                    <div class="compact-button-group">
+                                        <button class="btn btn-warning btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'yellowCardsContainer-{{ match.id }}')">
+                                            🟨 Yellow
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'redCardsContainer-{{ match.id }}')">
+                                            🟥 Red
+                                        </button>
+                                    </div>
                                 </div>
-                                {% endfor %}
                             </div>
-                            <button class="btn btn-primary btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'redCardsContainer-{{ match.id }}')">
-                                <i data-feather="plus" class="me-1"></i> Add Red Card
-                            </button>
+
+                            <!-- Own Goals -->
+                            <div class="compact-card">
+                                <div class="card-header">⚽❌ Own Goals</div>
+                                <div class="card-body">
+                                    <div id="ownGoalsContainer-{{ match.id }}" class="mb-2">
+                                        {% for own_goal in match.own_goals %}
+                                        <div class="input-group mb-2 player-event-entry" data-unique-id="{{ own_goal.id }}">
+                                            <input type="hidden" name="own_goals-stat_id[]" value="{{ own_goal.id }}">
+                                            <select class="form-select" name="own_goals-team_id[]" style="min-width: 200px;">
+                                                <option value="{{ match.home_team_id }}" {% if own_goal.team_id == match.home_team_id %}selected{% endif %}>{{ match.home_team_name }}</option>
+                                                <option value="{{ match.away_team_id }}" {% if own_goal.team_id == match.away_team_id %}selected{% endif %}>{{ match.away_team_name }}</option>
+                                            </select>
+                                            <input type="text" class="form-control" name="own_goals-minute[]" placeholder="Min" value="{{ own_goal.minute }}" pattern="^\d{1,3}(\+\d{1,2})?$" style="max-width: 80px;">
+                                            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="compact-button-group">
+                                        <button class="btn btn-warning btn-sm" type="button" onclick="addEvent('{{ match.id }}', 'ownGoalsContainer-{{ match.id }}')">
+                                            <i data-feather="plus"></i> Own Goal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Match Notes -->
-                    <div class="mb-4">
+                    <!-- Match Notes - Full Width -->
+                    <div class="compact-full-width compact-form-group">
                         <label class="form-label" for="match_notes-{{ match.id }}">Match Notes</label>
-                        <textarea class="form-control" id="match_notes-{{ match.id }}" name="match_notes" rows="3">{{ match.notes }}</textarea>
+                        <textarea class="form-control compact" id="match_notes-{{ match.id }}" name="match_notes" rows="3">{{ match.notes }}</textarea>
                     </div>
                     
-                    <!-- Verification Section (will be populated by JavaScript) -->
-                    <div id="verificationSection-{{ match.id }}" class="mb-4 verification-section border-top pt-4 mt-4">
+                    <!-- Verification Section - Full Width -->
+                    <div id="verificationSection-{{ match.id }}" class="compact-verification compact-full-width">
                         <!-- This will be populated by report_match.js -->
                     </div>
                 </div>

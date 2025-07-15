@@ -11,7 +11,7 @@ All routes are protected by login and role requirements.
 """
 
 import logging
-from flask import Blueprint
+from flask import Blueprint, redirect, url_for
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +118,13 @@ def csrf_exempt(route_func):
 # Admin Dashboard and User Management
 # -----------------------------------------------------------
 
+@admin_bp.route('/admin', endpoint='index', methods=['GET'])
+@login_required
+@role_required('Global Admin')
+def admin_index():
+    """Admin index route that redirects to dashboard."""
+    return redirect(url_for('admin.admin_dashboard'))
+
 @admin_bp.route('/admin/dashboard', endpoint='admin_dashboard', methods=['GET', 'POST'])
 @login_required
 @role_required('Global Admin')
@@ -204,17 +211,19 @@ def admin_dashboard():
 # -----------------------------------------------------------
 
 @admin_bp.route('/admin/get_role_permissions', endpoint='get_role_permissions', methods=['GET'])
+@admin_bp.route('/admin/role-permissions/<int:role_id>', endpoint='get_role_permissions_alt', methods=['GET'])
 @login_required
 @role_required('Global Admin')
-def get_role_permissions():
+def get_role_permissions(role_id=None):
     """
     Retrieve permission details for a specified role.
     """
-    role_id = request.args.get('role_id')
+    if role_id is None:
+        role_id = request.args.get('role_id')
     permissions = get_role_permissions_data(role_id, session=g.db_session)
     if permissions is None:
-        return jsonify({'error': 'Role not found.'}), 404
-    return jsonify({'permissions': permissions})
+        return jsonify({'success': False, 'error': 'Role not found.'}), 404
+    return jsonify({'success': True, 'permissions': permissions})
 
 
 # -----------------------------------------------------------

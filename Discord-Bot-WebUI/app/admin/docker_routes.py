@@ -56,6 +56,7 @@ def view_logs(container_id):
 
 
 @admin_bp.route('/admin/docker_status', endpoint='docker_status', methods=['GET'])
+@admin_bp.route('/admin/docker-status', endpoint='docker_status_alt', methods=['GET'])
 @login_required
 @role_required('Global Admin')
 def docker_status():
@@ -64,5 +65,5 @@ def docker_status():
     """
     containers = get_container_data()
     if containers is None:
-        return jsonify({"error": "Failed to fetch container data"}), 500
-    return jsonify(containers)
+        return jsonify({"success": False, "error": "Failed to fetch container data"}), 500
+    return jsonify({"success": True, "containers": containers})

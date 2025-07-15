@@ -18,7 +18,7 @@ from app import csrf
 from app.core import db
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_info
-from app.models import User, Player, Role, Team
+from app.models import User, Player, Role, Team, League, Season
 from app.models_substitute_pools import (
     SubstitutePool, SubstitutePoolHistory, SubstituteRequest, 
     SubstituteResponse, SubstituteAssignment,
@@ -74,8 +74,12 @@ def manage_substitute_pools():
             # Get active pools
             active_pools = session.query(SubstitutePool).options(
                 joinedload(SubstitutePool.player).joinedload(Player.user),
-                joinedload(SubstitutePool.approver)
-            ).filter_by(league_type=league_type, is_active=True).all()
+                joinedload(SubstitutePool.league).joinedload(League.season)
+            ).join(League, SubstitutePool.league_id == League.id
+            ).join(Season, League.season_id == Season.id).filter(
+                Season.league_type == league_type,
+                SubstitutePool.is_active == True
+            ).all()
             
             # Get eligible players not in pool
             eligible_players = get_eligible_players(league_type, session)
@@ -122,10 +126,12 @@ def manage_league_pool(league_type: str):
         # Get active pools with full player information
         active_pools = session.query(SubstitutePool).options(
             joinedload(SubstitutePool.player).joinedload(Player.user),
-            joinedload(SubstitutePool.approver)
-        ).filter_by(league_type=league_type, is_active=True).order_by(
-            SubstitutePool.last_active_at.desc()
-        ).all()
+            joinedload(SubstitutePool.league).joinedload(League.season)
+        ).join(League, SubstitutePool.league_id == League.id
+        ).join(Season, League.season_id == Season.id).filter(
+            Season.league_type == league_type,
+            SubstitutePool.is_active == True
+        ).order_by(SubstitutePool.last_active_at.desc()).all()
         
         # Get eligible players not in pool
         eligible_players = get_eligible_players(league_type, session)

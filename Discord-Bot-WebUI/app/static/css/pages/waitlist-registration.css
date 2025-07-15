@@ -1,0 +1,78 @@
+/**
+ * Waitlist Registration Page CSS
+ * Extracted from app/templates/waitlist_register_discord.html
+ * 
+ * Contains responsive design, cropper modal styles, and form optimizations
+ * specific to the waitlist registration workflow.
+ */
+
+/* ===== PAGE LAYOUT ===== */
+/* Match app design language */
+.section-header {
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Desktop optimizations */
+@media (min-width: 769px) {
+    .main-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+}
+
+/* ===== IMAGE CONTAINER STYLING ===== */
+.img-container {
+    width: 100%;
+    max-height: 600px;
+    overflow: hidden;
+}
+
+.img-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* ===== CROPPER MODAL STYLES ===== */
+#profileImageModal .modal-body {
+    min-height: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Make sure the image container is properly sized */
+#profileImageModal .img-container {
+    width: 100%;
+    min-height: 400px;
+    max-height: 500px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+/* ===== MOBILE RESPONSIVENESS ===== */
+@media (max-width: 768px) {
+    .container-xxl {
+        padding: 1rem;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+    
+    .section-header {
+        font-size: 1.1rem;
+    }
+    
+    .form-control, 
+    .form-select {
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+html[data-style="dark"] .section-header {
+    border-bottom-color: var(--bs-border-color);
+}

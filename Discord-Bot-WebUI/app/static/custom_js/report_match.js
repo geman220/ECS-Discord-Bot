@@ -40,6 +40,32 @@ function createPlayerOptions(matchId) {
     return options;
 }
 
+function createTeamOptions(matchId) {
+    let options = '<option value="" selected>Select a team</option>';
+    
+    // Try to get team info from stored match data
+    if (window.currentMatchData && window.currentMatchData.matchId == matchId) {
+        const homeTeamId = window.currentMatchData.home_team ? window.currentMatchData.home_team.id : null;
+        const awayTeamId = window.currentMatchData.away_team ? window.currentMatchData.away_team.id : null;
+        const homeTeamName = window.currentMatchData.home_team_name || 'Home Team';
+        const awayTeamName = window.currentMatchData.away_team_name || 'Away Team';
+        
+        if (homeTeamId) options += `<option value="${homeTeamId}">${homeTeamName}</option>`;
+        if (awayTeamId) options += `<option value="${awayTeamId}">${awayTeamName}</option>`;
+    } else {
+        // Fallback to window variables
+        const homeTeamName = window['homeTeamName_' + matchId] || 'Home Team';
+        const awayTeamName = window['awayTeamName_' + matchId] || 'Away Team';
+        const homeTeamId = window['homeTeamId_' + matchId];
+        const awayTeamId = window['awayTeamId_' + matchId];
+        
+        if (homeTeamId) options += `<option value="${homeTeamId}">${homeTeamName}</option>`;
+        if (awayTeamId) options += `<option value="${awayTeamId}">${awayTeamName}</option>`;
+    }
+    
+    return options;
+}
+
 // Function to get the container ID based on event type
 function getContainerId(eventType, matchId) {
     let containerId;
@@ -83,21 +109,65 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
     // Get the base name for input fields
     var baseName = containerId.split('Container-')[0];
 
+    // Determine visual indicator and styling based on event type
+    var eventIndicator = '';
+    var inputGroupClass = 'input-group mb-2 player-event-entry';
+    var selectStyle = 'min-width: 200px;';
+    var minuteStyle = 'max-width: 80px;';
+    var formBaseName = baseName;
+    
+    if (baseName === 'yellowCards') {
+        eventIndicator = '<span class="input-group-text bg-warning text-dark" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟨</span>';
+        inputGroupClass = 'input-group mb-1 player-event-entry';
+        formBaseName = 'yellow_cards';
+    } else if (baseName === 'redCards') {
+        eventIndicator = '<span class="input-group-text bg-danger text-white" style="min-width: 32px; padding: 0.375rem 0.25rem;">🟥</span>';
+        inputGroupClass = 'input-group mb-1 player-event-entry';
+        formBaseName = 'red_cards';
+    } else if (baseName === 'ownGoals') {
+        formBaseName = 'own_goals';
+    }
+
     // Define the new input group with appropriate naming conventions and data attributes
-    var newInputGroup = `
-        <div class="input-group mb-2 player-event-entry" data-unique-id="${uniqueId}">
-            <input type="hidden" name="${baseName}-stat_id[]" value="${statId ? statId : ''}">
-            <select class="form-select" name="${baseName}-player_id[]">
-                ${createPlayerOptions(matchId)}
-            </select>
-            <input type="text" class="form-control" name="${baseName}-minute[]" 
-                   placeholder="Minute (e.g., '45' or '45+2')" 
-                   value="${minute ? minute : ''}"
-                   pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
-                   title="Enter a valid minute (e.g., '45' or '45+2')">
-            <button class="btn btn-danger" type="button" onclick="removeEvent(this)">Remove</button>
-        </div>
-    `;
+    var newInputGroup;
+    
+    if (baseName === 'ownGoals') {
+        // Special handling for own goals - use team selector instead of player selector
+        newInputGroup = `
+            <div class="${inputGroupClass}" data-unique-id="${uniqueId}">
+                ${eventIndicator}
+                <input type="hidden" name="${formBaseName}-stat_id[]" value="${statId ? statId : ''}">
+                <select class="form-select" name="${formBaseName}-team_id[]" style="${selectStyle}">
+                    ${createTeamOptions(matchId)}
+                </select>
+                <input type="text" class="form-control" name="${formBaseName}-minute[]" 
+                       placeholder="Min" 
+                       value="${minute ? minute : ''}"
+                       pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
+                       title="Enter a valid minute (e.g., '45' or '45+2')"
+                       style="${minuteStyle}">
+                <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+            </div>
+        `;
+    } else {
+        // Standard event (goals, assists, cards)
+        newInputGroup = `
+            <div class="${inputGroupClass}" data-unique-id="${uniqueId}">
+                ${eventIndicator}
+                <input type="hidden" name="${formBaseName}-stat_id[]" value="${statId ? statId : ''}">
+                <select class="form-select" name="${formBaseName}-player_id[]" style="${selectStyle}">
+                    ${createPlayerOptions(matchId)}
+                </select>
+                <input type="text" class="form-control" name="${formBaseName}-minute[]" 
+                       placeholder="Min" 
+                       value="${minute ? minute : ''}"
+                       pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
+                       title="Enter a valid minute (e.g., '45' or '45+2')"
+                       style="${minuteStyle}">
+                <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
+            </div>
+        `;
+    }
 
     // Append the new input group to the container
     $(containerSelector).append(newInputGroup);
@@ -105,7 +175,7 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
     // Set the selected player if provided
     if (playerId) {
         const lastAddedEntry = $(containerSelector).children().last();
-        lastAddedEntry.find(`select[name="${baseName}-player_id[]"]`).val(playerId);
+        lastAddedEntry.find(`select[name="${formBaseName}-player_id[]"]`).val(playerId);
     }
 
     // Re-initialize Feather icons if necessary
@@ -1254,18 +1324,19 @@ window.addOwnGoalEvent = function(matchId, containerId, statId = null, teamId = 
 
     // Define the new input group for own goals
     var newInputGroup = `
-        <div class="input-group mb-2 own-goal-event-entry" data-unique-id="${uniqueId}">
+        <div class="input-group mb-2 player-event-entry" data-unique-id="${uniqueId}">
             <input type="hidden" name="own_goals-stat_id[]" value="${statId ? statId : ''}">
-            <select class="form-select" name="own_goals-team_id[]">
+            <select class="form-select" name="own_goals-team_id[]" style="min-width: 200px;">
                 <option value="${homeTeamId}"${teamId == homeTeamId ? ' selected' : ''}>${homeTeamName}</option>
                 <option value="${awayTeamId}"${teamId == awayTeamId ? ' selected' : ''}>${awayTeamName}</option>
             </select>
             <input type="text" class="form-control" name="own_goals-minute[]" 
-                   placeholder="Minute (e.g., '45' or '45+2')" 
+                   placeholder="Min" 
                    value="${minute ? minute : ''}"
                    pattern="^\\d{1,3}(\\+\\d{1,2})?$" 
-                   title="Enter a valid minute (e.g., '45' or '45+2')">
-            <button class="btn btn-danger" type="button" onclick="removeOwnGoalEvent(this)">Remove</button>
+                   title="Enter a valid minute (e.g., '45' or '45+2')"
+                   style="max-width: 80px;">
+            <button class="btn btn-danger btn-sm" type="button" onclick="removeEvent(this)">×</button>
         </div>
     `;
 

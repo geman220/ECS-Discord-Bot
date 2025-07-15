@@ -1,0 +1,206 @@
+/**
+ * Button System - Consolidated
+ * Combines: button-transform-fix.css, button-close-fix.css, custom_css/button-fix.css
+ * 
+ * Provides consistent, touch-friendly button behavior across all devices
+ * with proper transform handling and responsive design.
+ */
+
+/* ===== BASE BUTTON STYLES ===== */
+/* Prevent any transform that would resize the button */
+.btn, 
+.ecs-btn,
+button.btn, 
+button.ecs-btn,
+.btn.waves-effect,
+.ecs-btn.waves-effect {
+  transform: none !important;
+  transition-property: color, background-color, border-color !important;
+  transition-duration: 0.15s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Button interaction states */
+.btn:hover, .btn:active, .btn:focus, .btn.active,
+.ecs-btn:hover, .ecs-btn:active, .ecs-btn:focus, .ecs-btn.active,
+button.btn:hover, button.btn:active, button.btn:focus, button.btn.active,
+button.ecs-btn:hover, button.ecs-btn:active, button.ecs-btn:focus, button.ecs-btn.active {
+  transform: none !important;
+}
+
+/* Ensure waves ripple effect still works properly without affecting button dimensions */
+.waves-effect .waves-ripple {
+  transition-property: opacity, transform !important;
+  transform-origin: center !important;
+}
+
+/* Additional specificity for buttons with multiple classes that might have transforms */
+[class*="btn"].waves-effect,
+[class*="btn-"].waves-effect {
+  transform: none !important;
+}
+
+/* ===== TOUCH-FRIENDLY BUTTON SIZING ===== */
+/* Touch target minimum size for mobile devices */
+.btn, .ecs-btn, button {
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+}
+
+.btn:disabled,
+.ecs-btn:disabled,
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* ===== BUTTON SIZE VARIANTS ===== */
+.btn-sm, .ecs-btn-sm {
+  min-height: 38px;
+  min-width: 38px;
+}
+
+.btn-lg, .ecs-btn-lg {
+  min-height: 56px;
+  min-width: 56px;
+}
+
+/* ===== ICON BUTTONS ===== */
+.btn-icon, .ecs-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.btn-icon svg,
+.btn-icon i,
+.ecs-btn-icon svg,
+.ecs-btn-icon i {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* ===== CLOSE BUTTON FIXES ===== */
+/* Fix for close buttons (X) in modals with dark headers */
+.btn-close-white.ecs-modal-close {
+  filter: invert(1) grayscale(100%) brightness(200%) !important;
+  background-color: transparent !important;
+  opacity: 0.8 !important;
+  background-image: none !important;
+}
+
+.btn-close-white.ecs-modal-close:hover {
+  opacity: 1 !important;
+}
+
+.btn-close-white.ecs-modal-close:focus {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25) !important;
+}
+
+/* Standard close button improvements */
+.btn-close {
+  background-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.btn-close:hover {
+  opacity: 1;
+}
+
+.btn-close:focus {
+  opacity: 1;
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1);
+}
+
+/* ===== MOBILE-SPECIFIC OVERRIDES ===== */
+/* Specific override for touch active state on mobile */
+@media (hover: none) {
+  .btn:active, 
+  .ecs-btn:active {
+    transform: none !important;
+  }
+}
+
+/* Desktop override - ensure no scaling on desktop devices */
+@media (hover: hover) and (pointer: fine) {
+  /* Desktop devices with mouse */
+  button, .btn, .ecs-btn, [class*="btn-"] {
+    transform: none !important;
+    transition: background-color 0.15s ease-in-out, 
+                color 0.15s ease-in-out,
+                border-color 0.15s ease-in-out !important;
+  }
+  
+  button:active, .btn:active, .ecs-btn:active, [class*="btn-"]:active,
+  button:hover, .btn:hover, .ecs-btn:hover, [class*="btn-"]:hover,
+  button:focus, .btn:focus, .ecs-btn:focus, [class*="btn-"]:focus {
+    transform: none !important;
+  }
+  
+  /* Never apply scaling on desktop */
+  .touch-active {
+    transform: none !important;
+    opacity: 0.9;
+  }
+}
+
+/* ===== BUTTON GROUPS ===== */
+.btn-group .btn,
+.btn-group .ecs-btn {
+  border-radius: 0;
+}
+
+.btn-group .btn:first-child,
+.btn-group .ecs-btn:first-child {
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.btn-group .btn:last-child,
+.btn-group .ecs-btn:last-child {
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+/* ===== LOADING STATES ===== */
+.btn.loading,
+.ecs-btn.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.btn.loading::after,
+.ecs-btn.loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: button-loading-spin 1s linear infinite;
+}
+
+@keyframes button-loading-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== DARK MODE ADJUSTMENTS ===== */
+html[data-style="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+html[data-style="dark"] .btn-outline-light {
+  color: #fff;
+  border-color: #fff;
+}
+
+html[data-style="dark"] .btn-outline-light:hover {
+  background-color: #fff;
+  border-color: #fff;
+  color: #000;
+}

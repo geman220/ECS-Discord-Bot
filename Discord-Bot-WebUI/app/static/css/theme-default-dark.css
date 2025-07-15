@@ -2,6 +2,16 @@
 /*
 * Pages Mixins
 */
+
+/* Dark-mode design tokens (forms) */
+html[data-style="dark"] {
+  --ecs-form-bg:       #2e334f;  /* same tone as your card-background */
+  --ecs-form-border:   #414760;
+  --ecs-form-text:     #e2e4ee;
+  --ecs-bg-tertiary:   #353a57;  /* used for chips / accordions, etc. */
+  --ecs-border-primary:#434967;
+  --ecs-text-primary:  #e2e4ee;
+}
 .layout-navbar-fixed .layout-wrapper:not(.layout-horizontal) .layout-page:before {
   content: "";
   width: 100%;
@@ -850,6 +860,12 @@ button.list-group-item-primary.active {
 .card.card-hover-border-primary:hover,
 .card .card-hover-border-primary:hover {
   border-color: #494788;
+}
+
+/* dark‑mode design tokens (extended) */
+html[data-style="dark"] {
+  /* … existing tokens … */
+  --ecs-form-placeholder: #8d92ad;   /* subtle mid‑grey */
 }
 
 html:not([dir=rtl]) .border-primary,

@@ -57,19 +57,7 @@ let assetsPath = document.documentElement.getAttribute('data-assets-path'),
   templateName = document.documentElement.getAttribute('data-template'),
   rtlSupport = true; // set to true for RTL support, false otherwise.
 
-// Initialize TemplateCustomizer if available
-if (typeof TemplateCustomizer !== 'undefined') {
-  window.templateCustomizer = new TemplateCustomizer({
-    cssPath: assetsPath + 'vendor/css' + (rtlSupport ? '/rtl' : '') + '/',
-    themesPath: assetsPath + 'vendor/css' + (rtlSupport ? '/rtl' : '') + '/',
-    displayCustomizer: false, // Disable the full customizer display
-    lang: localStorage.getItem('templateCustomizer-' + templateName + '--Lang') || 'en',
-    controls: ['style'], // Only allow style (theme) switching
-  });
-
-  // Set the default content layout to 'wide'
-  window.templateCustomizer.setContentLayout('wide');
-
-  // Additionally, ensure that data-content attribute is set to 'wide'
+// Set the default content layout to 'wide' (replaces TemplateCustomizer)
+document.addEventListener('DOMContentLoaded', function() {
   document.documentElement.setAttribute('data-content', 'wide');
-}
+});
