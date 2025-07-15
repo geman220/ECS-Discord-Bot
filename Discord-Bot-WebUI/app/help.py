@@ -10,6 +10,7 @@ Access to topics is controlled based on user roles, and Markdown content is conv
 """
 
 import os
+import re
 import markdown
 from flask import Blueprint, render_template, request, redirect, url_for, current_app, jsonify, g, abort
 from flask_login import login_required, current_user
@@ -87,6 +88,47 @@ def allowed_file(filename):
     """
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def process_discord_links(html_content):
+    """
+    Convert Discord channel references in markdown to styled non-clickable mentions.
+    
+    Patterns supported:
+    - [[#channel-name]] -> styled Discord channel mention
+    - <#channel-name> -> styled Discord channel mention
+    
+    Parameters:
+        html_content (str): The HTML content to process
+        
+    Returns:
+        str: HTML content with Discord channel references styled
+    """
+    # Pattern for [[#channel-name]] format
+    pattern1 = r'\[\[#([\w-]+)\]\]'
+    # Pattern for <#channel-name> format
+    pattern2 = r'&lt;#([\w-]+)&gt;'
+    
+    # Discord-style channel mention CSS
+    channel_style = '''
+    <span style="
+        background-color: rgba(88, 101, 242, 0.3);
+        color: #5865f2;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: 500;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        cursor: default;
+        text-decoration: none;
+    ">#{}</span>
+    '''
+    
+    # Replace [[#channel-name]] format
+    html_content = re.sub(pattern1, lambda m: channel_style.format(m.group(1)), html_content)
+    
+    # Replace <#channel-name> format
+    html_content = re.sub(pattern2, lambda m: channel_style.format(m.group(1)), html_content)
+    
+    return html_content
+
 @help_bp.route('/')
 @login_required
 def index():
@@ -152,8 +194,33 @@ def view_topic(topic_id):
         show_error('You do not have permission to view this help topic.')
         return redirect(url_for('help.index'))
         
-    # Convert Markdown to HTML using the fenced code extension for code blocks.
-    html_content = markdown.markdown(topic.markdown_content, extensions=['fenced_code'])
+    # Convert Markdown to HTML with multiple extensions for better formatting
+    html_content = markdown.markdown(
+        topic.markdown_content, 
+        extensions=[
+            'fenced_code',           # Code blocks with syntax highlighting
+            'tables',                # Table support
+            'toc',                   # Table of contents with anchor links
+            'attr_list',             # Add attributes to elements
+            'def_list',              # Definition lists
+            'footnotes',             # Footnote support
+            'md_in_html',            # Markdown inside HTML
+            'sane_lists',            # Better list handling
+            'smarty',                # Smart quotes, dashes, ellipses
+            'extra'                  # Abbreviations, attributes, etc.
+        ],
+        extension_configs={
+            'toc': {
+                'permalink': True,   # Add permalink anchors to headers
+                'slugify': lambda value, separator: value.lower().replace(' & ', '--').replace(' ', '-').replace('&', '-'),
+                'toc_depth': 6       # Include all header levels
+            }
+        }
+    )
+    
+    # Process Discord channel links
+    html_content = process_discord_links(html_content)
+    
     return render_template('help/view_topic.html', topic=topic, content=html_content, title=topic.title)
 
 @help_bp.route('/search_topics', methods=['GET'])
