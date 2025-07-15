@@ -343,23 +343,23 @@ def handle_announcement_update(title: str = None, content: str = None,
         return False
 
 
-def get_role_permissions_data(role_id: int, session=None) -> Optional[List[int]]:
+def get_role_permissions_data(role_id: int, session=None) -> Optional[List[Dict[str, Any]]]:
     """
-    Retrieve permission IDs for a specific role.
+    Retrieve permission details for a specific role.
 
     Args:
         role_id: The ID of the role.
         session: (Optional) A SQLAlchemy session to use for the query.
         
     Returns:
-        A list of permission IDs for the role, or None if the role is not found.
+        A list of permission objects with id and name for the role, or None if the role is not found.
     """
     if session is None:
         session = g.db_session
     role = session.query(Role).get(role_id)
     if not role:
         return None
-    return [perm.id for perm in role.permissions]
+    return [{'id': perm.id, 'name': perm.name} for perm in role.permissions]
 
 
 def handle_permissions_update(role_id: int, permission_ids: List[int], session=None) -> bool:

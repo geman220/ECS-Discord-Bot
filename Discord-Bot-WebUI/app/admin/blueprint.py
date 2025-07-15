@@ -33,3 +33,6 @@ admin_bp.register_blueprint(message_config)
 
 # Import user waitlist routes
 from app.admin import user_waitlist_routes
+
+# Import docker management routes
+from app.admin import docker_routes

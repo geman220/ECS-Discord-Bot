@@ -85,9 +85,10 @@ def get_user():
                 user = UserWrapper()
             else:
                 # Import user-related models; eager-load frequently used relationships.
+                from app.models import Player, Team
                 db_user = session.query(User).options(
                     selectinload(User.roles).selectinload(Role.permissions),
-                    selectinload(User.player)
+                    selectinload(User.player).selectinload(Player.teams)
                 ).get(current_user.id)
                 # Wrap the user; do not detach to allow lazy loading of additional attributes.
                 user = UserWrapper(db_user)

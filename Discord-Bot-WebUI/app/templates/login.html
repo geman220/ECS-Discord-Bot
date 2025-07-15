@@ -1,56 +1,10 @@
 {% extends "base_unauthenticated.html" %}
 
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+{% endblock %}
+
 {% block main_content %}
-<style>
-    /* Critical CSS inlined for fastest rendering */
-    html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background-color: #00539F; /* Sounders Blue */
-    }
-
-    .authentication-wrapper {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .authentication-inner {
-        width: 100%;
-        max-width: 600px;
-        background-color: white;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-radius: 8px;
-        margin: 1rem;
-    }
-
-    .waves-button-input {
-        background-color: #00539F !important;
-        color: white !important;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-size: 16px;
-        width: 100%;
-    }
-
-    .waves-button-input:hover {
-        background-color: #004080 !important;
-    }
-    
-    /* Preload Discord logo for buttons */
-    .discord-img {
-        content: url("{{ url_for('static', filename='img/discord_logo.svg') }}");
-        height: 20px;
-        margin-right: 8px;
-    }
-</style>
 
 <div class="authentication-wrapper">
     <div class="authentication-inner">

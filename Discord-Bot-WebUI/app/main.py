@@ -1071,7 +1071,7 @@ def set_theme():
         return jsonify({"success": False, "message": "Theme not provided"}), 400
     
     theme = data['theme']
-    if theme not in ['light', 'dark']:
+    if theme not in ['light', 'dark', 'system']:
         return jsonify({"success": False, "message": "Invalid theme"}), 400
     
     # Store theme in session

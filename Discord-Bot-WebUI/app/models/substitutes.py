@@ -235,10 +235,19 @@ class SubstituteAssignment(db.Model):
     )
 
 
-def get_eligible_players(league_id, positions=None, gender=None):
-    """Get eligible players for substitute requests."""
-    query = db.session.query(SubstitutePool).filter(
-        SubstitutePool.league_id == league_id,
+def get_eligible_players(league_type, positions=None, gender=None, session=None):
+    """Get eligible players for substitute requests by league type."""
+    if session is None:
+        session = db.session
+    
+    # Get all leagues for the given league type
+    from app.models import League, Season
+    league_ids = session.query(League.id).join(
+        Season, League.season_id == Season.id
+    ).filter(Season.league_type == league_type).subquery()
+    
+    query = session.query(SubstitutePool).filter(
+        SubstitutePool.league_id.in_(league_ids),
         SubstitutePool.is_active == True
     )
     
@@ -252,12 +261,31 @@ def get_eligible_players(league_id, positions=None, gender=None):
     return query.all()
 
 
-def get_active_substitutes(league_id):
-    """Get all active substitutes for a league."""
-    return SubstitutePool.query.filter(
-        SubstitutePool.league_id == league_id,
+def get_active_substitutes(league_type, session=None, gender_filter=None):
+    """Get all active substitutes for a league type."""
+    if session is None:
+        session = db.session
+    
+    # Get all leagues for the given league type
+    from app.models import League, Season, Player
+    league_ids = session.query(League.id).join(
+        Season, League.season_id == Season.id
+    ).filter(Season.league_type == league_type).subquery()
+    
+    query = session.query(SubstitutePool).options(
+        joinedload(SubstitutePool.player)
+    ).filter(
+        SubstitutePool.league_id.in_(league_ids),
         SubstitutePool.is_active == True
-    ).all()
+    )
+    
+    # Apply gender filter if specified
+    if gender_filter:
+        query = query.join(Player, SubstitutePool.player_id == Player.id).filter(
+            Player.pronouns.ilike(f'%{gender_filter}%')
+        )
+    
+    return query.all()
 
 
 def log_pool_action(player_id, league_id, action, notes=None, performed_by=None):

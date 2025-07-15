@@ -1,8 +1,28 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-content="wide">
+<html lang="en" class="light-style layout-menu-fixed layout-navbar-fixed layout-content-wide" dir="ltr" data-assets-path="{{ url_for('static', filename='assets/') }}" data-template="vertical-menu-template" data-style="{{ session.get('theme', 'light') }}" data-content="wide">
 
 <head>
     <meta charset="utf-8" />
+    
+    <!-- CRITICAL: Theme detection MUST happen before any CSS loads to prevent FOUC -->
+    <script>
+        (function() {
+            // Get theme from localStorage or use server-provided theme as fallback
+            const storedTheme = localStorage.getItem('template-style');
+            const serverTheme = '{{ session.get('theme', 'light') }}';
+            const finalTheme = storedTheme || serverTheme;
+            
+            // Apply theme immediately to prevent flash
+            document.documentElement.setAttribute('data-style', finalTheme);
+            
+            // Sync server session if needed
+            if (storedTheme && storedTheme !== serverTheme) {
+                // Theme differs from server, we'll sync it after page loads
+                window._themeNeedsSync = { theme: storedTheme };
+            }
+        })();
+    </script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
     <meta name="description" content="ECS Soccer League Management Portal" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -22,20 +42,39 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/fontawesome.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" />
 
-    <!-- Core CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" class="template-customizer-core-css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" class="template-customizer-theme-css" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
+    <!-- Bootstrap and Core CSS (must load first to avoid FOUC) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/core.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-default.css') }}" />
     
-    <!-- ECS CSS Architecture - with cache-busting -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-tables.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-button-fix.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-navbar-fix.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/empty-cell-fix.css') }}?v={{ range(1, 1000000) | random }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-dropdown-fix.css') }}?v={{ range(1, 1000000) | random }}" />
+    <!-- Critical ECS CSS (overrides Bootstrap defaults with our theme system) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/z-index-system.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-components.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-utilities.css') }}" />
+    
+    <!-- Mobile-first system (replaces all mobile fix files) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-system.css') }}" />
+    
+    <!-- Layout System (clean theming with CSS variables - MUST come after core.css) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-system.css') }}" />
+    
+    <!-- Component CSS (consolidated) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modals.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms.css') }}" />
+    
+    <!-- Utility CSS (comprehensive utility classes) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/utilities.css') }}" />
+    
+    <!-- Vendor Overrides (third-party library fixes) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vendor-overrides.css') }}" />
+    
+    <!-- Page-specific CSS (conditional loading) -->
+    {% block page_css %}
+    {% endblock %}
+    
+    <!-- Demo CSS (if needed) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='assets/css/demo.css') }}" />
 
     <!-- Vendors CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/libs/node-waves/node-waves.css') }}" />
@@ -74,9 +113,22 @@
     <!-- Additional scripts loaded in footer -->
     <!-- Button fix scripts loaded in footer -->
     
+    <!-- Error prevention for browser extensions -->
+    <script>
+        // Prevent browser extension errors from breaking the app
+        window.addEventListener('error', function(e) {
+            // Ignore errors from browser extensions
+            if (e.filename && (e.filename.includes('moz-extension://') || e.filename.includes('chrome-extension://'))) {
+                e.preventDefault();
+                return true;
+            }
+        });
+    </script>
+    
     <!-- Helpers and Misc Scripts -->
     <script src="{{ url_for('static', filename='vendor/js/helpers.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/js/template-customizer.js') }}"></script>
+    <!-- Simple theme switcher (replaces TemplateCustomizer) -->
+    <script src="{{ url_for('static', filename='js/simple-theme-switcher.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/config.js') }}"></script>
 
     <!-- CSRF Token for Forms -->
@@ -88,221 +140,7 @@
 
     <!-- Flatpickr JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <style>
-        /* Leave SweetAlert2 to our modal-z-fix.css */
-        
-        /* Better mobile experience */
-        @media (max-width: 767.98px) {
-            /* Larger tap targets */
-            .btn, button, a {
-                padding: 0.5rem 0.75rem;
-                margin-bottom: 0.5rem;
-            }
-            
-            /* Improve form controls */
-            .form-control, .form-select {
-                padding: 0.5rem;
-                height: auto;
-                min-height: 40px;
-                font-size: 16px; /* Prevent iOS zoom */
-            }
-            
-            /* Better spacing for mobile */
-            .container-p-y {
-                padding-top: 1rem !important;
-                padding-bottom: 1rem !important;
-            }
-            
-            /* Ensure modals work better on mobile */
-            .modal-dialog {
-                margin: 0.5rem;
-                max-width: calc(100% - 1rem);
-            }
-            
-            /* Make cards more compact */
-            .card-header {
-                padding: 0.75rem 1rem;
-            }
-            
-            .card-body {
-                padding: 1rem;
-            }
-            
-            /* Fix fixed positioning for iOS */
-            .position-fixed {
-                position: absolute !important;
-            }
-        }
-        
-        /* Smooth scrolling */
-        body {
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Fix 100vh issue on mobile */
-        :root {
-            --vh: 1vh;
-        }
-        
-        /* Fix autocomplete dropdown styling */
-        .ui-autocomplete {
-            z-index: 1060 !important;
-            max-height: 300px;
-            overflow-y: auto;
-            border-radius: 0.375rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            background-color: #fff;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-        }
-        
-        .ui-menu-item {
-            min-height: 44px;
-            padding: 0.5rem !important;
-        }
-        
-        html[data-style="dark"] .ui-autocomplete {
-            background-color: #2b2c40 !important;
-            border-color: #444 !important;
-            color: #fff !important;
-        }
-        
-        html[data-style="dark"] .ui-menu-item,
-        html[data-style="dark"] .ui-menu-item-wrapper {
-            color: #dddee6 !important;
-        }
-        
-        html[data-style="dark"] .ui-menu-item-wrapper.ui-state-active {
-            background-color: #444564 !important;
-            border-color: #444564 !important;
-        }
-        
-        /* Fix dropdown menu background in dark mode */
-        html[data-style="dark"] .dropdown-menu {
-            background-color: #2b2c40 !important;
-            border-color: #3a3b53 !important;
-        }
-        
-        html[data-style="dark"] .dropdown-item {
-            color: #dddee6 !important;
-        }
-        
-        html[data-style="dark"] .dropdown-item:hover,
-        html[data-style="dark"] .dropdown-item:focus {
-            background-color: #32334a !important;
-        }
-        
-        html[data-style="dark"] .dropdown-divider {
-            border-color: #3a3b53 !important;
-        }
-        
-        .vh-100 {
-            height: 100vh;
-            height: calc(var(--vh, 1vh) * 100);
-        }
-        
-        /* Touch active state - removed transform effect completely */
-        .touch-active {
-            opacity: 0.9;
-            transform: none !important;
-        }
-        
-        /* Ensure proper background for dropdown in dark mode */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown,
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option {
-            background-color: #2a2a2a !important; /* Dark solid background */
-            color: #ffffff !important; /* Ensure the text is light */
-        }
-
-        /* Selection box background, border, and text color for both single and multiple select */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single,
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--multiple {
-            background-color: var(--vz-body-bg) !important;
-            border-color: var(--vz-border-color) !important;
-            color: var(--vz-body-color) !important;
-        }
-
-        /* Placeholder text color for single and multiple select */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection__placeholder {
-            color: var(--vz-muted-color) !important;
-        }
-
-        /* Highlighted option background and text color */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-results__option--highlighted {
-            background-color: var(--vz-primary-bg) !important;
-            color: var(--vz-primary-color) !important;
-        }
-
-        /* Adjust focus and hover styles if needed */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection:focus,
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection:hover {
-            border-color: var(--vz-primary-bg) !important;
-        }
-
-        /* Fixing the transparency issue for selected options */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection__choice {
-            background-color: var(--vz-border-color) !important;
-            color: var(--vz-body-color) !important;
-            border-radius: 4px; /* Add slight rounding */
-        }
-
-        /* Ensure the dropdown overlaps the other elements properly */
-        .select2-container .select2-dropdown {
-            z-index: 1050 !important; /* Ensure the dropdown appears above other elements */
-        }
-
-        /* Ensure the dropdown has a solid background in dark mode */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-dropdown {
-            background-color: #2a2a2a !important; /* Solid dark background for dark mode */
-            border-color: #444444 !important; /* Border color for dark mode */
-        }
-
-        /* Single selection adjustments to match multi-select */
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
-            color: var(--vz-body-color) !important; /* Match text color */
-        }
-
-        html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
-            color: var(--vz-muted-color) !important; /* Match arrow color */
-        }
-
-        /* Toast Container Customization */
-        .toast-container-custom {
-            position: absolute; /* Change to absolute to respect its parent container */
-            top: 70px; /* Adjust this based on your navbar's height */
-            left: 50%;
-            transform: translateX(-50%);
-            /* z-index managed by modal-z-fix.css */
-            width: 100%;
-            max-width: 500px;
-            padding: 1rem;
-        }
-
-        .toast {
-            min-width: 250px;
-            max-width: 500px;
-            /* Add box-shadow for depth */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            /* Initial state for animation */
-            opacity: 0;
-            transform: translateY(-20px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
-        }
-
-            .toast.show {
-                opacity: 1;
-                transform: translateY(0);
-            }
-
-            /* Optional: Customize Progress Bar */
-            .toast .progress {
-                background-color: rgba(255, 255, 255, 0.3);
-            }
-
-            .toast .progress-bar {
-                background-color: rgba(255, 255, 255, 0.7);
-            }
-    </style>
+    <!-- Inline CSS moved to vendor-overrides.css for better organization -->
     <!-- All dropdown and responsive fixes are included in the ECS CSS architecture -->
     
     {% block custom_css %}
@@ -338,7 +176,7 @@
                                     <strong>{{ ', '.join(user_roles) }}</strong>
                                 </span>
                             </div>
-                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" style="display: inline;">
+                            <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="post" class="d-inline">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-warning ms-3">
                                     <i class="ti ti-x me-1"></i> Stop Viewing As
@@ -437,10 +275,10 @@
     </script>
 
     <!-- Unified Responsive System JS - replacing all previous mobile helpers -->
-    <script src="{{ url_for('static', filename='js/responsive-system.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/responsive-system.js') }}"></script>
     
     <!-- Responsive Tables JS - for mobile card views -->
-    <script src="{{ url_for('static', filename='js/responsive-tables.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/responsive-tables.js') }}"></script>
     
     <!-- ECS Design System JS -->
     <script src="{{ url_for('static', filename='js/design-system.js') }}"></script>
@@ -553,16 +391,7 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 
     <!-- Global Scripts -->
-    <!-- Theme initialization -->
-    <script>
-        // Initialize theme from localStorage or default to light
-        (function() {
-            const storedTheme = localStorage.getItem('template-style');
-            if (storedTheme) {
-                document.documentElement.setAttribute('data-style', storedTheme);
-            }
-        })();
-    </script>
+    <!-- Theme initialization moved to top of head to prevent FOUC -->
     <script>
         $(document).ready(function () {
             function initializeSelect2() {
@@ -708,7 +537,7 @@
                 "align-items": "center"
             });
             if(item.profile_picture_url) {
-                $div.append("<img src='" + item.profile_picture_url + "' style='width:30px; height:30px; border-radius:50%; margin-right:10px;' />");
+                $div.append("<img src='" + item.profile_picture_url + "' class='autocomplete-profile-img' />");
             }
             $div.append("<span>" + item.label + "</span>");
             return $li.append($div).appendTo(ul);
@@ -783,7 +612,7 @@
     <script src="{{ url_for('static', filename='custom_js/mobile-menu-fix.js') }}"></script>
     
     <!-- Mobile table enhancement for better display -->
-    <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/mobile-table-enhancer.js') }}"></script>
     
     <!-- Toggle switch fix removed -->
     
@@ -796,10 +625,7 @@
                 // Override transform property 
                 button.style.transform = 'none';
                 
-                // Ensure proper cursor
-                if (!button.disabled) {
-                    button.style.cursor = 'pointer';
-                }
+                // Note: Cursor is handled by CSS, not JavaScript
             });
             
             // Clean up any stray modal backdrops

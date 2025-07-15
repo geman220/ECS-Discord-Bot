@@ -1,0 +1,1879 @@
+/**
+ * Layout System CSS
+ * Clean component-based theming using CSS custom properties
+ * 
+ * This replaces the messy !important overrides with a proper variable system
+ */
+
+/* ===== NAVBAR COMPONENT ===== */
+.navbar,
+.layout-navbar,
+.navbar-nav,
+.navbar-nav-right,
+.layout-menu-toggle,
+#navbar-collapse,
+#layout-navbar,
+.container-xxl.navbar,
+.bg-navbar-theme {
+  background-color: var(--ecs-bg-navbar) !important;
+}
+
+.navbar {
+  border-bottom: 1px solid var(--ecs-border-primary);
+  box-shadow: var(--ecs-shadow-navbar);
+  transition: var(--ecs-transition-fast);
+}
+
+/* Hamburger menu icon fix - remove background completely */
+.layout-menu-toggle,
+.layout-menu-toggle *,
+.layout-menu-toggle .nav-link,
+.layout-menu-toggle .nav-item,
+.layout-menu-toggle a,
+.layout-menu-toggle i,
+#menu-toggle-icon,
+.menu-toggle-icon,
+#close-icon,
+.ti-menu-2,
+.ti-x {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Remove any vendor button styles on hamburger */
+.layout-menu-toggle .nav-link:hover,
+.layout-menu-toggle .nav-link:focus,
+.layout-menu-toggle .nav-link:active {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Improve hamburger icon visibility in dark mode */
+.menu-toggle-icon,
+#menu-toggle-icon,
+#close-icon,
+.ti-menu-2,
+.ti-x {
+  color: var(--ecs-text-primary) !important;
+  opacity: 0.9;
+  transition: all 0.2s ease-in-out;
+}
+
+.layout-menu-toggle:hover .menu-toggle-icon,
+.layout-menu-toggle:hover #menu-toggle-icon,
+.layout-menu-toggle:hover #close-icon,
+.layout-menu-toggle:hover .ti-menu-2,
+.layout-menu-toggle:hover .ti-x {
+  color: var(--ecs-text-primary) !important;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Dark mode specific visibility boost */
+html[data-style="dark"] .menu-toggle-icon,
+html[data-style="dark"] #menu-toggle-icon,
+html[data-style="dark"] #close-icon,
+html[data-style="dark"] .ti-menu-2,
+html[data-style="dark"] .ti-x {
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html[data-style="dark"] .layout-menu-toggle:hover .menu-toggle-icon,
+html[data-style="dark"] .layout-menu-toggle:hover #menu-toggle-icon,
+html[data-style="dark"] .layout-menu-toggle:hover #close-icon,
+html[data-style="dark"] .layout-menu-toggle:hover .ti-menu-2,
+html[data-style="dark"] .layout-menu-toggle:hover .ti-x {
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Search input - transparent by default, blue border on focus */
+.navbar #player-search {
+  background-color: transparent !important;
+  border: 2px solid transparent !important;
+  color: var(--ecs-form-text) !important;
+  transition: all 0.2s ease-in-out;
+}
+
+.navbar #player-search::placeholder {
+  color: var(--ecs-form-placeholder) !important;
+}
+
+.navbar #player-search:focus {
+  background-color: var(--ecs-form-bg) !important;
+  border: 2px solid var(--ecs-search-focus) !important;
+  color: var(--ecs-form-text) !important;
+  box-shadow: 0 0 0 0.2rem rgba(4, 134, 255, 0.25);
+  outline: none;
+}
+
+/* Other form controls (not search) */
+.form-control:not(#player-search),
+.ecs-form-control,
+input[type="text"]:not(#player-search),
+input[type="email"],
+input[type="password"],
+input[type="search"]:not(#player-search),
+select.form-select,
+select.ecs-form-select,
+textarea.form-control {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+  box-shadow: var(--ecs-shadow-sm);
+  transition: var(--ecs-transition-fast);
+}
+
+.form-control:not(#player-search)::placeholder,
+input:not(#player-search)::placeholder,
+textarea::placeholder {
+  color: var(--ecs-form-placeholder) !important;
+}
+
+.form-control:not(#player-search):focus,
+input:not(#player-search):focus,
+select:focus,
+textarea:focus {
+  background-color: var(--ecs-search-focus, var(--ecs-form-bg)) !important;
+  border-color: var(--ecs-search-focus, var(--ecs-primary)) !important;
+  color: var(--ecs-form-text) !important;
+  box-shadow: 0 0 0 0.2rem rgba(4, 134, 255, 0.25);
+}
+
+/* Form select options */
+select option {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+.navbar .nav-link {
+  color: var(--ecs-text-secondary) !important;
+  transition: var(--ecs-transition-fast);
+}
+
+.navbar .nav-link:hover {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* ===== SIDEBAR COMPONENT ===== */
+.layout-menu,
+#layout-menu,
+.menu.bg-menu-theme {
+  background-color: var(--ecs-bg-sidebar) !important;
+  border-right: 1px solid var(--ecs-border-primary);
+  box-shadow: var(--ecs-shadow-sidebar);
+}
+
+.menu-item .menu-link {
+  color: var(--ecs-text-secondary) !important;
+  transition: var(--ecs-transition-fast);
+}
+
+.menu-item .menu-link:hover,
+.menu-item .menu-link:focus {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.menu-item.active .menu-link {
+  background-color: var(--ecs-primary) !important;
+  color: #ffffff !important;
+}
+
+.menu-header {
+  color: var(--ecs-text-muted) !important;
+}
+
+.menu-header-text {
+  color: var(--ecs-text-muted) !important;
+}
+
+.app-brand-text {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Menu dropdown arrows - make them more visible */
+.menu-toggle::after,
+.menu-link.menu-toggle::after {
+  color: var(--ecs-text-secondary) !important;
+  opacity: 0.8;
+  transition: all 0.2s ease-in-out;
+}
+
+.menu-toggle:hover::after,
+.menu-link.menu-toggle:hover::after {
+  color: var(--ecs-text-primary) !important;
+  opacity: 1;
+}
+
+/* Style the menu toggle arrows to match text */
+.bg-menu-theme .menu-sub > .menu-item > .menu-link:before {
+  color: var(--ecs-text-secondary) !important;
+  opacity: 0.7;
+}
+
+/* Menu item hover states */
+.menu-item .menu-link:hover .menu-icon,
+.menu-item .menu-link:focus .menu-icon {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Ensure menu icons match text color */
+.menu-icon,
+.menu-link .menu-icon,
+.feather,
+.menu-link .feather {
+  color: var(--ecs-text-secondary) !important;
+  transition: color 0.2s ease-in-out;
+}
+
+.menu-link:hover .menu-icon,
+.menu-link:hover .feather,
+.menu-link:focus .menu-icon,
+.menu-link:focus .feather {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* ===== CONTENT AREA ===== */
+.content-wrapper {
+  background-color: var(--ecs-bg-content) !important;
+}
+
+/* Main page background */
+body {
+  background-color: var(--ecs-bg-content) !important;
+}
+
+.layout-wrapper,
+.layout-container,
+.layout-page {
+  background-color: var(--ecs-bg-content) !important;
+}
+
+/* Catch any navbar wrapper containers */
+nav[class*="navbar"],
+div[class*="navbar"],
+.layout-page > * {
+  background-color: var(--ecs-bg-navbar) !important;
+}
+
+/* Override for content area specifically */
+.content-wrapper,
+.container-fluid.flex-grow-1 {
+  background-color: var(--ecs-bg-content) !important;
+}
+
+/* Remove any white gradients that might be causing issues */
+.content-wrapper::before,
+.layout-page::before {
+  display: none;
+}
+
+/* ===== DROPDOWN COMPONENT ===== */
+.dropdown-menu {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  box-shadow: var(--ecs-shadow-lg);
+}
+
+.dropdown-item {
+  color: var(--ecs-text-primary) !important;
+  transition: var(--ecs-transition-fast);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.dropdown-header {
+  color: var(--ecs-text-muted) !important;
+}
+
+.dropdown-divider {
+  border-color: var(--ecs-border-primary) !important;
+}
+
+/* ===== AUTOCOMPLETE DROPDOWN ===== */
+.ui-autocomplete {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+  box-shadow: var(--ecs-shadow-lg);
+}
+
+.ui-menu-item,
+.ui-menu-item-wrapper {
+  color: var(--ecs-text-primary) !important;
+  background-color: transparent !important;
+}
+
+.ui-menu-item-wrapper:hover,
+.ui-state-active {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* ===== SELECT2 COMPONENT STYLING ===== */
+/* Top-level Select2 containers */
+.select2,
+.select2-container,
+.select2-container--bootstrap-5,
+.select2-container--default,
+.select2-container--focus,
+.select2-container--open,
+.select2-container--above,
+.select2-container--below {
+  background-color: transparent !important;
+}
+
+/* Selection wrapper */
+.selection,
+span.selection {
+  background-color: var(--ecs-form-bg) !important;
+  border-radius: 0.375rem;
+}
+
+/* Main selection container */
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple,
+.select2-selection,
+.select2-selection--single,
+.select2-selection--multiple {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Multi-select selection area styling */
+.select2-container--default .select2-selection--multiple {
+  min-height: 38px !important;
+}
+
+/* Search input within multi-select */
+.select2-container--default .select2-search--inline .select2-search__field,
+.select2-search__field,
+textarea.select2-search__field {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Placeholder text */
+.select2-container--default .select2-selection--multiple .select2-selection__placeholder,
+.select2-search__field::placeholder,
+input.select2-search__field::placeholder,
+textarea.select2-search__field::placeholder {
+  color: var(--ecs-form-placeholder) !important;
+}
+
+/* Dropdown results container */
+.select2-container--default .select2-results > .select2-results__options {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Individual dropdown options */
+.select2-container--default .select2-results__option {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Highlighted dropdown option */
+.select2-container--default .select2-results__option--highlighted {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Selected dropdown option */
+.select2-container--default .select2-results__option[aria-selected="true"] {
+  background-color: var(--ecs-primary) !important;
+  color: #ffffff !important;
+}
+
+/* Focus states */
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--focus .select2-selection--single {
+  border-color: var(--ecs-search-focus) !important;
+  box-shadow: 0 0 0 0.2rem rgba(4, 134, 255, 0.25);
+}
+
+/* Dropdown container */
+.select2-dropdown {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  box-shadow: var(--ecs-shadow-lg);
+}
+
+/* Search input in dropdown */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+  border-color: var(--ecs-search-focus) !important;
+  box-shadow: 0 0 0 0.2rem rgba(4, 134, 255, 0.25);
+}
+
+/* "No results found" message */
+.select2-container--default .select2-results__option[role="group"] {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-muted) !important;
+}
+
+/* Disabled state */
+.select2-container--default.select2-container--disabled .select2-selection--multiple,
+.select2-container--default.select2-container--disabled .select2-selection--single {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-muted) !important;
+  cursor: not-allowed;
+}
+
+/* Loading state */
+.select2-container--default .select2-results__option--loading {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-muted) !important;
+}
+
+/* Additional Select2 elements that need dark mode styling */
+/* Selection rendered area (where selected items appear) */
+.select2-selection__rendered,
+ul.select2-selection__rendered,
+[id*="select2-"][id*="-container"] {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Search field variations */
+input.select2-search__field,
+textarea.select2-search__field,
+.select2-search--inline input,
+.select2-search--inline textarea {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Selection area focus and active states */
+.select2-container--default.select2-container--focus .select2-selection__rendered,
+.select2-container--default.select2-container--open .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Specific styling for multi-select containers */
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  border: none !important;
+  padding: 0.25rem !important;
+}
+
+/* Search wrapper styling */
+.select2-search,
+.select2-search--inline {
+  background-color: transparent !important;
+}
+
+/* Ensure all Select2 text inputs get dark styling */
+.select2-container input,
+.select2-container textarea {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+  border: none !important;
+}
+
+/* Nuclear option - target any Select2 element by ID pattern */
+[id*="select2-"][id*="-container"] ul,
+[id*="select2-"][id*="-container"] li,
+[id*="select2-"][id*="-container"] .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Force styling on stubborn Select2 elements */
+.select2-selection__rendered li,
+.select2-selection__rendered ul {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Target specific problem areas */
+.select2-container .select2-search--inline,
+.select2-container .select2-search--inline *,
+.select2-search,
+.select2-search--inline {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Fix the placeholder text area */
+.select2-container--default .select2-selection--multiple .select2-selection__placeholder,
+.select2-selection__placeholder {
+  color: var(--ecs-form-placeholder) !important;
+  background-color: transparent !important;
+}
+
+/* Comprehensive Select2 container fixing */
+.select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+  border: none !important;
+  padding: 0.25rem !important;
+}
+
+/* Additional container elements */
+.select2-container--default .select2-selection--multiple .select2-selection__rendered li {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Fix any remaining white backgrounds */
+.select2-container--default .select2-selection--multiple,
+.select2-container--bootstrap-5 .select2-selection--multiple {
+  background-color: var(--ecs-form-bg) !important;
+  background: var(--ecs-form-bg) !important;
+}
+
+/* Specific targeting for stubborn Select2 elements */
+.select2-container--default .select2-selection,
+.select2-container--bootstrap-5 .select2-selection,
+span[class*="select2-selection"] {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Target the 'Select multiple options' placeholder area specifically */
+.select2-container .select2-selection__placeholder,
+.select2-container--default .select2-selection__placeholder {
+  color: var(--ecs-form-placeholder) !important;
+  background-color: transparent !important;
+}
+
+/* Ensure containers don't have white backgrounds */
+.select2-container,
+.select2-container--default,
+.select2-container--bootstrap-5 {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ===== EXACT HTML STRUCTURE TARGETING ===== */
+/* Target the exact Select2 structure from your HTML */
+
+/* Main wrapper - .select2.select2-container.select2-container--bootstrap-5 */
+.select2.select2-container.select2-container--bootstrap-5,
+.select2.select2-container.select2-container--bootstrap-5.select2-container--below,
+.select2.select2-container.select2-container--bootstrap-5.select2-container--focus {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Selection wrapper - span.selection */
+.select2 .selection,
+span.selection {
+  background-color: var(--ecs-form-bg) !important;
+  border-radius: 0.375rem;
+}
+
+/* Multi-select area - .select2-selection.select2-selection--multiple */
+.select2-selection.select2-selection--multiple {
+  background-color: var(--ecs-form-bg) !important;
+  border: 1px solid var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+  min-height: 38px !important;
+}
+
+/* The rendered list - ul.select2-selection__rendered */
+ul.select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+  margin: 0 !important;
+  padding: 0.25rem !important;
+}
+
+/* ===== CLEAN SELECT2 CHOICE STYLING ===== */
+
+/* Choice item container - one border around entire item */
+html[data-style="dark"]
+  .select2-container--bootstrap-5
+  .select2-selection__choice {
+  background-color: var(--ecs-form-bg) !important;
+  border: 1px solid var(--ecs-form-border) !important;
+  border-radius: 0.25rem !important;
+  color: var(--ecs-form-text) !important;
+  padding: 0.25rem 0.5rem !important;
+  margin: 0.125rem 0.25rem 0.125rem 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* Text portion */
+html[data-style="dark"] .select2-selection__choice__display {
+  color: var(--ecs-form-text) !important;
+  background: transparent !important;
+}
+
+/* Search area - span.select2-search.select2-search--inline */
+span.select2-search.select2-search--inline {
+  background-color: transparent !important;
+}
+
+/* Search field - textarea.select2-search__field */
+textarea.select2-search__field {
+  background-color: transparent !important;
+  color: var(--ecs-form-text) !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Dropdown wrapper */
+span.dropdown-wrapper {
+  background: transparent !important;
+}
+
+/* Target by specific ID pattern for this field */
+#select2-other_positions-container {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Force styling on the edit-mode container */
+.edit-mode .select2-container {
+  background: transparent !important;
+}
+
+.edit-mode .select2-selection {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+}
+
+.edit-mode .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Very specific override for stubborn Select2 elements */
+.select2-container--bootstrap-5 .select2-selection--multiple,
+.select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  background: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Override any inline styles */
+.select2-selection[style],
+.select2-selection__rendered[style] {
+  background-color: var(--ecs-form-bg) !important;
+  background: var(--ecs-form-bg) !important;
+}
+
+/* Bootstrap 5 specific fixes */
+.select2-container--bootstrap-5 .selection,
+.select2-container--bootstrap-5 span.selection {
+  background-color: var(--ecs-form-bg) !important;
+}
+
+/* Ultra-specific targeting */
+span.select2.select2-container.select2-container--bootstrap-5 span.selection span.select2-selection.select2-selection--multiple {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+}
+
+span.select2.select2-container.select2-container--bootstrap-5 span.selection span.select2-selection.select2-selection--multiple ul.select2-selection__rendered {
+  background-color: var(--ecs-form-bg) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* Bounding box + focus state (dark mode) */
+html[data-style="dark"]
+  .select2-container--bootstrap-5
+  .select2-selection--multiple {
+    border: 1px solid var(--ecs-form-border) !important;
+    border-radius: 0.375rem;
+    background-color: var(--ecs-form-bg) !important;
+    padding: 0.375rem 0.5rem;    /* same vertical rhythm as .form-control */
+  }
+
+html[data-style="dark"]
+  .select2-container--bootstrap-5.select2-container--focus
+  .select2-selection--multiple {
+    border-color: var(--ecs-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(4,134,255,.25);
+  }
+
+/* Higher specificity for stubborn cases */
+html[data-style="dark"] .select2-container .select2-selection__choice,
+html[data-style="dark"] .edit-mode .select2-selection__choice {
+  background-color: var(--ecs-form-bg) !important;
+  border: 1px solid var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+/* ===== ACCORDION COMPONENT ===== */
+.accordion-item {
+  background-color: var(--ecs-bg-secondary);
+  border-color: var(--ecs-border-primary);
+}
+
+.accordion-header {
+  color: var(--ecs-text-primary);
+}
+
+.accordion-button {
+  background-color: var(--ecs-bg-secondary);
+  color: var(--ecs-text-primary);
+  border-color: var(--ecs-border-primary);
+  transition: var(--ecs-transition-fast);
+}
+
+.accordion-button:hover {
+  background-color: var(--ecs-bg-tertiary);
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: var(--ecs-bg-tertiary);
+  color: var(--ecs-text-primary);
+  box-shadow: none;
+}
+
+.accordion-body {
+  background-color: var(--ecs-bg-secondary);
+  color: var(--ecs-text-primary);
+}
+
+/* ===== CARD COMPONENTS ===== */
+.match-item {
+  background-color: var(--ecs-bg-secondary);
+  border-color: var(--ecs-border-primary);
+  transition: var(--ecs-transition-fast);
+}
+
+.match-item:hover {
+  background-color: var(--ecs-bg-tertiary);
+}
+
+.player-details h6 {
+  color: var(--ecs-text-primary);
+}
+
+.stat-badge {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+  border: 1px solid var(--ecs-border-secondary) !important;
+  border-radius: var(--ecs-radius-sm);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  transition: var(--ecs-transition-fast);
+}
+
+/* Card indicator styling for yellow/red cards */
+.card-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 16px;
+  border-radius: 2px;
+  margin-right: 4px;
+  border: 1px solid var(--ecs-border-primary);
+}
+
+.card-yellow {
+  background-color: #ffc107 !important;
+  border-color: #ffca2c !important;
+}
+
+.card-red {
+  background-color: #dc3545 !important;
+  border-color: #bb2d3b !important;
+}
+
+/* Ensure stat badge icons inherit theme colors */
+.stat-badge .text-primary {
+  color: var(--ecs-primary) !important;
+}
+
+.stat-badge i {
+  color: inherit;
+}
+
+/* ===== AVATAR COMPONENTS ===== */
+.avatar {
+  background-color: var(--ecs-bg-tertiary);
+  color: var(--ecs-text-primary);
+  border: 1px solid var(--ecs-border-primary);
+}
+
+/* Avatar background color variants - themed for dark mode */
+.bg-label-primary,
+.avatar.bg-label-primary {
+  background-color: rgba(33, 62, 150, 0.25) !important;
+  color: #4d79ff !important;
+  border-color: rgba(33, 62, 150, 0.4) !important;
+}
+
+.bg-label-success,
+.avatar.bg-label-success {
+  background-color: rgba(113, 221, 55, 0.16) !important;
+  color: #71dd37 !important;
+  border-color: rgba(113, 221, 55, 0.2) !important;
+}
+
+.bg-label-info,
+.avatar.bg-label-info {
+  background-color: rgba(3, 195, 236, 0.16) !important;
+  color: #03c3ec !important;
+  border-color: rgba(3, 195, 236, 0.2) !important;
+}
+
+.bg-label-warning,
+.avatar.bg-label-warning {
+  background-color: rgba(255, 171, 0, 0.16) !important;
+  color: #ffab00 !important;
+  border-color: rgba(255, 171, 0, 0.2) !important;
+}
+
+.bg-label-danger,
+.avatar.bg-label-danger {
+  background-color: rgba(255, 62, 29, 0.16) !important;
+  color: #ff3e1d !important;
+  border-color: rgba(255, 62, 29, 0.2) !important;
+}
+
+.bg-label-secondary,
+.avatar.bg-label-secondary {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-secondary) !important;
+  border-color: var(--ecs-border-secondary) !important;
+}
+
+.bg-label-dark,
+.avatar.bg-label-dark {
+  background-color: rgba(47, 43, 61, 0.16) !important;
+  color: #2f2b3d !important;
+  border-color: rgba(47, 43, 61, 0.2) !important;
+}
+
+.bg-label-light,
+.avatar.bg-label-light {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+/* Avatar icons styling */
+.avatar i,
+.avatar .ti {
+  color: inherit !important;
+  font-size: 1.125rem;
+}
+
+.avatar-sm i,
+.avatar-sm .ti {
+  font-size: 1rem;
+}
+
+.avatar-lg i,
+.avatar-lg .ti {
+  font-size: 1.5rem;
+}
+
+/* Fix avatar sizing consistency */
+.avatar-sm {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.avatar-lg {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* ===== BADGE COMPONENTS ===== */
+.badge {
+  color: var(--ecs-text-primary);
+  border: 1px solid transparent;
+}
+
+/* Badge background color variants - themed for dark mode */
+.badge.bg-label-primary {
+  background-color: rgba(33, 62, 150, 0.25) !important;
+  color: #4d79ff !important;
+  border-color: rgba(33, 62, 150, 0.4) !important;
+}
+
+.badge.bg-label-success {
+  background-color: rgba(113, 221, 55, 0.16) !important;
+  color: #71dd37 !important;
+  border-color: rgba(113, 221, 55, 0.2) !important;
+}
+
+.badge.bg-label-info {
+  background-color: rgba(3, 195, 236, 0.16) !important;
+  color: #03c3ec !important;
+  border-color: rgba(3, 195, 236, 0.2) !important;
+}
+
+.badge.bg-label-warning {
+  background-color: rgba(255, 171, 0, 0.16) !important;
+  color: #ffab00 !important;
+  border-color: rgba(255, 171, 0, 0.2) !important;
+}
+
+.badge.bg-label-danger {
+  background-color: rgba(255, 62, 29, 0.16) !important;
+  color: #ff3e1d !important;
+  border-color: rgba(255, 62, 29, 0.2) !important;
+}
+
+.badge.bg-label-secondary {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-secondary) !important;
+  border-color: var(--ecs-border-secondary) !important;
+}
+
+.badge.bg-label-dark {
+  background-color: rgba(47, 43, 61, 0.16) !important;
+  color: #2f2b3d !important;
+  border-color: rgba(47, 43, 61, 0.2) !important;
+}
+
+.badge.bg-label-light {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+/* Solid badge variants for better contrast when needed */
+.badge.bg-primary {
+  background-color: var(--ecs-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--ecs-primary) !important;
+}
+
+.badge.bg-success {
+  background-color: #71dd37 !important;
+  color: #ffffff !important;
+  border-color: #71dd37 !important;
+}
+
+.badge.bg-info {
+  background-color: #03c3ec !important;
+  color: #ffffff !important;
+  border-color: #03c3ec !important;
+}
+
+.badge.bg-warning {
+  background-color: #ffab00 !important;
+  color: #000000 !important;
+  border-color: #ffab00 !important;
+}
+
+.badge.bg-danger {
+  background-color: #ff3e1d !important;
+  color: #ffffff !important;
+  border-color: #ff3e1d !important;
+}
+
+.badge.bg-secondary {
+  background-color: var(--ecs-text-secondary) !important;
+  color: var(--ecs-bg-primary) !important;
+  border-color: var(--ecs-text-secondary) !important;
+}
+
+.badge.bg-dark {
+  background-color: #2f2b3d !important;
+  color: #ffffff !important;
+  border-color: #2f2b3d !important;
+}
+
+.badge.bg-light {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+/* Font size variations */
+.badge.fs-6 {
+  font-size: 0.75rem !important;
+}
+
+/* ===== MODAL COMPONENTS ===== */
+.modal-content,
+.ecs-modal-content {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal-header,
+.ecs-modal-header {
+  background-color: var(--ecs-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: #ffffff !important;
+}
+
+.modal-body,
+.ecs-modal-body {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal-footer,
+.ecs-modal-footer {
+  background-color: var(--ecs-bg-secondary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal-title,
+.ecs-modal-title {
+  color: #ffffff !important;
+}
+
+/* Modal form elements */
+.modal .form-label,
+.modal label {
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .form-control,
+.modal .ecs-form-control,
+.modal input[type="text"],
+.modal input[type="number"],
+.modal input[type="email"],
+.modal input[type="password"],
+.modal select,
+.modal textarea {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-form-border) !important;
+  color: var(--ecs-form-text) !important;
+}
+
+.modal .form-control:focus,
+.modal .ecs-form-control:focus,
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  background-color: var(--ecs-form-bg) !important;
+  border-color: var(--ecs-search-focus) !important;
+  color: var(--ecs-form-text) !important;
+  box-shadow: 0 0 0 0.2rem rgba(4, 134, 255, 0.25);
+}
+
+.modal .form-control::placeholder,
+.modal input::placeholder,
+.modal textarea::placeholder {
+  color: var(--ecs-form-placeholder) !important;
+}
+
+/* Modal cards within forms */
+.modal .card {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .card-body {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .card-title {
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .card-text {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Alert styling in modals */
+.modal .alert {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .alert-warning {
+  background-color: rgba(255, 171, 0, 0.16) !important;
+  border-color: rgba(255, 171, 0, 0.2) !important;
+  color: #ffab00 !important;
+}
+
+.modal .alert-success {
+  background-color: rgba(113, 221, 55, 0.16) !important;
+  border-color: rgba(113, 221, 55, 0.2) !important;
+  color: #71dd37 !important;
+}
+
+.modal .alert-danger {
+  background-color: rgba(255, 62, 29, 0.16) !important;
+  border-color: rgba(255, 62, 29, 0.2) !important;
+  color: #ff3e1d !important;
+}
+
+.modal .alert-info {
+  background-color: rgba(3, 195, 236, 0.16) !important;
+  border-color: rgba(3, 195, 236, 0.2) !important;
+  color: #03c3ec !important;
+}
+
+/* Modal button styling */
+.modal .btn-secondary {
+  background-color: var(--ecs-text-secondary) !important;
+  border-color: var(--ecs-text-secondary) !important;
+  color: var(--ecs-bg-primary) !important;
+}
+
+.modal .btn-secondary:hover {
+  background-color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-text-primary) !important;
+  color: var(--ecs-bg-primary) !important;
+}
+
+/* Close button styling - properly positioned and borderless */
+.modal .btn-close,
+.modal .ecs-modal-close,
+.btn-close-white {
+  background: transparent !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  opacity: 0.8;
+  width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-top: -0.125rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: opacity 0.2s ease-in-out !important;
+  position: relative;
+  color: transparent !important;
+  vertical-align: middle;
+  transform: none !important;
+}
+
+.modal .btn-close:hover,
+.modal .ecs-modal-close:hover,
+.btn-close-white:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.modal .btn-close:focus,
+.modal .ecs-modal-close:focus,
+.btn-close-white:focus {
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 0 !important;
+}
+
+.modal .btn-close:active,
+.modal .ecs-modal-close:active,
+.btn-close-white:active {
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 0 !important;
+  transform: none !important;
+}
+
+/* Custom white X icon using CSS - perfectly centered */
+.modal .btn-close::before,
+.modal .ecs-modal-close::before,
+.btn-close-white::before {
+  content: "✕";
+  color: #ffffff !important;
+  font-size: 1.1rem;
+  font-weight: normal;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Override any inline styles and eliminate focus outlines completely */
+.modal .btn-close[style],
+.modal .ecs-modal-close[style],
+.btn-close-white[style] {
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: 0 !important;
+  outline-color: transparent !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+}
+
+/* Aggressive focus outline removal */
+.modal .btn-close,
+.modal .ecs-modal-close,
+.btn-close-white {
+  outline: 0 !important;
+  outline-color: transparent !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+}
+
+.modal .btn-close:focus-visible,
+.modal .ecs-modal-close:focus-visible,
+.btn-close-white:focus-visible {
+  outline: 0 !important;
+  outline-color: transparent !important;
+  outline-style: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove any browser default focus rings */
+.modal .btn-close::-moz-focus-inner,
+.modal .ecs-modal-close::-moz-focus-inner,
+.btn-close-white::-moz-focus-inner {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* Nuclear option - override absolutely everything */
+button.btn-close,
+button.ecs-modal-close,
+button.btn-close-white,
+.btn-close.btn-close-white,
+.modal button[data-bs-dismiss="modal"] {
+  outline: none !important;
+  outline-color: transparent !important;
+  outline-style: none !important;
+  outline-width: 0px !important;
+  outline-offset: 0px !important;
+  border: 0px solid transparent !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+button.btn-close:focus,
+button.ecs-modal-close:focus,
+button.btn-close-white:focus,
+.btn-close.btn-close-white:focus,
+.modal button[data-bs-dismiss="modal"]:focus {
+  outline: none !important;
+  outline-color: transparent !important;
+  outline-style: none !important;
+  outline-width: 0px !important;
+  outline-offset: 0px !important;
+  border: 0px solid transparent !important;
+  border-color: transparent !important;
+  border-style: none !important;
+  border-width: 0px !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+/* Override any CSS custom properties that might cause outlines */
+.modal .btn-close,
+.modal .ecs-modal-close,
+.btn-close-white {
+  --bs-btn-focus-shadow-rgb: transparent !important;
+  --bs-btn-focus-box-shadow: none !important;
+  --bs-btn-border-width: 0px !important;
+  --bs-btn-border-color: transparent !important;
+}
+
+/* Text utilities in modals */
+.modal .text-muted {
+  color: var(--ecs-text-muted) !important;
+}
+
+.modal .text-success {
+  color: #71dd37 !important;
+}
+
+.modal .text-warning {
+  color: #ffab00 !important;
+}
+
+.modal .text-danger {
+  color: #ff3e1d !important;
+}
+
+.modal .text-info {
+  color: #03c3ec !important;
+}
+
+/* Border utilities in modals */
+.modal .border-success {
+  border-color: #71dd37 !important;
+}
+
+.modal .border-warning {
+  border-color: #ffab00 !important;
+}
+
+.modal .border-danger {
+  border-color: #ff3e1d !important;
+}
+
+.modal .border-info {
+  border-color: #03c3ec !important;
+}
+
+.modal .border-top {
+  border-top-color: var(--ecs-border-primary) !important;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ===== COMPACT MODAL LAYOUTS ===== */
+/* Match reporting modal compact layout */
+.modal-body.compact-layout {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Two-column layout for larger screens */
+@media (min-width: 768px) {
+  .modal-body .compact-two-column {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+  
+  .modal-body .compact-full-width {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Compact card styling */
+.modal .compact-card {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border: 1px solid var(--ecs-border-primary) !important;
+  border-radius: 0.375rem;
+  padding: 0.75rem !important;
+  margin-bottom: 0.75rem;
+}
+
+.modal .compact-card .card-header {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 0 0.5rem 0 !important;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ecs-border-primary) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--ecs-text-primary) !important;
+}
+
+.modal .compact-card .card-body {
+  padding: 0 !important;
+}
+
+/* Compact form groups */
+.modal .compact-form-group {
+  margin-bottom: 0.75rem !important;
+}
+
+.modal .compact-form-group .form-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem !important;
+}
+
+.modal .compact-form-group .form-control {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Inline button groups for actions */
+.modal .compact-button-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.modal .compact-button-group .btn {
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.2;
+}
+
+/* Compact stats display */
+.modal .compact-stats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.modal .compact-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Compact verification section */
+.modal .compact-verification {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  margin-top: 1rem;
+}
+
+.modal .compact-verification .verification-team {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--ecs-bg-secondary) !important;
+}
+
+.modal .compact-verification .team-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Compact textarea */
+.modal textarea.compact {
+  resize: vertical;
+  min-height: 4rem;
+  max-height: 8rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .modal-body.compact-layout {
+    max-height: 80vh;
+    padding: 0.75rem;
+  }
+  
+  .modal .compact-card {
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem;
+  }
+  
+  .modal .compact-button-group {
+    flex-direction: column;
+  }
+  
+  .modal .compact-button-group .btn {
+    width: 100%;
+  }
+}
+
+/* ===== TABLE COMPONENTS ===== */
+.table,
+.ecs-table {
+  color: var(--ecs-text-primary);
+  border-color: var(--ecs-border-primary);
+}
+
+.table thead th,
+.ecs-table thead th {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+.table tbody td,
+.ecs-table tbody td {
+  color: var(--ecs-text-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+.table-light {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.table-hover tbody tr:hover,
+.ecs-table-hover tbody tr:hover {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+.table-striped tbody tr:nth-of-type(odd),
+.table-striped tbody tr:nth-of-type(odd) td {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Override all table backgrounds in dark mode - aggressive approach */
+html[data-style="dark"] .table-striped tbody tr,
+html[data-style="dark"] .table-striped tbody tr td,
+html[data-style="dark"] .ecs-table-striped tbody tr,
+html[data-style="dark"] .ecs-table-striped tbody tr td {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .table-striped tbody tr:nth-of-type(odd),
+html[data-style="dark"] .table-striped tbody tr:nth-of-type(odd) td,
+html[data-style="dark"] .ecs-table-striped tbody tr:nth-of-type(odd),
+html[data-style="dark"] .ecs-table-striped tbody tr:nth-of-type(odd) td {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .table-striped tbody tr:nth-of-type(even),
+html[data-style="dark"] .table-striped tbody tr:nth-of-type(even) td,
+html[data-style="dark"] .ecs-table-striped tbody tr:nth-of-type(even),
+html[data-style="dark"] .ecs-table-striped tbody tr:nth-of-type(even) td {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Fix badge colors in tables */
+.table .badge.bg-light,
+.ecs-table .badge.bg-light {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+  border: 1px solid var(--ecs-border-primary) !important;
+}
+
+/* Override hardcoded inline styles in tables */
+table tr[style*="color"],
+table td[style*="color"],
+table th[style*="color"],
+table tbody[style*="color"],
+table thead[style*="color"] {
+  color: var(--ecs-text-primary) !important;
+}
+
+table tr[style*="border-color"],
+table td[style*="border-color"],
+table th[style*="border-color"] {
+  border-color: var(--ecs-border-primary) !important;
+}
+
+/* Specifically target the neutral-30 color that's causing issues */
+table [style*="--ecs-neutral-30"],
+table tr[style*="--ecs-neutral-30"],
+table td[style*="--ecs-neutral-30"],
+table th[style*="--ecs-neutral-30"],
+table tbody[style*="--ecs-neutral-30"] {
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Override tbody background and styling in dark mode */
+html[data-style="dark"] table tbody[style],
+html[data-style="dark"] tbody[style] {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Aggressive override for all table cell backgrounds in dark mode */
+html[data-style="dark"] .table,
+html[data-style="dark"] .table tbody,
+html[data-style="dark"] .table tbody tr,
+html[data-style="dark"] .table tbody tr td,
+html[data-style="dark"] .table thead,
+html[data-style="dark"] .table thead tr,
+html[data-style="dark"] .table thead tr th {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .ecs-table,
+html[data-style="dark"] .ecs-table tbody,
+html[data-style="dark"] .ecs-table tbody tr,
+html[data-style="dark"] .ecs-table tbody tr td,
+html[data-style="dark"] .ecs-table thead,
+html[data-style="dark"] .ecs-table thead tr,
+html[data-style="dark"] .ecs-table thead tr th {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Fix text-muted in tables */
+table .text-muted,
+.table .text-muted {
+  color: var(--ecs-text-muted) !important;
+}
+
+/* ===== NUCLEAR OPTION - FORCE ALL TABLES DARK ===== */
+/* Override Bootstrap table defaults completely */
+html[data-style="dark"] .table,
+html[data-style="dark"] .table-striped,
+html[data-style="dark"] .ecs-table,
+html[data-style="dark"] .ecs-table-striped,
+html[data-style="dark"] #pollsTable {
+  --bs-table-bg: var(--ecs-bg-secondary) !important;
+  --bs-table-striped-bg: var(--ecs-bg-tertiary) !important;
+  --bs-table-hover-bg: var(--ecs-bg-tertiary) !important;
+  --bs-table-color: var(--ecs-text-primary) !important;
+  background-color: var(--ecs-bg-secondary) !important;
+  background: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Force every table element */
+html[data-style="dark"] table,
+html[data-style="dark"] .table,
+html[data-style="dark"] .ecs-table,
+html[data-style="dark"] #pollsTable,
+html[data-style="dark"] tbody,
+html[data-style="dark"] thead,
+html[data-style="dark"] tr,
+html[data-style="dark"] td,
+html[data-style="dark"] th {
+  background-color: var(--ecs-bg-secondary) !important;
+  background: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Target every possible Bootstrap table class */
+html[data-style="dark"] .table > :not(caption) > * > *,
+html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > td,
+html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(odd) > th,
+html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(even) > td,
+html[data-style="dark"] .table-striped > tbody > tr:nth-of-type(even) > th {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* ===== POLLS TABLE SPECIFIC STYLING ===== */
+/* Progress bars in dark mode */
+html[data-style="dark"] .progress {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border: 1px solid var(--ecs-border-primary);
+}
+
+html[data-style="dark"] .progress-bar {
+  background-color: var(--ecs-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Progress bar variants */
+html[data-style="dark"] .progress-bar.bg-success {
+  background-color: #28a745 !important;
+}
+
+html[data-style="dark"] .progress-bar.bg-warning {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+html[data-style="dark"] .progress-bar.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+html[data-style="dark"] .progress-bar.bg-info {
+  background-color: #17a2b8 !important;
+}
+
+/* Dropdown menus in tables */
+html[data-style="dark"] .table .dropdown-menu {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-color: var(--ecs-border-primary) !important;
+}
+
+html[data-style="dark"] .table .dropdown-item {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .table .dropdown-item:hover,
+html[data-style="dark"] .table .dropdown-item:focus {
+  background-color: var(--ecs-bg-secondary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Dropdown toggle buttons */
+html[data-style="dark"] .table .dropdown-toggle {
+  background-color: transparent !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="dark"] .table .dropdown-toggle:hover,
+html[data-style="dark"] .table .dropdown-toggle:focus {
+  background-color: var(--ecs-bg-tertiary) !important;
+  border-color: var(--ecs-primary) !important;
+}
+
+/* Small text and percentage values in polls */
+html[data-style="dark"] .table .text-muted,
+html[data-style="dark"] .table .small,
+html[data-style="dark"] .table small {
+  color: var(--ecs-text-muted) !important;
+}
+
+/* ===== CARD AND GENERAL COMPONENTS ===== */
+.card {
+  background-color: var(--ecs-bg-secondary);
+  border-color: var(--ecs-border-primary);
+  box-shadow: var(--ecs-shadow-sm);
+}
+
+.card-header {
+  background-color: var(--ecs-bg-tertiary);
+  border-color: var(--ecs-border-primary);
+  color: var(--ecs-text-primary);
+}
+
+.card-body {
+  color: var(--ecs-text-primary);
+}
+
+/* ===== UTILITY OVERRIDES ===== */
+.text-muted {
+  color: var(--ecs-text-muted) !important;
+}
+
+.border {
+  border-color: var(--ecs-border-primary) !important;
+}
+
+.border-top {
+  border-top-color: var(--ecs-border-primary) !important;
+}
+
+.border-bottom {
+  border-bottom-color: var(--ecs-border-primary) !important;
+}
+
+/* ===== REMOVE PROBLEMATIC GRADIENTS ===== */
+/* Remove any vendor CSS gradients that might show white in dark mode */
+.layout-wrapper::before,
+.layout-container::before,
+.content-wrapper::before,
+.navbar::before,
+body::before,
+html::before {
+  background: none !important;
+  background-image: none !important;
+  display: none !important;
+}
+
+/* Specifically target problematic vendor gradients */
+html[data-style="dark"] .layout-wrapper,
+html[data-style="dark"] .layout-container,
+html[data-style="dark"] .content-wrapper,
+html[data-style="dark"] body {
+  background: var(--ecs-bg-content) !important;
+  background-image: none !important;
+}
+
+/* Remove any radial gradients with white in dark mode */
+html[data-style="dark"] *[style*="radial-gradient"],
+html[data-style="dark"] *[style*="linear-gradient"] {
+  background-image: none !important;
+}
+
+/* Ensure body has proper dark background */
+html[data-style="dark"] body {
+  background-color: var(--ecs-bg-content) !important;
+}
+
+/* Force dark chips inside the multi‑select */
+html[data-style="dark"]
+  .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice,
+html[data-style="dark"]
+  .select2-selection__choice {           /* generic fall‑back */
+  background:        var(--ecs-bg-tertiary) !important;   /* beats plugin shorthand */
+  border:            1px solid var(--ecs-form-border) !important;
+  color:             var(--ecs-form-text) !important;
+}
+
+/* === Select2 dark‑mode final pass ========================= */
+html[data-style="dark"] .select2-container--bootstrap-5 .select2-selection--multiple {
+  background: var(--ecs-form-bg)        !important; /* container */
+  border:    1px solid var(--ecs-form-border) !important;
+}
+
+html[data-style="dark"] .select2-selection--multiple .select2-selection__choice {
+  background: var(--ecs-form-bg)        !important; /* chips */
+  border:    1px solid var(--ecs-form-border) !important;
+  color:     var(--ecs-form-text)       !important;
+}
+
+/* === Select2 dark‑mode — single source of truth for the “×” ========= */
+/* 1. let the chip overflow so the icon can stick out */
+html[data-style="dark"] .select2-selection__choice {
+  overflow: visible !important;
+}
+
+/* 2. layout & behaviour of the remove button */
+html[data-style="dark"] .select2-selection__choice__remove {
+  /* cancel legacy floats / margins */
+  float: none !important;
+  margin: 0 0 0 0.5rem !important;
+
+  /* fixed square the chip can grow around */
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 1rem !important;
+  height: 1rem !important;
+
+  cursor: pointer !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+/* 3. draw the glyph ourselves so nothing can clip or recolour it */
+html[data-style="dark"] .select2-selection__choice__remove::before {
+  content: "✕";
+  color: #ffffff;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+html[data-style="dark"] .select2-selection__choice__remove:hover::before {
+  color: #ff6b6b;           /* red hover cue */
+}

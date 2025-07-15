@@ -1,0 +1,145 @@
+/**
+ * Authentication Pages CSS
+ * Extracted from app/templates/login.html
+ * 
+ * Critical CSS for login and authentication flows.
+ * Provides Sounders Blue branding and responsive authentication layout.
+ */
+
+/* ===== AUTHENTICATION LAYOUT ===== */
+/* Override base layout for authentication pages */
+html.auth-page, 
+body.auth-page {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #00539F; /* Sounders Blue */
+}
+
+.authentication-wrapper {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.authentication-inner {
+    width: 100%;
+    max-width: 600px;
+    background-color: white;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin: 1rem;
+}
+
+/* ===== AUTHENTICATION BUTTONS ===== */
+.waves-button-input {
+    background-color: #00539F !important;
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.waves-button-input:hover {
+    background-color: #004080 !important;
+    color: white !important;
+}
+
+.waves-button-input:focus {
+    outline: 2px solid rgba(0, 83, 159, 0.5);
+    outline-offset: 2px;
+}
+
+/* ===== DISCORD INTEGRATION ===== */
+.discord-img {
+    height: 20px;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Discord button specific styling */
+.btn-discord {
+    background-color: #5865f2 !important;
+    border-color: #5865f2 !important;
+    color: white !important;
+}
+
+.btn-discord:hover {
+    background-color: #4752c4 !important;
+    border-color: #4752c4 !important;
+    color: white !important;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 991.98px) {
+    .authentication-inner {
+        flex-direction: column;
+        max-width: 400px;
+        padding: 2rem;
+    }
+    
+    .authentication-wrapper {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .authentication-inner {
+        margin: 0.5rem;
+        padding: 1.5rem;
+        border-radius: 4px;
+    }
+    
+    .waves-button-input {
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+html[data-style="dark"] .authentication-inner {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color);
+}
+
+html[data-style="dark"] .waves-button-input {
+    background-color: var(--bs-primary) !important;
+}
+
+html[data-style="dark"] .waves-button-input:hover {
+    background-color: var(--bs-primary-hover) !important;
+}
+
+/* ===== ACCESSIBILITY ===== */
+.authentication-wrapper:focus-within {
+    outline: none;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .waves-button-input {
+        border: 2px solid currentColor;
+    }
+    
+    .authentication-inner {
+        border: 2px solid #000;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .waves-button-input {
+        transition: none;
+    }
+}

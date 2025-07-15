@@ -9,73 +9,9 @@
 {% endblock %}
 
 {% block main_content %}
-<style>
-    /* Match app design language */
-    .section-header {
-        border-bottom: 1px solid #e0e0e0;
-        padding-bottom: 0.5rem;
-        margin-bottom: 1rem;
-    }
-    
-    /* Mobile responsiveness */
-    @media (max-width: 768px) {
-        .container-xxl {
-            padding: 1rem;
-        }
-        
-        .card {
-            border: none;
-            box-shadow: none;
-        }
-        
-        .section-header {
-            font-size: 1.1rem;
-        }
-        
-        .form-control, .form-select {
-            font-size: 16px; /* Prevent zoom on iOS */
-        }
-    }
-    
-    /* Desktop optimizations */
-    @media (min-width: 769px) {
-        .main-container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-    }
-    
-    /* Image Container Styling */
-    .img-container {
-        width: 100%;
-        max-height: 600px;
-        overflow: hidden;
-    }
-    
-    .img-container img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-    }
-    
-    /* Cropper Modal Styles */
-    #profileImageModal .modal-body {
-        min-height: 500px;
-        max-height: 80vh;
-        overflow-y: auto;
-    }
-    
-    /* Keep minimal cropper styling to match profile page */
-    
-    /* Make sure the image container is properly sized */
-    #profileImageModal .img-container {
-        width: 100%;
-        min-height: 400px;
-        max-height: 500px;
-        overflow: hidden;
-        margin-top: 1rem;
-    }
-</style>
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/waitlist-registration.css') }}" />
+{% endblock %}
 
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row justify-content-center">
@@ -87,7 +23,7 @@
                         <small class="text-muted">Join the waitlist for ECS FC Pub League</small>
                     </div>
                     <div class="d-none d-md-block">
-                        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" style="height: 35px;">
+                        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="logo-sm">
                     </div>
                 </div>
                 <div class="card-body">
@@ -102,7 +38,7 @@
                     <!-- Discord Info -->
                     <div class="alert alert-info mb-4">
                         <div class="d-flex align-items-center">
-                            <i class="ti ti-brand-discord me-3" style="font-size: 2rem;"></i>
+                            <i class="ti ti-brand-discord me-3 icon-lg"></i>
                             <div>
                                 <h6 class="mb-1">Discord Account Connected</h6>
                                 <p class="mb-0"><strong>{{ discord_username }}</strong></p>
@@ -181,7 +117,7 @@
                                 <div class="col-md-6">
                                     <div class="profile-image-container text-center">
                                         <div class="profile-image-wrapper">
-                                            <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #e0e0e0;">
+                                            <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture" class="profile-image-lg mb-3">
                                         </div>
                                         <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#profileImageModal">
                                             <i class="ti ti-camera me-1"></i> Upload Photo
@@ -278,7 +214,7 @@
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Other Positions You Enjoy</label>
-                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="border rounded p-3 scrollable-sm">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="other_positions" value="goalkeeper" id="other_goalkeeper">
                                             <label class="form-check-label" for="other_goalkeeper">Goalkeeper</label>
@@ -336,7 +272,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Positions to Avoid</label>
-                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="border rounded p-3 scrollable-sm">
                                         <div class="form-check">
                                             <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="goalkeeper" id="avoid_goalkeeper">
                                             <label class="form-check-label" for="avoid_goalkeeper">Goalkeeper</label>
@@ -467,15 +403,15 @@
                         </div>
                         <div class="row text-center">
                             <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">1</div>
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">1</div>
                                 <p class="small mb-0">You'll receive a confirmation email and Discord role</p>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">2</div>
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">2</div>
                                 <p class="small mb-0">We'll notify you when spots open up</p>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">3</div>
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2 step-badge">3</div>
                                 <p class="small mb-0">You'll get priority access to register</p>
                             </div>
                         </div>
@@ -508,10 +444,10 @@
                     <p class="text-muted small mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
                 </div>
                 
-                <div id="imageEditor" style="display: none;">
+                <div id="imageEditor" class="d-none">
                     <div class="row">
                         <div class="col-md-8">
-                            <canvas id="imageCanvas" style="max-width: 100%; border: 1px solid #ddd; cursor: crosshair;"></canvas>
+                            <canvas id="imageCanvas" class="canvas-editor"></canvas>
                         </div>
                         <div class="col-md-4">
                             <div class="controls mb-3">
@@ -521,7 +457,7 @@
                             </div>
                             <div class="preview mb-3">
                                 <p>Preview:</p>
-                                <canvas id="previewCanvas" width="150" height="150" style="border: 1px solid #ccc; border-radius: 50%;"></canvas>
+                                <canvas id="previewCanvas" width="150" height="150" class="canvas-preview"></canvas>
                             </div>
                             <div class="instructions">
                                 <small class="text-muted">
