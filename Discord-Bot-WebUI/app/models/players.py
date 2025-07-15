@@ -173,6 +173,7 @@ class Player(db.Model):
     is_ref = db.Column(db.Boolean, default=False)
     is_available_for_ref = db.Column(db.Boolean, default=True)
     is_sub = db.Column(db.Boolean, default=False)
+    interested_in_sub = db.Column(db.Boolean, default=False)
     discord_id = db.Column(db.String(100), unique=True)
     needs_manual_review = db.Column(db.Boolean, default=False)
     linked_primary_player_id = db.Column(db.Integer, nullable=True)

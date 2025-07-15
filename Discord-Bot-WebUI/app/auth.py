@@ -43,6 +43,7 @@ from app.auth_helpers import (
     update_last_login,
     DISCORD_OAUTH2_URL
 )
+from app.players_helpers import save_cropped_profile_picture
 
 logger = logging.getLogger(__name__)
 auth = Blueprint('auth', __name__)
@@ -310,24 +311,44 @@ def discord_callback():
 
         # Get registration mode from session (default to False if not set)
         is_registration = session.get('discord_registration_mode', False)
+        is_waitlist_registration = session.get('waitlist_registration', False)
         
         # Check if the user already exists
         user = db_session.query(User).filter(func.lower(User.email) == discord_email).first()
         
         # If user exists and this is a registration attempt
         if user and is_registration:
-            show_info('An account with this email already exists. Please login instead.')
-            return redirect(url_for('auth.login'))
+            if is_waitlist_registration:
+                # For waitlist registration, existing users can still join the waitlist
+                session['pending_discord_email'] = discord_email
+                session['pending_discord_id'] = discord_id
+                session['pending_discord_username'] = discord_username
+                return redirect(url_for('auth.waitlist_register_with_discord'))
+            else:
+                show_info('An account with this email already exists. Please login instead.')
+                return redirect(url_for('auth.login'))
             
         # If user doesn't exist and this is a login attempt
         if not user and not is_registration:
-            show_info('No account found. Please register first.')
-            # Redirect to registration with the same Discord auth data
-            session['pending_discord_email'] = discord_email
-            session['pending_discord_id'] = discord_id
-            session['pending_discord_username'] = discord_username
-            session['discord_registration_mode'] = True
-            return redirect(url_for('auth.register_with_discord'))
+            # Check if this is a waitlist login attempt
+            is_waitlist_intent = session.get('waitlist_intent', False)
+            
+            if is_waitlist_intent:
+                # For waitlist login attempts, show error with SweetAlert and redirect to waitlist registration
+                session['sweet_alert'] = {
+                    'title': 'No Account Found',
+                    'text': 'No account found. Please register for the waitlist instead.',
+                    'icon': 'error'
+                }
+                return redirect(url_for('auth.waitlist_register'))
+            else:
+                show_info('No account found. Please register first.')
+                # Redirect to registration with the same Discord auth data
+                session['pending_discord_email'] = discord_email
+                session['pending_discord_id'] = discord_id
+                session['pending_discord_username'] = discord_username
+                session['discord_registration_mode'] = True
+                return redirect(url_for('auth.register_with_discord'))
             
         # If user doesn't exist and this is a registration attempt
         if not user and is_registration:
@@ -337,7 +358,10 @@ def discord_callback():
             session['pending_discord_username'] = discord_username
             
             # Proceed to Discord registration flow
-            return redirect(url_for('auth.register_with_discord'))
+            if is_waitlist_registration:
+                return redirect(url_for('auth.waitlist_register_with_discord'))
+            else:
+                return redirect(url_for('auth.register_with_discord'))
 
         # User exists and this is a login attempt - normal login flow
         
@@ -715,8 +739,18 @@ def login():
                 except Exception as e:
                     logger.error(f"Error loading user theme preference: {e}")
 
-                next_page = request.args.get('next')
-                if next_page and next_page.startswith('/') and not next_page.startswith('//') and not next_page.startswith('/login'):
+                # Handle waitlist intent or next page redirect
+                waitlist_intent = session.get('waitlist_intent')
+                next_page = request.args.get('next') or session.get('next')
+                
+                # Clear session flags
+                session.pop('waitlist_intent', None)
+                session.pop('next', None)
+                
+                if waitlist_intent:
+                    logger.debug("Waitlist intent detected, redirecting to waitlist register")
+                    return redirect(url_for('auth.waitlist_register'))
+                elif next_page and next_page.startswith('/') and not next_page.startswith('//') and not next_page.startswith('/login'):
                     logger.debug(f"Redirecting to next_page: {next_page}")
                     return redirect(next_page)
 
@@ -1028,3 +1062,596 @@ def not_found_error(error):
 def internal_error(error):
     logger.error(f"500 error: {error}")
     return render_template('500.html', title='500',), 500
+
+
+# ----------------------------------------------------------------------
+# Waitlist Registration Routes
+# ----------------------------------------------------------------------
+@auth.route('/waitlist_register', methods=['GET', 'POST'])
+@transactional
+def waitlist_register():
+    """
+    Handle waitlist registration for both authenticated and unauthenticated users.
+    
+    Scenarios:
+    1. Authenticated user: Add them to waitlist
+    2. Unauthenticated user with account: Show login message
+    3. Unauthenticated user without account: Show registration form
+    """
+    db_session = g.db_session
+    current_user = safe_current_user
+    
+    # Handle authenticated users - add them to waitlist
+    if current_user.is_authenticated:
+        if request.method == 'POST':
+            try:
+                # Find or create pl-waitlist role
+                waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+                if not waitlist_role:
+                    waitlist_role = Role(name='pl-waitlist', description='Player on waitlist for current season')
+                    db_session.add(waitlist_role)
+                    db_session.flush()
+                
+                # Check if user is already on waitlist
+                if waitlist_role in current_user.roles:
+                    show_info('You are already on the waitlist!')
+                    return redirect(url_for('main.index'))
+                
+                # Add user to waitlist
+                current_user.roles.append(waitlist_role)
+                db_session.flush()
+                
+                show_success('You have been added to the waitlist! You will be notified when spots become available.')
+                return redirect(url_for('main.index'))
+                
+            except Exception as e:
+                logger.error(f"Error adding authenticated user to waitlist: {str(e)}")
+                show_error('Failed to join waitlist. Please try again.')
+                return redirect(url_for('auth.waitlist_register'))
+        
+        # GET request for authenticated user - show waitlist join form
+        # Check if already on waitlist
+        waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+        already_on_waitlist = waitlist_role and waitlist_role in current_user.roles
+        
+        # Get player data for profile verification
+        player = None
+        if current_user.player:
+            player = current_user.player
+        
+        # Clear sweet_alert from session after it's been passed to template
+        if 'sweet_alert' in session:
+            session.pop('sweet_alert', None)
+        
+        return render_template('waitlist_register_authenticated.html', 
+                              title='Join the Waitlist',
+                              user=current_user,
+                              player=player,
+                              already_on_waitlist=already_on_waitlist)
+    
+    # Handle unauthenticated users - set session flag and show options
+    if not current_user.is_authenticated:
+        # Set session flag to indicate waitlist intent
+        session['waitlist_intent'] = True
+        
+        # Store the waitlist URL as next destination
+        session['next'] = url_for('auth.waitlist_register')
+        
+        # Show login/registration options for waitlist
+        # Clear sweet_alert from session after it's been passed to template
+        if 'sweet_alert' in session:
+            session.pop('sweet_alert', None)
+        
+        return render_template('waitlist_login_register.html', 
+                              title='Join the Waitlist')
+
+
+
+@auth.route('/waitlist_discord_login')
+def waitlist_discord_login():
+    """
+    Initiate Discord OAuth for waitlist login.
+    This is for existing users who want to login via Discord and join the waitlist.
+    Uses the same Discord OAuth flow as regular login.
+    """
+    from app.auth_helpers import generate_oauth_state
+    from urllib.parse import quote
+    
+    # For authenticated users, redirect them to the regular waitlist registration
+    if safe_current_user.is_authenticated:
+        return redirect(url_for('auth.waitlist_register'))
+    
+    discord_client_id = current_app.config['DISCORD_CLIENT_ID']
+    redirect_uri = url_for('auth.discord_callback', _external=True)
+    scope = 'identify email'
+    
+    # Generate a secure state value to prevent CSRF attacks
+    state_value = generate_oauth_state()
+    
+    # Make the session permanent to avoid expiration issues
+    session.permanent = True
+    
+    # Store state in session and set waitlist flags
+    session['oauth_state'] = state_value
+    session['waitlist_intent'] = True
+    session['discord_registration_mode'] = False  # This is login, not registration
+    
+    # Debug session storage
+    logger.info(f"Setting oauth_state={state_value[:8]}... in session for waitlist login")
+    logger.info(f"Current session contains: {dict(session)}")
+    
+    # Force session save
+    session.modified = True
+    
+    # Use the direct login+authorize URL pattern that works more reliably
+    quoted_redirect_uri = quote(redirect_uri)
+    quoted_scope = quote(scope)
+    
+    # Build the URL that combines login + authorization in one flow
+    discord_login_url = (
+        f"https://discord.com/login?redirect_to=%2Foauth2%2Fauthorize"
+        f"%3Fclient_id%3D{discord_client_id}"
+        f"%26redirect_uri%3D{quoted_redirect_uri}"
+        f"%26response_type%3Dcode"
+        f"%26scope%3D{quoted_scope}"
+        f"%26state%3D{state_value}"
+    )
+    
+    logger.info(f"Redirecting to Combined Login+Auth URL for waitlist: {discord_login_url}")
+    return redirect(discord_login_url)
+
+
+@auth.route('/waitlist_discord_register')
+def waitlist_discord_register():
+    """
+    Initiate Discord OAuth for waitlist registration.
+    Uses the same Discord OAuth flow as regular registration but sets waitlist flags.
+    """
+    from app.auth_helpers import generate_oauth_state
+    from urllib.parse import quote
+    
+    # For authenticated users, redirect them to the regular waitlist registration
+    if safe_current_user.is_authenticated:
+        return redirect(url_for('auth.waitlist_register'))
+    
+    discord_client_id = current_app.config['DISCORD_CLIENT_ID']
+    redirect_uri = url_for('auth.discord_callback', _external=True)
+    scope = 'identify email'
+    
+    # Generate a secure state value to prevent CSRF attacks
+    state_value = generate_oauth_state()
+    
+    # Make the session permanent to avoid expiration issues
+    session.permanent = True
+    
+    # Store state in session and set waitlist registration flags
+    session['oauth_state'] = state_value
+    session['waitlist_registration'] = True
+    session['discord_registration_mode'] = True
+    
+    # Debug session storage
+    logger.info(f"Setting oauth_state={state_value[:8]}... in session for waitlist registration")
+    logger.info(f"Current session contains: {dict(session)}")
+    
+    # Force session save
+    session.modified = True
+    
+    # Use the direct login+authorize URL pattern that works more reliably
+    quoted_redirect_uri = quote(redirect_uri)
+    quoted_scope = quote(scope)
+    
+    # Build the URL that combines login + authorization in one flow
+    discord_login_url = (
+        f"https://discord.com/login?redirect_to=%2Foauth2%2Fauthorize"
+        f"%3Fclient_id%3D{discord_client_id}"
+        f"%26redirect_uri%3D{quoted_redirect_uri}"
+        f"%26response_type%3Dcode"
+        f"%26scope%3D{quoted_scope}"
+        f"%26state%3D{state_value}"
+    )
+    
+    logger.info(f"Redirecting to Combined Login+Auth URL for waitlist registration: {discord_login_url}")
+    return redirect(discord_login_url)
+
+
+@auth.route('/waitlist_register_with_discord', methods=['GET', 'POST'])
+@transactional
+def waitlist_register_with_discord():
+    """
+    Handle the waitlist registration process for users authenticating with Discord.
+    
+    This route checks if the user is in the Discord server, invites them if needed,
+    and creates a new user account with pl-waitlist and pl-unverified roles.
+    """
+    import aiohttp
+    import asyncio
+    from app.discord_utils import assign_role_to_member, invite_user_to_server
+    from app.utils.discord_request_handler import make_discord_request
+
+    db_session = g.db_session
+    discord_email = session.get('pending_discord_email')
+    discord_id = session.get('pending_discord_id')
+    discord_username = session.get('pending_discord_username')
+    
+    if not discord_email or not discord_id:
+        show_error('Missing Discord information. Please try again.')
+        return redirect(url_for('auth.waitlist_register'))
+    
+    if request.method == 'GET':
+        return render_template('waitlist_register_discord.html', 
+                              title='Complete Waitlist Registration',
+                              discord_email=discord_email,
+                              discord_username=discord_username)
+    
+    try:
+        # Check if user already exists
+        existing_user = db_session.query(User).filter_by(email=discord_email).first()
+        
+        if existing_user:
+            # User exists, add them to waitlist and create/update player profile
+            waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+            if not waitlist_role:
+                waitlist_role = Role(name='pl-waitlist', description='Player on waitlist for current season')
+                db_session.add(waitlist_role)
+                db_session.flush()
+            
+            unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+            if not unverified_role:
+                unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
+                db_session.add(unverified_role)
+                db_session.flush()
+            
+            # Add waitlist role if not already assigned
+            if waitlist_role not in existing_user.roles:
+                existing_user.roles.append(waitlist_role)
+            
+            # Add unverified role if not already assigned (for approval system)
+            if unverified_role not in existing_user.roles:
+                existing_user.roles.append(unverified_role)
+            
+            # Get form data for player profile
+            preferred_league = request.form.get('preferred_league')
+            available_for_subbing = request.form.get('available_for_subbing') == 'true'
+            
+            # Personal information
+            name = request.form.get('name', discord_username).strip()
+            phone = request.form.get('phone', '')
+            pronouns = request.form.get('pronouns', '')
+            jersey_size = request.form.get('jersey_size', '')
+            jersey_number = request.form.get('jersey_number')
+            
+            # Convert jersey_number to int if provided
+            jersey_number_int = None
+            if jersey_number:
+                try:
+                    jersey_number_int = int(jersey_number)
+                except ValueError:
+                    jersey_number_int = None
+            
+            # Playing preferences
+            favorite_position = request.form.get('favorite_position', '')
+            frequency_play_goal = request.form.get('frequency_play_goal', '')
+            
+            # Handle multi-select fields
+            other_positions_list = request.form.getlist('other_positions')
+            other_positions = ','.join(other_positions_list) if other_positions_list else ''
+            
+            positions_not_to_play_list = request.form.getlist('positions_not_to_play')
+            positions_not_to_play = ','.join(positions_not_to_play_list) if positions_not_to_play_list else ''
+            
+            # Availability
+            expected_weeks_available = request.form.get('expected_weeks_available', '')
+            willing_to_referee = request.form.get('willing_to_referee', '')
+            unavailable_dates = request.form.get('unavailable_dates', '')
+            
+            # Additional information
+            additional_info = request.form.get('additional_info', '')
+            player_notes = request.form.get('player_notes', '')
+            
+            # Profile picture
+            cropped_image_data = request.form.get('cropped_image_data', '')
+            
+            # Update user preferences and onboarding status
+            existing_user.preferred_league = preferred_league
+            existing_user.approval_status = 'pending'  # Reset to pending for approval
+            existing_user.has_completed_onboarding = True
+            existing_user.has_skipped_profile_creation = False
+            existing_user.has_completed_tour = False
+            
+            # Create or update player profile
+            if existing_user.player:
+                # Update existing player profile
+                player = existing_user.player
+                player.name = name
+                player.phone = phone
+                player.pronouns = pronouns
+                player.jersey_size = jersey_size
+                player.jersey_number = jersey_number_int
+                player.favorite_position = favorite_position
+                player.frequency_play_goal = frequency_play_goal
+                player.other_positions = other_positions
+                player.positions_not_to_play = positions_not_to_play
+                player.expected_weeks_available = expected_weeks_available
+                player.willing_to_referee = willing_to_referee
+                player.unavailable_dates = unavailable_dates
+                player.additional_info = additional_info
+                player.player_notes = player_notes
+                player.interested_in_sub = available_for_subbing
+                player.discord_id = discord_id  # Link Discord ID if not already linked
+                player.is_current_player = True
+            else:
+                # Create new player profile
+                player = Player(
+                    user_id=existing_user.id,
+                    discord_id=discord_id,
+                    name=name,
+                    phone=phone,
+                    pronouns=pronouns,
+                    jersey_size=jersey_size,
+                    jersey_number=jersey_number_int,
+                    favorite_position=favorite_position,
+                    frequency_play_goal=frequency_play_goal,
+                    other_positions=other_positions,
+                    positions_not_to_play=positions_not_to_play,
+                    expected_weeks_available=expected_weeks_available,
+                    willing_to_referee=willing_to_referee,
+                    unavailable_dates=unavailable_dates,
+                    additional_info=additional_info,
+                    player_notes=player_notes,
+                    interested_in_sub=available_for_subbing,
+                    is_current_player=True
+                )
+                db_session.add(player)
+                db_session.flush()
+                existing_user.player = player
+            
+            db_session.flush()
+            
+            # Handle profile picture upload if provided
+            if cropped_image_data and existing_user.player:
+                try:
+                    profile_picture_url = save_cropped_profile_picture(cropped_image_data, existing_user.player.id)
+                    existing_user.player.profile_picture_url = profile_picture_url
+                    db_session.add(existing_user.player)
+                    
+                    # Trigger image optimization asynchronously
+                    try:
+                        from app.image_cache_service import handle_player_image_update
+                        handle_player_image_update(existing_user.player.id)
+                        logger.info(f"Queued image optimization for player {existing_user.player.id}")
+                    except Exception as e:
+                        logger.warning(f"Failed to queue image optimization: {e}")
+                        # Don't fail the registration if optimization queue fails
+                    
+                    logger.info(f"Profile picture uploaded for waitlist user {existing_user.player.id}")
+                except Exception as e:
+                    logger.error(f"Error saving profile picture for waitlist user {existing_user.player.id}: {str(e)}")
+                    # Don't fail the registration if profile picture save fails
+            
+            # Log the user in
+            login_user(existing_user, remember=True)
+            update_last_login(existing_user)
+            
+            # Clear session data
+            session.pop('pending_discord_email', None)
+            session.pop('pending_discord_id', None)
+            session.pop('pending_discord_username', None)
+            session.pop('waitlist_registration', None)
+            session.pop('registration_mode', None)
+            
+            # Set success message for SweetAlert
+            session['sweet_alert'] = {
+                'title': 'Thanks for Registering!',
+                'text': 'You have been successfully added to the waitlist. We will notify you when spots become available.',
+                'icon': 'success'
+            }
+            
+            return redirect(url_for('auth.waitlist_confirmation'))
+        
+        # New user registration - continue with Discord integration
+        # Create a new event loop for async operations
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Discord server integration
+        async def handle_discord_integration():
+            async with aiohttp.ClientSession() as session:
+                # Check if user is in Discord server
+                url = f"{current_app.config['BOT_API_URL']}/api/server/guilds/{current_app.config['SERVER_ID']}/members/{discord_id}"
+                result = await make_discord_request('GET', url, session)
+                
+                if not result:
+                    # User not in server, invite them
+                    try:
+                        invite_result = await invite_user_to_server(discord_id)
+                        if invite_result.get('success'):
+                            if invite_result.get('invite_code'):
+                                invite_code = invite_result.get('invite_code')
+                                session['discord_invite_link'] = f"https://discord.gg/{invite_code}"
+                                logger.info(f"Created personalized Discord invite: https://discord.gg/{invite_code}")
+                            elif invite_result.get('invite_link'):
+                                session['discord_invite_link'] = invite_result.get('invite_link')
+                                logger.info(f"Using generic Discord invite: {invite_result.get('invite_link')}")
+                    except Exception as e:
+                        logger.error(f"Error inviting user to Discord server: {str(e)}")
+                
+                # Assign pl-waitlist Discord role
+                try:
+                    # For now, we'll use the same Discord role as pl-unverified
+                    # In the future, you might want to create a separate Discord role for waitlist
+                    waitlist_discord_role_id = "1357770021157212430"  # ECS-FC-PL-UNVERIFIED
+                    await assign_role_to_member(
+                        int(current_app.config['SERVER_ID']), 
+                        discord_id, 
+                        waitlist_discord_role_id, 
+                        session
+                    )
+                    logger.info(f"Successfully assigned waitlist Discord role to user {discord_id}")
+                except Exception as e:
+                    logger.error(f"Error assigning Discord role to user {discord_id}: {str(e)}")
+                
+                return {'success': True}
+        
+        try:
+            discord_result = loop.run_until_complete(handle_discord_integration())
+            loop.close()
+        except Exception as e:
+            logger.error(f"Error with Discord server integration: {str(e)}")
+            show_warning("Could not connect to Discord server. Your waitlist registration will be created, but you may need to join the Discord server manually.")
+        
+        # Find or create roles
+        waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+        if not waitlist_role:
+            waitlist_role = Role(name='pl-waitlist', description='Player on waitlist for current season')
+            db_session.add(waitlist_role)
+            db_session.flush()
+        
+        unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+        if not unverified_role:
+            unverified_role = Role(name='pl-unverified', description='Unverified player awaiting league approval')
+            db_session.add(unverified_role)
+            db_session.flush()
+        
+        # Get form data - all profile fields
+        preferred_league = request.form.get('preferred_league')
+        available_for_subbing = request.form.get('available_for_subbing') == 'true'
+        
+        # Personal information - use the name from form as username
+        name = request.form.get('name', discord_username).strip()
+        username = name  # Use the entered name as username, not Discord username
+        
+        # Generate a random password
+        import secrets
+        import string
+        temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+        phone = request.form.get('phone', '')
+        pronouns = request.form.get('pronouns', '')
+        jersey_size = request.form.get('jersey_size', '')
+        jersey_number = request.form.get('jersey_number')
+        
+        # Playing preferences
+        favorite_position = request.form.get('favorite_position', '')
+        frequency_play_goal = request.form.get('frequency_play_goal', '')
+        
+        # Handle multi-select fields
+        other_positions_list = request.form.getlist('other_positions')
+        other_positions = ','.join(other_positions_list) if other_positions_list else ''
+        
+        positions_not_to_play_list = request.form.getlist('positions_not_to_play')
+        positions_not_to_play = ','.join(positions_not_to_play_list) if positions_not_to_play_list else ''
+        
+        # Availability
+        expected_weeks_available = request.form.get('expected_weeks_available', '')
+        willing_to_referee = request.form.get('willing_to_referee', '')
+        unavailable_dates = request.form.get('unavailable_dates', '')
+        
+        # Additional information
+        additional_info = request.form.get('additional_info', '')
+        player_notes = request.form.get('player_notes', '')
+        
+        # Profile picture
+        cropped_image_data = request.form.get('cropped_image_data', '')
+        
+        # Convert jersey_number to int if provided
+        jersey_number_int = None
+        if jersey_number:
+            try:
+                jersey_number_int = int(jersey_number)
+            except ValueError:
+                jersey_number_int = None
+        
+        new_user = User(
+            username=username,
+            email=discord_email,
+            is_approved=False,
+            approval_status='pending',
+            preferred_league=preferred_league,
+            has_completed_onboarding=True,
+            has_skipped_profile_creation=False,
+            has_completed_tour=False,
+            roles=[waitlist_role, unverified_role]
+        )
+        new_user.set_password(temp_password)
+        db_session.add(new_user)
+        db_session.flush()
+        
+        # Create comprehensive player profile
+        player = Player(
+            user_id=new_user.id,
+            discord_id=discord_id,
+            name=name,
+            phone=phone,
+            pronouns=pronouns,
+            jersey_size=jersey_size,
+            jersey_number=jersey_number_int,
+            favorite_position=favorite_position,
+            frequency_play_goal=frequency_play_goal,
+            other_positions=other_positions,
+            positions_not_to_play=positions_not_to_play,
+            expected_weeks_available=expected_weeks_available,
+            willing_to_referee=willing_to_referee,
+            unavailable_dates=unavailable_dates,
+            additional_info=additional_info,
+            player_notes=player_notes,
+            interested_in_sub=available_for_subbing
+        )
+        db_session.add(player)
+        db_session.flush()
+        
+        # Update user with player_id
+        new_user.player_id = player.id
+        db_session.flush()
+        
+        # Handle profile picture upload if provided
+        if cropped_image_data:
+            try:
+                profile_picture_url = save_cropped_profile_picture(cropped_image_data, player.id)
+                player.profile_picture_url = profile_picture_url
+                db_session.add(player)
+                
+                # Trigger image optimization asynchronously
+                try:
+                    from app.image_cache_service import handle_player_image_update
+                    handle_player_image_update(player.id)
+                    logger.info(f"Queued image optimization for player {player.id}")
+                except Exception as e:
+                    logger.warning(f"Failed to queue image optimization: {e}")
+                    # Don't fail the registration if optimization queue fails
+                
+                logger.info(f"Profile picture uploaded for waitlist user {player.id}")
+            except Exception as e:
+                logger.error(f"Error saving profile picture for waitlist user {player.id}: {str(e)}")
+                # Don't fail the registration if profile picture save fails
+        
+        # Log the user in
+        login_user(new_user, remember=True)
+        update_last_login(new_user)
+        
+        # Clear session data
+        session.pop('pending_discord_email', None)
+        session.pop('pending_discord_id', None)
+        session.pop('pending_discord_username', None)
+        session.pop('waitlist_registration', None)
+        session.pop('registration_mode', None)
+        
+        # Set success message for SweetAlert
+        session['sweet_alert'] = {
+            'title': 'Thanks for Registering!',
+            'text': 'You have been successfully added to the waitlist. We will notify you when spots become available.',
+            'icon': 'success'
+        }
+        
+        return redirect(url_for('auth.waitlist_confirmation'))
+        
+    except Exception as e:
+        logger.error(f"Waitlist Discord registration error: {str(e)}", exc_info=True)
+        show_error('Waitlist registration failed. Please try again.')
+        return redirect(url_for('auth.waitlist_register'))
+
+
+@auth.route('/waitlist_confirmation')
+def waitlist_confirmation():
+    """
+    Display confirmation page after successful waitlist registration.
+    """
+    return render_template('waitlist_confirmation.html')

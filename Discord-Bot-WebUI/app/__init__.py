@@ -170,27 +170,35 @@ def create_app(config_object='web_config.Config'):
         from app.models_ecs import EcsFcMatch, EcsFcAvailability
         from app.models_ecs_subs import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment, EcsFcSubPool
         
-        # Ensure the pl-unverified role exists
+        # Ensure the pl-unverified and pl-waitlist roles exist
         try:
             session = SessionLocal()
             try:
+                # Check for pl-unverified role
                 sub_role = session.query(Role).filter_by(name='pl-unverified').first()
                 if not sub_role:
                     logger.info("Creating pl-unverified role in database")
                     sub_role = Role(name='pl-unverified', description='Substitute Player')
                     session.add(sub_role)
-                    session.commit()
                     logger.info("pl-unverified role created successfully")
-                else:
-                    session.commit()
+                
+                # Check for pl-waitlist role
+                waitlist_role = session.query(Role).filter_by(name='pl-waitlist').first()
+                if not waitlist_role:
+                    logger.info("Creating pl-waitlist role in database")
+                    waitlist_role = Role(name='pl-waitlist', description='Player on waitlist for current season')
+                    session.add(waitlist_role)
+                    logger.info("pl-waitlist role created successfully")
+                
+                session.commit()
             except Exception as e:
                 session.rollback()
-                logger.error(f"Error ensuring pl-unverified role exists: {e}", exc_info=True)
+                logger.error(f"Error ensuring roles exist: {e}", exc_info=True)
                 raise
             finally:
                 session.close()
         except Exception as e:
-            logger.error(f"Failed to initialize pl-unverified role: {e}", exc_info=True)
+            logger.error(f"Failed to initialize roles: {e}", exc_info=True)
 
     # Initialize request lifecycle hooks.
     request_lifecycle.init_app(app, db)

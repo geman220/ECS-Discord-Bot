@@ -985,3 +985,71 @@ def contact_player_discord(player_id):
         show_error(f"Error contacting Discord bot: {str(e)}")
     
     return redirect(url_for('players.player_profile', player_id=player_id))
+
+
+@players_bp.route('/profile/<int:player_id>/update_modal', endpoint='update_profile_modal', methods=['POST'])
+@login_required
+def update_profile_modal(player_id):
+    """
+    Update a player's profile data via the modal form and verify it.
+    Only the profile owner can update their own profile.
+    """
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+    if not player:
+        return jsonify({'success': False, 'message': 'Player not found'}), 404
+    
+    # Check if user can update this profile (only their own)
+    is_own_profile = (safe_current_user.id == player.user_id)
+    if not is_own_profile:
+        return jsonify({'success': False, 'message': 'You can only update your own profile'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        # Update player fields
+        if 'phone' in data:
+            player.phone = data['phone']
+        if 'pronouns' in data:
+            player.pronouns = data['pronouns']
+        if 'jersey_size' in data:
+            player.jersey_size = data['jersey_size']
+        if 'expected_weeks_available' in data:
+            player.expected_weeks_available = data['expected_weeks_available']
+        if 'unavailable_dates' in data:
+            player.unavailable_dates = data['unavailable_dates']
+        if 'willing_to_referee' in data:
+            player.willing_to_referee = data['willing_to_referee']
+        if 'team_swap' in data:
+            player.team_swap = data['team_swap']
+        if 'favorite_position' in data:
+            player.favorite_position = data['favorite_position']
+        if 'other_positions' in data:
+            player.other_positions = data['other_positions']
+        if 'positions_not_to_play' in data:
+            player.positions_not_to_play = data['positions_not_to_play']
+        if 'frequency_play_goal' in data:
+            player.frequency_play_goal = data['frequency_play_goal']
+        if 'additional_info' in data:
+            player.additional_info = data['additional_info']
+        if 'player_notes' in data:
+            player.player_notes = data['player_notes']
+        
+        # Update profile verification timestamp
+        player.profile_last_updated = datetime.utcnow()
+        
+        session.commit()
+        
+        logger.info(f"Profile updated and verified for player {player_id} by user {safe_current_user.id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated and verified successfully'
+        })
+        
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error updating profile for player {player_id}: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error updating profile'}), 500

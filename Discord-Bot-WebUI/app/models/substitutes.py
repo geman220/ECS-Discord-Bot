@@ -120,7 +120,7 @@ class EcsFcSubPool(db.Model):
 
 class SubstitutePool(db.Model):
     """Model for general substitute pool."""
-    __tablename__ = 'substitute_pool'
+    __tablename__ = 'substitute_pools'
     
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False, unique=True)

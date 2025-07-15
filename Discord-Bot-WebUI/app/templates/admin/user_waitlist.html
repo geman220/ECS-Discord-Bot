@@ -1,0 +1,684 @@
+{% extends "base.html" %}
+
+{% block title %}User Waitlist{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Card hover effect */
+    .shadow-sm {
+        transition: all 0.2s ease;
+    }
+    
+    .shadow-sm:hover {
+        box-shadow: 0 0.25rem 1rem rgba(161, 172, 184, 0.45) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        font-weight: normal;
+        font-size: 0.75rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .badge.bg-label-primary {
+        background-color: rgba(105, 108, 255, 0.16) !important;
+        color: #696cff !important;
+    }
+    
+    .badge.bg-label-success {
+        background-color: rgba(40, 199, 111, 0.16) !important;
+        color: #28c76f !important;
+    }
+    
+    .badge.bg-label-warning {
+        background-color: rgba(255, 159, 67, 0.16) !important;
+        color: #ff9f43 !important;
+    }
+    
+    .badge.bg-label-danger {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    .status-waitlist {
+        background-color: rgba(255, 171, 0, 0.16) !important;
+        color: #ffab00 !important;
+    }
+    
+    .status-pending {
+        background-color: rgba(255, 171, 0, 0.16) !important;
+        color: #ffab00 !important;
+    }
+    
+    .status-approved {
+        background-color: rgba(3, 195, 236, 0.16) !important;
+        color: #03c3ec !important;
+    }
+    
+    .status-denied {
+        background-color: rgba(234, 84, 85, 0.16) !important;
+        color: #ea5455 !important;
+    }
+    
+    /* Table styling */
+    .table th {
+        border-top: none;
+        font-weight: 500;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    /* Modal styling */
+    .modal-header {
+        background-color: var(--bs-gray-100);
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    .modal-footer {
+        background-color: var(--bs-gray-100);
+        border-top: 1px solid var(--bs-border-color);
+    }
+    
+    /* Dark mode modal styling */
+    html[data-style="dark"] .modal-header {
+        background-color: var(--bs-gray-800);
+        border-bottom: 1px solid var(--bs-border-color);
+    }
+    
+    html[data-style="dark"] .modal-footer {
+        background-color: var(--bs-gray-800);
+        border-top: 1px solid var(--bs-border-color);
+    }
+    
+    html[data-style="dark"] .modal-content {
+        background-color: var(--bs-gray-900);
+        color: var(--bs-body-color);
+    }
+    
+    /* Action buttons */
+    .btn-remove {
+        background-color: #ea5455;
+        border-color: #ea5455;
+        color: white;
+    }
+    
+    .btn-remove:hover {
+        background-color: #d63384;
+        border-color: #d63384;
+        color: white;
+    }
+    
+    .btn-contact {
+        background-color: #03c3ec;
+        border-color: #03c3ec;
+        color: white;
+    }
+    
+    .btn-contact:hover {
+        background-color: #0099cc;
+        border-color: #0099cc;
+        color: white;
+    }
+    
+    /* Stats cards */
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stats-card h3 {
+        margin-bottom: 0.5rem;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+    
+    .stats-card p {
+        margin-bottom: 0;
+        opacity: 0.9;
+    }
+    
+    .stats-card.waitlist {
+        background: linear-gradient(135deg, #ffab00 0%, #ff6b35 100%);
+    }
+    
+    .stats-card.registered {
+        background: linear-gradient(135deg, #28c76f 0%, #06d6a0 100%);
+    }
+    
+    .stats-card.approved {
+        background: linear-gradient(135deg, #03c3ec 0%, #0077be 100%);
+    }
+    
+    /* Player profile styling */
+    .player-profile img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 10px;
+    }
+    
+    .player-profile .player-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    
+    .player-profile .player-name {
+        font-weight: 500;
+        margin-bottom: 0;
+    }
+    
+    .player-profile .player-email {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+    
+    /* Avatar fallback */
+    .avatar-fallback {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #696cff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 500;
+        margin-right: 10px;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .stats-card {
+            padding: 1rem;
+        }
+        
+        .stats-card h3 {
+            font-size: 1.5rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-clock me-2"></i>
+                        User Waitlist Management
+                    </h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+                        <i class="ti ti-refresh me-1"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="stats-card waitlist">
+                                <h3 id="waitlist-count">{{ stats.waitlist_count }}</h3>
+                                <p>Users on Waitlist</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stats-card registered">
+                                <h3 id="total-registered">{{ stats.total_registered }}</h3>
+                                <p>Total Registered</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stats-card approved">
+                                <h3 id="total-approved">{{ stats.total_approved }}</h3>
+                                <p>Total Approved</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Waitlist Users Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email</th>
+                                    <th>Preferred League</th>
+                                    <th>Interested in Subbing</th>
+                                    <th>Status</th>
+                                    <th>Joined Waitlist</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="waitlist-users-table">
+                                {% for user in waitlist_users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center player-profile">
+                                            {% if user.player and user.player.profile_picture_url %}
+                                                <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="rounded-circle">
+                                            {% else %}
+                                                <div class="avatar-fallback">
+                                                    {{ user.username[0].upper() }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="player-info">
+                                                <p class="player-name">{{ user.username }}</p>
+                                                {% if user.player and user.player.name and user.player.name != user.username %}
+                                                    <p class="player-email">{{ user.player.name }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">{{ user.email }}</span>
+                                        {% if user.player and user.player.discord_id %}
+                                            <br><small class="text-primary">
+                                                <i class="ti ti-brand-discord"></i> Discord Linked
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.preferred_league %}
+                                            <span class="badge bg-label-primary">{{ user.preferred_league }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Not specified</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.player and user.player.interested_in_sub %}
+                                            <span class="badge bg-label-success">
+                                                <i class="ti ti-check"></i> Yes
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-label-secondary">
+                                                <i class="ti ti-minus"></i> No
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge status-{{ user.approval_status }}">
+                                            {{ user.approval_status.title() }}
+                                        </span>
+                                        <br>
+                                        <span class="badge status-waitlist">
+                                            <i class="ti ti-clock"></i> Waitlist
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="showPlayerDetails({{ user.id }})">
+                                                <i class="ti ti-eye"></i> View
+                                            </button>
+                                            <button class="btn btn-sm btn-contact" onclick="showContactModal({{ user.id }})">
+                                                <i class="ti ti-mail"></i> Contact
+                                            </button>
+                                            <button class="btn btn-sm btn-remove" onclick="showRemovalModal({{ user.id }})">
+                                                <i class="ti ti-trash"></i> Remove
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                        {% if not waitlist_users %}
+                        <div class="text-center py-4">
+                            <i class="ti ti-clock text-muted" style="font-size: 3rem;"></i>
+                            <h5 class="mt-2 text-muted">No users on waitlist</h5>
+                            <p class="text-muted">When users join the waitlist, they will appear here.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Removal Modal -->
+<div class="modal fade" id="removalModal" tabindex="-1" aria-labelledby="removalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="removalModalLabel">Remove User from Waitlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove this user from the waitlist?</p>
+                <div class="mb-3">
+                    <label for="removal-reason" class="form-label">Reason for removal <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="removal-reason" rows="3" placeholder="Please provide a reason for removing this user from the waitlist..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-remove" onclick="submitRemoval()">Remove from Waitlist</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact Waitlist User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="contact-method" class="form-label">Contact Method</label>
+                    <select class="form-select" id="contact-method">
+                        <option value="email">Email</option>
+                        <option value="discord">Discord</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="contact-message" class="form-label">Message</label>
+                    <textarea class="form-control" id="contact-message" rows="4" placeholder="Enter your message to the user..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-contact" onclick="submitContact()">Log Contact</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Details Modal -->
+<div class="modal fade" id="playerDetailsModal" tabindex="-1" aria-labelledby="playerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="playerDetailsModalLabel">Player Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="playerDetailsContent">
+                <!-- Player details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    let currentUserId = null;
+    
+    function refreshData() {
+        location.reload();
+    }
+    
+    function showRemovalModal(userId) {
+        currentUserId = userId;
+        document.getElementById('removal-reason').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('removalModal'));
+        modal.show();
+    }
+    
+    function showContactModal(userId) {
+        currentUserId = userId;
+        document.getElementById('contact-method').value = 'email';
+        document.getElementById('contact-message').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('contactModal'));
+        modal.show();
+    }
+    
+    function submitRemoval() {
+        const reason = document.getElementById('removal-reason').value.trim();
+        
+        if (!reason) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Please provide a reason for removal',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        if (!currentUserId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'No user selected',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        fetch(`/admin/user-waitlist/remove/${currentUserId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                reason: reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: data.message,
+                    icon: 'success'
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message,
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while removing the user',
+                icon: 'error'
+            });
+        });
+        
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('removalModal'));
+        modal.hide();
+    }
+    
+    function submitContact() {
+        const method = document.getElementById('contact-method').value;
+        const message = document.getElementById('contact-message').value.trim();
+        
+        if (!currentUserId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'No user selected',
+                icon: 'error'
+            });
+            return;
+        }
+        
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        fetch(`/admin/user-waitlist/contact/${currentUserId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                contact_method: method,
+                message: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: 'Success',
+                    text: data.message,
+                    icon: 'success'
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message,
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred while logging the contact',
+                icon: 'error'
+            });
+        });
+        
+        // Hide modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('contactModal'));
+        modal.hide();
+    }
+    
+    function showPlayerDetails(userId) {
+        fetch(`/admin/user-waitlist/user/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const user = data.user;
+                    const content = document.getElementById('playerDetailsContent');
+                    
+                    content.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Basic Information</h6>
+                                <p><strong>Username:</strong> ${user.username}</p>
+                                <p><strong>Email:</strong> ${user.email}</p>
+                                <p><strong>Joined:</strong> ${user.created_at || 'Unknown'}</p>
+                                <p><strong>Status:</strong> <span class="badge status-${user.approval_status}">${user.approval_status}</span></p>
+                                <p><strong>Preferred League:</strong> ${user.preferred_league || 'Not specified'}</p>
+                                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1">${role}</span>`).join('')}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Player Details</h6>
+                                ${user.player.name ? `<p><strong>Name:</strong> ${user.player.name}</p>` : ''}
+                                ${user.player.phone ? `<p><strong>Phone:</strong> ${user.player.phone}</p>` : ''}
+                                ${user.player.pronouns ? `<p><strong>Pronouns:</strong> ${user.player.pronouns}</p>` : ''}
+                                ${user.player.discord_id ? `<p><strong>Discord:</strong> <span class="text-primary">Linked</span></p>` : '<p><strong>Discord:</strong> <span class="text-muted">Not linked</span></p>'}
+                                ${user.player.jersey_size ? `<p><strong>Jersey Size:</strong> ${user.player.jersey_size}</p>` : ''}
+                                ${user.player.jersey_number ? `<p><strong>Jersey Number:</strong> ${user.player.jersey_number}</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <h6>Playing Information</h6>
+                                ${user.player.favorite_position ? `<p><strong>Favorite Position:</strong> ${user.player.favorite_position}</p>` : ''}
+                                ${user.player.other_positions ? `<p><strong>Other Positions:</strong> ${user.player.other_positions}</p>` : ''}
+                                ${user.player.positions_not_to_play ? `<p><strong>Positions NOT to Play:</strong> ${user.player.positions_not_to_play}</p>` : ''}
+                                ${user.player.frequency_play_goal ? `<p><strong>Frequency Play Goal:</strong> ${user.player.frequency_play_goal}</p>` : ''}
+                                ${user.player.expected_weeks_available ? `<p><strong>Expected Weeks Available:</strong> ${user.player.expected_weeks_available}</p>` : ''}
+                                ${user.player.willing_to_referee ? `<p><strong>Willing to Referee:</strong> ${user.player.willing_to_referee}</p>` : ''}
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Substitute Information</h6>
+                                <p><strong>Interested in Subbing:</strong> ${user.player.interested_in_sub ? '<span class="badge bg-label-success">Yes</span>' : '<span class="badge bg-label-secondary">No</span>'}</p>
+                                <p><strong>Available for Subbing:</strong> ${user.player.is_sub ? '<span class="badge bg-label-success">Yes</span>' : '<span class="badge bg-label-secondary">No</span>'}</p>
+                                ${user.player.unavailable_dates ? `<p><strong>Unavailable Dates:</strong> ${user.player.unavailable_dates}</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${user.player.additional_info ? `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Additional Information</h6>
+                                    <p>${user.player.additional_info}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${user.player.player_notes ? `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Player Notes</h6>
+                                    <p>${user.player.player_notes}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('playerDetailsModal'));
+                    modal.show();
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message,
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'An error occurred while loading player details',
+                    icon: 'error'
+                });
+            });
+    }
+    
+    // Auto-refresh stats every 30 seconds
+    setInterval(function() {
+        fetch('/admin/user-waitlist/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('waitlist-count').textContent = data.stats.waitlist_count;
+                    document.getElementById('total-registered').textContent = data.stats.total_registered;
+                    document.getElementById('total-approved').textContent = data.stats.total_approved;
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing stats:', error);
+            });
+    }, 30000);
+</script>
+{% endblock %}
