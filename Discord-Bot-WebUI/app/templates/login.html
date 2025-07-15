@@ -54,9 +54,13 @@
 
 <div class="authentication-wrapper">
     <div class="authentication-inner">
-        <!-- ECS Logo -->
+        <!-- ECS Logos -->
         <div class="d-none d-lg-flex col-lg-6 align-items-center justify-content-center p-5">
-            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Management Logo" class="img-fluid" style="max-height: 200px;">
+            <div class="text-center">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
+                <br>
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
+            </div>
         </div>
 
         <!-- Login Form -->
@@ -72,9 +76,15 @@
                 </a>
                 
                 <!-- Discord Registration Button -->
-                <a href="{{ url_for('auth.discord_register') }}" class="btn btn-outline-primary btn-block mb-3 d-flex align-items-center justify-content-center" style="border-color: #7289DA; color: #7289DA;">
+                <a href="{{ url_for('auth.discord_register') }}" class="btn btn-outline-primary btn-block mb-2 d-flex align-items-center justify-content-center" style="border-color: #7289DA; color: #7289DA;">
                     <span class="discord-img"></span>
                     Register with Discord
+                </a>
+                
+                <!-- Waitlist Registration Button -->
+                <a href="{{ url_for('auth.waitlist_register') }}" class="btn btn-outline-warning btn-block mb-3 d-flex align-items-center justify-content-center">
+                    <i class="ti ti-clock me-2"></i>
+                    Join the Waitlist
                 </a>
 
                 {% if safe_current_user.is_anonymous %}
@@ -115,12 +125,21 @@
                     </a>
                 </p>
                 
+                {% if session.get('waitlist_intent') %}
+                <div class="alert alert-warning mt-3 text-left">
+                    <h6 class="alert-heading fw-bold mb-1">Join the Waitlist</h6>
+                    <p class="mb-0 small">
+                        Login to join the waitlist for the current season. You'll be notified when spots become available or for substitute opportunities.
+                    </p>
+                </div>
+                {% else %}
                 <div class="alert alert-info mt-3 text-left">
                     <h6 class="alert-heading fw-bold mb-1">New to ECS FC?</h6>
                     <p class="mb-0 small">
                         Register with Discord to join as a substitute player. Subs can fill in for matches when teams need additional players - a great way to join the league!
                     </p>
                 </div>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

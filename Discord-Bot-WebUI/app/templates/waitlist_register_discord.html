@@ -1,0 +1,787 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block title %}Complete Waitlist Registration - ECS FC Pub League{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- Cropper.css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+{% endblock %}
+
+{% block main_content %}
+<style>
+    /* Match app design language */
+    .section-header {
+        border-bottom: 1px solid #e0e0e0;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .container-xxl {
+            padding: 1rem;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: none;
+        }
+        
+        .section-header {
+            font-size: 1.1rem;
+        }
+        
+        .form-control, .form-select {
+            font-size: 16px; /* Prevent zoom on iOS */
+        }
+    }
+    
+    /* Desktop optimizations */
+    @media (min-width: 769px) {
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+    }
+    
+    /* Image Container Styling */
+    .img-container {
+        width: 100%;
+        max-height: 600px;
+        overflow: hidden;
+    }
+    
+    .img-container img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Cropper Modal Styles */
+    #profileImageModal .modal-body {
+        min-height: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    /* Keep minimal cropper styling to match profile page */
+    
+    /* Make sure the image container is properly sized */
+    #profileImageModal .img-container {
+        width: 100%;
+        min-height: 400px;
+        max-height: 500px;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+</style>
+
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10 col-xl-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Complete Waitlist Registration</h5>
+                        <small class="text-muted">Join the waitlist for ECS FC Pub League</small>
+                    </div>
+                    <div class="d-none d-md-block">
+                        <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" style="height: 35px;">
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-4">
+                        <h6 class="alert-heading mb-1">
+                            <i class="ti ti-clock me-2"></i>
+                            You're Joining the Waitlist
+                        </h6>
+                        <p class="mb-0">All spots for the current season are filled, but you'll be first in line for future openings and substitute opportunities!</p>
+                    </div>
+
+                    <!-- Discord Info -->
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="ti ti-brand-discord me-3" style="font-size: 2rem;"></i>
+                            <div>
+                                <h6 class="mb-1">Discord Account Connected</h6>
+                                <p class="mb-0"><strong>{{ discord_username }}</strong></p>
+                                <small class="text-muted">{{ discord_email }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <form method="POST" action="{{ url_for('auth.waitlist_register_with_discord') }}" class="needs-validation" novalidate>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" id="cropped_image_data_main" name="cropped_image_data">
+                        
+                        <!-- Personal Information Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Personal Information</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="name">Full Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ discord_username }}" required>
+                                    <div class="invalid-feedback">Please provide your full name.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="email">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ discord_email }}" readonly>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="phone">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your phone number">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="pronouns">Preferred Pronouns</label>
+                                    <select class="form-select" id="pronouns" name="pronouns">
+                                        <option value="">Select pronouns</option>
+                                        <option value="he/him">He/Him</option>
+                                        <option value="she/her">She/Her</option>
+                                        <option value="they/them">They/Them</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="jersey_size">Jersey Size</label>
+                                    <select class="form-select" id="jersey_size" name="jersey_size">
+                                        <option value="">Select size</option>
+                                        <option value="WXL">WXL</option>
+                                        <option value="N/A">N/A</option>
+                                        <option value="AS">AS</option>
+                                        <option value="WL">WL</option>
+                                        <option value="WM">WM</option>
+                                        <option value="WXS">WXS</option>
+                                        <option value="WS">WS</option>
+                                        <option value="AM">AM</option>
+                                        <option value="AL">AL</option>
+                                        <option value="A3XL">A3XL</option>
+                                        <option value="AXL">AXL</option>
+                                        <option value="AXXL">AXXL</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="jersey_number">Preferred Jersey Number</label>
+                                    <input type="number" class="form-control" id="jersey_number" name="jersey_number" min="1" max="99" placeholder="Optional">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Picture Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Profile Picture</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="profile-image-container text-center">
+                                        <div class="profile-image-wrapper">
+                                            <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture" class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover; border: 3px solid #e0e0e0;">
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#profileImageModal">
+                                            <i class="ti ti-camera me-1"></i> Upload Photo
+                                        </button>
+                                        <p class="text-muted small mt-2">Optional: Add a profile picture to help others recognize you</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="alert alert-info">
+                                        <h6 class="alert-heading fw-bold mb-1">
+                                            <i class="ti ti-info-circle me-2"></i>Photo Guidelines
+                                        </h6>
+                                        <ul class="mb-0 small">
+                                            <li>Use a clear, recent photo of yourself</li>
+                                            <li>Photos will be cropped to a square format</li>
+                                            <li>Supported formats: JPG, PNG, GIF</li>
+                                            <li>Maximum file size: 10MB</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- League Selection Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">League Preference</h6>
+                            <div class="alert alert-primary">
+                                <h6 class="alert-heading fw-bold mb-1">
+                                    <i class="ti ti-trophy me-2"></i>Which league are you interested in?
+                                </h6>
+                                <p class="mb-0">Select the league that best matches your skill level and playing style:</p>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="preferred_league" id="pub_league_classic" value="pub_league_classic" required>
+                                <label class="form-check-label" for="pub_league_classic">
+                                    <strong>🏆 Pub League Classic</strong>
+                                    <div class="text-muted small">Our beginner-friendly classic division- it's all about having fun and improving your game. No experience necessary</div>
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="preferred_league" id="pub_league_premier" value="pub_league_premier" required>
+                                <label class="form-check-label" for="pub_league_premier">
+                                    <strong>🌟 Pub League Premier</strong>
+                                    <div class="text-muted small">Our Premier Division for low to intermediate recreational players. Bring your C game!</div>
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="preferred_league" id="not_sure" value="not_sure" required>
+                                <label class="form-check-label" for="not_sure">
+                                    <strong>🤔 Not Sure</strong>
+                                    <div class="text-muted small">We'll help you find the right league based on your experience and preferences.</div>
+                                </label>
+                            </div>
+                            <div class="invalid-feedback">Please select a league preference.</div>
+                        </div>
+                        
+                        <!-- Playing Preferences Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Playing Preferences</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="favorite_position">Favorite Position</label>
+                                    <select class="form-select" id="favorite_position" name="favorite_position">
+                                        <option value="">Select position</option>
+                                        <option value="goalkeeper">Goalkeeper</option>
+                                        <option value="defender">Defender</option>
+                                        <option value="midfielder">Midfielder</option>
+                                        <option value="forward">Forward</option>
+                                        <option value="winger">Winger</option>
+                                        <option value="striker">Striker</option>
+                                        <option value="center_back">Center Back</option>
+                                        <option value="full_back">Full Back</option>
+                                        <option value="wing_back">Wing Back</option>
+                                        <option value="attacking_midfielder">Attacking Midfielder</option>
+                                        <option value="defensive_midfielder">Defensive Midfielder</option>
+                                        <option value="central_midfielder">Central Midfielder</option>
+                                        <option value="no_preference">No Preference</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="frequency_play_goal">Willingness to Play Goal</label>
+                                    <select class="form-select" id="frequency_play_goal" name="frequency_play_goal">
+                                        <option value="">Select frequency</option>
+                                        <option value="0">Never</option>
+                                        <option value="1">Only if our normal GK is unavailable and there are no other options</option>
+                                        <option value="2">I will fill in as much as needed, but expect to play in the field</option>
+                                        <option value="3">Half of the time</option>
+                                        <option value="4">Every Game</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Other Positions You Enjoy</label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="goalkeeper" id="other_goalkeeper">
+                                            <label class="form-check-label" for="other_goalkeeper">Goalkeeper</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="defender" id="other_defender">
+                                            <label class="form-check-label" for="other_defender">Defender</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="midfielder" id="other_midfielder">
+                                            <label class="form-check-label" for="other_midfielder">Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="forward" id="other_forward">
+                                            <label class="form-check-label" for="other_forward">Forward</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="winger" id="other_winger">
+                                            <label class="form-check-label" for="other_winger">Winger</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="striker" id="other_striker">
+                                            <label class="form-check-label" for="other_striker">Striker</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="center_back" id="other_center_back">
+                                            <label class="form-check-label" for="other_center_back">Center Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="full_back" id="other_full_back">
+                                            <label class="form-check-label" for="other_full_back">Full Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="wing_back" id="other_wing_back">
+                                            <label class="form-check-label" for="other_wing_back">Wing Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="attacking_midfielder" id="other_attacking_midfielder">
+                                            <label class="form-check-label" for="other_attacking_midfielder">Attacking Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="defensive_midfielder" id="other_defensive_midfielder">
+                                            <label class="form-check-label" for="other_defensive_midfielder">Defensive Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="central_midfielder" id="other_central_midfielder">
+                                            <label class="form-check-label" for="other_central_midfielder">Central Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="other_positions" value="no_preference" id="other_no_preference">
+                                            <label class="form-check-label" for="other_no_preference">No Preference</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Check all positions you enjoy playing.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Positions to Avoid</label>
+                                    <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="goalkeeper" id="avoid_goalkeeper">
+                                            <label class="form-check-label" for="avoid_goalkeeper">Goalkeeper</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="defender" id="avoid_defender">
+                                            <label class="form-check-label" for="avoid_defender">Defender</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="midfielder" id="avoid_midfielder">
+                                            <label class="form-check-label" for="avoid_midfielder">Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="forward" id="avoid_forward">
+                                            <label class="form-check-label" for="avoid_forward">Forward</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="winger" id="avoid_winger">
+                                            <label class="form-check-label" for="avoid_winger">Winger</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="striker" id="avoid_striker">
+                                            <label class="form-check-label" for="avoid_striker">Striker</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="center_back" id="avoid_center_back">
+                                            <label class="form-check-label" for="avoid_center_back">Center Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="full_back" id="avoid_full_back">
+                                            <label class="form-check-label" for="avoid_full_back">Full Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="wing_back" id="avoid_wing_back">
+                                            <label class="form-check-label" for="avoid_wing_back">Wing Back</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="attacking_midfielder" id="avoid_attacking_midfielder">
+                                            <label class="form-check-label" for="avoid_attacking_midfielder">Attacking Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="defensive_midfielder" id="avoid_defensive_midfielder">
+                                            <label class="form-check-label" for="avoid_defensive_midfielder">Defensive Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="central_midfielder" id="avoid_central_midfielder">
+                                            <label class="form-check-label" for="avoid_central_midfielder">Central Midfielder</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="positions_not_to_play" value="no_preference" id="avoid_no_preference">
+                                            <label class="form-check-label" for="avoid_no_preference">No Preference</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Check all positions you prefer to avoid.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Availability Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Availability & Preferences</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="expected_weeks_available">Expected Availability</label>
+                                    <select class="form-select" id="expected_weeks_available" name="expected_weeks_available">
+                                        <option value="">Select availability</option>
+                                        <option value="1-2">1-2</option>
+                                        <option value="3-4">3-4</option>
+                                        <option value="5-6">5-6</option>
+                                        <option value="7-8">7-8</option>
+                                        <option value="9-10">9-10</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="willing_to_referee">Interested in Refereeing?</label>
+                                    <select class="form-select" id="willing_to_referee" name="willing_to_referee">
+                                        <option value="">Select option</option>
+                                        <option value="No">No</option>
+                                        <option value="Yes - I'll ref in Classic only">Yes - I'll ref in Classic only</option>
+                                        <option value="Yes - I'll ref in Premier only">Yes - I'll ref in Premier only</option>
+                                        <option value="Yes - I'll ref in Premier or Classic">Yes - I'll ref in Premier or Classic</option>
+                                        <option value="I am interested in receiving ref training only">I am interested in receiving ref training only</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="unavailable_dates">Unavailable Dates</label>
+                                    <input type="text" class="form-control" id="unavailable_dates" name="unavailable_dates" placeholder="e.g., June 15-20, July 4">
+                                    <div class="form-text">List any dates you won't be available.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Substitute Interest Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Substitute Opportunities</h6>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="available_for_subbing" name="available_for_subbing" value="true" checked>
+                                <label class="form-check-label" for="available_for_subbing">
+                                    <strong>Yes, I'm interested in substitute opportunities while on the waitlist</strong>
+                                </label>
+                            </div>
+                            <div class="form-text">This helps us connect you with teams that need temporary players while you wait for a permanent spot.</div>
+                        </div>
+                        
+                        <!-- Player Notes Section -->
+                        <div class="mb-4">
+                            <h6 class="section-header">Player Notes</h6>
+                            <div class="mb-3">
+                                <label class="form-label" for="player_notes">Player Notes</label>
+                                <div class="form-text small mb-2">Notes to share with coaches/admins</div>
+                                <textarea class="form-control" id="player_notes" name="player_notes" rows="3" placeholder="Any specific notes or requests (optional)"></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary d-grid w-100">
+                            <i class="ti ti-user-plus me-2"></i>
+                            Complete Waitlist Registration
+                        </button>
+                    </form>
+
+                    <!-- Next Steps -->
+                    <div class="text-center mt-4">
+                        <div class="divider my-4">
+                            <div class="divider-text">What Happens Next?</div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3">
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">1</div>
+                                <p class="small mb-0">You'll receive a confirmation email and Discord role</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">2</div>
+                                <p class="small mb-0">We'll notify you when spots open up</p>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="badge badge-center rounded-pill bg-label-primary mb-2" style="width: 40px; height: 40px;">3</div>
+                                <p class="small mb-0">You'll get priority access to register</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Links -->
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('auth.login') }}" class="d-flex align-items-center justify-content-center text-muted">
+                            <i class="ti ti-chevron-left me-1"></i>
+                            Back to login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Image Upload Modal -->
+<div class="modal fade" id="profileImageModal" tabindex="-1" aria-labelledby="profileImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="profileImageModalLabel">Upload and Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="file" id="imageInput" accept="image/*" class="form-control" onchange="loadImage(this)">
+                    <p class="text-muted small mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
+                </div>
+                
+                <div id="imageEditor" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <canvas id="imageCanvas" style="max-width: 100%; border: 1px solid #ddd; cursor: crosshair;"></canvas>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="controls mb-3">
+                                <label>Crop Size:</label>
+                                <input type="range" id="cropSize" min="100" max="300" value="200" class="form-range" oninput="updateCropSize()">
+                                <span id="cropSizeValue">200px</span>
+                            </div>
+                            <div class="preview mb-3">
+                                <p>Preview:</p>
+                                <canvas id="previewCanvas" width="150" height="150" style="border: 1px solid #ccc; border-radius: 50%;"></canvas>
+                            </div>
+                            <div class="instructions">
+                                <small class="text-muted">
+                                    • Click and drag to position the crop area<br>
+                                    • Use the slider to adjust size<br>
+                                    • Preview shows how it will look
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applyCropBtn" onclick="applyCrop()" disabled>Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<!-- Simple HTML5 Canvas Image Cropper -->
+<script>
+    let imageObj = null;
+    let canvas = null;
+    let ctx = null;
+    let previewCanvas = null;
+    let previewCtx = null;
+    let cropX = 0;
+    let cropY = 0;
+    let cropSize = 200;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        canvas = document.getElementById('imageCanvas');
+        ctx = canvas.getContext('2d');
+        previewCanvas = document.getElementById('previewCanvas');
+        previewCtx = previewCanvas.getContext('2d');
+        
+        // Canvas mouse events
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', drag);
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('mouseleave', endDrag);
+        
+        // Form validation
+        const form = document.querySelector('form.needs-validation');
+        if (form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) {
+                        firstInvalid.focus();
+                        firstInvalid.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
+                form.classList.add('was-validated');
+            }, false);
+        }
+    });
+
+    function loadImage(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                imageObj = new Image();
+                imageObj.onload = function() {
+                    // Show the editor
+                    document.getElementById('imageEditor').style.display = 'block';
+                    document.getElementById('applyCropBtn').disabled = false;
+                    
+                    // Set canvas size
+                    const maxWidth = 500;
+                    const maxHeight = 400;
+                    let { width, height } = imageObj;
+                    
+                    if (width > maxWidth || height > maxHeight) {
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Set initial crop position to center
+                    cropX = (width - cropSize) / 2;
+                    cropY = (height - cropSize) / 2;
+                    
+                    // Draw the image and crop area
+                    drawImage();
+                    updatePreview();
+                };
+                imageObj.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function drawImage() {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the image
+        ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
+        
+        // Draw semi-transparent overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Clear the crop area
+        ctx.clearRect(cropX, cropY, cropSize, cropSize);
+        
+        // Redraw the image in the crop area
+        ctx.drawImage(imageObj, 0, 0, canvas.width, canvas.height);
+        
+        // Draw crop box border
+        ctx.strokeStyle = '#007bff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cropX, cropY, cropSize, cropSize);
+        
+        // Draw corner handles
+        const handleSize = 8;
+        ctx.fillStyle = '#007bff';
+        ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropX + cropSize - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropX - handleSize/2, cropY + cropSize - handleSize/2, handleSize, handleSize);
+        ctx.fillRect(cropX + cropSize - handleSize/2, cropY + cropSize - handleSize/2, handleSize, handleSize);
+    }
+
+    function updateCropSize() {
+        cropSize = parseInt(document.getElementById('cropSize').value);
+        document.getElementById('cropSizeValue').textContent = cropSize + 'px';
+        
+        // Keep crop area within bounds
+        if (cropX + cropSize > canvas.width) cropX = canvas.width - cropSize;
+        if (cropY + cropSize > canvas.height) cropY = canvas.height - cropSize;
+        if (cropX < 0) cropX = 0;
+        if (cropY < 0) cropY = 0;
+        
+        drawImage();
+        updatePreview();
+    }
+
+    function updatePreview() {
+        if (!imageObj) return;
+        
+        // Clear preview canvas
+        previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        
+        // Calculate source rectangle in original image coordinates
+        const scaleX = imageObj.width / canvas.width;
+        const scaleY = imageObj.height / canvas.height;
+        
+        const sourceX = cropX * scaleX;
+        const sourceY = cropY * scaleY;
+        const sourceSize = cropSize * scaleX;
+        
+        // Draw cropped area to preview canvas
+        previewCtx.drawImage(
+            imageObj,
+            sourceX, sourceY, sourceSize, sourceSize,
+            0, 0, previewCanvas.width, previewCanvas.height
+        );
+    }
+
+    function startDrag(e) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Check if mouse is within crop area
+        if (mouseX >= cropX && mouseX <= cropX + cropSize &&
+            mouseY >= cropY && mouseY <= cropY + cropSize) {
+            isDragging = true;
+            startX = mouseX - cropX;
+            startY = mouseY - cropY;
+            canvas.style.cursor = 'move';
+        }
+    }
+
+    function drag(e) {
+        if (!isDragging) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Calculate new crop position
+        let newCropX = mouseX - startX;
+        let newCropY = mouseY - startY;
+        
+        // Keep within bounds
+        newCropX = Math.max(0, Math.min(newCropX, canvas.width - cropSize));
+        newCropY = Math.max(0, Math.min(newCropY, canvas.height - cropSize));
+        
+        cropX = newCropX;
+        cropY = newCropY;
+        
+        drawImage();
+        updatePreview();
+    }
+
+    function endDrag() {
+        isDragging = false;
+        canvas.style.cursor = 'crosshair';
+    }
+
+    function applyCrop() {
+        if (!imageObj) return;
+        
+        // Create a temporary canvas for the final crop
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        
+        // Set final size (300x300 for profile pictures)
+        tempCanvas.width = 300;
+        tempCanvas.height = 300;
+        
+        // Calculate source coordinates in original image
+        const scaleX = imageObj.width / canvas.width;
+        const scaleY = imageObj.height / canvas.height;
+        
+        const sourceX = cropX * scaleX;
+        const sourceY = cropY * scaleY;
+        const sourceSize = cropSize * scaleX;
+        
+        // Draw the cropped area
+        tempCtx.drawImage(
+            imageObj,
+            sourceX, sourceY, sourceSize, sourceSize,
+            0, 0, 300, 300
+        );
+        
+        // Convert to base64
+        const croppedDataURL = tempCanvas.toDataURL('image/png');
+        
+        // Update form and preview
+        document.getElementById('cropped_image_data_main').value = croppedDataURL;
+        document.getElementById('current-profile-image').src = croppedDataURL;
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('profileImageModal'));
+        modal.hide();
+        
+        // Reset
+        document.getElementById('imageInput').value = '';
+        document.getElementById('imageEditor').style.display = 'none';
+        document.getElementById('applyCropBtn').disabled = true;
+    }
+</script>
+{% endblock %}

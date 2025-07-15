@@ -1,0 +1,114 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+<div class="authentication-wrapper authentication-basic container-p-y">
+    <div class="authentication-inner">
+        <div class="card">
+            <div class="card-body">
+                <!-- Header -->
+                <div class="app-brand justify-content-center mb-4">
+                    <a href="{{ url_for('main.index') }}" class="app-brand-link gap-2">
+                        <span class="app-brand-logo demo">
+                            <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" style="height: 40px;">
+                        </span>
+                        <span class="app-brand-text demo text-body fw-bolder">ECS FC Pub League</span>
+                    </a>
+                </div>
+
+                <!-- Main Content -->
+                <div class="text-center mb-4">
+                    <h4 class="mb-2">Join the Waitlist</h4>
+                    <p class="mb-4">We're sorry, but we have already filled up for the current season. However, you can join our waitlist to be notified when spots become available!</p>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading mb-1">Season Full</h6>
+                        <p class="mb-0">All spots for the current season have been filled. Join our waitlist to be first in line for future openings or next season!</p>
+                    </div>
+                </div>
+
+                <!-- Discord Registration Button -->
+                <div class="mb-4">
+                    <a href="{{ url_for('auth.waitlist_discord_register') }}" class="btn btn-primary d-grid w-100">
+                        <span class="d-flex align-items-center justify-content-center">
+                            <i class="bx bxl-discord me-1"></i>
+                            Join Waitlist with Discord
+                        </span>
+                    </a>
+                </div>
+
+                <!-- Encouraging Text -->
+                <div class="text-center text-muted mb-4">
+                    <small>We highly encourage you to register with Discord for a seamless experience and access to exclusive ECS content. If you don't have a Discord account, <a href="https://discord.com/register" target="_blank" class="text-primary">create one here</a> and join the <a href="https://discord.gg/weareecs" target="_blank" class="text-primary">ECS Discord</a>!</small>
+                </div>
+
+                <!-- Login Option -->
+                <div class="text-center mb-4">
+                    <div class="divider my-4">
+                        <div class="divider-text">Already have an account?</div>
+                    </div>
+                    <p class="text-muted mb-3">If you already have an ECS account, please login first to join the waitlist.</p>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">
+                        <i class="ti ti-login me-1"></i>
+                        Login to Join Waitlist
+                    </a>
+                </div>
+
+
+                <!-- Additional Info -->
+                <div class="text-center mt-4">
+                    <div class="divider my-4">
+                        <div class="divider-text">Benefits of Joining</div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <i class="bx bx-bell text-primary" style="font-size: 2rem;"></i>
+                            <p class="small mb-0">Priority notifications when spots open</p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <i class="bx bx-calendar text-primary" style="font-size: 2rem;"></i>
+                            <p class="small mb-0">Early access to next season registration</p>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <i class="bx bx-group text-primary" style="font-size: 2rem;"></i>
+                            <p class="small mb-0">Stay connected with the ECS community</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Links -->
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('auth.login') }}" class="d-flex align-items-center justify-content-center">
+                        <i class="bx bx-chevron-left scaleX-n1-rtl me-1"></i>
+                        Back to login
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-focus on Discord registration button
+        const discordBtn = document.querySelector('a[href*="waitlist_discord_register"]');
+        if (discordBtn) {
+            discordBtn.focus();
+        }
+        
+        // Handle SweetAlert messages
+        {% if session.sweet_alert %}
+        Swal.fire({
+            title: '{{ session.sweet_alert.title }}',
+            text: '{{ session.sweet_alert.text }}',
+            icon: '{{ session.sweet_alert.icon }}',
+            confirmButtonText: 'OK'
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}

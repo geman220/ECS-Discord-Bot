@@ -227,7 +227,7 @@
         
         <!-- Player Management - Pub League Admin / Global Admin Only -->
         {% if 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
-        <li class="menu-item {{ 'open' if request.endpoint == 'admin.user_approvals' or request.endpoint == 'user_management.manage_users' or 'user_management' in request.path or 'players' in request.path }}">
+        <li class="menu-item {{ 'open' if request.endpoint == 'admin.user_approvals' or request.endpoint == 'admin.user_waitlist' or request.endpoint == 'user_management.manage_users' or 'user_management' in request.path or 'players' in request.path }}">
             <a class="menu-link menu-toggle" href="javascript:void(0);">
                 <i class="ti ti-users menu-icon"></i>
                 <div>Player Management</div>
@@ -236,6 +236,11 @@
                 <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_approvals' }}">
                     <a class="menu-link" href="{{ url_for('admin.user_approvals') }}">
                         <div>User Approvals</div>
+                    </a>
+                </li>
+                <li class="menu-item {{ 'active' if request.endpoint == 'admin.user_waitlist' }}">
+                    <a class="menu-link" href="{{ url_for('admin.user_waitlist') }}">
+                        <div>User Waitlist</div>
                     </a>
                 </li>
                 <li class="menu-item {{ 'active' if request.endpoint == 'admin.discord_onboarding.admin_test_onboarding' }}">
