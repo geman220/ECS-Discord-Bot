@@ -119,6 +119,9 @@ class User(UserMixin, db.Model):
     last_bot_contact_at = db.Column(db.DateTime, nullable=True)
     bot_response_received_at = db.Column(db.DateTime, nullable=True)
     
+    # Waitlist tracking
+    waitlist_joined_at = db.Column(db.DateTime, nullable=True)
+    
     # Approval relationships
     approved_by_user = db.relationship('User', remote_side=[id], backref='approved_users')
 

@@ -48,7 +48,9 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            {{ form.submit(class="btn btn-primary") }}
+                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                                <i class="ti ti-device-floppy me-1"></i>Update Feedback
+                            </button>
                         </form>
                     </div>
 
@@ -121,7 +123,9 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            {{ reply_form.submit(class="btn btn-primary") }}
+                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                                <i class="ti ti-send me-1"></i>Submit Reply
+                            </button>
                         </form>
                     </div>
 
@@ -168,7 +172,9 @@
                                 <div class="text-danger">{{ error }}</div>
                                 {% endfor %}
                             </div>
-                            {{ note_form.submit(class="btn btn-primary") }}
+                            <button type="submit" class="btn btn-primary waves-effect waves-light">
+                                <i class="ti ti-notes me-1"></i>Add Note
+                            </button>
                         </form>
                     </div>
 

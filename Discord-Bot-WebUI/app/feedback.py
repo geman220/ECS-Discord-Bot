@@ -12,7 +12,7 @@ submission and manages database transactions and error handling to ensure a smoo
 import logging
 from datetime import datetime
 
-from flask import Blueprint, render_template, redirect, url_for, request, abort
+from flask import Blueprint, render_template, redirect, url_for, request, abort, g
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 

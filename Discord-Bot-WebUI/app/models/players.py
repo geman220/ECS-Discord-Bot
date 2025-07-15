@@ -14,7 +14,7 @@ This module contains models related to players and teams:
 
 import logging
 from datetime import datetime
-from flask import request
+from flask import request, g
 from sqlalchemy import JSON, DateTime, Boolean, or_
 from sqlalchemy.orm import relationship
 
@@ -62,6 +62,8 @@ class Team(db.Model):
 
     kit_url = db.Column(db.String(255), nullable=True)
     background_image_url = db.Column(db.String(255), nullable=True)
+    background_position = db.Column(db.String(50), nullable=True, default='center')
+    background_size = db.Column(db.String(50), nullable=True, default='cover')
 
     def to_dict(self, include_players=False):
         data = {

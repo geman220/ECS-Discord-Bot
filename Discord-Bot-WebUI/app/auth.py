@@ -1099,6 +1099,8 @@ def waitlist_register():
                 
                 # Add user to waitlist
                 current_user.roles.append(waitlist_role)
+                # Set waitlist joined timestamp
+                current_user.waitlist_joined_at = datetime.utcnow()
                 db_session.flush()
                 
                 show_success('You have been added to the waitlist! You will be notified when spots become available.')
@@ -1304,6 +1306,8 @@ def waitlist_register_with_discord():
             # Add waitlist role if not already assigned
             if waitlist_role not in existing_user.roles:
                 existing_user.roles.append(waitlist_role)
+                # Set waitlist joined timestamp
+                existing_user.waitlist_joined_at = datetime.utcnow()
             
             # Add unverified role if not already assigned (for approval system)
             if unverified_role not in existing_user.roles:
@@ -1569,6 +1573,7 @@ def waitlist_register_with_discord():
             has_completed_onboarding=True,
             has_skipped_profile_creation=False,
             has_completed_tour=False,
+            waitlist_joined_at=datetime.utcnow(),
             roles=[waitlist_role, unverified_role]
         )
         new_user.set_password(temp_password)

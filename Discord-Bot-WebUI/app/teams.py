@@ -1048,11 +1048,18 @@ def upload_team_kit(team_id):
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     if file and allowed_file(file.filename):
-        
-        filename = secure_filename(file.filename)
+        # Use team-specific filename to avoid conflicts and match the saved format
+        filename = f'team_{team_id}_kit.png'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'kits')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
+        
+        # Clean up old kit file if it exists
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass  # If we can't remove it, we'll just overwrite it
         
         image = Image.open(file).convert("RGBA")
         
@@ -1078,6 +1085,7 @@ def upload_team_kit(team_id):
         session.add(team)
         session.commit()
         
+        logger.info(f"Team {team_id} kit updated successfully. Saved as: {filename}, URL: {team.kit_url}")
         show_success('Team kit updated successfully!')
         return redirect(url_for('teams.team_details', team_id=team_id))
     else:
@@ -1104,10 +1112,18 @@ def upload_team_background(team_id):
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
+        # Use team-specific filename to avoid conflicts and match the saved format
+        filename = f'team_{team_id}_background.jpg'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'backgrounds')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
+        
+        # Clean up old background file if it exists
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass  # If we can't remove it, we'll just overwrite it
         
         image = Image.open(file).convert("RGB")
         
@@ -1120,12 +1136,38 @@ def upload_team_background(team_id):
         # Save with optimization
         image.save(file_path, format='JPEG', optimize=True, quality=85)
         
-        # Append a timestamp to bust the cache
-        timestamp = int(time.time())
+        # Append a timestamp with milliseconds to aggressively bust the cache
+        import datetime
+        timestamp = int(datetime.datetime.now().timestamp() * 1000)
         team.background_image_url = url_for('static', filename='img/uploads/backgrounds/' + filename) + f'?v={timestamp}'
+        
+        # Handle position data if provided
+        position_data = request.form.get('position_data')
+        if position_data:
+            try:
+                import json
+                position_info = json.loads(position_data)
+                # Store position data in team metadata or a new field
+                # For now, we'll store it in the session to apply to the template
+                team.background_position = position_info.get('backgroundPosition', 'center')
+                team.background_size = position_info.get('backgroundSize', 'cover')
+                logger.info(f"Parsed position data for team {team_id}: position={team.background_position}, size={team.background_size}")
+            except Exception as e:
+                # Default values if parsing fails
+                logger.error(f"Error parsing position data for team {team_id}: {e}")
+                team.background_position = 'center'
+                team.background_size = 'cover'
+        else:
+            logger.info(f"No position data provided for team {team_id}, using defaults")
+            team.background_position = 'center'
+            team.background_size = 'cover'
+        
         session.add(team)
         session.commit()
         
+        # Verify the values were saved
+        session.refresh(team)
+        logger.info(f"Team {team_id} background updated successfully. Saved as: {filename}, URL: {team.background_image_url}, position: {team.background_position}, size: {team.background_size}")
         show_success('Team background updated successfully!')
         return redirect(url_for('teams.team_details', team_id=team_id))
     else:

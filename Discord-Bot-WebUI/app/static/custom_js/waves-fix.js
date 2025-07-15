@@ -115,6 +115,23 @@
                     el.style.transition = 'background-color 0.15s ease-in-out, color 0.15s ease-in-out, border-color 0.15s ease-in-out';
                 });
                 
+                // Fix any submit inputs that got wrapped by waves
+                document.querySelectorAll('.waves-input-wrapper').forEach(function(wrapper) {
+                    const input = wrapper.querySelector('input[type="submit"]');
+                    if (input) {
+                        // Create a proper button element
+                        const button = document.createElement('button');
+                        button.type = 'submit';
+                        button.textContent = input.value;
+                        button.className = 'btn btn-primary waves-effect waves-light';
+                        button.name = input.name;
+                        button.id = input.id;
+                        
+                        // Replace the wrapper with the button
+                        wrapper.parentNode.replaceChild(button, wrapper);
+                    }
+                });
+                
                 // console.log('Waves library implementation successfully replaced with fixed version');
             } else {
                 // console.log('Waves library not found, cannot apply fix');
