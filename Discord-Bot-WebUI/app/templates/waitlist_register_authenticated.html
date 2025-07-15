@@ -59,7 +59,17 @@
                                             <h6 class="mb-1">{{ user.username }}</h6>
                                             <p class="text-muted mb-0">{{ user.email }}</p>
                                             {% if user.preferred_league %}
-                                                <small class="text-primary">Preferred League: {{ user.preferred_league }}</small>
+                                                <small class="text-primary">Preferred League: 
+                                                    {% if user.preferred_league == 'pub_league_classic' %}
+                                                        Pub League Classic
+                                                    {% elif user.preferred_league == 'pub_league_premier' %}
+                                                        Pub League Premier
+                                                    {% elif user.preferred_league == 'ecs_fc' %}
+                                                        ECS FC
+                                                    {% else %}
+                                                        {{ user.preferred_league }}
+                                                    {% endif %}
+                                                </small>
                                             {% endif %}
                                         </div>
                                         <div class="text-end">
@@ -79,10 +89,6 @@
                                 Welcome Back!
                             </h6>
                             <p class="mb-2">Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.</p>
-                            <button type="button" class="btn btn-sm btn-outline-info" onclick="showProfileModal()">
-                                <i class="ti ti-edit me-1"></i>
-                                Review Profile Now
-                            </button>
                         </div>
 
                         <button type="submit" class="btn btn-warning d-grid w-100 mb-3">
@@ -105,7 +111,7 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <i class="ti ti-calendar text-primary" style="font-size: 2rem;"></i>
-                                <p class="small mb-0">Early access to next season registration</p>
+                                <p class="small mb-0">Early access to more information</p>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <i class="ti ti-users text-primary" style="font-size: 2rem;"></i>

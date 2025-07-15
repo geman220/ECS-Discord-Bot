@@ -11,7 +11,7 @@ Access to topics is controlled based on user roles, and Markdown content is conv
 
 import os
 import markdown
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, jsonify, g
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, jsonify, g, abort
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app.core import db
@@ -132,7 +132,9 @@ def view_topic(topic_id):
     Returns:
         Rendered template of the help topic view.
     """
-    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get(topic_id)
+    if not topic:
+        abort(404)
     allowed_role_names = [role.name for role in topic.allowed_roles]
     
     # Check effective roles (considering impersonation)
@@ -245,7 +247,9 @@ def edit_help_topic(topic_id):
         Redirects to the admin help topics list upon successful update,
         or renders the edit form.
     """
-    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get(topic_id)
+    if not topic:
+        abort(404)
     form = HelpTopicForm(obj=topic)
     form.roles.choices = [(role.id, role.name) for role in g.db_session.query(Role).all()]
     if request.method == 'GET':
@@ -273,7 +277,9 @@ def delete_help_topic(topic_id):
     Returns:
         Redirects to the admin help topics list after deletion.
     """
-    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get(topic_id)
+    if not topic:
+        abort(404)
     g.db_session.delete(topic)
     g.db_session.commit()
     show_success('Help topic deleted successfully!')

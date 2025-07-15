@@ -594,7 +594,12 @@
                                 <p><strong>Email:</strong> ${user.email}</p>
                                 <p><strong>Joined:</strong> ${user.created_at || 'Unknown'}</p>
                                 <p><strong>Status:</strong> <span class="badge status-${user.approval_status}">${user.approval_status}</span></p>
-                                <p><strong>Preferred League:</strong> ${user.preferred_league || 'Not specified'}</p>
+                                <p><strong>Preferred League:</strong> ${
+                                    user.preferred_league === 'pub_league_classic' ? 'Pub League Classic' :
+                                    user.preferred_league === 'pub_league_premier' ? 'Pub League Premier' :
+                                    user.preferred_league === 'ecs_fc' ? 'ECS FC' :
+                                    user.preferred_league || 'Not specified'
+                                }</p>
                                 <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1">${role}</span>`).join('')}</p>
                             </div>
                             <div class="col-md-6">
