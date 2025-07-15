@@ -108,6 +108,9 @@ def remove_from_waitlist(user_id: int):
         # Remove the waitlist role
         user.roles.remove(waitlist_role)
         
+        # Clear waitlist joined timestamp since they're no longer on waitlist
+        user.waitlist_joined_at = None
+        
         # Update user record
         user.updated_at = datetime.utcnow()
         

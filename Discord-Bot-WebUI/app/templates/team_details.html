@@ -10,30 +10,32 @@
     <div class="card bg-primary mb-4">
         <div class="card-body p-0 position-relative overflow-hidden {% if team.background_image_url %}ecs-card-body{% endif %}">
             {% if team.background_image_url %}
-            <div class="team-background-overlay"></div>
+            <div class="team-background-overlay" style="background-image: url('{{ team.background_image_url }}'); background-size: {{ team.background_size or 'cover' }}; background-position: {{ team.background_position or 'center' }}; background-repeat: no-repeat;" data-nocache="{{ range(1, 999999) | random }}"></div>
             {% endif %}
-            <div class="d-flex team-header-wrapper p-4{% if team.background_image_url %} team-header-with-background{% endif %}"{% if team.background_image_url %} style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('{{ team.background_image_url }}'); background-size: cover; background-position: center; background-repeat: no-repeat;" data-bs-toggle="modal" data-bs-target="#backgroundImageModal"{% endif %}>
-                <div class="team-info text-white z-1 p-2">
-                    <h1 class="display-5 fw-bold mb-2">{{ team.name }}</h1>
-                    <div class="hstack gap-2 mb-2">
-                        <div class="badge bg-label-light fs-6">
-                            <i class="ti ti-trophy me-1"></i>Division: {{ league.name }}
-                        </div>
-                        <div class="badge bg-label-light fs-6">
-                            <i class="ti ti-calendar me-1"></i>Season: {{ season.name if season else 'No active season' }}
+            <div class="team-header-wrapper{% if team.background_image_url %} team-header-with-background{% endif %}" id="teamHeaderWrapper">
+                <div class="position-absolute top-0 left-0 w-100 h-100 d-flex p-4">
+                    <div class="team-info text-white z-1 p-2">
+                        <h1 class="display-5 fw-bold mb-2">{{ team.name }}</h1>
+                        <div class="hstack gap-2 mb-2">
+                            <div class="badge bg-label-light fs-6">
+                                <i class="ti ti-trophy me-1"></i>Division: {{ league.name }}
+                            </div>
+                            <div class="badge bg-label-light fs-6">
+                                <i class="ti ti-calendar me-1"></i>Season: {{ season.name if season else 'No active season' }}
+                            </div>
                         </div>
                     </div>
+                    
+                    {% if team.kit_url %}
+                    <div class="team-kit ms-auto">
+                        <img src="{{ team.kit_url }}" alt="Team Kit" class="kit-image rounded shadow-sm">
+                    </div>
+                    {% endif %}
                 </div>
-                
-                {% if team.kit_url %}
-                <div class="team-kit ms-auto">
-                    <img src="{{ team.kit_url }}" alt="Team Kit" class="kit-image rounded shadow-sm">
-                </div>
-                {% endif %}
                 
                 <!-- Upload buttons for team kit and background -->
                 {% if can_upload_kit %}
-                <div class="position-absolute top-0 end-0 p-3">
+                <div class="position-absolute top-0 end-0 p-3 upload-buttons-container">
                     <div class="btn-group-vertical" role="group">
                         <!-- Team Kit Upload -->
                         <form action="{{ url_for('teams.upload_team_kit', team_id=team.id) }}"
@@ -49,7 +51,7 @@
                         
                         <!-- Team Background Upload -->
                         <input type="file" id="team_background" style="display: none;" accept="image/*" onchange="loadImageForCropping(this);">
-                        <button type="button" class="btn btn-light btn-icon" onclick="document.getElementById('team_background').click();" 
+                        <button type="button" class="btn btn-light btn-icon" onclick="event.stopPropagation(); document.getElementById('team_background').click();" 
                                 aria-label="Upload Team Background" data-bs-toggle="tooltip" data-bs-placement="left" title="Upload Team Background">
                             <i class="ti ti-photo"></i>
                         </button>
@@ -367,20 +369,73 @@
     </div>
 </div>
 
+<!-- Image Modals Container -->
+<div id="imageModals-container" class="modal-container">
+
 <!-- Background Image Cropping Modal -->
-<div class="modal fade" id="cropBackgroundModal" tabindex="-1" aria-labelledby="cropBackgroundModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="cropBackgroundModal" tabindex="-1" aria-labelledby="cropBackgroundModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="cropBackgroundModalLabel">Crop Team Background Image</h5>
+                <h5 class="modal-title" id="cropBackgroundModalLabel">Position Team Background Image</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="text-center mb-3">
-                    <p class="text-muted">Adjust the image to fit the team header background. Recommended aspect ratio is 2:1 (wide).</p>
+                    <p class="text-muted">Position and scale your team photo. The preview below has the exact same aspect ratio as your team header (3.33:1).</p>
+                    <p class="text-success small mb-0"><i class="ti ti-check-circle me-1"></i>What you see is exactly what you get!</p>
                 </div>
-                <div class="crop-container">
-                    <img id="cropImage" style="max-width: 100%;">
+                
+                <!-- Custom image positioning interface -->
+                <div class="image-position-container">
+                    <!-- Preview that matches header exactly -->
+                    <div class="header-preview-container mb-3" style="width: 100%; max-width: 750px; margin: 0 auto;">
+                        <div class="header-preview" id="headerPreview" style="width: 100%; padding-bottom: 30%; height: 0; background-color: #f0f0f0; border: 2px solid #0d6efd; border-radius: 8px; overflow: hidden; position: relative;">
+                            <div class="preview-image-wrapper" id="previewImageWrapper" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; cursor: move;">
+                                <!-- Overlay showing it's draggable -->
+                                <div class="position-absolute top-50 start-50 translate-middle text-center" style="pointer-events: none; z-index: 10;">
+                                    <p class="text-white bg-dark bg-opacity-75 px-3 py-2 rounded" id="dragHint">
+                                        <i class="ti ti-hand-move me-1"></i>Drag to reposition
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Controls -->
+                    <div class="controls-container">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Zoom Level</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustZoom(-0.1)">
+                                        <i class="ti ti-minus"></i>
+                                    </button>
+                                    <input type="range" class="form-range flex-grow-1" id="zoomSlider" min="1" max="3" step="0.1" value="1">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="adjustZoom(0.1)">
+                                        <i class="ti ti-plus"></i>
+                                    </button>
+                                    <span class="text-muted" id="zoomValue" style="width: 50px; text-align: right;">100%</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Horizontal Position</label>
+                                <input type="range" class="form-range" id="xPosSlider" min="0" max="100" value="50">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Vertical Position</label>
+                                <input type="range" class="form-range" id="yPosSlider" min="0" max="100" value="50">
+                            </div>
+                        </div>
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetImagePosition()">
+                                <i class="ti ti-refresh me-1"></i>Reset Position
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden input to store original image -->
+                    <input type="hidden" id="originalImageData">
                 </div>
             </div>
             <div class="modal-footer">
@@ -395,8 +450,8 @@
 
 <!-- Full Size Background Image Modal -->
 {% if team.background_image_url %}
-<div class="modal fade" id="backgroundImageModal" tabindex="-1" aria-labelledby="backgroundImageModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+<div class="modal fade" id="backgroundImageModal" tabindex="-1" aria-labelledby="backgroundImageModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
         <div class="modal-content bg-transparent border-0">
             <div class="modal-header border-0">
                 <h5 class="modal-title text-white" id="backgroundImageModalLabel">{{ team.name }} - Team Photo</h5>
@@ -410,6 +465,9 @@
 </div>
 {% endif %}
 
+</div>
+<!-- End Image Modals Container -->
+
 <!-- Include ECS FC Schedule Section if applicable -->
 {% include 'ecs_fc_schedule_section.html' %}
 
@@ -420,10 +478,22 @@
     /* Team Header Styling */
     .team-header-wrapper {
         position: relative;
-        min-height: 120px;
+        width: 100%;
+        padding-bottom: 30%;  /* 3.33:1 aspect ratio - good for team photos */
+        height: 0;
     }
     
     .team-background-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 0;
+    }
+    
+    .team-background-overlay::after {
+        content: '';
         position: absolute;
         top: 0;
         left: 0;
@@ -440,6 +510,11 @@
     
     .team-header-with-background:hover {
         transform: scale(1.02);
+    }
+    
+    /* Prevent header scaling when hovering over upload buttons */
+    .team-header-with-background.no-scale:hover {
+        transform: none !important;
     }
     
     .crop-container {
@@ -461,6 +536,25 @@
         z-index: 2;
     }
     
+    /* Upload buttons need to appear above background overlay */
+    .team-header-wrapper .position-absolute {
+        z-index: 10;
+    }
+    
+    .team-header-wrapper .position-absolute .btn-group-vertical {
+        z-index: 10;
+    }
+    
+    /* Ensure upload buttons are always clickable and not affected by parent transform */
+    .team-header-wrapper .position-absolute .btn {
+        z-index: 10;
+        position: relative;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out !important;
+        transform: none !important;
+    }
+    
+    
+    
     .bg-shape {
         width: 120px;
         height: 120px;
@@ -473,6 +567,29 @@
     .player-list {
         max-height: 500px;
         overflow-y: auto;
+    }
+    
+    /* Cropper container styles */
+    .crop-container {
+        position: relative;
+        display: inline-block;
+        max-width: 100%;
+    }
+    
+    /* Override cropper styles for better visibility */
+    .cropper-crop-box {
+        border-color: #0d6efd !important;
+        border-width: 2px !important;
+    }
+    
+    .cropper-view-box {
+        outline-color: #0d6efd !important;
+    }
+    
+    
+    /* Cropper inside modal should not interfere */
+    #cropBackgroundModal .cropper-container {
+        z-index: auto !important;
     }
     
     .player-item:hover {
@@ -577,12 +694,25 @@
 {% endblock %}
 
 {% block custom_js %}
-<!-- Include Cropper.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet">
+<!-- Custom positioning system - no external libraries needed -->
 
 <script>
-    let cropper;
+    // Image positioning variables
+    let imagePositionData = {
+        zoom: 1,
+        xPos: 50,
+        yPos: 50,
+        originalImage: null,
+        imageWidth: 0,
+        imageHeight: 0
+    };
+    
+    // Drag state
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let startXPos = 50;
+    let startYPos = 50;
     
     // Initialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
@@ -592,95 +722,348 @@
                 delay: { show: 500, hide: 100 }
             });
         });
+        
+        // Handle upload button hover to prevent parent scaling
+        // This prevents the "bouncing/sliding" effect when hovering over upload buttons
+        // by disabling the parent header's scale transform when buttons are hovered
+        const uploadButtonsContainer = document.querySelector('.upload-buttons-container');
+        const teamHeader = document.querySelector('.team-header-with-background');
+        
+        if (uploadButtonsContainer && teamHeader) {
+            uploadButtonsContainer.addEventListener('mouseenter', function() {
+                teamHeader.classList.add('no-scale');
+            });
+            
+            uploadButtonsContainer.addEventListener('mouseleave', function() {
+                teamHeader.classList.remove('no-scale');
+            });
+            
+            // Prevent upload button clicks from triggering the background modal
+            uploadButtonsContainer.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+        
+        // Handle click on team header to show background image modal
+        const teamHeaderWrapper = document.getElementById('teamHeaderWrapper');
+        {% if team.background_image_url %}
+        if (teamHeaderWrapper) {
+            teamHeaderWrapper.addEventListener('click', function(e) {
+                // Only open modal if not clicking on upload buttons
+                if (!e.target.closest('.upload-buttons-container')) {
+                    const modal = new bootstrap.Modal(document.getElementById('backgroundImageModal'), {
+                        backdrop: 'static',
+                        keyboard: true  // Allow ESC to close this one since it's just viewing
+                    });
+                    modal.show();
+                }
+            });
+        }
+        {% endif %}
     });
     
-    // Load image for cropping
+    // Load image for positioning
     function loadImageForCropping(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const cropImage = document.getElementById('cropImage');
-                cropImage.src = e.target.result;
+                // Store the original image data
+                imagePositionData.originalImage = e.target.result;
                 
-                // Show the modal
-                const modal = new bootstrap.Modal(document.getElementById('cropBackgroundModal'));
-                modal.show();
-                
-                // Initialize cropper when modal is shown
-                document.getElementById('cropBackgroundModal').addEventListener('shown.bs.modal', function() {
-                    if (cropper) {
-                        cropper.destroy();
-                    }
-                    cropper = new Cropper(cropImage, {
-                        aspectRatio: 2 / 1, // 2:1 aspect ratio for wide header
-                        viewMode: 1,
-                        autoCropArea: 0.8,
-                        responsive: true,
-                        scalable: true,
-                        zoomable: true,
-                        cropBoxResizable: true,
-                        background: false,
-                        guides: true,
-                        highlight: false,
-                        dragMode: 'move'
-                    });
-                }, { once: true });
-                
-                // Clean up cropper when modal is hidden
-                document.getElementById('cropBackgroundModal').addEventListener('hidden.bs.modal', function() {
-                    if (cropper) {
-                        cropper.destroy();
-                        cropper = null;
-                    }
-                }, { once: true });
+                // Load image to get dimensions
+                const img = new Image();
+                img.onload = function() {
+                    imagePositionData.imageWidth = this.width;
+                    imagePositionData.imageHeight = this.height;
+                    
+                    // Reset position
+                    resetImagePosition();
+                    
+                    // Show the modal using Bootstrap's standard approach
+                    const modalElement = document.getElementById('cropBackgroundModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                    modal.show();
+                    
+                    // Initialize positioning after modal is shown
+                    setTimeout(() => {
+                        initializeImagePositioning();
+                    }, 100);
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(input.files[0]);
         }
     }
     
-    // Upload cropped image
-    function uploadCroppedImage() {
-        if (!cropper) return;
+    // Initialize image positioning controls
+    function initializeImagePositioning() {
+        const previewWrapper = document.getElementById('previewImageWrapper');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const xPosSlider = document.getElementById('xPosSlider');
+        const yPosSlider = document.getElementById('yPosSlider');
+        const dragHint = document.getElementById('dragHint');
         
-        const canvas = cropper.getCroppedCanvas({
-            width: 1200,
-            height: 600,
-            imageSmoothingEnabled: true,
-            imageSmoothingQuality: 'high'
+        // Set initial background
+        updatePreview();
+        
+        // Hide drag hint after first interaction
+        let firstInteraction = true;
+        function hideDragHint() {
+            if (firstInteraction && dragHint) {
+                dragHint.style.display = 'none';
+                firstInteraction = false;
+            }
+        }
+        
+        // Zoom slider
+        zoomSlider.addEventListener('input', function() {
+            imagePositionData.zoom = parseFloat(this.value);
+            updatePreview();
+            hideDragHint();
         });
         
-        canvas.toBlob(function(blob) {
-            const formData = new FormData();
-            formData.append('team_background', blob, 'background.jpg');
-            formData.append('csrf_token', '{{ csrf_token() }}');
+        // Position sliders
+        xPosSlider.addEventListener('input', function() {
+            imagePositionData.xPos = parseFloat(this.value);
+            updatePreview();
+            hideDragHint();
+        });
+        
+        yPosSlider.addEventListener('input', function() {
+            imagePositionData.yPos = parseFloat(this.value);
+            updatePreview();
+            hideDragHint();
+        });
+        
+        // Drag to reposition
+        previewWrapper.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+        
+        // Touch support
+        previewWrapper.addEventListener('touchstart', function(e) {
+            const touch = e.touches[0];
+            startDrag({ clientX: touch.clientX, clientY: touch.clientY });
+        });
+        document.addEventListener('touchmove', function(e) {
+            if (isDragging) {
+                const touch = e.touches[0];
+                drag({ clientX: touch.clientX, clientY: touch.clientY });
+            }
+        });
+        document.addEventListener('touchend', endDrag);
+    }
+    
+    function startDrag(e) {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        startXPos = imagePositionData.xPos;
+        startYPos = imagePositionData.yPos;
+        document.body.style.cursor = 'move';
+    }
+    
+    function drag(e) {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - dragStartX;
+        const deltaY = e.clientY - dragStartY;
+        
+        // Convert pixel movement to percentage
+        const preview = document.getElementById('headerPreview');
+        const containerWidth = preview.offsetWidth;
+        const containerHeight = containerWidth * 0.3; // 30% padding-bottom = 3.33:1 ratio
+        
+        const xPercent = (deltaX / containerWidth) * 100 / imagePositionData.zoom;
+        const yPercent = (deltaY / containerHeight) * 100 / imagePositionData.zoom;
+        
+        // Update position
+        imagePositionData.xPos = Math.max(0, Math.min(100, startXPos - xPercent));
+        imagePositionData.yPos = Math.max(0, Math.min(100, startYPos - yPercent));
+        
+        // Update sliders
+        document.getElementById('xPosSlider').value = imagePositionData.xPos;
+        document.getElementById('yPosSlider').value = imagePositionData.yPos;
+        
+        updatePreview();
+        
+        // Hide hint
+        const dragHint = document.getElementById('dragHint');
+        if (dragHint) dragHint.style.display = 'none';
+    }
+    
+    function endDrag() {
+        isDragging = false;
+        document.body.style.cursor = '';
+    }
+    
+    function updatePreview() {
+        const previewWrapper = document.getElementById('previewImageWrapper');
+        const zoomValue = document.getElementById('zoomValue');
+        
+        if (imagePositionData.originalImage) {
+            // Calculate background size based on zoom
+            const bgSize = imagePositionData.zoom === 1 ? 'cover' : (imagePositionData.zoom * 100) + '%';
             
-            // Show loading state
-            const uploadBtn = document.querySelector('#cropBackgroundModal .btn-primary');
-            const originalText = uploadBtn.innerHTML;
-            uploadBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Uploading...';
-            uploadBtn.disabled = true;
+            // Set background properties to match exactly how it will appear
+            previewWrapper.style.backgroundImage = `url(${imagePositionData.originalImage})`;
+            previewWrapper.style.backgroundSize = bgSize;
+            previewWrapper.style.backgroundPosition = `${imagePositionData.xPos}% ${imagePositionData.yPos}%`;
             
-            fetch('{{ url_for("teams.upload_team_background", team_id=team.id) }}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.text())
-            .then(html => {
-                // Reload the page to show the new background
-                window.location.reload();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error uploading image. Please try again.');
-                uploadBtn.innerHTML = originalText;
-                uploadBtn.disabled = false;
+            // Update zoom display
+            zoomValue.textContent = Math.round(imagePositionData.zoom * 100) + '%';
+        }
+    }
+    
+    function adjustZoom(delta) {
+        const slider = document.getElementById('zoomSlider');
+        const newValue = Math.max(1, Math.min(3, parseFloat(slider.value) + delta));
+        slider.value = newValue;
+        imagePositionData.zoom = newValue;
+        updatePreview();
+    }
+    
+    function resetImagePosition() {
+        imagePositionData.zoom = 1;
+        imagePositionData.xPos = 50;
+        imagePositionData.yPos = 50;
+        
+        // Update controls
+        if (document.getElementById('zoomSlider')) {
+            document.getElementById('zoomSlider').value = 1;
+            document.getElementById('xPosSlider').value = 50;
+            document.getElementById('yPosSlider').value = 50;
+        }
+        
+        updatePreview();
+    }
+    
+    // Upload positioned image
+    function uploadCroppedImage() {
+        if (!imagePositionData.originalImage) return;
+        
+        // Create FormData with image and position data
+        const formData = new FormData();
+        
+        // Convert base64 to blob
+        fetch(imagePositionData.originalImage)
+            .then(res => res.blob())
+            .then(blob => {
+                formData.append('team_background', blob, 'background.jpg');
+                formData.append('csrf_token', '{{ csrf_token() }}');
+                
+                // Add position data as metadata
+                const positionData = {
+                    zoom: imagePositionData.zoom,
+                    xPos: imagePositionData.xPos,
+                    yPos: imagePositionData.yPos,
+                    backgroundSize: imagePositionData.zoom === 1 ? 'cover' : (imagePositionData.zoom * 100) + '%',
+                    backgroundPosition: `${imagePositionData.xPos}% ${imagePositionData.yPos}%`
+                };
+                console.log('Sending position data:', positionData);
+                formData.append('position_data', JSON.stringify(positionData));
+                
+                // Show loading state
+                const uploadBtn = document.querySelector('#cropBackgroundModal .btn-primary');
+                const originalText = uploadBtn.innerHTML;
+                uploadBtn.innerHTML = '<i class="ti ti-loader me-1"></i>Uploading...';
+                uploadBtn.disabled = true;
+                
+                fetch('{{ url_for("teams.upload_team_background", team_id=team.id) }}', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Reload the page to show the new background
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error uploading image. Please try again.');
+                    uploadBtn.innerHTML = originalText;
+                    uploadBtn.disabled = false;
+                });
             });
-        }, 'image/jpeg', 0.85);
     }
     
     // Make player choices globally available for our fix script
     window.playerChoices = {{ player_choices | tojson | safe }};
     var playerChoices = window.playerChoices;
+    
+    // Debug function to analyze modal structure and z-index issues
+    function debugModalStructure(modalId) {
+        console.log('=== MODAL DEBUG INFO FOR:', modalId, '===');
+        
+        const modal = document.getElementById(modalId);
+        const backdrop = document.querySelector('.modal-backdrop');
+        const container = document.getElementById('imageModals-container');
+        const reportContainer = document.getElementById('reportMatchModal-container');
+        
+        if (modal) {
+            const modalStyle = window.getComputedStyle(modal);
+            console.log('Modal element:', modal);
+            console.log('Modal classes:', modal.className);
+            console.log('Modal z-index:', modalStyle.zIndex);
+            console.log('Modal position:', modalStyle.position);
+            console.log('Modal display:', modalStyle.display);
+            console.log('Modal has show class:', modal.classList.contains('show'));
+            console.log('Modal aria-hidden:', modal.getAttribute('aria-hidden'));
+            
+            const dialog = modal.querySelector('.modal-dialog');
+            if (dialog) {
+                const dialogStyle = window.getComputedStyle(dialog);
+                console.log('Dialog z-index:', dialogStyle.zIndex);
+                console.log('Dialog position:', dialogStyle.position);
+            }
+            
+            const content = modal.querySelector('.modal-content');
+            if (content) {
+                const contentStyle = window.getComputedStyle(content);
+                console.log('Content z-index:', contentStyle.zIndex);
+                console.log('Content position:', contentStyle.position);
+            }
+        }
+        
+        if (backdrop) {
+            const backdropStyle = window.getComputedStyle(backdrop);
+            console.log('Backdrop element:', backdrop);
+            console.log('Backdrop classes:', backdrop.className);
+            console.log('Backdrop z-index:', backdropStyle.zIndex);
+            console.log('Backdrop position:', backdropStyle.position);
+        }
+        
+        if (container) {
+            const containerStyle = window.getComputedStyle(container);
+            console.log('Image container z-index:', containerStyle.zIndex);
+            console.log('Image container position:', containerStyle.position);
+        }
+        
+        if (reportContainer) {
+            const reportStyle = window.getComputedStyle(reportContainer);
+            console.log('Report container z-index (for comparison):', reportStyle.zIndex);
+            console.log('Report container position:', reportStyle.position);
+        }
+        
+        // Check all elements with z-index
+        const allElements = document.querySelectorAll('*');
+        const zIndexElements = [];
+        allElements.forEach(el => {
+            const style = window.getComputedStyle(el);
+            if (style.zIndex !== 'auto' && style.zIndex !== '0') {
+                zIndexElements.push({
+                    element: el,
+                    zIndex: style.zIndex,
+                    id: el.id,
+                    classes: el.className
+                });
+            }
+        });
+        
+        zIndexElements.sort((a, b) => parseInt(b.zIndex) - parseInt(a.zIndex));
+        console.log('All elements with z-index (highest first):', zIndexElements);
+        console.log('=== END DEBUG INFO ===');
+    }
 </script>
 <script src="{{ url_for('static', filename='custom_js/report_match.js') }}"></script>
 <script>

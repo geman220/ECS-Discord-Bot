@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, date, time
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy import and_, or_, desc, asc
 from sqlalchemy.orm import joinedload
-from flask import current_app
+from flask import current_app, g
 
 from app.core import db
 from app.models import Team, League, Player, User

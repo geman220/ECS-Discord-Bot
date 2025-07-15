@@ -3,7 +3,7 @@
 import json
 import logging
 from functools import wraps
-from flask import current_app
+from flask import current_app, g
 from app.utils.redis_manager import get_redis_connection
 
 # Get Redis client

@@ -223,7 +223,8 @@ h1, h2, h3, h4, h5, h6,
 
 /* 4. Z-Index System
 -------------------------------------------------------------- */
-/* Modal backdrop sits just above fixed content */
+/* Modal backdrop sits just above fixed content - DISABLED: Causes modal interaction issues */
+/*
 .modal-backdrop {
   z-index: var(--ecs-z-backdrop) !important;
   position: fixed !important;
@@ -233,11 +234,14 @@ h1, h2, h3, h4, h5, h6,
   height: 100% !important;
   background-color: rgba(0, 0, 0, 0.5) !important;
 }
+*/
 
-/* Modal itself sits above the backdrop */
+/* Modal itself sits above the backdrop - DISABLED: Causes modal interaction issues */
+/*
 .modal {
   z-index: var(--ecs-z-modal) !important;
 }
+*/
 
 /* Dropdown menus need to be above modals for proper interaction */
 .dropdown-menu,

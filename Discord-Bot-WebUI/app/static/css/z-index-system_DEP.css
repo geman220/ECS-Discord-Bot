@@ -109,9 +109,21 @@
 }
 
 /* Fix modal container positioning */
-#reportMatchModal-container {
+#reportMatchModal-container,
+#imageModals-container {
   position: relative;
   z-index: var(--z-modal);
+}
+
+/* CRITICAL FIX: ECS modal z-index hierarchy override */
+.ecs-modal .modal-backdrop,
+.modal.ecs-modal ~ .modal-backdrop {
+  z-index: 1040 !important;
+}
+
+.modal.ecs-modal,
+.ecs-modal {
+  z-index: 1055 !important;
 }
 
 /* Ensure proper stacking context */

@@ -1575,3 +1575,55 @@ html:not(.layout-menu-collapsed) .bg-menu-theme .menu-inner .menu-item:not(.acti
 .layout-footer-fixed .layout-wrapper.layout-horizontal .content-footer {
   box-shadow: 0 0.1875rem 0.75rem 0 rgba(19, 17, 32, 0.2);
 }
+
+/* -------------------------------------------------------------------
+   Re‑colour the Waves ripple so it matches our purple primary brand
+   Place AFTER Bootstrap + waves.css so it overrides the default rgba(0,0,0,.2)
+------------------------------------------------------------------- */
+:root,
+html[data-style="dark"] {
+  --bs-primary:            #7367f0;          /* already added earlier */
+  --bs-primary-rgb:        115,103,240;      /* keep these in sync! */
+}
+
+.waves-ripple,
+.btn-primary .waves-ripple {                 /* extra selector for safety */
+  background: radial-gradient(
+      rgba(var(--bs-primary-rgb), 0.20) 0%,
+      rgba(var(--bs-primary-rgb), 0.50) 40%,
+      rgba(var(--bs-primary-rgb), 0.00) 70%
+  ) !important;                              /* override Waves’ own style */
+}
+
+/* force the wrapper + input back to --bs-primary */
+.btn-primary.waves-input-wrapper,
+.btn-primary .waves-button-input {
+  background-color: #7367f0 !important;   /* matches your brand purple */
+  border-color:     #7367f0 !important;
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------
+   FINAL bootstrap‑token override — must come AFTER Bootstrap itself
+   and AFTER the ripple code you already added.
+------------------------------------------------------------------ */
+.btn-primary,
+.btn-primary.waves-input-wrapper {          /* wrapper created by Waves */
+  /* Bootstrap‑5.3 tokens */
+  --bs-btn-color:            #fff;
+  --bs-btn-bg:               #7367f0;
+  --bs-btn-border-color:     #7367f0;
+
+  --bs-btn-hover-bg:         #685dd8;
+  --bs-btn-hover-border-color:#685dd8;
+
+  --bs-btn-active-bg:        #5b51c6;
+  --bs-btn-active-border-color:#5b51c6;
+
+  /* hard‑safety in case some JS adds `background:none` inline */
+  background-color: #7367f0 !important;
+  border-color:     #7367f0 !important;
+}
+
+/* the actual <input type="submit"> remains transparent so the wrapper colour shows through */
+.btn-primary .waves-button-input{background-color:transparent!important;}

@@ -27,7 +27,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from twilio.rest import Client
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
-from flask import current_app
+from flask import current_app, g
 
 from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, SubRequest, Schedule
 from app.discord_utils import get_expected_roles

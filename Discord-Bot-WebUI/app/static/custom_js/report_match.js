@@ -399,6 +399,13 @@ function setupAndShowModal(matchId, data) {
     const modalId = `reportMatchModal-${matchId}`;
     const modal = document.getElementById(modalId);
     
+    // Debug logging for comparison
+    setTimeout(() => {
+        if (typeof debugModalStructure === 'function') {
+            debugModalStructure(modalId);
+        }
+    }, 200);
+    
     if (!modal) {
         // Modal not found, generating one dynamically
         

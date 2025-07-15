@@ -124,26 +124,24 @@ function loadModalsIfNotFound() {
 
 // Fix for modal z-index issues
 document.addEventListener('show.bs.modal', function(event) {
-    // Check if this is a report match modal
-    if (event.target.id && event.target.id.startsWith('reportMatchModal-')) {
-        // Fix z-index on the modal
-        event.target.style.zIndex = '1050';
-        
-        // Fix backdrop z-index
-        setTimeout(function() {
-            const backdrops = document.querySelectorAll('.modal-backdrop');
-            if (backdrops) {
-                backdrops.forEach(backdrop => {
-                    // Ensure backdrop is behind the modal
-                    backdrop.style.zIndex = '1040';
-                });
-            }
-        }, 10);
-        
-        // For iOS devices, fix scrolling
-        if (isIOS()) {
-            disableIOSScrolling();
+    // Apply z-index fix to ALL modals, not just report match modals
+    // Fix z-index on the modal
+    event.target.style.zIndex = '1050';
+    
+    // Fix backdrop z-index
+    setTimeout(function() {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops) {
+            backdrops.forEach(backdrop => {
+                // Ensure backdrop is behind the modal
+                backdrop.style.zIndex = '1040';
+            });
         }
+    }, 10);
+    
+    // For iOS devices, fix scrolling
+    if (isIOS()) {
+        disableIOSScrolling();
     }
 });
 
@@ -209,17 +207,39 @@ document.addEventListener('DOMContentLoaded', function() {
             transform: none !important;
         }
         
-        /* Fix modal z-index ordering */
+        /* Fix modal z-index ordering for ALL modals */
         .modal-backdrop {
             z-index: 1040 !important; 
+            position: fixed !important;
         }
         
-        .modal {
+        .modal, #backgroundImageModal, .ecs-modal {
             z-index: 1050 !important;
+            position: fixed !important;
         }
         
         .modal-dialog {
-            z-index: auto !important;
+            z-index: 1051 !important;
+            position: relative !important;
+        }
+        
+        /* Ensure modal content is above backdrop */
+        .modal-content {
+            z-index: 1052 !important;
+            position: relative !important;
+        }
+        
+        /* Specific fix for background image modal */
+        #backgroundImageModal {
+            z-index: 1055 !important;
+        }
+        
+        #backgroundImageModal .modal-dialog {
+            z-index: 1056 !important;
+        }
+        
+        #backgroundImageModal .modal-content {
+            z-index: 1057 !important;
         }
     `;
     document.head.appendChild(styleEl);
