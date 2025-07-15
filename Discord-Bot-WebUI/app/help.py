@@ -109,7 +109,7 @@ def index():
     
     # Get topics that either have no roles assigned (public) or have roles accessible to user
     topics_with_roles = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(accessible_role_names)).all()
-    topics_without_roles = HelpTopic.query.filter(~HelpTopic.allowed_roles.any()).all()
+    topics_without_roles = g.db_session.query(HelpTopic).filter(~HelpTopic.allowed_roles.any()).all()
     topics = list(set(topics_with_roles + topics_without_roles))
     
     # Check if user can access admin dashboard
@@ -132,7 +132,7 @@ def view_topic(topic_id):
     Returns:
         Rendered template of the help topic view.
     """
-    topic = HelpTopic.query.get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
     allowed_role_names = [role.name for role in topic.allowed_roles]
     
     # Check effective roles (considering impersonation)
@@ -178,7 +178,7 @@ def search_topics():
     
     # Get topics that either have no roles assigned (public) or have roles accessible to user
     topics_with_roles_query = HelpTopic.query.join(HelpTopic.allowed_roles).filter(Role.name.in_(accessible_role_names))
-    topics_without_roles_query = HelpTopic.query.filter(~HelpTopic.allowed_roles.any())
+    topics_without_roles_query = g.db_session.query(HelpTopic).filter(~HelpTopic.allowed_roles.any())
     
     if query:
         topics_with_roles_query = topics_with_roles_query.filter(HelpTopic.title.ilike(f"%{query}%"))
@@ -202,7 +202,7 @@ def admin_help_topics():
     Returns:
         Rendered template of the admin help topics list.
     """
-    topics = HelpTopic.query.all()
+    topics = g.db_session.query(HelpTopic).all()
     return render_template('help/admin/list_help_topics.html', topics=topics, title="Admin - Help Topics")
 
 @help_bp.route('/admin/new', methods=['GET', 'POST'])
@@ -217,13 +217,13 @@ def new_help_topic():
         or renders the new help topic form.
     """
     form = HelpTopicForm()
-    form.roles.choices = [(role.id, role.name) for role in Role.query.all()]
+    form.roles.choices = [(role.id, role.name) for role in g.db_session.query(Role).all()]
     if form.validate_on_submit():
         topic = HelpTopic(
             title=form.title.data,
             markdown_content=form.markdown_content.data
         )
-        selected_roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
+        selected_roles = g.db_session.query(Role).filter(Role.id.in_(form.roles.data)).all()
         topic.allowed_roles = selected_roles
         g.db_session.add(topic)
         g.db_session.commit()
@@ -245,15 +245,15 @@ def edit_help_topic(topic_id):
         Redirects to the admin help topics list upon successful update,
         or renders the edit form.
     """
-    topic = HelpTopic.query.get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
     form = HelpTopicForm(obj=topic)
-    form.roles.choices = [(role.id, role.name) for role in Role.query.all()]
+    form.roles.choices = [(role.id, role.name) for role in g.db_session.query(Role).all()]
     if request.method == 'GET':
         form.roles.data = [role.id for role in topic.allowed_roles]
     if form.validate_on_submit():
         topic.title = form.title.data
         topic.markdown_content = form.markdown_content.data
-        selected_roles = Role.query.filter(Role.id.in_(form.roles.data)).all()
+        selected_roles = g.db_session.query(Role).filter(Role.id.in_(form.roles.data)).all()
         topic.allowed_roles = selected_roles
         g.db_session.commit()
         show_success('Help topic updated successfully!')
@@ -273,7 +273,7 @@ def delete_help_topic(topic_id):
     Returns:
         Redirects to the admin help topics list after deletion.
     """
-    topic = HelpTopic.query.get_or_404(topic_id)
+    topic = g.db_session.query(HelpTopic).get_or_404(topic_id)
     g.db_session.delete(topic)
     g.db_session.commit()
     show_success('Help topic deleted successfully!')
@@ -367,7 +367,7 @@ def bulk_upload_help_topics():
                 continue
             
             # Check if topic already exists
-            existing_topic = HelpTopic.query.filter_by(title=title).first()
+            existing_topic = g.db_session.query(HelpTopic).filter_by(title=title).first()
             if existing_topic:
                 # Update existing topic
                 existing_topic.markdown_content = markdown_content
@@ -380,11 +380,11 @@ def bulk_upload_help_topics():
                         existing_topic.allowed_roles = []
                     else:
                         role_names = [name.strip() for name in role_access_clean.split(',')]
-                        roles = Role.query.filter(Role.name.in_(role_names)).all()
+                        roles = g.db_session.query(Role).filter(Role.name.in_(role_names)).all()
                         existing_topic.allowed_roles = roles
                 else:
                     # Default to Global Admin if no role specified
-                    admin_role = Role.query.filter_by(name='Global Admin').first()
+                    admin_role = g.db_session.query(Role).filter_by(name='Global Admin').first()
                     if admin_role:
                         existing_topic.allowed_roles = [admin_role]
                 
