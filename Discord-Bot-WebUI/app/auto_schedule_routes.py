@@ -600,7 +600,7 @@ def create_season_wizard():
         created_teams = []
         
         if league_type == 'Pub League':
-            # Create Premier League teams
+            # Create Premier Division teams
             premier_team_count = int(data.get('premier_teams', 8))
             for i in range(premier_team_count):
                 team_letter = chr(65 + i)  # A, B, C, etc.
@@ -611,7 +611,7 @@ def create_season_wizard():
                 session.flush()  # Get team ID
                 created_teams.append(team.id)
             
-            # Create Classic League teams  
+            # Create Classic Division teams  
             classic_team_count = int(data.get('classic_teams', 4))
             for i in range(classic_team_count):
                 team_letter = chr(65 + i)  # A, B, C, etc.

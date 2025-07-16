@@ -43,7 +43,7 @@
 
     <!-- Tab Content for Teams -->
     <div class="tab-content" id="league-tab-content">
-        <!-- Classic League Teams -->
+        <!-- Classic Division Teams -->
         <div class="tab-pane fade show active" id="classic-teams" role="tabpanel" aria-labelledby="classic-tab">
             <div class="row g-3">
                 {% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
@@ -97,7 +97,7 @@
             </div>
         </div>
         
-        <!-- Premier League Teams -->
+        <!-- Premier Division Teams -->
         <div class="tab-pane fade" id="premier-teams" role="tabpanel" aria-labelledby="premier-tab">
             <div class="row g-3">
                 {% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}

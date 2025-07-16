@@ -158,7 +158,7 @@ class TestAdminWorkflow:
         with AuthTestHelper.authenticated_request(client, super_admin):
             # Create new league
             response = client.post('/admin/leagues/create', json={
-                'name': 'Seattle Premier League',
+                'name': 'Seattle Premier Division',
                 'description': 'Premier competitive league in Seattle area',
                 'sport': 'soccer',
                 'rules': {

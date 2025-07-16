@@ -2,8 +2,8 @@
 {{
  url_for('players.view_players',
                 search=request.args.get('search'),
-                classic_page=(page_num if league_name == 'Classic League' else request.args.get('classic_page')),
-                premier_page=(page_num if league_name == 'Premier League' else request.args.get('premier_page')),
+                classic_page=(page_num if league_name == 'Classic Division' else request.args.get('classic_page')),
+                premier_page=(page_num if league_name == 'Premier Division' else request.args.get('premier_page')),
                 ecsfc_page=(page_num if league_name == 'ECS FC' else request.args.get('ecsfc_page')))
 }}
 {% endmacro %}

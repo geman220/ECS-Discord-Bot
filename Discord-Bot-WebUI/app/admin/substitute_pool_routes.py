@@ -2,7 +2,7 @@
 Unified Substitute Pool Management Routes
 
 This module handles all routes for managing substitute pools across
-ECS FC, Classic, and Premier leagues.
+ECS FC, Classic, and Premier divisions.
 """
 
 import logging
@@ -43,13 +43,13 @@ LEAGUE_TYPES = {
         'icon': 'fas fa-futbol'
     },
     'Classic': {
-        'name': 'Classic League',
+        'name': 'Classic Division',
         'role': 'Classic Sub',
         'color': '#2ecc71',
         'icon': 'fas fa-trophy'
     },
     'Premier': {
-        'name': 'Premier League',
+        'name': 'Premier Division',
         'role': 'Premier Sub',
         'color': '#e74c3c',
         'icon': 'fas fa-crown'

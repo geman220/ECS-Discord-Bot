@@ -1,68 +1,120 @@
 {
-  "name": "ECS Soccer League",
-  "short_name": "ECS Soccer",
-  "theme_color": "#696cff",
-  "background_color": "#ffffff",
-  "display": "standalone",
-  "orientation": "portrait",
-  "scope": "/",
+  "name": "ECS Discord Bot Management",
+  "short_name": "ECS Bot",
+  "description": "Comprehensive management system for ECS Discord bot and player management",
   "start_url": "/",
-  "description": "ECS Soccer League Management Portal",
+  "display": "standalone",
+  "background_color": "#0D1117",
+  "theme_color": "#5E72E4",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/static/img/icons/icon-72x72.png",
       "sizes": "72x72",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-96x96.png",
       "sizes": "96x96",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-128x128.png",
       "sizes": "128x128",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-144x144.png",
       "sizes": "144x144",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-152x152.png",
       "sizes": "152x152",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-384x384.png",
       "sizes": "384x384",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/static/img/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "splash_pages": null,
+  "categories": ["productivity", "sports", "social"],
   "shortcuts": [
     {
-      "name": "Upcoming Matches",
+      "name": "User Management",
+      "short_name": "Users",
+      "description": "Manage users and player profiles",
+      "url": "/user_management/manage_users",
+      "icons": [
+        {
+          "src": "/static/img/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Match Management",
       "short_name": "Matches",
-      "description": "View your upcoming matches",
-      "url": "/"
+      "description": "Manage matches and schedules",
+      "url": "/admin/match_management",
+      "icons": [
+        {
+          "src": "/static/img/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Sub Requests",
+      "short_name": "Subs",
+      "description": "Manage substitute requests",
+      "url": "/admin/sub_requests",
+      "icons": [
+        {
+          "src": "/static/img/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "My Profile",
       "short_name": "Profile",
       "description": "Update your profile",
-      "url": "/player/profile"
+      "url": "/player/profile",
+      "icons": [
+        {
+          "src": "/static/img/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "display_override": ["window-controls-overlay", "minimal-ui"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

@@ -41,8 +41,8 @@ function openLeagueManagementModal(league) {
     // Set modal title and icon based on league
     const leagueConfigs = {
         'ECS FC': { name: 'ECS FC', icon: 'fas fa-futbol', color: '#3498db' },
-        'Classic': { name: 'Classic League', icon: 'fas fa-trophy', color: '#2ecc71' },
-        'Premier': { name: 'Premier League', icon: 'fas fa-crown', color: '#e74c3c' }
+        'Classic': { name: 'Classic Division', icon: 'fas fa-trophy', color: '#2ecc71' },
+        'Premier': { name: 'Premier Division', icon: 'fas fa-crown', color: '#e74c3c' }
     };
     
     const config = leagueConfigs[league] || leagueConfigs['ECS FC'];
