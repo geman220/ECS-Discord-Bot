@@ -1,0 +1,198 @@
+/* 
+ * Simple Mobile Fixes - Updated for Match Management
+ * Only fixes the actual problems, nothing fancy
+ */
+
+@media (max-width: 991.98px) {
+  /* Fix 1: Make sure everything fits on screen */
+  .container-xxl, .container-fluid {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  /* Fix 2: For complex tables like match management - use card layout */
+  .table-responsive {
+    overflow: visible !important;
+  }
+  
+  .table-responsive table {
+    display: block;
+  }
+  
+  .table-responsive thead {
+    display: none;
+  }
+  
+  .table-responsive tbody {
+    display: block;
+  }
+  
+  .table-responsive tr {
+    display: block;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .table-responsive td {
+    display: block;
+    padding: 8px 0;
+    border: none;
+    text-align: left;
+    position: relative;
+    width: 100%;
+  }
+  
+  .table-responsive td:not(:last-child) {
+    border-bottom: 1px solid var(--bs-border-color);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  
+  /* Add labels before each cell */
+  .table-responsive td[data-label]:before {
+    content: attr(data-label) ": ";
+    font-weight: bold;
+    color: var(--bs-secondary);
+    display: inline-block;
+    margin-right: 5px;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+  
+  /* Special handling for action columns - don't show labels */
+  .table-responsive td:last-child:before {
+    content: none;
+  }
+  
+  /* Make sure action buttons stack vertically in cards */
+  .table-responsive td:last-child {
+    text-align: center;
+    padding: 12px 0;
+  }
+  
+  /* Override any table min-width constraints */
+  .table th, .table td {
+    min-width: 0 !important;
+    width: auto !important;
+  }
+  
+  /* Fix 3: Make modal fit screen properly */
+  .modal-dialog {
+    margin: 10px;
+    max-width: calc(100% - 20px);
+  }
+  
+  .modal-content {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+  
+  /* Fix 4: Make buttons smaller and more manageable */
+  .btn {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-height: 32px;
+    margin: 2px;
+  }
+  
+  .btn-sm {
+    font-size: 10px;
+    padding: 4px 6px;
+    min-height: 24px;
+    margin: 1px;
+  }
+  
+  /* Fix button groups to wrap properly */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  
+  .btn-group .btn {
+    flex: 0 0 auto;
+    border-radius: 4px;
+  }
+  
+  /* Special handling for action buttons in table cells */
+  .table-responsive .btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+  }
+  
+  .table-responsive .btn-group-vertical .btn-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+  }
+  
+  .table-responsive .btn-group-vertical .btn {
+    font-size: 10px;
+    padding: 3px 5px;
+    min-height: 24px;
+    margin: 1px;
+  }
+  
+  /* Fix 5: Sidebar z-index */
+  .layout-menu {
+    z-index: 1055;
+  }
+  
+  .layout-overlay {
+    z-index: 1054;
+  }
+  
+  /* Fix 6: Form inputs */
+  .form-control, .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Fix 7: Navbar search */
+  .navbar-search input {
+    font-size: 16px;
+  }
+  
+  /* Fix 8: Badges in tables */
+  .table-responsive .badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    margin: 2px;
+  }
+  
+  /* Fix 9: Remove any "swipe to see more" nonsense */
+  .table-responsive::after,
+  .table-responsive::before,
+  .table-responsive tr::after,
+  .table-responsive tr::before,
+  .table-responsive td::after,
+  .table-responsive td::before,
+  .table-responsive tbody::after,
+  .table-responsive tbody::before,
+  .table-responsive thead::after,
+  .table-responsive thead::before {
+    content: none !important;
+    display: none !important;
+  }
+  
+  /* Also remove any Bootstrap table pseudo-elements */
+  .table::after,
+  .table::before,
+  .table tr::after,
+  .table tr::before,
+  .table td::after,
+  .table td::before,
+  .table th::after,
+  .table th::before {
+    content: none !important;
+    display: none !important;
+  }
+}

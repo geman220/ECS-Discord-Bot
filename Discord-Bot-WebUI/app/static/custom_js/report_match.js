@@ -180,7 +180,9 @@ window.addEvent = function(matchId, containerId, statId = null, playerId = null,
 
     // Re-initialize Feather icons if necessary
     if (typeof feather !== 'undefined' && feather) {
-        feather.replace();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
     }
 };
 
@@ -592,7 +594,9 @@ function createDynamicModal(matchId, data) {
     if (modal) {
         // Initialize feather icons if available
         if (typeof feather !== 'undefined') {
+            if (typeof feather !== 'undefined') {
             feather.replace();
+        }
         }
         
         // Populate the modal with the data
@@ -673,7 +677,9 @@ function populateModal(modal, data) {
         
         // Re-initialize Feather icons if available
         if (typeof feather !== 'undefined') {
+            if (typeof feather !== 'undefined') {
             feather.replace();
+        }
         }
     }
     
@@ -1352,7 +1358,9 @@ window.addOwnGoalEvent = function(matchId, containerId, statId = null, teamId = 
 
     // Re-initialize Feather icons if necessary
     if (typeof feather !== 'undefined' && feather) {
-        feather.replace();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
     }
 };
 

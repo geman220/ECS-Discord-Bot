@@ -2,7 +2,7 @@
 Unified Substitute Pool System Tasks
 
 This module contains Celery tasks for the unified substitute pool system
-that supports ECS FC, Classic, and Premier leagues.
+that supports ECS FC, Classic, and Premier divisions.
 """
 
 import logging

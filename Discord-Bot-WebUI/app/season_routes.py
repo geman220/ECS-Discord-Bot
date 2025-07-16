@@ -44,7 +44,7 @@ def manage_seasons():
         if season_name:
             try:
                 create_pub_league_season(session, season_name)
-                show_success(f'Pub League Season "{season_name}" created successfully with Premier and Classic leagues.')
+                show_success(f'Pub League Season "{season_name}" created successfully with Premier and Classic divisions.')
             except Exception as e:
                 logger.error(f"Error creating Pub League season: {e}")
                 show_error('Error occurred while creating Pub League season.')
@@ -129,7 +129,7 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
 
 def create_pub_league_season(session, season_name: str) -> Optional[Season]:
     """
-    Create a new Pub League season with default Premier and Classic leagues.
+    Create a new Pub League season with default Premier and Classic divisions.
 
     If an old season exists, mark it as not current and perform a rollover.
 

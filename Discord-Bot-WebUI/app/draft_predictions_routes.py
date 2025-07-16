@@ -25,7 +25,7 @@ draft_predictions_bp = Blueprint('draft_predictions', __name__, url_prefix='/dra
 
 
 def ensure_current_season_draft_seasons():
-    """Ensure draft seasons exist for the current season's Premier and Classic leagues."""
+    """Ensure draft seasons exist for the current season's Premier and Classic divisions."""
     from app.models import Season, League
     from datetime import datetime, timedelta
     
@@ -35,7 +35,7 @@ def ensure_current_season_draft_seasons():
         logger.warning("No current season found")
         return
     
-    # Get Premier and Classic leagues for current season
+    # Get Premier and Classic divisions for current season
     leagues = g.db_session.query(League).filter_by(season_id=current_season.id).filter(
         League.name.in_(['Premier', 'Classic'])
     ).all()
@@ -87,7 +87,7 @@ def handle_season_transition(new_season_id, old_season_id=None):
         logger.error(f"Season {new_season_id} not found")
         return
     
-    # Get Premier and Classic leagues for new season
+    # Get Premier and Classic divisions for new season
     leagues = g.db_session.query(League).filter_by(season_id=new_season_id).filter(
         League.name.in_(['Premier', 'Classic'])
     ).all()

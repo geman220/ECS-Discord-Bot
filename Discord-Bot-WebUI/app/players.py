@@ -277,7 +277,7 @@ def player_profile(player_id):
 
         classic_league = session.query(League).filter_by(name='Classic').first()
         if not classic_league:
-            show_error('Classic league not found')
+            show_error('Classic division not found')
             session.commit()
             return redirect(url_for('players.player_profile', player_id=player.id))
 

@@ -667,7 +667,7 @@ def admin_test_onboarding():
         # Quick league selection tests
         elif action in ['test_league_classic', 'test_league_premier', 'test_league_ecs_fc', 'test_league_unclear']:
             test_messages = {
-                'test_league_classic': 'I want to join classic league',
+                'test_league_classic': 'I want to join classic division',
                 'test_league_premier': 'Put me in premier please',
                 'test_league_ecs_fc': 'I want ECS FC',
                 'test_league_unclear': 'I dont know maybe something good'

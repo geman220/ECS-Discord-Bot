@@ -1,0 +1,112 @@
+{# Mobile Enhancement Snippet for Flask Templates #}
+{# Include this in your base.html or specific templates where needed #}
+
+{# Mobile Meta Tags (add to base.html <head>) #}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1d2e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fff" media="(prefers-color-scheme: light)">
+
+{# Example: Mobile-Optimized Table Structure #}
+{# For manage_users.html and similar tables #}
+<div class="table-responsive table-responsive-mobile">
+    <table class="table" id="user-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Roles</th>
+                <th>Teams</th>
+                <th>Leagues</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td data-label="Username">{{ user.username }}</td>
+                <td data-label="Roles">
+                    {% for role in user.roles %}
+                        <span class="badge bg-label-primary">{{ role }}</span>
+                    {% endfor %}
+                </td>
+                <td data-label="Teams">
+                    {% for team in user.teams %}
+                        <span class="badge bg-label-info">{{ team }}</span>
+                    {% endfor %}
+                </td>
+                <td data-label="Leagues">
+                    {% for league in user.leagues %}
+                        <span class="badge bg-label-success">{{ league }}</span>
+                    {% endfor %}
+                </td>
+                <td data-label="Status">
+                    <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}">
+                        {{ 'Active' if user.active else 'Inactive' }}
+                    </span>
+                </td>
+                <td data-label="Actions">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="{{ url_for('edit_user', id=user.id) }}">
+                                <i class="ti ti-edit"></i> Edit
+                            </a>
+                            <a class="dropdown-item" href="{{ url_for('delete_user', id=user.id) }}">
+                                <i class="ti ti-trash"></i> Delete
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{# Mobile-Only Summary Card (optional progressive enhancement) #}
+<div class="d-lg-none">
+    {% for user in users %}
+    <div class="mobile-summary-card">
+        <div class="summary-header">{{ user.username }}</div>
+        <div class="summary-meta">
+            <span class="badge bg-label-{{ 'success' if user.active else 'secondary' }}">
+                {{ 'Active' if user.active else 'Inactive' }}
+            </span>
+            {% for role in user.roles %}
+                <span class="badge bg-label-primary">{{ role }}</span>
+            {% endfor %}
+        </div>
+        <div class="summary-actions">
+            <a href="{{ url_for('edit_user', id=user.id) }}" class="btn btn-sm btn-primary">
+                Edit
+            </a>
+            <a href="{{ url_for('view_user', id=user.id) }}" class="btn btn-sm btn-info">
+                View
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# Mobile Bottom Navigation (optional) #}
+<nav class="mobile-bottom-nav d-lg-none">
+    <a href="{{ url_for('index') }}" class="nav-item {{ 'active' if request.endpoint == 'index' }}">
+        <i class="ti ti-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="{{ url_for('matches') }}" class="nav-item {{ 'active' if request.endpoint == 'matches' }}">
+        <i class="ti ti-calendar"></i>
+        <span>Matches</span>
+    </a>
+    <a href="{{ url_for('teams') }}" class="nav-item {{ 'active' if request.endpoint == 'teams' }}">
+        <i class="ti ti-users"></i>
+        <span>Teams</span>
+    </a>
+    <a href="{{ url_for('profile') }}" class="nav-item {{ 'active' if request.endpoint == 'profile' }}">
+        <i class="ti ti-user"></i>
+        <span>Profile</span>
+    </a>
+</nav>

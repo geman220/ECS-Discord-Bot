@@ -3,7 +3,9 @@
 $(document).ready(function () {
     // Initialize Feather Icons for dynamically added elements
     if (feather) {
-        feather.replace();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
     }
 
     // Event delegation for Edit buttons
