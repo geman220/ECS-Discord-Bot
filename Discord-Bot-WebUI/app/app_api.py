@@ -1101,7 +1101,7 @@ def update_availability():
 
 @mobile_api.route('/report_match/<int:match_id>', endpoint='report_match', methods=['POST'])
 @jwt_required()
-@jwt_role_required('Coach')
+@jwt_role_required(['Coach', 'Pub League Admin', 'Pub League Ref'])
 def report_match(match_id: int):
     """
     Report match details and add any related events.

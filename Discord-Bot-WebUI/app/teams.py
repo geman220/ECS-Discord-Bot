@@ -388,6 +388,9 @@ def report_match(match_id):
     user_team_ids = []
     is_admin = current_user_obj.has_role('admin')
     is_assigned_referee = False
+    is_global_admin = current_user_obj.has_role('Global Admin')
+    is_pub_league_admin = current_user_obj.has_role('Pub League Admin')
+    is_pub_league_ref = current_user_obj.has_role('Pub League Ref')
     
     if current_user_player:
         user_team_ids = [team.id for team in current_user_player.teams]
@@ -398,11 +401,18 @@ def report_match(match_id):
     if is_impersonation_active():
         user_roles = get_effective_roles()
         is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+        is_global_admin = 'Global Admin' in user_roles
+        is_pub_league_admin = 'Pub League Admin' in user_roles
+        is_pub_league_ref = 'Pub League Ref' in user_roles
         # For impersonation, we don't check is_assigned_referee since impersonated users 
         # don't have actual player records with referee assignments
     
     # Check if user has access to this match
+    # Global Admin, Pub League Admin, and Pub League Ref can edit any match
     has_access = (is_admin or 
+                  is_global_admin or 
+                  is_pub_league_admin or 
+                  is_pub_league_ref or
                   match.home_team_id in user_team_ids or 
                   match.away_team_id in user_team_ids or 
                   is_assigned_referee)
@@ -464,6 +474,9 @@ def report_match(match_id):
             # Determine which team the current user is affiliated with
             user_team_ids = []
             is_admin = current_user.has_role('admin')
+            is_global_admin = current_user.has_role('Global Admin')
+            is_pub_league_admin = current_user.has_role('Pub League Admin')
+            is_pub_league_ref = current_user.has_role('Pub League Ref')
             
             if current_user_player:
                 user_team_ids = [team.id for team in current_user_player.teams]
@@ -477,10 +490,14 @@ def report_match(match_id):
             if is_impersonation_active():
                 user_roles = get_effective_roles()
                 is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+                is_global_admin = 'Global Admin' in user_roles
+                is_pub_league_admin = 'Pub League Admin' in user_roles
+                is_pub_league_ref = 'Pub League Ref' in user_roles
             
             # Determine if the user can verify for either team
-            can_verify_home = is_admin or match.home_team_id in user_team_ids or is_assigned_referee
-            can_verify_away = is_admin or match.away_team_id in user_team_ids or is_assigned_referee
+            # Global Admin, Pub League Admin, and Pub League Ref can verify any match
+            can_verify_home = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.home_team_id in user_team_ids or is_assigned_referee
+            can_verify_away = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.away_team_id in user_team_ids or is_assigned_referee
             
             data = {
                 'goal_scorers': [],
@@ -587,6 +604,9 @@ def report_match(match_id):
             
         user_team_ids = []
         is_admin = current_user.has_role('admin')
+        is_global_admin = current_user.has_role('Global Admin')
+        is_pub_league_admin = current_user.has_role('Pub League Admin')
+        is_pub_league_ref = current_user.has_role('Pub League Ref')
         
         if current_user_player:
             user_team_ids = [team.id for team in current_user_player.teams]
@@ -598,14 +618,15 @@ def report_match(match_id):
         now = datetime.utcnow()
         
         # Handle home team verification
-        if verify_home and (is_admin or match.home_team_id in user_team_ids):
+        # Global Admin, Pub League Admin, and Pub League Ref can verify any match
+        if verify_home and (is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.home_team_id in user_team_ids):
             match.home_team_verified = True
             match.home_team_verified_by = current_user_id
             match.home_team_verified_at = now
             logger.info(f"Home team verified for Match ID {match_id} by User ID {current_user_id}")
             
         # Handle away team verification    
-        if verify_away and (is_admin or match.away_team_id in user_team_ids):
+        if verify_away and (is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or match.away_team_id in user_team_ids):
             match.away_team_verified = True
             match.away_team_verified_by = current_user_id
             match.away_team_verified_at = now

@@ -22,6 +22,9 @@ from app.core import db
 
 logger = logging.getLogger(__name__)
 
+# Import Match model for team recent_form and player methods
+from app.models.matches import Match
+
 # Association table for many-to-many relationship between Player and League (secondary leagues)
 player_league = db.Table(
     'player_league',
@@ -311,6 +314,7 @@ class Player(db.Model):
             return
 
         try:
+            from app.models.stats import PlayerSeasonStats, StatChangeType
             season_stats = PlayerSeasonStats.query.filter_by(player_id=self.id, season_id=season_id).first()
             if not season_stats:
                 season_stats = PlayerSeasonStats(player_id=self.id, season_id=season_id)
@@ -339,6 +343,7 @@ class Player(db.Model):
             return
 
         try:
+            from app.models.stats import PlayerCareerStats, StatChangeType
             if not self.career_stats:
                 new_career_stats = PlayerCareerStats(player_id=self.id)
                 g.db_session.add(new_career_stats)
@@ -362,6 +367,7 @@ class Player(db.Model):
             raise
 
     def log_stat_change(self, stat, old_value, new_value, change_type, user_id, season_id=None):
+        from app.models.stats import StatChangeLog, StatChangeType
         if change_type not in [ct.value for ct in StatChangeType]:
             logger.warning(f"Invalid change type '{change_type}' for stat change logging.")
             return
@@ -421,6 +427,7 @@ class Player(db.Model):
         return self.teams
 
     def get_all_match_stats(self, session=None):
+        from app.models.stats import PlayerEvent
         return PlayerEvent.query.filter_by(player_id=self.id).all()
 
 
