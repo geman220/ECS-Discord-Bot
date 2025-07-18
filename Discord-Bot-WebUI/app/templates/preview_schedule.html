@@ -117,14 +117,46 @@
                                                         <span class="badge badge-light">{{ match.field }}</span>
                                                     </td>
                                                     <td>
-                                                        <span class="team-name" data-team-id="{{ match.home_team_id }}">
-                                                            {{ match.home_team }}
-                                                        </span>
+                                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                            <span class="badge badge-info">
+                                                                {% if match.week_type == 'FUN' %}
+                                                                    Fun Week
+                                                                {% elif match.week_type == 'TST' %}
+                                                                    TST Week
+                                                                {% elif match.week_type == 'BYE' %}
+                                                                    BYE Week
+                                                                {% elif match.week_type == 'BONUS' %}
+                                                                    Bonus Week
+                                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                                    Playoff Week
+                                                                {% endif %}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="team-name" data-team-id="{{ match.home_team_id }}">
+                                                                {{ match.home_team }}
+                                                            </span>
+                                                        {% endif %}
                                                     </td>
                                                     <td>
-                                                        <span class="team-name" data-team-id="{{ match.away_team_id }}">
-                                                            {{ match.away_team }}
-                                                        </span>
+                                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                            <span class="text-muted">
+                                                                {% if match.week_type == 'FUN' %}
+                                                                    Special activities
+                                                                {% elif match.week_type == 'TST' %}
+                                                                    Tournament events
+                                                                {% elif match.week_type == 'BYE' %}
+                                                                    No games
+                                                                {% elif match.week_type == 'BONUS' %}
+                                                                    Additional activities
+                                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                                    TBD
+                                                                {% endif %}
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="team-name" data-team-id="{{ match.away_team_id }}">
+                                                                {{ match.away_team }}
+                                                            </span>
+                                                        {% endif %}
                                                     </td>
                                                     <td>
                                                         <span class="badge badge-{{ 'primary' if match.match_order == 1 else 'secondary' }}">

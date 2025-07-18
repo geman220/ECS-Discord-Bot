@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Playoff Management - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Playoff Management - {{ league.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Schedule Manager
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if playoff_matches %}
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle"></i> Playoff Setup</h5>
+                        <p>Assign teams to playoff matches based on regular season standings. Premier Division has 2 playoff weeks, Classic Division has 1 playoff week.</p>
+                    </div>
+
+                    <!-- Standings Reference -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Current Standings</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rank</th>
+                                                    <th>Team</th>
+                                                    <th>Points</th>
+                                                    <th>Record</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for team in standings %}
+                                                <tr class="{% if loop.index <= 4 %}table-success{% endif %}">
+                                                    <td>{{ loop.index }}</td>
+                                                    <td>{{ team.name }}</td>
+                                                    <td>{{ team.points|default(0) }}</td>
+                                                    <td>{{ team.wins|default(0) }}-{{ team.losses|default(0) }}-{{ team.draws|default(0) }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <small class="text-muted">Green rows indicate playoff qualifying teams</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Playoff Format</h5>
+                                </div>
+                                <div class="card-body">
+                                    {% if league.name == 'Premier' %}
+                                    <h6>Premier Division (2 Weeks)</h6>
+                                    <ul>
+                                        <li><strong>Week 1:</strong> Semifinals
+                                            <ul>
+                                                <li>Match 1: #1 vs #4</li>
+                                                <li>Match 2: #2 vs #3</li>
+                                            </ul>
+                                        </li>
+                                        <li><strong>Week 2:</strong> Final
+                                            <ul>
+                                                <li>Winner of Match 1 vs Winner of Match 2</li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                    {% else %}
+                                    <h6>Classic Division (1 Week)</h6>
+                                    <ul>
+                                        <li><strong>Week 1:</strong> Championship
+                                            <ul>
+                                                <li>Match 1: #1 vs #2</li>
+                                                <li>Match 2: #3 vs #4</li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Playoff Matches Assignment -->
+                    <form method="POST" action="{{ url_for('admin.assign_playoff_matches', league_id=league.id) }}">
+                        <div class="row">
+                            {% for week_num, matches in playoff_matches.items() %}
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5>{{ week_num }} - {{ matches[0].date.strftime('%B %d, %Y') }}</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {% for match in matches %}
+                                        <div class="match-assignment mb-3">
+                                            <h6>{{ match.time.strftime('%I:%M %p') }} - {{ match.location }}</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label>Home Team</label>
+                                                    <select class="form-control" name="home_team_{{ match.id }}">
+                                                        <option value="">Select Team</option>
+                                                        {% for team in teams %}
+                                                        <option value="{{ team.id }}" {% if match.home_team_id == team.id %}selected{% endif %}>
+                                                            {{ team.name }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label>Away Team</label>
+                                                    <select class="form-control" name="away_team_{{ match.id }}">
+                                                        <option value="">Select Team</option>
+                                                        {% for team in teams %}
+                                                        <option value="{{ team.id }}" {% if match.away_team_id == team.id %}selected{% endif %}>
+                                                            {{ team.name }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-12">
+                                                    <label>Match Description</label>
+                                                    <input type="text" class="form-control" name="description_{{ match.id }}" 
+                                                           value="{{ match.description|default('') }}" 
+                                                           placeholder="e.g., Semifinal #1, Championship Game">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Assign Playoff Teams
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="autoAssignPlayoffs()">
+                                    <i class="fas fa-magic"></i> Auto-Assign by Standings
+                                </button>
+                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> No Playoff Matches Found</h5>
+                        <p>No playoff matches have been scheduled for this league yet. Please generate a schedule that includes playoff weeks.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function autoAssignPlayoffs() {
+    if (confirm('This will automatically assign playoff teams based on current standings. Are you sure?')) {
+        fetch('{{ url_for("admin.auto_assign_playoffs", league_id=league.id) }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Playoff teams have been auto-assigned based on standings!');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while auto-assigning playoffs');
+        });
+    }
+}
+</script>
+{% endblock %}

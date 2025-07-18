@@ -80,6 +80,12 @@ class Match(db.Model):
     last_discord_notification = db.Column(db.DateTime, nullable=True)
     notification_status = db.Column(db.String(50), nullable=True)
     last_notification_state_hash = db.Column(db.String(64), nullable=True)
+    
+    # Special week tracking
+    week_type = db.Column(db.String(20), default='REGULAR', nullable=False)  # REGULAR, FUN, TST, BYE, PLAYOFF, PRACTICE, BONUS
+    is_special_week = db.Column(db.Boolean, default=False)  # True for FUN/TST/BYE weeks
+    is_playoff_game = db.Column(db.Boolean, default=False)  # True if this is a playoff game
+    playoff_round = db.Column(db.Integer, nullable=True)  # Playoff round number (1, 2, etc.)
 
     def to_dict(self, include_teams=False, include_events=False):
         data = {
@@ -98,6 +104,10 @@ class Match(db.Model):
             'home_team_verified': self.home_team_verified,
             'away_team_verified': self.away_team_verified,
             'fully_verified': self.fully_verified,
+            'week_type': self.week_type,
+            'is_special_week': self.is_special_week,
+            'is_playoff_game': self.is_playoff_game,
+            'playoff_round': self.playoff_round,
         }
         if include_teams:
             data['home_team'] = self.home_team.to_dict()
@@ -227,8 +237,11 @@ class ScheduleTemplate(db.Model):
     scheduled_time = db.Column(db.Time, nullable=False)
     field_name = db.Column(db.String(50), nullable=False)  # North, South, etc.
     match_order = db.Column(db.Integer, nullable=False)  # 1st or 2nd match for teams that day
-    week_type = db.Column(db.String(20), default='REGULAR', nullable=False)  # REGULAR, FUN, TST, BYE
+    week_type = db.Column(db.String(20), default='REGULAR', nullable=False)  # REGULAR, FUN, TST, BYE, PLAYOFF, PRACTICE, BONUS
     is_special_week = db.Column(db.Boolean, default=False)  # True for FUN/TST/BYE weeks
+    is_practice_game = db.Column(db.Boolean, default=False)  # True if this is a practice game
+    is_playoff_game = db.Column(db.Boolean, default=False)  # True if this is a playoff game
+    playoff_round = db.Column(db.Integer, nullable=True)  # Playoff round number (1, 2, etc.)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_committed = db.Column(db.Boolean, default=False)  # Whether this template has been converted to actual schedule
     
@@ -247,12 +260,62 @@ class WeekConfiguration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
     week_date = db.Column(db.Date, nullable=False)
-    week_type = db.Column(db.String(20), nullable=False)  # REGULAR, FUN, TST, BYE
+    week_type = db.Column(db.String(20), nullable=False)  # REGULAR, FUN, TST, BYE, PLAYOFF, PRACTICE, BONUS
     week_order = db.Column(db.Integer, nullable=False)  # Order in the season (1, 2, 3, etc.)
     description = db.Column(db.String(255), nullable=True)  # Optional description
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # New fields for enhanced playoff and practice handling
+    is_playoff_week = db.Column(db.Boolean, default=False)  # True for playoff weeks
+    playoff_round = db.Column(db.Integer, nullable=True)  # 1 for first round, 2 for second round, etc.
+    has_practice_session = db.Column(db.Boolean, default=False)  # True if week has practice sessions
+    practice_game_number = db.Column(db.Integer, nullable=True)  # Which game number is practice (1 or 2)
     
     league = db.relationship('League', backref=db.backref('week_configurations', lazy='dynamic'))
     
     def __repr__(self):
         return f'<WeekConfiguration {self.week_type} on {self.week_date}>'
+
+
+class SeasonConfiguration(db.Model):
+    """Model for storing season-specific configuration options."""
+    __tablename__ = 'season_configurations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
+    
+    # Season structure configuration
+    regular_season_weeks = db.Column(db.Integer, default=7)  # Number of regular season weeks
+    playoff_weeks = db.Column(db.Integer, default=2)  # Number of playoff weeks
+    has_fun_week = db.Column(db.Boolean, default=True)  # Whether season has fun week
+    has_tst_week = db.Column(db.Boolean, default=True)  # Whether season has TST week
+    has_bonus_week = db.Column(db.Boolean, default=False)  # Whether season has bonus week
+    
+    # Practice session configuration
+    has_practice_sessions = db.Column(db.Boolean, default=False)  # Whether league has practice sessions
+    practice_weeks = db.Column(db.String(50), nullable=True)  # Comma-separated week numbers with practice (e.g., "1,3")
+    practice_game_number = db.Column(db.Integer, default=1)  # Which game number is practice (1 or 2)
+    
+    # League type specific settings
+    league_type = db.Column(db.String(20), nullable=False)  # PREMIER, CLASSIC, ECS_FC
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    league = db.relationship('League', backref=db.backref('season_configuration', uselist=False))
+    
+    def get_practice_weeks_list(self):
+        """Get practice weeks as a list of integers."""
+        if not self.practice_weeks:
+            return []
+        return [int(week.strip()) for week in self.practice_weeks.split(',') if week.strip()]
+    
+    def set_practice_weeks_list(self, weeks_list):
+        """Set practice weeks from a list of integers."""
+        if weeks_list:
+            self.practice_weeks = ','.join(str(week) for week in weeks_list)
+        else:
+            self.practice_weeks = None
+    
+    def __repr__(self):
+        return f'<SeasonConfiguration {self.league_type} - {self.regular_season_weeks} weeks + {self.playoff_weeks} playoffs>'

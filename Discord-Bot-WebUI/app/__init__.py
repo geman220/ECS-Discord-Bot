@@ -564,6 +564,10 @@ def create_app(config_object='web_config.Config'):
             return json.loads(json_string)
         except (ValueError, TypeError, json.JSONDecodeError):
             return []
+    
+    # Register schedule display template helpers
+    from app.template_helpers import register_template_helpers
+    register_template_helpers(app)
 
     # Note: teardown_request is handled by lifecycle.py to avoid duplicate cleanup
         
@@ -681,6 +685,10 @@ def init_blueprints(app):
     app.register_blueprint(substitute_pool_bp)
     app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
     app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
+    
+    # Import and register playoff management blueprint
+    from app.playoff_routes import playoff_bp
+    app.register_blueprint(playoff_bp)
     
     # Register cache admin routes
     from app.cache_admin_routes import cache_admin_bp

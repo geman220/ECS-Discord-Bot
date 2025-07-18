@@ -77,6 +77,7 @@ def configure_celery(app):
         enable_utc=True,
         broker_connection_retry_on_startup=True,
         worker_prefetch_multiplier=1,
+        worker_cancel_long_running_tasks_on_connection_loss=True,
         task_track_started=True,
         task_time_limit=30 * 60,
         task_soft_time_limit=15 * 60,

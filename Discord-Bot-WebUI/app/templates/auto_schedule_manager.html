@@ -86,18 +86,22 @@
                             </div>
                             <div class="step" data-step="2">
                                 <div class="step-circle">2</div>
-                                <div class="step-label">Calendar</div>
+                                <div class="step-label">Season Structure</div>
                             </div>
                             <div class="step" data-step="3">
                                 <div class="step-circle">3</div>
-                                <div class="step-label">Schedule Config</div>
+                                <div class="step-label">Calendar</div>
                             </div>
                             <div class="step" data-step="4">
                                 <div class="step-circle">4</div>
-                                <div class="step-label">Teams</div>
+                                <div class="step-label">Schedule Config</div>
                             </div>
                             <div class="step" data-step="5">
                                 <div class="step-circle">5</div>
+                                <div class="step-label">Teams</div>
+                            </div>
+                            <div class="step" data-step="6">
+                                <div class="step-circle">6</div>
                                 <div class="step-label">Preview</div>
                             </div>
                         </div>
@@ -144,91 +148,269 @@
                             </div>
                         </div>
 
-                        <!-- Step 2: Calendar Setup -->
+                        <!-- Step 2: Season Structure Configuration -->
                         <div class="wizard-step" data-step="2">
+                            <h5>Season Structure Configuration</h5>
+                            <p class="text-muted">Configure the structure and special weeks for each league type</p>
+                            
+                            <!-- Shared Special Weeks Configuration -->
+                            <div class="card mb-4 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="ti ti-star me-2"></i>Shared Special Weeks</h6>
+                                    <small class="text-muted">These weeks are shared between Premier and Classic divisions on the same dates</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <i class="ti ti-info-circle me-2"></i>
+                                        <strong>Important:</strong> TST, FUN, and BYE weeks will be scheduled for the entire league - both Premier and Classic divisions will have these special weeks on the same dates.
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="sharedHasFunWeek" checked>
+                                                <label class="form-check-label" for="sharedHasFunWeek">
+                                                    <strong>Fun Week</strong>
+                                                    <br><small class="text-muted">Special activities and events</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="sharedHasTstWeek" checked>
+                                                <label class="form-check-label" for="sharedHasTstWeek">
+                                                    <strong>TST Week</strong>
+                                                    <br><small class="text-muted">Team skills and training</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="sharedHasByeWeek">
+                                                <label class="form-check-label" for="sharedHasByeWeek">
+                                                    <strong>BYE Week</strong>
+                                                    <br><small class="text-muted">No matches scheduled</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="pubLeagueStructure" class="d-none">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier Division Structure</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Regular Season Weeks</label>
+                                                    <input type="number" class="form-control" id="premierRegularWeeks" value="7" min="4" max="20">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Playoff Weeks</label>
+                                                    <input type="number" class="form-control" id="premierPlayoffWeeks" value="2" min="0" max="5">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Special Weeks</label>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="premierHasBonusWeek" checked>
+                                                        <label class="form-check-label" for="premierHasBonusWeek">Bonus Week</label>
+                                                    </div>
+                                                    <div class="alert alert-warning alert-sm mt-2">
+                                                        <small><i class="ti ti-info-circle me-1"></i>Fun Week and TST Week are shared between Premier and Classic divisions</small>
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-info">
+                                                    <small><strong>Total:</strong> <span id="premierTotalWeeks">11</span> weeks</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0"><i class="ti ti-star me-1"></i>Classic Division Structure</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Regular Season Weeks</label>
+                                                    <input type="number" class="form-control" id="classicRegularWeeks" value="8" min="4" max="20">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Playoff Weeks</label>
+                                                    <input type="number" class="form-control" id="classicPlayoffWeeks" value="1" min="0" max="5">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Special Weeks</label>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="classicHasBonusWeek">
+                                                        <label class="form-check-label" for="classicHasBonusWeek">Bonus Week</label>
+                                                    </div>
+                                                    <div class="alert alert-warning alert-sm mt-2">
+                                                        <small><i class="ti ti-info-circle me-1"></i>Fun Week and TST Week are shared between Premier and Classic divisions</small>
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Practice Sessions</label>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="classicHasPractice" checked>
+                                                        <label class="form-check-label" for="classicHasPractice">Enable Practice Sessions</label>
+                                                    </div>
+                                                    <div class="mt-2 classic-practice-config">
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <label class="form-label">Practice Weeks</label>
+                                                                <input type="text" class="form-control" id="classicPracticeWeeks" value="1,3" placeholder="e.g., 1,3">
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <label class="form-label">Practice Game</label>
+                                                                <select class="form-select" id="classicPracticeGame">
+                                                                    <option value="1" selected>Game 1</option>
+                                                                    <option value="2">Game 2</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-success">
+                                                    <small><strong>Total:</strong> <span id="classicTotalWeeks">10</span> weeks</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="ecsFcStructure" class="d-none">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0"><i class="ti ti-shield me-1"></i>ECS FC Structure</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Regular Season Weeks</label>
+                                                    <input type="number" class="form-control" id="ecsFcRegularWeeks" value="8" min="4" max="20">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label">Playoff Weeks</label>
+                                                    <input type="number" class="form-control" id="ecsFcPlayoffWeeks" value="1" min="0" max="5">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="alert alert-info">
+                                                    <small><strong>Total:</strong> <span id="ecsFcTotalWeeks">9</span> weeks</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Calendar Setup -->
+                        <div class="wizard-step" data-step="3">
                             <h5>Season Calendar</h5>
-                            <p class="text-muted">Configure your season dates and special weeks - all dates must be Sundays</p>
+                            <p class="text-muted">Configure your season dates - all dates must be Sundays. The calendar is generated from your Step 2 structure choices.</p>
                             
                             <div class="row mb-4">
-                                <div class="col-md-4">
-                                    <label class="form-label">Season Start Date * <small class="text-muted">(Will adjust to nearest Sunday)</small></label>
+                                <div class="col-md-6">
+                                    <label class="form-label">Season Start Date *</label>
                                     <input type="date" class="form-control" id="seasonStartDate" required>
                                     <div class="form-text" id="startDateWarning">
                                         <small class="text-info">
                                             <i class="ti ti-info-circle me-1"></i>
-                                            Select any date - it will automatically adjust to the nearest Sunday
+                                            Select the date for the first week of matches
                                         </small>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Regular Season Weeks *</label>
-                                    <input type="number" class="form-control" id="regularWeeks" value="7" min="4" max="20" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Total Weeks (Auto-calculated)</label>
-                                    <input type="number" class="form-control" id="totalWeeks" value="10" readonly>
-                                    <div class="form-text">Regular + Special weeks</div>
-                                </div>
-                            </div>
-
-                            <div class="alert alert-info">
-                                <h6><i class="ti ti-info-circle me-1"></i>Special Weeks Configuration:</h6>
-                                <p class="mb-2">Drag weeks in the calendar below or use these controls to add special weeks.</p>
-                                
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="includeTST">
-                                            <label class="form-check-label" for="includeTST">
-                                                Include TST Week
-                                            </label>
+                                <div class="col-md-6">
+                                    <div class="alert alert-info mb-0">
+                                        <h6><i class="ti ti-info-circle me-1"></i>Calendar Generated From Step 2</h6>
+                                        <p class="mb-1">Your calendar is automatically created based on your structure choices:</p>
+                                        <div id="calendarSummary">
+                                            <small class="text-muted">Go to Step 2 to configure season structure</small>
                                         </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="includeFUN">
-                                            <label class="form-check-label" for="includeFUN">
-                                                Include FUN Week
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">BYE Weeks</label>
-                                        <input type="number" class="form-control form-control-sm" id="byeWeekCount" value="0" min="0" max="5">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <button type="button" class="btn btn-sm btn-outline-primary mt-3" onclick="resetCalendar()">
-                                            <i class="ti ti-refresh"></i> Reset Calendar
-                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="calendar-preview mt-4">
-                                <h6>Season Calendar Preview <small class="text-muted">(Drag weeks to reorder - Sundays only)</small></h6>
-                                <div id="calendarPreview" class="border rounded p-3 bg-light">
-                                    <p class="text-muted">Configure dates above to see calendar preview</p>
+                                <h6>Season Calendar Preview <small class="text-muted">(Drag weeks to reorder - Shared weeks move together)</small></h6>
+                                <div class="alert alert-info">
+                                    <i class="ti ti-info-circle me-2"></i>
+                                    <strong>Note:</strong> Shared special weeks (TST, FUN, BYE) marked with 🔗 can be moved, but will automatically move together in both divisions to stay synchronized.
                                 </div>
+                                
+                                <!-- League Type Specific Calendars -->
+                                <div id="pubLeagueCalendar" class="d-none">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card border-primary">
+                                                <div class="card-header bg-primary text-white">
+                                                    <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier Division Calendar</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="premierCalendarPreview" class="calendar-container">
+                                                        <p class="text-muted">Configure start date to see calendar preview</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card border-success">
+                                                <div class="card-header bg-success text-white">
+                                                    <h6 class="mb-0"><i class="ti ti-star me-1"></i>Classic Division Calendar</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="classicCalendarPreview" class="calendar-container">
+                                                        <p class="text-muted">Configure start date to see calendar preview</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="ecsFcCalendar" class="d-none">
+                                    <div class="card border-info">
+                                        <div class="card-header bg-info text-white">
+                                            <h6 class="mb-0"><i class="ti ti-shield me-1"></i>ECS FC Calendar</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="ecsFcCalendarPreview" class="calendar-container">
+                                                <p class="text-muted">Configure start date to see calendar preview</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="mt-2">
                                     <small class="text-muted">
-                                        <i class="ti ti-info-circle"></i> Drag and drop weeks to reorder. Dates will automatically adjust to maintain Sunday scheduling.
+                                        <i class="ti ti-info-circle"></i> Week order is automatically calculated. Premier playoff weeks align with Classic regular season weeks. 
+                                        <strong>Shared weeks (🔗) move together when dragged.</strong>
                                     </small>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Step 3: Schedule Configuration -->
-                        <div class="wizard-step" data-step="3">
+                        <!-- Step 4: Schedule Configuration -->
+                        <div class="wizard-step" data-step="4">
                             <h5>Schedule Configuration</h5>
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Premier Division Start Time</label>
-                                        <input type="time" class="form-control" id="premierStartTime" value="08:00">
+                                        <input type="time" class="form-control" id="premierStartTime" value="08:20">
+                                        <div class="form-text">Start time for first Premier match</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Classic Division Start Time</label>
-                                        <input type="time" class="form-control" id="classicStartTime" value="12:00">
+                                        <input type="time" class="form-control" id="classicStartTime" value="13:10">
+                                        <div class="form-text">Start time for first Classic match (1:10 PM)</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -245,8 +427,8 @@
                             </div>
                         </div>
 
-                        <!-- Step 4: Teams -->
-                        <div class="wizard-step" data-step="4">
+                        <!-- Step 5: Teams -->
+                        <div class="wizard-step" data-step="5">
                             <h5>Team Creation</h5>
                             <div class="alert alert-info">
                                 <i class="ti ti-info-circle me-1"></i>
@@ -337,8 +519,8 @@
                             </div>
                         </div>
 
-                        <!-- Step 5: Preview -->
-                        <div class="wizard-step" data-step="5">
+                        <!-- Step 6: Preview -->
+                        <div class="wizard-step" data-step="6">
                             <h5>Season Summary</h5>
                             <div id="seasonSummary">
                                 <!-- Dynamic content will be populated here -->
@@ -400,6 +582,17 @@
                                         <i class="ti ti-calendar me-1"></i>Manage {{ league.name }} Schedule
                                     </a></li>
                                     {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('publeague.season.delete_season', season_id=season.id) }}" 
+                                              id="deleteSeasonForm{{ season.id }}"
+                                              class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="button" class="dropdown-item text-danger" onclick="confirmDeleteSeason('{{ season.id }}', '{{ season.name }}')">
+                                                <i class="ti ti-trash me-1"></i>Delete Season (Undo All)
+                                            </button>
+                                        </form>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -442,6 +635,17 @@
                                         <i class="ti ti-calendar me-1"></i>Manage {{ league.name }} Schedule
                                     </a></li>
                                     {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form method="POST" action="{{ url_for('publeague.season.delete_season', season_id=season.id) }}" 
+                                              id="deleteSeasonForm{{ season.id }}"
+                                              class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="button" class="dropdown-item text-danger" onclick="confirmDeleteSeason('{{ season.id }}', '{{ season.name }}')">
+                                                <i class="ti ti-trash me-1"></i>Delete Season (Undo All)
+                                            </button>
+                                        </form>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -543,6 +747,118 @@
     justify-content: center;
 }
 
+/* Calendar week item styling */
+.week-item {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: move;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.week-item:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.week-item[draggable="true"] {
+    user-select: none;
+}
+
+.week-item[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Enhanced drag feedback */
+.week-item[style*="opacity: 0.5"] {
+    transform: rotate(5deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Drop insertion indicators */
+.week-item[style*="border-top: 3px solid"] {
+    border-top: 3px solid #007bff !important;
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+}
+
+.week-item[style*="border-bottom: 3px solid"] {
+    border-bottom: 3px solid #007bff !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* Add pulse animation to drop indicators */
+.week-item[style*="border-top: 3px solid"]:before,
+.week-item[style*="border-bottom: 3px solid"]:after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #007bff;
+    animation: pulse 0.8s ease-in-out infinite alternate;
+}
+
+.week-item[style*="border-top: 3px solid"]:before {
+    top: -3px;
+}
+
+.week-item[style*="border-bottom: 3px solid"]:after {
+    bottom: -3px;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.week-item.regular-week {
+    border-left: 4px solid #6c757d;
+}
+
+.week-item.fun-week {
+    border-left: 4px solid #ffc107;
+}
+
+.week-item.tst-week {
+    border-left: 4px solid #17a2b8;
+}
+
+.week-item.playoff-week {
+    border-left: 4px solid #dc3545;
+}
+
+.week-item.bonus-week {
+    border-left: 4px solid #6f42c1;
+}
+
+.week-item.bye-week {
+    border-left: 4px solid #6c757d;
+}
+
+.week-number {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #495057;
+}
+
+.week-date {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+.week-type {
+    font-size: 0.8em;
+    color: #007bff;
+    font-weight: 500;
+}
+
 /* Add visual feedback for drag operations */
 .drop-zone {
     border: 2px dashed #007bff;
@@ -559,527 +875,150 @@
 }
 </style>
 
+{% block extra_css %}
+<style>
+.calendar-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.calendar-weeks {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.week-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    background: #f9f9f9;
+}
+
+.week-item.regular-week {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.week-item.fun-week {
+    border-color: #ffc107;
+    background: #fffef8;
+}
+
+.week-item.tst-week {
+    border-color: #17a2b8;
+    background: #f8feff;
+}
+
+.week-item.playoff-week {
+    border-color: #dc3545;
+    background: #fff8f8;
+}
+
+.week-item.bonus-week {
+    border-color: #6f42c1;
+    background: #fbf8ff;
+}
+
+.week-item.bye-week {
+    border-color: #6c757d;
+    background: #f8f9fa;
+}
+
+.week-number {
+    font-weight: bold;
+    min-width: 70px;
+    color: #333;
+}
+
+.week-date {
+    flex: 1;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.week-type {
+    color: #333;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.regular-week .week-type {
+    color: #28a745;
+}
+
+.fun-week .week-type {
+    color: #ffc107;
+}
+
+.tst-week .week-type {
+    color: #17a2b8;
+}
+
+.playoff-week .week-type {
+    color: #dc3545;
+}
+
+.bonus-week .week-type {
+    color: #6f42c1;
+}
+
+.bye-week .week-type {
+    color: #6c757d;
+}
+
+/* Shared weeks styling - draggable but synchronized */
+.week-item.shared-week {
+    cursor: move !important;
+    opacity: 0.95;
+    position: relative;
+    border: 2px solid rgba(0, 123, 255, 0.3);
+}
+
+.week-item.shared-week:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    border-color: rgba(0, 123, 255, 0.5);
+}
+
+.week-item.shared-week::after {
+    content: '🔗';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+</style>
+{% endblock %}
+
+<!-- JavaScript URLs for external file -->
 <script>
-let currentStep = 1;
-const maxSteps = 5;
-
-function startSeasonWizard() {
-    document.getElementById('seasonWizardModal').style.display = 'block';
-    const modal = new bootstrap.Modal(document.getElementById('seasonWizardModal'));
-    modal.show();
-    
-    // Set default start date to next Sunday
-    const today = new Date();
-    const nextSunday = new Date(today);
-    nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
-    document.getElementById('seasonStartDate').value = nextSunday.toISOString().split('T')[0];
-    
-    updateCalendarPreview();
-}
-
-function showExistingSeasons() {
-    document.getElementById('existingSeasons').classList.remove('d-none');
-    document.querySelector('.row.mb-4:nth-child(2)').style.display = 'none';
-}
-
-function showMainView() {
-    document.getElementById('existingSeasons').classList.add('d-none');
-    document.querySelector('.row.mb-4:nth-child(2)').style.display = '';
-}
-
-function setActiveSeason(seasonId, leagueType) {
-    if (confirm(`Are you sure you want to set this season as the current ${leagueType} season?`)) {
-        fetch('{{ url_for("auto_schedule.set_active_season") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                season_id: seasonId,
-                league_type: leagueType
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Refresh the page to show updated season status
-                location.reload();
-            } else {
-                alert('Error: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating the active season');
-        });
-    }
-}
-
-function nextStep() {
-    if (currentStep < maxSteps) {
-        if (validateStep(currentStep)) {
-            updateStepDisplay(currentStep + 1);
-        }
-    }
-}
-
-function previousStep() {
-    if (currentStep > 1) {
-        updateStepDisplay(currentStep - 1);
-    }
-}
-
-function updateStepDisplay(step) {
-    // Hide current step
-    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.remove('active');
-    document.querySelector(`.step[data-step="${currentStep}"]`).classList.remove('active');
-    
-    // Show new step
-    currentStep = step;
-    document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
-    document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
-    
-    // Update previous steps as completed
-    for (let i = 1; i < currentStep; i++) {
-        document.querySelector(`.step[data-step="${i}"]`).classList.add('completed');
-    }
-    
-    // Update buttons
-    document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'block';
-    document.getElementById('nextBtn').style.display = currentStep === maxSteps ? 'none' : 'block';
-    document.getElementById('createBtn').classList.toggle('d-none', currentStep !== maxSteps);
-    
-    if (currentStep === 4) {
-        updateTeamSections();
-    } else if (currentStep === 5) {
-        generateSeasonSummary();
-    }
-}
-
-function validateStep(step) {
-    // Add validation logic for each step
-    return true;
-}
-
-// Global state for calendar
-let calendarState = {
-    weeks: [],
-    startDate: null,
-    regularWeeks: 7,
-    includeTST: false,
-    includeFUN: false,
-    byeWeeks: 0
-};
-
-// Team management functions
-function updateTeamSections() {
-    const leagueType = document.getElementById('leagueType').value;
-    const pubLeagueSection = document.getElementById('pubLeagueTeams');
-    const ecsFcSection = document.getElementById('ecsFcTeams');
-    
-    if (leagueType === 'Pub League') {
-        pubLeagueSection.classList.remove('d-none');
-        ecsFcSection.classList.add('d-none');
-        updateTeamPreview('premier');
-        updateTeamPreview('classic');
-    } else if (leagueType === 'ECS FC') {
-        pubLeagueSection.classList.add('d-none');
-        ecsFcSection.classList.remove('d-none');
-        updateTeamPreview('ecsFc');
-    }
-}
-
-function updateTeamPreview(leagueType) {
-    let count, previewId;
-    
-    if (leagueType === 'premier') {
-        count = parseInt(document.getElementById('premierTeamCount').value);
-        previewId = 'premierTeamPreview';
-    } else if (leagueType === 'classic') {
-        count = parseInt(document.getElementById('classicTeamCount').value);
-        previewId = 'classicTeamPreview';
-    } else if (leagueType === 'ecsFc') {
-        count = parseInt(document.getElementById('ecsFcTeamCount').value);
-        previewId = 'ecsFcTeamPreview';
-    }
-    
-    const previewDiv = document.getElementById(previewId);
-    const teamLabels = [];
-    
-    // Generate team names (Team A, Team B, etc.)
-    for (let i = 0; i < count; i++) {
-        const letter = String.fromCharCode(65 + i); // A, B, C, etc.
-        teamLabels.push(`Team ${letter}`);
-    }
-    
-    previewDiv.innerHTML = `
-        <div class="small text-muted mb-2">Teams to be created:</div>
-        <div class="d-flex flex-wrap gap-1">
-            ${teamLabels.map(name => `<span class="badge bg-light text-dark border">${name}</span>`).join('')}
-        </div>
-    `;
-}
-
-// Helper to get next Sunday from a date (or same day if already Sunday)
-function getNextSunday(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    // If it's already Sunday (0), keep it. Otherwise, find the next Sunday
-    const daysUntilSunday = day === 0 ? 0 : 7 - day;
-    d.setDate(d.getDate() + daysUntilSunday);
-    return d;
-}
-
-// Helper to check if date is Sunday
-function isSunday(date) {
-    return new Date(date).getDay() === 0;
-}
-
-// Initialize calendar from inputs
-function initializeCalendar() {
-    const startDateInput = document.getElementById('seasonStartDate');
-    const startDate = startDateInput.value;
-    
-    if (!startDate) return;
-    
-    const selectedDate = new Date(startDate);
-    const warningDiv = document.getElementById('startDateWarning');
-    
-    // Always adjust to Sunday for consistency
-    if (!isSunday(startDate)) {
-        const nextSunday = getNextSunday(startDate);
-        const originalDate = selectedDate.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-        const adjustedDate = nextSunday.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            month: 'short', 
-            day: 'numeric' 
-        });
-        
-        warningDiv.innerHTML = `
-            <small class="text-warning">
-                <i class="ti ti-alert-triangle me-1"></i>
-                ${originalDate} adjusted to ${adjustedDate} (next Sunday)
-            </small>
-        `;
-        calendarState.startDate = nextSunday;
-        // Update the input to show the adjusted date
-        startDateInput.value = nextSunday.toISOString().split('T')[0];
-    } else {
-        warningDiv.innerHTML = `
-            <small class="text-success">
-                <i class="ti ti-check me-1"></i>
-                Perfect! ${selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} is a Sunday
-            </small>
-        `;
-        calendarState.startDate = selectedDate;
-    }
-    
-    // Get settings
-    calendarState.regularWeeks = parseInt(document.getElementById('regularWeeks').value) || 7;
-    calendarState.includeTST = document.getElementById('includeTST').checked;
-    calendarState.includeFUN = document.getElementById('includeFUN').checked;
-    calendarState.byeWeeks = parseInt(document.getElementById('byeWeekCount').value) || 0;
-    
-    // Build week array
-    rebuildWeekArray();
-    
-    // Update UI
-    updateCalendarPreview();
-    updateTotalWeeks();
-}
-
-// Rebuild the week array based on current settings
-function rebuildWeekArray() {
-    calendarState.weeks = [];
-    let currentDate = new Date(calendarState.startDate);
-    let weekNum = 1;
-    
-    // Add regular weeks
-    for (let i = 0; i < calendarState.regularWeeks; i++) {
-        calendarState.weeks.push({
-            weekNumber: weekNum++,
-            date: new Date(currentDate),
-            type: 'Regular',
-            isSpecial: false
-        });
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-    
-    // Add special weeks at the end (will be dragged to position)
-    if (calendarState.includeTST) {
-        calendarState.weeks.push({
-            weekNumber: weekNum++,
-            date: new Date(currentDate),
-            type: 'TST',
-            isSpecial: true
-        });
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-    
-    if (calendarState.includeFUN) {
-        calendarState.weeks.push({
-            weekNumber: weekNum++,
-            date: new Date(currentDate),
-            type: 'FUN',
-            isSpecial: true
-        });
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-    
-    // Add BYE weeks
-    for (let i = 0; i < calendarState.byeWeeks; i++) {
-        calendarState.weeks.push({
-            weekNumber: weekNum++,
-            date: new Date(currentDate),
-            type: 'BYE',
-            isSpecial: true
-        });
-        currentDate.setDate(currentDate.getDate() + 7);
-    }
-}
-
-// Update calendar preview display
-function updateCalendarPreview() {
-    const preview = document.getElementById('calendarPreview');
-    let html = '<div class="row" id="calendarWeeks">';
-    
-    calendarState.weeks.forEach((week, index) => {
-        let badgeClass = 'bg-primary';
-        if (week.type === 'TST') badgeClass = 'bg-info';
-        else if (week.type === 'FUN') badgeClass = 'bg-warning';
-        else if (week.type === 'BYE') badgeClass = 'bg-secondary';
-        
-        html += `
-            <div class="col-md-3 mb-2 week-item" data-index="${index}">
-                <div class="text-center">
-                    <div class="badge ${badgeClass} w-100 p-3 week-badge" draggable="true" data-week-type="${week.type}">
-                        <div class="week-number">Week ${week.weekNumber}</div>
-                        <div class="week-date">${week.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                        <div class="week-type"><strong>${week.type}</strong></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    preview.innerHTML = html;
-    
-    // Add drag and drop functionality
-    addDragAndDropToWeeks();
-}
-
-// Update total weeks counter
-function updateTotalWeeks() {
-    const total = calendarState.regularWeeks + 
-                  (calendarState.includeTST ? 1 : 0) + 
-                  (calendarState.includeFUN ? 1 : 0) + 
-                  calendarState.byeWeeks;
-    document.getElementById('totalWeeks').value = total;
-}
-
-// Reset calendar to default state
-function resetCalendar() {
-    calendarState.weeks = [];
-    initializeCalendar();
-}
-
-function addDragAndDropToWeeks() {
-    const weekItems = document.querySelectorAll('.week-item');
-    
-    weekItems.forEach(item => {
-        const badge = item.querySelector('.week-badge');
-        
-        badge.addEventListener('dragstart', handleDragStart);
-        item.addEventListener('dragover', handleDragOver);
-        item.addEventListener('drop', handleDrop);
-        item.addEventListener('dragleave', handleDragLeave);
-        badge.addEventListener('dragend', handleDragEnd);
-    });
-}
-
-let draggedIndex = null;
-
-function handleDragStart(e) {
-    const weekItem = this.closest('.week-item');
-    draggedIndex = parseInt(weekItem.dataset.index);
-    e.dataTransfer.effectAllowed = 'move';
-    this.classList.add('dragging');
-}
-
-function handleDragOver(e) {
-    if (e.preventDefault) {
-        e.preventDefault();
-    }
-    e.dataTransfer.dropEffect = 'move';
-    this.classList.add('drop-zone');
-    return false;
-}
-
-function handleDragLeave(e) {
-    this.classList.remove('drop-zone');
-}
-
-function handleDrop(e) {
-    if (e.stopPropagation) {
-        e.stopPropagation();
-    }
-    
-    this.classList.remove('drop-zone');
-    
-    const dropIndex = parseInt(this.dataset.index);
-    
-    if (draggedIndex !== null && draggedIndex !== dropIndex) {
-        // Reorder the weeks array
-        const draggedWeek = calendarState.weeks[draggedIndex];
-        calendarState.weeks.splice(draggedIndex, 1);
-        calendarState.weeks.splice(dropIndex, 0, draggedWeek);
-        
-        // Recalculate all dates maintaining Sunday schedule
-        recalculateDatesAfterReorder();
-        
-        // Update the display
-        updateCalendarPreview();
-    }
-    
-    return false;
-}
-
-function handleDragEnd(e) {
-    document.querySelectorAll('.week-badge').forEach(badge => {
-        badge.classList.remove('dragging');
-    });
-    document.querySelectorAll('.week-item').forEach(item => {
-        item.classList.remove('drop-zone');
-    });
-    draggedIndex = null;
-}
-
-function recalculateDatesAfterReorder() {
-    let currentDate = new Date(calendarState.startDate);
-    
-    calendarState.weeks.forEach((week, index) => {
-        week.weekNumber = index + 1;
-        week.date = new Date(currentDate);
-        currentDate.setDate(currentDate.getDate() + 7);
-    });
-}
-
-function generateSeasonSummary() {
-    const seasonName = document.getElementById('seasonName').value;
-    const leagueType = document.getElementById('leagueType').value;
-    
-    const summary = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>Season Details</h6>
-                <ul class="list-unstyled">
-                    <li><strong>Name:</strong> ${seasonName}</li>
-                    <li><strong>Type:</strong> ${leagueType}</li>
-                    <li><strong>Start:</strong> ${document.getElementById('seasonStartDate').value}</li>
-                    <li><strong>Regular Weeks:</strong> ${document.getElementById('regularWeeks').value}</li>
-                    <li><strong>BYE Weeks:</strong> ${document.getElementById('byeWeeks').value}</li>
-                </ul>
-            </div>
-            <div class="col-md-6">
-                <h6>Schedule Configuration</h6>
-                <ul class="list-unstyled">
-                    <li><strong>Premier Start:</strong> ${document.getElementById('premierStartTime').value}</li>
-                    <li><strong>Classic Start:</strong> ${document.getElementById('classicStartTime').value}</li>
-                    <li><strong>Match Duration:</strong> ${document.getElementById('matchDuration').value} min</li>
-                    <li><strong>Fields:</strong> ${document.getElementById('fields').value}</li>
-                </ul>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('seasonSummary').innerHTML = summary;
-}
-
-function createSeason() {
-    // Build week configuration from calendar state
-    const weekConfigs = calendarState.weeks.map(week => ({
-        date: week.date.toISOString().split('T')[0],
-        type: week.type,
-        week_number: week.weekNumber
-    }));
-    
-    // Extract special week dates
-    const tstWeek = calendarState.weeks.find(w => w.type === 'TST');
-    const funWeek = calendarState.weeks.find(w => w.type === 'FUN');
-    const byeWeeks = calendarState.weeks.filter(w => w.type === 'BYE');
-    
-    // Collect team counts based on league type
-    const leagueType = document.getElementById('leagueType').value;
-    let teamCounts = {};
-    
-    if (leagueType === 'Pub League') {
-        teamCounts = {
-            premier_teams: parseInt(document.getElementById('premierTeamCount').value),
-            classic_teams: parseInt(document.getElementById('classicTeamCount').value)
-        };
-    } else if (leagueType === 'ECS FC') {
-        teamCounts = {
-            ecs_fc_teams: parseInt(document.getElementById('ecsFcTeamCount').value)
-        };
-    }
-    
-    // Collect form data and submit
-    const formData = {
-        season_name: document.getElementById('seasonName').value,
-        league_type: leagueType,
-        set_as_current: document.getElementById('setAsCurrent').checked,
-        season_start_date: calendarState.startDate.toISOString().split('T')[0],
-        regular_weeks: calendarState.regularWeeks,
-        total_weeks: calendarState.weeks.length,
-        week_configs: weekConfigs,
-        tst_week_date: tstWeek ? tstWeek.date.toISOString().split('T')[0] : null,
-        fun_week_date: funWeek ? funWeek.date.toISOString().split('T')[0] : null,
-        bye_week_dates: byeWeeks.map(w => w.date.toISOString().split('T')[0]),
-        premier_start_time: document.getElementById('premierStartTime').value,
-        classic_start_time: document.getElementById('classicStartTime').value,
-        match_duration: document.getElementById('matchDuration').value,
-        fields: document.getElementById('fields').value,
-        ...teamCounts
+    window.autoScheduleUrls = {
+        setActiveSeason: '{{ url_for("auto_schedule.set_active_season") }}',
+        createSeasonWizard: '{{ url_for("auto_schedule.create_season_wizard") }}'
     };
-    
-    // Submit to backend
-    fetch('{{ url_for("auto_schedule.create_season_wizard") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = data.redirect_url;
-        } else {
-            alert('Error: ' + data.error);
-        }
-    });
-}
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize calendar when wizard is shown
-    document.getElementById('seasonStartDate').addEventListener('change', initializeCalendar);
-    document.getElementById('regularWeeks').addEventListener('input', initializeCalendar);
-    document.getElementById('includeTST').addEventListener('change', initializeCalendar);
-    document.getElementById('includeFUN').addEventListener('change', initializeCalendar);
-    document.getElementById('byeWeekCount').addEventListener('input', initializeCalendar);
-    
-    // Team count change listeners
-    document.getElementById('premierTeamCount').addEventListener('change', () => updateTeamPreview('premier'));
-    document.getElementById('classicTeamCount').addEventListener('change', () => updateTeamPreview('classic'));
-    document.getElementById('ecsFcTeamCount').addEventListener('change', () => updateTeamPreview('ecsFc'));
-});
+    function confirmDeleteSeason(seasonId, seasonName) {
+        Swal.fire({
+            title: 'Are you sure?',
+            html: `You are about to <strong>COMPLETELY DELETE</strong> the season "<strong>${seasonName}</strong>".<br><br>This will remove:<br>• All teams<br>• All matches<br>• Discord channels<br>• Player assignments<br><br><strong>This action cannot be undone!</strong>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteSeasonForm' + seasonId).submit();
+            }
+        });
+    }
 </script>
+
+<!-- External JavaScript -->
+<script src="{{ url_for('static', filename='js/auto_schedule_wizard.js') }}"></script>
 {% endblock %}

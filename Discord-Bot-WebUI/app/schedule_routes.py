@@ -283,7 +283,12 @@ class ScheduleManager:
             location=data['location'],
             home_team_id=data['team_a'],
             away_team_id=data['team_b'],
-            schedule=schedule_a
+            schedule=schedule_a,
+            # Add special week information if provided
+            week_type=data.get('week_type', 'REGULAR'),
+            is_special_week=data.get('is_special_week', False),
+            is_playoff_game=data.get('is_playoff_game', False),
+            playoff_round=data.get('playoff_round', None)
         )
         self.session.add(match)
         objects_to_create.append(match)

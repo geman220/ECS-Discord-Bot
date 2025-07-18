@@ -44,6 +44,10 @@ def sync_players_with_woocommerce(self):
     """
     with celery.flask_app.app_context():
         try:
+            # Phase 1: Fetch required data and close session
+            current_season_data = None
+            current_seasons_data = []
+            
             with managed_session() as session:
                 # Initial state update: fetching current season
                 self.update_state(state='PROGRESS', meta={
@@ -58,79 +62,98 @@ def sync_players_with_woocommerce(self):
                 if not current_season:
                     raise Exception('No current Pub League season found.')
 
+                # Extract needed data from database objects
+                current_season_data = {
+                    'name': current_season.name,
+                    'id': current_season.id
+                }
+                current_seasons_data = [{'name': s.name, 'id': s.id} for s in current_seasons]
+
+            # Phase 2: Fetch all orders from WooCommerce without holding database sessions
+            self.update_state(state='PROGRESS', meta={
+                'stage': 'woo',
+                'message': 'Fetching orders from WooCommerce...',
+                'progress': 10
+            })
+
+            all_orders = []
+            page = 1
+            
+            # Process orders page by page until no more orders are returned
+            while True:
+                self.update_state(state='PROGRESS', meta={
+                    'stage': 'woo',
+                    'message': f'Fetching page {page}...',
+                    'progress': 10 + (page * 5)  # Progressive progress
+                })
+
+                orders_page = fetch_orders_from_woocommerce(
+                    current_season_name=current_season_data['name'],
+                    filter_current_season=True,
+                    current_season_names=[s['name'] for s in current_seasons_data],
+                    max_pages=1,
+                    page=page,
+                    per_page=100
+                )
+                if not orders_page:
+                    break
+
+                all_orders.extend(orders_page)
+                page += 1
+
+            total_orders_fetched = len(all_orders)
+
+            # Phase 3: Process orders against database
+            with managed_session() as session:
                 # Initialize tracking variables
                 new_players = []
                 existing_players = set()
                 player_league_updates = []
-                total_orders_fetched = 0
+                
+                # Reload current seasons for league determination
+                current_seasons = session.query(Season).filter_by(is_current=True).all()
+                
+                # Process all fetched orders
+                for order in all_orders:
+                    # Extract player billing info and verify it is valid
+                    player_info = extract_player_info(order['billing'])
+                    if not player_info:
+                        continue
 
-                page = 1
-                # Process orders page by page until no more orders are returned
-                while True:
-                    self.update_state(state='PROGRESS', meta={
-                        'stage': 'woo',
-                        'message': f'Fetching page {page}...',
-                        'progress': 10
-                    })
+                    # Determine league based on the product name and current seasons
+                    product_name = order['product_name']
+                    league = determine_league(product_name, current_seasons, session=session)
+                    if not league:
+                        continue
 
-                    # Set a high idle timeout to prevent transaction timeouts during order processing
-                    # Automatically skipped for PgBouncer connections
-                    set_session_timeout(session, idle_timeout_seconds=60)
-    
-                    orders_page = fetch_orders_from_woocommerce(
-                        current_season_name=current_season.name,
-                        filter_current_season=True,
-                        current_season_names=[s.name for s in current_seasons],
-                        max_pages=1,
-                        page=page,
-                        per_page=100
-                    )
-                    if not orders_page:
-                        break
+                    # Determine jersey size and attach to player info
+                    jersey_size = extract_jersey_size_from_product_name(product_name)
+                    player_info['jersey_size'] = jersey_size
 
-                    total_orders_fetched += len(orders_page)
-                    for order in orders_page:
-                        # Extract player billing info and verify it is valid
-                        player_info = extract_player_info(order['billing'])
-                        if not player_info:
-                            continue
-
-                        # Determine league based on the product name and current seasons
-                        product_name = order['product_name']
-                        league = determine_league(product_name, current_seasons, session=session)
-                        if not league:
-                            continue
-
-                        # Determine jersey size and attach to player info
-                        jersey_size = extract_jersey_size_from_product_name(product_name)
-                        player_info['jersey_size'] = jersey_size
-
-                        # Check if the player already exists in the system using weighted matching
-                        existing_player = match_player_weighted(player_info, session)
-                        if existing_player:
-                            existing_players.add(existing_player.id)
-                            player_league_updates.append({
-                                'player_id': existing_player.id,
-                                'league_id': league.id,
-                                'order_id': order['order_id'],
-                                'quantity': order['quantity']
-                            })
-                        else:
-                            new_players.append({
-                                'info': player_info,
-                                'league_id': league.id,
-                                'order_id': order['order_id'],
-                                'quantity': order['quantity']
-                            })
-                    # Commit happens automatically in managed_session
-
-                    # Update progress state after processing each page
-                    self.update_state(state='PROGRESS', meta={
-                        'stage': 'process',
-                        'message': f'Processed page {page}. Total orders so far: {total_orders_fetched}',
-                        'progress': 10 + (page * 8)
-                    })
-                    page += 1
+                    # Check if the player already exists in the system using weighted matching
+                    existing_player = match_player_weighted(player_info, session)
+                    if existing_player:
+                        existing_players.add(existing_player.id)
+                        player_league_updates.append({
+                            'player_id': existing_player.id,
+                            'league_id': league.id,
+                            'order_id': order['order_id'],
+                            'quantity': order['quantity']
+                        })
+                    else:
+                        new_players.append({
+                            'info': player_info,
+                            'league_id': league.id,
+                            'order_id': order['order_id'],
+                            'quantity': order['quantity']
+                        })
+                
+                # Update progress state after processing all orders
+                self.update_state(state='PROGRESS', meta={
+                    'stage': 'process',
+                    'message': f'Processed {total_orders_fetched} orders',
+                    'progress': 60
+                })
 
                 # Identify inactive players by comparing active player IDs with those updated via orders
                 self.update_state(state='PROGRESS', meta={

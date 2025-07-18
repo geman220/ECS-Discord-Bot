@@ -19,6 +19,48 @@ from . import external_api_bp
 from .auth import api_key_required
 from .stats_utils import calculate_expected_attendance, get_substitution_urgency
 
+
+def _is_playoff_placeholder_match_api(match, viewing_team_id):
+    """
+    Determine if a playoff match is still using placeholder teams for API context.
+    
+    A simplified version of the playoff placeholder detection for API responses.
+    """
+    try:
+        # Simple check: if the same team appears as both home and away, it's a placeholder
+        if match.home_team_id == match.away_team_id:
+            return True
+        
+        # Additional check: if this team plays the same opponent multiple times 
+        # in the same week, it's likely a placeholder
+        from app.models import Match
+        from flask import g
+        
+        week_matches = g.db_session.query(Match).filter(
+            Match.league_id == match.league_id,
+            Match.week == match.week,
+            Match.is_playoff_game == True,
+            ((Match.home_team_id == viewing_team_id) | (Match.away_team_id == viewing_team_id))
+        ).all()
+        
+        if len(week_matches) <= 1:
+            return False
+        
+        # Get all opponents for this team in this week
+        opponents = set()
+        for week_match in week_matches:
+            if week_match.home_team_id == viewing_team_id:
+                opponents.add(week_match.away_team_id)
+            else:
+                opponents.add(week_match.home_team_id)
+        
+        # If only one unique opponent and multiple matches, it's a placeholder
+        return len(opponents) == 1 and len(week_matches) > 1
+        
+    except Exception as e:
+        logger.warning(f"Error checking playoff placeholder for API: {e}")
+        return True  # Assume placeholder for safety
+
 logger = logging.getLogger(__name__)
 
 
@@ -1466,7 +1508,35 @@ def get_team_performance():
                 is_home = match.home_team_id == team.id
                 team_score = match.home_team_score if is_home else match.away_team_score
                 opponent_score = match.away_team_score if is_home else match.home_team_score
-                opponent_name = match.away_team.name if is_home else match.home_team.name
+                # Handle special weeks and regular opponents
+                if hasattr(match, 'is_playoff_game') and match.is_playoff_game:
+                    # Playoff game - check if it's still using placeholder teams
+                    playoff_round = getattr(match, 'playoff_round', 1)
+                    if (match.home_team_id == match.away_team_id or 
+                        _is_playoff_placeholder_match_api(match, team.id)):
+                        opponent_name = f'Playoffs Round {playoff_round} - TBD'
+                    else:
+                        # Real teams assigned - show opponent
+                        opponent_name = match.away_team.name if is_home else match.home_team.name
+                elif match.home_team_id == match.away_team_id:
+                    # Special week - determine display name
+                    if hasattr(match, 'week_type'):
+                        week_type = match.week_type.upper()
+                        if week_type == 'FUN':
+                            opponent_name = 'Fun Week!'
+                        elif week_type == 'TST':
+                            opponent_name = 'The Soccer Tournament!'
+                        elif week_type == 'BYE':
+                            opponent_name = 'BYE Week!'
+                        elif week_type == 'BONUS':
+                            opponent_name = 'Bonus Week!'
+                        else:
+                            opponent_name = 'Special Week!'
+                    else:
+                        opponent_name = 'Special Week!'
+                else:
+                    # Regular match
+                    opponent_name = match.away_team.name if is_home else match.home_team.name
                 
                 goals_for += team_score
                 goals_against += opponent_score

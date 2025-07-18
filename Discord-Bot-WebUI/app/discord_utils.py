@@ -31,6 +31,32 @@ logger = logging.getLogger(__name__)
 VIEW_CHANNEL = 1024
 SEND_MESSAGES = 2048
 READ_MESSAGE_HISTORY = 65536
+SEND_MESSAGES_IN_THREADS = 274877906944
+CREATE_PUBLIC_THREADS = 34359738368
+MANAGE_MESSAGES = 8192
+USE_APPLICATION_COMMANDS = 2147483648
+
+# Permission sets for different roles
+TEAM_PLAYER_PERMISSIONS = (
+    VIEW_CHANNEL + 
+    SEND_MESSAGES + 
+    READ_MESSAGE_HISTORY + 
+    SEND_MESSAGES_IN_THREADS + 
+    CREATE_PUBLIC_THREADS + 
+    USE_APPLICATION_COMMANDS
+)  # 277077967872
+
+LEADERSHIP_PERMISSIONS = (
+    VIEW_CHANNEL + 
+    SEND_MESSAGES + 
+    READ_MESSAGE_HISTORY + 
+    SEND_MESSAGES_IN_THREADS + 
+    CREATE_PUBLIC_THREADS + 
+    MANAGE_MESSAGES + 
+    USE_APPLICATION_COMMANDS
+)  # 277077976064
+
+# Legacy permission constant (for backward compatibility)
 TEAM_ROLE_PERMISSIONS = VIEW_CHANNEL + SEND_MESSAGES + READ_MESSAGE_HISTORY  # 68608
 
 # Rate limit constants
@@ -436,6 +462,187 @@ async def create_discord_roles(session: Session, team_name: str, team_id: int) -
         return {'success': False, 'error': str(e)}
 
 
+async def create_discord_channel_async_only(team_name: str, division: str, team_id: int) -> Dict[str, Any]:
+    """
+    Create a dedicated Discord channel for a team without database session.
+    
+    Args:
+        team_name: The team's name
+        division: Division identifier  
+        team_id: The team's ID
+        
+    Returns:
+        Dict with success status and channel_id if successful
+    """
+    try:
+        guild_id = int(os.getenv('SERVER_ID'))
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        category_name = f"ECS FC PL {division.capitalize()}"
+        
+        async with aiohttp.ClientSession() as session:
+            # First, get or create the category
+            category_id = await get_or_create_category(guild_id, category_name, session)
+            if not category_id:
+                return {'success': False, 'message': f"Failed to get/create category '{category_name}'"}
+            
+            # Create or get the required Discord roles
+            player_role_name = f"ECS-FC-PL-{team_name}-Player"
+            player_role_id = await get_or_create_role(guild_id, player_role_name, session)
+            if not player_role_id:
+                return {'success': False, 'message': f"Failed to create player role '{player_role_name}'"}
+                
+            # Get admin and leadership roles
+            wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", session)
+            pl_leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", session)
+            
+            # Set up permission overwrites
+            permission_overwrites = [
+                {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
+                {"id": str(player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
+            ]
+            
+            # Add admin permissions if roles exist
+            if wg_admin_role_id:
+                permission_overwrites.append({"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"})
+            if pl_leadership_role_id:
+                permission_overwrites.append({"id": str(pl_leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"})
+            
+            # Create channel with proper setup
+            channel_data = {
+                'name': team_name,
+                'type': 0,  # Text channel
+                'topic': f"Team channel for {team_name} ({division})",
+                'parent_id': category_id,
+                'permission_overwrites': permission_overwrites
+            }
+            
+            url = f"{bot_api_url}/api/server/guilds/{guild_id}/channels"
+            response = await make_discord_request('POST', url, session, json=channel_data)
+            
+            if response and 'id' in response:
+                channel_id = response['id']
+                logger.info(f"Created Discord channel '{team_name}' with ID {channel_id} in category '{category_name}'")
+                return {
+                    'success': True,
+                    'channel_id': channel_id,
+                    'player_role_id': player_role_id,
+                    'message': f'Channel created for {team_name} in {category_name}'
+                }
+            else:
+                logger.error(f"Failed to create Discord channel for {team_name}")
+                return {
+                    'success': False,
+                    'message': 'Failed to create channel'
+                }
+                    
+    except Exception as e:
+        logger.error(f"Error creating Discord channel for {team_name}: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }
+
+
+async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, coach_role_id: str, player_role_id: str) -> Dict[str, Any]:
+    """
+    Rename team roles without database session.
+    
+    Args:
+        old_team_name: Current team name
+        new_team_name: New team name
+        coach_role_id: Discord coach role ID
+        player_role_id: Discord player role ID
+        
+    Returns:
+        Dict with success status
+    """
+    try:
+        guild_id = int(os.getenv('SERVER_ID'))
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        
+        async with aiohttp.ClientSession() as session:
+            success_count = 0
+            total_roles = 0
+            
+            # Rename coach role
+            if coach_role_id:
+                total_roles += 1
+                new_coach_name = f"{new_team_name} Coach"
+                url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{coach_role_id}"
+                async with session.patch(url, json={'name': new_coach_name}) as response:
+                    if response.status == 200:
+                        success_count += 1
+                        logger.info(f"Renamed coach role to: {new_coach_name}")
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Failed to rename coach role: {error_text}")
+            
+            # Rename player role
+            if player_role_id:
+                total_roles += 1
+                new_player_name = f"{new_team_name} Player"
+                url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{player_role_id}"
+                async with session.patch(url, json={'name': new_player_name}) as response:
+                    if response.status == 200:
+                        success_count += 1
+                        logger.info(f"Renamed player role to: {new_player_name}")
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Failed to rename player role: {error_text}")
+            
+            return {
+                'success': success_count == total_roles,
+                'message': f'Renamed {success_count}/{total_roles} roles for team {new_team_name}'
+            }
+            
+    except Exception as e:
+        logger.error(f"Error renaming team roles: {e}")
+        return {
+            'success': False,
+            'message': str(e)
+        }
+
+
+async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional[str]:
+    """
+    Create a Discord thread for an MLS match without database session.
+    
+    Args:
+        match_data: Dictionary containing match information
+        
+    Returns:
+        Thread ID if successful, None otherwise
+    """
+    try:
+        bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
+        
+        # Create thread payload
+        thread_data = {
+            'match_id': match_data['id'],
+            'home_team': match_data['home_team'],
+            'away_team': match_data['away_team'],
+            'date': match_data.get('date'),
+            'time': match_data.get('time')
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            url = f"{bot_api_url}/api/create_match_thread"
+            async with session.post(url, json=thread_data, timeout=30) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    thread_id = result.get('thread_id')
+                    logger.info(f"Created Discord thread for match {match_data['id']}: {thread_id}")
+                    return thread_id
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to create Discord thread: {error_text}")
+                    return None
+                    
+    except Exception as e:
+        logger.error(f"Error creating Discord thread for match {match_data.get('id', 'unknown')}: {e}")
+        return None
+
+
 async def create_discord_channel(session: Session, team_name: str, division: str, team_id: int) -> Dict[str, Any]:
     """
     Create a dedicated Discord channel for a team under a specific category.
@@ -470,9 +677,9 @@ async def create_discord_channel(session: Session, team_name: str, division: str
             
             permission_overwrites = [
                 {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
-                {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"},
-                {"id": str(wg_admin_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"},
-                {"id": str(pl_leadership_role_id), "type": 0, "allow": str(TEAM_ROLE_PERMISSIONS), "deny": "0"},
+                {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"},
+                {"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
+                {"id": str(pl_leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
             ]
             payload = {
                 "name": team_name,
@@ -663,6 +870,103 @@ async def delete_team_channel(session: Session, team: Team) -> Dict[str, Any]:
 # ---------------------------
 # Player Role Updating & Sync
 # ---------------------------
+
+async def update_player_roles_async_only(player_data: Dict[str, Any], force_update: bool = False) -> Dict[str, Any]:
+    """
+    Update a player's Discord roles without database session (async-only version).
+    
+    Args:
+        player_data: Dictionary containing player information
+        force_update: If True, remove roles not in the expected set
+        
+    Returns:
+        Dict[str, Any]: Result indicating success, and lists of roles added/removed
+    """
+    if not player_data.get('discord_id'):
+        return {'success': False, 'error': 'No Discord ID'}
+    
+    guild_id = int(os.getenv('SERVER_ID'))
+    try:
+        async with aiohttp.ClientSession() as http_session:
+            # Use the provided player data instead of database queries
+            current_roles = player_data.get('current_roles', [])
+            expected_roles = player_data.get('expected_roles', [])
+            app_managed_roles = player_data.get('app_managed_roles', [])
+            
+            current_normalized = {normalize_name(r) for r in current_roles or []}
+            expected_normalized = {normalize_name(r) for r in expected_roles}
+            managed_normalized = {normalize_name(r) for r in app_managed_roles}
+            
+            # Identify coach roles in current Discord roles
+            coach_roles = [r for r in current_roles if "COACH" in r.upper()]
+            
+            # Log role information for debugging
+            logger.info(f"Player {player_data['name']} Discord role update:")
+            logger.info(f"Current roles: {current_roles}")
+            logger.info(f"Expected roles: {expected_roles}")
+            logger.info(f"Coach roles found: {coach_roles}")
+            
+            to_add = [r for r in expected_roles if normalize_name(r) not in current_normalized]
+            
+            # Handle role removal based on force_update and coach status
+            if force_update:
+                to_remove = [r for r in current_roles 
+                           if normalize_name(r) in managed_normalized 
+                           and normalize_name(r) not in expected_normalized]
+            else:
+                to_remove = []
+            
+            # Execute role changes via Discord API
+            roles_added = []
+            roles_removed = []
+            
+            # Add roles
+            for role_name in to_add:
+                try:
+                    # Get or create the role
+                    role_id = await get_or_create_role(guild_id, role_name, http_session)
+                    if role_id:
+                        # Assign role to user
+                        await assign_role_to_member(guild_id, player_data['discord_id'], role_id, http_session)
+                        roles_added.append(role_name)
+                        logger.info(f"Added role {role_name} to player {player_data['name']}")
+                except Exception as e:
+                    logger.error(f"Failed to add role {role_name}: {e}")
+            
+            # Remove roles
+            for role_name in to_remove:
+                try:
+                    # Get role ID
+                    role_id = await get_role_id(guild_id, role_name, http_session)
+                    if role_id:
+                        # Remove role from user
+                        await remove_role_from_member(guild_id, player_data['discord_id'], role_id, http_session)
+                        roles_removed.append(role_name)
+                        logger.info(f"Removed role {role_name} from player {player_data['name']}")
+                except Exception as e:
+                    logger.error(f"Failed to remove role {role_name}: {e}")
+            
+            # Get final roles after changes
+            final_roles = await get_member_roles(player_data['discord_id'], http_session)
+            
+            return {
+                'success': True,
+                'current_roles': final_roles,
+                'roles_added': roles_added,
+                'roles_removed': roles_removed,
+                'player_id': player_data.get('id'),
+                'discord_id': player_data['discord_id']
+            }
+            
+    except Exception as e:
+        logger.error(f"Error updating Discord roles for player {player_data.get('name', 'unknown')}: {e}")
+        return {
+            'success': False,
+            'error': str(e),
+            'player_id': player_data.get('id'),
+            'discord_id': player_data.get('discord_id')
+        }
+
 
 async def update_player_roles(session: Session, player: Player, force_update: bool = False) -> Dict[str, Any]:
     """

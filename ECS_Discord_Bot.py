@@ -1205,6 +1205,29 @@ async def load_cogs():
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
+    
+    # Register the bot instance in shared_states for use by web UI tasks
+    try:
+        set_bot_instance(bot)
+        logger.info("Bot instance registered in shared_states")
+    except Exception as e:
+        logger.error(f"Failed to register bot instance in shared_states: {e}")
+    
+    # Also register the bot for Discord cleanup tasks
+    try:
+        import sys
+        import os
+        
+        # Add web UI directory to path
+        webui_dir = os.path.join(os.path.dirname(__file__), "Discord-Bot-WebUI")
+        if webui_dir not in sys.path:
+            sys.path.append(webui_dir)
+        
+        from app.tasks.discord_utils import set_discord_bot
+        set_discord_bot(bot)
+        logger.info("Bot instance registered for Discord cleanup tasks")
+    except Exception as e:
+        logger.error(f"Failed to register bot for Discord cleanup tasks: {e}")
 
     # Force update bot username
     try:

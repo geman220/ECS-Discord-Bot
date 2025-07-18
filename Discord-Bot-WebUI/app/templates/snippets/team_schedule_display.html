@@ -1,0 +1,228 @@
+<!-- Team Schedule Display Snippet -->
+<!-- This shows how special weeks, playoffs, and practice sessions are displayed -->
+
+{% macro render_team_schedule(team, matches) %}
+<div class="team-schedule">
+    {% for match in matches %}
+        {% set display_info = match|match_display_info %}
+        
+        {% if display_info.type == 'playoff' %}
+            <!-- Playoff Week Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('playoff') }} me-2 text-{{ get_special_week_color('playoff') }}"></i>
+                    <strong>{{ display_info.title }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('playoff') }} ms-2">Playoffs</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="alert alert-info mt-2">
+                        <i class="ti-info-circle me-1"></i>
+                        Playoff bracket will be determined after regular season ends.
+                        <br><small>Your team has qualified for playoffs!</small>
+                    </div>
+                </div>
+            </div>
+            
+        {% elif display_info.type == 'fun' %}
+            <!-- Fun Week Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('fun') }} me-2 text-{{ get_special_week_color('fun') }}"></i>
+                    <strong>{{ display_info.title }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('fun') }} ms-2">Special</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-subtitle">{{ display_info.subtitle }}</div>
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="match-location">{{ match.location }}</div>
+                    <div class="alert alert-warning mt-2">
+                        <i class="ti-star me-1"></i>
+                        Fun activities and special events - no regular match scoring
+                    </div>
+                </div>
+            </div>
+            
+        {% elif display_info.type == 'tst' %}
+            <!-- TST Week Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('tst') }} me-2 text-{{ get_special_week_color('tst') }}"></i>
+                    <strong>{{ display_info.title }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('tst') }} ms-2">Training</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-subtitle">{{ display_info.subtitle }}</div>
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="match-location">{{ match.location }}</div>
+                    <div class="alert alert-info mt-2">
+                        <i class="ti-target me-1"></i>
+                        Team skills training and development session
+                    </div>
+                </div>
+            </div>
+            
+        {% elif display_info.type == 'bye' %}
+            <!-- BYE Week Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('bye') }} me-2 text-{{ get_special_week_color('bye') }}"></i>
+                    <strong>{{ display_info.title }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('bye') }} ms-2">BYE</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-subtitle">{{ display_info.subtitle }}</div>
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="alert alert-secondary mt-2">
+                        <i class="ti-calendar-off me-1"></i>
+                        No games scheduled this week - enjoy your break!
+                    </div>
+                </div>
+            </div>
+            
+        {% elif display_info.type == 'bonus' %}
+            <!-- Bonus Week Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('bonus') }} me-2 text-{{ get_special_week_color('bonus') }}"></i>
+                    <strong>{{ display_info.title }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('bonus') }} ms-2">Bonus</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-subtitle">{{ display_info.subtitle }}</div>
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="match-location">{{ match.location }}</div>
+                    <div class="alert alert-primary mt-2">
+                        <i class="ti-gift me-1"></i>
+                        Additional activities and events
+                    </div>
+                </div>
+            </div>
+            
+        {% elif display_info.type == 'practice' %}
+            <!-- Practice Match Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('practice') }} me-2 text-{{ get_special_week_color('practice') }}"></i>
+                    <strong>vs {{ match|opponent_name(team) }}</strong>
+                    <span class="badge bg-{{ get_special_week_color('practice') }} ms-2">Practice</span>
+                </div>
+                <div class="match-content">
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="match-location">{{ match.location }}</div>
+                    <div class="alert alert-success mt-2">
+                        <i class="ti-run me-1"></i>
+                        <strong>Game 1 is a practice session</strong> - Game 2 is regular match
+                    </div>
+                </div>
+            </div>
+            
+        {% else %}
+            <!-- Regular Match Display -->
+            <div class="match-card {{ display_info.css_class }}">
+                <div class="match-header">
+                    <i class="{{ get_special_week_icon('regular') }} me-2 text-{{ get_special_week_color('regular') }}"></i>
+                    <strong>vs {{ match|opponent_name(team) }}</strong>
+                    {% if match.reported %}
+                        <span class="badge bg-success ms-2">{{ match|match_result_display(team) }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2">Scheduled</span>
+                    {% endif %}
+                </div>
+                <div class="match-content">
+                    <div class="match-date">{{ match.date.strftime('%B %d, %Y') }}</div>
+                    <div class="match-time">{{ match.time.strftime('%I:%M %p') }}</div>
+                    <div class="match-location">{{ match.location }}</div>
+                    {% if match.reported %}
+                        <div class="match-score mt-2">
+                            Final Score: {{ match.home_team_score }} - {{ match.away_team_score }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+<!-- Dashboard Week Summary -->
+{% macro render_week_summary(week_number, matches) %}
+{% set week_info = matches|week_summary(week_number) %}
+<div class="week-summary {{ week_info.css_class }}">
+    <div class="week-header">
+        <h5>{{ week_info.title }}</h5>
+        {% if week_info.subtitle %}
+            <small class="text-muted">{{ week_info.subtitle }}</small>
+        {% endif %}
+    </div>
+    
+    {% if week_info.type == 'playoff' %}
+        <div class="playoff-summary">
+            <div class="alert alert-info">
+                <i class="ti-trophy me-1"></i>
+                <strong>Playoff Week</strong><br>
+                {{ format_playoff_placeholder(1, matches|length) }}
+            </div>
+        </div>
+    {% elif week_info.type in ['fun', 'tst', 'bye', 'bonus'] %}
+        <div class="special-week-summary">
+            <div class="alert alert-{{ get_special_week_color(week_info.type) }}">
+                <i class="{{ get_special_week_icon(week_info.type) }} me-1"></i>
+                <strong>{{ week_info.title }}</strong><br>
+                {{ week_info.subtitle }}
+            </div>
+        </div>
+    {% else %}
+        <div class="matches-summary">
+            <div class="row">
+                {% for match in matches %}
+                    <div class="col-md-6 mb-2">
+                        <div class="small-match-card">
+                            <strong>{{ match.home_team.name }} vs {{ match.away_team.name }}</strong>
+                            <br>
+                            <small>{{ match.time.strftime('%I:%M %p') }} at {{ match.location }}</small>
+                            {% if match|is_practice_match %}
+                                <br><small class="text-success">Game 1: Practice</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+<!-- Playoff Management Section (for admins) -->
+{% macro render_playoff_management(matches) %}
+{% if should_show_playoff_setup(matches) %}
+<div class="playoff-management">
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="ti-trophy me-2"></i>Playoff Management</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="ti-info-circle me-1"></i>
+                <strong>Playoff brackets need to be set up!</strong><br>
+                Regular season is complete. You can now assign teams to playoff matchups.
+            </div>
+            
+            <div class="playoff-actions">
+                <button class="btn btn-primary" onclick="setupPlayoffBrackets()">
+                    <i class="ti-tournament me-1"></i>Set Up Playoff Brackets
+                </button>
+                <button class="btn btn-secondary" onclick="viewStandings()">
+                    <i class="ti-list me-1"></i>View Final Standings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endmacro %}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Season Configuration - {{ league.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Season Configuration - {{ league.name }}</h3>
+                    <div class="card-tools">
+                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to Schedule Manager
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('auto_schedule.season_config', league_id=league.id) }}">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="regular_season_weeks">Regular Season Weeks</label>
+                                    <input type="number" class="form-control" id="regular_season_weeks" 
+                                           name="regular_season_weeks" value="{{ season_config.regular_season_weeks }}" 
+                                           min="1" max="20" required>
+                                    <small class="form-text text-muted">Number of regular season weeks</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="playoff_weeks">Playoff Weeks</label>
+                                    <input type="number" class="form-control" id="playoff_weeks" 
+                                           name="playoff_weeks" value="{{ season_config.playoff_weeks }}" 
+                                           min="0" max="5" required>
+                                    <small class="form-text text-muted">Number of playoff weeks</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label>Special Weeks</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_fun_week" 
+                                               name="has_fun_week" {{ 'checked' if season_config.has_fun_week else '' }}>
+                                        <label class="form-check-label" for="has_fun_week">
+                                            Fun Week
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_tst_week" 
+                                               name="has_tst_week" {{ 'checked' if season_config.has_tst_week else '' }}>
+                                        <label class="form-check-label" for="has_tst_week">
+                                            TST Week
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_bonus_week" 
+                                               name="has_bonus_week" {{ 'checked' if season_config.has_bonus_week else '' }}>
+                                        <label class="form-check-label" for="has_bonus_week">
+                                            Bonus Week
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="has_practice_sessions" 
+                                               name="has_practice_sessions" {{ 'checked' if season_config.has_practice_sessions else '' }}>
+                                        <label class="form-check-label" for="has_practice_sessions">
+                                            Has Practice Sessions
+                                        </label>
+                                    </div>
+                                    <small class="form-text text-muted">Enable practice sessions for specific weeks</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row practice-config" style="{{ 'display: none;' if not season_config.has_practice_sessions else '' }}">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="practice_weeks">Practice Weeks</label>
+                                    <input type="text" class="form-control" id="practice_weeks" 
+                                           name="practice_weeks" value="{{ season_config.practice_weeks or '' }}" 
+                                           placeholder="e.g., 1,3">
+                                    <small class="form-text text-muted">Comma-separated week numbers (e.g., 1,3)</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="practice_game_number">Practice Game Number</label>
+                                    <select class="form-control" id="practice_game_number" name="practice_game_number">
+                                        <option value="1" {{ 'selected' if season_config.practice_game_number == 1 else '' }}>Game 1</option>
+                                        <option value="2" {{ 'selected' if season_config.practice_game_number == 2 else '' }}>Game 2</option>
+                                    </select>
+                                    <small class="form-text text-muted">Which game number should be practice</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="alert alert-info">
+                                    <h5><i class="icon fas fa-info"></i> Season Structure Preview</h5>
+                                    <div id="season-preview">
+                                        <p><strong>League Type:</strong> {{ season_config.league_type }}</p>
+                                        <p><strong>Total Season Length:</strong> <span id="total-weeks">{{ season_config.regular_season_weeks + season_config.playoff_weeks + (1 if season_config.has_fun_week else 0) + (1 if season_config.has_tst_week else 0) + (1 if season_config.has_bonus_week else 0) }}</span> weeks</p>
+                                        <ul>
+                                            <li>Regular Season: {{ season_config.regular_season_weeks }} weeks</li>
+                                            {% if season_config.has_fun_week %}<li>Fun Week: 1 week</li>{% endif %}
+                                            {% if season_config.has_tst_week %}<li>TST Week: 1 week</li>{% endif %}
+                                            <li>Playoffs: {{ season_config.playoff_weeks }} weeks</li>
+                                            {% if season_config.has_bonus_week %}<li>Bonus Week: 1 week</li>{% endif %}
+                                        </ul>
+                                        {% if season_config.has_practice_sessions %}
+                                        <p><strong>Practice Sessions:</strong> Game {{ season_config.practice_game_number }} of weeks {{ season_config.practice_weeks or 'Not specified' }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Configuration
+                                </button>
+                                <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const practiceCheckbox = document.getElementById('has_practice_sessions');
+    const practiceConfig = document.querySelector('.practice-config');
+    
+    // Toggle practice configuration visibility
+    practiceCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            practiceConfig.style.display = '';
+        } else {
+            practiceConfig.style.display = 'none';
+        }
+    });
+    
+    // Update season preview when values change
+    function updatePreview() {
+        const regularWeeks = parseInt(document.getElementById('regular_season_weeks').value) || 0;
+        const playoffWeeks = parseInt(document.getElementById('playoff_weeks').value) || 0;
+        const hasFun = document.getElementById('has_fun_week').checked;
+        const hasTst = document.getElementById('has_tst_week').checked;
+        const hasBonus = document.getElementById('has_bonus_week').checked;
+        
+        const totalWeeks = regularWeeks + playoffWeeks + (hasFun ? 1 : 0) + (hasTst ? 1 : 0) + (hasBonus ? 1 : 0);
+        document.getElementById('total-weeks').textContent = totalWeeks;
+    }
+    
+    // Add event listeners to update preview
+    document.getElementById('regular_season_weeks').addEventListener('input', updatePreview);
+    document.getElementById('playoff_weeks').addEventListener('input', updatePreview);
+    document.getElementById('has_fun_week').addEventListener('change', updatePreview);
+    document.getElementById('has_tst_week').addEventListener('change', updatePreview);
+    document.getElementById('has_bonus_week').addEventListener('change', updatePreview);
+});
+</script>
+{% endblock %}
