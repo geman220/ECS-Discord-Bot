@@ -409,15 +409,43 @@ def get_match_request_data(match_id, session=None):
             logger.error(f"Missing team data for match {match_id}")
             return None
 
-        return {
-            'match_id': match.id,
-            'home_team_name': match.home_team.name,
-            'away_team_name': match.away_team.name,
-            'match_date': match.date.strftime('%Y-%m-%d') if match.date else None,
-            'match_time': match.time.strftime('%H:%M:%S') if match.time else None,
-            'home_team_id': match.home_team_id,
-            'away_team_id': match.away_team_id
-        }
+        # Check if this is a special week (self-match)
+        if match.home_team_id == match.away_team_id:
+            # This is a special week - determine the display name
+            special_week_name = "Special Event"
+            if hasattr(match, 'week_type'):
+                week_type = match.week_type.upper()
+                if week_type == 'FUN':
+                    special_week_name = "Fun Week!"
+                elif week_type == 'TST':
+                    special_week_name = "The Soccer Tournament!"
+                elif week_type == 'BYE':
+                    special_week_name = "BYE Week!"
+                elif week_type == 'BONUS':
+                    special_week_name = "Bonus Week!"
+            
+            return {
+                'match_id': match.id,
+                'home_team_name': match.home_team.name,
+                'away_team_name': match.away_team.name,
+                'special_week_display': special_week_name,
+                'is_special_week': True,
+                'match_date': match.date.strftime('%Y-%m-%d') if match.date else None,
+                'match_time': match.time.strftime('%H:%M:%S') if match.time else None,
+                'home_team_id': match.home_team_id,
+                'away_team_id': match.away_team_id
+            }
+        else:
+            return {
+                'match_id': match.id,
+                'home_team_name': match.home_team.name,
+                'away_team_name': match.away_team.name,
+                'is_special_week': False,
+                'match_date': match.date.strftime('%Y-%m-%d') if match.date else None,
+                'match_time': match.time.strftime('%H:%M:%S') if match.time else None,
+                'home_team_id': match.home_team_id,
+                'away_team_id': match.away_team_id
+            }
 
     except Exception as e:
         logger.error(f"Error getting match request data for match {match_id}: {str(e)}")

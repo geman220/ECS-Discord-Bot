@@ -237,6 +237,10 @@ class ImageCacheService:
             
             ImageCacheService.initialize_cache_directory()
             
+            # Phase 1: Get image URL and prepare for download
+            original_url = None
+            cache_entry_id = None
+            
             # Get or create cache entry
             cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
             if not cache_entry:
@@ -260,10 +264,11 @@ class ImageCacheService:
                 return True
             
             cache_entry.cache_status = 'processing'
+            original_url = cache_entry.original_url
+            cache_entry_id = cache_entry.id
             session.commit()
             
-            # Download/load original image
-            original_url = cache_entry.original_url
+            # Phase 2: Download/load image data without holding session
             image_data = None
             
             if original_url and original_url.startswith('/static/'):
@@ -275,11 +280,15 @@ class ImageCacheService:
                     logger.debug(f"Loaded local image: {original_path}")
                 else:
                     logger.warning(f"Local image not found: {original_path}")
-                    cache_entry.cache_status = 'failed'
-                    session.commit()
+                    # Update cache status in new session
+                    with managed_session() as fail_session:
+                        fail_entry = fail_session.query(PlayerImageCache).get(cache_entry_id)
+                        if fail_entry:
+                            fail_entry.cache_status = 'failed'
+                            fail_session.commit()
                     return False
             elif original_url and original_url.startswith('http'):
-                # Download from URL
+                # Download from URL without holding database session
                 try:
                     response = requests.get(original_url, timeout=10, stream=True)
                     response.raise_for_status()
@@ -287,19 +296,31 @@ class ImageCacheService:
                     logger.debug(f"Downloaded image from: {original_url}")
                 except Exception as e:
                     logger.warning(f"Failed to download image from {original_url}: {e}")
-                    cache_entry.cache_status = 'failed'
-                    session.commit()
+                    # Update cache status in new session
+                    with managed_session() as fail_session:
+                        fail_entry = fail_session.query(PlayerImageCache).get(cache_entry_id)
+                        if fail_entry:
+                            fail_entry.cache_status = 'failed'
+                            fail_session.commit()
                     return False
             else:
                 logger.warning(f"Invalid image URL for player {player_id}: {original_url}")
-                cache_entry.cache_status = 'failed'
-                session.commit()
+                # Update cache status in new session
+                with managed_session() as fail_session:
+                    fail_entry = fail_session.query(PlayerImageCache).get(cache_entry_id)
+                    if fail_entry:
+                        fail_entry.cache_status = 'failed'
+                        fail_session.commit()
                 return False
             
             if not image_data:
                 logger.warning(f"No image data loaded for player {player_id}")
-                cache_entry.cache_status = 'failed'
-                session.commit()
+                # Update cache status in new session
+                with managed_session() as fail_session:
+                    fail_entry = fail_session.query(PlayerImageCache).get(cache_entry_id)
+                    if fail_entry:
+                        fail_entry.cache_status = 'failed'
+                        fail_session.commit()
                 return False
             
             # Open and validate image
@@ -330,19 +351,21 @@ class ImageCacheService:
             webp_path = ImageCacheService.CACHE_DIR / "webp" / f"{base_name}_{timestamp}.webp"
             medium.save(webp_path, 'WEBP', quality=ImageCacheService.WEBP_QUALITY, optimize=True)
             
-            # Update cache entry
-            cache_entry.thumbnail_url = f"/static/img/cache/players/thumbnails/{thumbnail_path.name}"
-            cache_entry.cached_url = f"/static/img/cache/players/medium/{medium_path.name}"
-            cache_entry.webp_url = f"/static/img/cache/players/webp/{webp_path.name}"
-            cache_entry.width = medium.width
-            cache_entry.height = medium.height
-            cache_entry.file_size = medium_path.stat().st_size
-            cache_entry.is_optimized = True
-            cache_entry.cache_status = 'ready'
-            cache_entry.last_cached = datetime.utcnow()
-            cache_entry.cache_expiry = datetime.utcnow() + timedelta(days=ImageCacheService.CACHE_EXPIRY_DAYS)
-            
-            session.commit()
+            # Phase 3: Update cache entry with new session
+            with managed_session() as update_session:
+                cache_entry = update_session.query(PlayerImageCache).get(cache_entry_id)
+                if cache_entry:
+                    cache_entry.thumbnail_url = f"/static/img/cache/players/thumbnails/{thumbnail_path.name}"
+                    cache_entry.cached_url = f"/static/img/cache/players/medium/{medium_path.name}"
+                    cache_entry.webp_url = f"/static/img/cache/players/webp/{webp_path.name}"
+                    cache_entry.width = medium.width
+                    cache_entry.height = medium.height
+                    cache_entry.file_size = medium_path.stat().st_size
+                    cache_entry.is_optimized = True
+                    cache_entry.cache_status = 'ready'
+                    cache_entry.last_cached = datetime.utcnow()
+                    cache_entry.cache_expiry = datetime.utcnow() + timedelta(days=ImageCacheService.CACHE_EXPIRY_DAYS)
+                    update_session.commit()
             
             logger.info(f"Successfully optimized image for player {player_id}")
             return True
@@ -350,10 +373,12 @@ class ImageCacheService:
         except Exception as e:
             logger.error(f"Error optimizing image for player {player_id}: {e}")
             try:
-                cache_entry = PlayerImageCache.query.filter_by(player_id=player_id).first()
-                if cache_entry:
-                    cache_entry.cache_status = 'failed'
-                    session.commit()
+                # Update cache status in new session
+                with managed_session() as error_session:
+                    cache_entry = error_session.query(PlayerImageCache).filter_by(player_id=player_id).first()
+                    if cache_entry:
+                        cache_entry.cache_status = 'failed'
+                        error_session.commit()
             except:
                 pass
             return False

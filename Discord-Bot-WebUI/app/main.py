@@ -30,8 +30,9 @@ from sqlalchemy import or_, func, text
 from werkzeug.utils import secure_filename
 
 from app.models import (
-    Match, Notification, Team, Player, Announcement, player_teams
+    Match, Notification, Team, Player, Announcement, player_teams, Season
 )
+from app.models.players import PlayerTeamSeason
 from app.decorators import role_required
 from app import csrf
 from app.forms import (
@@ -554,7 +555,27 @@ def index():
                     show_error('An error occurred. Please try again.')
                     return redirect(url_for('main.index'))
 
-        user_teams = player.teams if player else []
+        # Get only current season teams for the player
+        user_teams = []
+        if player:
+            # Get current season
+            current_season = Season.query.filter_by(is_current=True).first()
+            if current_season:
+                # Query teams through PlayerTeamSeason for current season only
+                current_season_teams = g.db_session.query(Team).join(
+                    PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+                ).filter(
+                    PlayerTeamSeason.player_id == player.id,
+                    PlayerTeamSeason.season_id == current_season.id
+                ).all()
+                
+                # If no PlayerTeamSeason records found for current season, fall back to direct team relationships
+                if not current_season_teams:
+                    # Filter teams by current season's leagues
+                    current_season_leagues = [league.id for league in current_season.leagues]
+                    current_season_teams = [team for team in player.teams if team.league_id in current_season_leagues]
+                
+                user_teams = current_season_teams
         today = datetime.now().date()
         two_weeks_later = today + timedelta(weeks=2)
         one_week_ago = today - timedelta(weeks=1)

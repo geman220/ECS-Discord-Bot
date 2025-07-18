@@ -89,6 +89,116 @@ def create_error_result(player_info: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _extract_player_role_data(session, player_id: int):
+    """Extract player data for Discord role update."""
+    from app.discord_utils import get_expected_roles_sync, get_app_managed_roles_sync, fetch_user_roles_sync
+    
+    player = session.query(Player).get(player_id)
+    if not player:
+        raise ValueError(f"Player {player_id} not found")
+    
+    # Get all required data from database while session is available
+    try:
+        # Get expected roles for this player
+        expected_roles = []
+        app_managed_roles = []
+        current_roles = []
+        
+        # We need to get this data synchronously since we have the session
+        # For now, let's extract the basic player data and calculate roles in async phase
+        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                for team in player.teams if team.is_active]
+        
+        return {
+            'player_id': player_id,
+            'discord_id': player.discord_id,
+            'name': player.name,
+            'is_active': player.is_active,
+            'is_coach': player.is_coach,
+            'current_roles': player.discord_roles or [],
+            'teams': teams,
+            'force_update': False
+        }
+    except Exception as e:
+        logger.error(f"Error extracting player data: {e}")
+        raise
+
+
+async def _execute_player_role_update_async(data):
+    """Execute Discord role update without database session."""
+    # Calculate expected roles based on team data
+    expected_roles = []
+    
+    # Add team roles based on teams
+    for team in data.get('teams', []):
+        if team.get('league_name') in ['Premier', 'Classic']:
+            # Add player role
+            expected_roles.append(f"{team['name']} Player")
+            
+            # Add coach role if player is coach
+            if data.get('is_coach'):
+                expected_roles.append(f"{team['name']} Coach")
+    
+    # Add global roles based on player status
+    if data.get('is_active'):
+        expected_roles.append('Registered Player')
+    
+    # Get app managed roles (these are roles our app can modify)
+    app_managed_roles = [
+        'Registered Player',
+        'Substitute Pool - Premier',
+        'Substitute Pool - Classic'
+    ]
+    
+    # Add team-specific roles to managed roles
+    for team in data.get('teams', []):
+        app_managed_roles.extend([
+            f"{team['name']} Player",
+            f"{team['name']} Coach"
+        ])
+    
+    # Prepare data for async-only function
+    player_data = {
+        'id': data['player_id'],
+        'name': data['name'],
+        'discord_id': data['discord_id'],
+        'current_roles': data.get('current_roles', []),
+        'expected_roles': expected_roles,
+        'app_managed_roles': app_managed_roles
+    }
+    
+    # Perform the async Discord operations
+    from app.discord_utils import update_player_roles_async_only
+    result = await update_player_roles_async_only(player_data, force_update=data.get('force_update', False))
+    
+    # Return result with data needed for database update
+    return {
+        'success': result.get('success', False),
+        'message': result.get('message', result.get('error', '')),
+        'current_roles': result.get('current_roles', []),
+        'roles_added': result.get('roles_added', []),
+        'roles_removed': result.get('roles_removed', []),
+        'player_id': data['player_id'],
+        'sync_status': 'success' if result.get('success') else 'mismatch'
+    }
+
+
+def _update_player_after_role_sync(session, result):
+    """Update player record after async role sync completes."""
+    if not result.get('success'):
+        return result
+    
+    player = session.query(Player).get(result['player_id'])
+    if player:
+        player.discord_roles = result.get('current_roles', [])
+        player.discord_last_verified = datetime.utcnow()
+        player.discord_needs_update = False
+        player.last_sync_attempt = datetime.utcnow()
+        player.sync_status = result.get('sync_status', 'success')
+    
+    return result
+
+
 @celery_task(
     name='app.tasks.tasks_discord.update_player_discord_roles',
     queue='discord',
@@ -96,52 +206,40 @@ def create_error_result(player_info: Dict[str, Any]) -> Dict[str, Any]:
     max_retries=3,
     retry_backoff=True
 )
-def update_player_discord_roles(self, session, player_id: int) -> Dict[str, Any]:
+async def update_player_discord_roles(self, session, player_id: int) -> Dict[str, Any]:
     """
-    Update Discord roles for a single player.
+    Update Discord roles for a single player using two-phase pattern.
     
-    This task fetches the player from the database, calls an async helper to update
-    roles via Discord API, and updates the player's role data and timestamps. It also
-    emits a socketio event with the update result.
+    Phase 1: Extract player data from database
+    Phase 2: Update Discord roles via API (async, no DB session)
+    Phase 3: Update player record with results
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         player_id: ID of the player to update.
         
     Returns:
         A dictionary with the update result.
-        
-    Raises:
-        Retries the task if an error occurs.
     """
     try:
-        player = session.query(Player).get(player_id)
-        if not player:
-            logger.error(f"Player {player_id} not found")
-            return {'success': False, 'message': 'Player not found'}
-
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        
-        result = async_to_sync(update_player_roles(session, player, force_update=False))
-        
-        # Update player role fields and timestamps.
-        player.discord_roles = result.get('current_roles', [])
-        player.discord_last_verified = datetime.utcnow()
-        player.discord_needs_update = False
-        player.last_sync_attempt = datetime.utcnow()
-        player.sync_status = 'success' if result.get('success') else 'mismatch'
-
-        # Emit socket event to notify clients.
-        socketio.emit('role_update', result)
-        return result
-
+        # This task will be handled by the decorator's two-phase pattern
+        # but also needs a final database update, so we handle that specially
+        pass
     except SQLAlchemyError as e:
         logger.error(f"Database error updating Discord roles for player {player_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error updating Discord roles for player {player_id}: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
+
+
+# This task needs special handling since it requires a final DB update
+# We'll mark it with a special flag and handle it in the decorator
+update_player_discord_roles._extract_data = _extract_player_role_data
+update_player_discord_roles._execute_async = _execute_player_role_update_async
+update_player_discord_roles._two_phase = True
+update_player_discord_roles._requires_final_db_update = True
+update_player_discord_roles._final_db_update = _update_player_after_role_sync
 
 
 async def _update_player_discord_roles_async(session, player_id: int) -> Dict[str, Any]:
@@ -194,59 +292,220 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
         return {'success': False, 'message': 'Discord API error', 'error': str(e)}
 
 
+def _extract_batch_role_update_data(session, discord_ids: List[str]):
+    """Extract player data for batch Discord role updates."""
+    players = session.query(Player).filter(
+        Player.discord_id.in_(discord_ids)
+    ).options(
+        joinedload(Player.teams),
+        joinedload(Player.teams).joinedload(Team.league),
+        joinedload(Player.user).joinedload(User.roles)
+    ).all()
+    
+    players_data = []
+    for player in players:
+        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                for team in player.teams if team.is_active]
+        
+        players_data.append({
+            'id': player.id,
+            'discord_id': player.discord_id,
+            'name': player.name,
+            'is_active': player.is_active,
+            'is_coach': player.is_coach,
+            'current_roles': player.discord_roles or [],
+            'teams': teams
+        })
+    
+    return {'players': players_data}
+
+
+async def _execute_batch_role_update_async(data):
+    """Execute batch Discord role updates without database session."""
+    players_data = data['players']
+    results = []
+    
+    # Process each player
+    for player_data in players_data:
+        try:
+            # Use the same logic as single player update
+            result = await _execute_player_role_update_async(player_data)
+            results.append({
+                'id': player_data['id'],
+                'discord_id': player_data['discord_id'],
+                'status': 'synced' if result.get('success') else 'error',
+                'success': result.get('success', False),
+                'error': result.get('message', '') if not result.get('success') else None,
+                'current_roles': result.get('current_roles', []),
+                'roles_added': result.get('roles_added', []),
+                'roles_removed': result.get('roles_removed', [])
+            })
+        except Exception as e:
+            logger.error(f"Error processing player {player_data.get('name', 'unknown')}: {e}")
+            results.append({
+                'id': player_data['id'],
+                'discord_id': player_data['discord_id'],
+                'status': 'error',
+                'success': False,
+                'error': str(e)
+            })
+    
+    return {
+        'success': True,
+        'results': results,
+        'processed_count': len([r for r in results if r.get('status') == 'synced']),
+        'error_count': len([r for r in results if r.get('status') != 'synced'])
+    }
+
+
+def _update_players_after_batch_role_sync(session, result):
+    """Update player records after batch role sync completes."""
+    if not result.get('success'):
+        return result
+    
+    # Update each player's sync info based on the results
+    for player_result in result.get('results', []):
+        player = session.query(Player).get(player_result['id'])
+        if player:
+            player.discord_last_verified = datetime.utcnow()
+            player.discord_needs_update = False
+            player.last_sync_attempt = datetime.utcnow()
+            player.sync_status = 'success' if player_result.get('status') == 'synced' else 'error'
+            if not player_result.get('success'):
+                player.sync_error = player_result.get('error')
+            if player_result.get('current_roles'):
+                player.discord_roles = player_result['current_roles']
+    
+    return result
+
+
 @celery_task(
     name='app.tasks.tasks_discord.process_discord_role_updates',
     queue='discord'
 )
-def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[str, Any]:
+async def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[str, Any]:
     """
-    Process Discord role updates for multiple players.
-    
-    This task queries players by their Discord IDs, then asynchronously processes role
-    updates in batch. After processing, it updates each player's sync status and emits
-    a socketio event with the role status results.
+    Process Discord role updates for multiple players using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         discord_ids: List of Discord IDs to process.
         
     Returns:
         A summary dictionary with counts and details of the processed results.
     """
-    try:
-        players = session.query(Player).filter(
-            Player.discord_id.in_(discord_ids)
-        ).options(
-            joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league),
-            joinedload(Player.user).joinedload(User.roles)
-        ).all()
+    pass
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        results = async_to_sync(_process_role_updates_batch(session, players))
 
-        # Update each player's sync info based on the results.
-        for player in players:
-            result = next((r for r in results if r.get('id') == player.id), None)
-            if result:
-                player.discord_last_verified = datetime.utcnow()
-                player.discord_needs_update = False
-                player.last_sync_attempt = datetime.utcnow()
-                player.sync_status = 'success' if result.get('status') == 'synced' else 'error'
-                if not result.get('success'):
-                    player.sync_error = result.get('error')
+# Attach phase methods
+process_discord_role_updates._extract_data = _extract_batch_role_update_data
+process_discord_role_updates._execute_async = _execute_batch_role_update_async
+process_discord_role_updates._two_phase = True
+process_discord_role_updates._requires_final_db_update = True
+process_discord_role_updates._final_db_update = _update_players_after_batch_role_sync
 
-        return {
-            'success': True,
-            'processed_count': len([r for r in results if r.get('status') == 'synced']),
-            'error_count': len([r for r in results if r.get('status') != 'synced']),
-            'results': results
-        }
 
-    except Exception as e:
-        logger.error(f"Error processing role updates: {str(e)}", exc_info=True)
-        raise self.retry(exc=e, countdown=30)
+def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] = None, only_add: bool = True):
+    """Extract player data for role assignment."""
+    player = session.query(Player).get(player_id)
+    if not player:
+        raise ValueError(f"Player {player_id} not found")
+    
+    # Get team info if specific team provided
+    target_team = None
+    if team_id:
+        target_team = session.query(Team).get(team_id)
+        if target_team:
+            target_team = {
+                'id': target_team.id,
+                'name': target_team.name,
+                'league_name': target_team.league.name if target_team.league else None
+            }
+    
+    # Get all player teams
+    teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+            for team in player.teams if team.is_active]
+    
+    return {
+        'player_id': player_id,
+        'discord_id': player.discord_id,
+        'name': player.name,
+        'is_active': player.is_active,
+        'is_coach': player.is_coach,
+        'current_roles': player.discord_roles or [],
+        'teams': teams,
+        'target_team': target_team,
+        'only_add': only_add
+    }
+
+
+async def _execute_assign_roles_async(data):
+    """Execute role assignment without database session."""
+    # Use the same role calculation logic but only for target team if specified
+    target_team = data.get('target_team')
+    teams_to_process = [target_team] if target_team else data.get('teams', [])
+    
+    expected_roles = []
+    
+    # Add team roles
+    for team in teams_to_process:
+        if team and team.get('league_name') in ['Premier', 'Classic']:
+            expected_roles.append(f"{team['name']} Player")
+            if data.get('is_coach'):
+                expected_roles.append(f"{team['name']} Coach")
+    
+    # Add global roles if processing all teams
+    if not target_team and data.get('is_active'):
+        expected_roles.append('Registered Player')
+    
+    # Prepare data for async-only function
+    player_data = {
+        'id': data['player_id'],
+        'name': data['name'],
+        'discord_id': data['discord_id'],
+        'current_roles': data.get('current_roles', []),
+        'expected_roles': expected_roles,
+        'app_managed_roles': [
+            'Registered Player',
+            'Substitute Pool - Premier',
+            'Substitute Pool - Classic'
+        ] + [f"{team['name']} Player" for team in data.get('teams', [])] + 
+            [f"{team['name']} Coach" for team in data.get('teams', [])]
+    }
+    
+    # Execute role assignment
+    from app.discord_utils import update_player_roles_async_only
+    result = await update_player_roles_async_only(player_data, force_update=not data.get('only_add', True))
+    
+    return {
+        'success': result.get('success', False),
+        'message': result.get('message', result.get('error', '')),
+        'current_roles': result.get('current_roles', []),
+        'roles_added': result.get('roles_added', []),
+        'roles_removed': result.get('roles_removed', []),
+        'player_id': data['player_id'],
+        'timestamp': datetime.utcnow().isoformat()
+    }
+
+
+def _update_player_after_assign_roles(session, result):
+    """Update player record after role assignment."""
+    if not result.get('success'):
+        return result
+    
+    player = session.query(Player).get(result['player_id'])
+    if player:
+        player.discord_roles_updated = datetime.utcnow()
+        if result.get('success'):
+            player.discord_role_sync_status = 'completed'
+        else:
+            player.discord_role_sync_status = 'failed'
+            player.sync_error = result.get('message')
+        player.last_sync_attempt = datetime.utcnow()
+        if result.get('current_roles'):
+            player.discord_roles = result['current_roles']
+    
+    return result
 
 
 @celery_task(
@@ -257,60 +516,28 @@ def process_discord_role_updates(self, session, discord_ids: List[str]) -> Dict[
     retry_backoff=True,
     rate_limit='50/s'
 )
-def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional[int] = None, only_add: bool = True) -> Dict[str, Any]:
+async def assign_roles_to_player_task(self, session, player_id: int, team_id: Optional[int] = None, only_add: bool = True) -> Dict[str, Any]:
     """
-    Assign or update Discord roles for a player.
+    Assign or update Discord roles for a player using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         player_id: ID of the player.
         team_id: Optional team ID to scope role assignment.
         only_add: If True, only add roles; if False, remove roles not in the expected set.
         
     Returns:
         A dictionary with success status and details of the role assignment.
-    
-    Raises:
-        Retries the task on error.
     """
-    logger.info(f"==> Starting assign_roles_to_player_task for player_id={player_id}, team_id={team_id}, only_add={only_add}")
-    try:
-        # Ensure a DB connection is available.
-        session.connection()
+    pass
 
-        player = session.query(Player).get(player_id)
-        if not player:
-            logger.warning(f"Player {player_id} not found in DB.")
-            return {'success': False, 'message': 'Player not found'}
 
-        logger.info(f"Found player {player_id}, discord_id={player.discord_id}")
-
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        logger.debug("Calling _assign_roles_async(...)")
-        result = async_to_sync(_assign_roles_async(session, player.id, team_id, only_add))
-        
-        # Use a nested transaction to update player sync status.
-        with session.begin_nested():
-            player.discord_roles_updated = datetime.utcnow()
-            if result.get('success'):
-                player.discord_role_sync_status = 'completed'
-            else:
-                player.discord_role_sync_status = 'failed'
-                player.sync_error = result.get('error')
-            player.last_sync_attempt = datetime.utcnow()
-        return {
-            'success': True,
-            'message': 'Roles assigned successfully',
-            'player_id': player_id,
-            'timestamp': datetime.utcnow().isoformat(),
-            **result
-        }
-
-    except Exception as e:
-        logger.error(f"Error assigning roles to player {player_id}: {e}", exc_info=True)
-        countdown = 60 if isinstance(e, SQLAlchemyError) else 15
-        raise self.retry(exc=e, countdown=countdown)
+# Attach phase methods
+assign_roles_to_player_task._extract_data = _extract_assign_roles_data
+assign_roles_to_player_task._execute_async = _execute_assign_roles_async
+assign_roles_to_player_task._requires_final_db_update = True
+assign_roles_to_player_task._final_db_update = _update_player_after_assign_roles
+assign_roles_to_player_task._two_phase = True
 
 
 async def _assign_roles_async(session, player_id: int, team_id: Optional[int], only_add: bool) -> Dict[str, Any]:
@@ -367,62 +594,142 @@ async def _assign_roles_async(session, player_id: int, team_id: Optional[int], o
         return {'success': False, 'message': str(e)}
 
 
-@celery_task(name='app.tasks.tasks_discord.fetch_role_status', queue='discord')
-def fetch_role_status(self, session) -> Dict[str, Any]:
-    """
-    Fetch and update role status for players with a Discord ID.
+def _extract_fetch_role_status_data(session):
+    """Extract player data for role status fetching."""
+    players = session.query(Player).filter(
+        Player.discord_id.isnot(None)
+    ).options(
+        joinedload(Player.teams),
+        joinedload(Player.teams).joinedload(Team.league),
+        joinedload(Player.user).joinedload(User.roles)
+    ).all()
     
-    This task retrieves players, fetches current roles via an async batch call,
-    updates each player's sync status, and emits a socketio event with the results.
+    players_data = []
+    for player in players:
+        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                for team in player.teams if team.is_active]
+        
+        players_data.append({
+            'id': player.id,
+            'discord_id': player.discord_id,
+            'name': player.name,
+            'teams': teams
+        })
+    
+    return {'players': players_data}
+
+
+async def _execute_fetch_role_status_async(data):
+    """Execute role status fetching without database session."""
+    players_data = data['players']
+    results = []
+    status_updates = []
+    
+    # Fetch roles for each player (simplified version of _fetch_roles_batch)
+    async with aiohttp.ClientSession() as session:
+        for player_data in players_data:
+            try:
+                # Get current roles from Discord
+                roles = await get_member_roles(player_data['discord_id'], session)
+                
+                # Create result data
+                teams_str = ", ".join(t['name'] for t in player_data['teams']) if player_data['teams'] else "No Team"
+                leagues_str = ", ".join(sorted({t['league_name'] for t in player_data['teams'] if t['league_name']})) if player_data['teams'] else "No League"
+                
+                results.append({
+                    'id': player_data['id'],
+                    'name': player_data['name'],
+                    'team': teams_str,
+                    'league': leagues_str,
+                    'current_roles': roles or [],
+                    'expected_roles': [],  # Simplified for now
+                    'status_html': '<span class="badge badge-success">Synced</span>',
+                    'last_verified': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                    'roles_match': True
+                })
+                
+                status_updates.append({
+                    'id': player_data['id'],
+                    'status': 'synced',
+                    'current_roles': roles or []
+                })
+                
+            except Exception as e:
+                logger.error(f"Error fetching roles for player {player_data['name']}: {e}")
+                results.append({
+                    'id': player_data['id'],
+                    'name': player_data['name'],
+                    'team': "Error",
+                    'league': "Error",
+                    'error': str(e)
+                })
+                status_updates.append({
+                    'id': player_data['id'],
+                    'status': 'error',
+                    'error': str(e)
+                })
+    
+    return {
+        'success': True,
+        'role_results': results,
+        'status_updates': status_updates,
+        'fetched_at': datetime.utcnow().isoformat()
+    }
+
+
+def _update_players_after_fetch_role_status(session, result):
+    """Update player records after role status fetch."""
+    if not result.get('success'):
+        return result
+    
+    # Update players with the latest role sync status
+    for status in result.get('status_updates', []):
+        player = session.query(Player).get(status['id'])
+        if player:
+            player.discord_role_sync_status = status['status']
+            player.last_role_check = datetime.utcnow()
+            if 'current_roles' in status:
+                player.discord_roles = status['current_roles']
+            if 'error' in status:
+                player.sync_error = status['error']
+    
+    # Emit updated role status to clients
+    try:
+        from app import socketio
+        socketio.emit('role_status_update', {
+            'results': result['role_results'],
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        logger.warning(f"Failed to emit socket event: {e}")
+    
+    return {
+        'success': True,
+        'results': result['role_results'],
+        'fetched_at': result['fetched_at']
+    }
+
+
+@celery_task(name='app.tasks.tasks_discord.fetch_role_status', queue='discord')
+async def fetch_role_status(self, session) -> Dict[str, Any]:
+    """
+    Fetch and update role status for players with a Discord ID using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         
     Returns:
         A dictionary with success status, results, and timestamp.
-    
-    Raises:
-        Retries the task on error.
     """
-    try:
-        players = session.query(Player).filter(
-            Player.discord_id.isnot(None)
-        ).options(
-            joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league),
-            joinedload(Player.user).joinedload(User.roles)
-        ).all()
+    pass
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        results = async_to_sync(_fetch_roles_batch(session, players))
-        
-        # Update players with the latest role sync status.
-        for status in results['status_updates']:
-            player = session.query(Player).get(status['id'])
-            if player:
-                player.discord_role_sync_status = status['status']
-                player.last_role_check = datetime.utcnow()
-                if 'current_roles' in status:
-                    player.discord_roles = status['current_roles']
-                if 'error' in status:
-                    player.sync_error = status['error']
 
-        # Emit updated role status to clients.
-        socketio.emit('role_status_update', {
-            'results': results['role_results'],
-            'timestamp': datetime.utcnow().isoformat()
-        })
-
-        return {
-            'success': True,
-            'results': results['role_results'],
-            'fetched_at': datetime.utcnow().isoformat()
-        }
-
-    except Exception as e:
-        logger.error(f"Error in fetch_role_status: {str(e)}")
-        raise self.retry(exc=e, countdown=30)
+# Attach phase methods
+fetch_role_status._extract_data = _extract_fetch_role_status_data
+fetch_role_status._execute_async = _execute_fetch_role_status_async
+fetch_role_status._two_phase = True
+fetch_role_status._requires_final_db_update = True
+fetch_role_status._final_db_update = _update_players_after_fetch_role_status
 
 
 def process_role_results(session, players: List[Player], role_results: List[Dict]) -> Dict[str, Any]:
@@ -681,6 +988,99 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
     return results
 
 
+def _extract_remove_roles_data(session, player_id: int, team_id: int):
+    """Extract player data for role removal."""
+    player = session.query(Player).options(
+        joinedload(Player.teams),
+        joinedload(Player.teams).joinedload(Team.league),
+        joinedload(Player.user).joinedload(User.roles)
+    ).get(player_id)
+    if not player:
+        raise ValueError(f"Player {player_id} not found")
+    
+    # Get team info
+    target_team = session.query(Team).get(team_id)
+    if not target_team:
+        raise ValueError(f"Team {team_id} not found")
+    
+    return {
+        'player_id': player_id,
+        'team_id': team_id,
+        'discord_id': player.discord_id,
+        'name': player.name,
+        'current_roles': player.discord_roles or [],
+        'target_team': {
+            'id': target_team.id,
+            'name': target_team.name,
+            'league_name': target_team.league.name if target_team.league else None
+        }
+    }
+
+
+async def _execute_remove_roles_async(data):
+    """Execute role removal without database session."""
+    target_team = data['target_team']
+    
+    # Calculate roles to remove for this specific team
+    roles_to_remove = []
+    if target_team and target_team.get('league_name') in ['Premier', 'Classic']:
+        roles_to_remove.extend([
+            f"{target_team['name']} Player",
+            f"{target_team['name']} Coach"
+        ])
+    
+    # Prepare data for role removal
+    player_data = {
+        'id': data['player_id'],
+        'name': data['name'],
+        'discord_id': data['discord_id'],
+        'current_roles': data.get('current_roles', []),
+        'expected_roles': [],  # Empty - we want to remove roles
+        'app_managed_roles': roles_to_remove  # Only these specific roles
+    }
+    
+    # Execute role removal using existing function
+    from app.discord_utils import update_player_roles_async_only
+    result = await update_player_roles_async_only(player_data, force_update=True)
+    
+    return {
+        'success': result.get('success', False),
+        'message': result.get('message', result.get('error', '')),
+        'roles_removed': result.get('roles_removed', []),
+        'player_id': data['player_id'],
+        'team_id': data['team_id'],
+        'processed_at': datetime.utcnow().isoformat()
+    }
+
+
+def _update_player_after_role_removal(session, result):
+    """Update player record after role removal."""
+    if not result.get('success'):
+        return result
+    
+    player = session.query(Player).get(result['player_id'])
+    if player:
+        if result.get('success'):
+            # Don't clear all roles, just update with current state
+            player.discord_last_verified = datetime.utcnow()
+            player.last_role_removal = datetime.utcnow()
+            player.role_removal_status = 'completed'
+        else:
+            player.role_removal_status = 'failed'
+            player.last_role_removal = datetime.utcnow()
+            if result.get('message'):
+                player.role_removal_error = result['message']
+    
+    return {
+        'success': True,
+        'message': 'Roles removed successfully',
+        'player_id': result['player_id'],
+        'team_id': result['team_id'],
+        'processed_at': result['processed_at'],
+        'roles_removed': result.get('roles_removed', [])
+    }
+
+
 @celery_task(
     name='app.tasks.tasks_discord.remove_player_roles_task',
     queue='discord',
@@ -688,67 +1088,27 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
     max_retries=3,
     retry_backoff=True
 )
-def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dict[str, Any]:
+async def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dict[str, Any]:
     """
-    Remove Discord roles for a player.
-    
-    This task retrieves the player with associated teams, then calls an async helper
-    to remove roles via the Discord API. It updates player records accordingly.
+    Remove Discord roles for a player using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         player_id: ID of the player.
         team_id: ID of the team.
         
     Returns:
         A dictionary with the result and updated player info.
-        
-    Raises:
-        Retries the task on error.
     """
-    try:
-        player = session.query(Player).options(
-            joinedload(Player.teams),
-            joinedload(Player.teams).joinedload(Team.league),
-            joinedload(Player.user).joinedload(User.roles)
-        ).get(player_id)
-        if not player:
-            return {'success': False, 'message': 'Player not found'}
+    pass
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        result = async_to_sync(_remove_player_roles_async(session, player.id, team_id))
 
-        if result.get('success'):
-            player.discord_roles = []
-            player.discord_last_verified = datetime.utcnow()
-            player.last_role_removal = datetime.utcnow()
-            player.role_removal_status = 'completed'
-        else:
-            player.role_removal_status = 'failed'
-            player.last_role_removal = datetime.utcnow()
-            if 'error' in result:
-                player.role_removal_error = result['error']
-
-        session.flush()
-
-        return {
-            'success': True,
-            'message': 'Roles removed successfully',
-            'player_id': player_id,
-            'processed_at': datetime.utcnow().isoformat(),
-            **result
-        }
-
-    except SQLAlchemyError as e:
-        logger.error(f"Database error removing roles from player {player_id}: {str(e)}", exc_info=True)
-        raise self.retry(exc=e, countdown=60)
-    except aiohttp.ClientError as e:
-        logger.error(f"Discord API error for player {player_id}: {str(e)}", exc_info=True)
-        raise self.retry(exc=e, countdown=30)
-    except Exception as e:
-        logger.error(f"Error removing roles from player {player_id}: {str(e)}", exc_info=True)
-        raise self.retry(exc=e, countdown=15)
+# Attach phase methods
+remove_player_roles_task._extract_data = _extract_remove_roles_data
+remove_player_roles_task._execute_async = _execute_remove_roles_async
+remove_player_roles_task._two_phase = True
+remove_player_roles_task._requires_final_db_update = True
+remove_player_roles_task._final_db_update = _update_player_after_role_removal
 
 
 async def _remove_player_roles_async(session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
@@ -791,41 +1151,96 @@ async def _remove_player_roles_async(session, player_id: int, team_id: Optional[
         return {'success': False, 'message': str(e)}
 
 
-@celery_task(name='app.tasks.tasks_discord.create_team_discord_resources_task', queue='discord')
-def create_team_discord_resources_task(self, session, team_id: int):
-    """
-    Create Discord resources for a new team.
+def _extract_create_team_data(session, team_id: int):
+    """Extract team data for Discord resource creation."""
+    # Force a fresh read from the database to avoid stale data
+    session.expire_all()
     
-    This task retrieves the team and creates a Discord channel for the team via an async helper.
+    team = session.query(Team).options(
+        joinedload(Team.league)
+    ).get(team_id)
+    
+    if not team:
+        # Try one more time with a fresh query in case of timing issues
+        session.rollback()  # Clear any potential issues
+        team = session.query(Team).filter(Team.id == team_id).first()
+        
+        if not team:
+            logger.error(f"Team {team_id} not found after retry - skipping Discord resource creation")
+            # Log more debug info
+            team_count = session.query(Team).count()
+            logger.debug(f"Total teams in database: {team_count}")
+            recent_teams = session.query(Team).order_by(Team.id.desc()).limit(10).all()
+            logger.debug(f"Recent team IDs: {[t.id for t in recent_teams]}")
+            return None
+    
+    logger.info(f"Found team {team_id}: {team.name} in league {team.league.name if team.league else 'No League'}")
+    
+    return {
+        'team_id': team_id,
+        'team_name': team.name,
+        'league_name': team.league.name if team.league else None
+    }
+
+
+async def _execute_create_team_discord_async(data):
+    """Execute Discord resource creation without database session."""
+    # Create Discord channel using async-only approach
+    from app.discord_utils import create_discord_channel_async_only
+    
+    channel_result = await create_discord_channel_async_only(
+        data['team_name'], 
+        data['league_name'], 
+        data['team_id']
+    )
+    
+    return {
+        'success': channel_result.get('success', False),
+        'message': channel_result.get('message', 'Discord resources created'),
+        'channel_id': channel_result.get('channel_id'),
+        'player_role_id': channel_result.get('player_role_id'),
+        'team_id': data['team_id']
+    }
+
+
+def _update_team_after_discord_creation(session, result):
+    """Update team record after Discord resource creation."""
+    if not result.get('success'):
+        return result
+    
+    team = session.query(Team).get(result['team_id'])
+    if team:
+        if result.get('channel_id'):
+            team.discord_channel_id = result['channel_id']
+        if result.get('player_role_id'):
+            team.discord_player_role_id = result['player_role_id']
+    
+    return {'success': True, 'message': 'Discord resources created'}
+
+
+@celery_task(name='app.tasks.tasks_discord.create_team_discord_resources_task', queue='discord')
+async def create_team_discord_resources_task(self, session, team_id: int):
+    """
+    Create Discord resources for a new team using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         team_id: ID of the team.
         
     Returns:
         A dictionary indicating success or failure.
     """
-    try:
-        team = session.query(Team).options(
-            joinedload(Team.league)
-        ).get(team_id)
-        
-        if not team:
-            logger.error(f"Team {team_id} not found")
-            return {'success': False, 'message': 'Team not found'}
+    pass
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        channel_result = async_to_sync(create_discord_channel(session, team.name, team.league.name, team.id))
-        
-        if channel_result and channel_result.get('channel_id'):
-            team.discord_channel_id = channel_result['channel_id']
-        
-        return {'success': True, 'message': 'Discord resources created'}
 
-    except Exception as e:
-        logger.error(f"Error creating Discord resources: {str(e)}")
-        raise self.retry(exc=e, countdown=30)
+# Attach phase methods - using both approaches for reliability
+create_team_discord_resources_task._extract_data = _extract_create_team_data
+create_team_discord_resources_task._execute_async = _execute_create_team_discord_async
+create_team_discord_resources_task._requires_final_db_update = True
+create_team_discord_resources_task._final_db_update = _update_team_after_discord_creation
+
+# Also set the _two_phase attribute as a fallback
+create_team_discord_resources_task._two_phase = True
 
 
 async def delete_channel(channel_id: str) -> bool:
@@ -913,37 +1328,61 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
         raise self.retry(exc=e, countdown=30)
 
 
-@celery_task(name='app.tasks.tasks_discord.update_team_discord_resources_task', queue='discord')
-def update_team_discord_resources_task(self, session, team_id: int, new_team_name: str):
-    """
-    Update Discord resources when a team's name changes.
+def _extract_update_team_data(session, team_id: int, new_team_name: str):
+    """Extract team data for Discord resource update."""
+    team = session.query(Team).options(joinedload(Team.league)).get(team_id)
+    if not team:
+        raise ValueError(f"Team {team_id} not found")
     
-    This task renames team roles via an async helper and updates the database.
+    return {
+        'team_id': team_id,
+        'old_team_name': team.name,
+        'new_team_name': new_team_name,
+        'league_name': team.league.name if team.league else None,
+        'discord_coach_role_id': team.discord_coach_role_id,
+        'discord_player_role_id': team.discord_player_role_id
+    }
+
+
+async def _execute_update_team_discord_async(data):
+    """Execute Discord resource update without database session."""
+    # Use async-only version of rename team roles
+    from app.discord_utils import rename_team_roles_async_only
+    
+    result = await rename_team_roles_async_only(
+        data['old_team_name'],
+        data['new_team_name'],
+        data['discord_coach_role_id'],
+        data['discord_player_role_id']
+    )
+    
+    return {
+        'success': result.get('success', True),
+        'message': result.get('message', 'Discord resources updated'),
+        'team_id': data['team_id']
+    }
+
+
+@celery_task(name='app.tasks.tasks_discord.update_team_discord_resources_task', queue='discord')
+async def update_team_discord_resources_task(self, session, team_id: int, new_team_name: str):
+    """
+    Update Discord resources when a team's name changes using two-phase pattern.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phase 1).
         team_id: ID of the team.
         new_team_name: The new team name.
         
     Returns:
         A dictionary indicating success or failure.
-    
-    Raises:
-        Retries the task on error.
     """
-    try:
-        team = session.query(Team).options(joinedload(Team.league)).get(team_id)
-        if not team:
-            return {'success': False, 'message': 'Team not found'}
+    pass
 
-        # Use async_to_sync utility instead of creating a new event loop
-        from app.api_utils import async_to_sync
-        async_to_sync(rename_team_roles(session, team, new_team_name))
-        # Commit happens automatically in @celery_task decorator
-        return {'success': True, 'message': 'Discord resources updated'}
-    except Exception as e:
-        # Rollback happens automatically in @celery_task decorator
-        raise self.retry(exc=e, countdown=30)
+
+# Attach phase methods
+update_team_discord_resources_task._extract_data = _extract_update_team_data
+update_team_discord_resources_task._execute_async = _execute_update_team_discord_async
+update_team_discord_resources_task._two_phase = True
 
 
 async def _process_role_updates_batch(session, players: List[Player]) -> List[Dict[str, Any]]:

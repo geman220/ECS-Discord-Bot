@@ -48,6 +48,120 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+def _get_special_week_display_name(match):
+    """
+    Get the display name for special weeks where home_team_id == away_team_id.
+    
+    Args:
+        match: Match object where home_team_id == away_team_id
+        
+    Returns:
+        String display name for the special week
+    """
+    # Check if the match has a week_type attribute
+    if hasattr(match, 'week_type'):
+        week_type = match.week_type.upper()
+        if week_type == 'FUN':
+            return 'Fun Week!'
+        elif week_type == 'TST':
+            return 'The Soccer Tournament!'
+        elif week_type == 'BYE':
+            return 'BYE Week!'
+        elif week_type == 'BONUS':
+            return 'Bonus Week!'
+    
+    # Fallback: try to determine from team names (backward compatibility)
+    if match.home_team and match.home_team.name:
+        team_name = match.home_team.name.upper()
+        if 'FUN' in team_name:
+            return 'Fun Week!'
+        elif 'TST' in team_name:
+            return 'The Soccer Tournament!'
+        elif 'BYE' in team_name:
+            return 'BYE Week!'
+        elif 'BONUS' in team_name:
+            return 'Bonus Week!'
+    
+    # Final fallback
+    return 'Special Week!'
+
+
+def _is_playoff_placeholder_match(match, viewing_team_id):
+    """
+    Determine if a playoff match is still using placeholder teams.
+    
+    A match is considered a placeholder if the viewing team is playing against
+    the same opponent multiple times in the same week (indicating placeholder usage).
+    
+    Args:
+        match: Match object
+        viewing_team_id: ID of the team viewing the match
+        
+    Returns:
+        Boolean indicating if this is a placeholder match
+    """
+    try:
+        # Import here to avoid circular imports
+        from app.models import Match
+        from flask import g
+        
+        # Get all matches for this team in the same week
+        week_matches = g.db_session.query(Match).filter(
+            Match.league_id == match.league_id,
+            Match.week == match.week,
+            Match.is_playoff_game == True,
+            ((Match.home_team_id == viewing_team_id) | (Match.away_team_id == viewing_team_id))
+        ).all()
+        
+        # If this team plays the same opponent multiple times in this playoff week,
+        # it's likely using placeholder teams
+        opponents = set()
+        for week_match in week_matches:
+            if week_match.home_team_id == viewing_team_id:
+                opponents.add(week_match.away_team_id)
+            else:
+                opponents.add(week_match.home_team_id)
+        
+        # If there's only one unique opponent and multiple matches, it's a placeholder
+        return len(opponents) == 1 and len(week_matches) > 1
+        
+    except Exception as e:
+        # If we can't determine, assume it's a placeholder for safety
+        return True
+
+
+def get_opponent_display_name(match, team_id):
+    """
+    Get the opponent display name for a match from a specific team's perspective.
+    Handles regular matches, special weeks, and playoff games.
+    
+    Args:
+        match: Match object
+        team_id: ID of the team viewing the match
+        
+    Returns:
+        String display name for the opponent or special week
+    """
+    # Check if this is a playoff game that hasn't been assigned real teams yet
+    if hasattr(match, 'is_playoff_game') and match.is_playoff_game:
+        # If both teams are the same (placeholder) or one team appears multiple times
+        # in this playoff week, it's likely still using placeholder teams
+        if (match.home_team_id == match.away_team_id or 
+            _is_playoff_placeholder_match(match, team_id)):
+            playoff_round = getattr(match, 'playoff_round', 1)
+            return f'Playoffs Round {playoff_round} - TBD'
+    
+    # Check if this is a special week (home_team_id == away_team_id)
+    if match.home_team_id == match.away_team_id:
+        return _get_special_week_display_name(match)
+    
+    # Regular match - return the opponent team name
+    if match.home_team_id == team_id:
+        return match.away_team.name if match.away_team else 'Unknown'
+    else:
+        return match.home_team.name if match.home_team else 'Unknown'
+
 @teams_bp.route('/<int:team_id>', endpoint='team_details')
 @login_required
 def team_details(team_id):
@@ -118,6 +232,7 @@ def team_details(team_id):
     # Build a schedule mapping dates to match details and gather player choices.
     schedule = defaultdict(list)
     player_choices = {}
+    practice_dates_added = set()  # Track practice sessions already added
 
     for match in all_matches:
         home_team_name = match.home_team.name if match.home_team else 'Unknown'
@@ -179,11 +294,26 @@ def team_details(team_id):
 
         display_score = f"{your_team_score} - {opponent_score}" if your_team_score != 'N/A' else '-'
 
+        # Get opponent display name (handles both regular matches and special weeks)
+        opponent_name = get_opponent_display_name(match, team_id)
+
+        # Check if this is a practice session and if we've already added one for this date
+        is_practice = getattr(match, 'week_type', 'REGULAR') == 'PRACTICE' or getattr(match, 'is_practice_game', False)
+        practice_key = (match.date, 'PRACTICE') if is_practice else None
+        
+        # Skip duplicate practice sessions
+        if is_practice and practice_key in practice_dates_added:
+            continue
+        
+        # Mark this practice session as added
+        if is_practice:
+            practice_dates_added.add(practice_key)
+
         schedule[match.date].append({
             'id': match.id,
             'time': match.time,
             'location': match.location,
-            'opponent_name': away_team_name if match.home_team_id == team_id else home_team_name,
+            'opponent_name': opponent_name,
             'home_team_name': home_team_name,
             'away_team_name': away_team_name,
             'home_team_id': match.home_team_id,
@@ -194,19 +324,31 @@ def team_details(team_id):
             'result_text': result_text,
             'display_score': display_score,
             'reported': match.reported,
+            'week_type': getattr(match, 'week_type', 'REGULAR'),
+            'is_special_week': getattr(match, 'is_special_week', False),
+            'is_playoff_game': getattr(match, 'is_playoff_game', False),
         })
 
     # Determine the next match date for display.
     next_match_date = None
+    next_match = None
     if schedule:
         today = datetime.today().date()
         match_dates = sorted(schedule.keys())
         for md in match_dates:
             if md >= today:
                 next_match_date = md
+                # Get the first match on this date
+                if schedule[md]:
+                    next_match = schedule[md][0]
+                    next_match['date'] = md  # Add date to the match object
                 break
         if not next_match_date:
             next_match_date = match_dates[-1]
+            # Get the first match on the last date
+            if schedule[next_match_date]:
+                next_match = schedule[next_match_date][0]
+                next_match['date'] = next_match_date  # Add date to the match object
 
     # Check permissions for template
     from app.role_impersonation import is_impersonation_active, has_effective_permission
@@ -296,6 +438,7 @@ def team_details(team_id):
         schedule=schedule,
         safe_current_user=safe_current_user,
         next_match_date=next_match_date,
+        next_match=next_match,
         player_choices=player_choices,
         can_report_match=can_report_match,
         can_upload_kit=can_upload_kit,
@@ -1069,7 +1212,7 @@ def upload_team_kit(team_id):
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     if file and allowed_file(file.filename):
-        # Use team-specific filename to avoid conflicts and match the saved format
+        # Process image first without holding database session
         filename = f'team_{team_id}_kit.png'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'kits')
         os.makedirs(upload_folder, exist_ok=True)
@@ -1082,29 +1225,36 @@ def upload_team_kit(team_id):
             except OSError:
                 pass  # If we can't remove it, we'll just overwrite it
         
-        image = Image.open(file).convert("RGBA")
-        
-        def make_background_transparent(img, bg_color=(255, 255, 255), tolerance=30):
-            datas = img.getdata()
-            newData = []
-            for item in datas:
-                if (abs(item[0] - bg_color[0]) < tolerance and
-                    abs(item[1] - bg_color[1]) < tolerance and
-                    abs(item[2] - bg_color[2]) < tolerance):
-                    newData.append((255, 255, 255, 0))
-                else:
-                    newData.append(item)
-            img.putdata(newData)
-            return img
-        
-        image = make_background_transparent(image)
-        image.save(file_path, format='PNG')
-        
-        # Append a timestamp to bust the cache
-        timestamp = int(time.time())
-        team.kit_url = url_for('static', filename='img/uploads/kits/' + filename) + f'?v={timestamp}'
-        session.add(team)
-        session.commit()
+        try:
+            # Image processing without database session
+            image = Image.open(file).convert("RGBA")
+            
+            def make_background_transparent(img, bg_color=(255, 255, 255), tolerance=30):
+                datas = img.getdata()
+                newData = []
+                for item in datas:
+                    if (abs(item[0] - bg_color[0]) < tolerance and
+                        abs(item[1] - bg_color[1]) < tolerance and
+                        abs(item[2] - bg_color[2]) < tolerance):
+                        newData.append((255, 255, 255, 0))
+                    else:
+                        newData.append(item)
+                img.putdata(newData)
+                return img
+            
+            image = make_background_transparent(image)
+            image.save(file_path, format='PNG')
+            
+            # After successful image processing, update database
+            timestamp = int(time.time())
+            team.kit_url = url_for('static', filename='img/uploads/kits/' + filename) + f'?v={timestamp}'
+            session.add(team)
+            session.commit()
+            
+        except Exception as e:
+            logger.error(f"Error processing team kit image: {e}")
+            show_error('Error processing image. Please try again.')
+            return redirect(url_for('teams.team_details', team_id=team_id))
         
         logger.info(f"Team {team_id} kit updated successfully. Saved as: {filename}, URL: {team.kit_url}")
         show_success('Team kit updated successfully!')
@@ -1133,7 +1283,7 @@ def upload_team_background(team_id):
         return redirect(url_for('teams.team_details', team_id=team_id))
     
     if file and allowed_file(file.filename):
-        # Use team-specific filename to avoid conflicts and match the saved format
+        # Process image first without holding database session
         filename = f'team_{team_id}_background.jpg'
         upload_folder = os.path.join(current_app.root_path, 'static', 'img', 'uploads', 'backgrounds')
         os.makedirs(upload_folder, exist_ok=True)
@@ -1146,45 +1296,50 @@ def upload_team_background(team_id):
             except OSError:
                 pass  # If we can't remove it, we'll just overwrite it
         
-        image = Image.open(file).convert("RGB")
+        try:
+            # Image processing without database session
+            image = Image.open(file).convert("RGB")
+            
+            # Resize and optimize for background use
+            # Scale to reasonable dimensions while maintaining aspect ratio
+            max_width = 1200
+            max_height = 600
+            image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            
+            # Save with optimization
+            image.save(file_path, format='JPEG', optimize=True, quality=85)
+            
+            # After successful image processing, update database
+            import datetime
+            timestamp = int(datetime.datetime.now().timestamp() * 1000)
+            team.background_image_url = url_for('static', filename='img/uploads/backgrounds/' + filename) + f'?v={timestamp}'
+            
+            # Handle position data if provided
+            position_data = request.form.get('position_data')
+            if position_data:
+                try:
+                    import json
+                    position_info = json.loads(position_data)
+                    # Store position data in team metadata or a new field
+                    # For now, we'll store it in the session to apply to the template
+                    team.background_position = position_info.get('backgroundPosition', 'center')
+                    team.background_size = position_info.get('backgroundSize', 'cover')
+                    logger.info(f"Parsed position data for team {team_id}: position={team.background_position}, size={team.background_size}")
+                except json.JSONDecodeError:
+                    logger.warning(f"Invalid position data for team {team_id}: {position_data}")
         
-        # Resize and optimize for background use
-        # Scale to reasonable dimensions while maintaining aspect ratio
-        max_width = 1200
-        max_height = 600
-        image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-        
-        # Save with optimization
-        image.save(file_path, format='JPEG', optimize=True, quality=85)
-        
-        # Append a timestamp with milliseconds to aggressively bust the cache
-        import datetime
-        timestamp = int(datetime.datetime.now().timestamp() * 1000)
-        team.background_image_url = url_for('static', filename='img/uploads/backgrounds/' + filename) + f'?v={timestamp}'
-        
-        # Handle position data if provided
-        position_data = request.form.get('position_data')
-        if position_data:
-            try:
-                import json
-                position_info = json.loads(position_data)
-                # Store position data in team metadata or a new field
-                # For now, we'll store it in the session to apply to the template
-                team.background_position = position_info.get('backgroundPosition', 'center')
-                team.background_size = position_info.get('backgroundSize', 'cover')
-                logger.info(f"Parsed position data for team {team_id}: position={team.background_position}, size={team.background_size}")
-            except Exception as e:
-                # Default values if parsing fails
-                logger.error(f"Error parsing position data for team {team_id}: {e}")
+            else:
+                logger.info(f"No position data provided for team {team_id}, using defaults")
                 team.background_position = 'center'
                 team.background_size = 'cover'
-        else:
-            logger.info(f"No position data provided for team {team_id}, using defaults")
-            team.background_position = 'center'
-            team.background_size = 'cover'
+            
+            session.add(team)
+            session.commit()
         
-        session.add(team)
-        session.commit()
+        except Exception as e:
+            logger.error(f"Error processing team background image: {e}")
+            show_error('Error processing image. Please try again.')
+            return redirect(url_for('teams.team_details', team_id=team_id))
         
         # Verify the values were saved
         session.refresh(team)

@@ -44,9 +44,9 @@
                             {% if player %}
                             <h2 class="text-primary mb-1">Welcome, {{ player.name }}!</h2>
                             <p class="text-muted mb-2">
-                                {% if player.teams and player.teams|length > 0 %}
+                                {% if user_team and user_team|length > 0 %}
                                     You are playing for 
-                                    {% for team in player.teams %}
+                                    {% for team in user_team %}
                                         <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-decoration-none">
                                             <span class="badge bg-primary me-1">{{ team.name }}</span>
                                         </a>{% if not loop.last %}, {% endif %}
@@ -138,14 +138,15 @@
     </div>
     {% endif %}
 
-    {% if player and player.teams and player.teams|length > 0 %}
+    {% if player %}
     <!-- Upcoming Matches Quick View -->
     <div class="row mb-3">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h4 class="mb-0">Upcoming Matches</h4>
+                {% if user_team and user_team|length > 0 %}
                 <div class="nav nav-pills" id="match-tabs" role="tablist">
-                    {% for t in player.teams %}
+                    {% for t in user_team %}
                         <button class="nav-link {% if loop.first %}active{% endif %}" 
                                 id="team-{{ t.id }}-tab" data-bs-toggle="pill" 
                                 data-bs-target="#team-{{ t.id }}-content" type="button" 
@@ -154,10 +155,12 @@
                         </button>
                     {% endfor %}
                 </div>
+                {% endif %}
             </div>
             
             <div class="tab-content" id="match-tab-content">
-                {% for t in player.teams %}
+                {% if user_team and user_team|length > 0 %}
+                {% for t in user_team %}
                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
                      id="team-{{ t.id }}-content" role="tabpanel" 
                      aria-labelledby="team-{{ t.id }}-tab">
@@ -199,10 +202,39 @@
                                                             {% if is_home %}H{% else %}A{% endif %}
                                                         </div>
                                                         <h6 class="mb-0">
-                                                            {% if is_home %}
-                                                                <span class="text-success fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                                <span class="badge bg-info">
+                                                                    {% if match.week_type == 'FUN' %}
+                                                                        Fun Week
+                                                                    {% elif match.week_type == 'TST' %}
+                                                                        TST Week
+                                                                    {% elif match.week_type == 'BYE' %}
+                                                                        Bye Week
+                                                                    {% elif match.week_type == 'BONUS' %}
+                                                                        Bonus Week
+                                                                    {% elif match.week_type == 'PLAYOFF' %}
+                                                                        Playoff Week
+                                                                    {% endif %}
+                                                                </span>
+                                                                <span class="text-muted">
+                                                                    {% if match.week_type == 'FUN' %}
+                                                                        - Special activities
+                                                                    {% elif match.week_type == 'TST' %}
+                                                                        - Tournament events
+                                                                    {% elif match.week_type == 'BYE' %}
+                                                                        - Week off
+                                                                    {% elif match.week_type == 'BONUS' %}
+                                                                        - Additional activities
+                                                                    {% elif match.week_type == 'PLAYOFF' %}
+                                                                        - TBD
+                                                                    {% endif %}
+                                                                </span>
                                                             {% else %}
-                                                                {{ opponent_name }} vs <span class="text-success fw-bold">{{ t.name }}</span>
+                                                                {% if is_home %}
+                                                                    <span class="text-success fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                                {% else %}
+                                                                    {{ opponent_name }} vs <span class="text-success fw-bold">{{ t.name }}</span>
+                                                                {% endif %}
                                                             {% endif %}
                                                         </h6>
                                                     </div>
@@ -266,6 +298,16 @@
                     {% endif %}
                 </div>
                 {% endfor %}
+                {% else %}
+                <div class="card shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}" 
+                             alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                        <h5>No Upcoming Matches</h5>
+                        <p class="text-muted">You are not currently assigned to any teams.</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -275,8 +317,9 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h4 class="mb-0">Recent Matches</h4>
+                {% if user_team and user_team|length > 0 %}
                 <div class="nav nav-pills" id="recent-match-tabs" role="tablist">
-                    {% for t in player.teams %}
+                    {% for t in user_team %}
                         <button class="nav-link {% if loop.first %}active{% endif %}" 
                                 id="recent-team-{{ t.id }}-tab" data-bs-toggle="pill" 
                                 data-bs-target="#recent-team-{{ t.id }}-content" type="button" 
@@ -285,10 +328,12 @@
                         </button>
                     {% endfor %}
                 </div>
+                {% endif %}
             </div>
             
             <div class="tab-content" id="recent-match-tab-content">
-                {% for t in player.teams %}
+                {% if user_team and user_team|length > 0 %}
+                {% for t in user_team %}
                 <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
                      id="recent-team-{{ t.id }}-content" role="tabpanel" 
                      aria-labelledby="recent-team-{{ t.id }}-tab">
@@ -321,10 +366,39 @@
                                                     </div>
                                                     <div>
                                                         <h6 class="mb-0">
-                                                            {% if is_home %}
-                                                                <span class="fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                                                <span class="badge bg-info">
+                                                                    {% if match.week_type == 'FUN' %}
+                                                                        Fun Week
+                                                                    {% elif match.week_type == 'TST' %}
+                                                                        TST Week
+                                                                    {% elif match.week_type == 'BYE' %}
+                                                                        Bye Week
+                                                                    {% elif match.week_type == 'BONUS' %}
+                                                                        Bonus Week
+                                                                    {% elif match.week_type == 'PLAYOFF' %}
+                                                                        Playoff Week
+                                                                    {% endif %}
+                                                                </span>
+                                                                <span class="text-muted">
+                                                                    {% if match.week_type == 'FUN' %}
+                                                                        - Special activities
+                                                                    {% elif match.week_type == 'TST' %}
+                                                                        - Tournament events
+                                                                    {% elif match.week_type == 'BYE' %}
+                                                                        - Week off
+                                                                    {% elif match.week_type == 'BONUS' %}
+                                                                        - Additional activities
+                                                                    {% elif match.week_type == 'PLAYOFF' %}
+                                                                        - TBD
+                                                                    {% endif %}
+                                                                </span>
                                                             {% else %}
-                                                                {{ opponent_name }} vs <span class="fw-bold">{{ t.name }}</span>
+                                                                {% if is_home %}
+                                                                    <span class="fw-bold">{{ t.name }}</span> vs {{ opponent_name }}
+                                                                {% else %}
+                                                                    {{ opponent_name }} vs <span class="fw-bold">{{ t.name }}</span>
+                                                                {% endif %}
                                                             {% endif %}
                                                         </h6>
                                                         <div class="text-muted small mt-1">
@@ -365,6 +439,16 @@
                     {% endif %}
                 </div>
                 {% endfor %}
+                {% else %}
+                <div class="card shadow-sm">
+                    <div class="card-body text-center p-4">
+                        <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}" 
+                             alt="No Matches" style="height: 150px; margin-bottom: 1rem;">
+                        <h5>No Recent Matches</h5>
+                        <p class="text-muted">You are not currently assigned to any teams.</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

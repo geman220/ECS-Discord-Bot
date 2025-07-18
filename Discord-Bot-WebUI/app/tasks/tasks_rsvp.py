@@ -115,27 +115,13 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
                 "old_response": old_response
             }, countdown=1, priority=8)  # Higher priority value
             
-            # Also try to update reaction directly via direct API call to ensure immediate response
-            try:
-                import requests
-                
-                discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
-                reaction_data = {
-                    "match_id": str(match_id),
-                    "discord_id": str(discord_id),
-                    "new_response": new_response,
-                    "old_response": old_response
-                }
-                
-                logger.info(f"Sending direct reaction update to Discord: {reaction_data}")
-                response = requests.post(discord_api_url, json=reaction_data, timeout=5)
-                
-                if response.status_code == 200:
-                    logger.info(f"Successfully sent direct reaction update for user {discord_id}")
-                else:
-                    logger.warning(f"Direct reaction update failed, will rely on task: {response.status_code}")
-            except Exception as e:
-                logger.warning(f"Could not send direct reaction update, will rely on task: {str(e)}")
+            # Also try to update reaction directly via separate task for immediate response
+            direct_discord_update_task.apply_async(kwargs={
+                "match_id": match_id,
+                "discord_id": discord_id,
+                "new_response": new_response,
+                "old_response": old_response
+            }, countdown=0, priority=9)  # Immediate execution with highest priority
         else:
             logger.info(f"No Discord ID available for player {player_id}, skipping Discord reaction update")
 
@@ -763,14 +749,51 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         logger.info(f"Found {len(sunday_matches)} matches scheduled for next Sunday")
         
-        # Prepare data for each match
-        matches_data = [{
-            'id': match.id,
-            'date': match.date,
-            'home_team': match.home_team.name if hasattr(match, 'home_team') else "Unknown",
-            'away_team': match.away_team.name if hasattr(match, 'away_team') else "Unknown",
-            'has_message': any(msg for msg in match.scheduled_messages)
-        } for match in sunday_matches]
+        # Prepare data for each match, handling special weeks
+        matches_data = []
+        special_week_matches = {}  # Track special weeks to avoid duplicates
+        
+        for match in sunday_matches:
+            # Check if this is a special week (home_team_id == away_team_id)
+            if match.home_team_id == match.away_team_id:
+                # Special week - only create one entry per week type
+                week_type = getattr(match, 'week_type', 'SPECIAL')
+                week_key = f"{match.date}_{week_type}"
+                
+                if week_key not in special_week_matches:
+                    # Determine display name for special week
+                    if week_type.upper() == 'FUN':
+                        display_name = 'Fun Week!'
+                    elif week_type.upper() == 'TST':
+                        display_name = 'Soccer Tournament!'
+                    elif week_type.upper() == 'BYE':
+                        # Skip BYE weeks - no RSVP needed
+                        continue
+                    elif week_type.upper() == 'BONUS':
+                        display_name = 'Bonus Week!'
+                    else:
+                        display_name = 'Special Week!'
+                    
+                    special_week_matches[week_key] = {
+                        'id': match.id,
+                        'date': match.date,
+                        'home_team': display_name,
+                        'away_team': display_name,
+                        'is_special_week': True,
+                        'week_type': week_type,
+                        'has_message': any(msg for msg in match.scheduled_messages)
+                    }
+                    matches_data.append(special_week_matches[week_key])
+            else:
+                # Regular match
+                matches_data.append({
+                    'id': match.id,
+                    'date': match.date,
+                    'home_team': match.home_team.name if hasattr(match, 'home_team') else "Unknown",
+                    'away_team': match.away_team.name if hasattr(match, 'away_team') else "Unknown",
+                    'is_special_week': False,
+                    'has_message': any(msg for msg in match.scheduled_messages)
+                })
         
         # Schedule messages for matches without existing scheduled messages
         scheduled_count = 0
@@ -800,11 +823,20 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
                 )
                 session.add(scheduled_message)
                 scheduled_count += 1
-                logger.info(
-                    f"Scheduled availability message for match {match_data['id']} "
-                    f"({match_data['home_team']} vs {match_data['away_team']}) "
-                    f"at {send_time} (batch {batch_number+1})"
-                )
+                
+                # Create appropriate log message based on match type
+                if match_data.get('is_special_week', False):
+                    logger.info(
+                        f"Scheduled RSVP for special event {match_data['id']} "
+                        f"({match_data['home_team']}) "
+                        f"at {send_time} (batch {batch_number+1})"
+                    )
+                else:
+                    logger.info(
+                        f"Scheduled availability message for match {match_data['id']} "
+                        f"({match_data['home_team']} vs {match_data['away_team']}) "
+                        f"at {send_time} (batch {batch_number+1})"
+                    )
         
         result = {
             "success": True,
@@ -1020,3 +1052,65 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error during Discord RSVP sync: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_rsvp.direct_discord_update_task', max_retries=3, queue='discord')
+def direct_discord_update_task(self, session, match_id: str, discord_id: str, new_response: str, old_response: str) -> Dict[str, Any]:
+    """
+    Directly update Discord reaction via API call.
+    
+    This task is used to provide immediate Discord reaction updates without holding
+    database sessions during HTTP requests.
+    
+    Args:
+        session: Database session (not used, but required by @celery_task)
+        match_id: ID of the match
+        discord_id: Discord ID of the user
+        new_response: New RSVP response
+        old_response: Previous RSVP response
+    
+    Returns:
+        Dictionary with success status and message
+    """
+    try:
+        import requests
+        
+        discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
+        reaction_data = {
+            "match_id": str(match_id),
+            "discord_id": str(discord_id),
+            "new_response": new_response,
+            "old_response": old_response
+        }
+        
+        logger.info(f"Sending direct reaction update to Discord: {reaction_data}")
+        response = requests.post(discord_api_url, json=reaction_data, timeout=5)
+        
+        if response.status_code == 200:
+            logger.info(f"Successfully sent direct reaction update for user {discord_id}")
+            return {
+                'success': True,
+                'message': 'Discord reaction updated successfully',
+                'discord_id': discord_id,
+                'match_id': match_id
+            }
+        else:
+            logger.warning(f"Direct reaction update failed: {response.status_code} - {response.text}")
+            return {
+                'success': False,
+                'message': f'Discord API returned {response.status_code}',
+                'discord_id': discord_id,
+                'match_id': match_id
+            }
+            
+    except requests.RequestException as e:
+        logger.warning(f"Could not send direct reaction update: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Network error: {str(e)}',
+            'discord_id': discord_id,
+            'match_id': match_id
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error in direct Discord update: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=5)

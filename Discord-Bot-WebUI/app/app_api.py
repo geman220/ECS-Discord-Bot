@@ -1175,3 +1175,191 @@ def get_players():
 
     players_data = [build_player_response(player) for player in players_query.all()]
     return jsonify(players_data), 200
+
+
+@mobile_api.route('/players/<int:player_id>/profile_picture', endpoint='upload_player_profile_picture', methods=['POST'])
+@jwt_required()
+def upload_player_profile_picture(player_id: int):
+    """
+    Upload and update a player's profile picture via mobile API.
+    
+    Supports both multipart form data and JSON with base64 image data.
+    The user can only update their own profile picture unless they are an admin.
+    
+    Request formats:
+    1. Multipart form with 'file' and crop parameters (x, y, width, height, scale)
+    2. JSON with base64 'image_data' and crop parameters
+    
+    Args:
+        player_id (int): The ID of the player whose profile picture to update
+        
+    Returns:
+        JSON response with success/error message and new profile picture URL
+    """
+    from app.players_helpers import save_cropped_profile_picture
+    from werkzeug.utils import secure_filename
+    from PIL import Image
+    import base64
+    from io import BytesIO
+    import os
+    
+    try:
+        session_db = g.db_session
+        current_user_id = get_jwt_identity()
+        
+        # Get the player
+        player = session_db.query(Player).filter(Player.id == player_id).first()
+        if not player:
+            return jsonify({"error": "Player not found"}), 404
+        
+        # Get current user to check authorization
+        current_user = session_db.query(User).filter(User.id == current_user_id).first()
+        if not current_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Authorization check: user can only update their own profile picture
+        # unless they are an admin or coach
+        if (player.user_id != current_user_id and 
+            not any(role.name in ['Pub League Admin', 'Coach'] for role in current_user.roles)):
+            return jsonify({"error": "Unauthorized to update this player's profile picture"}), 403
+        
+        # Handle different content types
+        content_type = request.content_type or ''
+        
+        if 'multipart/form-data' in content_type:
+            # Handle multipart form data (file upload)
+            if 'file' not in request.files:
+                return jsonify({"error": "No file provided"}), 400
+            
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({"error": "No file selected"}), 400
+            
+            # Get crop parameters
+            try:
+                x = float(request.form.get('x', 0))
+                y = float(request.form.get('y', 0))
+                width = float(request.form.get('width', 0))
+                height = float(request.form.get('height', 0))
+                scale = float(request.form.get('scale', 1))
+            except (ValueError, TypeError):
+                return jsonify({"error": "Invalid crop parameters"}), 400
+            
+            # Validate file type
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_ext not in allowed_extensions:
+                return jsonify({"error": "Invalid file type. Allowed types: PNG, JPG, JPEG, GIF, WEBP"}), 400
+            
+            # Process the uploaded image
+            try:
+                image = Image.open(file.stream).convert("RGBA")
+                
+                # Apply cropping if parameters provided
+                if width > 0 and height > 0:
+                    # Apply scale if provided
+                    if scale != 1:
+                        new_width = int(image.width * scale)
+                        new_height = int(image.height * scale)
+                        image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                    
+                    # Apply crop
+                    crop_box = (int(x), int(y), int(x + width), int(y + height))
+                    image = image.crop(crop_box)
+                
+                # Convert to base64 for saving
+                output = BytesIO()
+                image.save(output, format='PNG')
+                image_data = output.getvalue()
+                image_b64 = base64.b64encode(image_data).decode('utf-8')
+                cropped_image_data = f"data:image/png;base64,{image_b64}"
+                
+            except Exception as e:
+                logger.error(f"Error processing uploaded image: {str(e)}")
+                return jsonify({"error": "Failed to process image"}), 400
+                
+        elif 'application/json' in content_type:
+            # Handle JSON with base64 image data
+            data = request.get_json()
+            if not data:
+                return jsonify({"error": "No JSON data provided"}), 400
+            
+            cropped_image_data = data.get('image_data')
+            if not cropped_image_data:
+                return jsonify({"error": "No image_data provided"}), 400
+            
+            # Validate base64 image data format
+            if not cropped_image_data.startswith('data:image/'):
+                return jsonify({"error": "Invalid image data format"}), 400
+                
+        else:
+            return jsonify({"error": "Unsupported content type. Use multipart/form-data or application/json"}), 400
+        
+        # Save the cropped profile picture using existing helper
+        try:
+            profile_picture_url = save_cropped_profile_picture(cropped_image_data, player_id)
+            if not profile_picture_url:
+                return jsonify({"error": "Failed to save profile picture"}), 500
+            
+            # Update player's profile picture URL
+            player.profile_picture_url = profile_picture_url
+            session_db.commit()
+            
+            # Build full URL for response
+            base_url = request.host_url.rstrip('/')
+            full_profile_url = f"{base_url}{profile_picture_url}"
+            
+            logger.info(f"Profile picture updated for player {player_id} by user {current_user_id}")
+            
+            return jsonify({
+                "message": "Profile picture updated successfully",
+                "profile_picture_url": full_profile_url,
+                "player_id": player_id
+            }), 200
+            
+        except Exception as e:
+            logger.error(f"Error saving profile picture for player {player_id}: {str(e)}")
+            session_db.rollback()
+            return jsonify({"error": "Failed to save profile picture"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error in upload_player_profile_picture: {str(e)}", exc_info=True)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@mobile_api.route('/players/<int:player_id>/profile_picture', endpoint='get_player_profile_picture', methods=['GET'])
+@jwt_required()
+def get_player_profile_picture(player_id: int):
+    """
+    Get a player's current profile picture URL and metadata.
+    
+    Args:
+        player_id (int): The ID of the player
+        
+    Returns:
+        JSON response with profile picture information
+    """
+    try:
+        session_db = g.db_session
+        
+        # Get the player
+        player = session_db.query(Player).filter(Player.id == player_id).first()
+        if not player:
+            return jsonify({"error": "Player not found"}), 404
+        
+        # Build response
+        base_url = request.host_url.rstrip('/')
+        default_image = f"{base_url}/static/img/default_player.png"
+        current_image = f"{base_url}{player.profile_picture_url}" if player.profile_picture_url else default_image
+        
+        return jsonify({
+            "player_id": player_id,
+            "player_name": player.name,
+            "profile_picture_url": current_image,
+            "has_custom_picture": bool(player.profile_picture_url),
+            "last_updated": player.profile_last_updated.isoformat() if player.profile_last_updated else None
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting profile picture for player {player_id}: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500

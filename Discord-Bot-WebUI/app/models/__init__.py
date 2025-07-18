@@ -29,7 +29,7 @@ from .players import (
 
 from .matches import (
     Schedule, Match, Availability, TemporarySubAssignment,
-    AutoScheduleConfig, ScheduleTemplate, WeekConfiguration
+    AutoScheduleConfig, ScheduleTemplate, WeekConfiguration, SeasonConfiguration
 )
 
 from .stats import (
@@ -93,7 +93,7 @@ __all__ = [
     
     # Match and schedule models
     'Schedule', 'Match', 'Availability', 'TemporarySubAssignment',
-    'AutoScheduleConfig', 'ScheduleTemplate', 'WeekConfiguration',
+    'AutoScheduleConfig', 'ScheduleTemplate', 'WeekConfiguration', 'SeasonConfiguration',
     'help_topic_roles',
     
     # Statistics models

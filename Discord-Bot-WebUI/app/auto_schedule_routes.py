@@ -18,17 +18,94 @@ from sqlalchemy import func
 
 from app.models import (
     League, Team, Season, AutoScheduleConfig, ScheduleTemplate, 
-    Schedule, Match, WeekConfiguration
+    Schedule, Match, WeekConfiguration, SeasonConfiguration
 )
 from app.auto_schedule_generator import AutoScheduleGenerator
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.tasks.tasks_discord import create_team_discord_resources_task
+from app.tasks.discord_cleanup import cleanup_pub_league_discord_resources_celery_task
 from app.season_routes import rollover_league
 
 logger = logging.getLogger(__name__)
 
 auto_schedule_bp = Blueprint('auto_schedule', __name__)
+
+
+@auto_schedule_bp.route('/league/<int:league_id>/season-config', methods=['GET', 'POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def season_config(league_id: int):
+    """
+    Configure season-specific settings for a league (playoffs, practice sessions, etc.).
+    """
+    session = g.db_session
+    league = session.query(League).filter_by(id=league_id).first()
+    
+    if not league:
+        show_error('League not found')
+        return redirect(url_for('auto_schedule.schedule_manager'))
+    
+    # Get existing season configuration
+    season_config = session.query(SeasonConfiguration).filter_by(league_id=league_id).first()
+    
+    if request.method == 'POST':
+        try:
+            # Parse form data
+            regular_season_weeks = int(request.form.get('regular_season_weeks', 7))
+            playoff_weeks = int(request.form.get('playoff_weeks', 2))
+            has_fun_week = bool(request.form.get('has_fun_week'))
+            has_tst_week = bool(request.form.get('has_tst_week'))
+            has_bonus_week = bool(request.form.get('has_bonus_week'))
+            has_practice_sessions = bool(request.form.get('has_practice_sessions'))
+            practice_weeks = request.form.get('practice_weeks', '')
+            practice_game_number = int(request.form.get('practice_game_number', 1))
+            
+            # Create or update season configuration
+            if season_config:
+                season_config.regular_season_weeks = regular_season_weeks
+                season_config.playoff_weeks = playoff_weeks
+                season_config.has_fun_week = has_fun_week
+                season_config.has_tst_week = has_tst_week
+                season_config.has_bonus_week = has_bonus_week
+                season_config.has_practice_sessions = has_practice_sessions
+                season_config.practice_weeks = practice_weeks if practice_weeks else None
+                season_config.practice_game_number = practice_game_number
+            else:
+                # Determine league type based on league name
+                league_type = 'PREMIER' if league.name.upper() == 'PREMIER' else 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'ECS_FC'
+                
+                season_config = SeasonConfiguration(
+                    league_id=league_id,
+                    league_type=league_type,
+                    regular_season_weeks=regular_season_weeks,
+                    playoff_weeks=playoff_weeks,
+                    has_fun_week=has_fun_week,
+                    has_tst_week=has_tst_week,
+                    has_bonus_week=has_bonus_week,
+                    has_practice_sessions=has_practice_sessions,
+                    practice_weeks=practice_weeks if practice_weeks else None,
+                    practice_game_number=practice_game_number
+                )
+                session.add(season_config)
+            
+            session.commit()
+            show_success(f'Season configuration updated for {league.name}')
+            return redirect(url_for('auto_schedule.season_config', league_id=league_id))
+            
+        except Exception as e:
+            logger.error(f"Error updating season configuration: {e}")
+            session.rollback()
+            show_error('Failed to update season configuration')
+    
+    # Get default values if no configuration exists
+    if not season_config:
+        league_type = 'PREMIER' if league.name.upper() == 'PREMIER' else 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'ECS_FC'
+        season_config = AutoScheduleGenerator.create_default_season_configuration(league_id, league_type)
+    
+    return render_template('season_config.html', 
+                         league=league, 
+                         season_config=season_config)
 
 
 @auto_schedule_bp.route('/season/<int:season_id>/view')
@@ -102,6 +179,11 @@ def view_seasonal_schedule(season_id):
         match.home_team = session.query(Team).get(match.home_team_id)
         match.away_team = session.query(Team).get(match.away_team_id)
         match.home_team.league = session.query(League).get(match.home_team.league_id)
+        
+        # Add special week information to match object for template
+        match.week_type = getattr(match, 'week_type', schedule_by_week[week_num]['week_type'])
+        match.is_special_week = getattr(match, 'is_special_week', False)
+        match.is_playoff_game = getattr(match, 'is_playoff_game', False)
         
         schedule_by_week[week_num]['matches'].append(match)
     
@@ -206,13 +288,9 @@ def add_week(league_id):
         if not week_date_str:
             return jsonify({'success': False, 'error': 'Week date is required'})
         
-        # Parse and adjust date to Sunday
+        # Parse date - use the exact date picked by user
         week_date = datetime.strptime(week_date_str, '%Y-%m-%d').date()
-        if week_date.weekday() != 6:  # Not Sunday (6 = Sunday in weekday())
-            days_until_sunday = (6 - week_date.weekday()) % 7
-            if days_until_sunday == 0:
-                days_until_sunday = 7
-            week_date += timedelta(days=days_until_sunday)
+        # Note: No longer automatically adjusting to Sunday - use whatever date the user selected
         
         # Get the league and determine next week number
         league = session.query(League).get(league_id)
@@ -381,6 +459,241 @@ def update_match():
         return jsonify({'success': False, 'error': str(e)})
 
 
+@auto_schedule_bp.route('/update-week', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def update_week():
+    """
+    Update week details including date and start time.
+    """
+    session = g.db_session
+    
+    try:
+        data = request.get_json()
+        week_number = data.get('week_number')
+        league_id = data.get('league_id')
+        new_date = data.get('date')
+        new_start_time = data.get('start_time')
+        
+        if not week_number or not league_id:
+            return jsonify({'success': False, 'error': 'Week number and league ID are required'})
+        
+        # Get all matches for this week and league
+        matches = session.query(Match).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).join(
+            Team, Schedule.team_id == Team.id
+        ).filter(
+            Team.league_id == league_id,
+            Schedule.week == week_number
+        ).all()
+        
+        if not matches:
+            return jsonify({'success': False, 'error': 'No matches found for this week'})
+        
+        # Update week configuration if it exists
+        week_config = session.query(WeekConfiguration).filter_by(
+            league_id=league_id,
+            week_order=week_number
+        ).first()
+        
+        if week_config and new_date:
+            week_config.week_date = datetime.strptime(new_date, '%Y-%m-%d').date()
+        
+        # Update matches and schedules
+        for match in matches:
+            if new_date:
+                match.date = datetime.strptime(new_date, '%Y-%m-%d').date()
+            if new_start_time:
+                match.time = datetime.strptime(new_start_time, '%H:%M').time()
+            
+            # Update corresponding schedule
+            schedule = session.query(Schedule).get(match.schedule_id)
+            if schedule:
+                if new_date:
+                    schedule.date = match.date
+                if new_start_time:
+                    schedule.time = match.time
+                
+                # Update paired schedule
+                paired_schedule = session.query(Schedule).filter_by(
+                    team_id=match.away_team_id,
+                    opponent=match.home_team_id,
+                    week=schedule.week
+                ).first()
+                
+                if paired_schedule:
+                    if new_date:
+                        paired_schedule.date = match.date
+                    if new_start_time:
+                        paired_schedule.time = match.time
+        
+        session.commit()
+        return jsonify({'success': True, 'message': 'Week updated successfully'})
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error updating week: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@auto_schedule_bp.route('/reorder-weeks', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def reorder_weeks():
+    """
+    Reorder weeks within a season.
+    """
+    session = g.db_session
+    
+    try:
+        data = request.get_json()
+        league_id = data.get('league_id')
+        week_order = data.get('week_order')  # List of week numbers in new order
+        
+        if not league_id or not week_order:
+            return jsonify({'success': False, 'error': 'League ID and week order are required'})
+        
+        # Update week configurations
+        for new_position, old_week_number in enumerate(week_order, 1):
+            week_config = session.query(WeekConfiguration).filter_by(
+                league_id=league_id,
+                week_order=old_week_number
+            ).first()
+            
+            if week_config:
+                week_config.week_order = new_position
+            
+            # Update schedules
+            schedules = session.query(Schedule).join(
+                Team, Schedule.team_id == Team.id
+            ).filter(
+                Team.league_id == league_id,
+                Schedule.week == old_week_number
+            ).all()
+            
+            for schedule in schedules:
+                schedule.week = new_position
+        
+        session.commit()
+        return jsonify({'success': True, 'message': 'Weeks reordered successfully'})
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error reordering weeks: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@auto_schedule_bp.route('/delete-match', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def delete_match():
+    """
+    Delete a specific match.
+    """
+    session = g.db_session
+    
+    try:
+        data = request.get_json()
+        match_id = data.get('match_id')
+        
+        match = session.query(Match).get(match_id)
+        if not match:
+            return jsonify({'success': False, 'error': 'Match not found'})
+        
+        # Delete corresponding schedule entries
+        schedule = session.query(Schedule).get(match.schedule_id)
+        if schedule:
+            # Find and delete the paired schedule
+            paired_schedule = session.query(Schedule).filter_by(
+                team_id=match.away_team_id,
+                opponent=match.home_team_id,
+                week=schedule.week,
+                date=schedule.date
+            ).first()
+            
+            if paired_schedule:
+                session.delete(paired_schedule)
+            
+            session.delete(schedule)
+        
+        session.delete(match)
+        session.commit()
+        return jsonify({'success': True, 'message': 'Match deleted successfully'})
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error deleting match: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@auto_schedule_bp.route('/add-match', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def add_match():
+    """
+    Add a new match to an existing week.
+    """
+    session = g.db_session
+    
+    try:
+        data = request.get_json()
+        week_number = data.get('week_number')
+        league_id = data.get('league_id')
+        date_str = data.get('date')
+        time_str = data.get('time')
+        field = data.get('field')
+        home_team_id = data.get('home_team_id')
+        away_team_id = data.get('away_team_id')
+        
+        if not all([week_number, league_id, date_str, time_str, field, home_team_id, away_team_id]):
+            return jsonify({'success': False, 'error': 'All fields are required'})
+        
+        # Parse date and time
+        match_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        match_time = datetime.strptime(time_str, '%H:%M').time()
+        
+        # Create schedule entries for both teams
+        home_schedule = Schedule(
+            week=week_number,
+            date=match_date,
+            time=match_time,
+            location=field,
+            team_id=home_team_id,
+            opponent=away_team_id
+        )
+        session.add(home_schedule)
+        
+        away_schedule = Schedule(
+            week=week_number,
+            date=match_date,
+            time=match_time,
+            location=field,
+            team_id=away_team_id,
+            opponent=home_team_id
+        )
+        session.add(away_schedule)
+        
+        # Create match record
+        match = Match(
+            date=match_date,
+            time=match_time,
+            location=field,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            schedule=home_schedule
+        )
+        session.add(match)
+        
+        session.commit()
+        return jsonify({'success': True, 'message': 'Match added successfully'})
+        
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error adding match: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
 @auto_schedule_bp.route('/league/<int:league_id>/delete-week', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
@@ -509,6 +822,8 @@ def create_season_wizard():
         season_name = data['season_name']
         league_type = data['league_type']
         set_as_current = data.get('set_as_current', False)
+        season_start_date = datetime.strptime(data['season_start_date'], '%Y-%m-%d').date()
+        week_configs = data.get('week_configs', [])
         
         # Check if season already exists
         existing = session.query(Season).filter(
@@ -554,7 +869,7 @@ def create_season_wizard():
                 league_id=premier_league.id,
                 start_time=datetime.strptime(data['premier_start_time'], '%H:%M').time(),
                 match_duration_minutes=int(data['match_duration']),
-                weeks_count=int(data['regular_weeks']),
+                weeks_count=int(data.get('premier_regular_weeks', 7)),
                 fields=data['fields'],
                 created_by=current_user.id
             )
@@ -562,12 +877,42 @@ def create_season_wizard():
                 league_id=classic_league.id,
                 start_time=datetime.strptime(data['classic_start_time'], '%H:%M').time(),
                 match_duration_minutes=int(data['match_duration']),
-                weeks_count=int(data['regular_weeks']),
+                weeks_count=int(data.get('classic_regular_weeks', 8)),
                 fields=data['fields'],
                 created_by=current_user.id
             )
             session.add(premier_config)
             session.add(classic_config)
+            
+            # Create season configurations for both leagues
+            premier_season_config = AutoScheduleGenerator.create_default_season_configuration(
+                premier_league.id, 'PREMIER'
+            )
+            classic_season_config = AutoScheduleGenerator.create_default_season_configuration(
+                classic_league.id, 'CLASSIC'
+            )
+            
+            # Override defaults with user preferences if provided
+            if 'premier_playoff_weeks' in data:
+                premier_season_config.playoff_weeks = int(data['premier_playoff_weeks'])
+            if 'premier_has_fun_week' in data:
+                premier_season_config.has_fun_week = bool(data['premier_has_fun_week'])
+            if 'premier_has_tst_week' in data:
+                premier_season_config.has_tst_week = bool(data['premier_has_tst_week'])
+            if 'premier_has_bonus_week' in data:
+                premier_season_config.has_bonus_week = bool(data['premier_has_bonus_week'])
+            
+            if 'classic_playoff_weeks' in data:
+                classic_season_config.playoff_weeks = int(data['classic_playoff_weeks'])
+            if 'classic_has_practice_sessions' in data:
+                classic_season_config.has_practice_sessions = bool(data['classic_has_practice_sessions'])
+            if 'classic_practice_weeks' in data:
+                classic_season_config.practice_weeks = data['classic_practice_weeks']
+            if 'classic_practice_game_number' in data:
+                classic_season_config.practice_game_number = int(data['classic_practice_game_number'])
+            
+            session.add(premier_season_config)
+            session.add(classic_season_config)
             
         elif league_type == 'ECS FC':
             ecs_fc_league = League(name="ECS FC", season_id=new_season.id)
@@ -579,22 +924,47 @@ def create_season_wizard():
                 league_id=ecs_fc_league.id,
                 start_time=datetime.strptime(data['premier_start_time'], '%H:%M').time(),
                 match_duration_minutes=int(data['match_duration']),
-                weeks_count=int(data['regular_weeks']),
+                weeks_count=int(data.get('ecs_fc_regular_weeks', 8)),
                 fields=data['fields'],
                 created_by=current_user.id
             )
             session.add(ecs_config)
+            
+            # Create season configuration for ECS FC
+            ecs_fc_season_config = AutoScheduleGenerator.create_default_season_configuration(
+                ecs_fc_league.id, 'ECS_FC'
+            )
+            
+            # Override defaults with user preferences if provided
+            if 'ecs_fc_playoff_weeks' in data:
+                ecs_fc_season_config.playoff_weeks = int(data['ecs_fc_playoff_weeks'])
+                
+            session.add(ecs_fc_season_config)
         
         # Perform rollover if setting as current and there was an old season
         rollover_performed = False
+        discord_cleanup_queued = False
+        
         if set_as_current and old_season:
             try:
                 rollover_league(session, old_season, new_season)
                 rollover_performed = True
                 logger.info(f"Rollover completed from {old_season.name} to {new_season.name}")
+                
+                # Queue Discord cleanup for Pub League seasons only
+                if old_season.league_type == 'Pub League':
+                    try:
+                        cleanup_pub_league_discord_resources_celery_task.delay(old_season.id)
+                        discord_cleanup_queued = True
+                        logger.info(f"Queued Discord cleanup for old season: {old_season.name}")
+                    except Exception as e:
+                        logger.error(f"Failed to queue Discord cleanup: {e}")
+                        # Don't fail the entire operation if Discord cleanup fails to queue
+                        
             except Exception as e:
                 logger.error(f"Rollover failed: {e}")
-                # Continue with season creation even if rollover fails
+                session.rollback()
+                return jsonify({'error': f'Season rollover failed: {str(e)}. Season creation aborted to prevent data corruption.'}), 500
         
         # Create placeholder teams based on user selection
         created_teams = []
@@ -602,19 +972,24 @@ def create_season_wizard():
         if league_type == 'Pub League':
             # Create Premier Division teams
             premier_team_count = int(data.get('premier_teams', 8))
+            team_letter_offset = 0  # Start from A
+            
             for i in range(premier_team_count):
-                team_letter = chr(65 + i)  # A, B, C, etc.
+                team_letter = chr(65 + team_letter_offset + i)  # A, B, C, etc.
                 team_name = f"Team {team_letter}"
                 
                 team = Team(name=team_name, league_id=premier_league.id)
                 session.add(team)
                 session.flush()  # Get team ID
                 created_teams.append(team.id)
+                logger.info(f"Created Premier team: {team_name} (ID: {team.id})")
             
-            # Create Classic Division teams  
+            # Create Classic Division teams - continue from where Premier left off
             classic_team_count = int(data.get('classic_teams', 4))
+            team_letter_offset = premier_team_count  # Continue after Premier teams
+            
             for i in range(classic_team_count):
-                team_letter = chr(65 + i)  # A, B, C, etc.
+                team_letter = chr(65 + team_letter_offset + i)  # Continue from where Premier ended
                 team_name = f"Team {team_letter}"
                 
                 team = Team(name=team_name, league_id=classic_league.id)
@@ -636,11 +1011,210 @@ def create_season_wizard():
         
         session.commit()
         
+        # Process week configurations from wizard data - store raw data for per-league processing
+        logger.info(f"Processing {len(week_configs)} week configurations from wizard")
+        if week_configs:
+            for week_data in week_configs:
+                logger.info(f"  Week {week_data['week_number']}: {week_data['date']} - Type: {week_data['type']} - Division: {week_data.get('division', 'None')}")
+        else:
+            logger.info("No week configurations provided from wizard")
+        
+        # Auto-generate schedule for each league
+        leagues_to_schedule = []
+        if league_type == 'Pub League':
+            if premier_league:
+                leagues_to_schedule.append(premier_league)
+            if classic_league:
+                leagues_to_schedule.append(classic_league)
+        elif league_type == 'ECS FC':
+            if ecs_fc_league:
+                leagues_to_schedule.append(ecs_fc_league)
+        
+        schedule_generation_messages = []
+        failed_leagues = []
+        for league in leagues_to_schedule:
+            try:
+                logger.info(f"Auto-generating schedule for league: {league.name}")
+                
+                # Clean up any existing week configurations and schedule templates for this league
+                existing_week_configs = session.query(WeekConfiguration).filter_by(league_id=league.id).count()
+                existing_templates = session.query(ScheduleTemplate).filter_by(league_id=league.id).count()
+                if existing_week_configs > 0 or existing_templates > 0:
+                    logger.info(f"Cleaning up existing data for {league.name}: {existing_week_configs} week configs, {existing_templates} templates")
+                    session.query(WeekConfiguration).filter_by(league_id=league.id).delete()
+                    session.query(ScheduleTemplate).filter_by(league_id=league.id).delete()
+                    session.commit()
+                
+                # Create league-specific week configurations from raw week_configs data
+                league_week_configs = []
+                if week_configs:
+                    # Determine expected division for this league
+                    league_division_map = {
+                        'Premier': 'premier',
+                        'Classic': 'classic', 
+                        'ECS FC': 'ecs_fc'
+                    }
+                    expected_division = league_division_map.get(league.name)
+                    
+                    logger.info(f"=== CREATING WEEKS for {league.name} (ID: {league.id}) ===")
+                    logger.info(f"Expected division: {expected_division}")
+                    
+                    # Filter week_configs for this specific division
+                    division_weeks = [w for w in week_configs if w.get('division') == expected_division]
+                    logger.info(f"Found {len(division_weeks)} weeks for division {expected_division}")
+                    
+                    # Get season configuration for practice session info
+                    season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
+                    practice_weeks = []
+                    practice_game_number = 1
+                    
+                    if season_config and season_config.has_practice_sessions:
+                        practice_weeks = season_config.get_practice_weeks_list()
+                        practice_game_number = season_config.practice_game_number
+                        logger.info(f"Practice sessions enabled for {league.name}: weeks {practice_weeks}, game {practice_game_number}")
+                    
+                    # Create WeekConfiguration objects for this league
+                    for week_data in division_weeks:
+                        # Check if this week should have practice sessions
+                        has_practice = week_data['week_number'] in practice_weeks
+                        
+                        # Create WeekConfiguration for this specific league
+                        league_week_config = WeekConfiguration(
+                            league_id=league.id,
+                            week_date=datetime.strptime(week_data['date'], '%Y-%m-%d').date(),
+                            week_type=week_data['type'],
+                            week_order=week_data['week_number'],
+                            is_playoff_week=(week_data['type'] == 'PLAYOFF'),
+                            playoff_round=1 if week_data['type'] == 'PLAYOFF' else None,
+                            has_practice_session=has_practice,
+                            practice_game_number=practice_game_number if has_practice else None
+                        )
+                        session.add(league_week_config)
+                        league_week_configs.append(league_week_config)
+                        logger.info(f"  ✓ CREATED WeekConfiguration: League {league.name} (ID: {league.id}), Week {league_week_config.week_order}, Type: {league_week_config.week_type}" + 
+                                   (f" (Practice: Game {practice_game_number})" if has_practice else ""))
+                
+                # Initialize improved auto schedule generator
+                generator = AutoScheduleGenerator(league.id, session)
+                
+                # Get season configuration for this league
+                season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
+                if season_config:
+                    generator.set_season_configuration(season_config)
+                    
+                    # If no week configs provided from wizard, generate them from season config
+                    if not league_week_configs:
+                        logger.warning(f"No weeks found for {league.name}, generating from season config")
+                        fallback_week_configs = AutoScheduleGenerator.generate_week_configurations_from_season_config(
+                            season_config, season_start_date
+                        )
+                        
+                        # Convert fallback configs to proper WeekConfiguration objects
+                        for week_config in fallback_week_configs:
+                            if isinstance(week_config, dict):
+                                # Convert dict to WeekConfiguration object - handle different field names
+                                league_week_config = WeekConfiguration(
+                                    league_id=league.id,
+                                    week_date=week_config.get('week_date') or week_config.get('date'),
+                                    week_type=week_config.get('week_type') or week_config.get('type', 'REGULAR'),
+                                    week_order=week_config.get('week_order') or week_config.get('week_number', 1),
+                                    is_playoff_week=week_config.get('is_playoff_week', False),
+                                    playoff_round=week_config.get('playoff_round', None),
+                                    has_practice_session=week_config.get('has_practice_session', False),
+                                    practice_game_number=week_config.get('practice_game_number', None)
+                                )
+                                session.add(league_week_config)
+                                league_week_configs.append(league_week_config)
+                                logger.info(f"  ✓ CREATED fallback WeekConfiguration: League {league.name} (ID: {league.id}), Week {league_week_config.week_order}, Type: {league_week_config.week_type}")
+                            else:
+                                # Already a WeekConfiguration object
+                                league_week_configs.append(week_config)
+                
+                # Get the AutoScheduleConfig for this league
+                auto_config = session.query(AutoScheduleConfig).filter_by(league_id=league.id).first()
+                if auto_config:
+                    generator.set_config(
+                        start_time=auto_config.start_time,
+                        match_duration_minutes=auto_config.match_duration_minutes,
+                        weeks_count=auto_config.weeks_count,
+                        fields=auto_config.fields
+                    )
+                else:
+                    # Fallback to default configuration if no config found
+                    logger.warning(f"No AutoScheduleConfig found for league {league.name}, using defaults")
+                    generator.set_config(
+                        start_time=time(19, 0),  # 7:00 PM default
+                        match_duration_minutes=70,
+                        weeks_count=7,
+                        fields="North,South"
+                    )
+                
+                # Generate schedule templates - pass the WeekConfiguration objects
+                logger.info(f"=== FINAL WEEK CONFIGS for {league.name} ===")
+                logger.info(f"Total week configs: {len(league_week_configs)}")
+                for i, wc in enumerate(league_week_configs[:5]):  # Show first 5
+                    logger.info(f"  Week {i+1}: {type(wc).__name__} - Week {wc.week_order}, Type: {wc.week_type}")
+                if len(league_week_configs) > 5:
+                    logger.info(f"  ... and {len(league_week_configs) - 5} more week configs")
+                
+                logger.info(f"Generating schedule templates for {league.name} with {len(league_week_configs)} week configurations")
+                templates = generator.generate_schedule_templates(league_week_configs)
+                logger.info(f"Generated {len(templates)} schedule templates for {league.name}")
+                
+                if templates and len(templates) > 0:
+                    try:
+                        # Save templates to database
+                        generator.save_templates(templates)
+                        
+                        # Count templates before committing
+                        template_count = len(templates)
+                        
+                        # Commit templates to create actual matches
+                        generator.commit_templates_to_schedule()
+                        
+                        # Count actual matches created
+                        matches_created = session.query(Match).join(
+                            Schedule, Match.schedule_id == Schedule.id
+                        ).join(
+                            Team, Schedule.team_id == Team.id
+                        ).filter(Team.league_id == league.id).count()
+                        
+                        schedule_generation_messages.append(f"{league.name}: {matches_created} matches created from {template_count} templates")
+                        logger.info(f"Successfully generated {matches_created} matches for {league.name}")
+                        
+                    except Exception as commit_error:
+                        error_msg = str(commit_error)
+                        schedule_generation_messages.append(f"{league.name}: Schedule generation failed - {error_msg}")
+                        logger.error(f"Failed to commit templates for {league.name}: {error_msg}", exc_info=True)
+                        failed_leagues.append(league.name)
+                        # Continue with Discord resource creation even if schedule generation fails
+                else:
+                    schedule_generation_messages.append(f"{league.name}: No schedule templates generated")
+                    logger.warning(f"No schedule templates generated for {league.name} - check team count and configuration")
+                    
+            except Exception as e:
+                error_msg = f"Schedule generation failed for {league.name}: {str(e)}"
+                schedule_generation_messages.append(error_msg)
+                logger.error(error_msg, exc_info=True)
+                failed_leagues.append(league.name)
+                # Continue with other leagues even if one fails
+        
+        # Commit any placeholder teams and schedule changes
+        session.commit()
+        
+        # Ensure the database transaction is fully committed before queuing tasks
+        session.close()
+        
         # Queue Discord channel creation tasks for all teams
+        # Add a small delay to ensure database commits are visible to workers
+        import time as time_module
+        time_module.sleep(0.5)
+        
+        logger.info(f"About to queue Discord resources for {len(created_teams)} teams: {created_teams}")
         for team_id in created_teams:
             try:
-                create_team_discord_resources_task.delay(team_id)
-                logger.info(f"Queued Discord resource creation for team ID {team_id}")
+                task_result = create_team_discord_resources_task.delay(team_id)
+                logger.info(f"Queued Discord resource creation for team ID {team_id}, task ID: {task_result.id}")
             except Exception as e:
                 logger.error(f"Failed to queue Discord task for team {team_id}: {e}")
                 # Don't fail the entire operation if Discord task queueing fails
@@ -648,12 +1222,27 @@ def create_season_wizard():
         # Build success message
         message_parts = [f'Season "{season_name}" created successfully with {len(created_teams)} teams']
         
+        # Add schedule generation results
+        if schedule_generation_messages:
+            message_parts.extend(schedule_generation_messages)
+        
         if rollover_performed:
             message_parts.append('Season rollover completed - player team history updated')
+            if discord_cleanup_queued:
+                message_parts.append('Old team Discord channels and roles cleanup queued')
         elif set_as_current and not old_season:
             message_parts.append('Set as current season (no previous season to roll over)')
         
         message_parts.append('Discord setup in progress...')
+        
+        # Check if any leagues failed
+        if failed_leagues:
+            return jsonify({
+                'success': False,
+                'error': f'Season created but schedule generation failed for: {", ".join(failed_leagues)}. Please check the logs and regenerate schedules for these leagues.',
+                'message': '. '.join(message_parts),
+                'redirect_url': url_for('auto_schedule.schedule_manager')
+            }), 400
         
         return jsonify({
             'success': True,
@@ -757,19 +1346,51 @@ def auto_schedule_config(league_id: int):
                 fields=fields
             )
             
+            # Get season configuration for this league
+            season_config = session.query(SeasonConfiguration).filter_by(league_id=league_id).first()
+            if season_config:
+                generator.set_season_configuration(season_config)
+                
+                # If no week configs provided, generate them from season config
+                if not week_configs:
+                    # Use the first week date if provided, otherwise use current date
+                    start_date = datetime.strptime(week_dates[0], '%Y-%m-%d').date() if week_dates and week_dates[0] else date.today()
+                    week_configs = AutoScheduleGenerator.generate_week_configurations_from_season_config(
+                        season_config, start_date
+                    )
+            
             # Delete any existing uncommitted templates and week configurations
             generator.delete_templates()
             
             # Delete existing week configurations for this league
             session.query(WeekConfiguration).filter_by(league_id=league_id).delete()
             
-            # Generate new templates with week configurations
-            templates = generator.generate_schedule_templates(week_configs)
-            generator.save_templates(templates)
+            # Convert week_configs to WeekConfiguration objects if needed
+            week_config_objects = []
+            if week_configs:
+                for i, config in enumerate(week_configs, 1):
+                    if isinstance(config, dict):
+                        # Convert dict to WeekConfiguration object
+                        week_config_obj = WeekConfiguration(
+                            league_id=league_id,
+                            week_date=config['date'],
+                            week_type=config['week_type'],
+                            week_order=i,
+                            description=config.get('description', ''),
+                            is_playoff_week=config.get('is_playoff_week', False),
+                            playoff_round=config.get('playoff_round', None),
+                            has_practice_session=config.get('has_practice_session', False),
+                            practice_game_number=config.get('practice_game_number', None)
+                        )
+                        week_config_objects.append(week_config_obj)
+                        session.add(week_config_obj)
+                    else:
+                        # Already a WeekConfiguration object
+                        week_config_objects.append(config)
             
-            # Save week configurations
-            for config in generator.week_configurations:
-                session.add(config)
+            # Generate new templates with week configurations
+            templates = generator.generate_schedule_templates(week_config_objects)
+            generator.save_templates(templates)
             
             show_success(f'Schedule configuration saved and {len(templates)} match templates generated for {league.name}')
             return redirect(url_for('auto_schedule.preview_schedule', league_id=league_id))
@@ -884,6 +1505,20 @@ def delete_schedule(league_id: int):
         return jsonify({'error': 'League not found'}), 404
     
     try:
+        # Clean up Discord resources for teams in this league before deleting
+        from app.tasks.discord_cleanup import cleanup_league_discord_resources_task
+        try:
+            # Get all teams in this league to clean up their Discord resources
+            teams = session.query(Team).filter_by(league_id=league_id).all()
+            if teams:
+                logger.info(f"Cleaning up Discord resources for {len(teams)} teams in {league.name}")
+                # Queue Discord cleanup task
+                cleanup_league_discord_resources_task.delay(league_id)
+                logger.info(f"Queued Discord cleanup for league: {league.name}")
+        except Exception as e:
+            logger.error(f"Failed to queue Discord cleanup for league {league_id}: {e}")
+            # Continue with schedule deletion even if Discord cleanup fails to queue
+        
         # Delete templates
         generator = AutoScheduleGenerator(league_id, session)
         generator.delete_templates()
@@ -938,7 +1573,15 @@ def regenerate_schedule(league_id: int):
             fields=config.fields
         )
         
-        templates = generator.generate_schedule_templates(start_date)
+        # Get season configuration for this league
+        season_config = session.query(SeasonConfiguration).filter_by(league_id=league_id).first()
+        if season_config:
+            generator.set_season_configuration(season_config)
+        
+        # Get existing week configurations
+        week_configs = session.query(WeekConfiguration).filter_by(league_id=league_id).order_by(WeekConfiguration.week_order).all()
+        
+        templates = generator.generate_schedule_templates(week_configs)
         generator.save_templates(templates)
         
         show_success(f'Schedule regenerated successfully for {league.name}')

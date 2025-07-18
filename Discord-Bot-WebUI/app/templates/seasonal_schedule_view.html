@@ -16,6 +16,24 @@
                             <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="btn btn-light">
                                 <i class="ti ti-arrow-left me-1"></i>Back to Season Builder
                             </a>
+                            {% if current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin') %}
+                            <div class="btn-group ms-2">
+                                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ti ti-settings me-1"></i>Admin Tools
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="toggleEditMode()">
+                                        <i class="ti ti-edit me-1"></i>Toggle Edit Mode
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% for league in leagues %}
+                                    <li><a class="dropdown-item" href="{{ url_for('playoff.manage_playoffs', league_id=league.id) }}">
+                                        <i class="ti ti-trophy me-1"></i>Manage {{ league.name }} Playoffs
+                                    </a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -83,8 +101,20 @@
             <div class="card">
                 <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}
+                        <h5 class="mb-0 week-header" data-week="{{ week_num }}">
+                            <span class="week-title">Week {{ week_num }} - {{ week_data.date.strftime('%B %d, %Y') }}</span>
+                            <span class="week-edit-form" style="display: none;">
+                                <input type="date" class="form-control d-inline-block me-2" style="width: auto;" 
+                                       value="{{ week_data.date.strftime('%Y-%m-%d') }}" id="week-date-{{ week_num }}">
+                                <input type="time" class="form-control d-inline-block me-2" style="width: auto;" 
+                                       id="week-time-{{ week_num }}">
+                                <button class="btn btn-sm btn-success me-1" onclick="saveWeek({{ week_num }})">
+                                    <i class="ti ti-check"></i>
+                                </button>
+                                <button class="btn btn-sm btn-secondary" onclick="cancelWeekEdit({{ week_num }})">
+                                    <i class="ti ti-x"></i>
+                                </button>
+                            </span>
                             {% if week_data.week_type == 'TST' %}
                             <span class="badge bg-info ms-2">TST Week</span>
                             {% elif week_data.week_type == 'FUN' %}
@@ -95,9 +125,23 @@
                         </h5>
                         <div>
                             <span class="text-muted">{{ week_data.matches|length }} matches</span>
-                            <button class="btn btn-sm btn-outline-primary ms-2" onclick="toggleWeek({{ week_num }})">
-                                <i class="ti ti-chevron-down" id="chevron-{{ week_num }}"></i>
-                            </button>
+                            <div class="btn-group ms-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="toggleWeek({{ week_num }})">
+                                    <i class="ti ti-chevron-down" id="chevron-{{ week_num }}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary edit-controls" style="display: none;" 
+                                        onclick="editWeek({{ week_num }})" title="Edit Week">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success edit-controls" style="display: none;" 
+                                        onclick="addMatch({{ week_num }})" title="Add Match">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger edit-controls" style="display: none;" 
+                                        onclick="deleteWeek({{ week_num }})" title="Delete Week">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -131,6 +175,7 @@
                                     <th>Away Team</th>
                                     <th>Status</th>
                                     <th>Actions</th>
+                                    <th class="edit-controls" style="display: none;">Edit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -138,28 +183,108 @@
                                 <tr class="match-row" 
                                     data-league="{{ match.home_team.league_id }}" 
                                     data-home-team="{{ match.home_team_id }}"
-                                    data-away-team="{{ match.away_team_id }}">
-                                    <td>
+                                    data-away-team="{{ match.away_team_id }}"
+                                    data-match-id="{{ match.id }}"
+                                    data-week="{{ week_num }}">
+                                    <td class="match-time" data-time="{{ match.time.strftime('%H:%M') }}">
                                         <i class="ti ti-clock me-1"></i>
-                                        {{ match.time.strftime('%I:%M %p') }}
+                                        <span class="time-display">{{ match.time.strftime('%I:%M %p') }}</span>
+                                        <input type="time" class="form-control time-edit" style="display: none;" 
+                                               value="{{ match.time.strftime('%H:%M') }}">
                                     </td>
-                                    <td>
-                                        <span class="badge bg-label-primary">{{ match.location }}</span>
+                                    <td class="match-field" data-field="{{ match.location }}">
+                                        <span class="field-display">
+                                            <span class="badge bg-label-primary">{{ match.location }}</span>
+                                        </span>
+                                        <select class="form-select field-edit" style="display: none;">
+                                            <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+                                            <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+                                            <option value="East" {% if match.location == 'East' %}selected{% endif %}>East</option>
+                                            <option value="West" {% if match.location == 'West' %}selected{% endif %}>West</option>
+                                        </select>
                                     </td>
                                     <td>
                                         <small class="text-muted">{{ match.home_team.league.name }}</small>
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" 
-                                           class="text-decoration-none">
-                                            {{ match.home_team.name }}
-                                        </a>
+                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                            <span class="badge bg-info">
+                                                {% if match.week_type == 'FUN' %}
+                                                    Fun Week
+                                                {% elif match.week_type == 'TST' %}
+                                                    TST Week
+                                                {% elif match.week_type == 'BYE' %}
+                                                    BYE Week
+                                                {% elif match.week_type == 'BONUS' %}
+                                                    Bonus Week
+                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                    Playoff Week
+                                                {% endif %}
+                                            </span>
+                                        {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
+                                            <span class="badge bg-warning">
+                                                PRACTICE
+                                            </span>
+                                        {% else %}
+                                            <span class="team-display">
+                                                <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" 
+                                                   class="text-decoration-none">
+                                                    {{ match.home_team.name }}
+                                                </a>
+                                            </span>
+                                            <select class="form-select team-edit" style="display: none;" data-team-type="home">
+                                                {% for league in leagues %}
+                                                    {% if league.id == match.home_team.league_id %}
+                                                        {% for team in league.teams %}
+                                                        <option value="{{ team.id }}" 
+                                                                {% if team.id == match.home_team_id %}selected{% endif %}>
+                                                            {{ team.name }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" 
-                                           class="text-decoration-none">
-                                            {{ match.away_team.name }}
-                                        </a>
+                                        {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                            <span class="text-muted">
+                                                {% if match.week_type == 'FUN' %}
+                                                    Special activities
+                                                {% elif match.week_type == 'TST' %}
+                                                    Tournament events
+                                                {% elif match.week_type == 'BYE' %}
+                                                    No games
+                                                {% elif match.week_type == 'BONUS' %}
+                                                    Additional activities
+                                                {% elif match.week_type == 'PLAYOFF' %}
+                                                    TBD
+                                                {% endif %}
+                                            </span>
+                                        {% elif match.week_type == 'PRACTICE' or (match.is_practice_game if match.is_practice_game is defined else False) %}
+                                            <span class="text-muted">
+                                                All teams practice together
+                                            </span>
+                                        {% else %}
+                                            <span class="team-display">
+                                                <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" 
+                                                   class="text-decoration-none">
+                                                    {{ match.away_team.name }}
+                                                </a>
+                                            </span>
+                                            <select class="form-select team-edit" style="display: none;" data-team-type="away">
+                                                {% for league in leagues %}
+                                                    {% if league.id == match.home_team.league_id %}
+                                                        {% for team in league.teams %}
+                                                        <option value="{{ team.id }}" 
+                                                                {% if team.id == match.away_team_id %}selected{% endif %}>
+                                                            {{ team.name }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if match.reported %}
@@ -173,6 +298,16 @@
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="ti ti-eye"></i>
                                         </a>
+                                    </td>
+                                    <td class="edit-controls" style="display: none;">
+                                        <button class="btn btn-sm btn-outline-secondary me-1" 
+                                                onclick="editMatch({{ match.id }})" title="Edit Match">
+                                            <i class="ti ti-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="deleteMatch({{ match.id }})" title="Delete Match">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -224,6 +359,120 @@
     {% endif %}
 </div>
 
+<!-- Edit Match Modal -->
+<div class="modal fade" id="editMatchModal" tabindex="-1" aria-labelledby="editMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMatchModalLabel">Edit Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMatchForm">
+                    <input type="hidden" id="editMatchId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="editMatchTime" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="editMatchTime" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editMatchField" class="form-label">Field</label>
+                            <select class="form-select" id="editMatchField" required>
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                                <option value="East">East</option>
+                                <option value="West">West</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="editMatchHomeTeam" class="form-label">Home Team</label>
+                            <select class="form-select" id="editMatchHomeTeam" required>
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="editMatchAwayTeam" class="form-label">Away Team</label>
+                            <select class="form-select" id="editMatchAwayTeam" required>
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMatchFromModal()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Match Modal -->
+<div class="modal fade" id="addMatchModal" tabindex="-1" aria-labelledby="addMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMatchModalLabel">Add New Match</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMatchForm">
+                    <input type="hidden" id="addMatchWeek">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="addMatchDate" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="addMatchDate" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addMatchTime" class="form-label">Time</label>
+                            <input type="time" class="form-control" id="addMatchTime" value="19:00" required>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="addMatchField" class="form-label">Field</label>
+                            <select class="form-select" id="addMatchField" required>
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                                <option value="East">East</option>
+                                <option value="West">West</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addMatchLeague" class="form-label">League</label>
+                            <select class="form-select" id="addMatchLeague" required>
+                                {% for league in leagues %}
+                                <option value="{{ league.id }}">{{ league.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="addMatchHomeTeam" class="form-label">Home Team</label>
+                            <select class="form-select" id="addMatchHomeTeam" required>
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="addMatchAwayTeam" class="form-label">Away Team</label>
+                            <select class="form-select" id="addMatchAwayTeam" required>
+                                <!-- Options populated by JavaScript -->
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMatchFromAddModal()">Add Match</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .week-container {
     transition: all 0.3s ease;
@@ -258,9 +507,138 @@
 .badge {
     font-weight: 500;
 }
+
+/* Edit mode styles */
+.edit-controls {
+    transition: opacity 0.2s ease;
+}
+
+.week-header {
+    position: relative;
+}
+
+.week-edit-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.week-edit-form input {
+    width: auto;
+    min-width: 120px;
+}
+
+.match-row.editing {
+    background-color: var(--bs-warning-bg-subtle);
+    border-left: 3px solid var(--bs-warning);
+}
+
+.match-row.new-match {
+    background-color: var(--bs-success-bg-subtle);
+    border-left: 3px solid var(--bs-success);
+}
+
+.time-edit,
+.field-edit,
+.team-edit {
+    min-width: 100px;
+}
+
+.team-edit {
+    font-size: 0.875rem;
+}
+
+/* Drag and drop styles */
+.week-container {
+    position: relative;
+}
+
+.week-container.dragging {
+    opacity: 0.5;
+}
+
+.week-container.drag-over {
+    border: 2px dashed var(--bs-primary);
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.match-row.dragging {
+    opacity: 0.5;
+}
+
+.match-row.drag-over {
+    border-top: 2px solid var(--bs-primary);
+}
+
+/* Edit mode toggle button */
+.edit-mode-active {
+    background-color: var(--bs-warning) !important;
+    border-color: var(--bs-warning) !important;
+    color: var(--bs-dark) !important;
+}
+
+/* Form controls in edit mode */
+.edit-controls input,
+.edit-controls select {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+/* Alert positioning - only for dynamic alerts */
+.alert.alert-dismissible {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    min-width: 300px;
+    margin: 0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .week-edit-form {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .week-edit-form input {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+    
+    .edit-controls {
+        white-space: nowrap;
+    }
+    
+    .edit-controls .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
 </style>
 
 <script>
+// Global edit mode state
+let editMode = false;
+
+// Toggle edit mode
+function toggleEditMode() {
+    editMode = !editMode;
+    const editControls = document.querySelectorAll('.edit-controls');
+    
+    editControls.forEach(control => {
+        control.style.display = editMode ? '' : 'none';
+    });
+    
+    // Update button text
+    const button = document.querySelector('[onclick="toggleEditMode()"]');
+    if (button) {
+        button.innerHTML = editMode ? 
+            '<i class="ti ti-eye me-1"></i>Exit Edit Mode' : 
+            '<i class="ti ti-edit me-1"></i>Toggle Edit Mode';
+    }
+}
+
 // Toggle week visibility
 function toggleWeek(weekNum) {
     const content = document.getElementById(`week-${weekNum}`);
@@ -275,6 +653,464 @@ function toggleWeek(weekNum) {
         chevron.classList.remove('ti-chevron-down');
         chevron.classList.add('ti-chevron-right');
     }
+}
+
+// Week editing functions
+function editWeek(weekNum) {
+    const weekHeader = document.querySelector(`[data-week="${weekNum}"]`);
+    const weekTitle = weekHeader.querySelector('.week-title');
+    const weekEditForm = weekHeader.querySelector('.week-edit-form');
+    
+    weekTitle.style.display = 'none';
+    weekEditForm.style.display = 'inline-block';
+    
+    // Get first match time as default
+    const firstMatch = document.querySelector(`[data-week="${weekNum}"] .match-time`);
+    if (firstMatch) {
+        const timeInput = document.getElementById(`week-time-${weekNum}`);
+        timeInput.value = firstMatch.dataset.time || '19:00';
+    }
+}
+
+function cancelWeekEdit(weekNum) {
+    const weekHeader = document.querySelector(`[data-week="${weekNum}"]`);
+    const weekTitle = weekHeader.querySelector('.week-title');
+    const weekEditForm = weekHeader.querySelector('.week-edit-form');
+    
+    weekTitle.style.display = 'inline-block';
+    weekEditForm.style.display = 'none';
+}
+
+function saveWeek(weekNum) {
+    const dateInput = document.getElementById(`week-date-${weekNum}`);
+    const timeInput = document.getElementById(`week-time-${weekNum}`);
+    
+    const data = {
+        week_number: weekNum,
+        league_id: getCurrentLeagueId(),
+        date: dateInput.value,
+        start_time: timeInput.value
+    };
+    
+    fetch('/auto-schedule/update-week', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while updating the week');
+    });
+}
+
+// Match editing functions
+function editMatch(matchId) {
+    // Get match data
+    fetch(`/auto-schedule/get-match-data?match_id=${matchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Match data loaded:', data.match); // Debug log
+                
+                // Populate modal
+                document.getElementById('editMatchId').value = matchId;
+                document.getElementById('editMatchTime').value = data.match.time;
+                document.getElementById('editMatchField').value = data.match.field;
+                
+                // Populate team options
+                const homeTeamSelect = document.getElementById('editMatchHomeTeam');
+                const awayTeamSelect = document.getElementById('editMatchAwayTeam');
+                
+                // Get teams for current league
+                const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
+                const leagueId = matchRow.dataset.league;
+                
+                console.log('League ID:', leagueId); // Debug log
+                console.log('Home team ID:', data.match.home_team_id); // Debug log
+                console.log('Away team ID:', data.match.away_team_id); // Debug log
+                
+                populateTeamOptions(homeTeamSelect, leagueId, data.match.home_team_id);
+                populateTeamOptions(awayTeamSelect, leagueId, data.match.away_team_id);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editMatchModal'));
+                modal.show();
+            } else {
+                showAlert('error', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('error', 'An error occurred while loading match data');
+        });
+}
+
+function saveMatchFromModal() {
+    const matchId = document.getElementById('editMatchId').value;
+    const time = document.getElementById('editMatchTime').value;
+    const field = document.getElementById('editMatchField').value;
+    const homeTeamId = document.getElementById('editMatchHomeTeam').value;
+    const awayTeamId = document.getElementById('editMatchAwayTeam').value;
+    
+    if (homeTeamId === awayTeamId) {
+        showAlert('error', 'Home and away teams cannot be the same');
+        return;
+    }
+    
+    const data = {
+        match_id: matchId,
+        time: time,
+        field: field,
+        home_team_id: homeTeamId,
+        away_team_id: awayTeamId
+    };
+    
+    fetch('/auto-schedule/update-match', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('editMatchModal')).hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while updating the match');
+    });
+}
+
+function cancelMatchEdit(matchId) {
+    const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
+    
+    // Hide edit elements
+    const timeDisplay = matchRow.querySelector('.time-display');
+    const timeEdit = matchRow.querySelector('.time-edit');
+    const fieldDisplay = matchRow.querySelector('.field-display');
+    const fieldEdit = matchRow.querySelector('.field-edit');
+    const teamDisplays = matchRow.querySelectorAll('.team-display');
+    const teamEdits = matchRow.querySelectorAll('.team-edit');
+    
+    timeDisplay.style.display = 'inline-block';
+    timeEdit.style.display = 'none';
+    fieldDisplay.style.display = 'inline-block';
+    fieldEdit.style.display = 'none';
+    teamDisplays.forEach(display => display.style.display = 'inline-block');
+    teamEdits.forEach(edit => edit.style.display = 'none');
+    
+    // Remove save/cancel buttons
+    const saveBtn = matchRow.querySelector('.save-match');
+    const cancelBtn = matchRow.querySelector('.cancel-match');
+    if (saveBtn) saveBtn.remove();
+    if (cancelBtn) cancelBtn.remove();
+}
+
+function saveMatch(matchId) {
+    const matchRow = document.querySelector(`[data-match-id="${matchId}"]`);
+    
+    const timeEdit = matchRow.querySelector('.time-edit');
+    const fieldEdit = matchRow.querySelector('.field-edit');
+    const homeTeamEdit = matchRow.querySelector('.team-edit[data-team-type="home"]');
+    const awayTeamEdit = matchRow.querySelector('.team-edit[data-team-type="away"]');
+    
+    const data = {
+        match_id: matchId,
+        time: timeEdit.value,
+        field: fieldEdit.value,
+        home_team_id: homeTeamEdit ? homeTeamEdit.value : null,
+        away_team_id: awayTeamEdit ? awayTeamEdit.value : null
+    };
+    
+    fetch('/auto-schedule/update-match', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while updating the match');
+    });
+}
+
+// Delete functions
+function deleteMatch(matchId) {
+    if (!confirm('Are you sure you want to delete this match?')) return;
+    
+    fetch('/auto-schedule/delete-match', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ match_id: matchId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while deleting the match');
+    });
+}
+
+function deleteWeek(weekNum) {
+    if (!confirm('Are you sure you want to delete this entire week and all its matches?')) return;
+    
+    fetch(`/auto-schedule/league/${getCurrentLeagueId()}/delete-week`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ week_number: weekNum })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while deleting the week');
+    });
+}
+
+// Add match function
+function addMatch(weekNum) {
+    // Get week date
+    const weekContainer = document.querySelector(`[data-week="${weekNum}"]`);
+    const weekTitle = weekContainer.querySelector('.week-title').textContent;
+    const dateMatch = weekTitle.match(/- (.+?)(?:\s|$)/);
+    const weekDate = dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+    
+    // Set up modal
+    document.getElementById('addMatchWeek').value = weekNum;
+    document.getElementById('addMatchDate').value = new Date(weekDate).toISOString().split('T')[0];
+    
+    // Set default league
+    const leagueFilter = document.getElementById('leagueFilter');
+    const defaultLeague = leagueFilter && leagueFilter.value ? leagueFilter.value : '{{ leagues[0].id if leagues else "" }}';
+    document.getElementById('addMatchLeague').value = defaultLeague;
+    
+    // Populate team options
+    updateAddMatchTeams();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('addMatchModal'));
+    modal.show();
+}
+
+function updateAddMatchTeams() {
+    const leagueSelect = document.getElementById('addMatchLeague');
+    const homeTeamSelect = document.getElementById('addMatchHomeTeam');
+    const awayTeamSelect = document.getElementById('addMatchAwayTeam');
+    
+    populateTeamOptions(homeTeamSelect, leagueSelect.value);
+    populateTeamOptions(awayTeamSelect, leagueSelect.value);
+}
+
+function saveMatchFromAddModal() {
+    const weekNum = document.getElementById('addMatchWeek').value;
+    const date = document.getElementById('addMatchDate').value;
+    const time = document.getElementById('addMatchTime').value;
+    const field = document.getElementById('addMatchField').value;
+    const leagueId = document.getElementById('addMatchLeague').value;
+    const homeTeamId = document.getElementById('addMatchHomeTeam').value;
+    const awayTeamId = document.getElementById('addMatchAwayTeam').value;
+    
+    if (homeTeamId === awayTeamId) {
+        showAlert('error', 'Home and away teams cannot be the same');
+        return;
+    }
+    
+    const data = {
+        week_number: weekNum,
+        league_id: leagueId,
+        date: date,
+        time: time,
+        field: field,
+        home_team_id: homeTeamId,
+        away_team_id: awayTeamId
+    };
+    
+    fetch('/auto-schedule/add-match', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addMatchModal')).hide();
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while adding the match');
+    });
+}
+
+function saveNewMatch(weekNum) {
+    const weekContainer = document.querySelector(`[data-week="${weekNum}"]`);
+    const weekDate = document.getElementById(`week-date-${weekNum}`);
+    
+    const data = {
+        week_number: weekNum,
+        league_id: getCurrentLeagueId(),
+        date: weekDate ? weekDate.value : getCurrentWeekDate(weekNum),
+        time: document.getElementById(`new-match-time-${weekNum}`).value,
+        field: document.getElementById(`new-match-field-${weekNum}`).value,
+        home_team_id: document.getElementById(`new-match-home-${weekNum}`).value,
+        away_team_id: document.getElementById(`new-match-away-${weekNum}`).value
+    };
+    
+    fetch('/auto-schedule/add-match', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            location.reload();
+        } else {
+            showAlert('error', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while adding the match');
+    });
+}
+
+function cancelNewMatch(weekNum) {
+    const newRow = document.querySelector(`[data-week="${weekNum}"] .new-match`);
+    if (newRow) {
+        newRow.remove();
+    }
+}
+
+// Helper functions
+function getCurrentLeagueId() {
+    const leagueFilter = document.getElementById('leagueFilter');
+    return leagueFilter ? leagueFilter.value : '{{ leagues[0].id if leagues else "" }}';
+}
+
+function getCurrentWeekDate(weekNum) {
+    const weekContainer = document.querySelector(`[data-week="${weekNum}"]`);
+    const dateText = weekContainer.querySelector('.week-title').textContent;
+    const match = dateText.match(/- (.+?)(?:\s|$)/);
+    return match ? match[1] : new Date().toISOString().split('T')[0];
+}
+
+function populateTeamOptions(selectElement, leagueId, selectedTeamId = null) {
+    selectElement.innerHTML = '<option value="">Select Team</option>';
+    
+    console.log('populateTeamOptions called with:', { leagueId, selectedTeamId }); // Debug log
+    
+    // Get teams for the specified league
+    const teamFilter = document.getElementById('teamFilter');
+    if (teamFilter) {
+        let teamCount = 0;
+        Array.from(teamFilter.options).forEach(option => {
+            if (option.value && option.value !== '' && option.dataset.league === leagueId) {
+                teamCount++;
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.textContent;
+                // Handle both string and number comparison
+                if (selectedTeamId && (option.value == selectedTeamId || option.value === String(selectedTeamId))) {
+                    optionElement.selected = true;
+                    console.log('Selected team:', option.textContent); // Debug log
+                }
+                selectElement.appendChild(optionElement);
+            }
+        });
+        console.log('Added', teamCount, 'teams to select'); // Debug log
+    }
+}
+
+function getTeamOptions() {
+    const teamFilter = document.getElementById('teamFilter');
+    let options = '<option value="">Select Team</option>';
+    
+    if (teamFilter) {
+        Array.from(teamFilter.options).forEach(option => {
+            if (option.value && option.value !== '') {
+                options += `<option value="${option.value}">${option.textContent}</option>`;
+            }
+        });
+    }
+    
+    return options;
+}
+
+function showAlert(type, message) {
+    // Create alert element
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to page
+    const container = document.querySelector('.container-xxl');
+    container.insertBefore(alert, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 5000);
 }
 
 // League filter change handler
@@ -414,6 +1250,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (leagueId || teamId) {
         applyFilters();
+    }
+    
+    // Initialize edit mode controls
+    {% if current_user.has_role('Pub League Admin') or current_user.has_role('Global Admin') %}
+    // Show edit controls by default for admin users
+    editMode = true;
+    const editControls = document.querySelectorAll('.edit-controls');
+    editControls.forEach(control => {
+        control.style.display = '';
+    });
+    
+    // Update button text
+    const button = document.querySelector('[onclick="toggleEditMode()"]');
+    if (button) {
+        button.innerHTML = '<i class="ti ti-eye me-1"></i>Exit Edit Mode';
+    }
+    {% else %}
+    // Hide edit controls for non-admin users
+    const editControls = document.querySelectorAll('.edit-controls');
+    editControls.forEach(control => {
+        control.style.display = 'none';
+    });
+    {% endif %}
+    
+    // Add event listener for league change in add match modal
+    const addMatchLeagueSelect = document.getElementById('addMatchLeague');
+    if (addMatchLeagueSelect) {
+        addMatchLeagueSelect.addEventListener('change', updateAddMatchTeams);
     }
 });
 </script>

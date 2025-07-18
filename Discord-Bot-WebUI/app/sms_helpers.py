@@ -18,6 +18,52 @@ from functools import wraps
 
 from flask import current_app, jsonify, g, request
 from sqlalchemy import or_, and_, func
+
+
+def _is_playoff_placeholder_match_sms(match, viewing_team_id):
+    """
+    Determine if a playoff match is still using placeholder teams for SMS context.
+    
+    A simplified version of the playoff placeholder detection for SMS helpers.
+    """
+    try:
+        # Simple check: if the same team appears as both home and away, it's a placeholder
+        if match.home_team_id == match.away_team_id:
+            return True
+        
+        # Additional check: if this team plays the same opponent multiple times 
+        # in the same week, it's likely a placeholder
+        from app.models import Match
+        from app.utils.task_session_manager import get_task_session
+        
+        session = get_task_session()
+        
+        week_matches = session.query(Match).filter(
+            Match.league_id == match.league_id,
+            Match.week == match.week,
+            Match.is_playoff_game == True,
+            ((Match.home_team_id == viewing_team_id) | (Match.away_team_id == viewing_team_id))
+        ).all()
+        
+        if len(week_matches) <= 1:
+            return False
+        
+        # Get all opponents for this team in this week
+        opponents = set()
+        for week_match in week_matches:
+            if week_match.home_team_id == viewing_team_id:
+                opponents.add(week_match.away_team_id)
+            else:
+                opponents.add(week_match.home_team_id)
+        
+        # If only one unique opponent and multiple matches, it's a placeholder
+        return len(opponents) == 1 and len(week_matches) > 1
+        
+    except Exception as e:
+        logger.warning(f"Error checking playoff placeholder for SMS: {e}")
+        return True  # Assume placeholder for safety
+
+
 from textmagic.rest import TextmagicRestClient
 from twilio.rest import Client
 
@@ -619,13 +665,43 @@ def get_next_match(phone_number):
         if next_matches:
             match_list = []
             for m in next_matches:
-                # Determine opponent based on which side the team is on.
-                opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                # Determine opponent or special week display
+                if hasattr(m, 'is_playoff_game') and m.is_playoff_game:
+                    # Playoff game - check if it's still using placeholder teams
+                    playoff_round = getattr(m, 'playoff_round', 1)
+                    if (m.home_team_id == m.away_team_id or 
+                        _is_playoff_placeholder_match_sms(m, team.id)):
+                        opponent_display = f'Playoffs Round {playoff_round} - TBD'
+                    else:
+                        # Real teams assigned - show opponent
+                        opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                        opponent_display = opponent.name if opponent else 'Unknown'
+                elif m.home_team_id == m.away_team_id:
+                    # Special week - determine display name
+                    if hasattr(m, 'week_type'):
+                        week_type = m.week_type.upper()
+                        if week_type == 'FUN':
+                            opponent_display = 'Fun Week!'
+                        elif week_type == 'TST':
+                            opponent_display = 'The Soccer Tournament!'
+                        elif week_type == 'BYE':
+                            opponent_display = 'BYE Week!'
+                        elif week_type == 'BONUS':
+                            opponent_display = 'Bonus Week!'
+                        else:
+                            opponent_display = 'Special Week!'
+                    else:
+                        opponent_display = 'Special Week!'
+                else:
+                    # Regular match - determine opponent based on which side the team is on
+                    opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                    opponent_display = opponent.name if opponent else 'Unknown'
+                    
                 match_info = {
                     'id': m.id,  # Include match ID for RSVP functionality
                     'date': m.date.strftime('%A, %B %d'),
                     'time': m.time.strftime('%I:%M %p') if m.time else 'TBD',
-                    'opponent': opponent.name if opponent else 'Unknown',
+                    'opponent': opponent_display,
                     'location': m.location or 'TBD',
                     'match_obj': m  # Include the full match object for reference
                 }

@@ -27,6 +27,31 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from app.core import celery
 from app.core.session_manager import managed_session
+
+# ROOT CAUSE FIX: Global registry for two-phase task metadata
+_two_phase_task_registry = {}
+
+# Special mapping for tasks where the task name doesn't match the function name
+_task_name_to_function_mapping = {
+    'cleanup_pub_league_discord_resources': 'cleanup_pub_league_discord_resources_celery_task',
+    'cleanup_league_discord_resources': 'cleanup_league_discord_resources_task'
+}
+
+def register_two_phase_task(task_name, extract_data=None, execute_async=None, final_db_update=None, requires_final_db_update=False):
+    """
+    Register a two-phase task in the global registry.
+    
+    This is the ROOT CAUSE FIX for the attribute attachment issue.
+    Instead of relying on function attributes that may not transfer properly through decorators,
+    we use a global registry that persists regardless of function wrapping.
+    """
+    _two_phase_task_registry[task_name] = {
+        'is_two_phase': True,
+        'extract_data': extract_data,
+        'execute_async': execute_async,
+        'final_db_update': final_db_update,
+        'requires_final_db_update': requires_final_db_update
+    }
 from app.utils.user_helpers import safe_current_user
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 
@@ -436,18 +461,149 @@ def celery_task(func=None, **task_kwargs):
                 # Use managed_session for proper session handling
                 session = None
                 try:
-                    with managed_session() as session:
-                        if asyncio.iscoroutinefunction(f):
-                            # Use a smarter approach to avoid nested event loop issues
-                            from app.api_utils import async_to_sync
-                            result = async_to_sync(f(self, session, *args, **kwargs))
+                    # Check if this is a two-phase async task
+                    # ROOT CAUSE FIX: Check function attributes, original function, AND global registry
+                    task_metadata = _two_phase_task_registry.get(task_name, {})
+                    original_func = getattr(f, '_original_func', None)
+                    
+                    # ENHANCED ROOT CAUSE FIX: Also check by task name in global scope
+                    # This handles cases where attributes are attached after decoration
+                    task_func_name = task_name.split('.')[-1]  # Get just the function name
+                    global_task_func = None
+                    
+                    # Check if we have a special mapping for this task name
+                    if task_name in _task_name_to_function_mapping:
+                        task_func_name = _task_name_to_function_mapping[task_name]
+                    
+                    # Try to find the task function in the global namespace
+                    try:
+                        import importlib
+                        module_path = '.'.join(task_name.split('.')[:-1])
+                        if module_path:
+                            module = importlib.import_module(module_path)
+                            global_task_func = getattr(module, task_func_name, None)
                         else:
-                            result = f(self, session, *args, **kwargs)
+                            # If no module path, try to find in discord_cleanup module
+                            if task_name in ['cleanup_pub_league_discord_resources', 'cleanup_league_discord_resources']:
+                                from app.tasks import discord_cleanup
+                                global_task_func = getattr(discord_cleanup, task_func_name, None)
+                    except Exception:
+                        pass
+                    
+                    has_extract_data = (hasattr(f, '_extract_data') or 
+                                       (original_func and hasattr(original_func, '_extract_data')) or
+                                       (global_task_func and hasattr(global_task_func, '_extract_data')))
+                    has_two_phase = (hasattr(f, '_two_phase') or 
+                                    (original_func and hasattr(original_func, '_two_phase')) or
+                                    (global_task_func and hasattr(global_task_func, '_two_phase')))
+                    
+                    # DEBUG: Log what we're finding
+                    logger.debug(f"DEBUG {task_name}: task_func_name={task_func_name}, f._extract_data={hasattr(f, '_extract_data')}, f._two_phase={hasattr(f, '_two_phase')}, original_func={original_func is not None}, global_task_func={global_task_func is not None}")
+                    if original_func:
+                        logger.debug(f"DEBUG {task_name}: original_func._extract_data={hasattr(original_func, '_extract_data')}, original_func._two_phase={hasattr(original_func, '_two_phase')}")
+                    if global_task_func:
+                        logger.debug(f"DEBUG {task_name}: global_task_func._extract_data={hasattr(global_task_func, '_extract_data')}, global_task_func._two_phase={hasattr(global_task_func, '_two_phase')}")
+                    
+                    is_two_phase_async = (asyncio.iscoroutinefunction(f) and 
+                                         (has_extract_data or has_two_phase or 
+                                          task_metadata.get('is_two_phase', False)))
+                    
+                    if is_two_phase_async:
+                        # Two-phase async task: Extract data with session, then run async without session
+                        with managed_session() as session:
+                            # ROOT CAUSE FIX: Check function attributes, original function, global function, then registry
+                            extract_func = None
+                            if hasattr(f, '_extract_data'):
+                                extract_func = f._extract_data
+                            elif original_func and hasattr(original_func, '_extract_data'):
+                                extract_func = original_func._extract_data
+                            elif global_task_func and hasattr(global_task_func, '_extract_data'):
+                                extract_func = global_task_func._extract_data
+                            elif 'extract_data' in task_metadata:
+                                extract_func = task_metadata['extract_data']
+                            
+                            if extract_func:
+                                # New pattern: function has _extract_data method
+                                data = extract_func(session, *args, **kwargs)
+                                # Handle case where extract function returns None (e.g., missing entity)
+                                if data is None:
+                                    logger.warning(f"Extract function returned None for task {f.__name__} - skipping execution")
+                                    register_session_end(session_id, 'committed')
+                                    return {'success': False, 'message': 'Required entity not found'}
+                            else:
+                                # Legacy pattern: function implements two-phase internally
+                                result = f(self, session, *args, **kwargs)
+                                register_session_end(session_id, 'committed')
+                                return result
                         
-                        # Commit happens automatically in managed_session
-                        # Record successful completion
+                        # Session is now closed, run async execution
+                        from app.api_utils import async_to_sync
+                        execute_func = None
+                        if hasattr(f, '_execute_async'):
+                            execute_func = f._execute_async
+                        elif original_func and hasattr(original_func, '_execute_async'):
+                            execute_func = original_func._execute_async
+                        elif global_task_func and hasattr(global_task_func, '_execute_async'):
+                            execute_func = global_task_func._execute_async
+                        elif 'execute_async' in task_metadata:
+                            execute_func = task_metadata['execute_async']
+                        
+                        if execute_func:
+                            result = async_to_sync(execute_func(data))
+                        else:
+                            # Fallback: call original function with data
+                            result = async_to_sync(f(data))
+                        
+                        # Check if task requires a final database update
+                        final_update_func = None
+                        requires_final_update = (
+                            (hasattr(f, '_requires_final_db_update') and f._requires_final_db_update) or
+                            (original_func and hasattr(original_func, '_requires_final_db_update') and original_func._requires_final_db_update) or
+                            (global_task_func and hasattr(global_task_func, '_requires_final_db_update') and global_task_func._requires_final_db_update) or
+                            task_metadata.get('requires_final_db_update', False)
+                        )
+                        
+                        if requires_final_update:
+                            if hasattr(f, '_final_db_update'):
+                                final_update_func = f._final_db_update
+                            elif original_func and hasattr(original_func, '_final_db_update'):
+                                final_update_func = original_func._final_db_update
+                            elif global_task_func and hasattr(global_task_func, '_final_db_update'):
+                                final_update_func = global_task_func._final_db_update
+                            elif 'final_db_update' in task_metadata:
+                                final_update_func = task_metadata['final_db_update']
+                        
+                        if final_update_func:
+                            with managed_session() as final_session:
+                                try:
+                                    result = final_update_func(final_session, result)
+                                    # Emit socket event if result has socket data
+                                    if result.get('success'):
+                                        try:
+                                            from app import socketio
+                                            socketio.emit('role_update', result)
+                                        except Exception as e:
+                                            logger.warning(f"Failed to emit socket event: {e}")
+                                except Exception as e:
+                                    logger.error(f"Error in final database update for {task_name}: {e}")
+                                    # Don't fail the task if final update fails
+                        
                         register_session_end(session_id, 'committed')
                         return result
+                    
+                    else:
+                        # Standard sync task
+                        with managed_session() as session:
+                            if asyncio.iscoroutinefunction(f):
+                                # Async function without two-phase pattern - this is now an error
+                                logger.error(f"Async task {task_name} must implement two-phase pattern (_extract_data and _execute_async methods)")
+                                raise RuntimeError(f"Async task {task_name} must use two-phase pattern. See ASYNC_TASK_MIGRATION.md for migration guide.")
+                            else:
+                                # Sync function - call normally with session
+                                result = f(self, session, *args, **kwargs)
+                            
+                            register_session_end(session_id, 'committed')
+                            return result
                 except Exception as e:
                     # Record error in session tracking (rollback happens automatically in managed_session)
                     register_session_end(session_id, 'error-rollback')
@@ -463,7 +619,16 @@ def celery_task(func=None, **task_kwargs):
                             session.close()
                     except Exception as e:
                         logger.error(f"Failed to register session end: {str(e)}")
-                        
+        
+        # ROOT CAUSE FIX: Copy any existing attributes from original function to wrapped function  
+        # This ensures attributes attached before OR after decoration are preserved
+        for attr_name in ['_extract_data', '_execute_async', '_two_phase', '_requires_final_db_update', '_final_db_update']:
+            if hasattr(f, attr_name):
+                setattr(wrapped, attr_name, getattr(f, attr_name))
+        
+        # Store original function reference so we can check for attributes added later
+        wrapped._original_func = f
+        
         return wrapped
     
     # Handle both @celery_task and @celery_task() usage

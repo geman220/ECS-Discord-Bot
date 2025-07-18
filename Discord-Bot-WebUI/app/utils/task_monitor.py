@@ -88,37 +88,65 @@ class TaskMonitor:
         current_time = time.time()
         zombie_tasks = []
         
-        # Find keys with the task prefix
-        keys = self.redis.keys(f"{self.task_prefix}*")
+        # Use SCAN instead of KEYS for better performance
+        cursor = 0
+        batch_size = 100
         
-        for key in keys:
-            task_info = self.redis.hgetall(key)
+        while True:
+            cursor, keys = self.redis.scan(cursor, match=f"{self.task_prefix}*", count=batch_size)
             
-            # Skip if not in STARTED state
-            if task_info.get("status") != STARTED:
+            if not keys:
+                if cursor == 0:
+                    break
                 continue
             
-            # Check if task has been running too long
-            start_time = float(task_info.get("start_time", 0))
-            if current_time - start_time > self.zombie_threshold:
-                task_id = task_info.get("task_id")
-                task_name = task_info.get("task_name")
+            # Use pipeline for batch operations
+            pipe = self.redis.pipeline()
+            for key in keys:
+                pipe.hgetall(key)
+            
+            try:
+                task_infos = pipe.execute()
+            except Exception as e:
+                logger.error(f"Error executing Redis pipeline: {e}")
+                continue
+            
+            for key, task_info in zip(keys, task_infos):
+                if not task_info:
+                    continue
+                    
+                # Skip if not in STARTED state
+                if task_info.get("status") != STARTED:
+                    continue
                 
-                # Try to get the current state from Celery
-                task_result = AsyncResult(task_id)
-                current_status = task_result.state
-                
-                # If the task is still running according to Celery, it's a zombie
-                if current_status == STARTED:
-                    zombie_tasks.append({
-                        "task_id": task_id,
-                        "task_name": task_name,
-                        "runtime": current_time - start_time,
-                        "start_time": datetime.fromtimestamp(start_time).isoformat()
-                    })
-                else:
-                    # Update our records if Celery has a different status
-                    self.register_task_completion(task_id, current_status)
+                # Check if task has been running too long
+                start_time = float(task_info.get("start_time", 0))
+                if current_time - start_time > self.zombie_threshold:
+                    task_id = task_info.get("task_id")
+                    task_name = task_info.get("task_name")
+                    
+                    # Try to get the current state from Celery
+                    try:
+                        task_result = AsyncResult(task_id)
+                        current_status = task_result.state
+                    except Exception as e:
+                        logger.error(f"Error getting task status for {task_id}: {e}")
+                        continue
+                    
+                    # If the task is still running according to Celery, it's a zombie
+                    if current_status == STARTED:
+                        zombie_tasks.append({
+                            "task_id": task_id,
+                            "task_name": task_name,
+                            "runtime": current_time - start_time,
+                            "start_time": datetime.fromtimestamp(start_time).isoformat()
+                        })
+                    else:
+                        # Update our records if Celery has a different status
+                        self.register_task_completion(task_id, current_status)
+            
+            if cursor == 0:
+                break
         
         return zombie_tasks
     
@@ -420,31 +448,10 @@ def clean_zombie_tasks():
     Returns:
         A dictionary with clean-up results.
     """
+    start_time = time.time()
     logger.info("Running zombie task cleanup")
     
-    # Force garbage collection to clean up any lingering objects
-    import gc
-    gc.collect()
-    
-    # Check memory usage first
-    try:
-        from app.utils.memory_monitor import check_memory_usage
-        memory_info = check_memory_usage()
-        if memory_info:
-            logger.info(f"Current memory usage: {memory_info['memory_mb']:.1f}MB")
-    except ImportError:
-        logger.debug("Memory monitor not available")
-    
-    # Clean up database connection pool
-    try:
-        from app.core import db
-        if hasattr(db, 'engine') and hasattr(db.engine, 'dispose'):
-            logger.info("Refreshing database connection pool")
-            db.engine.dispose()
-    except Exception as e:
-        logger.error(f"Error disposing database engine: {e}")
-    
-    # Detect zombies first
+    # Detect zombies first (fastest operation)
     zombies = task_monitor.detect_zombie_tasks()
     logger.info(f"Found {len(zombies)} zombie tasks")
     
@@ -452,35 +459,70 @@ def clean_zombie_tasks():
     terminated = task_monitor.clean_up_zombie_tasks()
     logger.info(f"Terminated {terminated} zombie tasks")
     
-    # Check for orphaned database sessions
-    old_sessions = get_open_sessions(age_threshold_seconds=1800)  # 30 minutes
-    if old_sessions:
-        logger.warning(f"Found {len(old_sessions)} orphaned database sessions:")
-        for idx, session in enumerate(old_sessions):
-            logger.warning(
-                f"Session {idx+1}: ID={session['session_id']}, "
-                f"Age={session['age_seconds']/60:.1f} minutes, "
-                f"Task={session['task_id']}"
-            )
-            
-            # Log the full stack trace for the first few orphaned sessions
-            if idx < 3:  # Only log details for first 3 sessions to avoid log spam
-                logger.warning(f"Stack trace for session {session['session_id']}:\n{session['stack_trace']}")
+    # Check for orphaned database sessions (only if we found zombies or every 4th run)
+    old_sessions = []
+    run_full_cleanup = len(zombies) > 0 or (int(time.time()) // 900) % 4 == 0  # Every hour
     
-    # Clean up Redis connections
-    try:
-        from app.utils.redis_manager import RedisManager
-        redis_manager = RedisManager()
-        if hasattr(redis_manager, '_cleanup_idle_connections'):
-            logger.info("Cleaning up idle Redis connections")
-            redis_manager._cleanup_idle_connections()
-    except Exception as e:
-        logger.error(f"Error cleaning Redis connections: {e}")
+    if run_full_cleanup:
+        logger.info("Running full cleanup (found zombies or scheduled)")
+        
+        # Check for orphaned database sessions
+        old_sessions = get_open_sessions(age_threshold_seconds=1800)  # 30 minutes
+        if old_sessions:
+            logger.warning(f"Found {len(old_sessions)} orphaned database sessions:")
+            for idx, session in enumerate(old_sessions):
+                logger.warning(
+                    f"Session {idx+1}: ID={session['session_id']}, "
+                    f"Age={session['age_seconds']/60:.1f} minutes, "
+                    f"Task={session['task_id']}"
+                )
+                
+                # Log the full stack trace for the first few orphaned sessions
+                if idx < 3:  # Only log details for first 3 sessions to avoid log spam
+                    logger.warning(f"Stack trace for session {session['session_id']}:\n{session['stack_trace']}")
+        
+        # Clean up database connection pool (only if we found issues)
+        if len(zombies) > 0 or len(old_sessions) > 0:
+            try:
+                from app.core import db
+                if hasattr(db, 'engine') and hasattr(db.engine, 'dispose'):
+                    logger.info("Refreshing database connection pool")
+                    db.engine.dispose()
+            except Exception as e:
+                logger.error(f"Error disposing database engine: {e}")
+        
+        # Force garbage collection (only during full cleanup)
+        import gc
+        gc.collect()
+        
+        # Check memory usage
+        try:
+            from app.utils.memory_monitor import check_memory_usage
+            memory_info = check_memory_usage()
+            if memory_info:
+                logger.info(f"Current memory usage: {memory_info['memory_mb']:.1f}MB")
+        except ImportError:
+            logger.debug("Memory monitor not available")
+        
+        # Clean up Redis connections
+        try:
+            from app.utils.redis_manager import RedisManager
+            redis_manager = RedisManager()
+            if hasattr(redis_manager, '_cleanup_idle_connections'):
+                logger.info("Cleaning up idle Redis connections")
+                redis_manager._cleanup_idle_connections()
+        except Exception as e:
+            logger.error(f"Error cleaning Redis connections: {e}")
+    
+    duration = time.time() - start_time
+    logger.info(f"Zombie cleanup completed in {duration:.1f}s")
     
     return {
         "zombie_count": len(zombies),
         "terminated": terminated,
         "orphaned_sessions": len(old_sessions),
+        "duration_seconds": round(duration, 1),
+        "full_cleanup": run_full_cleanup,
         "zombies": [
             {
                 "task_id": z["task_id"],
