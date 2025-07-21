@@ -88,7 +88,7 @@ def extract_jersey_size_from_product_name(product_name):
         tokens = product_name.split(' - ')
         if tokens:
             last_token = tokens[-1].strip()
-            if last_token.isupper() and len(last_token) <= 3:
+            if last_token.isupper() and len(last_token) <= 4:
                 return last_token
         return 'N/A'
     except Exception as e:
@@ -125,11 +125,11 @@ def determine_league(product_name, current_seasons, session=None):
             logger.error(f"ECS FC League with id={league_id} not found in the database.")
             return None
 
-    # Handle ECS Pub League products
-    elif "ECS PUB LEAGUE" in product_name:
-        if "PREMIER DIVISION" in product_name:
+    # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
+    elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
+        if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
             league_id = 10  # Premier Division
-        elif "CLASSIC DIVISION" in product_name:
+        elif "CLASSIC DIVISION" in product_name or "CLASSIC" in product_name:
             league_id = 11  # Classic Division
         else:
             logger.error(f"Unknown division in product name: '{product_name}'.")
@@ -142,6 +142,56 @@ def determine_league(product_name, current_seasons, session=None):
             return pub_league
         else:
             logger.error(f"Pub League with id={league_id} not found in the database.")
+            return None
+
+    logger.warning(f"Could not determine league type from product name: '{product_name}'")
+    return None
+
+
+def determine_league_cached(product_name, current_seasons, league_cache):
+    """
+    Optimized version of determine_league that uses cached league objects.
+    
+    Args:
+        product_name (str): The product name.
+        current_seasons (list): List of current Season objects.
+        league_cache (dict): Dictionary mapping league_id to League objects.
+        
+    Returns:
+        League: The League object if determined, or None otherwise.
+    """
+    product_name = product_name.upper().strip()
+    # Reduced logging for performance during bulk operations
+    # logger.debug(f"Determining league for product name: '{product_name}'")
+
+    # Handle ECS FC products
+    if product_name.startswith("ECS FC"):
+        league_id = 14
+        ecs_fc_league = league_cache.get(league_id)
+        if ecs_fc_league:
+            # logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={league_id}.")
+            return ecs_fc_league
+        else:
+            logger.error(f"ECS FC League with id={league_id} not found in the cache.")
+            return None
+
+    # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
+    elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
+        if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
+            league_id = 10  # Premier Division
+        elif "CLASSIC DIVISION" in product_name or "CLASSIC" in product_name:
+            league_id = 11  # Classic Division
+        else:
+            logger.error(f"Unknown division in product name: '{product_name}'.")
+            return None
+
+        # logger.debug(f"Product '{product_name}' identified as Division ID {league_id}, assigning league_id={league_id}.")
+        pub_league = league_cache.get(league_id)
+        if pub_league:
+            # logger.debug(f"Product '{product_name}' mapped to Pub League '{pub_league.name}' with id={league_id}.")
+            return pub_league
+        else:
+            logger.error(f"Pub League with id={league_id} not found in the cache.")
             return None
 
     logger.warning(f"Could not determine league type from product name: '{product_name}'")

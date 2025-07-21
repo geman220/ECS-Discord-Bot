@@ -31,8 +31,44 @@ from app.utils.sync_data_manager import get_sync_data, delete_sync_data
 from app.player_management_helpers import create_player_profile, record_order_history
 from app.players_helpers import create_user_for_player
 from app.decorators import role_required
+import uuid
 
 logger = logging.getLogger(__name__)
+
+
+def generate_unique_username(base_name, session):
+    """
+    Generate a unique username based on a base name with session parameter.
+    
+    Args:
+        base_name (str): The base name for the username.
+        session: Database session to use for checking uniqueness.
+    
+    Returns:
+        str: A unique username limited to 50 characters.
+    """
+    # Clean the base name for username (remove special chars, spaces)
+    clean_name = ''.join(c for c in base_name if c.isalnum() or c in ' -_').strip()
+    clean_name = clean_name.replace(' ', '_')
+    
+    unique_username = clean_name[:50]
+    counter = 1
+    
+    while session.query(User).filter_by(username=unique_username).first():
+        suffix = f"_{counter}"
+        max_base_len = 50 - len(suffix)
+        unique_username = f"{clean_name[:max_base_len]}{suffix}"
+        counter += 1
+        
+        # Fallback to UUID if we hit too many conflicts
+        if counter > 100:
+            uuid_suffix = str(uuid.uuid4())[:8]
+            max_base_len = 50 - len(uuid_suffix) - 1
+            unique_username = f"{clean_name[:max_base_len]}_{uuid_suffix}"
+            break
+            
+    return unique_username
+
 
 # Create the blueprint for user management
 user_management_bp = Blueprint('user_management', __name__, url_prefix='/user_management')
@@ -924,7 +960,7 @@ def update_status(task_id):
                 'state': result.state,
                 'progress': 0,
                 'stage': 'pending',
-                'message': 'Task is waiting to start...'
+                'message': 'Task is waiting to start... (If stuck for >60s, the Celery worker may be down)'
             }
         elif result.state == 'PROGRESS':
             info = result.info or {}
@@ -1164,3 +1200,617 @@ def reset_profile_compliance():
             'success': False,
             'message': f'Error resetting profile compliance: {str(e)}'
         })
+
+
+@user_management_bp.route('/sync_review/<task_id>', endpoint='sync_review')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def sync_review(task_id):
+    """
+    Display the enhanced sync review page for resolving sync issues.
+    """
+    try:
+        # Get the sync data for the task
+        sync_data = get_sync_data(task_id)
+        if not sync_data:
+            show_error('Sync data not found or expired. Please run the sync again.')
+            return redirect(url_for('user_management.manage_users'))
+        
+        # Ensure all required keys exist with defaults
+        sync_data.setdefault('new_players', [])
+        sync_data.setdefault('player_league_updates', [])
+        sync_data.setdefault('potential_inactive', [])
+        sync_data.setdefault('flagged_multi_orders', [])
+        sync_data.setdefault('email_mismatch_players', [])
+        
+        return render_template('sync_review.html', 
+                             sync_data=sync_data, 
+                             task_id=task_id,
+                             title='WooCommerce Sync Review')
+        
+    except Exception as e:
+        logger.exception(f"Error displaying sync review: {str(e)}")
+        show_error(f'Error loading sync review: {str(e)}')
+        return redirect(url_for('user_management.manage_users'))
+
+
+@user_management_bp.route('/commit_sync_changes', endpoint='commit_sync_changes', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def commit_sync_changes():
+    """
+    Commit the resolved sync changes to the database.
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        task_id = data.get('task_id')
+        resolutions = data.get('resolutions', {})
+        process_inactive = data.get('process_inactive', True)
+        
+        if not task_id:
+            return jsonify({'success': False, 'error': 'Task ID required'}), 400
+        
+        # Get the original sync data
+        sync_data = get_sync_data(task_id)
+        if not sync_data:
+            return jsonify({'success': False, 'error': 'Sync data not found or expired'}), 404
+        
+        session = g.db_session
+        
+        # Track changes for logging
+        changes_made = {
+            'new_players_created': 0,
+            'multi_orders_resolved': 0,
+            'email_mismatches_resolved': 0,
+            'players_activated': 0,
+            'players_deactivated': 0,
+            'player_leagues_updated': 0
+        }
+        
+        # Track players who get assigned orders during resolution - these should NOT be marked inactive
+        players_with_current_orders = set()
+        
+        # Process new player resolutions
+        new_player_resolutions = resolutions.get('newPlayers', {})
+        for issue_id, resolution in new_player_resolutions.items():
+            issue_id = int(issue_id)
+            if issue_id < len(sync_data['new_players']):
+                player_data = sync_data['new_players'][issue_id]
+                
+                if resolution.get('action') == 'create':
+                    # Get league info for role assignment
+                    league = session.query(League).get(player_data['league_id'])
+                    
+                    # Check if email already exists to avoid unique constraint violation
+                    player_email = player_data['info']['email']
+                    existing_user_with_email = session.query(User).filter_by(email=player_email).first()
+                    
+                    if existing_user_with_email:
+                        # Email already exists, generate a unique email with suffix
+                        import uuid
+                        email_prefix = player_email.split('@')[0]
+                        email_domain = player_email.split('@')[1]
+                        unique_suffix = str(uuid.uuid4())[:8]
+                        unique_email = f"{email_prefix}+sync_{unique_suffix}@{email_domain}"
+                        logger.warning(f"Email {player_email} already exists, using unique email: {unique_email}")
+                    else:
+                        unique_email = player_email
+                    
+                    # Create new user profile first with proper approval status
+                    new_user = User(
+                        username=generate_unique_username(player_data['info']['name'], session),
+                        email=unique_email,
+                        is_approved=True,  # Auto-approve WooCommerce synced users
+                        approval_status='approved',
+                        approved_at=datetime.utcnow()
+                    )
+                    # Set a default password that forces reset on first login
+                    new_user.set_password('ChangeMe123!')  # They'll reset via Discord bot
+                    session.add(new_user)
+                    session.flush()  # Get the user ID
+                    
+                    # Assign appropriate league role based on league name
+                    if league:
+                        if league.name == 'Premier':
+                            premier_role = session.query(Role).filter_by(name='pl-premier').first()
+                            if premier_role:
+                                new_user.roles.append(premier_role)
+                        elif league.name == 'Classic':
+                            classic_role = session.query(Role).filter_by(name='pl-classic').first()
+                            if classic_role:
+                                new_user.roles.append(classic_role)
+                        elif league.name == 'ECS FC':
+                            ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+                            if ecs_fc_role:
+                                new_user.roles.append(ecs_fc_role)
+                    
+                    # Create new player profile linked to user
+                    new_player = Player(
+                        name=player_data['info']['name'],
+                        phone=player_data['info'].get('phone'),
+                        jersey_size=player_data.get('jersey_size'),
+                        league_id=player_data['league_id'],
+                        is_current_player=True,
+                        user_id=new_user.id
+                    )
+                    session.add(new_player)
+                    session.flush()  # Get the player ID
+                    
+                    # Track this new player as having a current order
+                    if new_player.id:
+                        players_with_current_orders.add(new_player.id)
+                        
+                    changes_made['new_players_created'] += 1
+                elif resolution.get('action') == 'invalid':
+                    # Log invalid order but don't create player
+                    logger.warning(f"Invalid order marked for player: {player_data['info']['name']} - Order #{player_data['order_id']}")
+        
+        # Process multi-order resolutions
+        multi_order_resolutions = resolutions.get('multiOrders', {})
+        for issue_id, assignments in multi_order_resolutions.items():
+            issue_id = int(issue_id)
+            if issue_id < len(sync_data['flagged_multi_orders']):
+                order_data = sync_data['flagged_multi_orders'][issue_id]
+                
+                # Process each assignment
+                for assignment in assignments:
+                    order_index = assignment['orderIndex']
+                    assignment_type = assignment['assignment']
+                    
+                    if assignment_type == 'new':
+                        # Player was already created via the quick create endpoint
+                        # Just log that the assignment was made and track them as having orders
+                        player_id = assignment.get('playerId')
+                        player_name = assignment.get('playerName', 'Unknown')
+                        if player_id:
+                            players_with_current_orders.add(player_id)
+                        logger.info(f"Multi-order assignment: Created new player {player_name} (ID: {player_id})")
+                        
+                    elif assignment_type == 'existing':
+                        # Assign to existing player
+                        player_id = assignment.get('playerId')
+                        player_name = assignment.get('playerName', 'Unknown')
+                        
+                        # Get the league information for this specific order
+                        if order_index < len(order_data['orders']):
+                            order_info = order_data['orders'][order_index]
+                            order_league_id = order_info.get('league_id')
+                            order_league_name = order_info.get('league_name')
+                        else:
+                            order_league_id = None
+                            order_league_name = 'Unknown'
+                        
+                        # Track this player as having a current order
+                        if player_id:
+                            players_with_current_orders.add(player_id)
+                            
+                            # Update player to be active and update league assignment
+                            player = session.get(Player, player_id)
+                            if player:
+                                player_updated = False
+                                
+                                # Set player as active
+                                if not player.is_current_player:
+                                    player.is_current_player = True
+                                    changes_made['players_activated'] += 1
+                                    player_updated = True
+                                
+                                # Update league assignment to match the order
+                                if order_league_id and player.league_id != order_league_id:
+                                    old_league_id = player.league_id
+                                    player.league_id = order_league_id
+                                    player_updated = True
+                                    changes_made['player_leagues_updated'] += 1
+                                    logger.info(f"Multi-order assignment: Updated player {player_name} league from {old_league_id} to {order_league_name} (ID: {order_league_id})")
+                                
+                                if player_updated:
+                                    logger.info(f"Multi-order assignment: Updated existing player {player_name} (ID: {player_id}) - Active: {player.is_current_player}, League: {order_league_name}")
+                                else:
+                                    logger.info(f"Multi-order assignment: Assigned to existing player {player_name} (ID: {player_id}) - no updates needed")
+                
+                changes_made['multi_orders_resolved'] += 1
+        
+        # Process email mismatch resolutions
+        email_mismatch_resolutions = resolutions.get('emailMismatches', {})
+        for issue_id, resolution in email_mismatch_resolutions.items():
+            issue_id = int(issue_id)
+            if issue_id < len(sync_data['email_mismatch_players']):
+                player_data = sync_data['email_mismatch_players'][issue_id]
+                
+                if resolution.get('action') == 'update_email':
+                    # NEVER update email - keep database email as authoritative
+                    # Just mark the mismatch as resolved without changing anything
+                    existing_player_id = player_data['existing_player']['id']
+                    players_with_current_orders.add(existing_player_id)
+                    logger.info(f"Email mismatch resolved for player {player_data['existing_player']['name']} - keeping database email")
+                elif resolution.get('action') == 'keep_existing':
+                    # Explicitly keep existing email (no action needed)
+                    existing_player_id = player_data['existing_player']['id']
+                    players_with_current_orders.add(existing_player_id)
+                    logger.info(f"Keeping existing email for player {player_data['existing_player']['name']}")
+                elif resolution.get('action') == 'create_separate':
+                    # Get league info for role assignment
+                    league_id = player_data['existing_player'].get('league_id')
+                    league = session.query(League).get(league_id) if league_id else None
+                    
+                    # Check if email already exists to avoid unique constraint violation
+                    woo_email = player_data['order_info']['woo_email']
+                    existing_user_with_email = session.query(User).filter_by(email=woo_email).first()
+                    
+                    if existing_user_with_email:
+                        # Email already exists, generate a unique email with suffix
+                        import uuid
+                        email_prefix = woo_email.split('@')[0]
+                        email_domain = woo_email.split('@')[1]
+                        unique_suffix = str(uuid.uuid4())[:8]
+                        unique_email = f"{email_prefix}+sync_{unique_suffix}@{email_domain}"
+                        logger.warning(f"Email {woo_email} already exists, using unique email: {unique_email}")
+                    else:
+                        unique_email = woo_email
+                    
+                    # Create separate user and player profile with proper approval status
+                    new_user = User(
+                        username=generate_unique_username(player_data['existing_player']['name'], session),
+                        email=unique_email,
+                        is_approved=True,  # Auto-approve WooCommerce synced users
+                        approval_status='approved',
+                        approved_at=datetime.utcnow()
+                    )
+                    new_user.set_password('ChangeMe123!')  # Default password
+                    session.add(new_user)
+                    session.flush()  # Get the user ID
+                    
+                    # Assign appropriate league role based on league name
+                    if league:
+                        if league.name == 'Premier':
+                            premier_role = session.query(Role).filter_by(name='pl-premier').first()
+                            if premier_role:
+                                new_user.roles.append(premier_role)
+                        elif league.name == 'Classic':
+                            classic_role = session.query(Role).filter_by(name='pl-classic').first()
+                            if classic_role:
+                                new_user.roles.append(classic_role)
+                        elif league.name == 'ECS FC':
+                            ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+                            if ecs_fc_role:
+                                new_user.roles.append(ecs_fc_role)
+                    
+                    # Create separate player profile
+                    new_player = Player(
+                        name=player_data['existing_player']['name'],
+                        phone=player_data['existing_player'].get('phone'),
+                        jersey_size=player_data['order_info'].get('jersey_size'),
+                        league_id=player_data['existing_player'].get('league_id'),
+                        is_current_player=True,
+                        user_id=new_user.id
+                    )
+                    session.add(new_player)
+                    session.flush()  # Get the player ID
+                    
+                    # Track this new player as having a current order
+                    if new_player.id:
+                        players_with_current_orders.add(new_player.id)
+                
+                changes_made['email_mismatches_resolved'] += 1
+        
+        # Process existing player status updates - ONLY update active/inactive status
+        for player_update in sync_data.get('player_league_updates', []):
+            player_id = player_update['player_id']
+            player = session.get(Player, player_id)
+            if player:
+                # Track this player as having a current WooCommerce order
+                players_with_current_orders.add(player_id)
+                
+                # Only update active status - never change other profile data
+                if not player.is_current_player:
+                    player.is_current_player = True
+                    changes_made['players_activated'] += 1
+        
+        # Process inactive status updates if requested
+        if process_inactive:
+            for player_id in sync_data.get('potential_inactive', []):
+                # Skip players who got assigned orders during resolution
+                if player_id in players_with_current_orders:
+                    logger.info(f"Skipping inactive processing for player {player_id} - they have a current order")
+                    continue
+                    
+                player = session.get(Player, player_id)
+                if player and player.is_current_player:
+                    player.is_current_player = False
+                    changes_made['players_deactivated'] += 1
+        
+        # Commit all changes
+        session.commit()
+        
+        # Clean up the sync data
+        delete_sync_data(task_id)
+        
+        # Log the successful commit
+        logger.info(f"Sync changes committed successfully: {changes_made}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'All sync changes have been committed successfully.',
+            'changes': changes_made
+        })
+        
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error committing sync changes: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Error committing changes: {str(e)}'
+        }), 500
+
+
+@user_management_bp.route('/search_players', endpoint='search_players', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def search_players():
+    """
+    Search for existing players by name or email (for assignment purposes).
+    """
+    try:
+        query = request.args.get('q', '').strip()
+        if len(query) < 2:
+            return jsonify({'players': []})
+        
+        session = g.db_session
+        
+        # Search players by name or email
+        players = session.query(Player).filter(
+            or_(
+                Player.name.ilike(f'%{query}%'),
+                Player.email.ilike(f'%{query}%')
+            )
+        ).limit(10).all()
+        
+        results = []
+        for player in players:
+            results.append({
+                'id': player.id,
+                'name': player.name,
+                'email': player.email,
+                'league_name': player.league.name if player.league else 'No League',
+                'is_active': player.is_current_player
+            })
+        
+        return jsonify({'players': results})
+        
+    except Exception as e:
+        logger.exception(f"Error searching players: {str(e)}")
+        return jsonify({'players': [], 'error': str(e)})
+
+
+@user_management_bp.route('/active_sync_tasks', endpoint='active_sync_tasks', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def active_sync_tasks():
+    """
+    Get list of active/completed sync tasks that can be resumed or reviewed.
+    """
+    try:
+        # This would typically check Redis or a task monitoring system
+        # For now, we'll return available sync data keys
+        
+        active_tasks = []
+        # In a real implementation, you'd check Redis keys or a task table
+        # active_tasks = get_available_sync_tasks()
+        
+        return jsonify({
+            'success': True,
+            'tasks': active_tasks
+        })
+        
+    except Exception as e:
+        logger.exception(f"Error getting active sync tasks: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+
+@user_management_bp.route('/search_players', methods=['POST'])
+@login_required 
+@role_required(['Pub League Admin', 'Global Admin'])
+def search_players_post():
+    """Search for existing players by name, email, or phone."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
+        search_term = data.get('search_term', '').strip()
+        if not search_term or len(search_term) < 2:
+            return jsonify({'success': False, 'error': 'Search term must be at least 2 characters'}), 400
+        
+        session = g.db_session
+        
+        # Search in players and their associated users
+        # Search by name (case insensitive, partial match)
+        name_results = session.query(Player).join(User).filter(
+            Player.name.ilike(f'%{search_term}%')
+        ).all()
+        
+        # Search by email (case insensitive, partial match)
+        email_results = session.query(Player).join(User).filter(
+            User.email.ilike(f'%{search_term}%')
+        ).all()
+        
+        # Search by phone (remove formatting and search)
+        phone_clean = ''.join(c for c in search_term if c.isdigit())
+        phone_results = []
+        if phone_clean:
+            phone_results = session.query(Player).filter(
+                Player.phone.ilike(f'%{phone_clean}%')
+            ).join(User).all()
+        
+        # Combine and deduplicate results
+        all_results = {}
+        for player in name_results + email_results + phone_results:
+            if player.id not in all_results:
+                # Determine league name - check both direct league relationship and user league
+                league_name = 'N/A'
+                if player.league:
+                    league_name = player.league.name
+                elif hasattr(player, 'user') and player.user and hasattr(player.user, 'league') and player.user.league:
+                    league_name = player.user.league.name
+                
+                all_results[player.id] = {
+                    'id': player.id,
+                    'name': player.name,
+                    'email': player.user.email if player.user else 'N/A',
+                    'phone': player.phone or 'N/A', 
+                    'league': league_name,
+                    'is_current': player.is_current_player,
+                    'discord_id': player.discord_id or 'N/A',
+                    'jersey_size': player.jersey_size or 'N/A'
+                }
+        
+        # Convert to list and limit results
+        results_list = list(all_results.values())[:20]  # Limit to 20 results
+        
+        return jsonify({
+            'success': True,
+            'players': results_list,
+            'total_found': len(results_list)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error searching players: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@user_management_bp.route('/create_quick_player', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def create_quick_player():
+    """Create a new player with WooCommerce order information for multi-order assignments."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+            
+        # Get order information from the request
+        order_info = data.get('order_info', {})
+        player_info = order_info.get('player_info', {})
+        
+        # Extract player details from order
+        name = player_info.get('name', '').strip()
+        email = player_info.get('email', '').strip()  
+        phone = player_info.get('phone', '').strip()
+        jersey_size = player_info.get('jersey_size', '')
+        product_name = order_info.get('product_name', '')
+        league_id = order_info.get('league_id')
+        
+        if not name:
+            return jsonify({'success': False, 'error': 'Player name is required'}), 400
+            
+        if not league_id:
+            return jsonify({'success': False, 'error': 'League ID is required'}), 400
+            
+        session = g.db_session
+        
+        # Validate league exists
+        league = session.query(League).get(league_id)
+        if not league:
+            return jsonify({'success': False, 'error': 'Invalid league ID'}), 400
+            
+        # Use WooCommerce email or generate temp if missing/invalid
+        user_email = email
+        if not email or '@' not in email:
+            import uuid
+            temp_suffix = str(uuid.uuid4())[:8]
+            user_email = f"temp_{temp_suffix}@temp-woocommerce-sync.local"
+        else:
+            # Check if email already exists and make it unique if needed
+            existing_user_with_email = session.query(User).filter_by(email=user_email).first()
+            if existing_user_with_email:
+                import uuid
+                email_prefix = user_email.split('@')[0]
+                email_domain = user_email.split('@')[1]
+                unique_suffix = str(uuid.uuid4())[:8]
+                user_email = f"{email_prefix}+sync_{unique_suffix}@{email_domain}"
+                logger.warning(f"Email {email} already exists, using unique email: {user_email}")
+            
+        # Use WooCommerce phone or generate temp if missing
+        player_phone = phone
+        if not phone:
+            import uuid
+            temp_suffix = str(uuid.uuid4())[:8]
+            player_phone = f"000-000-{temp_suffix[:4]}"
+        
+        # Create user first with proper approval status
+        new_user = User(
+            username=generate_unique_username(name, session),
+            email=user_email,
+            is_approved=True,
+            approval_status='approved',
+            approved_at=datetime.utcnow()
+        )
+        new_user.set_password('ChangeMe123!')  # Default password
+        session.add(new_user)
+        session.flush()  # Get the user ID
+        
+        # Assign appropriate league role based on league name
+        if league.name == 'Premier':
+            premier_role = session.query(Role).filter_by(name='pl-premier').first()
+            if premier_role:
+                new_user.roles.append(premier_role)
+        elif league.name == 'Classic':
+            classic_role = session.query(Role).filter_by(name='pl-classic').first()
+            if classic_role:
+                new_user.roles.append(classic_role)
+        elif league.name == 'ECS FC':
+            ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+            if ecs_fc_role:
+                new_user.roles.append(ecs_fc_role)
+        
+        # Create player linked to user with all available WooCommerce data
+        new_player = Player(
+            name=name,
+            phone=player_phone,
+            jersey_size=jersey_size if jersey_size else None,
+            league_id=league_id,
+            is_current_player=True,
+            user_id=new_user.id
+        )
+        session.add(new_player)
+        session.flush()  # Get the player ID
+        
+        # Commit the transaction
+        session.commit()
+        
+        return jsonify({
+            'success': True,
+            'player': {
+                'id': new_player.id,
+                'name': new_player.name,
+                'email': new_user.email,
+                'phone': new_player.phone,
+                'jersey_size': new_player.jersey_size,
+                'league': league.name,
+                'is_current': True,
+                'temp_data': not email or not phone,  # Flag if we used temp data
+                'product_name': product_name
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error creating quick player: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def clear_sync_data(task_id):
+    """
+    Clear sync data for a completed task.
+    """
+    try:
+        from app.utils.player_sync_utils import clear_sync_data as clear_data
+        clear_data(task_id)
+    except Exception as e:
+        logger.warning(f"Could not clear sync data for task {task_id}: {e}")

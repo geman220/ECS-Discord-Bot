@@ -235,6 +235,59 @@ def has_previous_season_order(player, season):
     ).first() is not None
 
 
+def is_username_style_name(name):
+    """
+    Detect if a name looks like a username rather than a real name.
+    
+    Patterns that suggest username:
+    - Contains numbers (e.g., "thewitt18", "coyg21")
+    - Contains common username patterns
+    - All lowercase or mixed case in unusual ways
+    - Single word without proper capitalization
+    
+    Args:
+        name (str): The name to check.
+    
+    Returns:
+        bool: True if name appears to be a username-style name.
+    """
+    if not name:
+        return False
+    
+    name = name.strip()
+    
+    # Contains numbers - likely a username
+    if any(char.isdigit() for char in name):
+        return True
+    
+    # Common username suffixes/patterns
+    username_patterns = [
+        'jr', 'sr', '1', '2', '3', 'x', 'xx', 'xxx',
+        'the', 'fc', 'united', 'city', 'town'
+    ]
+    
+    name_lower = name.lower()
+    
+    # Starts with "the" (like "thewitt")
+    if name_lower.startswith('the') and len(name) > 3:
+        return True
+    
+    # Single word that's all lowercase (proper names should be capitalized)
+    if ' ' not in name and name.islower() and len(name) > 2:
+        return True
+    
+    # Ends with common username patterns
+    for pattern in username_patterns:
+        if name_lower.endswith(pattern) and len(name) > len(pattern):
+            return True
+    
+    # Contains typical gaming/username abbreviations
+    if any(abbrev in name_lower for abbrev in ['fc', 'utd', 'city', 'town', 'coyg']):
+        return True
+    
+    return False
+
+
 def standardize_name(name):
     """
     Standardize a name by capitalizing each part.
@@ -257,17 +310,27 @@ def standardize_name(name):
 
 def standardize_phone(phone):
     """
-    Standardize a phone number by removing all non-digit characters.
+    Standardize a phone number by removing all non-digit characters and normalizing US numbers.
+    
+    Handles US country code by treating both "3109930763" and "13109930763" as equivalent.
     
     Args:
         phone (str): The phone number string.
     
     Returns:
-        str: The cleaned phone number containing only digits.
+        str: The cleaned and normalized phone number containing only digits.
     """
-    if phone:
-        return ''.join(filter(str.isdigit, phone))
-    return ''
+    if not phone:
+        return ''
+    
+    # Remove all non-digit characters
+    clean_phone = ''.join(filter(str.isdigit, phone))
+    
+    # If phone starts with '1' and is 11 digits, remove the leading '1' (US country code)
+    if len(clean_phone) == 11 and clean_phone.startswith('1'):
+        clean_phone = clean_phone[1:]
+    
+    return clean_phone
 
 
 def match_user(player_data):
@@ -293,13 +356,25 @@ def match_user(player_data):
         return user
 
     if name and phone:
+        # Standardize database phone: remove formatting and handle US country code
         standardized_phone_db = func.replace(
             func.replace(
                 func.replace(
-                    func.replace(Player.phone, '-', ''), 
-                    '(', ''
-                ), ')', ''
-            ), ' ', ''
+                    func.replace(
+                        func.replace(
+                            func.replace(Player.phone, '-', ''), 
+                            '(', ''
+                        ), ')', ''
+                    ), ' ', ''
+                ), '+', ''
+            ), '.', ''
+        )
+        # Handle US country code: if 11 digits starting with 1, remove the 1
+        standardized_phone_db = func.case(
+            (func.and_(func.length(standardized_phone_db) == 11, 
+                      func.left(standardized_phone_db, 1) == '1'),
+             func.right(standardized_phone_db, 10)),
+            else_=standardized_phone_db
         )
         player = session.query(Player).filter(
             func.lower(Player.name) == func.lower(name),
@@ -365,13 +440,25 @@ def match_player(player_data, league, user=None, session=None):
     logger.debug(f"Standardized name: {name}, Standardized phone: {phone}")
 
     if name and phone:
+        # Standardize database phone: remove formatting and handle US country code
         standardized_phone_db = func.replace(
             func.replace(
                 func.replace(
-                    func.replace(Player.phone, '-', ''), 
-                    '(', ''
-                ), ')', ''
-            ), ' ', ''
+                    func.replace(
+                        func.replace(
+                            func.replace(Player.phone, '-', ''), 
+                            '(', ''
+                        ), ')', ''
+                    ), ' ', ''
+                ), '+', ''
+            ), '.', ''
+        )
+        # Handle US country code: if 11 digits starting with 1, remove the 1
+        standardized_phone_db = func.case(
+            (func.and_(func.length(standardized_phone_db) == 11, 
+                      func.left(standardized_phone_db, 1) == '1'),
+             func.right(standardized_phone_db, 10)),
+            else_=standardized_phone_db
         )
         player_by_phone = session.query(Player).filter(
             func.lower(Player.name) == func.lower(name),
@@ -600,26 +687,37 @@ def score_player_match(player_info, player, user):
         strong_matches += 1
         match_details.append("phone_exact")
     
-    # Calculate overall confidence based on "2 out of 3" principle
-    confidence = 0.0
-    match_type = "no_match"
-    
-    if strong_matches >= 3:
-        # All 3 match - perfect
-        confidence = 0.98
-        match_type = "triple_match"
-    elif strong_matches >= 2:
-        # 2 out of 3 match - very good
-        confidence = 0.85 + (max(name_score, email_score, phone_score) * 0.1)
-        match_type = "double_match"
-    elif strong_matches == 1:
-        # Only 1 strong match - lower confidence
-        if name_score >= 0.9 or email_score >= 1.0 or phone_score >= 1.0:
-            confidence = 0.6 + (max(name_score, email_score, phone_score) * 0.2)
-            match_type = "single_strong_match"
+    # Special case: If name + phone match strongly, accept even with email mismatch
+    # This handles cases where user may have updated their email in WooCommerce
+    if name_score >= 0.7 and phone_score >= 1.0:
+        # Strong name + exact phone match = high confidence match regardless of email
+        confidence = 0.9
+        match_type = "name_phone_match"
+        if email and not email_score:
+            # Remove email_mismatch flag since we're accepting this match
+            flags = [f for f in flags if f != 'email_mismatch']
+            flags.append('email_differs_but_accepted')  # For logging purposes
+    else:
+        # Calculate overall confidence based on "2 out of 3" principle
+        if strong_matches >= 3:
+            # All 3 match - perfect
+            confidence = 0.98
+            match_type = "triple_match"
+        elif strong_matches >= 2:
+            # 2 out of 3 match - very good
+            confidence = 0.85 + (max(name_score, email_score, phone_score) * 0.1)
+            match_type = "double_match"
+        elif strong_matches == 1:
+            # Only 1 strong match - lower confidence
+            if name_score >= 0.9 or email_score >= 1.0 or phone_score >= 1.0:
+                confidence = 0.6 + (max(name_score, email_score, phone_score) * 0.2)
+                match_type = "single_strong_match"
+            else:
+                confidence = 0.3 + (max(name_score, email_score, phone_score) * 0.3)
+                match_type = "weak_match"
         else:
-            confidence = 0.3 + (max(name_score, email_score, phone_score) * 0.3)
-            match_type = "weak_match"
+            confidence = 0.0
+            match_type = "no_match"
     
     # Special handling for subset name matches (like "Hayley Serres" vs "Hayley C Serres")
     if name_score >= 0.95 and strong_matches >= 1:
@@ -667,6 +765,65 @@ def match_player_with_details(player_info, db_session):
     
     # Score each player
     for player in all_players:
+        score_result = score_player_match(player_info, player, player.user)
+        
+        if score_result['confidence'] > best_confidence:
+            best_confidence = score_result['confidence']
+            best_match = player
+            best_score = score_result
+    
+    # Return result if we have a good enough match
+    if best_match and best_confidence >= 0.6:  # Lowered threshold for 2-of-3 matching
+        return {
+            'player': best_match,
+            'match_type': best_score['match_type'],
+            'confidence': best_confidence,
+            'flags': best_score['flags'],
+            'match_details': best_score['match_details'],
+            'scores': {
+                'name': best_score['name_score'],
+                'email': best_score['email_score'], 
+                'phone': best_score['phone_score']
+            }
+        }
+    
+    return {
+        'player': None,
+        'match_type': 'no_sufficient_match',
+        'confidence': best_confidence,
+        'flags': ['new_player_candidate'] + (best_score['flags'] if best_score else [])
+    }
+
+
+def match_player_with_details_cached(player_info, cached_players):
+    """
+    Optimized version of match_player_with_details that uses pre-cached player data.
+    
+    Args:
+        player_info (dict): Player information dictionary
+        cached_players (list): Pre-loaded list of Player objects with joined User objects
+    
+    Returns:
+        dict with 'player', 'match_type', 'confidence', 'flags'
+    """
+    name = standardize_name(player_info.get('name', ''))
+    email = player_info.get('email', '').lower() if player_info.get('email') else None
+    phone = standardize_phone(player_info.get('phone', ''))
+    
+    if not name and not email and not phone:
+        return {
+            'player': None,
+            'match_type': 'no_data',
+            'confidence': 0.0,
+            'flags': ['insufficient_data']
+        }
+    
+    # Score each player using the cached list instead of querying database
+    best_match = None
+    best_score = None
+    best_confidence = 0.0
+    
+    for player in cached_players:
         score_result = score_player_match(player_info, player, player.user)
         
         if score_result['confidence'] > best_confidence:
