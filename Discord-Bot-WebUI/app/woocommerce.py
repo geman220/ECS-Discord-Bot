@@ -59,7 +59,7 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
     season_pub_league_regex = re.compile(re.escape(season_pub_league_string), re.IGNORECASE)
     ecs_fc_regex = re.compile(ecs_fc_regex_pattern, re.IGNORECASE)
 
-    logger.info(f"Looking for orders matching: '{season_pub_league_string}' or 'ECS FC * {current_season_formatted}'")
+    logger.info(f"Looking for orders matching: '{season_pub_league_string}' or 'ECS FC * {current_season_formatted}' (statuses: completed, processing, on-hold)")
 
     pages_to_fetch = 1 if page is not None else max_pages
 
@@ -97,6 +97,15 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
                 for item in order.get('line_items', []):
                     product_name = item.get('name', '')
                     quantity = item.get('quantity', 1)
+                    
+                    # Check Commission Status in meta_data
+                    commission_status = None
+                    meta_data = item.get('meta_data', [])
+                    for meta in meta_data:
+                        if meta.get('key') == 'Commission Status':
+                            commission_status = meta.get('value')
+                            break
+                    
                     include_order = False
 
                     if season_pub_league_regex.search(product_name):
@@ -117,7 +126,8 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
                             'order_id': order_id,
                             'product_name': product_name,
                             'billing': billing,
-                            'quantity': quantity
+                            'quantity': quantity,
+                            'commission_status': commission_status
                         })
                         logger.debug(f"Included order ID {order_id} with product '{product_name}'")
 
@@ -160,12 +170,21 @@ def fetch_order_by_id(order_id):
         for item in order.get('line_items', []):
             product_name = item.get('name', '')
             if "ECS Pub League" in product_name or "ECS FC" in product_name:
+                # Extract Commission Status
+                commission_status = None
+                meta_data = item.get('meta_data', [])
+                for meta in meta_data:
+                    if meta.get('key') == 'Commission Status':
+                        commission_status = meta.get('value')
+                        break
+                
                 logger.info(f"Order ID {order_id} matches the criteria.")
                 return {
                     'order_id': order_id,
                     'product_name': product_name,
                     'billing': order.get('billing', {}),
-                    'quantity': item.get('quantity', 1)
+                    'quantity': item.get('quantity', 1),
+                    'commission_status': commission_status
                 }
 
         logger.warning(f"Order ID {order_id} does not match the criteria.")

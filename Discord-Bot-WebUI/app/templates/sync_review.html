@@ -1,0 +1,1533 @@
+{% extends "base.html" %}
+
+{% block title %}WooCommerce Sync Review{% endblock %}
+
+{% block page_css %}
+<style>
+.issue-card {
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+.issue-resolved {
+    border-left-color: #28a745 !important;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+.issue-pending {
+    border-left-color: #ffc107;
+}
+.issue-error {
+    border-left-color: #dc3545;
+}
+.player-assignment {
+    background: var(--bs-gray-50);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+}
+.order-details {
+    background: var(--bs-gray-100);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.25rem 0;
+    font-size: 0.9em;
+}
+.resolution-actions {
+    background: rgba(255, 243, 205, 0.5);
+    border: 1px solid var(--bs-warning-border-subtle);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+.commit-section {
+    background: rgba(209, 236, 241, 0.5);
+    border: 1px solid var(--bs-info-border-subtle);
+    border-radius: 0.375rem;
+    padding: 2rem;
+    margin: 2rem 0;
+    text-align: center;
+}
+.status-badge {
+    font-size: 0.8em;
+    padding: 0.25rem 0.5rem;
+}
+.progress-detailed {
+    height: 30px;
+    font-size: 0.9rem;
+}
+.stats-card {
+    transition: transform 0.2s;
+}
+.stats-card:hover {
+    transform: translateY(-2px);
+}
+.nav-tabs .nav-link {
+    position: relative;
+}
+.nav-tabs .nav-link .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 0.7em;
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="fw-bold py-3 mb-2">
+                        <i class="ti ti-refresh me-2 text-primary"></i>WooCommerce Sync Review
+                    </h2>
+                    <div class="text-muted">
+                        Review and resolve sync issues before applying changes
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('user_management.manage_users') }}" class="btn btn-outline-secondary">
+                        <i class="ti ti-arrow-left me-1"></i> Back to User Management
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshSyncData()">
+                        <i class="ti ti-refresh me-1"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title mb-3">Resolution Progress</h6>
+                    <div class="progress progress-detailed" style="height: 30px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="resolutionProgress" role="progressbar" style="width: 0%">
+                            <span id="progressText" class="fw-semibold">0% Complete</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-primary mb-1" id="newPlayersCount">{{ sync_data.new_players|length }}</h3>
+                    <p class="card-text text-muted mb-0">New Players</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-success mb-1" id="existingPlayersCount">{{ sync_data.player_league_updates|length }}</h3>
+                    <p class="card-text text-muted mb-0">Existing Players</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-warning mb-1" id="flaggedOrdersCount">{{ sync_data.flagged_multi_orders|length }}</h3>
+                    <p class="card-text text-muted mb-0">Multi-Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-danger mb-1" id="emailMismatchCount">{{ sync_data.email_mismatch_players|length }}</h3>
+                    <p class="card-text text-muted mb-0">Email Mismatches</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-info mb-1" id="potentialInactiveCount">{{ sync_data.potential_inactive|length }}</h3>
+                    <p class="card-text text-muted mb-0">Potential Inactive</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card stats-card text-center shadow-sm">
+                <div class="card-body py-3">
+                    <h3 class="card-title text-secondary mb-1" id="issuesResolvedCount">0</h3>
+                    <p class="card-text text-muted mb-0">Issues Resolved</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Issues Card with Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header border-bottom">
+                    <ul class="nav nav-tabs card-header-tabs" id="issuesTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="multi-orders-tab" data-bs-toggle="tab" data-bs-target="#multi-orders" type="button" role="tab">
+                                <i class="ti ti-users me-1"></i>Multi-Person Orders
+                                <span class="badge bg-warning ms-2" id="multiOrdersBadge">{{ sync_data.flagged_multi_orders|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="new-players-tab" data-bs-toggle="tab" data-bs-target="#new-players" type="button" role="tab">
+                                <i class="ti ti-user-plus me-1"></i>New Players
+                                <span class="badge bg-primary ms-2" id="newPlayersBadge">{{ sync_data.new_players|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="email-mismatches-tab" data-bs-toggle="tab" data-bs-target="#email-mismatches" type="button" role="tab">
+                                <i class="ti ti-mail me-1"></i>Email Mismatches
+                                <span class="badge bg-danger ms-2" id="emailMismatchBadge">{{ sync_data.email_mismatch_players|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="existing-players-tab" data-bs-toggle="tab" data-bs-target="#existing-players" type="button" role="tab">
+                                <i class="ti ti-user-check me-1"></i>Existing Players
+                                <span class="badge bg-success ms-2" id="existingPlayersBadge">{{ sync_data.player_league_updates|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inactive-players-tab" data-bs-toggle="tab" data-bs-target="#inactive-players" type="button" role="tab">
+                                <i class="ti ti-user-off me-1"></i>Mark Inactive
+                                <span class="badge bg-warning ms-2" id="inactivePlayersBadge">{{ sync_data.players_to_inactivate|length }}</span>
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">
+                                <i class="ti ti-check-circle me-1"></i>Final Review
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Multi-Person Orders Tab -->
+                    <div class="tab-pane fade show active" id="multi-orders" role="tabpanel">
+                        <div class="card-body">
+                            {% if sync_data.flagged_multi_orders|length > 0 %}
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-alert-triangle me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">Multi-Person Orders Detected</h6>
+                                            <p class="mb-0">These buyers purchased multiple memberships. Please assign each order to the correct player profile.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% for order in sync_data.flagged_multi_orders %}
+                                {% set outer_loop = loop %}
+                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="multi-order" data-issue-id="{{ loop.index0 }}">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="ti ti-user me-2 text-primary"></i>
+                                                <h5 class="mb-0">{{ order.buyer_info.name }}</h5>
+                                                <span class="status-badge badge bg-warning ms-3">Pending Assignment</span>
+                                            </div>
+                                            <p class="text-muted mb-3">
+                                                <i class="ti ti-mail me-1"></i>{{ order.buyer_info.email }}<br>
+                                                <small>{{ order.reason }}</small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-lg-6">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="ti ti-shopping-cart me-1"></i>Orders to Assign
+                                            </h6>
+                                            {% for ord in order.orders %}
+                                            <div class="order-details mb-3" data-order-index="{{ loop.index0 }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <strong class="text-dark">Order #{{ ord.order.order_id }}</strong>
+                                                        <span class="badge bg-light text-dark ms-2">Qty: {{ ord.order.quantity }}</span>
+                                                        <br>
+                                                        <div class="mt-2 p-2 bg-light rounded">
+                                                            <h6 class="mb-1 text-primary"><i class="ti ti-info-circle me-1"></i>Order Information:</h6>
+                                                            <div class="small">
+                                                                <strong>Product:</strong> {{ ord.order.product_name }}<br>
+                                                                <strong>Name:</strong> {{ ord.player_info.name }}<br>
+                                                                <strong>Email:</strong> {{ ord.player_info.email or 'Not provided' }}<br>
+                                                                <strong>Phone:</strong> {{ ord.player_info.phone or 'Not provided' }}<br>
+                                                                <strong>Jersey Size:</strong> {{ ord.jersey_size or 'Not provided' }}<br>
+                                                                <strong>League:</strong> {{ ord.league_name }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <div class="resolution-actions">
+                                                <h6 class="text-warning mb-3">
+                                                    <i class="ti ti-user-check me-1"></i>Player Assignments
+                                                </h6>
+                                                <div id="assignments-{{ outer_loop.index0 }}">
+                                                    {% for ord in order.orders %}
+                                                    <div class="player-assignment mb-3">
+                                                        <label class="form-label fw-semibold">Order #{{ ord.order.order_id }}:</label>
+                                                        
+                                                        <!-- Current Assignment Display -->
+                                                        <div class="current-assignment mb-2" id="current-assignment-{{ outer_loop.index0 }}-{{ loop.index0 }}" style="display: none;">
+                                                            <div class="alert alert-success py-2 mb-2">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <div>
+                                                                        <i class="ti ti-check-circle me-1"></i>
+                                                                        <span class="assignment-text"></span>
+                                                                    </div>
+                                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeAssignment({{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                        <i class="ti ti-x me-1"></i>Remove
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Assignment Selection -->
+                                                        <div class="assignment-selection" id="assignment-selection-{{ outer_loop.index0 }}-{{ loop.index0 }}">
+                                                            <select class="form-select assignment-select mb-2" 
+                                                                    data-issue-id="{{ outer_loop.index0 }}" 
+                                                                    data-order-index="{{ loop.index0 }}">
+                                                                <option value="">Select Assignment...</option>
+                                                                <option value="new">Create New Player Profile</option>
+                                                                <option value="search">Assign to Existing Player</option>
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <!-- New Player Creation Form -->
+                                                        <div class="d-none" id="create-new-{{ outer_loop.index0 }}-{{ loop.index0 }}">
+                                                            <div class="card border-success border-2 mt-2">
+                                                                <div class="card-header bg-success text-white py-2">
+                                                                    <h6 class="mb-0"><i class="ti ti-user-plus me-1"></i>Create New Player from WooCommerce Order</h6>
+                                                                </div>
+                                                                <div class="card-body p-3">
+                                                                    <div class="mb-2">
+                                                                        <label class="form-label fw-semibold">Player Name *</label>
+                                                                        <input type="text" class="form-control form-control-sm new-player-name" value="{{ ord.player_info.name }}" required>
+                                                                        <div class="form-text">Pre-filled from WooCommerce order - edit if needed</div>
+                                                                    </div>
+                                                                    
+                                                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                                                        <button class="btn btn-success btn-sm" onclick="createNewPlayerFromForm({{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                            <i class="ti ti-plus me-1"></i>Create Player with Order Data
+                                                                        </button>
+                                                                        <button class="btn btn-secondary btn-sm" onclick="cancelPlayerCreation({{ outer_loop.index0 }}, {{ loop.index0 }})">Cancel</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Player Search Form -->
+                                                        <div class="d-none" id="search-{{ outer_loop.index0 }}-{{ loop.index0 }}">
+                                                            <div class="card border-primary border-2 mt-2">
+                                                                <div class="card-header bg-primary text-white py-2">
+                                                                    <h6 class="mb-0"><i class="ti ti-search me-1"></i>Search Existing Players</h6>
+                                                                </div>
+                                                                <div class="card-body p-3">
+                                                                    <div class="mb-2">
+                                                                        <input type="text" class="form-control form-control-sm player-search" placeholder="Search by name, email, or phone..." onkeyup="searchPlayersDelayed(this, {{ outer_loop.index0 }}, {{ loop.index0 }})">
+                                                                        <div class="form-text">Type at least 2 characters to search</div>
+                                                                    </div>
+                                                                    <div class="search-results" id="search-results-{{ outer_loop.index0 }}-{{ loop.index0 }}"></div>
+                                                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-2">
+                                                                        <button class="btn btn-secondary btn-sm" onclick="cancelPlayerSearch({{ outer_loop.index0 }}, {{ loop.index0 }})">Cancel</button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button class="btn btn-success" onclick="resolveMultiOrder({{ outer_loop.index0 }})">
+                                                    <i class="ti ti-check me-1"></i> Save Assignments
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <h4 class="text-success mt-3">No Multi-Person Orders!</h4>
+                                    <p class="text-muted">All orders have single assignments.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- New Players Tab -->
+                    <div class="tab-pane fade" id="new-players" role="tabpanel">
+                        <div class="card-body">
+                            {% if sync_data.new_players|length > 0 %}
+                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-info-circle me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">New Players Found</h6>
+                                            <p class="mb-0">These players were not found in the database. Verify they are legitimate new registrations.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% for player in sync_data.new_players %}
+                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="new-player" data-issue-id="{{ loop.index0 }}">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-user-plus me-2 text-primary"></i>
+                                            <h5 class="mb-0">{{ player.info.name }}</h5>
+                                            <span class="status-badge badge bg-primary ms-3">New Player</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-lg-6">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="ti ti-info-circle me-1"></i>Player Information
+                                            </h6>
+                                            <div class="mb-3">
+                                                <div class="row g-2">
+                                                    <div class="col-sm-4"><strong>Email:</strong></div>
+                                                    <div class="col-sm-8">{{ player.info.email }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <div class="row g-2">
+                                                    <div class="col-sm-4"><strong>Phone:</strong></div>
+                                                    <div class="col-sm-8">{{ player.info.phone or 'Not provided' }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <div class="row g-2">
+                                                    <div class="col-sm-4"><strong>League:</strong></div>
+                                                    <div class="col-sm-8">{{ player.league_name or 'Unknown' }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <div class="row g-2">
+                                                    <div class="col-sm-4"><strong>Jersey Size:</strong></div>
+                                                    <div class="col-sm-8">{{ player.jersey_size or 'Not provided' }}</div>
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <div class="row g-2">
+                                                    <div class="col-sm-4"><strong>Order:</strong></div>
+                                                    <div class="col-sm-8">#{{ player.order_id }}</div>
+                                                </div>
+                                            </div>
+                                            {% if player.reason %}
+                                            <div class="alert alert-warning py-2 px-3">
+                                                <small><i class="ti ti-alert-triangle me-1"></i>{{ player.reason }}</small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="col-lg-6">
+                                            <div class="resolution-actions">
+                                                <h6 class="text-warning mb-3">
+                                                    <i class="ti ti-tools me-1"></i>Resolution Options
+                                                </h6>
+                                                <div class="d-grid gap-2">
+                                                    <button class="btn btn-success" onclick="createNewPlayer({{ loop.index0 }})">
+                                                        <i class="ti ti-user-plus me-1"></i> Create New Player Profile
+                                                    </button>
+                                                    <button class="btn btn-warning" onclick="searchExistingPlayers({{ loop.index0 }})">
+                                                        <i class="ti ti-search me-1"></i> Search for Existing Player
+                                                    </button>
+                                                    <button class="btn btn-danger" onclick="flagAsInvalid({{ loop.index0 }})">
+                                                        <i class="ti ti-x me-1"></i> Mark as Invalid Order
+                                                    </button>
+                                                </div>
+                                                <div class="mt-3 d-none" id="player-search-{{ loop.index0 }}">
+                                                    <input type="text" class="form-control" placeholder="Search existing players...">
+                                                    <div class="search-results mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <h4 class="text-success mt-3">No New Players!</h4>
+                                    <p class="text-muted">All players were found in the existing database.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Email Mismatches Tab -->
+                    <div class="tab-pane fade" id="email-mismatches" role="tabpanel">
+                        <div class="card-body">
+                            {% if sync_data.email_mismatch_players|length > 0 %}
+                                <div class="alert alert-danger border-start border-danger border-3 py-3 px-4 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-mail-x me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">Email Address Conflicts</h6>
+                                            <p class="mb-0">These players were matched but have different email addresses between the database and WooCommerce.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% for player in sync_data.email_mismatch_players %}
+                                <div class="issue-card issue-pending border rounded p-4 mb-4" data-issue-type="email-mismatch" data-issue-id="{{ loop.index0 }}">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ti ti-mail-x me-2 text-danger"></i>
+                                            <h5 class="mb-0">{{ player.existing_player.name }}</h5>
+                                            <span class="status-badge badge bg-danger ms-3">Email Mismatch</span>
+                                        </div>
+                                        <div>
+                                            <a href="/players/profile/{{ player.existing_player.id }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                                <i class="ti ti-external-link me-1"></i>View Profile
+                                            </a>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-lg-7">
+                                            <h6 class="text-primary mb-3">
+                                                <i class="ti ti-search me-1"></i>Match Analysis
+                                            </h6>
+                                            
+                                            <!-- Database Player Info -->
+                                            <div class="alert alert-info py-2 mb-3">
+                                                <h6 class="mb-1"><i class="ti ti-database me-1"></i>Database Player:</h6>
+                                                <div class="small">
+                                                    <strong>Name:</strong> {{ player.existing_player.name }}<br>
+                                                    <strong>Email:</strong> <code class="text-success">{{ player.existing_player.discord_email }}</code><br>
+                                                    <strong>Phone:</strong> {{ player.existing_player.phone or 'Not provided' }}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- WooCommerce Order Info -->
+                                            <div class="alert alert-warning py-2 mb-3">
+                                                <h6 class="mb-1"><i class="ti ti-shopping-cart me-1"></i>WooCommerce Order:</h6>
+                                                <div class="small">
+                                                    <strong>Name:</strong> {{ player.order_info.woo_name }}<br>
+                                                    <strong>Email:</strong> <code class="text-warning">{{ player.order_info.woo_email }}</code><br>
+                                                    <strong>Phone:</strong> {{ player.order_info.woo_phone or 'Not provided' }}<br>
+                                                    <strong>Jersey Size:</strong> {{ player.order_info.jersey_size or 'Not provided' }}<br>
+                                                    <strong>Order ID:</strong> #{{ player.order_info.order_id }}
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Match Details -->
+                                            <div class="mb-3">
+                                                <h6 class="text-info mb-2"><i class="ti ti-chart-line me-1"></i>What Matched:</h6>
+                                                <div class="row g-2 small">
+                                                    <div class="col-sm-6">
+                                                        {% if player.existing_player.name|lower == player.order_info.woo_name|lower %}
+                                                            <span class="badge bg-success"><i class="ti ti-check me-1"></i>Name Match</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary"><i class="ti ti-x me-1"></i>Name Similar</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-sm-6">
+                                                        {% set db_phone = player.existing_player.phone|replace('-', '')|replace('(', '')|replace(')', '')|replace(' ', '')|replace('+', '')|replace('.', '') %}
+                                                        {% set woo_phone = player.order_info.woo_phone|replace('-', '')|replace('(', '')|replace(')', '')|replace(' ', '')|replace('+', '')|replace('.', '') %}
+                                                        {% if db_phone and db_phone|length == 11 and db_phone.startswith('1') %}
+                                                            {% set db_phone = db_phone[1:] %}
+                                                        {% endif %}
+                                                        {% if woo_phone and woo_phone|length == 11 and woo_phone.startswith('1') %}
+                                                            {% set woo_phone = woo_phone[1:] %}
+                                                        {% endif %}
+                                                        {% if player.existing_player.phone and player.order_info.woo_phone and db_phone == woo_phone %}
+                                                            <span class="badge bg-success"><i class="ti ti-check me-1"></i>Phone Match</span>
+                                                        {% else %}
+                                                            <span class="badge bg-danger"><i class="ti ti-x me-1"></i>Phone Differs</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-12 mt-2">
+                                                        <span class="badge bg-danger"><i class="ti ti-mail-x me-1"></i>Email Mismatch</span>
+                                                        <span class="badge bg-info ms-2">Confidence: {{ (player.match_details.confidence * 100)|round|int }}%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-5">
+                                            <div class="resolution-actions">
+                                                <h6 class="text-warning mb-3">
+                                                    <i class="ti ti-tools me-1"></i>Resolution Options
+                                                </h6>
+                                                <div class="d-grid gap-2">
+                                                    <button class="btn btn-success" onclick="confirmPlayerMatch({{ loop.index0 }})">
+                                                        <i class="ti ti-check-circle me-1"></i> Confirm This Match
+                                                        <div class="small">Keep database email as authoritative</div>
+                                                    </button>
+                                                    <button class="btn btn-warning" onclick="createSeparatePlayer({{ loop.index0 }})">
+                                                        <i class="ti ti-user-plus me-1"></i> Create Separate Player
+                                                        <div class="small">These are different people</div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <h4 class="text-success mt-3">No Email Mismatches!</h4>
+                                    <p class="text-muted">All player emails match between database and WooCommerce.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Existing Players Tab -->
+                    <div class="tab-pane fade" id="existing-players" role="tabpanel">
+                        <div class="card-body">
+                            {% if sync_data.player_league_updates|length > 0 %}
+                                <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-user-check me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">Existing Players Found</h6>
+                                            <p class="mb-0">These players already exist in the database and will have their status updated (active/inactive only).</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% for update in sync_data.player_league_updates %}
+                                <div class="issue-card issue-resolved border rounded p-4 mb-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="mb-1">
+                                                <i class="ti ti-user-check text-success me-2"></i>
+                                                {{ update.buyer_info.name }}
+                                            </h6>
+                                            <small class="text-muted">
+                                                <i class="ti ti-mail me-1"></i>{{ update.buyer_info.email }}<br>
+                                                <i class="ti ti-phone me-1"></i>{{ update.buyer_info.phone }}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="order-details">
+                                                <strong>Order #{{ update.order_id }}</strong><br>
+                                                <small>Qty: {{ update.quantity }}</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="match-details">
+                                                <span class="badge bg-success">{{ update.match_type }}</span>
+                                                <small class="d-block text-muted mt-1">
+                                                    Confidence: {{ "%.0f"|format(update.confidence * 100) }}%
+                                                </small>
+                                                {% if update.name_updated %}
+                                                <div class="mt-1">
+                                                    <span class="badge bg-warning">Name Updated</span>
+                                                    <small class="d-block text-muted mt-1">{{ update.name_update_reason }}</small>
+                                                </div>
+                                                {% endif %}
+                                                {% if update.flags %}
+                                                <div class="mt-1">
+                                                    {% for flag in update.flags %}
+                                                    <span class="badge bg-secondary badge-sm">{{ flag }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="ti ti-users text-muted" style="font-size: 4rem;"></i>
+                                    <h4 class="text-muted mt-3">No Existing Players Found</h4>
+                                    <p class="text-muted">All orders are for new players or flagged for review.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Inactive Players Tab -->
+                    <div class="tab-pane fade" id="inactive-players" role="tabpanel">
+                        <div class="card-body">
+                            {% if sync_data.players_to_inactivate|length > 0 %}
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-user-off me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">Players to Mark Inactive</h6>
+                                            <p class="mb-0">These players are currently active but have no current WooCommerce membership orders. They will be marked as inactive.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">
+                                                <strong>{{ sync_data.players_to_inactivate|length }}</strong> players will be marked inactive
+                                            </span>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="confirmInactiveProcess" checked>
+                                                <label class="form-check-label fw-semibold" for="confirmInactiveProcess">
+                                                    Proceed with marking these players inactive
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% for player in sync_data.players_to_inactivate %}
+                                <div class="issue-card border rounded p-3 mb-3" style="border-left-color: #ffc107;">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <h6 class="mb-1">
+                                                <i class="ti ti-user-off text-warning me-2"></i>
+                                                {{ player.player_name }}
+                                            </h6>
+                                            <small class="text-muted">
+                                                <i class="ti ti-user me-1"></i>Username: {{ player.username }}<br>
+                                                <i class="ti ti-shield me-1"></i>League: {{ player.league_name }}
+                                            </small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-center">
+                                                <span class="badge bg-success">Currently Active</span>
+                                                <div class="mt-2">
+                                                    <i class="ti ti-arrow-down text-warning"></i>
+                                                </div>
+                                                <span class="badge bg-warning">Will be Inactive</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-end">
+                                                <small class="text-muted">
+                                                    <i class="ti ti-info-circle me-1"></i>{{ player.reason }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                                    <h4 class="text-success mt-3">No Players to Mark Inactive!</h4>
+                                    <p class="text-muted">All currently active players have current WooCommerce memberships.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Final Review Tab -->
+                    <div class="tab-pane fade" id="summary" role="tabpanel">
+                        <div class="card-body">
+                            <div id="commitValidation">
+                                <div class="alert alert-warning border-start border-warning border-3 py-3 px-4">
+                                    <div class="d-flex align-items-center">
+                                        <i class="ti ti-alert-circle me-2 fs-4"></i>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">Issues Require Resolution</h6>
+                                            <p class="mb-0">Please resolve all outstanding issues in the previous tabs before committing changes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-none" id="readyToCommit">
+                                <div class="commit-section">
+                                    <h3 class="text-success mb-3">
+                                        <i class="ti ti-circle-check me-2"></i>Ready to Commit Changes!
+                                    </h3>
+                                    <p class="mb-4">All issues have been resolved. The following changes will be applied to your database:</p>
+                                    
+                                    <div class="row text-start mb-4">
+                                        <div class="col-md-6">
+                                            <div class="card border-start border-success border-3">
+                                                <div class="card-body">
+                                                    <h6 class="card-title text-success">
+                                                        <i class="ti ti-users me-1"></i>Player Updates
+                                                    </h6>
+                                                    <ul id="playerUpdatesSummary" class="list-unstyled mb-0">
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card border-start border-info border-3">
+                                                <div class="card-body">
+                                                    <h6 class="card-title text-info">
+                                                        <i class="ti ti-toggle-left me-1"></i>Status Changes
+                                                    </h6>
+                                                    <ul id="statusChangesSummary" class="list-unstyled mb-0">
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-check mb-4">
+                                        <input class="form-check-input" type="checkbox" id="processInactiveCheck" checked>
+                                        <label class="form-check-label fw-semibold" for="processInactiveCheck">
+                                            Update Player Status Automatically
+                                            <br><small class="text-muted">Mark players WITHOUT current memberships as inactive, and activate those WITH memberships</small>
+                                        </label>
+                                    </div>
+                                    
+                                    <button class="btn btn-success btn-lg" id="finalCommitBtn" onclick="commitAllChanges()">
+                                        <i class="ti ti-database-import me-2"></i> Commit All Changes
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Search Modal -->
+<div class="modal fade" id="playerSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="ti ti-search me-2"></i>Search for Existing Player
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control mb-3" id="playerSearchInput" placeholder="Type to search players by name or email...">
+                <div id="playerSearchResults"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Store sync data and resolutions
+let syncData = {{ sync_data|tojson }};
+let resolutions = {
+    multiOrders: {},
+    newPlayers: {},
+    emailMismatches: {}
+};
+let taskId = "{{ task_id }}";
+
+// Track players who have been assigned to orders and should not be marked inactive
+let playersWithOrders = new Set();
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    updateProgressBar();
+    checkCommitReadiness();
+    
+    // Initialize assignment select handlers
+    document.querySelectorAll('.assignment-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const issueId = this.dataset.issueId;
+            const orderIndex = this.dataset.orderIndex;
+            const searchDiv = document.getElementById(`search-${issueId}-${orderIndex}`);
+            const createDiv = document.getElementById(`create-new-${issueId}-${orderIndex}`);
+            
+            // Hide all forms first
+            searchDiv.classList.add('d-none');
+            createDiv.classList.add('d-none');
+            
+            // Show appropriate form based on selection
+            if (this.value === 'search') {
+                searchDiv.classList.remove('d-none');
+            } else if (this.value === 'new') {
+                createDiv.classList.remove('d-none');
+            }
+        });
+    });
+});
+
+function updateProgressBar() {
+    const totalIssues = syncData.flagged_multi_orders.length + syncData.new_players.length + syncData.email_mismatch_players.length;
+    const resolvedIssues = Object.keys(resolutions.multiOrders).length + Object.keys(resolutions.newPlayers).length + Object.keys(resolutions.emailMismatches).length;
+    
+    const percentage = totalIssues === 0 ? 100 : Math.round((resolvedIssues / totalIssues) * 100);
+    
+    const progressBar = document.getElementById('resolutionProgress');
+    const progressText = document.getElementById('progressText');
+    
+    progressBar.style.width = percentage + '%';
+    progressText.textContent = `${percentage}% Complete (${resolvedIssues}/${totalIssues} resolved)`;
+    document.getElementById('issuesResolvedCount').textContent = resolvedIssues + '/' + totalIssues;
+    
+    // Update badges
+    document.getElementById('multiOrdersBadge').textContent = syncData.flagged_multi_orders.length - Object.keys(resolutions.multiOrders).length;
+    document.getElementById('newPlayersBadge').textContent = syncData.new_players.length - Object.keys(resolutions.newPlayers).length;
+    document.getElementById('emailMismatchBadge').textContent = syncData.email_mismatch_players.length - Object.keys(resolutions.emailMismatches).length;
+    
+    // Update inactive player count (exclude players assigned to orders)
+    updateInactivePlayerCount();
+    
+    if (percentage === 100) {
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-success');
+    }
+}
+
+function updateInactivePlayerCount() {
+    // Get all players assigned to existing orders
+    let assignedPlayerIds = new Set();
+    
+    // Add players from multi-order assignments
+    Object.values(resolutions.multiOrders).forEach(assignments => {
+        assignments.forEach(assignment => {
+            if (assignment.playerId) {
+                assignedPlayerIds.add(assignment.playerId);
+            }
+        });
+    });
+    
+    // Filter out assigned players from the inactive list
+    const remainingInactive = syncData.players_to_inactivate ? 
+        syncData.players_to_inactivate.filter(player => !assignedPlayerIds.has(player.player_id)) : [];
+    
+    // Update the badge count
+    const inactiveBadge = document.getElementById('inactivePlayersBadge');
+    if (inactiveBadge) {
+        inactiveBadge.textContent = remainingInactive.length;
+    }
+    
+    // Update the count in the stats card
+    const inactiveCount = document.getElementById('potentialInactiveCount');
+    if (inactiveCount) {
+        inactiveCount.textContent = remainingInactive.length;
+    }
+    
+    // Update the display in the inactive players tab
+    updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds);
+}
+
+function updateInactivePlayersDisplay(remainingInactive, assignedPlayerIds) {
+    const inactiveTab = document.getElementById('inactive-players');
+    if (!inactiveTab) return;
+    
+    const cardBody = inactiveTab.querySelector('.card-body');
+    if (!cardBody) return;
+    
+    if (remainingInactive.length === 0) {
+        cardBody.innerHTML = `
+            <div class="text-center py-5">
+                <i class="ti ti-circle-check text-success" style="font-size: 4rem;"></i>
+                <h4 class="text-success mt-3">No Players to Mark Inactive!</h4>
+                <p class="text-muted">All currently active players have current WooCommerce memberships.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="alert alert-warning border-start border-warning border-3 py-3 px-4 mb-4">
+            <div class="d-flex align-items-center">
+                <i class="ti ti-user-off me-2 fs-4"></i>
+                <div>
+                    <h6 class="alert-heading mb-1">Players to Mark Inactive</h6>
+                    <p class="mb-0">These players are currently active but have no current WooCommerce membership orders. They will be marked as inactive.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">
+                        <strong>${remainingInactive.length}</strong> players will be marked inactive
+                    </span>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmInactiveProcess" checked>
+                        <label class="form-check-label fw-semibold" for="confirmInactiveProcess">
+                            Proceed with marking these players inactive
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show excluded players if any
+    const excludedPlayers = syncData.players_to_inactivate ? 
+        syncData.players_to_inactivate.filter(player => assignedPlayerIds.has(player.player_id)) : [];
+    
+    if (excludedPlayers.length > 0) {
+        html += `
+            <div class="alert alert-info border-start border-info border-3 py-3 px-4 mb-4">
+                <div class="d-flex align-items-center">
+                    <i class="ti ti-info-circle me-2 fs-4"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Players Excluded from Inactive List</h6>
+                        <p class="mb-0">${excludedPlayers.length} players were excluded because they were assigned to orders during resolution.</p>
+                        <small class="text-muted">These players will remain active: ${excludedPlayers.map(p => p.player_name).join(', ')}</small>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add remaining inactive players
+    remainingInactive.forEach(player => {
+        html += `
+            <div class="issue-card border rounded p-3 mb-3" style="border-left-color: #ffc107;">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <h6 class="mb-1">
+                            <i class="ti ti-user-off text-warning me-2"></i>
+                            ${player.player_name}
+                        </h6>
+                        <small class="text-muted">
+                            <i class="ti ti-user me-1"></i>Username: ${player.username}<br>
+                            <i class="ti ti-shield me-1"></i>League: ${player.league_name}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <span class="badge bg-success">Currently Active</span>
+                            <div class="mt-2">
+                                <i class="ti ti-arrow-down text-warning"></i>
+                            </div>
+                            <span class="badge bg-warning">Will be Inactive</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-end">
+                            <small class="text-muted">
+                                <i class="ti ti-info-circle me-1"></i>${player.reason}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    cardBody.innerHTML = html;
+}
+
+function checkCommitReadiness() {
+    const totalIssues = syncData.flagged_multi_orders.length + syncData.new_players.length + syncData.email_mismatch_players.length;
+    const resolvedIssues = Object.keys(resolutions.multiOrders).length + Object.keys(resolutions.newPlayers).length + Object.keys(resolutions.emailMismatches).length;
+    
+    if (resolvedIssues === totalIssues) {
+        document.getElementById('commitValidation').classList.add('d-none');
+        document.getElementById('readyToCommit').classList.remove('d-none');
+        populateCommitSummary();
+    } else {
+        document.getElementById('commitValidation').classList.remove('d-none');
+        document.getElementById('readyToCommit').classList.add('d-none');
+    }
+}
+
+function resolveMultiOrder(issueId) {
+    // Check if we have stored assignments for this issue
+    const storedAssignments = resolutions.multiOrders[issueId];
+    
+    if (!storedAssignments || storedAssignments.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No Assignments Made',
+            text: 'Please assign all orders to players before resolving.',
+            confirmButtonClass: 'btn btn-primary'
+        });
+        return;
+    }
+    
+    // Check if all orders have assignments
+    const orderData = syncData.flagged_multi_orders[issueId];
+    const totalOrders = orderData.orders.length;
+    
+    if (storedAssignments.length < totalOrders) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Incomplete Assignments',
+            text: `Please assign all ${totalOrders} orders to players before resolving.`,
+            confirmButtonClass: 'btn btn-primary'
+        });
+        return;
+    }
+    
+    // Update UI to show resolved status
+    markIssueResolved('multi-order', issueId, 'Resolved');
+    
+    // Show summary of assignments
+    let summaryText = 'Assignments made:\n';
+    storedAssignments.forEach((assignment, index) => {
+        const orderInfo = orderData.orders[assignment.orderIndex];
+        summaryText += `• Order #${orderInfo.order.order_id}: ${assignment.playerName}\n`;
+    });
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Multi-Order Resolved!',
+        text: summaryText,
+        confirmButtonClass: 'btn btn-success'
+    });
+}
+
+function createNewPlayer(issueId) {
+    resolutions.newPlayers[issueId] = { action: 'create' };
+    markIssueResolved('new-player', issueId, 'Will Create');
+}
+
+function searchExistingPlayers(issueId) {
+    const searchDiv = document.getElementById(`player-search-${issueId}`);
+    searchDiv.classList.remove('d-none');
+}
+
+function flagAsInvalid(issueId) {
+    Swal.fire({
+        title: 'Mark as Invalid?',
+        text: 'This will exclude the order from processing. Are you sure?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, mark as invalid',
+        cancelButtonText: 'Cancel',
+        confirmButtonClass: 'btn btn-danger',
+        cancelButtonClass: 'btn btn-secondary'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            resolutions.newPlayers[issueId] = { action: 'invalid' };
+            markIssueResolved('new-player', issueId, 'Invalid');
+        }
+    });
+}
+
+function confirmPlayerMatch(issueId) {
+    resolutions.emailMismatches[issueId] = { action: 'keep_existing' };
+    markIssueResolved('email-mismatch', issueId, 'Match Confirmed');
+}
+
+function createSeparatePlayer(issueId) {
+    resolutions.emailMismatches[issueId] = { action: 'create_separate' };
+    markIssueResolved('email-mismatch', issueId, 'Separate Player');
+}
+
+function markIssueResolved(issueType, issueId, status) {
+    const issueCard = document.querySelector(`[data-issue-type="${issueType}"][data-issue-id="${issueId}"]`);
+    issueCard.classList.remove('issue-pending');
+    issueCard.classList.add('issue-resolved');
+    
+    const statusBadge = issueCard.querySelector('.status-badge');
+    statusBadge.textContent = status;
+    statusBadge.className = 'status-badge badge bg-success';
+    
+    updateProgressBar();
+    checkCommitReadiness();
+}
+
+function populateCommitSummary() {
+    const playerUpdates = document.getElementById('playerUpdatesSummary');
+    const statusChanges = document.getElementById('statusChangesSummary');
+    
+    playerUpdates.innerHTML = '';
+    statusChanges.innerHTML = '';
+    
+    // Add summary items based on resolutions
+    Object.keys(resolutions.newPlayers).forEach(id => {
+        const li = document.createElement('li');
+        li.innerHTML = `<i class="ti ti-plus me-1 text-success"></i>Create: ${syncData.new_players[id].info.name}`;
+        playerUpdates.appendChild(li);
+    });
+    
+    Object.keys(resolutions.multiOrders).forEach(id => {
+        const li = document.createElement('li');
+        li.innerHTML = `<i class="ti ti-users me-1 text-info"></i>Multi-order resolved for ${syncData.flagged_multi_orders[id].buyer_info.name}`;
+        playerUpdates.appendChild(li);
+    });
+    
+    Object.keys(resolutions.emailMismatches).forEach(id => {
+        const li = document.createElement('li');
+        li.innerHTML = `<i class="ti ti-mail me-1 text-warning"></i>Email mismatch resolved for ${syncData.email_mismatch_players[id].existing_player.name}`;
+        playerUpdates.appendChild(li);
+    });
+    
+    const statusLi = document.createElement('li');
+    statusLi.innerHTML = `<i class="ti ti-toggle-right me-1 text-success"></i>Update player active/inactive status`;
+    statusChanges.appendChild(statusLi);
+    
+    // Add inactive players count if there are any
+    if (syncData.players_to_inactivate && syncData.players_to_inactivate.length > 0) {
+        const inactiveLi = document.createElement('li');
+        inactiveLi.innerHTML = `<i class="ti ti-user-off me-1 text-warning"></i>Mark ${syncData.players_to_inactivate.length} players as inactive`;
+        statusChanges.appendChild(inactiveLi);
+    }
+}
+
+function commitAllChanges() {
+    Swal.fire({
+        title: 'Commit All Changes?',
+        text: 'This will apply all resolutions to your database. This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, commit changes',
+        cancelButtonText: 'Cancel',
+        confirmButtonClass: 'btn btn-success',
+        cancelButtonClass: 'btn btn-secondary'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            executeCommit();
+        }
+    });
+}
+
+function executeCommit() {
+    const processInactiveCheck = document.getElementById('processInactiveCheck');
+    const confirmInactiveCheck = document.getElementById('confirmInactiveProcess');
+    
+    const commitData = {
+        task_id: taskId,
+        resolutions: resolutions,
+        process_inactive: processInactiveCheck.checked && (!confirmInactiveCheck || confirmInactiveCheck.checked)
+    };
+    
+    const commitBtn = document.getElementById('finalCommitBtn');
+    commitBtn.disabled = true;
+    commitBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Committing Changes...';
+    
+    fetch('/user_management/commit_sync_changes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify(commitData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Changes Committed!',
+                text: 'All sync changes have been successfully applied.',
+                confirmButtonClass: 'btn btn-success'
+            }).then(() => {
+                window.location.href = '/user_management/manage_users';
+            });
+        } else {
+            throw new Error(data.error || 'Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Commit Failed',
+            text: 'Error committing changes: ' + error.message,
+            confirmButtonClass: 'btn btn-danger'
+        });
+        
+        commitBtn.disabled = false;
+        commitBtn.innerHTML = '<i class="ti ti-database-import me-2"></i> Commit All Changes';
+    });
+}
+
+function refreshSyncData() {
+    window.location.reload();
+}
+
+// Global timeout for search delay
+let searchTimeout;
+
+function searchPlayersDelayed(input, issueId, orderIndex) {
+    clearTimeout(searchTimeout);
+    const query = input.value.trim();
+    const resultsDiv = document.getElementById(`search-results-${issueId}-${orderIndex}`);
+    
+    if (query.length < 2) {
+        resultsDiv.innerHTML = '<div class="text-muted small">Type at least 2 characters to search</div>';
+        return;
+    }
+    
+    // Show loading
+    resultsDiv.innerHTML = '<div class="text-muted small"><i class="spinner-border spinner-border-sm me-1"></i>Searching...</div>';
+    
+    searchTimeout = setTimeout(() => {
+        searchPlayers(query, issueId, orderIndex);
+    }, 300); // 300ms delay
+}
+
+function searchPlayers(query, issueId, orderIndex) {
+    fetch('/user_management/search_players', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            search_term: query
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultsDiv = document.getElementById(`search-results-${issueId}-${orderIndex}`);
+        
+        if (data.success && data.players.length > 0) {
+            let html = '<div class="mb-2"><small class="text-muted">Found ' + data.total_found + ' player(s):</small></div>';
+            
+            data.players.forEach(player => {
+                const statusBadge = player.is_current ? 
+                    '<span class="badge bg-success">Active</span>' : 
+                    '<span class="badge bg-warning">Inactive</span>';
+                
+                let playerDetails = `Email: ${player.email}<br>Phone: ${player.phone}<br>League: ${player.league}`;
+                if (player.jersey_size && player.jersey_size !== 'N/A') {
+                    playerDetails += `<br>Jersey: ${player.jersey_size}`;
+                }
+                
+                html += `
+                    <div class="border rounded p-2 mb-2 player-result" style="cursor: pointer;" onclick="assignToPlayer(${issueId}, ${orderIndex}, ${player.id}, '${player.name}')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${player.name}</strong> ${statusBadge}
+                                <br><small class="text-muted">
+                                    ${playerDetails}
+                                </small>
+                            </div>
+                            <i class="ti ti-arrow-right"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+        } else if (data.success && data.players.length === 0) {
+            resultsDiv.innerHTML = '<div class="text-warning small"><i class="ti ti-search me-1"></i>No players found matching "' + query + '"</div>';
+        } else {
+            resultsDiv.innerHTML = '<div class="text-danger small"><i class="ti ti-alert-circle me-1"></i>Error searching: ' + (data.error || 'Unknown error') + '</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Search error:', error);
+        document.getElementById(`search-results-${issueId}-${orderIndex}`).innerHTML = 
+            '<div class="text-danger small"><i class="ti ti-alert-circle me-1"></i>Search failed</div>';
+    });
+}
+
+function assignToPlayer(issueId, orderIndex, playerId, playerName) {
+    // Store the assignment
+    if (!resolutions.multiOrders[issueId]) {
+        resolutions.multiOrders[issueId] = [];
+    }
+    
+    const assignment = {
+        orderIndex: orderIndex,
+        assignment: 'existing',
+        playerId: playerId,
+        playerName: playerName
+    };
+    
+    // Update or add the assignment for this order
+    const existingIndex = resolutions.multiOrders[issueId].findIndex(a => a.orderIndex === orderIndex);
+    if (existingIndex >= 0) {
+        resolutions.multiOrders[issueId][existingIndex] = assignment;
+    } else {
+        resolutions.multiOrders[issueId].push(assignment);
+    }
+    
+    // Update UI to show assignment
+    let assignmentText = `Assigned to: ${playerName}`;
+    showAssignment(issueId, orderIndex, assignmentText);
+    
+    // Update inactive player counts since we assigned someone
+    updateProgressBar();
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Player Assigned!',
+        text: `Order assigned to ${playerName}`,
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+function createNewPlayerFromForm(issueId, orderIndex) {
+    const nameInput = document.querySelector(`#create-new-${issueId}-${orderIndex} .new-player-name`);
+    const name = nameInput.value.trim();
+    
+    if (!name) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Name Required',
+            text: 'Please enter a player name',
+            confirmButtonClass: 'btn btn-primary'
+        });
+        nameInput.focus();
+        return;
+    }
+    
+    // Get full order data to pass to the backend
+    const orderData = syncData.flagged_multi_orders[issueId];
+    const orderInfo = orderData.orders[orderIndex];
+    
+    // If name was changed from original, don't use original email/phone (use placeholders instead)
+    const originalName = orderInfo.player_info.name;
+    const nameChanged = name.toLowerCase().trim() !== originalName.toLowerCase().trim();
+    
+    // Prepare order info with all WooCommerce data
+    const orderInfoForBackend = {
+        player_info: {
+            name: name,  // Use the name from the form (user may have edited it)
+            email: nameChanged ? '' : orderInfo.player_info.email,  // Clear if different person
+            phone: nameChanged ? '' : orderInfo.player_info.phone,  // Clear if different person
+            jersey_size: orderInfo.jersey_size
+        },
+        product_name: orderInfo.order.product_name,
+        league_id: orderInfo.league_id,
+        league_name: orderInfo.league_name
+    };
+    
+    // Show loading
+    const createBtn = document.querySelector(`#create-new-${issueId}-${orderIndex} .btn-success`);
+    const originalText = createBtn.innerHTML;
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="spinner-border spinner-border-sm me-1"></i>Creating...';
+    
+    fetch('/user_management/create_quick_player', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            order_info: orderInfoForBackend
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        createBtn.disabled = false;
+        createBtn.innerHTML = originalText;
+        
+        if (data.success) {
+            // Store the assignment
+            if (!resolutions.multiOrders[issueId]) {
+                resolutions.multiOrders[issueId] = [];
+            }
+            
+            const assignment = {
+                orderIndex: orderIndex,
+                assignment: 'new',
+                playerId: data.player.id,
+                playerName: data.player.name,
+                tempData: true
+            };
+            
+            // Update or add the assignment for this order
+            const existingIndex = resolutions.multiOrders[issueId].findIndex(a => a.orderIndex === orderIndex);
+            if (existingIndex >= 0) {
+                resolutions.multiOrders[issueId][existingIndex] = assignment;
+            } else {
+                resolutions.multiOrders[issueId].push(assignment);
+            }
+            
+            // Update UI to show assignment
+            let assignmentText = `Assigned to: ${data.player.name} (New Player)`;
+            showAssignment(issueId, orderIndex, assignmentText);
+            
+            // Update inactive player counts since we created someone
+            updateProgressBar();
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Player Created!',
+                html: `<strong>${data.player.name}</strong><br>
+                       League: ${data.player.league}<br>
+                       ${data.player.jersey_size ? 'Jersey Size: ' + data.player.jersey_size + '<br>' : ''}
+                       ${data.player.temp_data ? '<small class="text-warning">Some contact info is temporary</small>' : ''}`,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Creation Failed',
+                text: 'Error creating player: ' + (data.error || 'Unknown error'),
+                confirmButtonClass: 'btn btn-danger'
+            });
+        }
+    })
+    .catch(error => {
+        createBtn.disabled = false;
+        createBtn.innerHTML = originalText;
+        console.error('Create player error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Creation Failed',
+            text: 'Failed to create player',
+            confirmButtonClass: 'btn btn-danger'
+        });
+    });
+}
+
+function cancelPlayerCreation(issueId, orderIndex) {
+    const select = document.querySelector(`[data-issue-id="${issueId}"][data-order-index="${orderIndex}"]`);
+    select.value = '';
+    document.getElementById(`create-new-${issueId}-${orderIndex}`).classList.add('d-none');
+}
+
+function cancelPlayerSearch(issueId, orderIndex) {
+    const select = document.querySelector(`[data-issue-id="${issueId}"][data-order-index="${orderIndex}"]`);
+    select.value = '';
+    document.getElementById(`search-${issueId}-${orderIndex}`).classList.add('d-none');
+}
+
+function removeAssignment(issueId, orderIndex) {
+    // Remove from resolutions
+    if (resolutions.multiOrders[issueId]) {
+        resolutions.multiOrders[issueId] = resolutions.multiOrders[issueId].filter(a => a.orderIndex !== orderIndex);
+        
+        // If no assignments left for this issue, remove the entire entry
+        if (resolutions.multiOrders[issueId].length === 0) {
+            delete resolutions.multiOrders[issueId];
+        }
+    }
+    
+    // Hide current assignment display
+    document.getElementById(`current-assignment-${issueId}-${orderIndex}`).style.display = 'none';
+    
+    // Show assignment selection dropdown
+    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).style.display = 'block';
+    
+    // Reset dropdown
+    const select = document.querySelector(`[data-issue-id="${issueId}"][data-order-index="${orderIndex}"]`);
+    select.value = '';
+    
+    // Hide any open forms
+    document.getElementById(`search-${issueId}-${orderIndex}`).classList.add('d-none');
+    document.getElementById(`create-new-${issueId}-${orderIndex}`).classList.add('d-none');
+    
+    // Update progress and inactive counts since we removed an assignment
+    updateProgressBar();
+    checkCommitReadiness();
+    
+    showSuccessToast('Assignment removed successfully');
+}
+
+function showAssignment(issueId, orderIndex, assignmentText) {
+    // Hide assignment selection dropdown
+    document.getElementById(`assignment-selection-${issueId}-${orderIndex}`).style.display = 'none';
+    
+    // Show current assignment display
+    const currentAssignmentDiv = document.getElementById(`current-assignment-${issueId}-${orderIndex}`);
+    currentAssignmentDiv.style.display = 'block';
+    currentAssignmentDiv.querySelector('.assignment-text').textContent = assignmentText;
+    
+    // Hide any open forms
+    document.getElementById(`search-${issueId}-${orderIndex}`).classList.add('d-none');
+    document.getElementById(`create-new-${issueId}-${orderIndex}`).classList.add('d-none');
+}
+</script>
+
+{% endblock %}

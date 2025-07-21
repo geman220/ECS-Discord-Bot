@@ -76,6 +76,10 @@
                         </button>
                     </form>
                     
+                    <button type="button" class="btn btn-outline-info me-2" onclick="checkActiveSyncTasks()">
+                        <i class="ti ti-history me-1"></i> View Active Sync Tasks
+                    </button>
+                    
                     <!-- Export Player Profiles Dropdown -->
                     <div class="dropdown d-inline me-2">
                         <button class="btn btn-info dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -1211,18 +1215,8 @@
             const progressModal = bootstrap.Modal.getInstance(document.getElementById('syncProgressModal'));
             progressModal.hide();
             
-            // Load sync data for review
-            fetch(`/user_management/get_sync_data/${taskId}`)
-            .then(response => response.json())
-            .then(syncData => {
-                populateReviewModal(syncData, taskId);
-                const reviewModal = new bootstrap.Modal(document.getElementById('syncReviewModal'));
-                reviewModal.show();
-            })
-            .catch(error => {
-                console.error('Error loading sync data:', error);
-                alert('Failed to load sync results for review');
-            });
+            // Redirect to the new enhanced review page instead of showing modal
+            window.location.href = `/user_management/sync_review/${taskId}`;
         }
         
         function populateReviewModal(syncData, taskId) {
@@ -1368,6 +1362,58 @@
                 alert('Failed to confirm sync changes');
             });
         });
+        
+        // Function to check for active sync tasks
+        function checkActiveSyncTasks() {
+            fetch('/user_management/active_sync_tasks')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.tasks.length > 0) {
+                    // Show available tasks
+                    let taskList = '<h6>Available Sync Tasks:</h6><ul class="list-group">';
+                    data.tasks.forEach(task => {
+                        taskList += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Task ${task.id}</strong><br>
+                                <small class="text-muted">Started: ${task.created_at}</small>
+                            </div>
+                            <button class="btn btn-sm btn-primary" onclick="resumeSyncTask('${task.id}')">
+                                <i class="ti ti-eye me-1"></i>Review
+                            </button>
+                        </li>`;
+                    });
+                    taskList += '</ul>';
+                    
+                    Swal.fire({
+                        title: 'Active Sync Tasks',
+                        html: taskList,
+                        showCloseButton: true,
+                        showConfirmButton: false,
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'No Active Tasks',
+                        text: 'There are no active sync tasks to review.',
+                        confirmButtonClass: 'btn btn-primary'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to check for active sync tasks.',
+                    confirmButtonClass: 'btn btn-danger'
+                });
+            });
+        }
+        
+        // Function to resume a sync task
+        function resumeSyncTask(taskId) {
+            window.location.href = `/user_management/sync_review/${taskId}`;
+        }
     });
 </script>
 

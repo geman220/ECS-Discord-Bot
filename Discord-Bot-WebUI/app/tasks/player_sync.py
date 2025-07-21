@@ -4,8 +4,8 @@ from celery import shared_task
 from sqlalchemy import text
 from app.utils.pgbouncer_utils import set_session_timeout
 
-from app.players_helpers import extract_player_info, match_player_weighted, match_player_with_details
-from app.order_helpers import extract_jersey_size_from_product_name, determine_league
+from app.players_helpers import extract_player_info, match_player_weighted, match_player_with_details, match_player_with_details_cached, is_username_style_name, standardize_name
+from app.order_helpers import extract_jersey_size_from_product_name, determine_league, determine_league_cached
 from app.utils.sync_data_manager import save_sync_data
 
 
@@ -29,7 +29,7 @@ def make_json_serializable(obj):
         return str(obj)
 from app.core import celery
 from app.core.session_manager import managed_session
-from app.models import Season, Player
+from app.models import Season, Player, League, User
 from app.woocommerce import fetch_orders_from_woocommerce
 
 import logging
@@ -37,7 +37,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, time_limit=600, soft_time_limit=540)  # 10 minute hard limit, 9 minute soft limit
-def sync_players_with_woocommerce(self):
+def sync_players_with_woocommerce(self, user_id=None):
     """
     Synchronize player data from WooCommerce.
 
@@ -64,17 +64,42 @@ def sync_players_with_woocommerce(self):
     """
     with celery.flask_app.app_context():
         try:
+            # Register task with TaskManager
+            try:
+                from app.utils.task_manager import TaskManager
+                TaskManager.register_task(
+                    task_id=self.request.id,
+                    task_type='player_sync',
+                    user_id=user_id or 0,
+                    description='Sync players from WooCommerce'
+                )
+            except Exception as e:
+                logger.warning(f"Failed to register task with TaskManager: {e}")
+                
+            # Helper function to update both Celery and TaskManager
+            def update_task_status(stage, message, progress):
+                self.update_state(state='PROGRESS', meta={
+                    'stage': stage,
+                    'message': message,
+                    'progress': progress
+                })
+                try:
+                    TaskManager.update_task_status(
+                        task_id=self.request.id,
+                        status='PROGRESS',
+                        progress=progress,
+                        stage=stage,
+                        message=message
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to update TaskManager status: {e}")
             # Phase 1: Fetch required data and close session
             current_season_data = None
             current_seasons_data = []
             
             with managed_session() as session:
                 # Initial state update: fetching current season
-                self.update_state(state='PROGRESS', meta={
-                    'stage': 'init',
-                    'message': 'Fetching current season...',
-                    'progress': 5
-                })
+                update_task_status('init', 'Fetching current season...', 5)
 
                 # Query current seasons and the specific current Pub League season
                 current_seasons = session.query(Season).filter_by(is_current=True).all()
@@ -90,40 +115,47 @@ def sync_players_with_woocommerce(self):
                 current_seasons_data = [{'name': s.name, 'id': s.id} for s in current_seasons]
 
             # Phase 2: Fetch all orders from WooCommerce without holding database sessions
-            self.update_state(state='PROGRESS', meta={
-                'stage': 'woo',
-                'message': 'Fetching orders from WooCommerce...',
-                'progress': 10
-            })
+            update_task_status('woo', 'Fetching orders from WooCommerce...', 10)
 
             all_orders = []
             page = 1
             
             # Process orders page by page until no more orders are returned
             while True:
-                self.update_state(state='PROGRESS', meta={
-                    'stage': 'woo',
-                    'message': f'Fetching page {page}...',
-                    'progress': 10 + (page * 5)  # Progressive progress
-                })
+                update_task_status('woo', f'Fetching page {page}...', 10 + (page * 5))
 
-                orders_page = fetch_orders_from_woocommerce(
-                    current_season_name=current_season_data['name'],
-                    filter_current_season=True,
-                    current_season_names=[s['name'] for s in current_seasons_data],
-                    max_pages=1,
-                    page=page,
-                    per_page=100
-                )
-                if not orders_page:
+                try:
+                    orders_page = fetch_orders_from_woocommerce(
+                        current_season_name=current_season_data['name'],
+                        filter_current_season=True,
+                        current_season_names=[s['name'] for s in current_seasons_data],
+                        max_pages=1,
+                        page=page,
+                        per_page=100
+                    )
+                    if not orders_page:
+                        logger.info(f"No orders found on page {page}, stopping.")
+                        break
+
+                    all_orders.extend(orders_page)
+                    logger.info(f"Successfully fetched {len(orders_page)} orders from page {page}. Total: {len(all_orders)}")
+                    
+                    # Add a safety limit to prevent infinite loops
+                    if page > 20:  # Reasonable limit
+                        logger.warning(f"Reached page limit (20) to prevent infinite loops. Stopping at page {page}")
+                        break
+                    
+                    page += 1
+                except Exception as e:
+                    logger.error(f"Error fetching page {page}: {e}")
                     break
 
-                all_orders.extend(orders_page)
-                page += 1
-
             total_orders_fetched = len(all_orders)
+            logger.info(f"WooCommerce fetch complete. Total orders fetched: {total_orders_fetched}")
+            update_task_status('fetch_complete', f'Fetched {total_orders_fetched} orders from WooCommerce', 50)
 
             # Phase 3: Process orders against database
+            update_task_status('process_start', 'Starting order processing...', 52)
             with managed_session() as session:
                 # Initialize tracking variables
                 new_players = []
@@ -135,17 +167,36 @@ def sync_players_with_woocommerce(self):
                 
                 # Reload current seasons for league determination
                 current_seasons = session.query(Season).filter_by(is_current=True).all()
+                logger.info(f"Found {len(current_seasons)} current seasons for processing")
+                
+                # Cache leagues to avoid repeated database queries - PERFORMANCE OPTIMIZATION
+                league_cache = {}
+                all_leagues = session.query(League).all()
+                for league in all_leagues:
+                    league_cache[league.id] = league
+                
+                # Cache all players with users to avoid repeated full table scans - PERFORMANCE OPTIMIZATION
+                update_task_status('cache', 'Caching player data...', 55)
+                all_players_with_users = session.query(Player).join(User).all()
+                logger.info(f"Cached {len(all_players_with_users)} players for matching")
                 
                 # Process all fetched orders
-                for order in all_orders:
+                update_task_status('process', f'Processing {total_orders_fetched} orders...', 60)
+                
+                for idx, order in enumerate(all_orders):
+                    # Update progress every 50 orders to reduce overhead (was every 10)
+                    if idx % 50 == 0 and total_orders_fetched > 0:
+                        progress = 60 + (idx / total_orders_fetched * 30)  # 60-90% range
+                        update_task_status('process', f'Processing order {idx + 1}/{total_orders_fetched}...', int(progress))
+                    
                     # Extract player billing info and verify it is valid
                     player_info = extract_player_info(order['billing'])
                     if not player_info:
                         continue
 
-                    # Determine league based on the product name and current seasons
+                    # Determine league based on the product name and current seasons - using cache for performance
                     product_name = order['product_name']
-                    league = determine_league(product_name, current_seasons, session=session)
+                    league = determine_league_cached(product_name, current_seasons, league_cache)
                     if not league:
                         continue
 
@@ -170,12 +221,26 @@ def sync_players_with_woocommerce(self):
                         'jersey_size': jersey_size
                     })
 
-                    # Check if the player already exists using enhanced matching
-                    match_result = match_player_with_details(player_info, session)
+                    # Check if the player already exists using enhanced matching - using cached data for performance
+                    match_result = match_player_with_details_cached(player_info, all_players_with_users)
                     existing_player = match_result['player']
                     
                     if existing_player:
                         existing_players.add(existing_player.id)
+                        
+                        # Check if existing player has a username-style name that should be updated
+                        should_update_name = False
+                        name_update_reason = None
+                        woo_name = standardize_name(player_info.get('name', ''))
+                        
+                        if is_username_style_name(existing_player.name) and woo_name:
+                            should_update_name = True
+                            old_name = existing_player.name
+                            name_update_reason = f"Username-style name '{old_name}' updated to real name '{woo_name}'"
+                            
+                            # Update the player's name in the database
+                            existing_player.name = woo_name
+                            logger.info(f"Updated player {existing_player.id} name from '{old_name}' to '{woo_name}' (Order: {order['order_id']})")
                         
                         # Create update record with match details
                         update_record = {
@@ -186,11 +251,13 @@ def sync_players_with_woocommerce(self):
                             'buyer_info': player_info,
                             'match_type': match_result['match_type'],
                             'confidence': match_result['confidence'],
-                            'flags': match_result['flags']
+                            'flags': match_result['flags'],
+                            'name_updated': should_update_name,
+                            'name_update_reason': name_update_reason
                         }
                         player_league_updates.append(update_record)
                         
-                        # Flag potential email mismatches for admin review
+                        # Only flag email mismatches that weren't resolved by name+phone matching
                         if 'email_mismatch' in match_result['flags']:
                             email_mismatch_players.append({
                                 'existing_player': {
@@ -204,7 +271,8 @@ def sync_players_with_woocommerce(self):
                                     'woo_name': player_info.get('name', ''),
                                     'woo_phone': player_info.get('phone', ''),
                                     'order_id': order['order_id'],
-                                    'product_name': product_name
+                                    'product_name': product_name,
+                                    'jersey_size': jersey_size
                                 },
                                 'match_details': {
                                     'match_type': match_result['match_type'],
@@ -214,14 +282,18 @@ def sync_players_with_woocommerce(self):
                             })
                     else:
                         # No match found - flag for manual review
-                        new_players.append({
+                        new_player_entry = {
                             'info': player_info,
                             'league_id': league.id,
+                            'league_name': league.name,
+                            'jersey_size': jersey_size,
                             'order_id': order['order_id'],
                             'quantity': order['quantity'],
                             'requires_review': True,
                             'reason': f'Player not found in database - {match_result["match_type"]} - requires manual verification'
-                        })
+                        }
+                        new_players.append(new_player_entry)
+                
                 
                 # Update progress state after processing all orders
                 self.update_state(state='PROGRESS', meta={
@@ -230,19 +302,32 @@ def sync_players_with_woocommerce(self):
                     'progress': 60
                 })
 
-                # Identify inactive players by comparing active player IDs with those updated via orders
+                # Identify inactive players - ALL currently active players without current WooCommerce orders
                 self.update_state(state='PROGRESS', meta={
                     'stage': 'inactive',
-                    'message': 'Identifying inactive players...',
+                    'message': 'Identifying players to mark inactive...',
                     'progress': 90
                 })
-                current_league_ids = [league.id for season in current_seasons for league in season.leagues]
+                
+                # Get ALL currently active players (not just current leagues)
                 all_active_players = session.query(Player).filter(
-                    Player.league_id.in_(current_league_ids),
                     Player.is_current_player == True
                 ).all()
-                active_player_ids = {p.id for p in all_active_players}
-                potential_inactive = list(active_player_ids - existing_players)
+                
+                # Build list of players to be marked inactive (active players with no current orders)
+                players_to_inactivate = []
+                for player in all_active_players:
+                    if player.id not in existing_players:
+                        # This player is active but has no current WooCommerce order
+                        players_to_inactivate.append({
+                            'player_id': player.id,
+                            'player_name': player.name,
+                            'username': player.user.username if player.user else 'No User',
+                            'league_name': player.league.name if player.league else 'No League',
+                            'reason': 'No current WooCommerce membership found'
+                        })
+                
+                potential_inactive = [p['player_id'] for p in players_to_inactivate]
 
                 # Detect and flag multi-person orders
                 for buyer_key, orders in buyer_order_map.items():
@@ -260,6 +345,7 @@ def sync_players_with_woocommerce(self):
                     'new_players': new_players,
                     'player_league_updates': player_league_updates,
                     'potential_inactive': potential_inactive,
+                    'players_to_inactivate': players_to_inactivate,  # Detailed info for review
                     'flagged_multi_orders': flagged_multi_orders,
                     'email_mismatch_players': email_mismatch_players
                 }
@@ -269,11 +355,13 @@ def sync_players_with_woocommerce(self):
                 save_sync_data(self.request.id, sync_data)
 
                 # Commit happens automatically in managed_session
-                self.update_state(state='PROGRESS', meta={
-                    'stage': 'complete',
-                    'message': 'Processing complete',
-                    'progress': 100
-                })
+                update_task_status('complete', 'Processing complete', 100)
+                
+                # Update TaskManager with success status
+                try:
+                    TaskManager.update_task_status(self.request.id, 'SUCCESS')
+                except Exception as e:
+                    logger.warning(f"Failed to update TaskManager success status: {e}")
 
                 return {
                     'status': 'complete',
@@ -286,4 +374,15 @@ def sync_players_with_woocommerce(self):
 
         except Exception as e:
             logger.error(f"Error in sync_players_with_woocommerce: {e}", exc_info=True)
+            
+            # Update TaskManager with failure status
+            try:
+                TaskManager.update_task_status(
+                    task_id=self.request.id,
+                    status='FAILURE',
+                    message=str(e)
+                )
+            except Exception as te:
+                logger.warning(f"Failed to update TaskManager failure status: {te}")
+                
             raise e

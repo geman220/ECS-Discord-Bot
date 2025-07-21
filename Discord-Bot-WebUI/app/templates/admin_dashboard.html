@@ -116,6 +116,15 @@
                                 </div>
                             </div>
                         </a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="openTaskManagement()">
+                            <div class="d-flex align-items-center">
+                                <i class="ti ti-list-check me-3 text-primary"></i>
+                                <div>
+                                    <h6 class="mb-1">Task Management</h6>
+                                    <small class="text-muted">Monitor and manage Celery tasks</small>
+                                </div>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -136,6 +145,34 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                             <p class="mt-2">Loading container status...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Management Section -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Global Task Management</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-primary btn-sm" onclick="refreshTaskList()">
+                            <i class="ti ti-refresh me-1"></i>Refresh
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="cleanupOldTasks()">
+                            <i class="ti ti-broom me-1"></i>Cleanup
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="taskManagementContainer">
+                        <div class="text-center py-4">
+                            <button class="btn btn-outline-primary" onclick="loadTaskManagement()">
+                                <i class="ti ti-list-check me-1"></i>Load Task Management
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -431,6 +468,430 @@ async function containerAction(containerName, action) {
             btn.disabled = false;
         }
     }
+}
+
+// Task Management Functions
+function openTaskManagement() {
+    loadTaskManagement();
+    // Scroll to task management section
+    document.querySelector('#taskManagementContainer').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+
+function loadTaskManagement() {
+    const container = document.getElementById('taskManagementContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading task management...</p>
+        </div>
+    `;
+    
+    fetchTaskList();
+}
+
+async function fetchTaskList() {
+    const container = document.getElementById('taskManagementContainer');
+    if (!container) return;
+    
+    try {
+        const response = await fetch('/admin/task-management');
+        const data = await response.json();
+        
+        if (data.success) {
+            renderTaskManagement(data);
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="ti ti-alert-triangle me-2"></i>
+                    ${data.error || 'Unable to load task management'}
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error fetching task management:', error);
+        container.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="ti ti-alert-circle me-2"></i>
+                Failed to load task management
+            </div>
+        `;
+    }
+}
+
+function renderTaskManagement(data) {
+    const container = document.getElementById('taskManagementContainer');
+    if (!container) return;
+    
+    const stats = data.statistics || {};
+    const activeTasks = data.active_tasks || [];
+    
+    const html = `
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <i class="ti ti-activity fs-1 mb-2"></i>
+                        <h3 class="mb-1">${stats.total_active || 0}</h3>
+                        <small>Active Tasks</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <i class="ti ti-check fs-1 mb-2"></i>
+                        <h3 class="mb-1">${stats.by_status?.SUCCESS || 0}</h3>
+                        <small>Completed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <i class="ti ti-x fs-1 mb-2"></i>
+                        <h3 class="mb-1">${stats.by_status?.FAILURE || 0}</h3>
+                        <small>Failed</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <i class="ti ti-clock fs-1 mb-2"></i>
+                        <h3 class="mb-1">${stats.by_status?.PENDING || 0}</h3>
+                        <small>Pending</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Task ID</th>
+                        <th>Type</th>
+                        <th>User</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${activeTasks.length > 0 ? 
+                        activeTasks.map(task => `
+                            <tr ${task.celery_state === 'REVOKED' ? 'class="table-secondary text-muted"' : ''}>
+                                <td>
+                                    <code class="fs-6">${task.task_id.substring(0, 8)}...</code>
+                                    ${task.celery_state === 'REVOKED' ? '<small class="d-block text-muted">CANCELLED</small>' : ''}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">${task.task_type || 'unknown'}</span>
+                                </td>
+                                <td>${task.user_id || 'N/A'}</td>
+                                <td>
+                                    <span class="badge bg-${getStatusColor(task.celery_state || task.status)}">
+                                        ${task.celery_state || task.status || 'UNKNOWN'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" role="progressbar" 
+                                             style="width: ${task.progress || 0}%"
+                                             aria-valuenow="${task.progress || 0}" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            ${task.progress || 0}%
+                                        </div>
+                                    </div>
+                                    ${task.stage ? `<small class="text-muted">${task.stage}</small>` : ''}
+                                </td>
+                                <td>
+                                    <small>${task.created_at ? new Date(task.created_at).toLocaleString() : 'N/A'}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        ${task.celery_state === 'PENDING' || task.celery_state === 'PROGRESS' || task.celery_state === 'STARTED' ? 
+                                            `<button class="btn btn-outline-danger" onclick="revokeTask('${task.task_id}')" title="DESTROY Task (Nuclear Option)">
+                                                <i class="ti ti-bomb"></i>
+                                            </button>` : ''
+                                        }
+                                        ${task.celery_state === 'REVOKED' || task.celery_state === 'FAILURE' || task.celery_state === 'SUCCESS' ? 
+                                            `<button class="btn btn-outline-secondary" onclick="removeTask('${task.task_id}')" title="Remove from List">
+                                                <i class="ti ti-trash"></i> Clear
+                                            </button>` : ''
+                                        }
+                                        <button class="btn btn-outline-info" onclick="viewTaskDetails('${task.task_id}')" title="View Details">
+                                            <i class="ti ti-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('') : 
+                        '<tr><td colspan="7" class="text-center text-muted py-4">No active tasks</td></tr>'
+                    }
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'SUCCESS': return 'success';
+        case 'FAILURE': return 'danger';
+        case 'PENDING': return 'warning';
+        case 'STARTED':
+        case 'PROGRESS': return 'primary';
+        case 'REVOKED': return 'dark';
+        default: return 'light';
+    }
+}
+
+async function revokeTask(taskId) {
+    const result = await Swal.fire({
+        title: 'DESTROY Task?',
+        html: `
+            <div class="text-start">
+                <p class="text-warning"><strong>⚠️ WARNING: Nuclear Option</strong></p>
+                <p>This will completely <strong>DESTROY</strong> the task:</p>
+                <ul class="text-start">
+                    <li>Terminate the running process</li>
+                    <li>Remove all Redis data</li>
+                    <li>Purge from all tracking systems</li>
+                    <li>Cannot be undone</li>
+                </ul>
+                <p class="text-danger"><strong>Are you absolutely sure?</strong></p>
+            </div>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '💥 DESTROY IT',
+        cancelButtonText: 'No, keep it',
+        width: '500px'
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/revoke-task/${taskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                title: 'DESTROYED! 💥',
+                text: 'The task has been completely obliterated.',
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false
+            });
+            setTimeout(refreshTaskList, 1000);
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to destroy task',
+                icon: 'error'
+            });
+        }
+    } catch (error) {
+        console.error('Error destroying task:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to destroy task',
+            icon: 'error'
+        });
+    }
+}
+
+async function viewTaskDetails(taskId) {
+    try {
+        const response = await fetch(`/admin/task-details/${taskId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            const task = data.task;
+            const detailsHtml = `
+                <div class="text-start">
+                    <p><strong>Task ID:</strong> <code>${task.task_id}</code></p>
+                    <p><strong>Type:</strong> <span class="badge bg-secondary">${task.task_type || 'N/A'}</span></p>
+                    <p><strong>Status:</strong> <span class="badge bg-${getStatusColor(task.celery_state || task.status)}">${task.celery_state || task.status || 'N/A'}</span></p>
+                    <p><strong>Progress:</strong> ${task.progress || 0}%</p>
+                    <p><strong>Stage:</strong> ${task.stage || 'N/A'}</p>
+                    <p><strong>Created:</strong> ${task.created_at ? new Date(task.created_at).toLocaleString() : 'N/A'}</p>
+                    ${task.message ? `<p><strong>Message:</strong> ${task.message}</p>` : ''}
+                </div>
+            `;
+            
+            Swal.fire({
+                title: 'Task Details',
+                html: detailsHtml,
+                icon: 'info',
+                width: '600px',
+                confirmButtonText: 'Close'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to load task details',
+                icon: 'error'
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching task details:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to load task details',
+            icon: 'error'
+        });
+    }
+}
+
+async function removeTask(taskId) {
+    const result = await Swal.fire({
+        title: 'Remove Task?',
+        text: 'This will remove the task from the list. Are you sure?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        cancelButtonColor: '#dc3545',
+        confirmButtonText: 'Yes, remove it',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/remove-task/${taskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                title: 'Removed!',
+                text: 'The task has been removed from the list.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            setTimeout(refreshTaskList, 500);
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to remove task',
+                icon: 'error'
+            });
+        }
+    } catch (error) {
+        console.error('Error removing task:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to remove task',
+            icon: 'error'
+        });
+    }
+}
+
+async function cleanupOldTasks() {
+    const result = await Swal.fire({
+        title: 'Cleanup Old Tasks?',
+        html: `
+            <div class="text-start">
+                <p>This will remove:</p>
+                <ul class="text-start">
+                    <li>TaskManager entries older than 24 hours</li>
+                    <li>Celery metadata older than 7 days</li>
+                    <li>Improves Redis performance</li>
+                </ul>
+                <p class="text-muted"><small>Recent tasks will be preserved</small></p>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ffc107',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '🧹 Clean Up',
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/cleanup-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            Swal.fire({
+                title: 'Cleanup Complete! 🧹',
+                html: `
+                    <div class="text-start">
+                        <p><strong>Cleaned up:</strong></p>
+                        <ul>
+                            <li>Registry: ${data.registry_cleaned} tasks</li>
+                            <li>Metadata: ${data.metadata_cleaned} keys</li>
+                            <li><strong>Total: ${data.total_cleaned} items</strong></li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'success',
+                timer: 4000,
+                showConfirmButton: false
+            });
+            setTimeout(refreshTaskList, 1000);
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to cleanup tasks',
+                icon: 'error'
+            });
+        }
+    } catch (error) {
+        console.error('Error cleaning up tasks:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to cleanup tasks',
+            icon: 'error'
+        });
+    }
+}
+
+function refreshTaskList() {
+    fetchTaskList();
 }
 
 // Utility Functions

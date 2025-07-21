@@ -767,3 +767,188 @@ def update_poll_message():
 
 
 # Match management routes are now in app/admin/mls_routes.py
+
+# Task Management Routes
+@admin_bp.route('/admin/task-management', endpoint='task_management', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_task_management():
+    """Get task management data for admin dashboard."""
+    try:
+        from app.utils.task_manager import TaskManager
+        
+        # Get task statistics with error handling
+        try:
+            stats = TaskManager.get_task_statistics()
+        except Exception as stats_error:
+            logger.error(f"Error getting task statistics: {stats_error}")
+            stats = {'error': str(stats_error)}
+        
+        # Get active tasks with error handling
+        try:
+            active_tasks = TaskManager.get_active_tasks()
+        except Exception as tasks_error:
+            logger.error(f"Error getting active tasks: {tasks_error}")
+            active_tasks = []
+        
+        # Ensure all data is JSON serializable by cleaning it
+        def clean_for_json(obj):
+            """Recursively clean data to make it JSON serializable."""
+            if obj is None:
+                return None
+            elif isinstance(obj, (str, int, float, bool)):
+                return obj
+            elif isinstance(obj, dict):
+                return {k: clean_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [clean_for_json(item) for item in obj]
+            elif isinstance(obj, Exception):
+                return str(obj)
+            else:
+                return str(obj)
+        
+        # Clean the data
+        clean_stats = clean_for_json(stats)
+        clean_active_tasks = clean_for_json(active_tasks)
+        
+        return jsonify({
+            'success': True,
+            'statistics': clean_stats,
+            'active_tasks': clean_active_tasks
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching task management data: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@admin_bp.route('/admin/revoke-task/<task_id>', endpoint='revoke_task', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_revoke_task(task_id):
+    """Completely destroy a running task - nuclear option."""
+    try:
+        from app.utils.task_manager import TaskManager
+        
+        # Use the nuclear option - completely destroy the task
+        success = TaskManager.kill_task_completely(task_id)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to destroy task'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error destroying task {task_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@admin_bp.route('/admin/task-details/<task_id>', endpoint='task_details', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_task_details(task_id):
+    """Get detailed information about a specific task."""
+    try:
+        from app.utils.task_manager import TaskManager
+        
+        task_info = TaskManager.get_task_info(task_id)
+        
+        if task_info:
+            return jsonify({
+                'success': True,
+                'task': task_info
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Task not found'
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error fetching task details for {task_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@admin_bp.route('/admin/remove-task/<task_id>', endpoint='remove_task', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_remove_task(task_id):
+    """Remove a completed/failed task from the registry."""
+    try:
+        from app.utils.task_manager import TaskManager
+        from celery.result import AsyncResult
+        from app.core import celery
+        
+        # Get task info to check if it's safe to remove
+        task_info = TaskManager.get_task_info(task_id)
+        if not task_info:
+            return jsonify({
+                'success': False,
+                'error': 'Task not found'
+            }), 404
+        
+        # Check if task can be safely removed
+        # Allow removal of completed, failed, or revoked tasks
+        celery_result = AsyncResult(task_id, app=celery)
+        task_manager_status = task_info.get('status', 'UNKNOWN')
+        
+        # Allow removal if TaskManager shows it as revoked OR Celery shows it as finished
+        if (celery_result.state in ['PENDING', 'PROGRESS', 'STARTED'] and 
+            task_manager_status not in ['REVOKED', 'SUCCESS', 'FAILURE']):
+            return jsonify({
+                'success': False,
+                'error': 'Cannot remove active task. Cancel it first.'
+            }), 400
+        
+        # Remove from TaskManager registry
+        success = TaskManager.remove_task(task_id)
+        
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to remove task'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error removing task {task_id}: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@admin_bp.route('/admin/cleanup-tasks', endpoint='cleanup_tasks', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def admin_cleanup_tasks():
+    """Clean up old task metadata from Redis."""
+    try:
+        from app.utils.task_manager import TaskManager
+        
+        # Clean up both TaskManager registry and Celery metadata
+        registry_cleaned = TaskManager.cleanup_completed_tasks(max_age_hours=24)
+        metadata_cleaned = TaskManager.cleanup_old_celery_metadata(max_age_hours=168)  # 7 days
+        
+        return jsonify({
+            'success': True,
+            'registry_cleaned': registry_cleaned,
+            'metadata_cleaned': metadata_cleaned,
+            'total_cleaned': registry_cleaned + metadata_cleaned
+        })
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up tasks: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
