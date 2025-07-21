@@ -440,7 +440,7 @@
 
                         <div class="mb-3">
                             <label for="editRoles" class="form-label">Roles</label>
-                            <select multiple class="form-select" id="editRoles" name="roles" required>
+                            <select multiple class="form-select" id="editRoles" name="roles">
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
                                 {% endfor %}
