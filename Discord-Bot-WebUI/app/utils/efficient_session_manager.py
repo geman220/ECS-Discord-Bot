@@ -96,8 +96,9 @@ def bulk_operation_session():
     """
     session = current_app.SessionLocal()
     try:
-        # Set longer timeout for bulk operations
-        session.execute("SET statement_timeout = '30s'")
+        # Set longer timeout for bulk operations (if not using PgBouncer)
+        from app.utils.pgbouncer_utils import set_session_timeout
+        set_session_timeout(session, statement_timeout_seconds=30)
         yield session
         session.commit()
     except Exception:
