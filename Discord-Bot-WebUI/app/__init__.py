@@ -127,7 +127,7 @@ def create_app(config_object='web_config.Config'):
         socket_keepalive_options={},
         health_check_interval=30,
         retry_on_timeout=True,
-        max_connections=50
+        max_connections=25
     )
     session_redis = Redis(connection_pool=session_pool)
     

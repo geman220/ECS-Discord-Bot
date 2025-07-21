@@ -1206,6 +1206,22 @@ async def load_cogs():
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
     
+    # Clear all managed messages to reset state and stop processing old messages
+    bot_state.managed_messages.clear()
+    logger.info("Cleared all managed message IDs to reset state")
+    
+    # Initialize the failed message IDs with timestamps for timeout-based blocking
+    if not hasattr(bot_state, 'failed_message_timeouts'):
+        bot_state.failed_message_timeouts = {}
+    
+    # Add the specific message IDs that are causing the infinite loop with current timestamp
+    import time
+    current_time = time.time()
+    problematic_message_ids = {1396188928415109201, 1396691296726286487}
+    for msg_id in problematic_message_ids:
+        bot_state.failed_message_timeouts[msg_id] = current_time
+    logger.info(f"Added {len(problematic_message_ids)} problematic message IDs to timeout list: {problematic_message_ids}")
+    
     # Register the bot instance in shared_states for use by web UI tasks
     try:
         set_bot_instance(bot)
@@ -1662,6 +1678,19 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     poll_count = len(bot_state.poll_messages)
     logger.debug(f"Processing reaction for message {message_id}. Active managed messages: {active_managed_count}, Poll messages: {poll_count}")
     
+    # Check if this message ID is temporarily blocked due to recent failures
+    if hasattr(bot_state, 'failed_message_timeouts') and message_id in bot_state.failed_message_timeouts:
+        import time
+        failure_time = bot_state.failed_message_timeouts[message_id]
+        timeout_duration = 9 * 24 * 60 * 60  # 9 days in seconds
+        if time.time() - failure_time < timeout_duration:
+            logger.debug(f"Message ID {message_id} is in timeout (failed {(time.time() - failure_time)/3600:.1f} hours ago). Ignoring reaction.")
+            return
+        else:
+            # Timeout expired, remove from timeout list and allow processing
+            del bot_state.failed_message_timeouts[message_id]
+            logger.info(f"Timeout expired for message ID {message_id}, allowing processing again")
+    
     # Check if this is a poll message first
     if message_id in bot_state.poll_messages:
         logger.info(f"Processing poll reaction on message {message_id}")
@@ -1716,6 +1745,12 @@ async def process_reaction(message_id, emoji, user_id, channel_id, payload):
     
     if not match_id or not team_id:
         logger.error(f"Could not find match or team for message {message_id}")
+        # Add this message ID to the timeout list to prevent repeated processing for 9 days
+        if not hasattr(bot_state, 'failed_message_timeouts'):
+            bot_state.failed_message_timeouts = {}
+        import time
+        bot_state.failed_message_timeouts[message_id] = time.time()
+        logger.info(f"Added message ID {message_id} to timeout list (will retry after 9 days)")
         return
     
     # If we successfully found match/team info but the message wasn't in managed messages,
@@ -2162,6 +2197,19 @@ async def process_reaction_removal(message_id, emoji, user_id, channel_id, paylo
     Process a reaction removal in a background task to avoid blocking the main thread.
     """
     try:
+        # Check if this message ID is temporarily blocked due to recent failures
+        if hasattr(bot_state, 'failed_message_timeouts') and message_id in bot_state.failed_message_timeouts:
+            import time
+            failure_time = bot_state.failed_message_timeouts[message_id]
+            timeout_duration = 9 * 24 * 60 * 60  # 9 days in seconds
+            if time.time() - failure_time < timeout_duration:
+                logger.debug(f"Message ID {message_id} is in timeout (failed {(time.time() - failure_time)/3600:.1f} hours ago). Ignoring reaction removal.")
+                return
+            else:
+                # Timeout expired, remove from timeout list and allow processing
+                del bot_state.failed_message_timeouts[message_id]
+                logger.info(f"Timeout expired for message ID {message_id}, allowing processing again")
+        
         # Check if this is a poll message first
         if hasattr(bot_state, 'poll_messages') and message_id in bot_state.poll_messages:
             logger.info(f"Poll reaction removed on message {message_id}, but no action needed")
@@ -2188,6 +2236,12 @@ async def process_reaction_removal(message_id, emoji, user_id, channel_id, paylo
 
         if match_id is None or team_id is None:
             logger.error(f"Could not find match or team for message {message_id}")
+            # Add this message ID to the timeout list to prevent repeated processing for 9 days
+            if not hasattr(bot_state, 'failed_message_timeouts'):
+                bot_state.failed_message_timeouts = {}
+            import time
+            bot_state.failed_message_timeouts[message_id] = time.time()
+            logger.info(f"Added message ID {message_id} to timeout list (will retry after 9 days)")
             return
 
         # Check if user is on the team

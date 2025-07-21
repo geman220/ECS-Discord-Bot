@@ -81,7 +81,7 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
             
             # Add timeout to prevent hanging
             import requests
-            response = wcapi.get("orders", params=params, timeout=30)
+            response = wcapi.get("orders", params=params)
             response.raise_for_status()
 
             fetched_orders = response.json()
