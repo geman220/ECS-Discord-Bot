@@ -1760,3 +1760,84 @@ def set_active_season():
         logger.error(f"Error setting active season: {e}")
         session.rollback()
         return jsonify({'error': 'An error occurred while updating the active season'}), 500
+
+
+@auto_schedule_bp.route('/recreate-discord-resources', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def recreate_discord_resources():
+    """
+    Recreate Discord resources (roles, channels, permissions) for all teams in a season.
+    
+    This endpoint manually triggers Discord resource creation for teams that may have
+    been created but didn't get their Discord resources due to task processing issues.
+    """
+    session = g.db_session
+    
+    try:
+        data = request.get_json()
+        if not data or 'season_id' not in data:
+            return jsonify({'success': False, 'message': 'Season ID is required'}), 400
+        
+        season_id = data['season_id']
+        
+        # Get the season and verify it exists
+        season = session.query(Season).filter_by(id=season_id).first()
+        if not season:
+            return jsonify({'success': False, 'message': 'Season not found'}), 404
+        
+        # Get all leagues in this season, then get teams from those leagues
+        leagues = session.query(League).filter_by(season_id=season_id).all()
+        
+        if not leagues:
+            return jsonify({'success': False, 'message': 'No leagues found in this season'}), 404
+        
+        # Collect all teams from all leagues in this season
+        teams = []
+        for league in leagues:
+            league_teams = session.query(Team).filter_by(league_id=league.id).all()
+            teams.extend(league_teams)
+        
+        if not teams:
+            return jsonify({'success': False, 'message': 'No teams found in this season'}), 404
+        
+        # Import the Discord task here to avoid circular imports
+        from app.tasks.tasks_discord import create_team_discord_resources_task
+        
+        # Queue Discord resource creation for each team
+        queued_teams = []
+        failed_teams = []
+        
+        for team in teams:
+            try:
+                task_result = create_team_discord_resources_task.delay(team.id)
+                queued_teams.append(team.name)
+                logger.info(f"Queued Discord resource recreation for team {team.name} (ID: {team.id}), task ID: {task_result.id}")
+            except Exception as e:
+                failed_teams.append(team.name)
+                logger.error(f"Failed to queue Discord task for team {team.name} (ID: {team.id}): {e}")
+        
+        # Prepare response message
+        if queued_teams:
+            message = f"Successfully queued Discord resource creation for {len(queued_teams)} teams: {', '.join(queued_teams)}"
+            if failed_teams:
+                message += f". Failed to queue {len(failed_teams)} teams: {', '.join(failed_teams)}"
+            
+            logger.info(f"Discord resource recreation queued for season {season.name}: {message}")
+            
+            return jsonify({
+                'success': True,
+                'message': message,
+                'queued_count': len(queued_teams),
+                'failed_count': len(failed_teams)
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': f"Failed to queue Discord resources for any teams in {season.name}"
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Error recreating Discord resources: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500

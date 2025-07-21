@@ -138,13 +138,19 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
     try:
         # Add query optimization with eager loading to prevent N+1 queries
         from sqlalchemy.orm import joinedload
+        from sqlalchemy import or_
+        
+        # Set statement timeout for this query to prevent hanging
+        session.execute("SET LOCAL statement_timeout = '20s'")
         
         # First try regular pub league messages with optimized query
         scheduled_message = session.query(ScheduledMessage).options(
             joinedload(ScheduledMessage.match)
         ).filter(
-            ((ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id)) |
-            ((ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id))
+            or_(
+                (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
+                (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
+            )
         ).first()
 
         if scheduled_message:
@@ -157,8 +163,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
                 logger.error(f"Team ID not found for message: {message_id}")
                 return {'success': False, 'message': 'Team ID not found'}
 
-            # Update the last fetch timestamp
-            scheduled_message.last_fetch = datetime.utcnow()
+            # Update the scheduled message (removed last_fetch as column doesn't exist)
             session.add(scheduled_message)
 
             logger.info(f"Found pub league match_id: {scheduled_message.match_id}, team_id: {team_id}")
@@ -193,8 +198,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
                 logger.error(f"ECS FC match {ecs_fc_match_id} not found")
                 return {'success': False, 'message': 'ECS FC match not found'}
             
-            # Update the last fetch timestamp
-            ecs_message.last_fetch = datetime.utcnow()
+            # Update the ecs message (removed last_fetch as column doesn't exist)
             session.add(ecs_message)
             
             logger.info(f"Found ECS FC match_id: ecs_{ecs_fc_match_id}, team_id: {ecs_match.team_id}")
