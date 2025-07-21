@@ -602,11 +602,42 @@ def get_message_ids(match_id):
     return jsonify(message_data), 200
 
 
+# Simple circuit breaker to prevent overload
+_request_failures = {}
+_circuit_breaker_threshold = 5
+_circuit_breaker_window = 300  # 5 minutes
+
+def _is_circuit_open(endpoint):
+    """Check if circuit breaker is open for this endpoint."""
+    import time
+    now = time.time()
+    if endpoint not in _request_failures:
+        return False
+    
+    recent_failures = [t for t in _request_failures[endpoint] if now - t < _circuit_breaker_window]
+    _request_failures[endpoint] = recent_failures
+    
+    return len(recent_failures) >= _circuit_breaker_threshold
+
+def _record_failure(endpoint):
+    """Record a failure for circuit breaker."""
+    import time
+    if endpoint not in _request_failures:
+        _request_failures[endpoint] = []
+    _request_failures[endpoint].append(time.time())
+
 @availability_bp.route('/get_match_and_team_id_from_message', methods=['GET'], endpoint='get_match_and_team_id_from_message')
 def get_match_and_team_id_from_message():
     """
     Retrieve match and team IDs based on a provided message_id and channel_id.
     """
+    # Circuit breaker check
+    if _is_circuit_open('get_match_and_team_id_from_message'):
+        logger.warning("Circuit breaker open - rejecting request to prevent overload")
+        return jsonify({
+            'status': 'error',
+            'error': 'Service temporarily unavailable due to high load'
+        }), 503
     try:
         message_id = request.args.get('message_id')
         channel_id = request.args.get('channel_id')
@@ -630,8 +661,8 @@ def get_match_and_team_id_from_message():
         )
 
         try:
-            # Increase timeout to 30 seconds to handle slow database queries
-            result = task.get(timeout=30)
+            # Reduce timeout to 10 seconds to fail faster and avoid connection pool exhaustion
+            result = task.get(timeout=10)
             logger.debug(f"Task result received: {result}")
 
             if not isinstance(result, dict):
@@ -694,6 +725,7 @@ def get_match_and_team_id_from_message():
 
         except TimeoutError:
             logger.error("Task timed out")
+            _record_failure('get_match_and_team_id_from_message')
             return jsonify({
                 'status': 'error',
                 'error': 'Task timed out'
@@ -703,6 +735,7 @@ def get_match_and_team_id_from_message():
         error_msg = (f"Failed to process request for message_id: {request.args.get('message_id')}, "
                      f"channel_id: {request.args.get('channel_id')}. Error: {str(e)}")
         logger.error(error_msg, exc_info=True)
+        _record_failure('get_match_and_team_id_from_message')
         return jsonify({
             'status': 'error',
             'error': error_msg
