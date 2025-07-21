@@ -140,8 +140,9 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
         from sqlalchemy.orm import joinedload
         from sqlalchemy import or_
         
-        # Set statement timeout for this query to prevent hanging
-        session.execute("SET LOCAL statement_timeout = '20s'")
+        # Set statement timeout for this query to prevent hanging (if not using PgBouncer)
+        from app.utils.pgbouncer_utils import set_session_timeout
+        set_session_timeout(session, statement_timeout_seconds=20)
         
         # First try regular pub league messages with optimized query
         scheduled_message = session.query(ScheduledMessage).options(
