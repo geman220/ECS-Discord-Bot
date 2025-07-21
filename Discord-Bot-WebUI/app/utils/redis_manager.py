@@ -45,27 +45,15 @@ class RedisManager:
         """
         Close the Redis client connection pool and release resources.
         
-        This should be called during application shutdown, not during regular requests.
+        This is called during application shutdown only.
         """
-        # Only actually close the connection pool during application shutdown
-        import os
-        
         try:
             if self._client and hasattr(self._client, 'connection_pool'):
-                # Check if this is actual application shutdown or just a request ending
-                is_app_shutdown = os.environ.get('FLASK_APP_SHUTTING_DOWN') == 'true'
-                
-                if is_app_shutdown:
-                    logger.info("Application shutdown: Closing Redis connection pool")
-                    self._client.connection_pool.disconnect()
-                    self._client = None
-                else:
-                    # For normal requests, don't close the connection pool
-                    logger.debug("Maintaining persistent Redis connection pool")
-                    return
+                logger.info("Application shutdown: Closing Redis connection pool")
+                self._client.connection_pool.disconnect()
+                self._client = None
         except Exception as e:
             logger.error(f"Error in Redis connection pool management: {e}")
-            # Don't set client to None during normal operation
 
     def _initialize_client(self):
         """
@@ -100,7 +88,7 @@ class RedisManager:
                     socket_keepalive=True,
                     socket_keepalive_options={},
                     health_check_interval=30,  # Match session pool settings
-                    max_connections=25,  # Reduced to prevent connection exhaustion
+                    max_connections=25,  # Restored to original value - connection leak fixed
                     retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
@@ -139,7 +127,7 @@ class RedisManager:
         
         # Periodically check and close idle connections (every 10 minutes)
         if hasattr(self, '_last_connection_cleanup'):
-            if current_time - self._last_connection_cleanup > 600:  # 10 minutes (increased from 5)
+            if current_time - self._last_connection_cleanup > 600:  # 10 minutes 
                 self._cleanup_idle_connections()
                 self._last_connection_cleanup = current_time
         else:

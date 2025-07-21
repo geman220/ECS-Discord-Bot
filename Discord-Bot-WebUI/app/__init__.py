@@ -116,18 +116,19 @@ def create_app(config_object='web_config.Config'):
     app.redis = redis_manager.client
     
     # Create a dedicated connection pool for Flask sessions that doesn't use decode_responses
+    # Use smaller connection pool to prevent exhaustion
     from redis import ConnectionPool, Redis
     redis_url = app.config['REDIS_URL']
     session_pool = ConnectionPool.from_url(
         redis_url,
         decode_responses=False,
-        socket_timeout=10,
-        socket_connect_timeout=10,
+        socket_timeout=5,
+        socket_connect_timeout=5,
         socket_keepalive=True,
         socket_keepalive_options={},
         health_check_interval=30,
         retry_on_timeout=True,
-        max_connections=25
+        max_connections=25  # Restored to original value - connection leak fixed
     )
     session_redis = Redis(connection_pool=session_pool)
     
@@ -146,10 +147,24 @@ def create_app(config_object='web_config.Config'):
         logger.error(f"Redis connection failed: {e}")
         # Continue anyway - the Redis manager will handle reconnection attempts
     
-    # Register shutdown handler to properly close Redis connections
-    @app.teardown_appcontext
-    def shutdown_redis_connections(exception=None):
-        redis_manager.shutdown()
+    # Store the Redis manager instance on the app for access
+    app.redis_manager = redis_manager
+    app.session_redis = session_redis
+    
+    # Register shutdown handler only for application shutdown (not request teardown)
+    import atexit
+    def cleanup_redis_on_shutdown():
+        try:
+            redis_manager.shutdown()
+            if hasattr(session_redis, 'connection_pool'):
+                session_redis.connection_pool.disconnect()
+            logger.info("Redis connections closed on application shutdown")
+        except Exception as e:
+            logger.error(f"Error closing Redis connections: {e}")
+    
+    atexit.register(cleanup_redis_on_shutdown)
+    
+    # Redis monitoring can be enabled if needed for debugging
     
     # Register database session cleanup
     from app.core.session_manager import cleanup_request

@@ -190,6 +190,59 @@ def test_twilio_config():
     return jsonify(result)
 
 
+@admin_bp.route('/admin/redis_pools', endpoint='redis_pool_status', methods=['GET'])
+@login_required
+@role_required('Global Admin')
+def redis_pool_status():
+    """
+    Get detailed Redis connection pool status and metrics.
+    """
+    try:
+        from app.utils.redis_manager import RedisManager
+        from app.utils.redis_monitor import get_monitor
+        
+        redis_manager = RedisManager()
+        main_pool_stats = redis_manager.get_connection_stats()
+        
+        # Get session pool stats if available
+        session_pool_stats = {}
+        if hasattr(current_app, 'session_redis'):
+            monitor = get_monitor()
+            session_pool_stats = monitor._get_session_pool_stats()
+        
+        pool_status = {
+            'status': 'success',
+            'timestamp': datetime.now().isoformat(),
+            'pools': {
+                'main_redis': main_pool_stats,
+                'session_redis': session_pool_stats
+            }
+        }
+        
+        # Add health assessment
+        main_util = main_pool_stats.get('utilization_percent', 0)
+        session_util = session_pool_stats.get('utilization_percent', 0)
+        
+        if main_util > 90 or session_util > 90:
+            pool_status['health'] = 'critical'
+            pool_status['recommendation'] = 'Connection pools are near capacity. Consider restarting the application.'
+        elif main_util > 75 or session_util > 75:
+            pool_status['health'] = 'warning' 
+            pool_status['recommendation'] = 'Monitor connection usage closely.'
+        else:
+            pool_status['health'] = 'healthy'
+            
+        return jsonify(pool_status)
+        
+    except Exception as e:
+        logger.error(f"Error getting Redis pool status: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to get Redis pool status: {str(e)}',
+            'timestamp': datetime.now().isoformat()
+        }), 500
+
+
 # -----------------------------------------------------------
 # System Health Helper Functions
 # -----------------------------------------------------------
@@ -219,15 +272,30 @@ def check_system_health(session):
             }
             health_status['status'] = 'degraded'
         
-        # Redis health check
+        # Redis health check with connection pool monitoring
         try:
             from app.utils.redis_manager import RedisManager
-            redis_client = RedisManager().client
+            redis_manager = RedisManager()
+            redis_client = redis_manager.client
             redis_client.ping()
+            
+            # Get connection pool stats
+            pool_stats = redis_manager.get_connection_stats()
+            
             health_status['components']['redis'] = {
                 'status': 'healthy',
-                'message': 'Redis connection successful'
+                'message': 'Redis connection successful',
+                'connection_pool': pool_stats
             }
+            
+            # Check session Redis pool if available
+            if hasattr(current_app, 'session_redis'):
+                try:
+                    current_app.session_redis.ping()
+                    health_status['components']['redis']['session_pool'] = 'healthy'
+                except Exception as session_error:
+                    health_status['components']['redis']['session_pool'] = f'unhealthy: {session_error}'
+                    
         except Exception as redis_error:
             health_status['components']['redis'] = {
                 'status': 'unhealthy', 

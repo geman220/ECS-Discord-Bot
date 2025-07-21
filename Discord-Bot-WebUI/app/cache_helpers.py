@@ -6,8 +6,7 @@ from functools import wraps
 from flask import current_app, g
 from app.utils.redis_manager import get_redis_connection
 
-# Get Redis client
-redis_client = get_redis_connection()
+# Note: We don't create a module-level Redis client to avoid connection leaks
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +25,9 @@ def cache_db_result(key_prefix, ttl=300):
             cache_key = f"{key_prefix}:{':'.join(map(str, args))}"
             
             try:
+                # Get a fresh Redis connection for this operation
+                redis_client = get_redis_connection()
+                
                 # Try to get from cache first
                 cached_result = redis_client.get(cache_key)
                 if cached_result:
