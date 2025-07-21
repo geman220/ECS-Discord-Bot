@@ -1080,6 +1080,416 @@
                 });
             });
         }
+        
+        // Enhanced WooCommerce sync functionality
+        const syncForm = document.querySelector('form[action*="update_players"]');
+        if (syncForm) {
+            syncForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                startWooCommerceSync();
+            });
+        }
+        
+        function startWooCommerceSync() {
+            // Show progress modal
+            const progressModal = new bootstrap.Modal(document.getElementById('syncProgressModal'));
+            progressModal.show();
+            
+            // Refresh page to get fresh CSRF token if needed, then start sync
+            const formData = new FormData(syncForm);
+            fetch(syncForm.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.status === 400 && response.statusText.includes('CSRF')) {
+                    // CSRF token expired - refresh page
+                    alert('Session expired. Refreshing page to get new security token...');
+                    window.location.reload();
+                    return;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.task_id) {
+                    pollSyncStatus(data.task_id);
+                } else if (data) {
+                    updateProgress('Error', data.message || 'Failed to start sync task', 0, true);
+                }
+            })
+            .catch(error => {
+                console.error('Sync start error:', error);
+                if (error.message && error.message.includes('CSRF')) {
+                    alert('Security token expired. Please refresh the page and try again.');
+                    window.location.reload();
+                } else {
+                    updateProgress('Error', 'Failed to start sync task. Please refresh and try again.', 0, true);
+                }
+            });
+        }
+        
+        function pollSyncStatus(taskId) {
+            let pollCount = 0;
+            const maxPollAttempts = 300; // 5 minutes max (300 seconds)
+            let lastProgress = -1;
+            let stuckCount = 0;
+            
+            const pollInterval = setInterval(() => {
+                pollCount++;
+                
+                // Safety timeout - stop after 5 minutes
+                if (pollCount > maxPollAttempts) {
+                    clearInterval(pollInterval);
+                    updateProgress('Timeout', 'Sync operation timed out after 5 minutes', 100, true);
+                    return;
+                }
+                
+                fetch(`/user_management/update_status/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(pollInterval);
+                        showSyncResults(taskId, data);
+                    } else if (data.state === 'FAILURE') {
+                        clearInterval(pollInterval);
+                        updateProgress('Failed', data.message || 'Sync failed', 100, true);
+                    } else if (data.state === 'PROGRESS') {
+                        // Check if progress is stuck
+                        if (data.progress === lastProgress) {
+                            stuckCount++;
+                            if (stuckCount > 60) { // Stuck for 60 seconds
+                                clearInterval(pollInterval);
+                                updateProgress('Stuck', 'Sync appears to be stuck. Please try again.', data.progress || 0, true);
+                                return;
+                            }
+                        } else {
+                            stuckCount = 0; // Reset stuck counter
+                            lastProgress = data.progress;
+                        }
+                        
+                        updateProgress(data.stage, data.message, data.progress);
+                    } else {
+                        // Unknown state
+                        clearInterval(pollInterval);
+                        updateProgress('Unknown', 'Unknown task state: ' + data.state, 0, true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Status poll error:', error);
+                    clearInterval(pollInterval);
+                    updateProgress('Error', 'Failed to get sync status', 0, true);
+                });
+            }, 1000);
+        }
+        
+        function updateProgress(stage, message, progress, isError = false) {
+            document.getElementById('syncStage').textContent = stage;
+            document.getElementById('syncMessage').textContent = message;
+            document.getElementById('syncProgress').style.width = `${progress}%`;
+            if (isError) {
+                document.getElementById('syncProgress').className = 'progress-bar bg-danger';
+                // Add close button for errors
+                const modalBody = document.querySelector('#syncProgressModal .modal-body');
+                if (!modalBody.querySelector('.error-actions')) {
+                    const errorActions = document.createElement('div');
+                    errorActions.className = 'error-actions mt-3 text-center';
+                    errorActions.innerHTML = `
+                        <button type="button" class="btn btn-secondary" onclick="window.location.reload()">
+                            Refresh Page
+                        </button>
+                        <button type="button" class="btn btn-primary ms-2" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    `;
+                    modalBody.appendChild(errorActions);
+                }
+            }
+        }
+        
+        function showSyncResults(taskId, data) {
+            // Hide progress modal
+            const progressModal = bootstrap.Modal.getInstance(document.getElementById('syncProgressModal'));
+            progressModal.hide();
+            
+            // Load sync data for review
+            fetch(`/user_management/get_sync_data/${taskId}`)
+            .then(response => response.json())
+            .then(syncData => {
+                populateReviewModal(syncData, taskId);
+                const reviewModal = new bootstrap.Modal(document.getElementById('syncReviewModal'));
+                reviewModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading sync data:', error);
+                alert('Failed to load sync results for review');
+            });
+        }
+        
+        function populateReviewModal(syncData, taskId) {
+            // Populate sync summary
+            document.getElementById('newPlayersCount').textContent = syncData.new_players ? syncData.new_players.length : 0;
+            document.getElementById('existingPlayersCount').textContent = syncData.player_league_updates ? syncData.player_league_updates.length : 0;
+            document.getElementById('flaggedOrdersCount').textContent = syncData.flagged_multi_orders ? syncData.flagged_multi_orders.length : 0;
+            document.getElementById('potentialInactiveCount').textContent = syncData.potential_inactive ? syncData.potential_inactive.length : 0;
+            
+            // Update email mismatch count if element exists
+            const emailMismatchElement = document.getElementById('emailMismatchCount');
+            if (emailMismatchElement) {
+                emailMismatchElement.textContent = syncData.email_mismatch_players ? syncData.email_mismatch_players.length : 0;
+            }
+            
+            // Populate flagged multi-orders
+            const flaggedContainer = document.getElementById('flaggedOrdersList');
+            flaggedContainer.innerHTML = '';
+            if (syncData.flagged_multi_orders && syncData.flagged_multi_orders.length > 0) {
+                syncData.flagged_multi_orders.forEach(flagged => {
+                    const flaggedDiv = document.createElement('div');
+                    flaggedDiv.className = 'alert alert-warning';
+                    flaggedDiv.innerHTML = `
+                        <strong>⚠️ ${flagged.buyer_info.name}</strong> (${flagged.buyer_info.email})<br>
+                        <small>${flagged.reason}</small><br>
+                        <div class="mt-2">
+                            ${flagged.orders.map(order => `
+                                <span class="badge bg-info me-1">
+                                    ${order.product_name} (Qty: ${order.order.quantity}) - ${order.league_name || 'Unknown League'}
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+                    flaggedContainer.appendChild(flaggedDiv);
+                });
+            }
+            
+            // Populate email mismatch players
+            const emailMismatchContainer = document.getElementById('emailMismatchList');
+            emailMismatchContainer.innerHTML = '';
+            if (syncData.email_mismatch_players && syncData.email_mismatch_players.length > 0) {
+                syncData.email_mismatch_players.forEach(mismatch => {
+                    const mismatchDiv = document.createElement('div');
+                    mismatchDiv.className = 'alert alert-danger';
+                    mismatchDiv.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>📧 Existing Player:</strong><br>
+                                <strong>${mismatch.existing_player.name}</strong><br>
+                                <small class="text-muted">Discord Email: ${mismatch.existing_player.discord_email}</small><br>
+                                <small class="text-muted">Phone: ${mismatch.existing_player.phone || 'N/A'}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>🛒 WooCommerce Order:</strong><br>
+                                <strong>${mismatch.order_info.woo_name}</strong><br>
+                                <small class="text-muted">Order Email: ${mismatch.order_info.woo_email}</small><br>
+                                <small class="text-muted">Order Phone: ${mismatch.order_info.woo_phone || 'N/A'}</small><br>
+                                <small class="text-muted">Product: ${mismatch.order_info.product_name}</small>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-${mismatch.match_details.confidence >= 0.8 ? 'success' : 'warning'}">
+                                ${mismatch.match_details.match_type} (${Math.round(mismatch.match_details.confidence * 100)}% confidence)
+                            </span>
+                            ${mismatch.match_details.flags.map(flag => `
+                                <span class="badge bg-secondary ms-1">${flag.replace('_', ' ')}</span>
+                            `).join('')}
+                        </div>
+                        ${mismatch.match_details.scores ? `
+                        <div class="mt-1">
+                            <small class="text-muted">
+                                Match Scores: 
+                                Name: ${Math.round((mismatch.match_details.scores.name || 0) * 100)}%, 
+                                Email: ${Math.round((mismatch.match_details.scores.email || 0) * 100)}%, 
+                                Phone: ${Math.round((mismatch.match_details.scores.phone || 0) * 100)}%
+                            </small>
+                        </div>
+                        ` : ''}
+                    `;
+                    emailMismatchContainer.appendChild(mismatchDiv);
+                });
+            }
+            
+            // Populate new players requiring review
+            const newPlayersContainer = document.getElementById('newPlayersList');
+            newPlayersContainer.innerHTML = '';
+            if (syncData.new_players && syncData.new_players.length > 0) {
+                syncData.new_players.forEach(newPlayer => {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.className = 'form-check';
+                    playerDiv.innerHTML = `
+                        <input class="form-check-input new-player-checkbox" type="checkbox" 
+                               value="${newPlayer.order_id}" id="new_${newPlayer.order_id}">
+                        <label class="form-check-label" for="new_${newPlayer.order_id}">
+                            <strong>${newPlayer.info.name}</strong> (${newPlayer.info.email})<br>
+                            <small class="text-muted">${newPlayer.reason}</small>
+                        </label>
+                    `;
+                    newPlayersContainer.appendChild(playerDiv);
+                });
+            }
+            
+            // Store task ID for confirmation
+            document.getElementById('confirmSyncBtn').setAttribute('data-task-id', taskId);
+        }
+        
+        // Handle sync confirmation
+        document.getElementById('confirmSyncBtn').addEventListener('click', function() {
+            const taskId = this.getAttribute('data-task-id');
+            const approvedNewPlayers = Array.from(document.querySelectorAll('.new-player-checkbox:checked'))
+                                           .map(cb => cb.value);
+            
+            const confirmData = {
+                process_new: approvedNewPlayers.length > 0,
+                approved_new_players: approvedNewPlayers,
+                process_inactive: document.getElementById('processInactiveCheck').checked
+            };
+            
+            // Send confirmation
+            fetch(`/user_management/confirm_update/${taskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+                },
+                body: JSON.stringify(confirmData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Hide modal and show success
+                    const reviewModal = bootstrap.Modal.getInstance(document.getElementById('syncReviewModal'));
+                    reviewModal.hide();
+                    
+                    alert(data.message);
+                    window.location.reload(); // Refresh to see updated players
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Confirmation error:', error);
+                alert('Failed to confirm sync changes');
+            });
+        });
     });
 </script>
+
+<!-- Sync Progress Modal -->
+<div class="modal fade" id="syncProgressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Syncing Players from WooCommerce</h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <p><strong>Stage:</strong> <span id="syncStage">Starting...</span></p>
+                <p><strong>Status:</strong> <span id="syncMessage">Initializing sync task...</span></p>
+                <div class="progress mb-2">
+                    <div class="progress-bar" id="syncProgress" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sync Review Modal -->
+<div class="modal fade" id="syncReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review WooCommerce Sync Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Sync Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-primary" id="newPlayersCount">0</h5>
+                                <p class="card-text">New Players</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-success" id="existingPlayersCount">0</h5>
+                                <p class="card-text">Existing Players</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-warning" id="flaggedOrdersCount">0</h5>
+                                <p class="card-text">Multi-Orders</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger" id="emailMismatchCount">0</h5>
+                                <p class="card-text">Email Mismatches</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title text-info" id="potentialInactiveCount">0</h5>
+                                <p class="card-text">Potential Inactive</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Flagged Multi-Person Orders -->
+                <div class="mb-4">
+                    <h6 class="text-warning">⚠️ Multi-Person Orders Requiring Review</h6>
+                    <div id="flaggedOrdersList">
+                        <p class="text-muted">No flagged orders found.</p>
+                    </div>
+                </div>
+                
+                <!-- Email Mismatch Players -->
+                <div class="mb-4">
+                    <h6 class="text-danger">📧 Email Mismatches Found</h6>
+                    <div id="emailMismatchList">
+                        <p class="text-muted">No email mismatches found.</p>
+                    </div>
+                </div>
+                
+                <!-- New Players Requiring Manual Approval -->
+                <div class="mb-4">
+                    <h6>New Players (Manual Approval Required)</h6>
+                    <div id="newPlayersList">
+                        <p class="text-muted">No new players found.</p>
+                    </div>
+                </div>
+                
+                <!-- Status Management Options -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="processInactiveCheck" checked>
+                        <label class="form-check-label" for="processInactiveCheck">
+                            <strong>Update Player Status</strong><br>
+                            <small class="text-muted">
+                                Mark players WITHOUT current memberships as inactive, and activate those WITH memberships
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSyncBtn">Confirm & Apply Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

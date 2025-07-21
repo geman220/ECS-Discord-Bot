@@ -4,9 +4,29 @@ from celery import shared_task
 from sqlalchemy import text
 from app.utils.pgbouncer_utils import set_session_timeout
 
-from app.players_helpers import extract_player_info, match_player_weighted
+from app.players_helpers import extract_player_info, match_player_weighted, match_player_with_details
 from app.order_helpers import extract_jersey_size_from_product_name, determine_league
 from app.utils.sync_data_manager import save_sync_data
+
+
+def make_json_serializable(obj):
+    """
+    Recursively convert any object to JSON-serializable format.
+    """
+    if obj is None:
+        return None
+    elif isinstance(obj, (str, int, float, bool)):
+        return obj
+    elif isinstance(obj, dict):
+        return {str(k): make_json_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [make_json_serializable(item) for item in obj]
+    elif hasattr(obj, '__dict__'):
+        # For objects with attributes, convert to dict
+        return make_json_serializable(obj.__dict__)
+    else:
+        # For anything else, convert to string
+        return str(obj)
 from app.core import celery
 from app.core.session_manager import managed_session
 from app.models import Season, Player
@@ -16,7 +36,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@shared_task(bind=True)
+@shared_task(bind=True, time_limit=600, soft_time_limit=540)  # 10 minute hard limit, 9 minute soft limit
 def sync_players_with_woocommerce(self):
     """
     Synchronize player data from WooCommerce.
@@ -109,6 +129,9 @@ def sync_players_with_woocommerce(self):
                 new_players = []
                 existing_players = set()
                 player_league_updates = []
+                flagged_multi_orders = []
+                email_mismatch_players = []  # Track players with email mismatches
+                buyer_order_map = {}  # Track multiple orders from same buyer
                 
                 # Reload current seasons for league determination
                 current_seasons = session.query(Season).filter_by(is_current=True).all()
@@ -130,22 +153,74 @@ def sync_players_with_woocommerce(self):
                     jersey_size = extract_jersey_size_from_product_name(product_name)
                     player_info['jersey_size'] = jersey_size
 
-                    # Check if the player already exists in the system using weighted matching
-                    existing_player = match_player_weighted(player_info, session)
+                    # Track multiple orders from same buyer
+                    buyer_key = f"{player_info.get('email', '').lower()}_{player_info.get('name', '').lower()}"
+                    if buyer_key not in buyer_order_map:
+                        buyer_order_map[buyer_key] = []
+                    buyer_order_map[buyer_key].append({
+                        'order': {
+                            'order_id': order['order_id'],
+                            'product_name': order['product_name'],
+                            'quantity': order['quantity']
+                        },
+                        'player_info': player_info,
+                        'league_id': league.id,
+                        'league_name': league.name,
+                        'product_name': product_name,
+                        'jersey_size': jersey_size
+                    })
+
+                    # Check if the player already exists using enhanced matching
+                    match_result = match_player_with_details(player_info, session)
+                    existing_player = match_result['player']
+                    
                     if existing_player:
                         existing_players.add(existing_player.id)
-                        player_league_updates.append({
+                        
+                        # Create update record with match details
+                        update_record = {
                             'player_id': existing_player.id,
                             'league_id': league.id,
                             'order_id': order['order_id'],
-                            'quantity': order['quantity']
-                        })
+                            'quantity': order['quantity'],
+                            'buyer_info': player_info,
+                            'match_type': match_result['match_type'],
+                            'confidence': match_result['confidence'],
+                            'flags': match_result['flags']
+                        }
+                        player_league_updates.append(update_record)
+                        
+                        # Flag potential email mismatches for admin review
+                        if 'email_mismatch' in match_result['flags']:
+                            email_mismatch_players.append({
+                                'existing_player': {
+                                    'id': existing_player.id,
+                                    'name': existing_player.name,
+                                    'discord_email': existing_player.user.email,
+                                    'phone': existing_player.phone
+                                },
+                                'order_info': {
+                                    'woo_email': player_info.get('email', ''),
+                                    'woo_name': player_info.get('name', ''),
+                                    'woo_phone': player_info.get('phone', ''),
+                                    'order_id': order['order_id'],
+                                    'product_name': product_name
+                                },
+                                'match_details': {
+                                    'match_type': match_result['match_type'],
+                                    'confidence': match_result['confidence'],
+                                    'flags': match_result['flags']
+                                }
+                            })
                     else:
+                        # No match found - flag for manual review
                         new_players.append({
                             'info': player_info,
                             'league_id': league.id,
                             'order_id': order['order_id'],
-                            'quantity': order['quantity']
+                            'quantity': order['quantity'],
+                            'requires_review': True,
+                            'reason': f'Player not found in database - {match_result["match_type"]} - requires manual verification'
                         })
                 
                 # Update progress state after processing all orders
@@ -169,12 +244,28 @@ def sync_players_with_woocommerce(self):
                 active_player_ids = {p.id for p in all_active_players}
                 potential_inactive = list(active_player_ids - existing_players)
 
-                # Prepare sync data and save it for later confirmation
+                # Detect and flag multi-person orders
+                for buyer_key, orders in buyer_order_map.items():
+                    if len(orders) > 1 or any(order['order']['quantity'] > 1 for order in orders):
+                        flagged_multi_orders.append({
+                            'buyer_key': buyer_key,
+                            'buyer_info': orders[0]['player_info'],
+                            'orders': orders,
+                            'total_memberships': sum(order['order']['quantity'] for order in orders),
+                            'reason': f'Buyer purchased {sum(order["order"]["quantity"] for order in orders)} memberships across {len(orders)} order(s)'
+                        })
+
+                # Prepare sync data and clean it thoroughly for JSON serialization
                 sync_data = {
                     'new_players': new_players,
                     'player_league_updates': player_league_updates,
-                    'potential_inactive': potential_inactive
+                    'potential_inactive': potential_inactive,
+                    'flagged_multi_orders': flagged_multi_orders,
+                    'email_mismatch_players': email_mismatch_players
                 }
+                
+                # Apply comprehensive cleaning to ensure everything is JSON serializable
+                sync_data = make_json_serializable(sync_data)
                 save_sync_data(self.request.id, sync_data)
 
                 # Commit happens automatically in managed_session
@@ -188,7 +279,9 @@ def sync_players_with_woocommerce(self):
                     'status': 'complete',
                     'new_players': len(new_players),
                     'existing_players': len(existing_players),
-                    'potential_inactive': len(potential_inactive)
+                    'potential_inactive': len(potential_inactive),
+                    'flagged_multi_orders': len(flagged_multi_orders),
+                    'flagged_orders_require_review': len(flagged_multi_orders) > 0
                 }
 
         except Exception as e:

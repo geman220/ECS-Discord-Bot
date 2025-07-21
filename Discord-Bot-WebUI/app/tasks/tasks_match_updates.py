@@ -136,8 +136,13 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
         Retries the task on SQLAlchemy or general errors.
     """
     try:
-        # First try regular pub league messages
-        scheduled_message = session.query(ScheduledMessage).filter(
+        # Add query optimization with eager loading to prevent N+1 queries
+        from sqlalchemy.orm import joinedload
+        
+        # First try regular pub league messages with optimized query
+        scheduled_message = session.query(ScheduledMessage).options(
+            joinedload(ScheduledMessage.match)
+        ).filter(
             ((ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id)) |
             ((ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id))
         ).first()

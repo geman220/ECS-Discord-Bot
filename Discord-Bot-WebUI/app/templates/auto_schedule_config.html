@@ -28,22 +28,62 @@
                         </div>
 
                         <form method="POST">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="start_time">Start Time *</label>
-                                        <input type="time" class="form-control" id="start_time" name="start_time" 
-                                               value="{{ config.start_time.strftime('%H:%M') if config else '08:00' }}" required>
-                                        <small class="form-text text-muted">Time when the first match of the day begins</small>
-                                    </div>
+                            <!-- Enhanced Time Configuration Section -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-clock"></i> Time Configuration</h5>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="match_duration">Match Duration (minutes) *</label>
-                                        <input type="number" class="form-control" id="match_duration" name="match_duration" 
-                                               value="{{ config.match_duration_minutes if config else 70 }}" 
-                                               min="30" max="120" required>
-                                        <small class="form-text text-muted">Duration of each match including setup time</small>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="premier_start_time">Premier Start Time *</label>
+                                                <input type="time" class="form-control" id="premier_start_time" name="premier_start_time" 
+                                                       value="{{ config.premier_start_time.strftime('%H:%M') if config and config.premier_start_time else '08:20' }}" required>
+                                                <small class="form-text text-muted">First time slot for Premier teams</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="classic_start_time">Classic Start Time *</label>
+                                                <input type="time" class="form-control" id="classic_start_time" name="classic_start_time" 
+                                                       value="{{ config.classic_start_time.strftime('%H:%M') if config and config.classic_start_time else '13:10' }}" required>
+                                                <small class="form-text text-muted">First time slot for Classic teams</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="match_duration">Match Duration (minutes) *</label>
+                                                <input type="number" class="form-control" id="match_duration" name="match_duration" 
+                                                       value="{{ config.match_duration_minutes if config else 70 }}" 
+                                                       min="30" max="120" required>
+                                                <small class="form-text text-muted">Duration including setup time</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="enable_time_rotation" name="enable_time_rotation"
+                                                       {{ 'checked' if config and config.enable_time_rotation else '' }}>
+                                                <label class="form-check-label" for="enable_time_rotation">
+                                                    <strong>Enable Time Slot Rotation</strong>
+                                                </label>
+                                                <small class="form-text text-muted">
+                                                    Premier teams will be balanced between morning (8:20) and mid-morning time slots
+                                                </small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label for="break_duration">Break Between Matches (minutes)</label>
+                                                <input type="number" class="form-control" id="break_duration" name="break_duration" 
+                                                       value="{{ config.break_duration_minutes if config else 10 }}" 
+                                                       min="0" max="30">
+                                                <small class="form-text text-muted">Rest time between back-to-back matches</small>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -59,30 +99,108 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="fields">Fields *</label>
-                                        <input type="text" class="form-control" id="fields" name="fields" 
-                                               value="{{ config.fields if config else 'North,South' }}" required>
-                                        <small class="form-text text-muted">Comma-separated field names (e.g., "North,South")</small>
+                                    <!-- Enhanced Field Configuration -->
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6><i class="fas fa-map-marker-alt"></i> Field Configuration</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="field-configurations">
+                                                {% set fields = config.fields.split(',') if config and config.fields else ['North', 'South'] %}
+                                                {% for field in fields %}
+                                                <div class="field-config-item mb-2" data-field-index="{{ loop.index0 }}">
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control field-name" 
+                                                               name="field_name_{{ loop.index0 }}" 
+                                                               value="{{ field.strip() }}" 
+                                                               placeholder="Field name" required>
+                                                        <input type="number" class="form-control field-capacity" 
+                                                               name="field_capacity_{{ loop.index0 }}" 
+                                                               value="20" min="1" max="50" 
+                                                               placeholder="Capacity" title="Field capacity">
+                                                        <button type="button" class="btn btn-outline-danger remove-field" 
+                                                                onclick="removeField(this)" {{ 'disabled' if loop.index0 < 2 else '' }}>
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="addField()">
+                                                <i class="fas fa-plus"></i> Add Field
+                                            </button>
+                                            <small class="form-text text-muted d-block mt-2">
+                                                At least 2 fields required for back-to-back scheduling
+                                            </small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Week Configuration Section -->
-                            <div class="form-group">
-                                <h5>Week Configuration</h5>
-                                <p class="text-muted">Configure each week of your season. You can have regular match weeks, or special weeks like FUN WEEK, TST, or BYE weeks.</p>
-                                
-                                <div id="week-configurations">
-                                    <!-- Week configurations will be added here dynamically -->
+                            <!-- Enhanced Week Configuration Section -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-calendar-alt"></i> Season Schedule Configuration</h5>
                                 </div>
-                                
-                                <button type="button" class="btn btn-sm btn-secondary" onclick="addWeekConfig()">
-                                    <i class="fas fa-plus"></i> Add Week
-                                </button>
-                                <button type="button" class="btn btn-sm btn-info" onclick="generateDefaultWeeks()">
-                                    <i class="fas fa-magic"></i> Generate Default Schedule
-                                </button>
+                                <div class="card-body">
+                                    <p class="text-muted">Configure your season layout with regular matches, practice sessions, and special weeks.</p>
+                                    
+                                    <!-- Quick Setup Templates -->
+                                    <div class="mb-3">
+                                        <h6>Quick Setup Templates</h6>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyTemplate('premier-standard')">
+                                                Premier Standard (8 weeks)
+                                            </button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyTemplate('classic-practice')">
+                                                Classic w/ Practice (7 weeks)
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info btn-sm" onclick="applyTemplate('custom')">
+                                                Custom Schedule
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Practice Week Configuration for Classic -->
+                                    <div class="practice-config mb-3" id="practice-config" style="display: none;">
+                                        <h6>Classic Practice Configuration</h6>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="enable-practice-weeks" name="enable_practice_weeks">
+                                            <label class="form-check-label" for="enable-practice-weeks">
+                                                Enable Practice Sessions for Classic
+                                            </label>
+                                        </div>
+                                        <div class="practice-weeks mt-2" id="practice-weeks-selection" style="display: none;">
+                                            <label class="form-label">Practice Session Weeks:</label>
+                                            <div class="practice-week-checkboxes" id="practice-week-checkboxes">
+                                                <!-- Generated dynamically based on season length -->
+                                            </div>
+                                            <small class="form-text text-muted">
+                                                Practice sessions will be scheduled at 1:10 PM on the selected weeks
+                                            </small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Visual Week Builder -->
+                                    <div class="week-builder">
+                                        <h6>Season Layout <small class="text-muted">(Drag to reorder weeks)</small></h6>
+                                        <div id="week-configurations" class="week-timeline">
+                                            <!-- Week configurations will be added here dynamically -->
+                                        </div>
+                                        
+                                        <div class="week-controls mt-3">
+                                            <button type="button" class="btn btn-sm btn-secondary" onclick="addWeekConfig()">
+                                                <i class="fas fa-plus"></i> Add Week
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-info" onclick="generateDefaultWeeks()">
+                                                <i class="fas fa-magic"></i> Auto-Generate
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-warning" onclick="clearWeeks()">
+                                                <i class="fas fa-trash"></i> Clear All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -109,173 +227,338 @@
     </div>
 </div>
 
+<style>
+.week-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 60px;
+    border: 2px dashed #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.week-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 120px;
+    cursor: move;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.week-card:hover {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+.week-card.regular { border-left: 4px solid #28a745; }
+.week-card.practice { border-left: 4px solid #17a2b8; }
+.week-card.fun { border-left: 4px solid #ffc107; }
+.week-card.tst { border-left: 4px solid #fd7e14; }
+.week-card.bye { border-left: 4px solid #6c757d; }
+.week-card.playoff { border-left: 4px solid #dc3545; }
+
+.week-header {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #495057;
+}
+
+.week-type {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+.field-config-item .input-group {
+    margin-bottom: 5px;
+}
+</style>
+
 <script>
 let weekConfigCount = 0;
+let fieldCount = 2; // Start with North and South
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize field counter based on existing fields
+    fieldCount = document.querySelectorAll('.field-config-item').length;
+    
+    // Generate practice week checkboxes based on weeks count
+    updatePracticeWeekOptions();
+    
     // Generate a default 7-week regular schedule on page load
     generateDefaultWeeks();
     
-    // Update preview when team count or weeks change
-    function updatePreview() {
-        const teamCount = {{ team_count }};
-        const weeks = document.getElementById('weeks_count').value;
-        const matchesPerTeam = (teamCount - 1) * 2;
-        const totalMatches = (teamCount * matchesPerTeam) / 2;
-        
-        // Update preview text would go here if needed
-    }
+    // Show practice config for Classic if applicable
+    updatePracticeConfigVisibility();
     
-    document.getElementById('weeks_count').addEventListener('input', updatePreview);
+    // Update preview when team count or weeks change
+    document.getElementById('weeks_count').addEventListener('input', function() {
+        updatePracticeWeekOptions();
+        generateDefaultWeeks();
+    });
+    
+    // Handle practice weeks checkbox
+    document.getElementById('enable-practice-weeks').addEventListener('change', function() {
+        document.getElementById('practice-weeks-selection').style.display = 
+            this.checked ? 'block' : 'none';
+    });
 });
 
-function addWeekConfig(date = '', weekType = 'REGULAR', description = '') {
-    weekConfigCount++;
+// Template functions
+function applyTemplate(templateType) {
+    clearWeeks();
     
-    const weekConfigDiv = document.createElement('div');
-    weekConfigDiv.className = 'week-config-item border rounded p-3 mb-3';
-    weekConfigDiv.id = `week-config-${weekConfigCount}`;
+    const weekCount = parseInt(document.getElementById('weeks_count').value) || 7;
     
-    weekConfigDiv.innerHTML = `
-        <div class="row">
-            <div class="col-md-3">
-                <label>Week Date</label>
-                <input type="date" class="form-control" name="week_dates[]" value="${date}" required>
-            </div>
-            <div class="col-md-3">
-                <label>Week Type</label>
-                <select class="form-control" name="week_types[]" onchange="updateWeekTypeDescription(this)">
-                    <option value="REGULAR" ${weekType === 'REGULAR' ? 'selected' : ''}>Regular Match Week</option>
-                    <option value="FUN" ${weekType === 'FUN' ? 'selected' : ''}>FUN WEEK</option>
-                    <option value="TST" ${weekType === 'TST' ? 'selected' : ''}>TST Week</option>
-                    <option value="BYE" ${weekType === 'BYE' ? 'selected' : ''}>BYE Week</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label>Description (Optional)</label>
-                <input type="text" class="form-control" name="week_descriptions[]" 
-                       value="${description}" placeholder="Optional description">
-            </div>
-            <div class="col-md-2">
-                <label>&nbsp;</label>
-                <button type="button" class="btn btn-danger btn-block" onclick="removeWeekConfig(${weekConfigCount})">
-                    <i class="fas fa-trash"></i> Remove
-                </button>
-            </div>
+    switch(templateType) {
+        case 'premier-standard':
+            // Premier: 8 weeks regular, no practice
+            document.getElementById('weeks_count').value = 8;
+            document.getElementById('premier_start_time').value = '08:20';
+            document.getElementById('enable_time_rotation').checked = true;
+            document.getElementById('enable-practice-weeks').checked = false;
+            generateRegularWeeks(8);
+            break;
+            
+        case 'classic-practice':
+            // Classic: 7 weeks with practice weeks 1 and 3
+            document.getElementById('weeks_count').value = 7;
+            document.getElementById('classic_start_time').value = '13:10';
+            document.getElementById('enable-practice-weeks').checked = true;
+            updatePracticeWeekOptions();
+            
+            // Check weeks 1 and 3 for practice
+            setTimeout(() => {
+                const week1 = document.getElementById('practice-week-1');
+                const week3 = document.getElementById('practice-week-3');
+                if (week1) week1.checked = true;
+                if (week3) week3.checked = true;
+                document.getElementById('practice-weeks-selection').style.display = 'block';
+            }, 100);
+            
+            generateRegularWeeks(7);
+            break;
+            
+        case 'custom':
+            // Just clear and let user configure
+            document.getElementById('weeks_count').value = 6;
+            addWeekConfig('REGULAR');
+            addWeekConfig('REGULAR');
+            addWeekConfig('TST');
+            addWeekConfig('REGULAR');
+            addWeekConfig('FUN');
+            addWeekConfig('REGULAR');
+            break;
+    }
+}
+
+function generateRegularWeeks(count) {
+    clearWeeks();
+    for (let i = 0; i < count; i++) {
+        addWeekConfig('REGULAR');
+    }
+}
+
+function updatePracticeWeekOptions() {
+    const weekCount = parseInt(document.getElementById('weeks_count').value) || 7;
+    const container = document.getElementById('practice-week-checkboxes');
+    
+    container.innerHTML = '';
+    
+    for (let i = 1; i <= weekCount; i++) {
+        const div = document.createElement('div');
+        div.className = 'form-check form-check-inline';
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" id="practice-week-${i}" name="practice_weeks" value="${i}">
+            <label class="form-check-label" for="practice-week-${i}">Week ${i}</label>
+        `;
+        container.appendChild(div);
+    }
+}
+
+function updatePracticeConfigVisibility() {
+    // Show practice config section when configuring the wizard
+    document.getElementById('practice-config').style.display = 'block';
+}
+
+// Field management functions
+function addField() {
+    const container = document.getElementById('field-configurations');
+    const fieldItem = document.createElement('div');
+    fieldItem.className = 'field-config-item mb-2';
+    fieldItem.setAttribute('data-field-index', fieldCount);
+    
+    fieldItem.innerHTML = `
+        <div class="input-group">
+            <input type="text" class="form-control field-name" 
+                   name="field_name_${fieldCount}" 
+                   placeholder="Field name" required>
+            <input type="number" class="form-control field-capacity" 
+                   name="field_capacity_${fieldCount}" 
+                   value="20" min="1" max="50" 
+                   placeholder="Capacity" title="Field capacity">
+            <button type="button" class="btn btn-outline-danger remove-field" 
+                    onclick="removeField(this)">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
     `;
     
-    document.getElementById('week-configurations').appendChild(weekConfigDiv);
+    container.appendChild(fieldItem);
+    fieldCount++;
 }
 
-function removeWeekConfig(configId) {
-    const element = document.getElementById(`week-config-${configId}`);
-    if (element) {
-        element.remove();
+function removeField(button) {
+    const fieldItems = document.querySelectorAll('.field-config-item');
+    if (fieldItems.length > 2) { // Keep at least 2 fields
+        button.closest('.field-config-item').remove();
     }
 }
 
-function updateWeekTypeDescription(selectElement) {
-    const row = selectElement.closest('.row');
-    const descriptionInput = row.querySelector('input[name="week_descriptions[]"]');
-    const weekType = selectElement.value;
+// Week management functions
+function addWeekConfig(weekType = 'REGULAR') {
+    const container = document.getElementById('week-configurations');
+    const weekCard = document.createElement('div');
+    weekCard.className = `week-card ${weekType.toLowerCase()}`;
+    weekCard.draggable = true;
+    weekCard.setAttribute('data-week-type', weekType);
+    weekCard.setAttribute('data-week-order', weekConfigCount + 1);
     
-    // Auto-fill description based on week type
-    if (weekType === 'FUN' && !descriptionInput.value) {
-        descriptionInput.value = 'Fun activities and games';
-    } else if (weekType === 'TST' && !descriptionInput.value) {
-        descriptionInput.value = 'The Soccer Tournament';
-    } else if (weekType === 'BYE' && !descriptionInput.value) {
-        descriptionInput.value = 'No games scheduled';
-    }
+    const weekTypeColor = {
+        'REGULAR': '#28a745',
+        'PRACTICE': '#17a2b8', 
+        'FUN': '#ffc107',
+        'TST': '#fd7e14',
+        'BYE': '#6c757d',
+        'PLAYOFF': '#dc3545'
+    };
+    
+    weekCard.innerHTML = `
+        <div class="week-header">Week ${weekConfigCount + 1}</div>
+        <div class="week-type" style="color: ${weekTypeColor[weekType] || '#495057'}">
+            ${weekType}
+        </div>
+        <select class="form-control form-control-sm mt-2 week-type-select" 
+                name="week_type_${weekConfigCount}" 
+                onchange="updateWeekCard(this)">
+            <option value="REGULAR" ${weekType === 'REGULAR' ? 'selected' : ''}>Regular</option>
+            <option value="PRACTICE" ${weekType === 'PRACTICE' ? 'selected' : ''}>Practice</option>
+            <option value="FUN" ${weekType === 'FUN' ? 'selected' : ''}>Fun Week</option>
+            <option value="TST" ${weekType === 'TST' ? 'selected' : ''}>TST</option>
+            <option value="BYE" ${weekType === 'BYE' ? 'selected' : ''}>BYE</option>
+            <option value="PLAYOFF" ${weekType === 'PLAYOFF' ? 'selected' : ''}>Playoff</option>
+        </select>
+        <button type="button" class="btn btn-sm btn-outline-danger mt-1" 
+                onclick="removeWeekCard(this)" style="font-size: 0.7em;">
+            <i class="fas fa-times"></i>
+        </button>
+        <input type="hidden" name="week_order_${weekConfigCount}" value="${weekConfigCount + 1}">
+    `;
+    
+    // Add drag and drop event listeners
+    weekCard.addEventListener('dragstart', handleDragStart);
+    weekCard.addEventListener('dragover', handleDragOver);
+    weekCard.addEventListener('drop', handleDrop);
+    
+    container.appendChild(weekCard);
+    weekConfigCount++;
+}
+
+function updateWeekCard(select) {
+    const weekCard = select.closest('.week-card');
+    const weekType = select.value;
+    const weekTypeDisplay = weekCard.querySelector('.week-type');
+    
+    // Update visual styling
+    weekCard.className = `week-card ${weekType.toLowerCase()}`;
+    weekTypeDisplay.textContent = weekType;
+    weekCard.setAttribute('data-week-type', weekType);
+    
+    // Update color
+    const weekTypeColor = {
+        'REGULAR': '#28a745',
+        'PRACTICE': '#17a2b8', 
+        'FUN': '#ffc107',
+        'TST': '#fd7e14',
+        'BYE': '#6c757d',
+        'PLAYOFF': '#dc3545'
+    };
+    
+    weekTypeDisplay.style.color = weekTypeColor[weekType] || '#495057';
+}
+
+function removeWeekCard(button) {
+    button.closest('.week-card').remove();
+    renumberWeeks();
+}
+
+function clearWeeks() {
+    document.getElementById('week-configurations').innerHTML = '';
+    weekConfigCount = 0;
 }
 
 function generateDefaultWeeks() {
-    // Clear existing configurations
-    document.getElementById('week-configurations').innerHTML = '';
-    weekConfigCount = 0;
+    const weekCount = parseInt(document.getElementById('weeks_count').value) || 7;
+    clearWeeks();
     
-    // Generate 7 consecutive weeks starting from next Sunday
-    const today = new Date();
-    const nextSunday = new Date(today);
-    nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
-    
-    const weeksCount = parseInt(document.getElementById('weeks_count').value) || 7;
-    
-    for (let i = 0; i < weeksCount; i++) {
-        const weekDate = new Date(nextSunday);
-        weekDate.setDate(nextSunday.getDate() + (i * 7));
+    for (let i = 0; i < weekCount; i++) {
+        addWeekConfig('REGULAR');
+    }
+}
+
+function renumberWeeks() {
+    const weekCards = document.querySelectorAll('.week-card');
+    weekCards.forEach((card, index) => {
+        const weekHeader = card.querySelector('.week-header');
+        weekHeader.textContent = `Week ${index + 1}`;
+        card.setAttribute('data-week-order', index + 1);
         
-        addWeekConfig(
-            weekDate.toISOString().split('T')[0],
-            'REGULAR',
-            `Week ${i + 1}`
-        );
-    }
-}
-
-function addSpecialWeek(weekType) {
-    const today = new Date();
-    const nextSunday = new Date(today);
-    nextSunday.setDate(today.getDate() + (7 - today.getDay()) % 7);
-    
-    let description = '';
-    if (weekType === 'FUN') description = 'Fun activities and games';
-    else if (weekType === 'TST') description = 'The Soccer Tournament';
-    else if (weekType === 'BYE') description = 'No games scheduled';
-    
-    addWeekConfig(
-        nextSunday.toISOString().split('T')[0],
-        weekType,
-        description
-    );
-}
-
-// Form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const weekConfigs = document.querySelectorAll('.week-config-item');
-    if (weekConfigs.length === 0) {
-        e.preventDefault();
-        alert('Please add at least one week configuration.');
-        return false;
-    }
-    
-    // Check for duplicate dates
-    const dates = [];
-    const dateInputs = document.querySelectorAll('input[name="week_dates[]"]');
-    
-    for (let input of dateInputs) {
-        if (dates.includes(input.value)) {
-            e.preventDefault();
-            alert('Duplicate dates found. Each week must have a unique date.');
-            return false;
+        // Update hidden input
+        const hiddenInput = card.querySelector('input[type="hidden"]');
+        if (hiddenInput) {
+            hiddenInput.value = index + 1;
         }
-        dates.push(input.value);
+    });
+    weekConfigCount = weekCards.length;
+}
+
+// Drag and drop functionality
+let draggedElement = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    this.style.opacity = '0.5';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    
+    if (draggedElement !== this) {
+        const container = document.getElementById('week-configurations');
+        const draggedIndex = Array.from(container.children).indexOf(draggedElement);
+        const targetIndex = Array.from(container.children).indexOf(this);
+        
+        if (draggedIndex < targetIndex) {
+            container.insertBefore(draggedElement, this.nextSibling);
+        } else {
+            container.insertBefore(draggedElement, this);
+        }
+        
+        renumberWeeks();
     }
-});
+    
+    draggedElement.style.opacity = '1';
+    draggedElement = null;
+}
 </script>
 
-<style>
-.week-config-item {
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6 !important;
-}
-
-.week-config-item:nth-child(even) {
-    background-color: #ffffff;
-}
-
-.week-config-item .btn-danger {
-    margin-top: 0;
-}
-
-#week-configurations {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-</style>
 {% endblock %}

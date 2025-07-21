@@ -151,131 +151,134 @@
                         <!-- Step 2: Season Structure Configuration -->
                         <div class="wizard-step" data-step="2">
                             <h5>Season Structure Configuration</h5>
-                            <p class="text-muted">Configure the structure and special weeks for each league type</p>
+                            <p class="text-muted">Configure special weeks and season length. Premier and Classic have aligned schedules with shared special weeks.</p>
                             
-                            <!-- Shared Special Weeks Configuration -->
-                            <div class="card mb-4 border-warning">
-                                <div class="card-header bg-warning text-dark">
-                                    <h6 class="mb-0"><i class="ti ti-star me-2"></i>Shared Special Weeks</h6>
-                                    <small class="text-muted">These weeks are shared between Premier and Classic divisions on the same dates</small>
+                            <!-- Season Length Configuration -->
+                            <div class="card mb-4 border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Season Length</h6>
                                 </div>
                                 <div class="card-body">
-                                    <div class="alert alert-info">
-                                        <i class="ti ti-info-circle me-2"></i>
-                                        <strong>Important:</strong> TST, FUN, and BYE weeks will be scheduled for the entire league - both Premier and Classic divisions will have these special weeks on the same dates.
-                                    </div>
                                     <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="sharedHasFunWeek" checked>
-                                                <label class="form-check-label" for="sharedHasFunWeek">
-                                                    <strong>Fun Week</strong>
-                                                    <br><small class="text-muted">Special activities and events</small>
-                                                </label>
-                                            </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Total Season Weeks</label>
+                                            <select class="form-select" id="totalSeasonWeeks" onchange="updateSeasonStructure()">
+                                                <option value="9">9 Weeks (7 Regular + 2 Special)</option>
+                                                <option value="10">10 Weeks (8 Regular + 2 Special)</option>
+                                                <option value="11" selected>11 Weeks (9 Regular + 2 Special)</option>
+                                                <option value="12">12 Weeks (10 Regular + 2 Special)</option>
+                                            </select>
+                                            <small class="form-text text-muted">Includes regular season, special weeks, and playoffs</small>
                                         </div>
-                                        <div class="col-md-4">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="sharedHasTstWeek" checked>
-                                                <label class="form-check-label" for="sharedHasTstWeek">
-                                                    <strong>TST Week</strong>
-                                                    <br><small class="text-muted">Team skills and training</small>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="sharedHasByeWeek">
-                                                <label class="form-check-label" for="sharedHasByeWeek">
-                                                    <strong>BYE Week</strong>
-                                                    <br><small class="text-muted">No matches scheduled</small>
-                                                </label>
+                                        <div class="col-md-6">
+                                            <div class="season-breakdown mt-4 p-3 bg-light rounded">
+                                                <h6 class="mb-2">Season Breakdown:</h6>
+                                                <div id="seasonBreakdown">
+                                                    <div><strong>Premier:</strong> 7 regular + 2 playoff weeks</div>
+                                                    <div><strong>Classic:</strong> 8 regular + 1 playoff week</div>
+                                                    <div class="text-muted"><small>Plus shared special weeks</small></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
-                            <div id="pubLeagueStructure" class="d-none">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="card border-primary">
-                                            <div class="card-header bg-primary text-white">
-                                                <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier Division Structure</h6>
+                            <!-- Shared Special Weeks Configuration -->
+                            <div class="card mb-4 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-star me-2"></i>Special Weeks (Shared)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <strong>Shared Schedule:</strong> When enabled, TST, FUN, and BYE weeks happen on the same week number for both Premier and Classic divisions.
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="includeTstWeek" checked>
+                                                <label class="form-check-label" for="includeTstWeek">
+                                                    <strong>TST Week</strong>
+                                                    <br><small class="text-muted">The Soccer Tournament</small>
+                                                </label>
                                             </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Regular Season Weeks</label>
-                                                    <input type="number" class="form-control" id="premierRegularWeeks" value="7" min="4" max="20">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Playoff Weeks</label>
-                                                    <input type="number" class="form-control" id="premierPlayoffWeeks" value="2" min="0" max="5">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Special Weeks</label>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="premierHasBonusWeek" checked>
-                                                        <label class="form-check-label" for="premierHasBonusWeek">Bonus Week</label>
-                                                    </div>
-                                                    <div class="alert alert-warning alert-sm mt-2">
-                                                        <small><i class="ti ti-info-circle me-1"></i>Fun Week and TST Week are shared between Premier and Classic divisions</small>
-                                                    </div>
-                                                </div>
-                                                <div class="alert alert-info">
-                                                    <small><strong>Total:</strong> <span id="premierTotalWeeks">11</span> weeks</small>
-                                                </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="includeFunWeek" checked>
+                                                <label class="form-check-label" for="includeFunWeek">
+                                                    <strong>Fun Week</strong>
+                                                    <br><small class="text-muted">Special activities and games</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="includeByeWeek">
+                                                <label class="form-check-label" for="includeByeWeek">
+                                                    <strong>BYE Week</strong>
+                                                    <br><small class="text-muted">No matches scheduled</small>
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card border-success">
-                                            <div class="card-header bg-success text-white">
-                                                <h6 class="mb-0"><i class="ti ti-star me-1"></i>Classic Division Structure</h6>
-                                            </div>
-                                            <div class="card-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Regular Season Weeks</label>
-                                                    <input type="number" class="form-control" id="classicRegularWeeks" value="8" min="4" max="20">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Playoff Weeks</label>
-                                                    <input type="number" class="form-control" id="classicPlayoffWeeks" value="1" min="0" max="5">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Special Weeks</label>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="classicHasBonusWeek">
-                                                        <label class="form-check-label" for="classicHasBonusWeek">Bonus Week</label>
-                                                    </div>
-                                                    <div class="alert alert-warning alert-sm mt-2">
-                                                        <small><i class="ti ti-info-circle me-1"></i>Fun Week and TST Week are shared between Premier and Classic divisions</small>
-                                                    </div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Practice Sessions</label>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="classicHasPractice" checked>
-                                                        <label class="form-check-label" for="classicHasPractice">Enable Practice Sessions</label>
-                                                    </div>
-                                                    <div class="mt-2 classic-practice-config">
-                                                        <div class="row">
-                                                            <div class="col-6">
-                                                                <label class="form-label">Practice Weeks</label>
-                                                                <input type="text" class="form-control" id="classicPracticeWeeks" value="1,3" placeholder="e.g., 1,3">
-                                                            </div>
-                                                            <div class="col-6">
-                                                                <label class="form-label">Practice Game</label>
-                                                                <select class="form-select" id="classicPracticeGame">
-                                                                    <option value="1" selected>Game 1</option>
-                                                                    <option value="2">Game 2</option>
-                                                                </select>
-                                                            </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Next Step:</strong> You'll be able to drag and drop any weeks to customize your schedule in the calendar preview.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Classic Practice Configuration -->
+                            <div id="pubLeagueStructure" class="d-none">
+                                <div class="card mb-4 border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-running me-2"></i>Classic Practice Sessions</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="classicHasPractice" checked>
+                                            <label class="form-check-label" for="classicHasPractice">
+                                                <strong>Enable Practice Sessions for Classic Division</strong>
+                                            </label>
+                                            <small class="form-text text-muted d-block">Practice sessions will be scheduled at 1:10 PM on selected weeks</small>
+                                        </div>
+                                        
+                                        <div id="classicPracticeConfig" class="practice-config">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <label class="form-label">Practice Session Weeks</label>
+                                                    <div class="practice-week-checkboxes" id="classicPracticeWeekCheckboxes">
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="practice-week-1" value="1" checked>
+                                                            <label class="form-check-label" for="practice-week-1">Week 1</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="practice-week-2" value="2">
+                                                            <label class="form-check-label" for="practice-week-2">Week 2</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="practice-week-3" value="3" checked>
+                                                            <label class="form-check-label" for="practice-week-3">Week 3</label>
+                                                        </div>
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="checkbox" id="practice-week-4" value="4">
+                                                            <label class="form-check-label" for="practice-week-4">Week 4</label>
                                                         </div>
                                                     </div>
+                                                    <small class="form-text text-muted">Select which weeks should include practice sessions</small>
                                                 </div>
-                                                <div class="alert alert-success">
-                                                    <small><strong>Total:</strong> <span id="classicTotalWeeks">10</span> weeks</small>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Practice Time Slot</label>
+                                                    <select class="form-select" id="classicPracticeTimeSlot">
+                                                        <option value="1" selected>1:10 PM (Game 1 time)</option>
+                                                        <option value="2">2:20 PM (Game 2 time)</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">Which time slot for practice</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -340,37 +343,35 @@
 
                             <div class="calendar-preview mt-4">
                                 <h6>Season Calendar Preview <small class="text-muted">(Drag weeks to reorder - Shared weeks move together)</small></h6>
-                                <div class="alert alert-info">
-                                    <i class="ti ti-info-circle me-2"></i>
-                                    <strong>Note:</strong> Shared special weeks (TST, FUN, BYE) marked with 🔗 can be moved, but will automatically move together in both divisions to stay synchronized.
-                                </div>
-                                
-                                <!-- League Type Specific Calendars -->
+                                <!-- Unified Season Calendar Preview -->
                                 <div id="pubLeagueCalendar" class="d-none">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="card border-primary">
-                                                <div class="card-header bg-primary text-white">
-                                                    <h6 class="mb-0"><i class="ti ti-trophy me-1"></i>Premier Division Calendar</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div id="premierCalendarPreview" class="calendar-container">
-                                                        <p class="text-muted">Configure start date to see calendar preview</p>
-                                                    </div>
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Season Calendar Preview</h6>
+                                            <small class="opacity-75">Both Premier and Classic divisions with shared special weeks</small>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="unifiedCalendarPreview" class="calendar-container">
+                                                <div class="text-center text-muted py-4">
+                                                    <i class="fas fa-calendar-plus fa-3x mb-3 opacity-50"></i>
+                                                    <p>Configure start date to see unified calendar preview</p>
+                                                    <small>Special weeks (TST, FUN, BYE) will appear on the same dates for both divisions</small>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <div class="card border-success">
-                                                <div class="card-header bg-success text-white">
-                                                    <h6 class="mb-0"><i class="ti ti-star me-1"></i>Classic Division Calendar</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div id="classicCalendarPreview" class="calendar-container">
-                                                        <p class="text-muted">Configure start date to see calendar preview</p>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            <strong>Schedule Alignment:</strong>
+                                            <ul class="mb-0 mt-2">
+                                                <li><strong>Weeks 1-7:</strong> Both divisions play regular season</li>
+                                                <li><strong>Week 9:</strong> Premier Playoff Week 1 / Classic Regular Week 8</li>
+                                                <li><strong>Week 10:</strong> Premier Playoff Week 2 / Classic Regular Week 9 (if applicable)</li>
+                                                <li><strong>Week 11:</strong> Classic Playoff Week (aligns with Premier Playoff Week 2)</li>
+                                                <li><strong>Special weeks:</strong> TST, FUN, BYE happen simultaneously for both divisions</li>
+                                            </ul>
                                         </div>
                                     </div>
                                 </div>
@@ -378,53 +379,157 @@
                                 <div id="ecsFcCalendar" class="d-none">
                                     <div class="card border-info">
                                         <div class="card-header bg-info text-white">
-                                            <h6 class="mb-0"><i class="ti ti-shield me-1"></i>ECS FC Calendar</h6>
+                                            <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>ECS FC Calendar</h6>
                                         </div>
                                         <div class="card-body">
                                             <div id="ecsFcCalendarPreview" class="calendar-container">
-                                                <p class="text-muted">Configure start date to see calendar preview</p>
+                                                <div class="text-center text-muted py-4">
+                                                    <i class="fas fa-calendar-plus fa-3x mb-3 opacity-50"></i>
+                                                    <p>Configure start date to see calendar preview</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        <i class="ti ti-info-circle"></i> Week order is automatically calculated. Premier playoff weeks align with Classic regular season weeks. 
-                                        <strong>Shared weeks (🔗) move together when dragged.</strong>
-                                    </small>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Step 4: Schedule Configuration -->
+                        <!-- Step 4: Enhanced Schedule Configuration -->
                         <div class="wizard-step" data-step="4">
-                            <h5>Schedule Configuration</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Premier Division Start Time</label>
-                                        <input type="time" class="form-control" id="premierStartTime" value="08:20">
-                                        <div class="form-text">Start time for first Premier match</div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Classic Division Start Time</label>
-                                        <input type="time" class="form-control" id="classicStartTime" value="13:10">
-                                        <div class="form-text">Start time for first Classic match (1:10 PM)</div>
-                                    </div>
+                            <h5><i class="fas fa-cogs me-2"></i>Advanced Schedule Configuration</h5>
+                            <p class="text-muted">Configure time slots, field preferences, and special features for optimal scheduling</p>
+                            
+                            <!-- Quick Setup Templates -->
+                            <div class="card mb-4 border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-magic me-2"></i>Quick Setup Templates</h6>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Match Duration (minutes)</label>
-                                        <input type="number" class="form-control" id="matchDuration" value="70" min="30" max="120">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Available Fields</label>
-                                        <input type="text" class="form-control" id="fields" value="North,South">
-                                        <div class="form-text">Comma-separated field names</div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-primary w-100 mb-2" onclick="applyWizardTemplate('standard')">
+                                                <i class="fas fa-star me-1"></i>Standard Setup
+                                                <small class="d-block text-muted">Premier 8:20 AM, Classic 1:10 PM, Time rotation</small>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-success w-100 mb-2" onclick="applyWizardTemplate('classic-practice')">
+                                                <i class="fas fa-running me-1"></i>Classic Practice
+                                                <small class="d-block text-muted">Include practice weeks 1 & 3 for Classic</small>
+                                            </button>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-warning w-100 mb-2" onclick="applyWizardTemplate('custom')">
+                                                <i class="fas fa-cog me-1"></i>Custom Config
+                                                <small class="d-block text-muted">Manual configuration</small>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Time Configuration -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-clock me-2"></i>Time Configuration</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label class="form-label">Premier Start Time *</label>
+                                                <input type="time" class="form-control" id="premierStartTime" value="08:20">
+                                                <small class="form-text text-muted">First time slot for Premier teams</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label class="form-label">Classic Start Time *</label>
+                                                <input type="time" class="form-control" id="classicStartTime" value="13:10">
+                                                <small class="form-text text-muted">First time slot for Classic teams</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label class="form-label">Match Duration (min)</label>
+                                                <input type="number" class="form-control" id="matchDuration" value="70" min="30" max="120">
+                                                <small class="form-text text-muted">Including setup time</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="mb-3">
+                                                <label class="form-label">Break Duration (min)</label>
+                                                <input type="number" class="form-control" id="breakDuration" value="10" min="0" max="30">
+                                                <small class="form-text text-muted">Rest between matches</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="enableTimeRotation" checked>
+                                                <label class="form-check-label" for="enableTimeRotation">
+                                                    <strong>Enable Time Slot Rotation</strong>
+                                                </label>
+                                                <div class="form-text">
+                                                    <small class="text-info">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        Premier teams will be balanced between morning and mid-morning time slots
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Field Configuration -->
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Field Configuration</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="wizard-field-configurations">
+                                        <div class="wizard-field-item mb-3">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <label class="form-label">Field Name</label>
+                                                    <input type="text" class="form-control wizard-field-name" value="North" required>
+                                                    <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <button type="button" class="btn btn-outline-danger" onclick="removeWizardField(this)" disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="wizard-field-item mb-3">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <label class="form-label">Field Name</label>
+                                                    <input type="text" class="form-control wizard-field-name" value="South" required>
+                                                    <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
+                                                </div>
+                                                <div class="col-md-2 d-flex align-items-end">
+                                                    <button type="button" class="btn btn-outline-danger" onclick="removeWizardField(this)" disabled>
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addWizardField()">
+                                        <i class="fas fa-plus me-1"></i>Add Field
+                                    </button>
+                                    <small class="form-text text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i>At least 2 fields required for back-to-back scheduling
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Practice Configuration removed - configured in Step 2 Season Structure -->
                         </div>
 
                         <!-- Step 5: Teams -->

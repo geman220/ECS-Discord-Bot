@@ -910,11 +910,33 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
             
             # Handle role removal based on force_update and coach status
             if force_update:
-                to_remove = [r for r in current_roles 
-                           if normalize_name(r) in managed_normalized 
-                           and normalize_name(r) not in expected_normalized]
+                to_remove = []
+                logger.info(f"Force update enabled - checking roles for removal")
+                logger.info(f"Managed roles: {app_managed_roles}")
+                logger.info(f"Expected normalized: {expected_normalized}")
+                logger.info(f"Managed normalized: {managed_normalized}")
+                
+                for role in current_roles:
+                    normalized_role = normalize_name(role)
+                    logger.info(f"Checking role: {role} (normalized: {normalized_role})")
+                    
+                    # Remove if it's in the managed list and not expected
+                    if normalized_role in managed_normalized and normalized_role not in expected_normalized:
+                        logger.info(f"Marking {role} for removal (in managed list)")
+                        to_remove.append(role)
+                    # Also remove any ECS-FC-PL team/coach roles that aren't expected
+                    elif (role.startswith('ECS-FC-PL-') and 
+                          ('-PLAYER' in role.upper() or '-COACH' in role.upper()) and 
+                          normalized_role not in expected_normalized):
+                        logger.info(f"Marking {role} for removal (ECS-FC-PL pattern)")
+                        to_remove.append(role)
+                    else:
+                        logger.info(f"Not removing {role}: startswith={role.startswith('ECS-FC-PL-')}, has_player={'-PLAYER' in role.upper()}, has_coach={'-COACH' in role.upper()}, not_expected={normalized_role not in expected_normalized}")
+                        
+                logger.info(f"Total roles marked for removal: {to_remove}")
             else:
                 to_remove = []
+                logger.info(f"Force update disabled - no roles will be removed")
             
             # Execute role changes via Discord API
             roles_added = []

@@ -496,6 +496,48 @@ class AutoScheduleGenerator:
                 templates.extend(playoff_templates)
                 logger.info(f"  → Added {len(playoff_templates)} playoff templates")
                 
+            elif week_type == 'MIXED':
+                logger.info(f"  → Generating mixed week templates for week {week_order}")
+                # MIXED weeks: Playoffs for Premier, Regular season for Classic
+                if self.league.name.lower() == 'premier':
+                    logger.info(f"  → Premier league - generating playoff templates")
+                    playoff_templates = self._generate_playoff_week_templates(
+                        week_date, week_order, week_config.playoff_round
+                    )
+                    templates.extend(playoff_templates)
+                    logger.info(f"  → Added {len(playoff_templates)} playoff templates")
+                elif self.league.name.lower() == 'classic':
+                    logger.info(f"  → Classic league - generating regular season templates")
+                    # Generate regular season matches for Classic during mixed week
+                    # Use the same logic as REGULAR weeks
+                    if regular_week_index < len(weekly_pairings):
+                        week_matches = weekly_pairings[regular_week_index]
+                        regular_week_index += 1
+                        
+                        # Regular week scheduling (no practice for mixed weeks)
+                        time_slots = self._generate_time_slots()
+                        field_assignments = self._assign_matches_to_fields(week_matches, time_slots)
+                        
+                        for match_info in field_assignments:
+                            home_team_id, away_team_id, match_time, field_name, match_order = match_info
+                            
+                            template = ScheduleTemplate(
+                                league_id=self.league_id,
+                                week_number=week_order,
+                                home_team_id=home_team_id,
+                                away_team_id=away_team_id,
+                                scheduled_date=week_date,
+                                scheduled_time=match_time,
+                                field_name=field_name,
+                                match_order=match_order,
+                                week_type='REGULAR',
+                                is_special_week=False,
+                                is_practice_game=False
+                            )
+                            templates.append(template)
+                else:
+                    logger.warning(f"  → Unknown league type for MIXED week: {self.league.name}")
+                
             elif week_type in ['FUN', 'TST', 'BYE', 'BONUS']:
                 logger.info(f"  → Generating special week templates for {week_type} week {week_order}")
                 # Generate special week matches
@@ -746,6 +788,10 @@ class AutoScheduleGenerator:
         
         logger.info(f"Assigned {len(assignments)} matches to {time_index} time slots")
         
+        # Apply time slot balancing for Premier league to ensure teams don't always play at the same times
+        if self.league.name == 'Premier':
+            assignments = self._balance_premier_time_slots(assignments)
+        
         return assignments
     
     def _get_balanced_field(self, home_team_id: int, away_team_id: int) -> str:
@@ -804,6 +850,116 @@ class AutoScheduleGenerator:
             # Randomize order within each time slot to balance early/late play
             random.shuffle(slot_assignments)
             balanced_assignments.extend(slot_assignments)
+        
+        return balanced_assignments
+    
+    def _balance_premier_time_slots(self, assignments: List[Tuple[int, int, time, str, int]]) -> List[Tuple[int, int, time, str, int]]:
+        """
+        Balance Premier league time slots to ensure teams get distributed between
+        morning (early) and mid-morning (later) time slots across the season.
+        
+        This prevents teams from always playing at the same time (e.g., always 8:20am).
+        Teams should get a mix of morning and mid-morning games.
+        
+        Args:
+            assignments: Current match assignments (home_team_id, away_team_id, time, field, match_order)
+            
+        Returns:
+            Balanced assignments with better time slot distribution
+        """
+        if not assignments:
+            return assignments
+            
+        # Group assignments by time slot
+        time_slot_groups = defaultdict(list)
+        for assignment in assignments:
+            time_slot_groups[assignment[2]].append(assignment)
+        
+        # Get sorted time slots (earliest to latest)
+        sorted_times = sorted(time_slot_groups.keys())
+        
+        if len(sorted_times) < 2:
+            # Not enough time slots to balance, return as-is
+            return assignments
+            
+        # Split time slots into morning (early half) and mid-morning (later half)
+        mid_point = len(sorted_times) // 2
+        morning_slots = sorted_times[:mid_point]
+        mid_morning_slots = sorted_times[mid_point:]
+        
+        logger.info(f"Balancing Premier time slots:")
+        logger.info(f"  Morning slots: {[str(t) for t in morning_slots]}")
+        logger.info(f"  Mid-morning slots: {[str(t) for t in mid_morning_slots]}")
+        
+        # Collect all teams that need balancing
+        all_teams = set()
+        for assignment in assignments:
+            all_teams.add(assignment[0])  # home team
+            all_teams.add(assignment[1])  # away team
+        
+        # Track which teams need mid-morning games (those that have been playing too many morning games)
+        teams_needing_later_slots = set()
+        for team_id in all_teams:
+            morning_count = sum(1 for time_slot in self.team_time_slots[team_id] if time_slot in morning_slots)
+            mid_morning_count = sum(1 for time_slot in self.team_time_slots[team_id] if time_slot in mid_morning_slots)
+            
+            # If team has more morning games than mid-morning, prioritize them for later slots
+            if morning_count > mid_morning_count:
+                teams_needing_later_slots.add(team_id)
+        
+        balanced_assignments = []
+        
+        # Process each time slot and try to balance
+        for time_slot in sorted_times:
+            slot_assignments = time_slot_groups[time_slot].copy()
+            is_morning_slot = time_slot in morning_slots
+            
+            # If this is a morning slot and we have teams that need later slots,
+            # try to swap them with teams from mid-morning slots
+            if is_morning_slot and teams_needing_later_slots and mid_morning_slots:
+                # Find matches in this slot that involve teams needing later slots
+                matches_to_swap = []
+                matches_to_keep = []
+                
+                for assignment in slot_assignments:
+                    home_team, away_team = assignment[0], assignment[1]
+                    if home_team in teams_needing_later_slots or away_team in teams_needing_later_slots:
+                        matches_to_swap.append(assignment)
+                    else:
+                        matches_to_keep.append(assignment)
+                
+                # Try to swap with a mid-morning slot
+                if matches_to_swap and len(mid_morning_slots) > 0:
+                    # Pick a mid-morning slot to swap with
+                    target_mid_morning_slot = mid_morning_slots[0]
+                    target_slot_assignments = time_slot_groups[target_mid_morning_slot]
+                    
+                    # Find a match in the mid-morning slot that can be swapped
+                    for i, target_assignment in enumerate(target_slot_assignments):
+                        target_home, target_away = target_assignment[0], target_assignment[1]
+                        
+                        # Only swap if the target teams don't specifically need later slots
+                        if target_home not in teams_needing_later_slots and target_away not in teams_needing_later_slots:
+                            # Perform the swap
+                            match_to_swap = matches_to_swap[0]
+                            
+                            # Update the assignments with swapped times
+                            swapped_morning = (match_to_swap[0], match_to_swap[1], target_mid_morning_slot, match_to_swap[3], match_to_swap[4])
+                            swapped_mid_morning = (target_assignment[0], target_assignment[1], time_slot, target_assignment[3], target_assignment[4])
+                            
+                            # Update the groups
+                            slot_assignments = matches_to_keep + [swapped_mid_morning] + matches_to_swap[1:]
+                            time_slot_groups[target_mid_morning_slot][i] = swapped_morning
+                            
+                            logger.info(f"Swapped teams {match_to_swap[0]},{match_to_swap[1]} from {time_slot} to {target_mid_morning_slot}")
+                            break
+            
+            balanced_assignments.extend(slot_assignments)
+        
+        # Update team time slot tracking
+        for assignment in balanced_assignments:
+            self.team_time_slots[assignment[0]].append(assignment[2])  # home team
+            self.team_time_slots[assignment[1]].append(assignment[2])  # away team
         
         return balanced_assignments
     

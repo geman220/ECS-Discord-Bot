@@ -209,12 +209,36 @@ def handle_draft_player_enhanced(data):
                 ).first()
                 
                 if existing_assignment:
-                    print(f"🚫 Player already assigned")
-                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to a team'})
+                    print(f"🚫 Player already assigned to a team in {league.name}")
+                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to a team in {league.name}'})
                     return
                 
-                # Execute the draft
-                team.players.append(player)
+                # Execute the draft (check if already exists to avoid duplicates)
+                # Check both directions: player.teams and team.players for safety
+                if player not in team.players:
+                    team.players.append(player)
+                    print(f"🎯 Added {player.name} to {team.name}")
+                else:
+                    print(f"🎯 {player.name} already on {team.name} - skipping relationship creation")
+                
+                # Create PlayerTeamSeason record for current season (check for duplicates)
+                from app.models import PlayerTeamSeason
+                existing_pts = session.query(PlayerTeamSeason).filter(
+                    PlayerTeamSeason.player_id == player_id,
+                    PlayerTeamSeason.team_id == team_id,
+                    PlayerTeamSeason.season_id == league.season_id
+                ).first()
+                
+                if not existing_pts:
+                    player_team_season = PlayerTeamSeason(
+                        player_id=player_id,
+                        team_id=team_id,
+                        season_id=league.season_id
+                    )
+                    session.add(player_team_season)
+                    print(f"📝 Created new PlayerTeamSeason record for {player.name} to {team.name}")
+                else:
+                    print(f"📝 PlayerTeamSeason record already exists for {player.name} to {team.name}")
                 
                 # Record the draft pick in history
                 try:
@@ -238,8 +262,14 @@ def handle_draft_player_enhanced(data):
                 # Mark for Discord update
                 mark_player_for_discord_update(session, player_id)
                 
-                # Commit the transaction
-                session.commit()
+                # Commit the transaction with proper error handling
+                try:
+                    session.commit()
+                except Exception as commit_error:
+                    session.rollback()
+                    logger.error(f"💥 Draft commit failed: {str(commit_error)}")
+                    emit('draft_error', {'message': f'Failed to save draft: {str(commit_error)}'})
+                    return
                 
                 # Success response with full player data for creating the team player card
                 response_data = {
@@ -1058,6 +1088,19 @@ def handle_remove_player_enhanced(data):
                 
                 # Remove player from team
                 team.players.remove(player)
+                
+                # Remove PlayerTeamSeason records for current season
+                from app.models import PlayerTeamSeason
+                season_records = session.query(PlayerTeamSeason).filter(
+                    PlayerTeamSeason.player_id == player_id,
+                    PlayerTeamSeason.team_id == team_id,
+                    PlayerTeamSeason.season_id == league.season_id
+                ).all()
+                
+                for record in season_records:
+                    session.delete(record)
+                    print(f"🗑️ Removed PlayerTeamSeason record: {record.id}")
+                    logger.info(f"🗑️ Removed PlayerTeamSeason record: {record.id}")
             
                 # Remove from draft history and adjust subsequent picks
                 try:
@@ -1074,9 +1117,6 @@ def handle_remove_player_enhanced(data):
                     print(f"⚠️ Failed to remove draft history: {str(e)}")
                     logger.error(f"Failed to remove draft history: {str(e)}")
                     # Don't fail the entire operation if draft history removal fails
-                
-                # Mark for Discord update
-                mark_player_for_discord_update(session, player_id)
                 
                 # Get the exact same enhanced player data that's used during initial page load
                 from app.draft_enhanced import DraftService
@@ -1144,6 +1184,10 @@ def handle_remove_player_enhanced(data):
                 
                 # Commit the transaction
                 session.commit()
+                
+                # Queue Discord role update task AFTER commit to ensure team removal is reflected
+                from app.tasks.tasks_discord import assign_roles_to_player_task
+                assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
                 
                 # Success response with full enhanced player data
                 response_data = {

@@ -66,6 +66,11 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
 
     for _ in range(pages_to_fetch):
         try:
+            # Safety check - prevent infinite loops
+            if current_page > 50:  # Reasonable limit 
+                logger.warning(f"Reached page limit (50) to prevent infinite loops. Stopping at page {current_page}")
+                break
+                
             params = {
                 'status': 'completed',
                 'page': current_page,
@@ -73,12 +78,20 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
             }
 
             logger.debug(f"Making request to WooCommerce API: {wcapi.url}/orders with params: {params}")
-            response = wcapi.get("orders", params=params)
+            
+            # Add timeout to prevent hanging
+            import requests
+            response = wcapi.get("orders", params=params, timeout=30)
             response.raise_for_status()
 
             fetched_orders = response.json()
             if not fetched_orders:
                 logger.info(f"No more orders found at page {current_page}. Stopping.")
+                break
+                
+            # Safety check for empty or malformed responses
+            if not isinstance(fetched_orders, list):
+                logger.error(f"Invalid response format from WooCommerce API at page {current_page}")
                 break
 
             for order in fetched_orders:

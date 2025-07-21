@@ -14,7 +14,7 @@ This module contains models related to matches and scheduling:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, time
 from sqlalchemy import event
 
 from app.core import db
@@ -210,18 +210,68 @@ class AutoScheduleConfig(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     league_id = db.Column(db.Integer, db.ForeignKey('league.id'), nullable=False)
-    start_time = db.Column(db.Time, nullable=False)  # e.g., 8:00 AM
+    
+    # Legacy single start time (for backward compatibility)
+    start_time = db.Column(db.Time, nullable=True)  # e.g., 8:00 AM
+    
+    # Enhanced time configuration
+    premier_start_time = db.Column(db.Time, default=time(8, 20), nullable=False)  # Premier division start time
+    classic_start_time = db.Column(db.Time, default=time(13, 10), nullable=False)  # Classic division start time
+    enable_time_rotation = db.Column(db.Boolean, default=True, nullable=False)  # Enable time slot balancing
+    break_duration_minutes = db.Column(db.Integer, default=10, nullable=False)  # Break between back-to-back matches
+    
+    # Match and season configuration
     match_duration_minutes = db.Column(db.Integer, default=70, nullable=False)
     weeks_count = db.Column(db.Integer, default=7, nullable=False)
+    
+    # Field configuration (enhanced)
     fields = db.Column(db.String(255), default='North,South', nullable=False)  # Comma-separated field names
+    field_config = db.Column(db.JSON, nullable=True)  # JSON: [{"name": "North", "capacity": 20}, ...]
+    
+    # Practice session configuration
+    enable_practice_weeks = db.Column(db.Boolean, default=False, nullable=False)
+    practice_weeks = db.Column(db.String(50), nullable=True)  # Comma-separated week numbers (e.g., "1,3")
+    
+    # Metadata
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     league = db.relationship('League', backref=db.backref('auto_schedule_configs', lazy='dynamic'))
     creator = db.relationship('User', backref=db.backref('created_schedule_configs', lazy='dynamic'))
     
+    def get_start_time_for_division(self, division_name):
+        """Get the appropriate start time for a specific division."""
+        if division_name == 'Premier':
+            return self.premier_start_time
+        elif division_name == 'Classic':
+            return self.classic_start_time
+        else:
+            # Fallback to legacy start_time or Premier time
+            return self.start_time or self.premier_start_time
+    
+    def get_field_list(self):
+        """Get list of field names."""
+        if self.field_config:
+            return [field['name'] for field in self.field_config]
+        else:
+            return [name.strip() for name in self.fields.split(',') if name.strip()]
+    
+    def get_field_capacity(self, field_name):
+        """Get capacity for a specific field."""
+        if self.field_config:
+            for field in self.field_config:
+                if field['name'] == field_name:
+                    return field.get('capacity', 20)
+        return 20  # Default capacity
+    
+    def get_practice_weeks_list(self):
+        """Get list of practice week numbers."""
+        if self.practice_weeks:
+            return [int(week.strip()) for week in self.practice_weeks.split(',') if week.strip().isdigit()]
+        return []
+    
     def __repr__(self):
-        return f'<AutoScheduleConfig {self.league_id} starts at {self.start_time}>'
+        return f'<AutoScheduleConfig {self.league_id} Premier:{self.premier_start_time} Classic:{self.classic_start_time}>'
 
 
 class ScheduleTemplate(db.Model):

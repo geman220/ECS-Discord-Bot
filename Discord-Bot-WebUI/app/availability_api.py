@@ -619,15 +619,19 @@ def get_match_and_team_id_from_message():
                 'error': 'Missing required parameters'
             }), 400
 
+        # Use a lower priority queue to avoid blocking other critical tasks
         task = fetch_match_and_team_id_task.apply_async(
             kwargs={
                 'message_id': message_id,
                 'channel_id': channel_id
-            }
+            },
+            queue='discord',  # Use discord queue which should have proper worker allocation
+            priority=5  # Lower priority to avoid blocking critical tasks
         )
 
         try:
-            result = task.get(timeout=10)
+            # Increase timeout to 30 seconds to handle slow database queries
+            result = task.get(timeout=30)
             logger.debug(f"Task result received: {result}")
 
             if not isinstance(result, dict):

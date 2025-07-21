@@ -23,7 +23,7 @@ from flask import (
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from flask_login import login_required
 from flask_wtf.csrf import validate_csrf, CSRFError
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from sqlalchemy.orm import selectinload, joinedload
 from PIL import Image
 from io import BytesIO
@@ -215,6 +215,7 @@ def team_details(team_id):
     report_form = ReportMatchForm()
 
     # Fetch matches for this team within the same league.
+    # Include practice matches for all teams in the same league
     all_matches = (
         session.query(Match)
         .options(
@@ -222,8 +223,18 @@ def team_details(team_id):
             selectinload(Match.away_team).joinedload(Team.players)
         )
         .filter(
-            ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
-            ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
+            or_(
+                # Regular matches where this team is playing
+                and_(
+                    ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)),
+                    ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
+                ),
+                # Practice sessions for all teams in the same league
+                and_(
+                    Match.week_type == 'PRACTICE',
+                    ((Match.home_team.has(league_id=league.id)) | (Match.away_team.has(league_id=league.id)))
+                )
+            )
         )
         .order_by(Match.date.asc())
         .all()

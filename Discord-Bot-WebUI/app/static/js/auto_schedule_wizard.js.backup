@@ -201,9 +201,9 @@ function updateStructureSections() {
  */
 function updateTotalWeeks(divisionType) {
     // Get shared special weeks
-    const sharedFunEl = document.getElementById('includeFunWeek');
-    const sharedTstEl = document.getElementById('includeTstWeek');
-    const sharedByeEl = document.getElementById('includeByeWeek');
+    const sharedFunEl = document.getElementById('sharedHasFunWeek');
+    const sharedTstEl = document.getElementById('sharedHasTstWeek');
+    const sharedByeEl = document.getElementById('sharedHasByeWeek');
     const funWeeks = (sharedFunEl && sharedFunEl.checked) ? 1 : 0;
     const tstWeeks = (sharedTstEl && sharedTstEl.checked) ? 1 : 0;
     const byeWeeks = (sharedByeEl && sharedByeEl.checked) ? 1 : 0;
@@ -295,9 +295,9 @@ function updateCalendarSummary() {
         const classicRegular = document.getElementById('classicRegularWeeks')?.value || 8;
         const classicPlayoff = document.getElementById('classicPlayoffWeeks')?.value || 1;
         
-        const hasFun = document.getElementById('includeFunWeek')?.checked || false;
-        const hasTst = document.getElementById('includeTstWeek')?.checked || false;
-        const hasBye = document.getElementById('includeByeWeek')?.checked || false;
+        const hasFun = document.getElementById('sharedHasFunWeek')?.checked || false;
+        const hasTst = document.getElementById('sharedHasTstWeek')?.checked || false;
+        const hasBye = document.getElementById('sharedHasByeWeek')?.checked || false;
         const hasBonus = document.getElementById('premierHasBonusWeek')?.checked || false;
         
         let summary = `<strong>Premier:</strong> ${premierRegular} regular + ${premierPlayoff} playoff`;
@@ -333,181 +333,12 @@ function updateCalendarSummary() {
 /**
  * Generate calendar preview
  */
-/**
- * Update calendar preview display
- */
-function updateCalendarPreview() {
-    // Try different preview elements based on league type
-    const leagueType = document.getElementById('leagueType')?.value;
-    let preview;
-    
-    // Try multiple possible element IDs
-    const possibleIds = ['unifiedCalendarPreview', 'calendarPreview', 'pubLeagueCalendar', 'ecsFcCalendarPreview'];
-    
-    for (const id of possibleIds) {
-        preview = document.getElementById(id);
-        if (preview) {
-            console.log(`Found calendar preview element: ${id}`);
-            break;
-        }
-    }
-    
-    if (!preview) {
-        console.log(`No calendar preview element found. Tried: ${possibleIds.join(', ')}`);
-        // Try to find any element with "calendar" in the class or id
-        const allElements = document.querySelectorAll('[id*="calendar"], [class*="calendar"]');
-        console.log('Available calendar elements:', Array.from(allElements).map(el => `${el.tagName}#${el.id}.${el.className}`));
-        return;
-    }
-    
-    if (!calendarState.weeks || calendarState.weeks.length === 0) {
-        console.log('No weeks in calendarState');
-        return;
-    }
-    
-    console.log('Updating calendar preview with', calendarState.weeks.length, 'weeks');
-    console.log('Week types:', calendarState.weeks.map(w => `W${w.weekNumber}:${w.type}(${w.division})`).join(', '));
-    
-    // Group weeks by week number to show unified calendar
-    const weeksByNumber = {};
-    calendarState.weeks.forEach(week => {
-        if (!weeksByNumber[week.weekNumber]) {
-            weeksByNumber[week.weekNumber] = {
-                weekNumber: week.weekNumber,
-                date: week.date,
-                type: week.type,
-                divisions: []
-            };
-        }
-        weeksByNumber[week.weekNumber].divisions.push(week.division);
-    });
-    
-    // Convert to array and handle division-specific weeks
-    const allWeeks = Object.values(weeksByNumber);
-    const unifiedWeeks = [];
-    
-    allWeeks.forEach(week => {
-        if (week.divisions.length === 2) {
-            // Check if it's the same type for both divisions
-            const weekDetails = calendarState.weeks.filter(w => w.weekNumber === week.weekNumber);
-            const premierWeek = weekDetails.find(w => w.division === 'premier');
-            const classicWeek = weekDetails.find(w => w.division === 'classic');
-            
-            if (premierWeek.type === classicWeek.type) {
-                // Same type for both divisions
-                unifiedWeeks.push({
-                    ...week,
-                    divisionsText: 'Premier & Classic'
-                });
-            } else {
-                // Different types - show as mixed week
-                const premierType = premierWeek.type === 'PLAYOFF' ? 'Playoffs' : premierWeek.type;
-                const classicType = classicWeek.type === 'PLAYOFF' ? 'Playoffs' : classicWeek.type;
-                unifiedWeeks.push({
-                    ...week,
-                    type: 'MIXED',
-                    mixedTypes: { premier: premierType, classic: classicType },
-                    divisionsText: `Premier: ${premierType} | Classic: ${classicType}`
-                });
-            }
-        } else {
-            // Division-specific week
-            const division = week.divisions[0];
-            const divisionText = division === 'premier' ? 'Premier only' : 'Classic only';
-            unifiedWeeks.push({
-                ...week,
-                divisionsText: divisionText,
-                divisionSpecific: division
-            });
-        }
-    });
-    
-    const sortedWeeks = unifiedWeeks.sort((a, b) => a.weekNumber - b.weekNumber);
-    
-    let html = `
-        <div class="mb-3 p-3 bg-light rounded">
-            <h6 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Season Calendar Preview</h6>
-            <small class="text-muted">${sortedWeeks.length} weeks total</small><br>
-            <small class="text-info"><i class="fas fa-hand-pointer me-1"></i>Drag any week to swap positions and customize your schedule</small>
-        </div>
-        <div class="calendar-grid">
-    `;
-    
-    sortedWeeks.forEach((week, index) => {
-        let badgeClass = 'primary';
-        let iconClass = 'fas fa-calendar';
-        
-        if (week.type === 'TST') {
-            badgeClass = 'info';
-            iconClass = 'fas fa-trophy';
-        } else if (week.type === 'FUN') {
-            badgeClass = 'warning';
-            iconClass = 'fas fa-star';
-        } else if (week.type === 'BYE') {
-            badgeClass = 'secondary';
-            iconClass = 'fas fa-pause';
-        } else if (week.type === 'PLAYOFF') {
-            badgeClass = 'danger';
-            iconClass = 'fas fa-medal';
-        } else if (week.type === 'MIXED') {
-            badgeClass = 'dark';
-            iconClass = 'fas fa-calendar-week';
-        }
-        
-        html += `
-            <div class="week-card draggable-week" 
-                 data-week-number="${week.weekNumber}" 
-                 data-week-type="${week.type}"
-                 draggable="true">
-                <div class="week-header bg-${badgeClass}">
-                    <span class="week-number">Week ${week.weekNumber}</span>
-                    <i class="fas fa-grip-vertical drag-handle"></i>
-                </div>
-                <div class="week-body">
-                    <div class="week-date">${week.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                    <div class="week-type">
-                        <i class="${iconClass} me-1"></i>
-                        ${week.type === 'PLAYOFF' ? 'Playoffs' : 
-                          week.type === 'MIXED' ? 'Mixed Week' : week.type}
-                    </div>
-                    <div class="divisions">${week.divisionsText}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    preview.innerHTML = html;
-    
-    // Add custom CSS for the calendar
-    addCalendarCSS();
-    
-    // Add drag and drop functionality for special weeks
-    initializeWeekCardDragAndDrop();
-}
-
 function generateCalendarPreview(forceRegenerate = false) {
-    console.log('generateCalendarPreview called');
     const leagueType = document.getElementById('leagueType').value;
     const startDateStr = document.getElementById('seasonStartDate').value;
     
-    console.log('League type:', leagueType, 'Start date:', startDateStr);
-    
     if (!startDateStr) {
-        console.log('No start date provided');
         return;
-    }
-    
-    // Show/hide appropriate calendar containers
-    const pubLeagueCalendar = document.getElementById('pubLeagueCalendar');
-    const ecsFcCalendar = document.getElementById('ecsFcCalendar');
-    
-    if (leagueType === 'Pub League') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.remove('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.add('d-none');
-    } else if (leagueType === 'ECS FC') {
-        if (pubLeagueCalendar) pubLeagueCalendar.classList.add('d-none');
-        if (ecsFcCalendar) ecsFcCalendar.classList.remove('d-none');
     }
     
     // Parse date string properly to avoid timezone issues
@@ -519,16 +350,10 @@ function generateCalendarPreview(forceRegenerate = false) {
     calendarState.startDate = startDate;
     
     if (leagueType === 'Pub League') {
-        console.log('Generating Pub League calendar');
         generatePubLeagueCalendar(startDate);
     } else if (leagueType === 'ECS FC') {
-        console.log('Generating ECS FC calendar');
         generateEcsFcCalendar(startDate);
     }
-    
-    // Update the calendar preview after generation
-    console.log('Calling updateCalendarPreview');
-    updateCalendarPreview();
 }
 
 /**
@@ -543,11 +368,8 @@ function generatePubLeagueCalendar(startDate) {
     const combinedCalendar = generateCombinedPubLeagueCalendar(startDate);
     
     // Split the calendar HTML for display
-    const premierPreview = document.getElementById('premierCalendarPreview');
-    const classicPreview = document.getElementById('classicCalendarPreview');
-    
-    if (premierPreview) premierPreview.innerHTML = combinedCalendar.premierHTML;
-    if (classicPreview) classicPreview.innerHTML = combinedCalendar.classicHTML;
+    document.getElementById('premierCalendarPreview').innerHTML = combinedCalendar.premierHTML;
+    document.getElementById('classicCalendarPreview').innerHTML = combinedCalendar.classicHTML;
     
     // Initialize drag and drop functionality
     initializeCalendarDragAndDrop();
@@ -644,89 +466,78 @@ function createWeekHTML(weekNumber, date, type, isPractice = false, isShared = f
  * Generate combined Pub League calendar (simplified)
  */
 function generateCombinedPubLeagueCalendar(startDate) {
-    // Get total weeks from dropdown to respect user selection
-    const totalWeeks = parseInt(document.getElementById('totalSeasonWeeks')?.value) || 11;
-    const specialWeeksCount = getEnabledSpecialWeeksCount();
-    
-    // Calculate regular weeks based on total season length (respecting dropdown)
-    const premierRegular = totalWeeks - 2 - specialWeeksCount; // Premier: total - 2 playoffs - special weeks
-    const classicRegular = totalWeeks - 1 - specialWeeksCount;  // Classic: total - 1 playoff - special weeks
-    
     const config = {
-        premier: { regular: premierRegular, playoff: 2, bonus: document.getElementById('premierHasBonusWeek')?.checked },
-        classic: { regular: classicRegular, playoff: 1, bonus: document.getElementById('classicHasBonusWeek')?.checked },
-        shared: { fun: document.getElementById('includeFunWeek')?.checked, tst: document.getElementById('includeTstWeek')?.checked, bye: document.getElementById('includeByeWeek')?.checked },
-        totalWeeks: totalWeeks
+        premier: { regular: parseInt(document.getElementById('premierRegularWeeks')?.value) || 7, playoff: parseInt(document.getElementById('premierPlayoffWeeks')?.value) || 2, bonus: document.getElementById('premierHasBonusWeek')?.checked },
+        classic: { regular: parseInt(document.getElementById('classicRegularWeeks')?.value) || 8, playoff: parseInt(document.getElementById('classicPlayoffWeeks')?.value) || 1, bonus: document.getElementById('classicHasBonusWeek')?.checked },
+        shared: { fun: document.getElementById('sharedHasFunWeek')?.checked, tst: document.getElementById('sharedHasTstWeek')?.checked, bye: document.getElementById('sharedHasByeWeek')?.checked }
     };
-    
-    console.log('Calendar config:', JSON.stringify(config, null, 2));
     
     let currentDate = new Date(startDate), weekNumber = 1;
     const calendar = { premierHTML: '<div class="calendar-weeks">', classicHTML: '<div class="calendar-weeks">' };
     
-    // Generate exactly totalWeeks weeks, no more, no less
-    for (let i = 0; i < totalWeeks; i++) {
+    // Regular weeks
+    const maxRegular = Math.max(config.premier.regular, config.classic.regular);
+    for (let i = 0; i < maxRegular; i++) {
         const weekDate = new Date(currentDate);
-        let weekType = 'Regular';
-        let isPremierWeek = true;
-        let isClassicWeek = true;
         
-        // Determine week type based on position in schedule
-        if (i >= config.premier.regular && i < config.premier.regular + config.premier.playoff) {
-            // Premier playoff weeks
-            if (i >= config.classic.regular) {
-                // Both in playoffs
-                weekType = 'PLAYOFF';
-            } else {
-                // Mixed: Premier playoffs, Classic regular
-                weekType = 'MIXED';
+        ['premier', 'classic'].forEach(div => {
+            if (i < config[div].regular) {
+                const isPractice = div === 'classic' && (i === 0 || i === 2);
+                calendarState.weeks.push({ weekNumber, date: new Date(weekDate), type: 'Regular', division: div, isPractice });
+                calendar[`${div}HTML`] += createWeekHTML(weekNumber, weekDate, 'Regular', isPractice);
             }
-        } else if (i >= config.classic.regular && i < config.classic.regular + config.classic.playoff) {
-            // Classic playoff weeks (but Premier might be done)
-            weekType = 'PLAYOFF';
-            isPremierWeek = false; // Premier season is over
-        } else if (i >= Math.max(config.premier.regular + config.premier.playoff, config.classic.regular + config.classic.playoff)) {
-            // Special weeks (TST, FUN, BYE)
-            const specialIndex = i - Math.max(config.premier.regular + config.premier.playoff, config.classic.regular + config.classic.playoff);
-            const specialTypes = [];
-            if (config.shared.tst) specialTypes.push('TST');
-            if (config.shared.fun) specialTypes.push('FUN');
-            if (config.shared.bye) specialTypes.push('BYE');
-            
-            if (specialIndex < specialTypes.length) {
-                weekType = specialTypes[specialIndex];
-            }
-        }
-        
-        // Add weeks to calendar state - only add each week once per division that participates
-        if (isPremierWeek) {
-            // Premier NEVER has practice sessions
-            calendarState.weeks.push({ 
-                weekNumber, 
-                date: new Date(weekDate), 
-                type: weekType, 
-                division: 'premier', 
-                isPractice: false 
-            });
-            calendar.premierHTML += createWeekHTML(weekNumber, weekDate, weekType, false);
-        }
-        
-        if (isClassicWeek) {
-            // Classic has practice sessions on weeks 1 & 3 (only for Regular weeks)
-            const isPractice = weekType === 'Regular' && (i === 0 || i === 2);
-            calendarState.weeks.push({ 
-                weekNumber, 
-                date: new Date(weekDate), 
-                type: weekType, 
-                division: 'classic', 
-                isPractice 
-            });
-            calendar.classicHTML += createWeekHTML(weekNumber, weekDate, weekType, isPractice);
-        }
+        });
         
         currentDate.setDate(currentDate.getDate() + 7);
         weekNumber++;
     }
+    
+    // Shared special weeks
+    ['fun', 'tst', 'bye'].forEach(type => {
+        if (config.shared[type]) {
+            const weekDate = new Date(currentDate);
+            const upperType = type.toUpperCase();
+            
+            ['premier', 'classic'].forEach(div => {
+                calendarState.weeks.push({ weekNumber, date: new Date(weekDate), type: upperType, division: div });
+            });
+            
+            const weekHTML = createWeekHTML(weekNumber, weekDate, upperType, false, true);
+            calendar.premierHTML += weekHTML;
+            calendar.classicHTML += weekHTML;
+            
+            currentDate.setDate(currentDate.getDate() + 7);
+            weekNumber++;
+        }
+    });
+    
+    // Playoff weeks
+    const maxPlayoff = Math.max(config.premier.playoff, config.classic.playoff);
+    for (let i = 0; i < maxPlayoff; i++) {
+        const weekDate = new Date(currentDate);
+        
+        ['premier', 'classic'].forEach(div => {
+            if (i < config[div].playoff) {
+                calendarState.weeks.push({ weekNumber, date: new Date(weekDate), type: 'PLAYOFF', division: div });
+                const playoffText = div === 'premier' ? `Playoffs Round ${i + 1}` : 'Playoffs';
+                calendar[`${div}HTML`] += createWeekHTML(weekNumber, weekDate, playoffText);
+            }
+        });
+        
+        currentDate.setDate(currentDate.getDate() + 7);
+        weekNumber++;
+    }
+    
+    // Bonus weeks
+    ['premier', 'classic'].forEach(div => {
+        if (config[div].bonus) {
+            const weekDate = new Date(currentDate);
+            calendarState.weeks.push({ weekNumber, date: new Date(weekDate), type: 'BONUS', division: div });
+            calendar[`${div}HTML`] += createWeekHTML(weekNumber, weekDate, 'BONUS');
+            currentDate.setDate(currentDate.getDate() + 7);
+            weekNumber++;
+        }
+    });
     
     calendar.premierHTML += '</div>';
     calendar.classicHTML += '</div>';
@@ -1121,40 +932,30 @@ function updateTeamSections() {
  * Update team preview display
  */
 function updateTeamPreview(leagueType) {
-    let count, previewId, startingLetterOffset = 0;
+    let count, previewId;
     
     if (leagueType === 'premier') {
         count = parseInt(document.getElementById('premierTeamCount').value);
         previewId = 'premierTeamPreview';
-        startingLetterOffset = 0; // Premier starts at A
     } else if (leagueType === 'classic') {
         count = parseInt(document.getElementById('classicTeamCount').value);
         previewId = 'classicTeamPreview';
-        // Classic starts after Premier teams
-        const premierCount = parseInt(document.getElementById('premierTeamCount').value) || 0;
-        startingLetterOffset = premierCount;
     } else if (leagueType === 'ecsFc') {
         count = parseInt(document.getElementById('ecsFcTeamCount').value);
         previewId = 'ecsFcTeamPreview';
-        startingLetterOffset = 0; // ECS FC is standalone, starts at A
     }
     
     const previewDiv = document.getElementById(previewId);
     const teamLabels = [];
     
-    // Generate team names with proper letter sequence
+    // Generate team names (Team A, Team B, etc.)
     for (let i = 0; i < count; i++) {
-        const letter = String.fromCharCode(65 + startingLetterOffset + i);
+        const letter = String.fromCharCode(65 + i); // A, B, C, etc.
         teamLabels.push(`Team ${letter}`);
     }
     
-    // Show starting letter range for clarity
-    const startLetter = String.fromCharCode(65 + startingLetterOffset);
-    const endLetter = String.fromCharCode(65 + startingLetterOffset + count - 1);
-    const rangeText = count > 1 ? `Teams ${startLetter}-${endLetter}` : `Team ${startLetter}`;
-    
     previewDiv.innerHTML = `
-        <div class="small text-muted mb-2">${rangeText} to be created:</div>
+        <div class="small text-muted mb-2">Teams to be created:</div>
         <div class="d-flex flex-wrap gap-1">
             ${teamLabels.map(name => `<span class="badge bg-light text-dark border">${name}</span>`).join('')}
         </div>
@@ -1162,275 +963,144 @@ function updateTeamPreview(leagueType) {
 }
 
 /**
- * Add CSS for spinner animation and calendar styling
+ * Initialize calendar from inputs
  */
-function addSpinnerCSS() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .spin {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+function initializeCalendar() {
+    const startDateInput = document.getElementById('seasonStartDate');
+    const startDate = startDateInput.value;
+    
+    if (!startDate) return;
+    
+    // Parse date properly to avoid timezone issues
+    const [year, month, day] = startDate.split('-').map(num => parseInt(num));
+    const selectedDate = new Date(year, month - 1, day);
+    const warningDiv = document.getElementById('startDateWarning');
+    
+    // Accept any day - no forcing to Sunday
+    const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+    warningDiv.innerHTML = `
+        <small class="text-success">
+            <i class="ti ti-check me-1"></i>
+            Season will start on ${dayName}, ${selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </small>
     `;
-    document.head.appendChild(style);
+    calendarState.startDate = selectedDate;
+    
+    // Get settings
+    calendarState.regularWeeks = parseInt(document.getElementById('regularWeeks')?.value) || 7;
+    calendarState.includeTST = document.getElementById('includeTST')?.checked || false;
+    calendarState.includeFUN = document.getElementById('includeFUN')?.checked || false;
+    calendarState.byeWeeks = parseInt(document.getElementById('byeWeekCount')?.value) || 0;
+    
+    // Build week array
+    rebuildWeekArray();
+    
+    // Update UI
+    updateCalendarPreview();
+    updateTotalWeeks();
 }
 
 /**
- * Add custom CSS for calendar styling
+ * Rebuild the week array based on current settings
  */
-function addCalendarCSS() {
-    if (document.getElementById('calendar-custom-css')) return; // Don't add twice
+function rebuildWeekArray() {
+    calendarState.weeks = [];
+    let currentDate = new Date(calendarState.startDate);
+    let weekNum = 1;
     
-    const style = document.createElement('style');
-    style.id = 'calendar-custom-css';
-    style.textContent = `
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-            padding: 8px;
-        }
-        
-        .week-card {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            overflow: hidden;
-            transition: all 0.2s ease;
-            background: white;
-        }
-        
-        .draggable-week {
-            cursor: grab;
-            position: relative;
-        }
-        
-        .draggable-week:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-color: #007bff;
-        }
-        
-        .drag-handle {
-            font-size: 12px;
-            opacity: 0.6;
-            transition: opacity 0.2s ease;
-        }
-        
-        .draggable-week:hover .drag-handle {
-            opacity: 1;
-        }
-        
-        .week-card:not(.dragging):hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .week-card.dragging {
-            opacity: 0.7;
-            transform: rotate(5deg);
-            cursor: grabbing;
-        }
-        
-        .week-header {
-            padding: 8px 12px;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .week-header .drag-handle {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-        
-        .week-body {
-            padding: 12px;
-            text-align: center;
-        }
-        
-        .week-date {
-            font-size: 13px;
-            color: #6c757d;
-            margin-bottom: 4px;
-        }
-        
-        .week-type {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 6px;
-        }
-        
-        .divisions {
-            font-size: 11px;
-            color: #6c757d;
-            background: #f8f9fa;
-            padding: 2px 6px;
-            border-radius: 12px;
-            display: inline-block;
-        }
-        
-        .drop-zone {
-            border: 2px dashed #007bff !important;
-            background: rgba(0, 123, 255, 0.1) !important;
-        }
-    `;
-    document.head.appendChild(style);
+    // Add regular weeks
+    for (let i = 0; i < calendarState.regularWeeks; i++) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'Regular',
+            isSpecial: false
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    // Add special weeks at the end (will be dragged to position)
+    if (calendarState.includeTST) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'TST',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    if (calendarState.includeFUN) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'FUN',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
+    
+    // Add BYE weeks
+    for (let i = 0; i < calendarState.byeWeeks; i++) {
+        calendarState.weeks.push({
+            weekNumber: weekNum++,
+            date: new Date(currentDate),
+            type: 'BYE',
+            isSpecial: true
+        });
+        currentDate.setDate(currentDate.getDate() + 7);
+    }
 }
 
 /**
- * Initialize simple drag and drop for special weeks only
+ * Update calendar preview display
  */
-function initializeWeekCardDragAndDrop() {
-    const draggableWeeks = document.querySelectorAll('.draggable-week');
+function updateCalendarPreview() {
+    const preview = document.getElementById('calendarPreview');
+    if (!preview) return;
     
-    draggableWeeks.forEach(week => {
-        week.addEventListener('dragstart', (e) => {
-            e.currentTarget.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.currentTarget.dataset.weekType);
-            e.dataTransfer.effectAllowed = 'move';
-        });
+    let html = '<div class="row" id="calendarWeeks">';
+    
+    calendarState.weeks.forEach((week, index) => {
+        let badgeClass = 'bg-primary';
+        if (week.type === 'TST') badgeClass = 'bg-info';
+        else if (week.type === 'FUN') badgeClass = 'bg-warning';
+        else if (week.type === 'BYE') badgeClass = 'bg-secondary';
         
-        week.addEventListener('dragend', (e) => {
-            e.currentTarget.classList.remove('dragging');
-        });
+        html += `
+            <div class="col-md-3 mb-2 week-item" data-index="${index}">
+                <div class="text-center">
+                    <div class="badge ${badgeClass} w-100 p-3 week-badge" draggable="true" data-week-type="${week.type}">
+                        <div class="week-number">Week ${week.weekNumber}</div>
+                        <div class="week-date">${week.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div class="week-type"><strong>${week.type}</strong></div>
+                    </div>
+                </div>
+            </div>
+        `;
     });
     
-    // Make all week cards drop zones
-    const allWeeks = document.querySelectorAll('.week-card');
-    allWeeks.forEach(week => {
-        week.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            week.classList.add('drop-zone');
-        });
-        
-        week.addEventListener('dragleave', (e) => {
-            week.classList.remove('drop-zone');
-        });
-        
-        week.addEventListener('drop', (e) => {
-            e.preventDefault();
-            week.classList.remove('drop-zone');
-            
-            const draggedType = e.dataTransfer.getData('text/plain');
-            const draggedElement = document.querySelector(`.dragging[data-week-type="${draggedType}"]`);
-            const dropTarget = e.currentTarget;
-            
-            if (draggedElement && dropTarget && draggedElement !== dropTarget) {
-                swapWeekPositions(draggedElement, dropTarget);
-            }
-        });
-    });
+    html += '</div>';
+    preview.innerHTML = html;
+    
+    // Add drag and drop functionality
+    addDragAndDropToWeeks();
 }
 
-function swapWeekPositions(draggedWeek, targetWeek) {
-    // Get the parent container
-    const container = draggedWeek.parentNode;
-    
-    // Create placeholder to mark dragged week's position
-    const placeholder = document.createElement('div');
-    container.insertBefore(placeholder, draggedWeek);
-    
-    // Move dragged week to target position
-    container.insertBefore(draggedWeek, targetWeek);
-    
-    // Move target week to dragged week's original position
-    container.insertBefore(targetWeek, placeholder);
-    
-    // Remove placeholder
-    container.removeChild(placeholder);
-    
-    // Update week numbers
-    updateWeekNumbers();
-}
+/**
+ * Add drag and drop functionality to weeks
+ */
 
-function updateWeekNumbers() {
-    const weekCards = document.querySelectorAll('.week-card');
-    
-    // Create a new calendar state based on the current DOM order
-    const newWeeks = [];
-    const startDate = calendarState.startDate;
-    
-    weekCards.forEach((card, index) => {
-        const newWeekNumber = index + 1;
-        const weekType = card.dataset.weekType;
-        
-        // Update the visual display
-        card.dataset.weekNumber = newWeekNumber;
-        const weekNumberSpan = card.querySelector('.week-number');
-        if (weekNumberSpan) {
-            weekNumberSpan.textContent = `Week ${newWeekNumber}`;
-        }
-        
-        // Update the week date display
-        const weekDateSpan = card.querySelector('.week-date');
-        
-        // Calculate the date for this week
-        const weekDate = new Date(startDate);
-        weekDate.setDate(startDate.getDate() + (index * 7));
-        
-        if (weekDateSpan) {
-            weekDateSpan.textContent = weekDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-            });
-        }
-        
-        // Find ALL corresponding weeks in calendarState that match this week type
-        // Use a more flexible matching approach that handles reordering
-        const matchingWeeks = calendarState.weeks.filter(w => w.type === weekType);
-        
-        if (matchingWeeks.length > 0) {
-            // During drag & drop, preserve existing weeks but update their positions
-            // Group by division to ensure we get one week per division
-            const weeksByDivision = {};
-            matchingWeeks.forEach(week => {
-                if (!weeksByDivision[week.division]) {
-                    weeksByDivision[week.division] = week;
-                }
-            });
-            
-            // Update each division's week with the new position
-            Object.values(weeksByDivision).forEach(week => {
-                // Recalculate practice session flag based on NEW position
-                // Classic has practice sessions on weeks 1 & 3 (only for Regular weeks)
-                const isPractice = week.division === 'classic' && 
-                                   week.type === 'Regular' && 
-                                   (newWeekNumber === 1 || newWeekNumber === 3);
-                
-                newWeeks.push({
-                    ...week, // Preserve all original properties except isPractice
-                    weekNumber: newWeekNumber,
-                    date: new Date(weekDate),
-                    isPractice: isPractice // Recalculate based on new position
-                });
-            });
-        }
-    });
-    
-    // Update the calendar state with the new order
-    calendarState.weeks = newWeeks.sort((a, b) => a.weekNumber - b.weekNumber);
-    
-    console.log('Weeks reordered via drag & drop - calendarState updated');
-    console.log('New week order:', calendarState.weeks.map(w => `W${w.weekNumber}:${w.type}(${w.division})`).join(', '));
-}
-
+/**
+ * Generate season summary
+ */
 /**
  * Helper to create division summary card
  */
 function createDivisionCard(name, data, color, icon) {
-    return `<div class="col-md-6"><div class="card border-${color}"><div class="card-header bg-${color} text-white"><h6 class="mb-0"><i class="fas fa-${icon} me-2"></i>${name}</h6></div><div class="card-body"><ul class="list-unstyled mb-0">${Object.entries(data).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')}</ul></div></div></div>`;
+    return `<div class="col-md-6"><div class="card border-${color}"><div class="card-header bg-${color} text-white"><h6 class="mb-0"><i class="ti ti-${icon} me-2"></i>${name}</h6></div><div class="card-body"><ul class="list-unstyled mb-0">${Object.entries(data).map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')}</ul></div></div></div>`;
 }
 
-/**
- * Generate season summary for final step
- */
 function generateSeasonSummary() {
     const config = {
         name: document.getElementById('seasonName').value,
@@ -1441,67 +1111,26 @@ function generateSeasonSummary() {
             'Premier Start': document.getElementById('premierStartTime')?.value || 'N/A',
             'Classic Start': document.getElementById('classicStartTime')?.value || 'N/A',
             'Match Duration': `${document.getElementById('matchDuration')?.value || 'N/A'} min`,
-            'Fields': getWizardFieldConfig().map(f => f.name).join(', ') || 'N/A'
+            'Fields': document.getElementById('fields')?.value || 'N/A'
         }
     };
     
-    let summary = `<div class="alert alert-info"><h5><i class="fas fa-info-circle me-2"></i>Season Creation Summary</h5><p class="mb-0">Review configuration before creating season.</p></div><div class="row mb-4">${createDivisionCard('Season Details', {'Name': config.name, 'Type': config.type, 'Start Date': config.startDate, 'Set as Current': config.current ? 'Yes' : 'No'}, 'secondary', 'calendar')}${createDivisionCard('Schedule Configuration', config.schedule, 'secondary', 'cog')}</div>`;
+    let summary = `<div class="alert alert-info"><h5><i class="ti ti-info-circle me-2"></i>Season Creation Summary</h5><p class="mb-0">Review configuration before creating season.</p></div><div class="row mb-4">${createDivisionCard('Season Details', {'Name': config.name, 'Type': config.type, 'Start Date': config.startDate, 'Set as Current': config.current ? 'Yes' : 'No'}, 'secondary', 'calendar')}${createDivisionCard('Schedule Configuration', config.schedule, 'secondary', 'settings')}</div>`;
     
     if (config.type === 'Pub League') {
-        // Calculate actual week counts from calendarState
-        // Get the configured values to use as reference
-        const configuredPremierRegular = parseInt(document.getElementById('premierRegularWeeks')?.value) || 7;
-        const configuredPremierPlayoffs = parseInt(document.getElementById('premierPlayoffWeeks')?.value) || 2;
-        const configuredClassicRegular = parseInt(document.getElementById('classicRegularWeeks')?.value) || 8;
-        const configuredClassicPlayoffs = parseInt(document.getElementById('classicPlayoffWeeks')?.value) || 1;
+        const premier = {regular: parseInt(document.getElementById('premierRegularWeeks')?.value) || 0, playoff: parseInt(document.getElementById('premierPlayoffWeeks')?.value) || 0, teams: parseInt(document.getElementById('premierTeamCount')?.value) || 0};
+        const classic = {regular: parseInt(document.getElementById('classicRegularWeeks')?.value) || 0, playoff: parseInt(document.getElementById('classicPlayoffWeeks')?.value) || 0, teams: parseInt(document.getElementById('classicTeamCount')?.value) || 0};
         
-        // Count weeks from calendarState, but use configured values as fallback
-        // MIXED weeks count as playoffs for Premier (since Premier playoffs while Classic plays regular)
-        const premierRegularWeeks = calendarState.weeks ? calendarState.weeks.filter(w => w.division === 'premier' && w.type === 'Regular').length : configuredPremierRegular;
-        const premierPlayoffWeeks = calendarState.weeks ? 
-            calendarState.weeks.filter(w => w.division === 'premier' && (w.type === 'PLAYOFF' || w.type === 'MIXED')).length : 
-            configuredPremierPlayoffs;
-        const classicRegularWeeks = calendarState.weeks ? 
-            calendarState.weeks.filter(w => w.division === 'classic' && (w.type === 'Regular' || w.type === 'MIXED')).length : 
-            configuredClassicRegular;
-        const classicPlayoffWeeks = calendarState.weeks ? calendarState.weeks.filter(w => w.division === 'classic' && w.type === 'PLAYOFF').length : configuredClassicPlayoffs;
-        
-        // If the counts don't match configured values, use the configured ones (since drag/drop might have visual artifacts)
-        const finalPremierRegular = premierRegularWeeks > 0 ? premierRegularWeeks : configuredPremierRegular;
-        const finalPremierPlayoffs = premierPlayoffWeeks > 0 ? premierPlayoffWeeks : configuredPremierPlayoffs;
-        const finalClassicRegular = classicRegularWeeks > 0 ? classicRegularWeeks : configuredClassicRegular;
-        const finalClassicPlayoffs = classicPlayoffWeeks > 0 ? classicPlayoffWeeks : configuredClassicPlayoffs;
-        
-        const premier = {
-            regular: finalPremierRegular, 
-            playoff: finalPremierPlayoffs, 
-            teams: parseInt(document.getElementById('premierTeamCount')?.value) || 0
-        };
-        const classic = {
-            regular: finalClassicRegular, 
-            playoff: finalClassicPlayoffs, 
-            teams: parseInt(document.getElementById('classicTeamCount')?.value) || 0
-        };
-        
-        // Generate team letter ranges
-        const premierRange = premier.teams > 1 ? `Teams A-${String.fromCharCode(64 + premier.teams)}` : 'Team A';
-        const classicStartLetter = String.fromCharCode(65 + premier.teams);
-        const classicEndLetter = String.fromCharCode(64 + premier.teams + classic.teams);
-        const classicRange = classic.teams > 1 ? `Teams ${classicStartLetter}-${classicEndLetter}` : `Team ${classicStartLetter}`;
-        
-        summary += `<div class="row mb-4">${createDivisionCard('Premier Division', {'Teams': `${premier.teams} (${premierRange})`, 'Regular': `${premier.regular} weeks`, 'Playoffs': `${premier.playoff} weeks`}, 'primary', 'trophy')}${createDivisionCard('Classic Division', {'Teams': `${classic.teams} (${classicRange})`, 'Regular': `${classic.regular} weeks`, 'Playoffs': `${classic.playoff} weeks`}, 'success', 'users')}</div>`;
+        summary += `<div class="row mb-4">${createDivisionCard('Premier Division', {'Teams': premier.teams, 'Regular': `${premier.regular} weeks`, 'Playoffs': `${premier.playoff} weeks`}, 'primary', 'trophy')}${createDivisionCard('Classic Division', {'Teams': classic.teams, 'Regular': `${classic.regular} weeks`, 'Playoffs': `${classic.playoff} weeks`}, 'success', 'users')}</div>`;
     } else {
         const ecsfc = {regular: parseInt(document.getElementById('ecsFcRegularWeeks')?.value) || 0, playoff: parseInt(document.getElementById('ecsFcPlayoffWeeks')?.value) || 0, teams: parseInt(document.getElementById('ecsFcTeamCount')?.value) || 0};
         summary += `<div class="row mb-4"><div class="col-md-8 offset-md-2">${createDivisionCard('ECS FC Division', {'Teams': ecsfc.teams, 'Regular': `${ecsfc.regular} weeks`, 'Playoffs': `${ecsfc.playoff} weeks`}, 'info', 'shield').replace('col-md-6', 'col-12')}</div></div>`;
     }
     
     if (calendarState?.weeks?.length) summary += generateCombinedSchedulePreview();
-    summary += `<div class="alert alert-success"><h6><i class="fas fa-check-circle me-2"></i>Ready to Create Season</h6><p class="mb-0">This will create your ${config.type} season. ${config.current ? 'Will be set as current active season.' : 'Created as draft season.'}</p></div>`;
+    summary += `<div class="alert alert-success"><h6><i class="ti ti-check-circle me-2"></i>Ready to Create Season</h6><p class="mb-0">This will create your ${config.type} season. ${config.current ? 'Will be set as current active season.' : 'Created as draft season.'}</p></div>`;
     
-    const summaryElement = document.getElementById('seasonSummary');
-    if (summaryElement) {
-        summaryElement.innerHTML = summary;
-    }
+    document.getElementById('seasonSummary').innerHTML = summary;
 }
 
 /**
@@ -1522,45 +1151,21 @@ function generateCombinedSchedulePreview() {
                 divisions: {}
             };
         }
-        
-        // Handle shared special weeks (TST, FUN, BYE) - they should appear for both divisions
-        if (['TST', 'FUN', 'BYE'].includes(week.type)) {
-            weeksByNumber[week.weekNumber].divisions['premier'] = {
-                type: week.type,
-                isPractice: week.isPractice || false
-            };
-            weeksByNumber[week.weekNumber].divisions['classic'] = {
-                type: week.type,
-                isPractice: week.isPractice || false
-            };
-        } else {
-            // Regular weeks and playoffs are division-specific
-            weeksByNumber[week.weekNumber].divisions[week.division] = {
-                type: week.type,
-                isPractice: week.isPractice || false
-            };
-        }
+        weeksByNumber[week.weekNumber].divisions[week.division] = {
+            type: week.type,
+            isPractice: week.isPractice
+        };
     });
     
-    // Convert to sorted array and ensure both divisions have entries for each week
+    // Convert to sorted array
     const combinedWeeks = Object.values(weeksByNumber).sort((a, b) => a.weekNumber - b.weekNumber);
-    
-    // Fill in missing division entries with defaults
-    combinedWeeks.forEach(week => {
-        if (!week.divisions.premier) {
-            week.divisions.premier = { type: 'Regular', isPractice: false };
-        }
-        if (!week.divisions.classic) {
-            week.divisions.classic = { type: 'Regular', isPractice: false };
-        }
-    });
     
     let preview = `
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-calendar-event me-2"></i>Final Schedule Preview</h6>
+                        <h6 class="mb-0"><i class="ti ti-calendar-event me-2"></i>Combined Schedule Preview</h6>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -1586,7 +1191,7 @@ function generateCombinedSchedulePreview() {
         const classic = week.divisions.classic || { type: 'Regular', isPractice: false };
         
         // Format division info
-        const formatDivisionInfo = (divisionData, division) => {
+        const formatDivisionInfo = (divisionData) => {
             let typeText = '';
             let badgeClass = 'bg-secondary';
             
@@ -1607,15 +1212,9 @@ function generateCombinedSchedulePreview() {
                     typeText = 'Playoffs';
                     badgeClass = 'bg-danger';
                     break;
-                case 'MIXED':
-                    // For MIXED weeks, show the actual activity for each division
-                    if (division === 'premier') {
-                        typeText = 'Playoffs';
-                        badgeClass = 'bg-danger';
-                    } else {
-                        typeText = 'Regular Season';
-                        badgeClass = 'bg-secondary';
-                    }
+                case 'BONUS':
+                    typeText = 'Bonus Week';
+                    badgeClass = 'bg-success';
                     break;
                 case 'BYE':
                     typeText = 'BYE Week';
@@ -1634,15 +1233,15 @@ function generateCombinedSchedulePreview() {
                              premier.isPractice || classic.isPractice;
         
         const statusIcon = isSpecialWeek ? 
-            '<i class="fas fa-star text-warning" title="Special Week"></i>' : 
-            '<i class="fas fa-calendar text-muted" title="Regular Week"></i>';
+            '<i class="ti ti-star text-warning" title="Special Week"></i>' : 
+            '<i class="ti ti-calendar text-muted" title="Regular Week"></i>';
         
         preview += `
             <tr ${isSpecialWeek ? 'class="table-warning"' : ''}>
                 <td><strong>${week.weekNumber}</strong></td>
                 <td>${formattedDate}</td>
-                <td>${formatDivisionInfo(premier, 'premier')}</td>
-                <td>${formatDivisionInfo(classic, 'classic')}</td>
+                <td>${formatDivisionInfo(premier)}</td>
+                <td>${formatDivisionInfo(classic)}</td>
                 <td class="text-center">${statusIcon}</td>
             </tr>`;
     });
@@ -1653,9 +1252,11 @@ function generateCombinedSchedulePreview() {
                         </div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
+                                <i class="ti ti-info-circle me-1"></i>
                                 This preview shows how both divisions will be scheduled together. 
-                                Special weeks are highlighted in yellow.
+                                Special weeks (Fun, TST, Playoffs) are highlighted in yellow.
+                                ${combinedWeeks.some(w => w.divisions.classic?.isPractice) ? 
+                                    ' Practice sessions are shown for Classic division where configured.' : ''}
                             </small>
                         </div>
                     </div>
@@ -1667,7 +1268,7 @@ function generateCombinedSchedulePreview() {
 }
 
 /**
- * Helper to get form data for season creation
+ * Helper to get form data
  */
 function getFormData() {
     const leagueType = document.getElementById('leagueType').value;
@@ -1680,96 +1281,172 @@ function getFormData() {
         league_type: leagueType,
         set_as_current: getChecked('setAsCurrent'),
         season_start_date: calendarState.startDate.toISOString().split('T')[0],
-        regular_weeks: parseInt(document.getElementById('premierRegularWeeks')?.value) || 7,
-        total_weeks: parseInt(document.getElementById('totalSeasonWeeks')?.value) || 11,
-        week_configs: getUniqueWeekConfigs(),
-        premier_start_time: getVal('premierStartTime') || '08:20',
-        classic_start_time: getVal('classicStartTime') || '13:10',
-        match_duration: parseInt(getVal('matchDuration')) || 60,
-        fields: getWizardFieldConfig().map(f => f.name).join(',') || 'North,South',
-        enable_time_rotation: getChecked('enableTimeRotation') || true,
-        break_duration: parseInt(getVal('breakDuration')) || 10,
-        enable_practice_weeks: getChecked('classicHasPractice') || false,
-        practice_weeks: getClassicPracticeWeeks() || "",
+        regular_weeks: calendarState.regularWeeks || 0,
+        total_weeks: calendarState.weeks.length,
+        week_configs: calendarState.weeks.map(w => ({date: w.date.toISOString().split('T')[0], type: w.type.toUpperCase(), week_number: w.weekNumber, division: w.division})),
+        premier_start_time: getVal('premierStartTime'),
+        classic_start_time: getVal('classicStartTime'),
+        match_duration: getVal('matchDuration'),
+        fields: getVal('fields'),
         ...(leagueType === 'Pub League' ? {
-            premier_teams: parseInt(getVal('premierTeamCount')) || 8,
-            classic_teams: parseInt(getVal('classicTeamCount')) || 4,
-            premier_regular_weeks: parseInt(getVal('premierRegularWeeks')) || 7,
-            premier_playoff_weeks: parseInt(getVal('premierPlayoffWeeks')) || 2,
-            classic_regular_weeks: parseInt(getVal('classicRegularWeeks')) || 8,
-            classic_playoff_weeks: parseInt(getVal('classicPlayoffWeeks')) || 1,
-            premier_has_fun_week: getChecked('includeFunWeek') || false,
-            premier_has_tst_week: getChecked('includeTstWeek') || false,
-            premier_has_bonus_week: getChecked('includeByeWeek') || false,
-            classic_has_practice_sessions: getChecked('classicHasPractice') || false,
-            classic_practice_weeks: getClassicPracticeWeeks() || "",
-            classic_practice_game_number: 1
+            premier_teams: parseInt(getVal('premierTeamCount')),
+            classic_teams: parseInt(getVal('classicTeamCount')),
+            has_fun_week: getChecked('sharedHasFunWeek'),
+            has_tst_week: getChecked('sharedHasTstWeek'),
+            premier_regular_weeks: parseInt(getVal('premierRegularWeeks')),
+            premier_playoff_weeks: parseInt(getVal('premierPlayoffWeeks')),
+            classic_regular_weeks: parseInt(getVal('classicRegularWeeks')),
+            classic_playoff_weeks: parseInt(getVal('classicPlayoffWeeks'))
         } : {
-            ecs_fc_teams: parseInt(getVal('ecsFcTeamCount')) || 8,
-            ecs_fc_regular_weeks: parseInt(getVal('ecsFcRegularWeeks')) || 7,
-            ecs_fc_playoff_weeks: parseInt(getVal('ecsFcPlayoffWeeks')) || 1
+            ecs_fc_teams: parseInt(getVal('ecsFcTeamCount')),
+            ecs_fc_regular_weeks: parseInt(getVal('ecsFcRegularWeeks')),
+            ecs_fc_playoff_weeks: parseInt(getVal('ecsFcPlayoffWeeks'))
         })
     };
 }
 
-/**
- * Create season using wizard data
- */
 function createSeason() {
     if (!calendarState?.weeks?.length) {
         alert('Please ensure the calendar is generated.');
         return;
     }
     
-    // Debug: Check start time values before sending
-    console.log('Debug - Premier start time element:', document.getElementById('premierStartTime'));
-    console.log('Debug - Premier start time value:', document.getElementById('premierStartTime')?.value);
-    console.log('Debug - Classic start time element:', document.getElementById('classicStartTime'));  
-    console.log('Debug - Classic start time value:', document.getElementById('classicStartTime')?.value);
-    
     const createButton = document.querySelector('[onclick="createSeason()"]');
     if (createButton) {
         createButton.disabled = true;
-        createButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Season...';
+        createButton.innerHTML = '<i class="ti ti-loader-2 me-2 spin"></i>Creating Season...';
     }
     
     showLoadingModal('Creating Season', 'Please wait...');
     
-    const formData = getFormData();
-    console.log('Sending season data:', formData);
-    
-    fetch(window.autoScheduleUrls?.createSeasonWizard || '/auto-schedule/create-season', {
+    fetch(window.autoScheduleUrls.createSeasonWizard, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json', 
-            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
-        },
-        body: JSON.stringify(formData)
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('meta[name=csrf-token]').getAttribute('content')},
+        body: JSON.stringify(getFormData())
     })
     .then(response => response.json())
     .then(data => {
         hideLoadingModal();
         if (data.success) {
-            showSuccessModal('Season Created!', 'Redirecting...', () => {
-                window.location.href = data.redirect_url || '/auto-schedule/';
-            });
+            showSuccessModal('Season Created!', 'Redirecting...', () => window.location.href = data.redirect_url);
         } else {
             if (createButton) {
                 createButton.disabled = false;
-                createButton.innerHTML = '<i class="fas fa-check me-2"></i>Create Season';
+                createButton.innerHTML = '<i class="ti ti-check me-2"></i>Create Season';
             }
             showErrorModal('Error', data.error || 'An error occurred.');
         }
     })
-    .catch(error => {
-        console.error('Season creation error:', error);
+    .catch(() => {
         hideLoadingModal();
         if (createButton) {
             createButton.disabled = false;
-            createButton.innerHTML = '<i class="fas fa-check me-2"></i>Create Season';
+            createButton.innerHTML = '<i class="ti ti-check me-2"></i>Create Season';
         }
         showErrorModal('Network Error', 'Failed to create season.');
     });
+}
+
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    if (premierPlayoffWeeks) {
+        premierPlayoffWeeks.addEventListener('input', () => {
+            updateTotalWeeks('premier');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    if (premierHasBonusWeek) {
+        premierHasBonusWeek.addEventListener('change', () => {
+            updateTotalWeeks('premier');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    // Classic Division
+    const classicRegularWeeks = document.getElementById('classicRegularWeeks');
+    const classicPlayoffWeeks = document.getElementById('classicPlayoffWeeks');
+    const classicHasBonusWeek = document.getElementById('classicHasBonusWeek');
+    const classicHasPractice = document.getElementById('classicHasPractice');
+    
+    if (classicRegularWeeks) {
+        classicRegularWeeks.addEventListener('input', () => {
+            updateTotalWeeks('classic');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    if (classicPlayoffWeeks) {
+        classicPlayoffWeeks.addEventListener('input', () => {
+            updateTotalWeeks('classic');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    if (classicHasBonusWeek) {
+        classicHasBonusWeek.addEventListener('change', () => {
+            updateTotalWeeks('classic');
+            if (currentStep === 3) generateCalendarPreview();
+        });
+    }
+    
+    if (classicHasPractice) {
+        classicHasPractice.addEventListener('change', togglePracticeConfig);
+    }
+    
+    // ECS FC
+    const ecsFcRegularWeeks = document.getElementById('ecsFcRegularWeeks');
+    const ecsFcPlayoffWeeks = document.getElementById('ecsFcPlayoffWeeks');
+    
+    if (ecsFcRegularWeeks) {
+        ecsFcRegularWeeks.addEventListener('input', () => {
+            updateTotalWeeks('ecsFc');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    if (ecsFcPlayoffWeeks) {
+        ecsFcPlayoffWeeks.addEventListener('input', () => {
+            updateTotalWeeks('ecsFc');
+            if (currentStep === 3) generateCalendarPreview(true); // Force regeneration on config change
+        });
+    }
+    
+    // Team count change listeners
+    const premierTeamCount = document.getElementById('premierTeamCount');
+    const classicTeamCount = document.getElementById('classicTeamCount');
+    const ecsFcTeamCount = document.getElementById('ecsFcTeamCount');
+    
+    if (premierTeamCount) {
+        premierTeamCount.addEventListener('change', () => updateTeamPreview('premier'));
+    }
+    
+    if (classicTeamCount) {
+        classicTeamCount.addEventListener('change', () => updateTeamPreview('classic'));
+    }
+    
+    if (ecsFcTeamCount) {
+        ecsFcTeamCount.addEventListener('change', () => updateTeamPreview('ecsFc'));
+    }
+});
+
+/**
+ * Add CSS for spinner animation
+ */
+function addSpinnerCSS() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Add spinner CSS when script loads
@@ -1823,7 +1500,7 @@ function applyWizardTemplate(templateType) {
             document.getElementById('matchDuration').value = '70';
             document.getElementById('breakDuration').value = '10';
             document.getElementById('enableTimeRotation').checked = true;
-            document.getElementById('classicHasPractice').checked = false;
+            document.getElementById('enablePracticeWeeks').checked = false;
             document.getElementById('practice-weeks-selection').style.display = 'none';
             break;
             
@@ -1834,7 +1511,7 @@ function applyWizardTemplate(templateType) {
             document.getElementById('matchDuration').value = '70';
             document.getElementById('breakDuration').value = '10';
             document.getElementById('enableTimeRotation').checked = true;
-            document.getElementById('classicHasPractice').checked = true;
+            document.getElementById('enablePracticeWeeks').checked = true;
             document.getElementById('practice-weeks-selection').style.display = 'block';
             
             // Check weeks 1 and 3 for practice
@@ -1849,7 +1526,7 @@ function applyWizardTemplate(templateType) {
             
         case 'custom':
             // Custom setup - just clear and let user configure
-            document.getElementById('classicHasPractice').checked = false;
+            document.getElementById('enablePracticeWeeks').checked = false;
             document.getElementById('practice-weeks-selection').style.display = 'none';
             break;
     }
@@ -1871,10 +1548,21 @@ function addWizardField() {
     
     fieldItem.innerHTML = `
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-4">
                 <label class="form-label">Field Name</label>
                 <input type="text" class="form-control wizard-field-name" placeholder="Field ${fieldCount + 1}" required>
-                <div class="form-text">e.g., "North Field", "South Field", "Main Pitch"</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Capacity</label>
+                <input type="number" class="form-control wizard-field-capacity" value="20" min="1" max="50">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Priority</label>
+                <select class="form-select wizard-field-priority">
+                    <option value="standard">Standard</option>
+                    <option value="preferred">Preferred</option>
+                    <option value="backup">Backup</option>
+                </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="button" class="btn btn-outline-danger" onclick="removeWizardField(this)">
@@ -1929,24 +1617,31 @@ function updateWizardPracticeWeekOptions() {
         weekCount = Math.min(8, parseInt(totalWeeks.value || 11) - 3); // For classic practice weeks
     }
     
-    // Handle only classic practice week container (Step 2)
-    const container = document.getElementById('classicPracticeWeekCheckboxes');
+    // Handle both wizard and classic practice week containers
+    const containers = [
+        document.getElementById('wizard-practice-week-checkboxes'),
+        document.getElementById('classicPracticeWeekCheckboxes')
+    ];
     
-    if (container) {
+    containers.forEach((container, index) => {
+        if (!container) return;
+        
         container.innerHTML = '';
+        const isClassic = index === 1;
         
         for (let i = 1; i <= weekCount; i++) {
             const div = document.createElement('div');
-            div.className = 'form-check form-check-inline';
-            const checked = (i === 1 || i === 3) ? 'checked' : '';
+            div.className = isClassic ? 'form-check form-check-inline' : 'form-check form-check-inline me-3 mb-2';
+            const checked = isClassic && (i === 1 || i === 3) ? 'checked' : '';
+            const prefix = isClassic ? 'practice' : 'wizard-practice';
             
             div.innerHTML = `
-                <input class="form-check-input" type="checkbox" id="practice-week-${i}" value="${i}" ${checked}>
-                <label class="form-check-label" for="practice-week-${i}">Week ${i}</label>
+                <input class="form-check-input" type="checkbox" id="${prefix}-week-${i}" ${isClassic ? '' : 'name="wizard_practice_weeks"'} value="${i}" ${checked}>
+                <label class="form-check-label" for="${prefix}-week-${i}">Week ${i}</label>
             `;
             container.appendChild(div);
         }
-    }
+    });
 }
 
 
@@ -1955,67 +1650,35 @@ function updateWizardPracticeWeekOptions() {
  */
 function getWizardFieldConfig() {
     const fieldItems = document.querySelectorAll('.wizard-field-item');
-    if (fieldItems.length === 0) {
-        // Return default fields if no wizard fields found
-        return [{ name: 'North' }, { name: 'South' }];
-    }
-    
     const fieldConfig = [];
     
     fieldItems.forEach(item => {
-        const name = item.querySelector('.wizard-field-name')?.value?.trim();
+        const name = item.querySelector('.wizard-field-name').value.trim();
+        const capacity = parseInt(item.querySelector('.wizard-field-capacity').value) || 20;
+        const priority = item.querySelector('.wizard-field-priority').value;
         
         if (name) {
             fieldConfig.push({
-                name: name
+                name: name,
+                capacity: capacity,
+                priority: priority
             });
         }
     });
     
-    // If no valid fields found, return defaults
-    return fieldConfig.length > 0 ? fieldConfig : [{ name: 'North' }, { name: 'South' }];
+    return fieldConfig;
 }
 
 /**
- * Get unique week configurations for both divisions
+ * Get wizard practice weeks configuration
  */
-function getUniqueWeekConfigs() {
-    const uniqueWeeks = new Map();
-    
-    // Process all weeks and create entries for both divisions where appropriate
-    calendarState.weeks.forEach(w => {
-        const weekKey = `${w.weekNumber}-${w.division}`;
-        
-        if (!uniqueWeeks.has(weekKey)) {
-            uniqueWeeks.set(weekKey, {
-                date: w.date.toISOString().split('T')[0], 
-                type: w.type.toUpperCase(), 
-                week_number: w.weekNumber,
-                division: w.division, // Keep division for backend filtering
-                is_practice: w.isPractice || false
-            });
-        }
-    });
-    
-    // Convert to array and sort by week number, then by division
-    return Array.from(uniqueWeeks.values()).sort((a, b) => {
-        if (a.week_number !== b.week_number) {
-            return a.week_number - b.week_number;
-        }
-        return a.division.localeCompare(b.division);
-    });
-}
-
-/**
- * Get classic practice weeks configuration from Step 2
- */
-function getClassicPracticeWeeks() {
-    const enablePractice = document.getElementById('classicHasPractice');
+function getWizardPracticeWeeks() {
+    const enablePractice = document.getElementById('enablePracticeWeeks');
     if (!enablePractice || !enablePractice.checked) {
         return null;
     }
     
-    const checkboxes = document.querySelectorAll('#classicPracticeWeekCheckboxes input[type="checkbox"]:checked');
+    const checkboxes = document.querySelectorAll('input[name="wizard_practice_weeks"]:checked');
     const practiceWeeks = Array.from(checkboxes).map(cb => cb.value);
     
     return practiceWeeks.length > 0 ? practiceWeeks.join(',') : null;
@@ -2050,12 +1713,6 @@ function validateWizardStep4() {
     const uniqueNames = [...new Set(fieldNames)];
     if (fieldNames.length !== uniqueNames.length) {
         showErrorModal('Configuration Error', 'Field names must be unique.');
-        return false;
-    }
-    
-    // Check for empty field names
-    if (fieldConfig.some(f => !f.name || f.name.trim() === '')) {
-        showErrorModal('Configuration Error', 'All fields must have names.');
         return false;
     }
     
@@ -2097,42 +1754,18 @@ function updateSeasonStructure() {
     const totalWeeks = parseInt(document.getElementById('totalSeasonWeeks').value);
     const breakdown = document.getElementById('seasonBreakdown');
     
-    // Fixed playoff weeks
-    const premierPlayoffs = 2;
-    const classicPlayoffs = 1;
+    // Calculate structure based on total weeks
     const specialWeeksCount = getEnabledSpecialWeeksCount();
+    const regularWeeks = totalWeeks - specialWeeksCount - 2; // -2 for playoffs
     
-    // Calculate regular weeks based on total season length
-    // Total weeks = regular weeks + playoff weeks + special weeks
-    // For Premier: totalWeeks = premierRegular + 2 + specialWeeks
-    // For Classic: totalWeeks = classicRegular + 1 + specialWeeks
+    const premierRegular = regularWeeks - 1; // Premier has 1 less regular week
+    const classicRegular = regularWeeks;
     
-    const premierRegular = totalWeeks - premierPlayoffs - specialWeeksCount;
-    const classicRegular = totalWeeks - classicPlayoffs - specialWeeksCount;
-    
-    // Update the form inputs
-    const premierRegularInput = document.getElementById('premierRegularWeeks');
-    const classicRegularInput = document.getElementById('classicRegularWeeks');
-    
-    if (premierRegularInput) {
-        premierRegularInput.value = premierRegular;
-    }
-    if (classicRegularInput) {
-        classicRegularInput.value = classicRegular;
-    }
-    
-    // Update the breakdown display
     breakdown.innerHTML = `
-        <div><strong>Premier:</strong> ${premierRegular} regular + ${premierPlayoffs} playoff weeks</div>
-        <div><strong>Classic:</strong> ${classicRegular} regular + ${classicPlayoffs} playoff week</div>
+        <div><strong>Premier:</strong> ${premierRegular} regular + 2 playoff weeks</div>
+        <div><strong>Classic:</strong> ${classicRegular} regular + 1 playoff week</div>
         <div class="text-muted"><small>Plus ${specialWeeksCount} shared special weeks</small></div>
-        <div class="text-muted"><small>Total season length: ${totalWeeks} weeks</small></div>
     `;
-    
-    // Regenerate calendar if we're on step 3
-    if (typeof generateCalendarPreview === 'function' && currentStep === 3) {
-        generateCalendarPreview(true);
-    }
 }
 
 /**
@@ -2146,7 +1779,15 @@ function getEnabledSpecialWeeksCount() {
     return count;
 }
 
-// Special week placement selectors removed - users can drag & drop in calendar preview
+/**
+ * Toggle special week placement visibility
+ */
+function toggleSpecialWeekPlacement(weekType, isEnabled) {
+    const placementDiv = document.getElementById(`${weekType}WeekPlacement`);
+    if (placementDiv) {
+        placementDiv.style.display = isEnabled ? 'block' : 'none';
+    }
+}
 
 
 /**
@@ -2176,9 +1817,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Season structure change listeners
-    const sharedHasFunWeek = document.getElementById('includeFunWeek');
-    const sharedHasTstWeek = document.getElementById('includeTstWeek');
-    const sharedHasByeWeek = document.getElementById('includeByeWeek');
+    const sharedHasFunWeek = document.getElementById('sharedHasFunWeek');
+    const sharedHasTstWeek = document.getElementById('sharedHasTstWeek');
+    const sharedHasByeWeek = document.getElementById('sharedHasByeWeek');
     
     [sharedHasFunWeek, sharedHasTstWeek, sharedHasByeWeek].forEach(element => {
         if (element) {
@@ -2190,7 +1831,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Practice weeks are now configured in Step 2 only
+    // Handle practice weeks toggle
+    const enablePracticeWeeks = document.getElementById('enablePracticeWeeks');
+    if (enablePracticeWeeks) {
+        enablePracticeWeeks.addEventListener('change', function() {
+            const selectionDiv = document.getElementById('practice-weeks-selection');
+            if (selectionDiv) {
+                selectionDiv.style.display = this.checked ? 'block' : 'none';
+                if (this.checked) updateWizardPracticeWeekOptions();
+            }
+        });
+    }
     
     // Handle classic practice toggle
     const classicPractice = document.getElementById('classicHasPractice');
@@ -2210,38 +1861,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (premierWeeks) premierWeeks.addEventListener('change', updateWizardPracticeWeekOptions);
     if (classicWeeks) classicWeeks.addEventListener('change', updateWizardPracticeWeekOptions);
     
-    // Update team previews when team counts change
-    const premierTeamCount = document.getElementById('premierTeamCount');
-    const classicTeamCount = document.getElementById('classicTeamCount');
-    const ecsFcTeamCount = document.getElementById('ecsFcTeamCount');
-    
-    if (premierTeamCount) {
-        premierTeamCount.addEventListener('change', function() {
-            updateTeamPreview('premier');
-            // When Premier count changes, update Classic too since its letters depend on Premier
-            if (classicTeamCount) updateTeamPreview('classic');
-        });
-    }
-    
-    if (classicTeamCount) {
-        classicTeamCount.addEventListener('change', function() {
-            updateTeamPreview('classic');
-        });
-    }
-    
-    if (ecsFcTeamCount) {
-        ecsFcTeamCount.addEventListener('change', function() {
-            updateTeamPreview('ecsFc');
-        });
-    }
-    
-    // Handle special week toggles - just update season structure
+    // Handle special week toggles
     ['includeTstWeek', 'includeFunWeek', 'includeByeWeek'].forEach(weekId => {
         const checkbox = document.getElementById(weekId);
         if (checkbox) {
             checkbox.addEventListener('change', function() {
+                const weekType = weekId.replace('include', '').replace('Week', '').toLowerCase();
+                toggleSpecialWeekPlacement(weekType, this.checked);
                 updateSeasonStructure();
-                // Calendar will be updated when user goes to Step 3
             });
         }
     });
@@ -2251,13 +1878,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (totalWeeksSelect) {
         totalWeeksSelect.addEventListener('change', function() {
             updateSeasonStructure();
-            updateWizardPracticeWeekOptions();
+            updateClassicPracticeWeeks();
         });
     }
     
     // Initialize on load
     updateSeasonStructure();
-    updateWizardPracticeWeekOptions();
+    updateClassicPracticeWeeks();
     
-    // Special week positioning is now handled via drag & drop in calendar preview
+    // Show special week placements for enabled weeks
+    if (document.getElementById('includeTstWeek')?.checked) {
+        toggleSpecialWeekPlacement('tst', true);
+    }
+    if (document.getElementById('includeFunWeek')?.checked) {
+        toggleSpecialWeekPlacement('fun', true);
+    }
+    if (document.getElementById('includeByeWeek')?.checked) {
+        toggleSpecialWeekPlacement('bye', true);
+    }
 });

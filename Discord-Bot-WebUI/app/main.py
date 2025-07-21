@@ -558,8 +558,8 @@ def index():
         # Get only current season teams for the player
         user_teams = []
         if player:
-            # Get current season
-            current_season = Season.query.filter_by(is_current=True).first()
+            # Get current season (filter by Pub League)
+            current_season = Season.query.filter_by(is_current=True, league_type='Pub League').first()
             if current_season:
                 # Query teams through PlayerTeamSeason for current season only
                 current_season_teams = g.db_session.query(Team).join(
