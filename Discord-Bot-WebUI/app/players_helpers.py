@@ -467,46 +467,244 @@ def clean_phone_number(phone):
     return cleaned_phone[-10:] if len(cleaned_phone) >= 10 else cleaned_phone
 
 
-def match_player_weighted(player_info, db_session):
+def calculate_name_similarity(name1, name2):
     """
-    Perform weighted matching to identify an existing player.
+    Calculate similarity between two names with enhanced fuzzy matching.
+    Handles cases like "Hayley C Serres" vs "Hayley Serres".
+    """
+    if not name1 or not name2:
+        return 0.0
     
-    First attempts to match by email, then by standardized name and phone.
+    # Normalize names - remove extra spaces, convert to lowercase
+    name1_clean = ' '.join(name1.lower().split())
+    name2_clean = ' '.join(name2.lower().split())
     
-    Args:
-        player_info (dict): Dictionary containing 'name', 'email', and 'phone'.
-        db_session (Session): Database session for querying.
+    # If names are identical after normalization, perfect match
+    if name1_clean == name2_clean:
+        return 1.0
     
-    Returns:
-        Player or None: The matching player, or None if no match is found.
+    # Split into parts
+    name1_parts = name1_clean.split()
+    name2_parts = name2_clean.split()
+    
+    if len(name1_parts) == 0 or len(name2_parts) == 0:
+        return 0.0
+    
+    # Check for subset relationships (handles middle initials/names)
+    # "Hayley Serres" should match "Hayley C Serres"
+    name1_set = set(name1_parts)
+    name2_set = set(name2_parts)
+    
+    # If one name is a subset of the other (ignoring single letters/initials)
+    # Filter out single character parts (likely initials)
+    name1_substantial = {part for part in name1_set if len(part) > 1}
+    name2_substantial = {part for part in name2_set if len(part) > 1}
+    
+    # If all substantial parts of one name are in the other
+    if name1_substantial and name2_substantial:
+        if name1_substantial.issubset(name2_substantial) or name2_substantial.issubset(name1_substantial):
+            return 0.95  # Very high similarity for subset matches
+    
+    # Calculate intersection and union
+    intersection = name1_set.intersection(name2_set)
+    union = name1_set.union(name2_set)
+    
+    # Basic Jaccard similarity
+    basic_similarity = len(intersection) / len(union)
+    
+    # Bonus scoring
+    similarity = basic_similarity
+    
+    # Bonus for matching first and last names (most important parts)
+    if len(name1_parts) >= 2 and len(name2_parts) >= 2:
+        # First name match
+        if name1_parts[0] == name2_parts[0]:
+            similarity += 0.3
+        # Last name match  
+        if name1_parts[-1] == name2_parts[-1]:
+            similarity += 0.3
+    
+    # Bonus for having most important parts match
+    important_matches = 0
+    total_important = 0
+    
+    # Check first names
+    if len(name1_parts) >= 1 and len(name2_parts) >= 1:
+        total_important += 1
+        if name1_parts[0] == name2_parts[0]:
+            important_matches += 1
+    
+    # Check last names  
+    if len(name1_parts) >= 1 and len(name2_parts) >= 1:
+        total_important += 1
+        if name1_parts[-1] == name2_parts[-1]:
+            important_matches += 1
+    
+    # If most important parts match, boost similarity
+    if total_important > 0 and important_matches / total_important >= 0.5:
+        similarity += 0.2
+    
+    return min(similarity, 1.0)
+
+
+def score_player_match(player_info, player, user):
+    """
+    Score a potential player match using "2 out of 3" criteria.
+    Returns a score from 0.0 to 1.0 and details about the match.
     """
     name = standardize_name(player_info.get('name', ''))
-    email = player_info.get('email', '').lower()
+    email = player_info.get('email', '').lower() if player_info.get('email') else None
     phone = standardize_phone(player_info.get('phone', ''))
+    
+    # Calculate individual match scores
+    name_score = 0.0
+    email_score = 0.0  
+    phone_score = 0.0
+    
+    # Name matching
+    if name and player.name:
+        name_score = calculate_name_similarity(name, player.name)
+    
+    # Email matching
+    if email and user.email:
+        if email == user.email.lower():
+            email_score = 1.0
+    
+    # Phone matching
+    if phone and player.phone:
+        player_phone = standardize_phone(player.phone)
+        if phone == player_phone:
+            phone_score = 1.0
+    
+    # Count how many factors have good matches
+    strong_matches = 0
+    match_details = []
+    flags = []
+    
+    # Strong name match (0.7+ similarity)
+    if name_score >= 0.7:
+        strong_matches += 1
+        match_details.append(f"name_match_{int(name_score * 100)}%")
+        if name_score < 1.0:
+            flags.append('name_variation')
+    
+    # Email match
+    if email_score >= 1.0:
+        strong_matches += 1
+        match_details.append("email_exact")
+    elif email and not email_score:
+        flags.append('email_mismatch')
+    
+    # Phone match
+    if phone_score >= 1.0:
+        strong_matches += 1
+        match_details.append("phone_exact")
+    
+    # Calculate overall confidence based on "2 out of 3" principle
+    confidence = 0.0
+    match_type = "no_match"
+    
+    if strong_matches >= 3:
+        # All 3 match - perfect
+        confidence = 0.98
+        match_type = "triple_match"
+    elif strong_matches >= 2:
+        # 2 out of 3 match - very good
+        confidence = 0.85 + (max(name_score, email_score, phone_score) * 0.1)
+        match_type = "double_match"
+    elif strong_matches == 1:
+        # Only 1 strong match - lower confidence
+        if name_score >= 0.9 or email_score >= 1.0 or phone_score >= 1.0:
+            confidence = 0.6 + (max(name_score, email_score, phone_score) * 0.2)
+            match_type = "single_strong_match"
+        else:
+            confidence = 0.3 + (max(name_score, email_score, phone_score) * 0.3)
+            match_type = "weak_match"
+    
+    # Special handling for subset name matches (like "Hayley Serres" vs "Hayley C Serres")
+    if name_score >= 0.95 and strong_matches >= 1:
+        confidence = max(confidence, 0.85)
+        if 'name_variation' not in flags:
+            flags.append('likely_same_person')
+    
+    return {
+        'confidence': confidence,
+        'match_type': match_type,
+        'strong_matches': strong_matches,
+        'name_score': name_score,
+        'email_score': email_score,
+        'phone_score': phone_score,
+        'match_details': match_details,
+        'flags': flags
+    }
 
-    if email:
-        player = db_session.query(Player).join(User).filter(
-            func.lower(User.email) == email
-        ).first()
-        if player:
-            return player
 
-    if name and phone:
-        standardized_phone_db = func.replace(
-            func.replace(
-                func.replace(
-                    func.replace(Player.phone, '-', ''),
-                    '(', ''
-                ), ')', ''
-            ), ' ', ''
-        )
-        player = db_session.query(Player).filter(
-            func.lower(Player.name) == func.lower(name),
-            standardized_phone_db == phone
-        ).first()
-        if player:
-            return player
+def match_player_with_details(player_info, db_session):
+    """
+    Enhanced matching using "2 out of 3" scoring system.
+    
+    Returns:
+        dict with 'player', 'match_type', 'confidence', 'flags'
+    """
+    name = standardize_name(player_info.get('name', ''))
+    email = player_info.get('email', '').lower() if player_info.get('email') else None
+    phone = standardize_phone(player_info.get('phone', ''))
+    
+    if not name and not email and not phone:
+        return {
+            'player': None,
+            'match_type': 'no_data',
+            'confidence': 0.0,
+            'flags': ['insufficient_data']
+        }
+    
+    # Get all players with their users
+    all_players = db_session.query(Player).join(User).all()
+    
+    best_match = None
+    best_score = None
+    best_confidence = 0.0
+    
+    # Score each player
+    for player in all_players:
+        score_result = score_player_match(player_info, player, player.user)
+        
+        if score_result['confidence'] > best_confidence:
+            best_confidence = score_result['confidence']
+            best_match = player
+            best_score = score_result
+    
+    # Return result if we have a good enough match
+    if best_match and best_confidence >= 0.6:  # Lowered threshold for 2-of-3 matching
+        return {
+            'player': best_match,
+            'match_type': best_score['match_type'],
+            'confidence': best_confidence,
+            'flags': best_score['flags'],
+            'match_details': best_score['match_details'],
+            'scores': {
+                'name': best_score['name_score'],
+                'email': best_score['email_score'], 
+                'phone': best_score['phone_score']
+            }
+        }
+    
+    return {
+        'player': None,
+        'match_type': 'no_sufficient_match',
+        'confidence': best_confidence,
+        'flags': ['new_player_candidate'] + (best_score['flags'] if best_score else [])
+    }
 
+
+def match_player_weighted(player_info, db_session):
+    """
+    Legacy function for backward compatibility.
+    Returns the player if confidence >= 0.8, otherwise None.
+    """
+    result = match_player_with_details(player_info, db_session)
+    if result['confidence'] >= 0.8:
+        return result['player']
     return None
 
 

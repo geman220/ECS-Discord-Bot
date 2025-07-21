@@ -867,18 +867,28 @@ def create_season_wizard():
             # Create auto schedule configs for both leagues
             premier_config = AutoScheduleConfig(
                 league_id=premier_league.id,
-                start_time=datetime.strptime(data['premier_start_time'], '%H:%M').time(),
+                premier_start_time=datetime.strptime(data['premier_start_time'], '%H:%M').time(),
+                classic_start_time=datetime.strptime(data['classic_start_time'], '%H:%M').time(),
+                enable_time_rotation=data.get('enable_time_rotation', True),
+                break_duration_minutes=int(data.get('break_duration', 10)),
                 match_duration_minutes=int(data['match_duration']),
                 weeks_count=int(data.get('premier_regular_weeks', 7)),
                 fields=data['fields'],
+                enable_practice_weeks=data.get('enable_practice_weeks', False),
+                practice_weeks=data.get('practice_weeks'),
                 created_by=current_user.id
             )
             classic_config = AutoScheduleConfig(
                 league_id=classic_league.id,
-                start_time=datetime.strptime(data['classic_start_time'], '%H:%M').time(),
+                premier_start_time=datetime.strptime(data['premier_start_time'], '%H:%M').time(),
+                classic_start_time=datetime.strptime(data['classic_start_time'], '%H:%M').time(),
+                enable_time_rotation=data.get('enable_time_rotation', True),
+                break_duration_minutes=int(data.get('break_duration', 10)),
                 match_duration_minutes=int(data['match_duration']),
                 weeks_count=int(data.get('classic_regular_weeks', 8)),
                 fields=data['fields'],
+                enable_practice_weeks=data.get('enable_practice_weeks', False),
+                practice_weeks=data.get('practice_weeks'),
                 created_by=current_user.id
             )
             session.add(premier_config)
@@ -1036,6 +1046,9 @@ def create_season_wizard():
             try:
                 logger.info(f"Auto-generating schedule for league: {league.name}")
                 
+                # Create generator for this league (will be configured later)
+                generator = AutoScheduleGenerator(league.id, session)
+                
                 # Clean up any existing week configurations and schedule templates for this league
                 existing_week_configs = session.query(WeekConfiguration).filter_by(league_id=league.id).count()
                 existing_templates = session.query(ScheduleTemplate).filter_by(league_id=league.id).count()
@@ -1094,8 +1107,7 @@ def create_season_wizard():
                         logger.info(f"  ✓ CREATED WeekConfiguration: League {league.name} (ID: {league.id}), Week {league_week_config.week_order}, Type: {league_week_config.week_type}" + 
                                    (f" (Practice: Game {practice_game_number})" if has_practice else ""))
                 
-                # Initialize improved auto schedule generator
-                generator = AutoScheduleGenerator(league.id, session)
+                # Generator already created at start of loop - don't recreate it here
                 
                 # Get season configuration for this league
                 season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
@@ -1131,17 +1143,35 @@ def create_season_wizard():
                                 league_week_configs.append(week_config)
                 
                 # Get the AutoScheduleConfig for this league
+                logger.info(f"STARTING AutoScheduleConfig lookup for {league.name} (ID: {league.id})")
                 auto_config = session.query(AutoScheduleConfig).filter_by(league_id=league.id).first()
+                logger.info(f"AutoScheduleConfig lookup for league {league.name} (ID: {league.id}): {'FOUND' if auto_config else 'NOT FOUND'}")
+                
                 if auto_config:
+                    # Use the appropriate start time based on league name
+                    if league.name.lower() == 'premier':
+                        start_time = auto_config.premier_start_time
+                    elif league.name.lower() == 'classic':
+                        start_time = auto_config.classic_start_time
+                    else:
+                        # For ECS FC or other leagues, use start_time field if it exists, otherwise premier_start_time
+                        start_time = getattr(auto_config, 'start_time', None) or auto_config.premier_start_time
+                    
+                    logger.info(f"Configuring generator for {league.name}: start_time={start_time}")
+                    
                     generator.set_config(
-                        start_time=auto_config.start_time,
+                        start_time=start_time,
                         match_duration_minutes=auto_config.match_duration_minutes,
                         weeks_count=auto_config.weeks_count,
                         fields=auto_config.fields
                     )
+                    
+                    logger.info(f"Generator configured successfully for {league.name}")
+                
                 else:
                     # Fallback to default configuration if no config found
-                    logger.warning(f"No AutoScheduleConfig found for league {league.name}, using defaults")
+                    logger.error(f"CRITICAL: No AutoScheduleConfig found for league {league.name} (ID: {league.id}), using defaults!")
+                    logger.error(f"This should not happen - configs should have been created earlier")
                     generator.set_config(
                         start_time=time(19, 0),  # 7:00 PM default
                         match_duration_minutes=70,
@@ -1158,6 +1188,7 @@ def create_season_wizard():
                     logger.info(f"  ... and {len(league_week_configs) - 5} more week configs")
                 
                 logger.info(f"Generating schedule templates for {league.name} with {len(league_week_configs)} week configurations")
+                logger.info(f"ABOUT TO GENERATE TEMPLATES - Generator start_time: {getattr(generator, 'start_time', 'NOT SET')}")
                 templates = generator.generate_schedule_templates(league_week_configs)
                 logger.info(f"Generated {len(templates)} schedule templates for {league.name}")
                 
@@ -1283,11 +1314,40 @@ def auto_schedule_config(league_id: int):
     
     if request.method == 'POST':
         try:
-            # Parse form data
-            start_time_str = request.form.get('start_time')
+            # Parse enhanced form data
+            premier_start_time_str = request.form.get('premier_start_time', '08:20')
+            classic_start_time_str = request.form.get('classic_start_time', '13:10')
+            enable_time_rotation = bool(request.form.get('enable_time_rotation'))
+            break_duration = int(request.form.get('break_duration', 10))
             match_duration = int(request.form.get('match_duration', 70))
             weeks_count = int(request.form.get('weeks_count', 7))
-            fields = request.form.get('fields', 'North,South')
+            enable_practice_weeks = bool(request.form.get('enable_practice_weeks'))
+            
+            # Parse field configuration
+            field_config = []
+            field_index = 0
+            while True:
+                field_name = request.form.get(f'field_name_{field_index}')
+                if not field_name:
+                    break
+                field_capacity = int(request.form.get(f'field_capacity_{field_index}', 20))
+                field_config.append({
+                    'name': field_name.strip(),
+                    'capacity': field_capacity
+                })
+                field_index += 1
+            
+            # Fallback to legacy fields format if no field config
+            if not field_config:
+                fields = request.form.get('fields', 'North,South')
+                field_config = [{'name': name.strip(), 'capacity': 20} for name in fields.split(',') if name.strip()]
+            
+            # Generate fields string for backward compatibility
+            fields = ','.join([field['name'] for field in field_config])
+            
+            # Parse practice weeks
+            practice_weeks_list = request.form.getlist('practice_weeks')
+            practice_weeks = ','.join(practice_weeks_list) if practice_weeks_list else None
             
             # Parse week configurations from form
             week_configs = []
@@ -1310,27 +1370,40 @@ def auto_schedule_config(league_id: int):
                 return redirect(url_for('auto_schedule.auto_schedule_config', league_id=league_id))
             
             # Validate inputs
-            if not start_time_str:
-                show_error('Start time is required')
+            if not premier_start_time_str or not classic_start_time_str:
+                show_error('Both Premier and Classic start times are required')
                 return redirect(url_for('auto_schedule.auto_schedule_config', league_id=league_id))
             
-            # Parse time
-            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            # Parse times
+            premier_start_time = datetime.strptime(premier_start_time_str, '%H:%M').time()
+            classic_start_time = datetime.strptime(classic_start_time_str, '%H:%M').time()
             
             # Create or update config
             if existing_config:
-                existing_config.start_time = start_time
+                existing_config.premier_start_time = premier_start_time
+                existing_config.classic_start_time = classic_start_time
+                existing_config.enable_time_rotation = enable_time_rotation
+                existing_config.break_duration_minutes = break_duration
                 existing_config.match_duration_minutes = match_duration
                 existing_config.weeks_count = weeks_count
                 existing_config.fields = fields
+                existing_config.field_config = field_config
+                existing_config.enable_practice_weeks = enable_practice_weeks
+                existing_config.practice_weeks = practice_weeks
                 config = existing_config
             else:
                 config = AutoScheduleConfig(
                     league_id=league_id,
-                    start_time=start_time,
+                    premier_start_time=premier_start_time,
+                    classic_start_time=classic_start_time,
+                    enable_time_rotation=enable_time_rotation,
+                    break_duration_minutes=break_duration,
                     match_duration_minutes=match_duration,
                     weeks_count=weeks_count,
                     fields=fields,
+                    field_config=field_config,
+                    enable_practice_weeks=enable_practice_weeks,
+                    practice_weeks=practice_weeks,
                     created_by=current_user.id
                 )
                 session.add(config)
@@ -1339,8 +1412,10 @@ def auto_schedule_config(league_id: int):
             
             # Generate schedule templates
             generator = AutoScheduleGenerator(league_id, session)
+            # Use the appropriate start time based on league type
+            league_start_time = config.get_start_time_for_division(league.name)
             generator.set_config(
-                start_time=start_time,
+                start_time=league_start_time,
                 match_duration_minutes=match_duration,
                 weeks_count=weeks_count,
                 fields=fields

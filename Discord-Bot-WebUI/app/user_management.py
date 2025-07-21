@@ -810,26 +810,31 @@ def confirm_update():
         session = g.db_session
         logger.debug(f"confirm_update: Sync data: {sync_data}")
 
-        # Process new players if requested
+        # Process new players if requested (only those manually approved)
         if request.json.get('process_new', False):
+            approved_new_players = request.json.get('approved_new_players', [])
             for new_player in sync_data.get('new_players', []):
-                logger.debug(f"Processing new player info: {new_player['info']}")
-                user = create_user_for_player(new_player['info'], session=session)
-                logger.debug(f"User created: {user} (id: {user.id})")
-                league = session.query(League).get(new_player['league_id'])
-                player = create_player_profile(new_player['info'], league, user, session=session)
-                logger.debug(f"Player created/updated: {player.id} (user_id: {player.user_id})")
-                player.is_current_player = True
-                if not player.primary_league:
-                    player.primary_league = league
-                record_order_history(
-                    order_id=new_player['order_id'],
-                    player_id=player.id,
-                    league_id=league.id,
-                    season_id=league.season_id,
-                    profile_count=new_player['quantity'],
-                    session=session
-                )
+                # Only process if admin explicitly approved this player
+                if new_player['order_id'] in approved_new_players:
+                    logger.debug(f"Processing manually approved new player: {new_player['info']}")
+                    user = create_user_for_player(new_player['info'], session=session)
+                    logger.debug(f"User created: {user} (id: {user.id})")
+                    league = session.query(League).get(new_player['league_id'])
+                    player = create_player_profile(new_player['info'], league, user, session=session)
+                    logger.debug(f"Player created/updated: {player.id} (user_id: {player.user_id})")
+                    player.is_current_player = True
+                    if not player.primary_league:
+                        player.primary_league = league
+                    record_order_history(
+                        order_id=new_player['order_id'],
+                        player_id=player.id,
+                        league_id=league.id,
+                        season_id=league.season_id,
+                        profile_count=new_player['quantity'],
+                        session=session
+                    )
+                else:
+                    logger.info(f"Skipping new player {new_player['info']['name']} - not manually approved")
 
         # Process updates for existing players
         for update in sync_data.get('player_league_updates', []):
@@ -852,22 +857,45 @@ def confirm_update():
                         session=session
                     )
 
-        # Mark inactive players if requested
+        # Enhanced player status management
+        # Step 1: Mark ALL players with current memberships as active
+        players_with_memberships = set()
+        for update in sync_data.get('player_league_updates', []):
+            players_with_memberships.add(update.get('player_id'))
+            
+        # Activate all players who have current memberships
+        for player_id in players_with_memberships:
+            player = session.query(Player).get(player_id)
+            if player:
+                player.is_current_player = True
+                logger.info(f"Activated player {player.name} (ID: {player_id}) - has current membership")
+        
+        # Step 2: Mark inactive players (those without current memberships)
         if request.json.get('process_inactive', False):
-            for inactive_player_id in sync_data.get('inactive_players', []):
-                player = session.query(Player).get(inactive_player_id)
-                if player:
+            # Get all currently active players
+            all_active_players = session.query(Player).filter(Player.is_current_player == True).all()
+            
+            for player in all_active_players:
+                # If player doesn't have a current membership order, mark as inactive
+                if player.id not in players_with_memberships:
                     player.is_current_player = False
+                    logger.info(f"Deactivated player {player.name} (ID: {player.id}) - no current membership found")
 
         session.commit()
         delete_sync_data(task_id)
 
+        # Count processed items
+        approved_new_count = len(request.json.get('approved_new_players', []))
+        updated_count = len(sync_data.get('player_league_updates', []))
+        flagged_count = len(sync_data.get('flagged_multi_orders', []))
+        
         return jsonify({
             'status': 'success',
             'message': f"Sync completed successfully. "
-                      f"{len(sync_data.get('new_players', []))} new players processed, "
-                      f"{len(sync_data.get('player_league_updates', []))} existing players updated, "
-                      f"{len(sync_data.get('inactive_players', []))} players marked inactive."
+                      f"{approved_new_count} new players approved and processed, "
+                      f"{updated_count} existing players updated and activated, "
+                      f"{flagged_count} multi-person orders flagged for review. "
+                      f"Player statuses updated based on current memberships."
         })
 
     except Exception as e:
@@ -907,8 +935,11 @@ def update_status(task_id):
             'progress': 100,
             'stage': 'complete',
             'message': 'Sync completed successfully',
-            'new_players': result.result.get('new_players_count', 0),
-            'potential_inactive': result.result.get('potential_inactive_count', 0)
+            'new_players': result.result.get('new_players', 0),
+            'existing_players': result.result.get('existing_players', 0),
+            'potential_inactive': result.result.get('potential_inactive', 0),
+            'flagged_multi_orders': result.result.get('flagged_multi_orders', 0),
+            'flagged_orders_require_review': result.result.get('flagged_orders_require_review', False)
         }
     else:  # FAILURE
         response = {
@@ -919,6 +950,40 @@ def update_status(task_id):
         }
     
     return jsonify(response)
+
+
+@user_management_bp.route('/get_sync_data/<task_id>', endpoint='get_sync_data')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def get_sync_data_endpoint(task_id):
+    """
+    Get the sync data for review in the modal.
+    """
+    try:
+        sync_data = get_sync_data(task_id)
+        if not sync_data:
+            return jsonify({'error': 'Sync data not found or expired'}), 404
+        
+        # Defensive check - try to serialize to catch any problematic objects
+        try:
+            import json
+            json.dumps(sync_data)
+        except TypeError as json_error:
+            logger.error(f"Sync data contains non-serializable objects: {json_error}")
+            # Return a safe fallback
+            return jsonify({
+                'new_players': [],
+                'player_league_updates': [],
+                'potential_inactive': [],
+                'flagged_multi_orders': [],
+                'error': 'Data contains non-serializable objects'
+            })
+            
+        return jsonify(sync_data)
+        
+    except Exception as e:
+        logger.exception(f"Error loading sync data: {str(e)}")
+        return jsonify({'error': f'Failed to load sync data: {str(e)}'}), 500
 
 
 @user_management_bp.route('/export_player_profiles', endpoint='export_player_profiles', methods=['GET'])

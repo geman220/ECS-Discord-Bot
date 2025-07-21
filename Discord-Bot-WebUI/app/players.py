@@ -218,7 +218,7 @@ def player_profile(player_id):
 
     # Load player with all needed relationships using the main session
     from sqlalchemy.orm import selectinload
-    from app.models import PlayerEvent
+    from app.models import PlayerEvent, PlayerTeamSeason
     player = session.query(Player).options(
         selectinload(Player.teams),
         selectinload(Player.user),
@@ -229,6 +229,24 @@ def player_profile(player_id):
 
     if not player:
         abort(404)
+    
+    # Get current season teams for the player (filter by Pub League)
+    current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    current_season_teams = []
+    if current_season:
+        # Query teams through PlayerTeamSeason for current season only
+        current_season_teams = session.query(Team).join(
+            PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+        ).filter(
+            PlayerTeamSeason.player_id == player.id,
+            PlayerTeamSeason.season_id == current_season.id
+        ).all()
+        
+        # If no PlayerTeamSeason records found for current season, fall back to direct team relationships
+        if not current_season_teams:
+            # Filter teams by current season's leagues
+            current_season_leagues = [league.id for league in current_season.leagues]
+            current_season_teams = [team for team in player.teams if team.league_id in current_season_leagues]
         
     # Check access permissions
     from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
@@ -259,10 +277,10 @@ def player_profile(player_id):
         matches = list({event.match for event in events})
         user = player.user
 
-        current_season_name, current_year = get_current_season_and_year()
-        season = session.query(Season).filter_by(name=current_season_name).first()
+        # Use the current season from the database instead of calculating from date
+        season = current_season
         if not season:
-            show_error('Current season not found.')
+            show_error('Current Pub League season not found.')
             session.commit()
             return redirect(url_for('main.index'))
 
@@ -401,6 +419,7 @@ def player_profile(player_id):
             career_stats_form=career_stats_form,
             audit_logs=audit_logs,
             team_history=player.season_assignments,
+            current_season_teams=current_season_teams,
             # Permission-based access variables
             can_edit_stats=can_edit_stats,
             can_view_contact_info=can_view_contact_info,

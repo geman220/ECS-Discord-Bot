@@ -91,32 +91,41 @@ def create_error_result(player_info: Dict[str, Any]) -> Dict[str, Any]:
 
 def _extract_player_role_data(session, player_id: int):
     """Extract player data for Discord role update."""
-    from app.discord_utils import get_expected_roles_sync, get_app_managed_roles_sync, fetch_user_roles_sync
-    
     player = session.query(Player).get(player_id)
     if not player:
         raise ValueError(f"Player {player_id} not found")
     
     # Get all required data from database while session is available
     try:
-        # Get expected roles for this player
-        expected_roles = []
-        app_managed_roles = []
-        current_roles = []
-        
-        # We need to get this data synchronously since we have the session
-        # For now, let's extract the basic player data and calculate roles in async phase
+        # Extract the basic player data and calculate roles in async phase
         teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams if team.is_active]
+                for team in player.teams]
+        
+        # Get Flask user roles for division role assignment
+        user_roles = []
+        if player.user and player.user.roles:
+            user_roles = [role.name for role in player.user.roles]
+        
+        # Get league information for division role assignment
+        league_names = []
+        if player.league and player.league.name:
+            league_names.append(player.league.name)
+        if player.primary_league and player.primary_league.name:
+            league_names.append(player.primary_league.name)
+        for league in player.other_leagues:
+            if league.name:
+                league_names.append(league.name)
         
         return {
             'player_id': player_id,
             'discord_id': player.discord_id,
             'name': player.name,
-            'is_active': player.is_active,
+            'is_active': player.is_current_player,
             'is_coach': player.is_coach,
             'current_roles': player.discord_roles or [],
             'teams': teams,
+            'user_roles': user_roles,
+            'league_names': list(set(league_names)),  # Remove duplicates
             'force_update': False
         }
     except Exception as e:
@@ -133,19 +142,35 @@ async def _execute_player_role_update_async(data):
     for team in data.get('teams', []):
         if team.get('league_name') in ['Premier', 'Classic']:
             # Add player role
-            expected_roles.append(f"{team['name']} Player")
+            expected_roles.append(f"ECS-FC-PL-{team['name']}-Player")
             
             # Add coach role if player is coach
             if data.get('is_coach'):
-                expected_roles.append(f"{team['name']} Coach")
+                expected_roles.append(f"ECS-FC-PL-{team['name']}-Coach")
     
-    # Add global roles based on player status
-    if data.get('is_active'):
-        expected_roles.append('Registered Player')
+    # Add league division roles based on Flask user roles AND database league fields
+    user_roles = data.get('user_roles', [])
+    league_names = data.get('league_names', [])
+    
+    # Priority 1: Flask user roles (most authoritative)
+    if 'pl-premier' in user_roles:
+        if 'ECS-FC-PL-PREMIER' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-PREMIER')
+    if 'pl-classic' in user_roles:
+        if 'ECS-FC-PL-CLASSIC' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-CLASSIC')
+    
+    # Priority 2: Database league associations (fallback)
+    for league_name in league_names:
+        if league_name.lower() == 'premier' and 'ECS-FC-PL-PREMIER' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-PREMIER')
+        elif league_name.lower() == 'classic' and 'ECS-FC-PL-CLASSIC' not in expected_roles:
+            expected_roles.append('ECS-FC-PL-CLASSIC')
     
     # Get app managed roles (these are roles our app can modify)
     app_managed_roles = [
-        'Registered Player',
+        'ECS-FC-PL-PREMIER',
+        'ECS-FC-PL-CLASSIC',
         'Substitute Pool - Premier',
         'Substitute Pool - Classic'
     ]
@@ -153,8 +178,8 @@ async def _execute_player_role_update_async(data):
     # Add team-specific roles to managed roles
     for team in data.get('teams', []):
         app_managed_roles.extend([
-            f"{team['name']} Player",
-            f"{team['name']} Coach"
+            f"ECS-FC-PL-{team['name']}-Player",
+            f"ECS-FC-PL-{team['name']}-Coach"
         ])
     
     # Prepare data for async-only function
@@ -305,16 +330,22 @@ def _extract_batch_role_update_data(session, discord_ids: List[str]):
     players_data = []
     for player in players:
         teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams if team.is_active]
+                for team in player.teams]
+        
+        # Get Flask user roles for division role assignment
+        user_roles = []
+        if player.user and player.user.roles:
+            user_roles = [role.name for role in player.user.roles]
         
         players_data.append({
             'id': player.id,
             'discord_id': player.discord_id,
             'name': player.name,
-            'is_active': player.is_active,
+            'is_active': player.is_current_player,
             'is_coach': player.is_coach,
             'current_roles': player.discord_roles or [],
-            'teams': teams
+            'teams': teams,
+            'user_roles': user_roles
         })
     
     return {'players': players_data}
@@ -424,16 +455,22 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
     
     # Get all player teams
     teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-            for team in player.teams if team.is_active]
+            for team in player.teams]
+    
+    # Get Flask user roles for division role assignment
+    user_roles = []
+    if player.user and player.user.roles:
+        user_roles = [role.name for role in player.user.roles]
     
     return {
         'player_id': player_id,
         'discord_id': player.discord_id,
         'name': player.name,
-        'is_active': player.is_active,
+        'is_active': player.is_current_player,
         'is_coach': player.is_coach,
         'current_roles': player.discord_roles or [],
         'teams': teams,
+        'user_roles': user_roles,
         'target_team': target_team,
         'only_add': only_add
     }
@@ -454,9 +491,15 @@ async def _execute_assign_roles_async(data):
             if data.get('is_coach'):
                 expected_roles.append(f"{team['name']} Coach")
     
-    # Add global roles if processing all teams
-    if not target_team and data.get('is_active'):
-        expected_roles.append('Registered Player')
+    # Add league division roles if processing all teams (based on Flask user roles)
+    if not target_team:
+        user_roles = data.get('user_roles', [])
+        if 'pl-premier' in user_roles:
+            if 'ECS-FC-PL-PREMIER' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-PREMIER')
+        if 'pl-classic' in user_roles:
+            if 'ECS-FC-PL-CLASSIC' not in expected_roles:
+                expected_roles.append('ECS-FC-PL-CLASSIC')
     
     # Prepare data for async-only function
     player_data = {
@@ -466,16 +509,20 @@ async def _execute_assign_roles_async(data):
         'current_roles': data.get('current_roles', []),
         'expected_roles': expected_roles,
         'app_managed_roles': [
-            'Registered Player',
+            'ECS-FC-PL-PREMIER',
+            'ECS-FC-PL-CLASSIC',
             'Substitute Pool - Premier',
             'Substitute Pool - Classic'
-        ] + [f"{team['name']} Player" for team in data.get('teams', [])] + 
-            [f"{team['name']} Coach" for team in data.get('teams', [])]
+        ] + [f"ECS-FC-PL-{team['name']}-Player" for team in data.get('teams', [])] + 
+            [f"ECS-FC-PL-{team['name']}-Coach" for team in data.get('teams', [])]
     }
     
     # Execute role assignment
     from app.discord_utils import update_player_roles_async_only
-    result = await update_player_roles_async_only(player_data, force_update=not data.get('only_add', True))
+    only_add_value = data.get('only_add', True)
+    force_update_value = not only_add_value
+    logger.info(f"Task parameters: only_add={only_add_value}, force_update={force_update_value}")
+    result = await update_player_roles_async_only(player_data, force_update=force_update_value)
     
     return {
         'success': result.get('success', False),
@@ -607,13 +654,19 @@ def _extract_fetch_role_status_data(session):
     players_data = []
     for player in players:
         teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams if team.is_active]
+                for team in player.teams]
+        
+        # Get Flask user roles for division role assignment
+        user_roles = []
+        if player.user and player.user.roles:
+            user_roles = [role.name for role in player.user.roles]
         
         players_data.append({
             'id': player.id,
             'discord_id': player.discord_id,
             'name': player.name,
-            'teams': teams
+            'teams': teams,
+            'user_roles': user_roles
         })
     
     return {'players': players_data}
@@ -1003,12 +1056,18 @@ def _extract_remove_roles_data(session, player_id: int, team_id: int):
     if not target_team:
         raise ValueError(f"Team {team_id} not found")
     
+    # Get Flask user roles for division role assignment
+    user_roles = []
+    if player.user and player.user.roles:
+        user_roles = [role.name for role in player.user.roles]
+    
     return {
         'player_id': player_id,
         'team_id': team_id,
         'discord_id': player.discord_id,
         'name': player.name,
         'current_roles': player.discord_roles or [],
+        'user_roles': user_roles,
         'target_team': {
             'id': target_team.id,
             'name': target_team.name,
@@ -1025,8 +1084,8 @@ async def _execute_remove_roles_async(data):
     roles_to_remove = []
     if target_team and target_team.get('league_name') in ['Premier', 'Classic']:
         roles_to_remove.extend([
-            f"{target_team['name']} Player",
-            f"{target_team['name']} Coach"
+            f"ECS-FC-PL-{target_team['name']}-Player",
+            f"ECS-FC-PL-{target_team['name']}-Coach"
         ])
     
     # Prepare data for role removal
