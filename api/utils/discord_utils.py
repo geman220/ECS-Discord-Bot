@@ -133,7 +133,8 @@ async def get_team_id_for_message(message_id: int, channel_id: int, max_retries=
                     elif status == 'error':
                         error_msg = response_data.get('error', 'Unknown error')
                         logger.error(f"API returned error on attempt {attempt + 1}: {error_msg}")
-                        if 'not found' in error_msg.lower() and attempt == max_retries - 1:
+                        if 'not found' in error_msg.lower():
+                            logger.info(f"Message ID {message_id} not found in database - this is likely an old/invalid message")
                             return None, None
                     
                     else:

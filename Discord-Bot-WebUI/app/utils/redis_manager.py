@@ -100,7 +100,7 @@ class RedisManager:
                     socket_keepalive=True,
                     socket_keepalive_options={},
                     health_check_interval=30,  # Match session pool settings
-                    max_connections=50,  # Match session pool size
+                    max_connections=25,  # Reduced to prevent connection exhaustion
                     retry_on_timeout=True  # Auto-retry on socket timeouts
                 )
 
