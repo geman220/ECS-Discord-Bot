@@ -779,6 +779,10 @@ def api_draft_player():
         # Mark player for Discord update
         mark_player_for_discord_update(session, player_id)
         
+        # Queue Discord role assignment task AFTER commit to add new team role (keep existing roles)
+        assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+        logger.info(f"Queued Discord role update for {player.name} (only_add = True to keep existing roles)")
+        
         # Return response in the same format as socket handler
         return jsonify({
             'player': {
