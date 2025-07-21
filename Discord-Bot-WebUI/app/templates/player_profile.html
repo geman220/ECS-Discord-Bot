@@ -3,7 +3,9 @@
 {% block title %}{{ player.name }} - Player Profile{% endblock %}
 
 {% block main_content %}
+
 <div class="container-xxl flex-grow-1 container-p-y">
+    
     <!-- Player Header Card -->
     <div class="card bg-primary mb-4">
         <div class="card-body p-0 position-relative overflow-hidden">
@@ -12,8 +14,9 @@
                     <!-- Profile Picture Column -->
                     <div class="col-auto">
                         <div class="profile-image-container">
+                            
                             {% if player.profile_picture_url %}
-                            <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() }}" class="rounded-circle profile-image" alt="Profile Picture">
+                            <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}" class="rounded-circle profile-image" alt="Profile Picture">
                             {% else %}
                             <img src="{{ url_for('static', filename='img/default_player.png') }}" class="rounded-circle profile-image" alt="Default Profile Picture">
                             {% endif %}
@@ -44,6 +47,7 @@
                                     <i class="ti ti-users-off me-1"></i>No Team
                                 </div>
                                 {% endif %}
+                                
                                 
                                 {% if player.discord_id and (has_permission('view_discord_info') or is_own_profile) %}
                                 <div class="badge bg-label-success fs-6">
@@ -82,9 +86,11 @@
             </div>
         </div>
     </div>
+    
 
     <!-- Main Content Row -->
     <div class="row">
+        
         <!-- Left Column: Player Info -->
         <div class="col-xl-4 col-lg-5 col-md-5 col-12 mb-4">
             <!-- Contact Info Card -->
@@ -126,9 +132,12 @@
                 </div>
             </div>
             {% endif %}
+            
 
             <!-- Profile Verification Card -->
-            {% if is_own_profile or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles %}
+            
+            {% if is_own_profile or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+            
             <div class="card mb-4">
                 <div class="card-header border-bottom">
                     <h5 class="card-title mb-0">Profile Status</h5>
@@ -596,6 +605,7 @@
                                 </div>
                             </div>
                             
+                            
                             {% if can_view_admin_notes or is_own_profile %}
                             <div class="card shadow-sm mb-4">
                                 <div class="card-header border-bottom d-flex justify-content-between align-items-center">
@@ -854,14 +864,36 @@
                                     
                                     {% if can_view_admin_notes %}
                                     <div class="card shadow-sm">
-                                        <div class="card-header border-bottom">
+                                        <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                                             <h5 class="card-title mb-0">Admin/Coach Notes</h5>
+                                            {% if can_edit_admin_notes %}
+                                            <button type="button" class="btn btn-sm btn-primary edit-toggle" data-section="admin-notes">
+                                                <i class="ti ti-pencil"></i> Edit
+                                            </button>
+                                            {% endif %}
                                         </div>
                                         <div class="card-body">
-                                            <div class="bg-label-warning bg-opacity-10 p-3 rounded">
-                                                <i class="ti ti-lock me-1"></i> <strong>Admin/Coach Only:</strong><br>
-                                                <p class="mb-0 mt-2">{{ player.notes or 'No admin notes available' }}</p>
-                                            </div>
+                                            <form method="POST" enctype="multipart/form-data" id="admin-notes-form">
+                                                {{ form.hidden_tag() }}
+                                                <div class="form-group">
+                                                    <div class="view-mode">
+                                                        <div class="bg-label-warning bg-opacity-10 p-3 rounded">
+                                                            <i class="ti ti-lock me-1"></i> <strong>Admin/Coach Only:</strong><br>
+                                                            <p class="mb-0 mt-2">{{ player.notes or 'No admin notes available' }}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="edit-mode d-none">
+                                                        {{ form.notes(class_="form-control", id="notes", rows=3) }}
+                                                        <div class="form-text">These notes are only visible to administrators and coaches.</div>
+                                                        <div class="text-end mt-3">
+                                                            <button type="button" class="btn btn-secondary me-2 cancel-edit" data-section="admin-notes">Cancel</button>
+                                                            <button type="submit" name="update_admin_notes" class="btn btn-primary">
+                                                                <i class="ti ti-device-floppy me-1"></i>Save Admin Notes
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
                                         </div>
                                     </div>
                                     {% endif %}

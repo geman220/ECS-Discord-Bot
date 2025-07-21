@@ -316,7 +316,11 @@ def player_profile(player_id):
         is_player = is_own_profile  # Use the permission check we already did
         
         # Determine what the user can see/edit based on permissions
-        if is_impersonation_active():
+        impersonation_active = is_impersonation_active()
+        logger.info(f"Player profile {player_id}: Impersonation active: {impersonation_active}")
+        
+        if impersonation_active:
+            logger.info(f"  Using has_effective_permission() for permissions")
             can_edit_stats = has_effective_permission('edit_player_stats')
             can_view_contact_info = has_effective_permission('view_player_contact_info')
             can_view_admin_notes = has_effective_permission('view_player_admin_notes')
@@ -324,12 +328,27 @@ def player_profile(player_id):
             can_edit_any_profile = has_effective_permission('edit_any_player_profile')
             can_edit_own_profile = has_effective_permission('edit_own_profile')
         else:
+            logger.info(f"  Using safe_current_user.has_permission() for permissions")
             can_edit_stats = safe_current_user.has_permission('edit_player_stats')
             can_view_contact_info = safe_current_user.has_permission('view_player_contact_info')
             can_view_admin_notes = safe_current_user.has_permission('view_player_admin_notes')
             can_edit_admin_notes = safe_current_user.has_permission('edit_player_admin_notes')
             can_edit_any_profile = safe_current_user.has_permission('edit_any_player_profile')
             can_edit_own_profile = safe_current_user.has_permission('edit_own_profile')
+        
+        # Debug logging for admin notes permissions
+        logger.info(f"Player profile {player_id}: User {safe_current_user.id if safe_current_user else 'None'}")
+        logger.info(f"  can_view_admin_notes: {can_view_admin_notes}")
+        logger.info(f"  can_edit_admin_notes: {can_edit_admin_notes}")
+        logger.info(f"  User roles: {[role.name for role in safe_current_user.roles] if safe_current_user else []}")
+        
+        # Check the specific permission lookups
+        if impersonation_active:
+            logger.info(f"  has_effective_permission('view_player_admin_notes'): {has_effective_permission('view_player_admin_notes')}")
+            logger.info(f"  has_effective_permission('edit_player_admin_notes'): {has_effective_permission('edit_player_admin_notes')}")
+        else:
+            logger.info(f"  safe_current_user.has_permission('view_player_admin_notes'): {safe_current_user.has_permission('view_player_admin_notes')}")
+            logger.info(f"  safe_current_user.has_permission('edit_player_admin_notes'): {safe_current_user.has_permission('edit_player_admin_notes')}")
         
         # Special case: Allow viewing own contact info even without permission
         can_view_contact_info = can_view_contact_info or is_own_profile

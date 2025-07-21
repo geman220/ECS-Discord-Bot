@@ -377,13 +377,59 @@ def handle_permissions_update(role_id: int, permission_ids: List[int], session=N
     try:
         if session is None:
             session = g.db_session
-        role = session.query(Role).get_or_404(role_id)
-        role.permissions = session.query(Permission).filter(Permission.id.in_(permission_ids)).all()
+        
+        logger.info(f"Updating permissions for role_id: {role_id} with permission_ids: {permission_ids}")
+        
+        # First, close any existing transaction to ensure a clean state
+        try:
+            session.rollback()
+        except:
+            pass  # Ignore if there's no active transaction
+        
+        role = session.query(Role).get(role_id)
+        if not role:
+            logger.error(f"Role with ID {role_id} not found")
+            return False
+        
+        logger.info(f"Found role: {role.name}")
+        
+        # Clear existing permissions first
+        role.permissions.clear()
+        
+        # Add new permissions
+        if permission_ids:
+            new_permissions = session.query(Permission).filter(Permission.id.in_(permission_ids)).all()
+            logger.info(f"Found {len(new_permissions)} permissions to add")
+            for perm in new_permissions:
+                logger.info(f"Adding permission: {perm.name}")
+                role.permissions.append(perm)
+        
+        # Explicitly add the role back to the session
         session.add(role)
+        
+        # Flush and commit in separate steps for debugging
+        session.flush()
+        logger.info(f"After flush: Role {role.name} has {len(role.permissions)} permissions")
+        
         session.commit()
+        logger.info("Transaction committed successfully")
+        
+        # Verify with a new query using the same session
+        session.expunge_all()  # Clear session cache
+        role_check = session.query(Role).get(role_id)
+        logger.info(f"Verification query: Role {role_check.name} has {len(role_check.permissions)} permissions")
+        for perm in role_check.permissions:
+            logger.info(f"  - {perm.name}")
+        
         return True
+        
     except Exception as e:
-        logger.error(f"Error updating permissions: {e}")
+        logger.error(f"Error updating permissions: {e}", exc_info=True)
+        if session:
+            try:
+                session.rollback()
+            except:
+                pass
         return False
 
 
