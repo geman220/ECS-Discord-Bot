@@ -259,7 +259,7 @@ def handle_draft_player_enhanced(data):
                     logger.error(f"Failed to record draft pick: {str(e)}")
                     # Don't fail the entire operation if draft history fails
                 
-                # Mark for Discord update
+                # Mark for Discord update (but we'll handle role assignment below)
                 mark_player_for_discord_update(session, player_id)
                 
                 # Commit the transaction with proper error handling
@@ -270,6 +270,12 @@ def handle_draft_player_enhanced(data):
                     logger.error(f"💥 Draft commit failed: {str(commit_error)}")
                     emit('draft_error', {'message': f'Failed to save draft: {str(commit_error)}'})
                     return
+                
+                # Queue Discord role assignment task AFTER commit to add new team role (keep existing roles)
+                from app.tasks.tasks_discord import assign_roles_to_player_task
+                assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+                print(f"🎭 Queued Discord role update for {player.name} (only_add = True to keep existing roles)")
+                logger.info(f"🎭 Queued Discord role update for {player.name} (only_add = True to keep existing roles)")
                 
                 # Success response with full player data for creating the team player card
                 response_data = {
