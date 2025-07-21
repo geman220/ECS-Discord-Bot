@@ -179,6 +179,16 @@ function initPermissionsTab() {
     const permissionsSelect = document.getElementById('permissions');
     const currentPermissionsList = document.getElementById('current-permissions-list');
 
+    // Initialize Select2 for permissions dropdown
+    if (permissionsSelect && typeof $ !== 'undefined' && $.fn.select2) {
+        $(permissionsSelect).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Select permissions...',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+
     if (roleSelect) {
         roleSelect.addEventListener('change', function() {
             const roleId = this.value;
@@ -188,7 +198,13 @@ function initPermissionsTab() {
                 currentPermissionsList.innerHTML = '<li class="list-group-item text-muted">Select a role to view permissions.</li>';
                 if (permissionsSelect) {
                     // Clear permissions selection
-                    Array.from(permissionsSelect.options).forEach(option => option.selected = false);
+                    if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
+                        // Use Select2 method to clear values
+                        $(permissionsSelect).val([]).trigger('change');
+                    } else {
+                        // Fallback to native selection
+                        Array.from(permissionsSelect.options).forEach(option => option.selected = false);
+                    }
                 }
             }
         });
@@ -203,9 +219,17 @@ function initPermissionsTab() {
                     if (permissionsSelect) {
                         // Select current permissions in the select element
                         const currentPermissionIds = data.permissions.map(p => p.id.toString());
-                        Array.from(permissionsSelect.options).forEach(option => {
-                            option.selected = currentPermissionIds.includes(option.value);
-                        });
+                        
+                        // Check if Select2 is initialized
+                        if ($(permissionsSelect).hasClass('select2-hidden-accessible')) {
+                            // Use Select2 method to set values
+                            $(permissionsSelect).val(currentPermissionIds).trigger('change');
+                        } else {
+                            // Fallback to native selection
+                            Array.from(permissionsSelect.options).forEach(option => {
+                                option.selected = currentPermissionIds.includes(option.value);
+                            });
+                        }
                     }
                 } else {
                     currentPermissionsList.innerHTML = '<li class="list-group-item text-danger">Error loading permissions</li>';

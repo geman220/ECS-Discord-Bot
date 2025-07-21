@@ -159,8 +159,18 @@ def admin_dashboard():
         elif action == 'update_permissions':
             role_id = request.form.get('role_id')
             permissions = request.form.getlist('permissions')
-            success = handle_permissions_update(role_id, permissions)
-            if not success:
+            # Convert permission IDs to integers
+            try:
+                role_id = int(role_id) if role_id else None
+                permission_ids = [int(p) for p in permissions if p]
+            except ValueError:
+                show_error('Invalid role or permission IDs.')
+                return redirect(url_for('admin.admin_dashboard'))
+            
+            success = handle_permissions_update(role_id, permission_ids, session=session)
+            if success:
+                show_success('Permissions updated successfully.')
+            else:
                 show_error('Error updating permissions.')
             return redirect(url_for('admin.admin_dashboard'))
 

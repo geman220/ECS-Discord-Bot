@@ -37,8 +37,7 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
         url=current_app.config['WOO_API_URL'],
         consumer_key=current_app.config['WOO_CONSUMER_KEY'],
         consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
-        version="wc/v3",
-        timeout=30
+        version="wc/v3"
     )
 
     orders = []
@@ -79,8 +78,6 @@ def fetch_orders_from_woocommerce(current_season_name, filter_current_season=Fal
 
             logger.debug(f"Making request to WooCommerce API: {wcapi.url}/orders with params: {params}")
             
-            # Add timeout to prevent hanging
-            import requests
             response = wcapi.get("orders", params=params)
             response.raise_for_status()
 

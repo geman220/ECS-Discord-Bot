@@ -913,40 +913,54 @@ def update_status(task_id):
     """
     from celery.result import AsyncResult
     
-    result = AsyncResult(task_id)
-    
-    if result.state == 'PENDING':
+    try:
+        result = AsyncResult(task_id)
+        
+        # Log the raw result for debugging
+        logger.debug(f"Task {task_id} - State: {result.state}, Info: {result.info}")
+        
+        if result.state == 'PENDING':
+            response = {
+                'state': result.state,
+                'progress': 0,
+                'stage': 'pending',
+                'message': 'Task is waiting to start...'
+            }
+        elif result.state == 'PROGRESS':
+            info = result.info or {}
+            response = {
+                'state': result.state,
+                'progress': info.get('progress', 0),
+                'stage': info.get('stage', 'processing'),
+                'message': info.get('message', 'Processing...')
+            }
+        elif result.state == 'SUCCESS':
+            result_data = result.result or {}
+            response = {
+                'state': result.state,
+                'progress': 100,
+                'stage': 'complete',
+                'message': 'Sync completed successfully',
+                'new_players': result_data.get('new_players', 0),
+                'existing_players': result_data.get('existing_players', 0),
+                'potential_inactive': result_data.get('potential_inactive', 0),
+                'flagged_multi_orders': result_data.get('flagged_multi_orders', 0),
+                'flagged_orders_require_review': result_data.get('flagged_orders_require_review', False)
+            }
+        else:  # FAILURE or other states
+            response = {
+                'state': result.state,
+                'progress': 0,
+                'stage': 'failed',
+                'message': str(result.info) if result.info else f'Task failed with state: {result.state}'
+            }
+    except Exception as e:
+        logger.error(f"Error getting status for task {task_id}: {str(e)}")
         response = {
-            'state': result.state,
+            'state': 'FAILURE',
             'progress': 0,
-            'stage': 'pending',
-            'message': 'Task is waiting to start...'
-        }
-    elif result.state == 'PROGRESS':
-        response = {
-            'state': result.state,
-            'progress': result.info.get('progress', 0),
-            'stage': result.info.get('stage', 'processing'),
-            'message': result.info.get('message', 'Processing...')
-        }
-    elif result.state == 'SUCCESS':
-        response = {
-            'state': result.state,
-            'progress': 100,
-            'stage': 'complete',
-            'message': 'Sync completed successfully',
-            'new_players': result.result.get('new_players', 0),
-            'existing_players': result.result.get('existing_players', 0),
-            'potential_inactive': result.result.get('potential_inactive', 0),
-            'flagged_multi_orders': result.result.get('flagged_multi_orders', 0),
-            'flagged_orders_require_review': result.result.get('flagged_orders_require_review', False)
-        }
-    else:  # FAILURE
-        response = {
-            'state': result.state,
-            'progress': 0,
-            'stage': 'failed',
-            'message': str(result.info) if result.info else 'Task failed'
+            'stage': 'error',
+            'message': f'Error retrieving task status: {str(e)}'
         }
     
     return jsonify(response)
