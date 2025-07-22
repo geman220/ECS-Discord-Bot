@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+
+{% block title %}Discord Join Status{% endblock %}
+
+{% block custom_css %}
+<style>
+    /* Stats cards */
+    .stats-card {
+        border-radius: 0.5rem;
+        padding: 1rem;
+        color: white;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        display: block;
+        cursor: pointer;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .stats-card.total {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .stats-card.in-server {
+        background: linear-gradient(135deg, #28c76f 0%, #1fa65b 100%);
+    }
+    
+    .stats-card.not-in-server {
+        background: linear-gradient(135deg, #ea5455 0%, #e04142 100%);
+    }
+    
+    .stats-card.unknown {
+        background: linear-gradient(135deg, #ffab00 0%, #ff8a00 100%);
+    }
+    
+    .stats-card.active {
+        border: 3px solid white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+    
+    .stats-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stats-label {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+    
+    /* Compact player rows */
+    .player-row {
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+        background: var(--bs-body-bg);
+    }
+    
+    .player-row:hover {
+        border-color: var(--bs-primary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .player-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    
+    .player-main-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .player-avatar {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    .player-details {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .player-name {
+        font-weight: 600;
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--bs-body-color);
+    }
+    
+    .player-meta {
+        font-size: 0.75rem;
+        color: var(--bs-secondary);
+        margin-top: 0.125rem;
+    }
+    
+    .discord-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+    
+    .discord-status.not-in-server {
+        color: #ea5455;
+    }
+    
+    .discord-status.unknown {
+        color: #ffab00;
+    }
+    
+    .discord-status.in-server {
+        color: #28c76f;
+    }
+    
+    .player-actions {
+        display: flex;
+        gap: 0.25rem;
+        flex-shrink: 0;
+    }
+    
+    .btn-action {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        transition: all 0.2s ease;
+        min-width: auto;
+        white-space: nowrap;
+    }
+    
+    .btn-action i {
+        font-size: 0.875rem;
+    }
+    
+    .btn-email {
+        background-color: #28c76f;
+        color: white;
+        border: 1px solid #28c76f;
+    }
+    
+    .btn-discord {
+        background-color: #7289da;
+        color: white;
+        border: 1px solid #7289da;
+    }
+    
+    .btn-profile {
+        background-color: #667eea;
+        color: white;
+        border: 1px solid #667eea;
+    }
+    
+    .btn-refresh {
+        background-color: transparent;
+        color: var(--bs-primary);
+        border: 1px solid var(--bs-primary);
+    }
+    
+    .team-badge {
+        background-color: var(--bs-primary-bg-subtle);
+        color: var(--bs-primary);
+        padding: 0.125rem 0.375rem;
+        border-radius: 0.25rem;
+        font-size: 0.625rem;
+        margin-right: 0.25rem;
+        display: inline-block;
+    }
+    
+    .last-checked {
+        font-size: 0.625rem;
+        color: var(--bs-secondary);
+        font-style: italic;
+    }
+    
+    /* Filter and pagination */
+    .filter-controls {
+        background: var(--bs-gray-50);
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .pagination-info {
+        font-size: 0.875rem;
+        color: var(--bs-secondary);
+    }
+    
+    .per-page-selector {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .per-page-selector select {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--bs-border-color);
+        background: var(--bs-body-bg);
+    }
+    
+    /* Dark mode adjustments */
+    html[data-style="dark"] .player-row {
+        background: var(--bs-gray-900);
+        border-color: var(--bs-gray-700);
+    }
+    
+    html[data-style="dark"] .filter-controls {
+        background: var(--bs-gray-800);
+    }
+    
+    html[data-style="dark"] .player-row:hover {
+        border-color: var(--bs-primary);
+        background: var(--bs-gray-800);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .player-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .player-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        
+        .stats-number {
+            font-size: 1.5rem;
+        }
+        
+        .filter-controls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .btn-action span {
+            display: none;
+        }
+    }
+    
+    /* Contact information styling */
+    .contact-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        color: var(--bs-secondary);
+        background-color: var(--bs-gray-100);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid var(--bs-border-color);
+    }
+    
+    .contact-item i {
+        font-size: 0.875rem;
+        color: var(--bs-primary);
+    }
+    
+    .contact-item span {
+        color: var(--bs-body-color);
+        font-weight: 500;
+    }
+    
+    /* Dark mode contact styling */
+    html[data-style="dark"] .contact-item {
+        background-color: var(--bs-gray-800);
+        border-color: var(--bs-gray-700);
+    }
+    
+    /* Responsive contact info */
+    @media (max-width: 768px) {
+        .contact-info {
+            width: 100%;
+            margin-top: 0.25rem;
+        }
+        
+        .contact-item {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
+        
+        .contact-item i {
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y dark-mode-applied">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="py-3 mb-2">
+                        <span class="text-muted fw-light">Discord Tools /</span> Discord Join Status
+                    </h4>
+                    <p class="text-muted mb-0">Track and manage players who haven't joined the Discord server yet</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-sm" onclick="refreshAllStatus()">
+                        <i class="ti ti-refresh me-1"></i>
+                        Refresh All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards (Clickable Filters) -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <a href="?status=all" class="stats-card total {{ 'active' if status_filter == 'all' }}">
+                <div class="stats-number">{{ stats.total_players }}</div>
+                <div class="stats-label">Total Players with Discord</div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <a href="?status=in_server" class="stats-card in-server {{ 'active' if status_filter == 'in_server' }}">
+                <div class="stats-number">{{ stats.in_server }}</div>
+                <div class="stats-label">In Discord Server</div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <a href="?status=not_in_server" class="stats-card not-in-server {{ 'active' if status_filter == 'not_in_server' }}">
+                <div class="stats-number">{{ stats.not_in_server }}</div>
+                <div class="stats-label">Not In Server</div>
+            </a>
+        </div>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <a href="?status=unknown" class="stats-card unknown {{ 'active' if status_filter == 'unknown' }}">
+                <div class="stats-number">{{ stats.unknown_status }}</div>
+                <div class="stats-label">Unknown Status</div>
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="ti ti-alert-circle me-2"></i>
+        Error loading Discord data: {{ error }}
+    </div>
+    {% endif %}
+
+    {% if players %}
+    <!-- Filter and Pagination Controls -->
+    <div class="filter-controls">
+        <div class="d-flex align-items-center gap-3">
+            <h5 class="mb-0">{{ current_section }}</h5>
+            <div class="pagination-info">
+                Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ 
+                    [pagination.page * pagination.per_page, pagination.total] | min 
+                }} of {{ pagination.total }} players
+            </div>
+        </div>
+        
+        <div class="per-page-selector">
+            <label>Show:</label>
+            <select onchange="changePerPage(this.value)">
+                <option value="10" {{ 'selected' if per_page == 10 }}>10</option>
+                <option value="20" {{ 'selected' if per_page == 20 }}>20</option>
+                <option value="50" {{ 'selected' if per_page == 50 }}>50</option>
+                <option value="100" {{ 'selected' if per_page == 100 }}>100</option>
+            </select>
+            <span>per page</span>
+        </div>
+    </div>
+
+    <!-- Player List -->
+    <div class="row">
+        <div class="col-12">
+            {% for player in players %}
+            <div class="player-row">
+                <div class="player-header">
+                    <div class="player-main-info">
+                        <div class="player-avatar">
+                            {{ player.name[:2].upper() }}
+                        </div>
+                        
+                        <div class="player-details">
+                            <h6 class="player-name">{{ player.name }}</h6>
+                            <div class="player-meta">
+                                {% if player.teams %}
+                                    {% for team in player.teams %}
+                                    <span class="team-badge">{{ team.name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">No team assigned</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="discord-status {% if player.discord_in_server == True %}in-server{% elif player.discord_in_server == False %}not-in-server{% else %}unknown{% endif %}">
+                                <i class="ti ti-brand-discord"></i>
+                                <span>
+                                    {% if player.discord_in_server == True %}
+                                        In Discord Server
+                                    {% elif player.discord_in_server == False %}
+                                        Not in Discord Server
+                                    {% else %}
+                                        Status Unknown
+                                    {% endif %}
+                                </span>
+                                {% if player.discord_username %}
+                                <span class="text-muted">• {{ player.discord_username }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Contact Information -->
+                            <div class="contact-info">
+                                {% if player.user and player.user.email %}
+                                <div class="contact-item">
+                                    <i class="ti ti-mail"></i>
+                                    <span>{{ player.user.email }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if player.phone %}
+                                <div class="contact-item">
+                                    <i class="ti ti-phone"></i>
+                                    <span>{{ player.phone }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if player.discord_last_checked %}
+                            <div class="last-checked">Last checked: {{ player.discord_last_checked.strftime('%Y-%m-%d %H:%M') }}</div>
+                            {% else %}
+                            <div class="last-checked">Never checked</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="player-actions">
+                        {% if player.user and player.user.email %}
+                        <a href="mailto:{{ player.user.email }}" class="btn-action btn-email" title="Send Email">
+                            <i class="ti ti-mail"></i>
+                            <span>Email</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if player.discord_id %}
+                        <button class="btn-action btn-discord" onclick="sendDiscordDM('{{ player.discord_id }}', '{{ player.name }}')" title="Send Discord DM">
+                            <i class="ti ti-brand-discord"></i>
+                            <span>DM</span>
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="btn-action btn-profile" title="View Profile">
+                            <i class="ti ti-user"></i>
+                            <span>Profile</span>
+                        </a>
+                        
+                        <button class="btn-action btn-refresh" onclick="refreshPlayerStatus({{ player.id }}, '{{ player.name }}')" title="Refresh Status">
+                            <i class="ti ti-refresh"></i>
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+            <nav aria-label="Player pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagination.prev_num }}&status={{ status_filter }}&per_page={{ per_page }}">
+                            <i class="ti ti-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="ti ti-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    {% set start_page = [1, pagination.page - 2] | max %}
+                    {% set end_page = [pagination.pages, pagination.page + 2] | min %}
+                    
+                    {% if start_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1&status={{ status_filter }}&per_page={{ per_page }}">1</a>
+                    </li>
+                    {% if start_page > 2 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+
+                    {% for page_num in range(start_page, end_page + 1) %}
+                    <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                        <a class="page-link" href="?page={{ page_num }}&status={{ status_filter }}&per_page={{ per_page }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% endfor %}
+
+                    {% if end_page < pagination.pages %}
+                    {% if end_page < pagination.pages - 1 %}
+                    <li class="page-item disabled">
+                        <span class="page-link">…</span>
+                    </li>
+                    {% endif %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagination.pages }}&status={{ status_filter }}&per_page={{ per_page }}">{{ pagination.pages }}</a>
+                    </li>
+                    {% endif %}
+
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagination.next_num }}&status={{ status_filter }}&per_page={{ per_page }}">
+                            <i class="ti ti-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="ti ti-chevron-right"></i></span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        
+        <div class="text-muted small">
+            Page {{ pagination.page }} of {{ pagination.pages }}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        {% if status_filter == 'not_in_server' and stats.not_in_server == 0 %}
+            <div class="mb-3">
+                <i class="ti ti-check-circle text-success" style="font-size: 4rem;"></i>
+            </div>
+            <h3 class="text-success">All Players Are In Discord!</h3>
+            <p class="text-muted">All players with Discord accounts have successfully joined the server.</p>
+        {% elif stats.total_players == 0 %}
+            <div class="mb-3">
+                <i class="ti ti-users text-muted" style="font-size: 4rem;"></i>
+            </div>
+            <h3 class="text-muted">No Discord Players Found</h3>
+            <p class="text-muted">No players have linked Discord accounts yet.</p>
+        {% else %}
+            <div class="mb-3">
+                <i class="ti ti-search text-muted" style="font-size: 4rem;"></i>
+            </div>
+            <h3 class="text-muted">No Players Found</h3>
+            <p class="text-muted">No players match the current filter criteria.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Discord DM Modal -->
+<div class="modal fade" id="discordDMModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Discord Direct Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="dmForm">
+                    <input type="hidden" id="dmDiscordId" name="discord_id">
+                    <div class="mb-3">
+                        <label for="dmMessage" class="form-label">Message</label>
+                        <textarea class="form-control" id="dmMessage" name="message" rows="5" 
+                                  placeholder="Hi! We noticed you haven't joined our Discord server yet..."></textarea>
+                    </div>
+                    <div class="form-text">
+                        <i class="ti ti-info-circle me-1"></i>
+                        This will send a direct message to the player's Discord account.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitDM()">
+                    <i class="ti ti-send me-1"></i>
+                    Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function changePerPage(perPage) {
+    const url = new URL(window.location);
+    url.searchParams.set('per_page', perPage);
+    url.searchParams.set('page', '1'); // Reset to first page
+    window.location.href = url.toString();
+}
+
+function refreshAllStatus() {
+    if (confirm('This will refresh Discord status for all players. This may take a moment. Continue?')) {
+        // Show loading state
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Refreshing...';
+        btn.disabled = true;
+        
+        // Refresh all Discord status
+        fetch('/admin/refresh_all_discord_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Status Updated',
+                        text: `Refreshed Discord status for ${data.success_count} players`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    alert(`Refreshed Discord status for ${data.success_count} players`);
+                    location.reload();
+                }
+            } else {
+                throw new Error(data.message || 'Failed to refresh status');
+            }
+        }).catch(error => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to refresh status: ' + error.message
+                });
+            } else {
+                alert('Error refreshing status: ' + error.message);
+            }
+        }).finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
+}
+
+function refreshPlayerStatus(playerId, playerName) {
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i><span>Checking...</span>';
+    btn.disabled = true;
+    
+    fetch(`/teams/player/${playerId}/refresh-discord-status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+        }
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Updated',
+                    text: `Discord status refreshed for ${playerName}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                alert(`Discord status refreshed for ${playerName}`);
+                location.reload();
+            }
+        } else {
+            throw new Error(data.message || 'Failed to refresh status');
+        }
+    }).catch(error => {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to refresh status: ' + error.message
+            });
+        } else {
+            alert('Error refreshing status: ' + error.message);
+        }
+    }).finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+function sendDiscordDM(discordId, playerName) {
+    document.getElementById('dmDiscordId').value = discordId;
+    document.querySelector('#discordDMModal .modal-title').textContent = `Send Discord DM to ${playerName}`;
+    
+    // Set default message
+    const defaultMessage = `Hi ${playerName}! 👋
+
+We noticed you haven't joined our ECS FC Discord server yet. 
+
+Join us to:
+• Get match updates and announcements
+• Connect with your teammates
+• Participate in league discussions
+
+Join here: https://discord.gg/weareecs
+
+See you there!
+- ECS FC Admin Team`;
+    
+    document.getElementById('dmMessage').value = defaultMessage;
+    
+    const modal = new bootstrap.Modal(document.getElementById('discordDMModal'));
+    modal.show();
+}
+
+function submitDM() {
+    const discordId = document.getElementById('dmDiscordId').value;
+    const message = document.getElementById('dmMessage').value;
+    
+    if (!message.trim()) {
+        alert('Please enter a message');
+        return;
+    }
+    
+    const submitBtn = event.target;
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Sending...';
+    submitBtn.disabled = true;
+    
+    fetch('/admin/send_discord_dm', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+        },
+        body: JSON.stringify({
+            discord_id: discordId,
+            message: message
+        })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('discordDMModal')).hide();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Message Sent',
+                    text: 'Discord message sent successfully!',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                alert('Discord message sent successfully!');
+            }
+        } else {
+            throw new Error(data.message || 'Failed to send message');
+        }
+    }).catch(error => {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to send Discord message: ' + error.message
+            });
+        } else {
+            alert('Error sending Discord message: ' + error.message);
+        }
+    }).finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

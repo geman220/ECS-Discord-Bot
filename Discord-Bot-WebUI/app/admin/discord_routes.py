@@ -7,15 +7,18 @@ This module contains routes for Discord role synchronization and management.
 """
 
 import logging
-from flask import jsonify, g
+from datetime import datetime
+from flask import jsonify, g, render_template, request, current_app
 from flask_login import login_required
+from sqlalchemy.orm import joinedload
 from app.decorators import role_required
-from app.models import Player
+from app.models import Player, Team, User
 from app.tasks.tasks_discord import (
     update_player_discord_roles,
     fetch_role_status,
     process_discord_role_updates
 )
+from app.utils.user_helpers import safe_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -104,4 +107,187 @@ def mass_update_discord_roles():
 
     except Exception as e:
         logger.error(f"Error initiating mass role update: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/admin/discord_management', endpoint='discord_management', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def discord_management():
+    """
+    Discord Management Dashboard - Shows players not in Discord server with contact options.
+    """
+    session = g.db_session
+    try:
+        # Get pagination parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)  # Default 20 players per page
+        status_filter = request.args.get('status', 'not_in_server')  # Default to showing priority players
+        
+        # Ensure per_page is within reasonable bounds
+        per_page = max(10, min(per_page, 100))
+
+        # Get base query for all players with Discord IDs
+        base_query = session.query(Player).options(
+            joinedload(Player.teams).joinedload(Team.league),
+            joinedload(Player.user)
+        ).filter(
+            Player.discord_id.isnot(None)
+        )
+
+        # Get total statistics (for the cards)
+        all_players = base_query.all()
+        
+        players_in_server = []
+        players_not_in_server = []
+        players_unknown_status = []
+
+        for player in all_players:
+            if player.discord_in_server is True:
+                players_in_server.append(player)
+            elif player.discord_in_server is False:
+                players_not_in_server.append(player)
+            else:
+                players_unknown_status.append(player)
+
+        stats = {
+            'total_players': len(all_players),
+            'in_server': len(players_in_server),
+            'not_in_server': len(players_not_in_server),
+            'unknown_status': len(players_unknown_status)
+        }
+
+        # Create filtered query based on status filter
+        if status_filter == 'not_in_server':
+            filtered_query = base_query.filter(Player.discord_in_server == False)
+            current_section = 'Players Not In Discord Server'
+        elif status_filter == 'unknown':
+            filtered_query = base_query.filter(Player.discord_in_server.is_(None))
+            current_section = 'Players with Unknown Discord Status'
+        elif status_filter == 'in_server':
+            filtered_query = base_query.filter(Player.discord_in_server == True)
+            current_section = 'Players In Discord Server'
+        else:
+            # All players
+            filtered_query = base_query
+            current_section = 'All Players with Discord'
+
+        # Order by last checked (unchecked first, then oldest first)
+        filtered_query = filtered_query.order_by(
+            Player.discord_last_checked.nulls_first(),
+            Player.discord_last_checked.asc()
+        )
+
+        # Apply pagination
+        from flask import Flask
+        if hasattr(Flask, 'extensions') and 'sqlalchemy' in getattr(Flask, 'extensions', {}):
+            # Use Flask-SQLAlchemy pagination if available
+            try:
+                paginated_result = filtered_query.paginate(
+                    page=page, per_page=per_page, error_out=False
+                )
+                players = paginated_result.items
+                pagination = {
+                    'has_prev': paginated_result.has_prev,
+                    'prev_num': paginated_result.prev_num,
+                    'page': paginated_result.page,
+                    'has_next': paginated_result.has_next,
+                    'next_num': paginated_result.next_num,
+                    'pages': paginated_result.pages,
+                    'total': paginated_result.total,
+                    'per_page': per_page
+                }
+            except:
+                # Fallback to manual pagination
+                total = filtered_query.count()
+                players = filtered_query.offset((page - 1) * per_page).limit(per_page).all()
+                pages = (total + per_page - 1) // per_page
+                pagination = {
+                    'has_prev': page > 1,
+                    'prev_num': page - 1 if page > 1 else None,
+                    'page': page,
+                    'has_next': page < pages,
+                    'next_num': page + 1 if page < pages else None,
+                    'pages': pages,
+                    'total': total,
+                    'per_page': per_page
+                }
+        else:
+            # Manual pagination
+            total = filtered_query.count()
+            players = filtered_query.offset((page - 1) * per_page).limit(per_page).all()
+            pages = (total + per_page - 1) // per_page
+            pagination = {
+                'has_prev': page > 1,
+                'prev_num': page - 1 if page > 1 else None,
+                'page': page,
+                'has_next': page < pages,
+                'next_num': page + 1 if page < pages else None,
+                'pages': pages,
+                'total': total,
+                'per_page': per_page
+            }
+
+        return render_template('admin/discord_management.html',
+                               stats=stats,
+                               players=players,
+                               pagination=pagination,
+                               status_filter=status_filter,
+                               current_section=current_section,
+                               per_page=per_page)
+
+    except Exception as e:
+        logger.error(f"Error loading Discord management page: {str(e)}")
+        return render_template('admin/discord_management.html',
+                               stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0, 'unknown_status': 0},
+                               players=[],
+                               pagination={'has_prev': False, 'prev_num': None, 'page': 1, 'has_next': False, 'next_num': None, 'pages': 1, 'total': 0, 'per_page': 20},
+                               status_filter='not_in_server',
+                               current_section='Players Not In Discord Server',
+                               per_page=20,
+                               error=str(e))
+
+
+@admin_bp.route('/admin/refresh_all_discord_status', endpoint='refresh_all_discord_status', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def refresh_all_discord_status():
+    """
+    Refresh Discord status for all players with Discord IDs.
+    """
+    session = g.db_session
+    try:
+        # Get all players with Discord IDs
+        players_with_discord = session.query(Player).filter(
+            Player.discord_id.isnot(None)
+        ).all()
+
+        success_count = 0
+        error_count = 0
+        
+        for player in players_with_discord:
+            try:
+                if player.check_discord_status():
+                    success_count += 1
+                    session.add(player)  # Mark for update
+                else:
+                    error_count += 1
+            except Exception as e:
+                logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
+                error_count += 1
+
+        # Commit all updates
+        session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Refreshed Discord status for {success_count} players',
+            'success_count': success_count,
+            'error_count': error_count,
+            'total_processed': len(players_with_discord)
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error in refresh_all_discord_status: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
