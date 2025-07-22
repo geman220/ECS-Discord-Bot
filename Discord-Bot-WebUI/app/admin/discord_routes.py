@@ -12,7 +12,7 @@ from flask import jsonify, g, render_template, request, current_app
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 from app.decorators import role_required
-from app.models import Player, Team, User
+from app.models import Player, Team, User, Season, League
 from app.tasks.tasks_discord import (
     update_player_discord_roles,
     fetch_role_status,
@@ -127,9 +127,13 @@ def discord_management():
         # Ensure per_page is within reasonable bounds
         per_page = max(10, min(per_page, 100))
 
-        # Get base query for all players with Discord IDs
+        # Get current seasons to filter teams
+        current_seasons = session.query(Season).filter(Season.is_current == True).all()
+        current_season_ids = [season.id for season in current_seasons]
+        
+        # Get base query for all players with Discord IDs, filtering teams to current season only
         base_query = session.query(Player).options(
-            joinedload(Player.teams).joinedload(Team.league),
+            joinedload(Player.teams).joinedload(Team.league).joinedload(League.season),
             joinedload(Player.user)
         ).filter(
             Player.discord_id.isnot(None)
@@ -137,6 +141,18 @@ def discord_management():
 
         # Get total statistics (for the cards)
         all_players = base_query.all()
+        
+        # Create a dictionary to store current teams for each player
+        player_current_teams = {}
+        for player in all_players:
+            if player.teams:
+                current_season_teams = [
+                    team for team in player.teams 
+                    if team.league and team.league.season_id in current_season_ids
+                ]
+                player_current_teams[player.id] = current_season_teams
+            else:
+                player_current_teams[player.id] = []
         
         players_in_server = []
         players_not_in_server = []
@@ -187,6 +203,7 @@ def discord_management():
                     page=page, per_page=per_page, error_out=False
                 )
                 players = paginated_result.items
+                        
                 pagination = {
                     'has_prev': paginated_result.has_prev,
                     'prev_num': paginated_result.prev_num,
@@ -201,6 +218,7 @@ def discord_management():
                 # Fallback to manual pagination
                 total = filtered_query.count()
                 players = filtered_query.offset((page - 1) * per_page).limit(per_page).all()
+                        
                 pages = (total + per_page - 1) // per_page
                 pagination = {
                     'has_prev': page > 1,
@@ -216,6 +234,7 @@ def discord_management():
             # Manual pagination
             total = filtered_query.count()
             players = filtered_query.offset((page - 1) * per_page).limit(per_page).all()
+                    
             pages = (total + per_page - 1) // per_page
             pagination = {
                 'has_prev': page > 1,
@@ -234,7 +253,8 @@ def discord_management():
                                pagination=pagination,
                                status_filter=status_filter,
                                current_section=current_section,
-                               per_page=per_page)
+                               per_page=per_page,
+                               player_current_teams=player_current_teams)
 
     except Exception as e:
         logger.error(f"Error loading Discord management page: {str(e)}")
@@ -245,6 +265,7 @@ def discord_management():
                                status_filter='not_in_server',
                                current_section='Players Not In Discord Server',
                                per_page=20,
+                               player_current_teams={},
                                error=str(e))
 
 

@@ -426,12 +426,12 @@
                         <div class="player-details">
                             <h6 class="player-name">{{ player.name }}</h6>
                             <div class="player-meta">
-                                {% if player.teams %}
-                                    {% for team in player.teams %}
+                                {% if player_current_teams.get(player.id) %}
+                                    {% for team in player_current_teams[player.id] %}
                                     <span class="team-badge">{{ team.name }}</span>
                                     {% endfor %}
                                 {% else %}
-                                    <span class="text-muted">No team assigned</span>
+                                    <span class="text-muted">No current team assigned</span>
                                 {% endif %}
                             </div>
                             
@@ -647,24 +647,33 @@ function changePerPage(perPage) {
 }
 
 function refreshAllStatus() {
-    if (confirm('This will refresh Discord status for all players. This may take a moment. Continue?')) {
-        // Show loading state
-        const btn = event.target.closest('button');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Refreshing...';
-        btn.disabled = true;
-        
-        // Refresh all Discord status
-        fetch('/admin/refresh_all_discord_status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
-            }
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                if (typeof Swal !== 'undefined') {
+    Swal.fire({
+        title: 'Refresh All Discord Status',
+        text: 'This will refresh Discord status for all players. This may take a moment. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, refresh all',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#28c76f',
+        cancelButtonColor: '#ea5455'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Refreshing...';
+            btn.disabled = true;
+            
+            // Refresh all Discord status
+            fetch('/admin/refresh_all_discord_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Status Updated',
@@ -675,27 +684,21 @@ function refreshAllStatus() {
                         location.reload();
                     });
                 } else {
-                    alert(`Refreshed Discord status for ${data.success_count} players`);
-                    location.reload();
+                    throw new Error(data.message || 'Failed to refresh status');
                 }
-            } else {
-                throw new Error(data.message || 'Failed to refresh status');
-            }
-        }).catch(error => {
-            if (typeof Swal !== 'undefined') {
+            }).catch(error => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'Failed to refresh status: ' + error.message
+                    text: 'Failed to refresh status: ' + error.message,
+                    confirmButtonColor: '#ea5455'
                 });
-            } else {
-                alert('Error refreshing status: ' + error.message);
-            }
-        }).finally(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-    }
+            }).finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+    });
 }
 
 function refreshPlayerStatus(playerId, playerName) {
@@ -714,33 +717,25 @@ function refreshPlayerStatus(playerId, playerName) {
     .then(data => {
         if (data.success) {
             // Show success message and reload
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Status Updated',
-                    text: `Discord status refreshed for ${playerName}`,
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
-                    location.reload();
-                });
-            } else {
-                alert(`Discord status refreshed for ${playerName}`);
+            Swal.fire({
+                icon: 'success',
+                title: 'Status Updated',
+                text: `Discord status refreshed for ${playerName}`,
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
                 location.reload();
-            }
+            });
         } else {
             throw new Error(data.message || 'Failed to refresh status');
         }
     }).catch(error => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to refresh status: ' + error.message
-            });
-        } else {
-            alert('Error refreshing status: ' + error.message);
-        }
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to refresh status: ' + error.message,
+            confirmButtonColor: '#ea5455'
+        });
     }).finally(() => {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -777,7 +772,12 @@ function submitDM() {
     const message = document.getElementById('dmMessage').value;
     
     if (!message.trim()) {
-        alert('Please enter a message');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Message Required',
+            text: 'Please enter a message before sending',
+            confirmButtonColor: '#ffab00'
+        });
         return;
     }
     
@@ -800,30 +800,23 @@ function submitDM() {
     .then(data => {
         if (data.success) {
             bootstrap.Modal.getInstance(document.getElementById('discordDMModal')).hide();
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Message Sent',
-                    text: 'Discord message sent successfully!',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                alert('Discord message sent successfully!');
-            }
+            Swal.fire({
+                icon: 'success',
+                title: 'Message Sent',
+                text: 'Discord message sent successfully!',
+                timer: 2000,
+                showConfirmButton: false
+            });
         } else {
             throw new Error(data.message || 'Failed to send message');
         }
     }).catch(error => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Failed to send Discord message: ' + error.message
-            });
-        } else {
-            alert('Error sending Discord message: ' + error.message);
-        }
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to send Discord message: ' + error.message,
+            confirmButtonColor: '#ea5455'
+        });
     }).finally(() => {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
