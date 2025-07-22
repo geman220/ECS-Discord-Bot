@@ -242,54 +242,142 @@
     width: 100%;
 }
 
-/* Position Zone Layouts */
+/* Specific Position Zone Layouts */
+
+/* Goalkeeper */
 .goalkeeper-zone {
     bottom: 15px;
     left: 50%;
-    width: 100px;
-    height: 80px;
+    width: 80px;
+    height: 65px;
     transform: translateX(-50%);
     background: rgba(255, 193, 7, 0.2);
     border-color: rgba(255, 193, 7, 0.5);
 }
 
-.defender-zone {
-    bottom: 120px;
-    left: 50%;
-    width: 280px;
-    height: 90px;
-    transform: translateX(-50%);
+/* Defense Line */
+.leftback-zone {
+    bottom: 100px;
+    left: 15%;
+    width: 70px;
+    height: 60px;
     background: rgba(220, 53, 69, 0.15);
     border-color: rgba(220, 53, 69, 0.4);
 }
 
-.midfielder-zone {
-    top: 50%;
+.centerback-zone {
+    bottom: 100px;
     left: 50%;
-    width: 320px;
-    height: 100px;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
+    width: 140px;
+    height: 60px;
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.4);
+}
+
+.rightback-zone {
+    bottom: 100px;
+    right: 15%;
+    width: 70px;
+    height: 60px;
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.4);
+}
+
+/* Wing Backs (more advanced) */
+.leftwingback-zone {
+    bottom: 180px;
+    left: 8%;
+    width: 70px;
+    height: 60px;
+    background: rgba(255, 102, 204, 0.15);
+    border-color: rgba(255, 102, 204, 0.4);
+}
+
+.rightwingback-zone {
+    bottom: 180px;
+    right: 8%;
+    width: 70px;
+    height: 60px;
+    background: rgba(255, 102, 204, 0.15);
+    border-color: rgba(255, 102, 204, 0.4);
+}
+
+/* Defensive Midfield */
+.cdm-zone {
+    bottom: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 60px;
+    background: rgba(102, 51, 153, 0.15);
+    border-color: rgba(102, 51, 153, 0.4);
+}
+
+/* Central Midfield */
+.cm-zone {
+    bottom: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 60px;
     background: rgba(0, 123, 255, 0.15);
     border-color: rgba(0, 123, 255, 0.4);
 }
 
-.forward-zone {
-    top: 120px;
+/* Attacking Midfield */
+.cam-zone {
+    bottom: 360px;
     left: 50%;
-    width: 240px;
-    height: 85px;
     transform: translateX(-50%);
+    width: 110px;
+    height: 60px;
+    background: rgba(51, 204, 102, 0.15);
+    border-color: rgba(51, 204, 102, 0.4);
+}
+
+/* Wings */
+.leftwing-zone {
+    bottom: 320px;
+    left: 12%;
+    width: 70px;
+    height: 60px;
+    background: rgba(255, 165, 0, 0.15);
+    border-color: rgba(255, 165, 0, 0.4);
+}
+
+.rightwing-zone {
+    bottom: 320px;
+    right: 12%;
+    width: 70px;
+    height: 60px;
+    background: rgba(255, 165, 0, 0.15);
+    border-color: rgba(255, 165, 0, 0.4);
+}
+
+/* Strikers */
+.striker-zone {
+    bottom: 440px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 60px;
     background: rgba(40, 167, 69, 0.15);
     border-color: rgba(40, 167, 69, 0.4);
 }
 
+/* Bench */
 .bench-zone {
     top: 10px;
     right: 10px;
-    width: 120px;
-    height: 100px;
+    width: 130px;
+    height: 120px;
     background: rgba(108, 117, 125, 0.15);
     border-color: rgba(108, 117, 125, 0.4);
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    padding: 8px;
 }
 
 /* Positioned Players */

@@ -379,6 +379,26 @@ def get_match_rsvps(match_id):
         # Start with the basic query
         query = session_db.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
         
+        # OPTIMIZATION: Only include RSVPs for recent matches to reduce memory usage
+        from app.utils.rsvp_filters import filter_availability_active, is_match_active_for_rsvp
+        from app.models import Match
+        
+        # Check if this match is still "active" for RSVP purposes
+        match = session_db.query(Match).get(match_id)
+        if match and not is_match_active_for_rsvp(match.date):
+            logger.debug(f"Match {match_id} on {match.date} is too old for active RSVP processing")
+            # Return empty results for old matches to save memory
+            return {
+                'success': True,
+                'total_count': 0,
+                'responses': {},
+                'availability_records': [],
+                'message': f'Match on {match.date} is outside active RSVP window'
+            }
+        
+        # Apply active RSVP filtering (joins with Match table for date filtering)
+        query = filter_availability_active(query)
+        
         # If a team_id is provided, use the player_teams association table to filter by team
         if team_id:
             from app.models import player_teams
@@ -604,20 +624,36 @@ def get_message_ids(match_id):
 
 # Simple circuit breaker to prevent overload
 _request_failures = {}
-_circuit_breaker_threshold = 5
+_circuit_breaker_threshold = 10  # Increased from 5 to allow more retries
 _circuit_breaker_window = 300  # 5 minutes
+_circuit_breaker_reset_time = {}  # Track when circuit was opened
 
 def _is_circuit_open(endpoint):
     """Check if circuit breaker is open for this endpoint."""
     import time
     now = time.time()
+    
+    # Check if circuit should be reset (30 seconds after opening)
+    if endpoint in _circuit_breaker_reset_time:
+        if now - _circuit_breaker_reset_time[endpoint] > 30:
+            # Reset the circuit breaker
+            logger.info(f"Resetting circuit breaker for {endpoint}")
+            _request_failures[endpoint] = []
+            del _circuit_breaker_reset_time[endpoint]
+            return False
+    
     if endpoint not in _request_failures:
         return False
     
     recent_failures = [t for t in _request_failures[endpoint] if now - t < _circuit_breaker_window]
     _request_failures[endpoint] = recent_failures
     
-    return len(recent_failures) >= _circuit_breaker_threshold
+    is_open = len(recent_failures) >= _circuit_breaker_threshold
+    if is_open and endpoint not in _circuit_breaker_reset_time:
+        _circuit_breaker_reset_time[endpoint] = now
+        logger.warning(f"Circuit breaker opened for {endpoint} - will reset in 30 seconds")
+    
+    return is_open
 
 def _record_failure(endpoint):
     """Record a failure for circuit breaker."""
@@ -650,14 +686,43 @@ def get_match_and_team_id_from_message():
                 'error': 'Missing required parameters'
             }), 400
 
+        # Try direct database query first as a fallback if the queue is overloaded
+        try:
+            # Quick synchronous check first to avoid queueing if possible
+            from app.models import ScheduledMessage
+            from sqlalchemy import or_
+            
+            scheduled_msg = g.db_session.query(ScheduledMessage).filter(
+                or_(
+                    (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
+                    (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
+                )
+            ).first()
+            
+            if scheduled_msg:
+                # Found in direct query - return immediately without using Celery
+                if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
+                    team_id = scheduled_msg.match.home_team_id
+                else:
+                    team_id = scheduled_msg.match.away_team_id
+                
+                logger.info(f"Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
+                return jsonify({
+                    'status': 'success',
+                    'data': {
+                        'match_id': scheduled_msg.match_id,
+                        'team_id': team_id
+                    }
+                }), 200
+        except Exception as e:
+            logger.warning(f"Direct query failed, falling back to Celery task: {e}")
+        
         # Use a lower priority queue to avoid blocking other critical tasks
         task = fetch_match_and_team_id_task.apply_async(
-            kwargs={
-                'message_id': message_id,
-                'channel_id': channel_id
-            },
+            args=[message_id, channel_id],  # Pass as positional args, not kwargs
             queue='discord',  # Use discord queue which should have proper worker allocation
-            priority=5  # Lower priority to avoid blocking critical tasks
+            priority=5,  # Lower priority to avoid blocking critical tasks
+            expires=25  # Task expires after 25 seconds
         )
 
         try:

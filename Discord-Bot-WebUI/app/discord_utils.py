@@ -162,17 +162,25 @@ async def get_role_id(guild_id: int, role_name: str, session: aiohttp.ClientSess
     Returns:
         Optional[str]: The role ID if found, else None.
     """
-    logger.debug(f"Looking up role ID for name: {role_name}")
+    logger.info(f"Looking up role ID for name: '{role_name}'")
 
     # Check cache for an exact or normalized match
     if role_name in role_name_cache:
-        logger.debug(f"Cache hit for role {role_name}: {role_name_cache[role_name]}")
+        logger.info(f"Exact cache hit for role '{role_name}': {role_name_cache[role_name]}")
         return role_name_cache[role_name]
+    
     target_normalized = normalize_name(role_name)
+    logger.info(f"Role '{role_name}' normalized to: '{target_normalized}'")
+    
+    # Check if any cached roles match when normalized
     for cached_name, rid in role_name_cache.items():
-        if normalize_name(cached_name) == target_normalized:
-            logger.debug(f"Normalized cache hit for {role_name}: {rid}")
+        cached_normalized = normalize_name(cached_name)
+        if cached_normalized == target_normalized:
+            logger.info(f"Normalized cache hit: '{role_name}' -> '{cached_name}' (both normalize to '{target_normalized}'): {rid}")
             return rid
+    
+    logger.info(f"No cached role matches '{role_name}' (normalized: '{target_normalized}')")
+    logger.debug(f"Available cached roles: {list(role_name_cache.keys())}")
 
     # Fetch roles from Discord API and refresh cache
     url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles"
@@ -180,14 +188,32 @@ async def get_role_id(guild_id: int, role_name: str, session: aiohttp.ClientSess
     if response:
         role_name_cache.clear()
         role_name_cache.update({role['name']: role['id'] for role in response})
-        logger.debug(f"Updated role cache with {len(response)} roles")
+        logger.info(f"Updated role cache with {len(response)} roles from Discord API")
+        
+        # Log coach-related roles for debugging
+        coach_roles = [role['name'] for role in response if 'COACH' in role['name'].upper()]
+        if coach_roles:
+            logger.info(f"Found existing coach roles on Discord: {coach_roles}")
+        
+        # Check for exact match first
         if role_name in role_name_cache:
+            logger.info(f"Exact match found after cache refresh: '{role_name}' -> {role_name_cache[role_name]}")
             return role_name_cache[role_name]
+            
+        # Check for normalized match
         for discord_role in response:
-            if normalize_name(discord_role['name']) == target_normalized:
-                logger.debug(f"Found normalized match: {discord_role['name']} -> {discord_role['id']}")
+            discord_normalized = normalize_name(discord_role['name'])
+            if discord_normalized == target_normalized:
+                logger.info(f"Normalized match found: '{role_name}' ('{target_normalized}') matches Discord role '{discord_role['name']}' ('{discord_normalized}') -> {discord_role['id']}")
                 return discord_role['id']
-    logger.error(f"Role not found: {role_name}")
+                
+        # Log what we're looking for vs what exists for coach roles
+        if 'COACH' in target_normalized:
+            logger.warning(f"Coach role '{role_name}' (normalized: '{target_normalized}') not found in Discord. Existing coach roles: {coach_roles}")
+    else:
+        logger.error(f"Failed to fetch roles from Discord API")
+        
+    logger.error(f"Role not found: '{role_name}' (normalized: '{target_normalized}')")
     return None
 
 
@@ -227,11 +253,23 @@ async def get_or_create_role(guild_id: int, role_name: str, session: aiohttp.Cli
     Returns:
         Optional[str]: The role ID.
     """
+    logger.info(f"get_or_create_role called for: '{role_name}' in guild {guild_id}")
+    
     existing_id = await get_role_id(guild_id, role_name, session)
     if existing_id:
+        logger.info(f"Found existing role '{role_name}': {existing_id}")
         return existing_id
+        
     normalized_name = normalize_name(role_name)
-    return await create_role(guild_id, normalized_name, session)
+    logger.info(f"Role '{role_name}' not found, creating new role with normalized name: '{normalized_name}'")
+    
+    created_id = await create_role(guild_id, normalized_name, session)
+    if created_id:
+        logger.info(f"Successfully created new role '{normalized_name}': {created_id}")
+    else:
+        logger.error(f"Failed to create role '{normalized_name}'")
+    
+    return created_id
 
 
 async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str, int],

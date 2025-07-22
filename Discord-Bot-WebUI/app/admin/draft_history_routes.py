@@ -23,6 +23,7 @@ from app.models import (
     DraftOrderHistory, Season, League, Player, Team, User
 )
 from app.core import db
+from app.draft_enhanced import DraftService
 
 logger = logging.getLogger(__name__)
 
@@ -107,47 +108,62 @@ def edit_draft_pick(pick_id: int):
             return jsonify({'success': False, 'message': 'Draft pick not found'}), 404
         
         data = request.get_json()
-        new_position = data.get('position', type=int)
+        new_position = data.get('position')
+        if new_position is not None:
+            new_position = int(new_position)
         new_notes = data.get('notes', '').strip()
         
+        position_changed = False
+        swap_result = None
         if new_position and new_position != pick.draft_position:
-            # Check if the new position conflicts with existing picks
-            existing_pick = db.session.query(DraftOrderHistory).filter(
-                DraftOrderHistory.season_id == pick.season_id,
-                DraftOrderHistory.league_id == pick.league_id,
-                DraftOrderHistory.draft_position == new_position,
-                DraftOrderHistory.id != pick_id
-            ).first()
+            # Use the new swap functionality to handle position changes
+            swap_result = DraftService.swap_draft_positions(db.session, pick_id, new_position)
             
-            if existing_pick:
-                return jsonify({
-                    'success': False, 
-                    'message': f'Draft position {new_position} is already taken by {existing_pick.player.name}'
-                }), 400
+            if not swap_result['success']:
+                return jsonify(swap_result), 400
             
-            # Update the position
-            old_position = pick.draft_position
-            pick.draft_position = new_position
-            logger.info(f"Updated draft pick {pick_id} position from {old_position} to {new_position}")
+            position_changed = True
+            logger.info(
+                f"Swapped draft pick {pick_id} from position #{swap_result['old_position']} "
+                f"to #{swap_result['new_position']}, affected {swap_result['affected_picks']} other picks"
+            )
         
         # Update notes
+        notes_changed = False
         if new_notes != pick.notes:
             old_notes = pick.notes or "No notes"
             pick.notes = new_notes if new_notes else None
+            pick.updated_at = datetime.utcnow()
+            notes_changed = True
             logger.info(f"Updated draft pick {pick_id} notes from '{old_notes}' to '{new_notes}'")
         
-        pick.updated_at = datetime.utcnow()
-        db.session.commit()
+        # Only commit if we made changes
+        if position_changed or notes_changed:
+            db.session.commit()
+        
+        # Build response message
+        message_parts = []
+        if position_changed:
+            message_parts.append(f"Moved from #{swap_result['old_position']} to #{swap_result['new_position']}")
+            if swap_result['affected_picks'] > 0:
+                message_parts.append(f"adjusted {swap_result['affected_picks']} other picks")
+        if notes_changed:
+            message_parts.append("updated notes")
+        
+        message = f"Updated draft pick for {pick.player.name}"
+        if message_parts:
+            message += f" ({', '.join(message_parts)})"
         
         return jsonify({
             'success': True,
-            'message': f'Updated draft pick for {pick.player.name}',
+            'message': message,
             'pick': {
                 'id': pick.id,
                 'position': pick.draft_position,
                 'notes': pick.notes,
                 'updated_at': pick.updated_at.isoformat()
-            }
+            },
+            'affected_picks': swap_result['affected_picks'] if swap_result else 0
         })
         
     except Exception as e:

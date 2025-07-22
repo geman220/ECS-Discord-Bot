@@ -70,11 +70,18 @@
                 <div class="card-header border-bottom">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Team Members</h5>
-                        {% if can_add_player %}
-                        <a href="{{ url_for('teams.add_player', team_id=team.id) }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1"></i>Add Player
-                        </a>
-                        {% endif %}
+                        <div class="btn-group" role="group">
+                            {% if is_global_admin %}
+                            <button class="btn btn-warning btn-sm" id="assignDiscordRolesBtn" data-team-id="{{ team.id }}">
+                                <i class="ti ti-brand-discord me-1"></i>Assign Discord Roles
+                            </button>
+                            {% endif %}
+                            {% if can_add_player %}
+                            <a href="{{ url_for('teams.add_player', team_id=team.id) }}" class="btn btn-primary btn-sm">
+                                <i class="ti ti-plus me-1"></i>Add Player
+                            </a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 <div class="card-body p-0">
@@ -1176,6 +1183,126 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle Discord role assignment for team
+    const assignDiscordRolesBtn = document.getElementById('assignDiscordRolesBtn');
+    
+    if (assignDiscordRolesBtn) {
+        assignDiscordRolesBtn.addEventListener('click', function() {
+            const teamId = this.dataset.teamId;
+            const teamName = '{{ team.name|escape }}';
+            
+            // Show confirmation dialog
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Assign Discord Roles?',
+                    html: `This will assign Discord roles to all players on <strong>${teamName}</strong>.<br><br>` +
+                          `Players will receive:<br>` +
+                          `• <strong>ECS-FC-PL-${teamName}-Player</strong> role<br>` +
+                          `• Division role (Premier/Classic) based on their user permissions<br><br>` +
+                          `<small class="text-info">This is a manual fix for the draft role assignment issue.</small>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ffc107',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Assign Roles',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        assignDiscordRolesToTeam(teamId, teamName);
+                    }
+                });
+            } else {
+                // Fallback to native confirm dialog
+                const confirmed = confirm(`Are you sure you want to assign Discord roles to all players on ${teamName}? This will give them their team role and division role.`);
+                if (confirmed) {
+                    assignDiscordRolesToTeam(teamId, teamName);
+                }
+            }
+        });
+    }
+    
+    function assignDiscordRolesToTeam(teamId, teamName) {
+        // Show loading state
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Assigning Discord Roles...',
+                html: `Processing role assignments for <strong>${teamName}</strong>.<br><br>` +
+                      `This may take a moment to complete.`,
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // Send assignment request
+        fetch(`/teams/${teamId}/assign-discord-roles`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            console.log('Role assignment response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Response is not JSON, content-type:', contentType);
+                return response.text().then(text => {
+                    console.error('Response body:', text);
+                    throw new Error('Server returned non-JSON response');
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const processedCount = data.processed_count || 0;
+                const errorCount = data.error_count || 0;
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Discord Roles Assigned!',
+                        html: `Successfully processed Discord role assignments for <strong>${teamName}</strong>.<br><br>` +
+                              `<strong>${processedCount}</strong> players processed successfully<br>` +
+                              (errorCount > 0 ? `<strong class="text-warning">${errorCount}</strong> players had errors` : ''),
+                        timer: 5000,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    alert(`Discord roles assigned successfully to ${teamName}! ${processedCount} players processed.`);
+                }
+            } else {
+                throw new Error(data.message || 'Failed to assign Discord roles');
+            }
+        })
+        .catch(error => {
+            console.error('Error assigning Discord roles:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to assign Discord roles. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to assign Discord roles. Please try again.'));
+            }
+        });
+    }
+
     // Handle ECS FC match deletion
     const deleteButtons = document.querySelectorAll('.delete-ecs-fc-match-btn');
     

@@ -35,13 +35,43 @@ body {
   overflow-y: auto;
   border-radius: 0.375rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  background-color: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: var(--ecs-bg-primary);
+  border: 1px solid var(--ecs-border-primary);
 }
 
 .ui-menu-item {
   min-height: 44px;
   padding: 0.5rem !important;
+}
+
+.ui-menu-item,
+.ui-menu-item-wrapper {
+  color: var(--ecs-text-primary) !important;
+  background-color: transparent !important;
+}
+
+.ui-menu-item-wrapper:hover,
+.ui-state-active {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+/* Light mode autocomplete (explicit styling) */
+html[data-style="light"] .ui-autocomplete {
+  background-color: var(--ecs-bg-primary) !important;
+  border-color: var(--ecs-border-primary) !important;
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="light"] .ui-menu-item,
+html[data-style="light"] .ui-menu-item-wrapper {
+  color: var(--ecs-text-primary) !important;
+}
+
+html[data-style="light"] .ui-menu-item-wrapper:hover,
+html[data-style="light"] .ui-menu-item-wrapper.ui-state-active {
+  background-color: var(--ecs-bg-tertiary) !important;
+  color: var(--ecs-text-primary) !important;
 }
 
 /* Dark mode autocomplete */

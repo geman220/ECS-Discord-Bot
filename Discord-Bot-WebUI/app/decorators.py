@@ -524,12 +524,23 @@ def celery_task(func=None, **task_kwargs):
                             
                             if extract_func:
                                 # New pattern: function has _extract_data method
-                                data = extract_func(session, *args, **kwargs)
-                                # Handle case where extract function returns None (e.g., missing entity)
-                                if data is None:
-                                    logger.warning(f"Extract function returned None for task {f.__name__} - skipping execution")
-                                    register_session_end(session_id, 'committed')
-                                    return {'success': False, 'message': 'Required entity not found'}
+                                try:
+                                    data = extract_func(session, *args, **kwargs)
+                                    # Handle case where extract function returns None (e.g., missing entity)
+                                    if data is None:
+                                        logger.warning(f"Extract function returned None for task {f.__name__} - skipping execution")
+                                        register_session_end(session_id, 'committed')
+                                        return {'success': False, 'message': 'Required entity not found'}
+                                    
+                                    # ROOT CAUSE FIX: Expunge all SQLAlchemy objects from session before data leaves scope
+                                    # This prevents detached object references from holding onto session memory
+                                    logger.info(f"Expunging all objects from session for task {task_name}")
+                                    session.expunge_all()
+                                    
+                                except Exception as e:
+                                    logger.error(f"Error in extract function for task {f.__name__}: {e}", exc_info=True)
+                                    register_session_end(session_id, 'rollback')
+                                    raise
                             else:
                                 # Legacy pattern: function implements two-phase internally
                                 result = f(self, session, *args, **kwargs)
@@ -549,10 +560,18 @@ def celery_task(func=None, **task_kwargs):
                             execute_func = task_metadata['execute_async']
                         
                         if execute_func:
-                            result = async_to_sync(execute_func(data))
+                            try:
+                                result = async_to_sync(execute_func(data))
+                            except Exception as e:
+                                logger.error(f"Error in async execute function for task {f.__name__}: {e}", exc_info=True)
+                                return {'success': False, 'message': f'Async execution failed: {str(e)}', 'error': str(e)}
                         else:
                             # Fallback: call original function with data
-                            result = async_to_sync(f(data))
+                            try:
+                                result = async_to_sync(f(data))
+                            except Exception as e:
+                                logger.error(f"Error in fallback async execution for task {f.__name__}: {e}", exc_info=True)
+                                return {'success': False, 'message': f'Fallback execution failed: {str(e)}', 'error': str(e)}
                         
                         # Check if task requires a final database update
                         final_update_func = None

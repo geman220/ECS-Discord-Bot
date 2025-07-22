@@ -118,23 +118,152 @@ class DraftService:
             
             removed_position = draft_record.draft_position
             
-            # Delete the record
-            session.delete(draft_record)
-            
-            # Adjust all subsequent draft positions down by 1
+            # Get all subsequent picks before deleting the record
             subsequent_picks = session.query(DraftOrderHistory).filter(
                 DraftOrderHistory.season_id == season_id,
                 DraftOrderHistory.league_id == league_id,
                 DraftOrderHistory.draft_position > removed_position
-            ).all()
+            ).order_by(DraftOrderHistory.draft_position).all()
             
-            for pick in subsequent_picks:
-                pick.draft_position -= 1
+            # Delete the record first
+            session.delete(draft_record)
+            session.flush()  # Ensure deletion is processed before updates
+            
+            # Adjust subsequent draft positions down by 1
+            # Use bulk update with a single query to avoid constraint violations
+            if subsequent_picks:
+                # Update all positions at once using raw SQL to avoid constraint conflicts
+                session.execute(
+                    """
+                    UPDATE draft_order_history 
+                    SET draft_position = draft_position - 1, updated_at = NOW()
+                    WHERE season_id = :season_id 
+                    AND league_id = :league_id 
+                    AND draft_position > :removed_position
+                    """,
+                    {
+                        'season_id': season_id,
+                        'league_id': league_id,
+                        'removed_position': removed_position
+                    }
+                )
             
             logger.info(f"Removed draft pick #{removed_position} for player {player_id} and adjusted {len(subsequent_picks)} subsequent picks")
             
         except Exception as e:
             logger.error(f"Error removing draft pick: {str(e)}")
+            raise
+    
+    @staticmethod
+    def swap_draft_positions(session, pick_id: int, new_position: int) -> Dict[str, Any]:
+        """
+        Swap a draft pick to a new position and automatically adjust all affected picks.
+        
+        For example, if pick #105 is moved to #100:
+        - Pick at #100 moves to #101
+        - Pick at #101 moves to #102
+        - ... and so on until #104 moves to #105
+        
+        Args:
+            session: Database session
+            pick_id: ID of the draft pick to move
+            new_position: New position number to move to
+            
+        Returns:
+            Dict containing success status and affected picks information
+        """
+        try:
+            # Get the pick to be moved with eager loading
+            pick_to_move = session.query(DraftOrderHistory).options(
+                joinedload(DraftOrderHistory.player)
+            ).filter_by(id=pick_id).first()
+            
+            if not pick_to_move:
+                return {'success': False, 'message': 'Draft pick not found'}
+            
+            old_position = pick_to_move.draft_position
+            season_id = pick_to_move.season_id
+            league_id = pick_to_move.league_id
+            player_name = pick_to_move.player.name
+            
+            # If positions are the same, no action needed
+            if old_position == new_position:
+                return {'success': True, 'message': 'No position change needed', 'affected_picks': 0}
+            
+            # Get max position to validate the new position
+            max_position = session.query(func.max(DraftOrderHistory.draft_position)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar() or 0
+            
+            # Validate new position is within valid range
+            if new_position < 1 or new_position > max_position:
+                return {'success': False, 'message': f'Position must be between 1 and {max_position}'}
+            
+            # Use a temporary position to avoid unique constraint violations
+            # Find a safe temporary position outside the current range
+            temp_position = max_position + 1000
+            
+            # Move the pick to temporary position first
+            pick_to_move.draft_position = temp_position
+            pick_to_move.updated_at = datetime.utcnow()
+            session.flush()  # Flush to avoid constraint issues
+            
+            # Determine the range of picks that need to be adjusted
+            if old_position > new_position:
+                # Moving up (e.g., from #105 to #100)
+                # All picks from new_position to old_position-1 need to shift down by 1
+                affected_picks = session.query(DraftOrderHistory).filter(
+                    DraftOrderHistory.season_id == season_id,
+                    DraftOrderHistory.league_id == league_id,
+                    DraftOrderHistory.draft_position >= new_position,
+                    DraftOrderHistory.draft_position < old_position
+                ).order_by(desc(DraftOrderHistory.draft_position)).all()
+                
+                # Shift affected picks down (start from highest position to avoid conflicts)
+                for pick in affected_picks:
+                    pick.draft_position += 1
+                    pick.updated_at = datetime.utcnow()
+                    
+            else:
+                # Moving down (e.g., from #100 to #105)
+                # All picks from old_position+1 to new_position need to shift up by 1
+                affected_picks = session.query(DraftOrderHistory).filter(
+                    DraftOrderHistory.season_id == season_id,
+                    DraftOrderHistory.league_id == league_id,
+                    DraftOrderHistory.draft_position > old_position,
+                    DraftOrderHistory.draft_position <= new_position
+                ).order_by(DraftOrderHistory.draft_position).all()
+                
+                # Shift affected picks up (start from lowest position to avoid conflicts)
+                for pick in affected_picks:
+                    pick.draft_position -= 1
+                    pick.updated_at = datetime.utcnow()
+            
+            # Flush the shifts before moving the main pick
+            session.flush()
+            
+            # Now move the pick to its final position
+            pick_to_move.draft_position = new_position
+            pick_to_move.updated_at = datetime.utcnow()
+            
+            # Log the swap
+            logger.info(
+                f"Swapped draft pick #{old_position} ({player_name}) "
+                f"to position #{new_position}, affected {len(affected_picks)} other picks"
+            )
+            
+            return {
+                'success': True,
+                'message': f'Successfully moved pick from #{old_position} to #{new_position}',
+                'affected_picks': len(affected_picks),
+                'old_position': old_position,
+                'new_position': new_position,
+                'player_name': player_name
+            }
+            
+        except Exception as e:
+            logger.error(f"Error swapping draft positions: {str(e)}")
             raise
     
     @staticmethod

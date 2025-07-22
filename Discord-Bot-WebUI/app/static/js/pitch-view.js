@@ -247,7 +247,7 @@ class PitchViewSystem {
     }
     
     removePlayerFromAllPositions(playerId, teamId) {
-        const positions = ['goalkeeper', 'defender', 'midfielder', 'forward', 'bench'];
+        const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         positions.forEach(position => {
             const positionContainer = document.getElementById(`position-${position}-${teamId}`);
             if (positionContainer) {
@@ -280,7 +280,7 @@ class PitchViewSystem {
     }
     
     isPlayerInTeam(playerId, teamId) {
-        const positions = ['goalkeeper', 'defender', 'midfielder', 'forward', 'bench'];
+        const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         return positions.some(position => {
             const container = document.getElementById(`position-${position}-${teamId}`);
             return container && container.querySelector(`[data-player-id="${playerId}"]`);
@@ -370,7 +370,7 @@ class PitchViewSystem {
     
     movePlayerBetweenPositions(playerId, newPosition, teamId) {
         // Find current position
-        const positions = ['goalkeeper', 'defender', 'midfielder', 'forward', 'bench'];
+        const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         let currentPosition = null;
         let playerData = null;
         
@@ -495,7 +495,7 @@ class PitchViewSystem {
     }
     
     getTotalPlayersInTeam(teamId) {
-        const positions = ['goalkeeper', 'defender', 'midfielder', 'forward', 'bench'];
+        const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
         return positions.reduce((total, position) => {
             const container = document.getElementById(`position-${position}-${teamId}`);
             return total + (container ? container.children.length : 0);

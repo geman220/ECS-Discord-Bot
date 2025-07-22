@@ -483,9 +483,21 @@ def edit_user(user_id):
             # Flush to update the relationship
             session.flush()
             
-            # Invalidate draft cache when user roles change
+            # Invalidate draft cache when user roles change (optimized with league context)
             from app.draft_cache_service import DraftCacheService
-            DraftCacheService.invalidate_player_cache(user.id)
+            league_id = form.league_id.data
+            if league_id and league_id != 0:
+                # Get league name for targeted cache invalidation
+                from app.models import League
+                league = session.query(League).get(league_id)
+                league_name = league.name if league else None
+                if league_name:
+                    DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)
+                    logger.debug(f"Targeted cache invalidation for user {user.id} in league {league_name}")
+                else:
+                    DraftCacheService.invalidate_player_cache_optimized(user.id)
+            else:
+                DraftCacheService.invalidate_player_cache_optimized(user.id)
             
             # Check if SUB role is assigned (pl-unverified)
             has_sub_role = any(role.name == 'pl-unverified' for role in new_roles)
@@ -562,10 +574,21 @@ def edit_user(user_id):
                 session.add(user.player)
             session.commit()
             
-            # Invalidate draft cache after successful commit
+            # Invalidate draft cache after successful commit (optimized)
             from app.draft_cache_service import DraftCacheService
-            DraftCacheService.invalidate_player_cache(user.id)
-            logger.info(f"Invalidated draft cache for user {user.id} after edit")
+            # Try to get league context for targeted invalidation
+            league_name = None
+            if hasattr(player, 'league') and player.league:
+                league_name = player.league.name
+            elif hasattr(player, 'primary_league') and player.primary_league:
+                league_name = player.primary_league.name
+            
+            if league_name:
+                DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)
+                logger.info(f"Targeted cache invalidation for user {user.id} in league {league_name} after edit")
+            else:
+                DraftCacheService.invalidate_player_cache_optimized(user.id)
+                logger.info(f"Global cache invalidation for user {user.id} after edit")
             
             # Trigger Discord role sync if player has Discord ID
             if user.player and user.player.discord_id:
@@ -745,10 +768,22 @@ def approve_user(user_id):
         user.is_approved = True
         session.commit()
         
-        # Invalidate draft cache when user approval status changes
+        # Invalidate draft cache when user approval status changes (optimized)
         from app.draft_cache_service import DraftCacheService
-        DraftCacheService.invalidate_player_cache(user.id)
-        logger.info(f"Invalidated draft cache for user {user.id} after approval")
+        # Try to get league context for targeted invalidation
+        league_name = None
+        if user.player:
+            if hasattr(user.player, 'league') and user.player.league:
+                league_name = user.player.league.name
+            elif hasattr(user.player, 'primary_league') and user.player.primary_league:
+                league_name = user.player.primary_league.name
+        
+        if league_name:
+            DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)
+            logger.info(f"Targeted cache invalidation for user {user.id} in league {league_name} after approval")
+        else:
+            DraftCacheService.invalidate_player_cache_optimized(user.id)
+            logger.info(f"Global cache invalidation for user {user.id} after approval")
         
         show_success(f'User {user.username} has been approved.')
 
@@ -915,8 +950,9 @@ def confirm_update():
         if request.json.get('process_inactive', False):
             affected_players.update(player.id for player in all_active_players if player.id not in players_with_memberships)
         
+        # Batch invalidate cache for affected players (optimized - note: WooCommerce sync affects multiple leagues)
         for player_id in affected_players:
-            DraftCacheService.invalidate_player_cache(player_id)
+            DraftCacheService.invalidate_player_cache_optimized(player_id)  # Global invalidation needed for WooCommerce
         logger.info(f"Invalidated draft cache for {len(affected_players)} players after WooCommerce sync")
         
         delete_sync_data(task_id)
@@ -1532,8 +1568,9 @@ def commit_sync_changes():
         if process_inactive:
             all_affected_players.update(sync_data.get('potential_inactive', []))
         
+        # Batch invalidate cache for affected players (optimized - note: Enhanced WooCommerce sync affects multiple leagues) 
         for player_id in all_affected_players:
-            DraftCacheService.invalidate_player_cache(player_id)
+            DraftCacheService.invalidate_player_cache_optimized(player_id)  # Global invalidation needed for WooCommerce
         logger.info(f"Invalidated draft cache for {len(all_affected_players)} players after enhanced WooCommerce sync")
         
         # Clean up the sync data

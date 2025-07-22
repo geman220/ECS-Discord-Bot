@@ -1,0 +1,343 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Draft Cache Statistics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #495057;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    .cache-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .cache-warm { background-color: #28a745; }
+    .cache-cold { background-color: #dc3545; }
+    .cache-partial { background-color: #ffc107; }
+    .auto-refresh {
+        background: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .league-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+    }
+    .ttl-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Draft Cache Statistics</h2>
+                <div>
+                    <button id="refresh-btn" class="btn btn-primary btn-sm me-2">Refresh</button>
+                    <a href="/admin/redis/stats" class="btn btn-secondary btn-sm me-2">Redis Stats</a>
+                    <button id="invalidate-all-btn" class="btn btn-danger btn-sm">Clear All Draft Cache</button>
+                </div>
+            </div>
+
+            <div class="auto-refresh">
+                <label>
+                    <input type="checkbox" id="auto-refresh" checked> Auto-refresh every 10 seconds
+                </label>
+                <span id="last-updated" class="ms-3 text-muted"></span>
+            </div>
+
+            <!-- Cache TTL Settings -->
+            <div class="ttl-info">
+                <h6>Cache TTL Settings (Optimized for Draft Performance)</h6>
+                <div class="row">
+                    <div class="col-md-3"><strong>Player Data:</strong> 15 minutes</div>
+                    <div class="col-md-3"><strong>Analytics:</strong> 10 minutes</div>
+                    <div class="col-md-3"><strong>Team Data:</strong> 30 minutes</div>
+                    <div class="col-md-3"><strong>Availability:</strong> 5 minutes</div>
+                </div>
+            </div>
+
+            <!-- Overall Cache Statistics -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-cache-keys">{{ cache_stats.draft_cache_keys.values() | sum if cache_stats.draft_cache_keys else 0 }}</div>
+                        <div class="stat-label">Total Draft Cache Keys</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="redis-pool-utilization">
+                            {{ cache_stats.connection_pool.pool_stats.utilization_percent | default(0) }}%
+                        </div>
+                        <div class="stat-label">Redis Pool Utilization</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="active-leagues">{{ leagues | length }}</div>
+                        <div class="stat-label">Active Leagues</div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-value" id="cache-hit-ratio">-</div>
+                        <div class="stat-label">Est. Cache Hit Ratio</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache Type Breakdown -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Cache Type Breakdown</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td>Player Cache Keys</td>
+                                        <td><span id="player-cache-count">{{ cache_stats.draft_cache_keys.players | default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Analytics Cache Keys</td>
+                                        <td><span id="analytics-cache-count">{{ cache_stats.draft_cache_keys.analytics | default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Team Cache Keys</td>
+                                        <td><span id="team-cache-count">{{ cache_stats.draft_cache_keys.teams | default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Availability Cache Keys</td>
+                                        <td><span id="availability-cache-count">{{ cache_stats.draft_cache_keys.availability | default(0) }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Connection Pool Health</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td>Max Connections</td>
+                                        <td><span id="max-connections">{{ cache_stats.connection_pool.pool_stats.max_connections | default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>In Use</td>
+                                        <td><span id="connections-in-use">{{ cache_stats.connection_pool.pool_stats.in_use_connections | default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Available</td>
+                                        <td><span id="connections-available">{{ cache_stats.connection_pool.pool_stats.available_connections | default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Created</td>
+                                        <td><span id="connections-created">{{ cache_stats.connection_pool.pool_stats.created_connections | default("N/A") }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- League-Specific Cache Status -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>League-Specific Cache Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="league-cache-status">
+                                {% for league_name in leagues %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="league-card">
+                                        <h6>{{ league_name }}</h6>
+                                        {% set league_status = league_cache_status.get(league_name, {}) %}
+                                        <div class="cache-status-grid">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Available Players:</span>
+                                                <span>
+                                                    <span class="cache-indicator {{ 'cache-warm' if league_status.get('players_available') else 'cache-cold' }}"></span>
+                                                    {{ 'Cached' if league_status.get('players_available') else 'Missing' }}
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Drafted Players:</span>
+                                                <span>
+                                                    <span class="cache-indicator {{ 'cache-warm' if league_status.get('players_drafted') else 'cache-cold' }}"></span>
+                                                    {{ 'Cached' if league_status.get('players_drafted') else 'Missing' }}
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Analytics:</span>
+                                                <span>
+                                                    <span class="cache-indicator {{ 'cache-warm' if league_status.get('analytics') else 'cache-cold' }}"></span>
+                                                    {{ 'Cached' if league_status.get('analytics') else 'Missing' }}
+                                                </span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <span>Teams:</span>
+                                                <span>
+                                                    <span class="cache-indicator {{ 'cache-warm' if league_status.get('teams') else 'cache-cold' }}"></span>
+                                                    {{ 'Cached' if league_status.get('teams') else 'Missing' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary warm-cache-btn" data-league="{{ league_name }}">
+                                                Warm Cache
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let autoRefreshInterval;
+
+function updateDraftCacheStats() {
+    fetch('/admin/redis/api/draft-cache-stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching draft cache stats:', data.error);
+                return;
+            }
+            
+            // Update overall statistics
+            const totalKeys = Object.values(data.draft_cache_keys || {}).reduce((a, b) => a + b, 0);
+            document.getElementById('total-cache-keys').textContent = totalKeys;
+            
+            // Update cache type breakdown
+            document.getElementById('player-cache-count').textContent = data.draft_cache_keys?.players || 0;
+            document.getElementById('analytics-cache-count').textContent = data.draft_cache_keys?.analytics || 0;
+            document.getElementById('team-cache-count').textContent = data.draft_cache_keys?.teams || 0;
+            document.getElementById('availability-cache-count').textContent = data.draft_cache_keys?.availability || 0;
+            
+            // Update connection pool stats
+            if (data.connection_pool?.pool_stats) {
+                document.getElementById('redis-pool-utilization').textContent = 
+                    (data.connection_pool.pool_stats.utilization_percent || 0) + '%';
+                document.getElementById('max-connections').textContent = 
+                    data.connection_pool.pool_stats.max_connections || 'N/A';
+                document.getElementById('connections-in-use').textContent = 
+                    data.connection_pool.pool_stats.in_use_connections || 'N/A';
+                document.getElementById('connections-available').textContent = 
+                    data.connection_pool.pool_stats.available_connections || 'N/A';
+                document.getElementById('connections-created').textContent = 
+                    data.connection_pool.pool_stats.created_connections || 'N/A';
+            }
+            
+            // Update last updated time
+            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error updating draft cache stats:', error);
+        });
+}
+
+function warmCache(leagueName) {
+    fetch(`/admin/redis/warm-draft-cache/${leagueName}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error warming cache: ' + data.error);
+            } else {
+                alert(`Cache warming initiated for ${leagueName}`);
+                updateDraftCacheStats();
+            }
+        })
+        .catch(error => {
+            alert('Error warming cache: ' + error);
+        });
+}
+
+function invalidateAllCache() {
+    if (!confirm('Are you sure you want to clear all draft cache? This will cause temporary performance impact during the next draft loads.')) {
+        return;
+    }
+    
+    // This would require implementing an invalidate-all endpoint
+    alert('Full cache invalidation not yet implemented. Use individual league cache warming instead.');
+}
+
+// Event listeners
+document.getElementById('refresh-btn').addEventListener('click', updateDraftCacheStats);
+document.getElementById('invalidate-all-btn').addEventListener('click', invalidateAllCache);
+
+// Warm cache buttons
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('warm-cache-btn')) {
+        const leagueName = e.target.getAttribute('data-league');
+        warmCache(leagueName);
+    }
+});
+
+document.getElementById('auto-refresh').addEventListener('change', function() {
+    if (this.checked) {
+        autoRefreshInterval = setInterval(updateDraftCacheStats, 10000);
+    } else {
+        clearInterval(autoRefreshInterval);
+    }
+});
+
+// Initialize auto-refresh
+if (document.getElementById('auto-refresh').checked) {
+    autoRefreshInterval = setInterval(updateDraftCacheStats, 10000);
+}
+
+// Initial load
+updateDraftCacheStats();
+</script>
+{% endblock %}

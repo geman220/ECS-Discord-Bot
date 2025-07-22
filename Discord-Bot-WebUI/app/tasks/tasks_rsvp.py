@@ -592,7 +592,24 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
                 }
                 
         # Idempotency check #2: RSVP state check - get current RSVPs
-        current_rsvps = session.query(Availability).filter_by(match_id=match_id).all()
+        # OPTIMIZATION: Only process RSVPs for recent matches
+        from app.utils.rsvp_filters import filter_availability_discord_relevant, should_sync_rsvp_to_discord
+        from app.models import Match
+        
+        # Check if we should still care about this match's RSVPs
+        match = session.query(Match).get(match_id)
+        if match and not should_sync_rsvp_to_discord(match.date):
+            logger.debug(f"Skipping Discord sync for old match {match_id} on {match.date}")
+            return {
+                'success': True,
+                'message': f'Match on {match.date} is outside Discord care window',
+                'skipped': True,
+                'match_date': match.date.isoformat()
+            }
+        
+        # Get RSVPs with Discord relevance filtering
+        current_rsvps_query = session.query(Availability).filter_by(match_id=match_id)
+        current_rsvps = filter_availability_discord_relevant(current_rsvps_query).all()
         
         # Generate a hash of the current RSVP state to compare with the last notification
         import hashlib
@@ -647,10 +664,11 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
 @celery_task(name='app.tasks.tasks_rsvp.cleanup_stale_rsvps', max_retries=3, queue='discord')
 def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
     """
-    Clean up stale RSVP records.
+    Clean up stale RSVP records using batched processing with frequent commits.
 
     This task deletes Availability records for matches that occurred more than a specified
-    number of days ago. It processes records in batches and returns details about the cleanup.
+    number of days ago. It processes records in small batches with frequent commits to 
+    prevent long-running transactions and connection timeouts.
 
     Args:
         session: Database session.
@@ -664,46 +682,57 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
     """
     try:
         cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+        logger.info(f"Starting cleanup of RSVPs older than {cutoff_date}")
         
-        # Get past matches via a subquery.
-        past_match_ids = session.query(Match.id).filter(Match.date < datetime.utcnow()).subquery()
-
-        total_deleted = 0
-        deletion_details = []
-        batch_size = 1000
-
-        while True:
-            stale_rsvps = session.query(Availability).filter(
-                Availability.responded_at < cutoff_date,
-                Availability.match_id.in_(past_match_ids)
-            ).limit(batch_size).all()
-
-            if not stale_rsvps:
-                break
-
-            batch_details = [{
-                'id': rsvp.id,
-                'match_id': rsvp.match_id,
-                'player_id': rsvp.player_id,
-                'responded_at': rsvp.responded_at.isoformat() if rsvp.responded_at else None
-            } for rsvp in stale_rsvps]
-            deletion_details.extend(batch_details)
-
-            deleted_count = session.query(Availability).filter(
-                Availability.id.in_([rsvp.id for rsvp in stale_rsvps])
-            ).delete(synchronize_session=False)
-            total_deleted += deleted_count
+        # OPTIMIZED: Use efficient bulk delete with BulkOperationHelper
+        from app.utils.query_optimizer import BulkOperationHelper
+        from sqlalchemy import and_, exists
+        
+        # Get a sample of records to be deleted for logging (before deletion)
+        sample_rsvps = session.query(Availability).join(
+            Match, Match.id == Availability.match_id
+        ).filter(
+            Availability.responded_at < cutoff_date,
+            Match.date < datetime.utcnow()
+        ).limit(100).all()
+        
+        deletion_details = [{
+            'id': rsvp.id,
+            'match_id': rsvp.match_id,
+            'player_id': rsvp.player_id,
+            'responded_at': rsvp.responded_at.isoformat() if rsvp.responded_at else None
+        } for rsvp in sample_rsvps[:50]]  # Limit details to prevent memory issues
+        
+        # Use bulk delete operation - much more efficient than loading records
+        delete_conditions = [
+            Availability.responded_at < cutoff_date,
+            # Use EXISTS subquery for match date condition
+            exists().where(
+                and_(
+                    Match.id == Availability.match_id,
+                    Match.date < datetime.utcnow()
+                )
+            )
+        ]
+        
+        total_deleted = BulkOperationHelper.bulk_delete_with_conditions(
+            session, Availability, delete_conditions, batch_size=1000
+        )
+        
+        logger.info(f"Bulk deleted {total_deleted} stale RSVPs efficiently")
 
         result = {
             'success': True,
-            'message': f'Cleaned up {total_deleted} stale RSVPs',
+            'message': f'Cleaned up {total_deleted} stale RSVPs using bulk operations',
             'deleted_count': total_deleted,
             'cutoff_date': cutoff_date.isoformat(),
             'cleanup_timestamp': datetime.utcnow().isoformat(),
-            'deletion_details': deletion_details
+            'optimization_used': 'bulk_delete_operations',
+            'deletion_details': deletion_details,
+            'details_truncated': len(deletion_details) >= 50
         }
 
-        logger.info("Cleanup completed", extra=result)
+        logger.info(f"Cleanup completed: {result['message']}")
         return result
 
     except SQLAlchemyError as e:
@@ -877,32 +906,45 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
     try:
         # Only check health for RSVPs from matches within the last week
         week_ago = datetime.utcnow().date() - timedelta(days=7)
-        recent_match_ids = session.query(Match.id).filter(
-            Match.date >= week_ago
-        )
+        yesterday = datetime.utcnow() - timedelta(hours=24)
         
-        total_avail = session.query(Availability).filter(
-            Availability.match_id.in_(recent_match_ids)
-        ).count()
-        unsynced_count = session.query(Availability).filter(
-            Availability.match_id.in_(recent_match_ids),
-            (Availability.discord_sync_status != 'synced') |
-            (Availability.discord_sync_status.is_(None))
-        ).count()
-        failed_count = session.query(Availability).filter(
-            Availability.match_id.in_(recent_match_ids),
-            Availability.discord_sync_status == 'failed'
-        ).count()
-        pending_count = session.query(ScheduledMessage).filter(
+        # OPTIMIZED: Use single aggregated query with EXISTS instead of IN with subquery
+        from sqlalchemy import func, case, exists
+        
+        # Single query to get all availability counts using efficient EXISTS pattern
+        availability_stats = session.query(
+            func.count(Availability.id).label('total_avail'),
+            func.sum(case(
+                [(Availability.discord_sync_status != 'synced', 1),
+                 (Availability.discord_sync_status.is_(None), 1)],
+                else_=0
+            )).label('unsynced_count'),
+            func.sum(case(
+                [(Availability.discord_sync_status == 'failed', 1)],
+                else_=0
+            )).label('failed_count'),
+            func.sum(case(
+                [(Availability.responded_at >= yesterday, 1)],
+                else_=0
+            )).label('recent_responses')
+        ).join(
+            Match, Match.id == Availability.match_id
+        ).filter(
+            Match.date >= week_ago
+        ).first()
+        
+        total_avail = availability_stats.total_avail or 0
+        unsynced_count = availability_stats.unsynced_count or 0
+        failed_count = availability_stats.failed_count or 0
+        recent_responses = availability_stats.recent_responses or 0
+        
+        # Separate efficient queries for ScheduledMessage counts
+        pending_count = session.query(func.count(ScheduledMessage.id)).filter(
             ScheduledMessage.status == 'PENDING'
-        ).count()
-        failed_messages_count = session.query(ScheduledMessage).filter(
+        ).scalar()
+        failed_messages_count = session.query(func.count(ScheduledMessage.id)).filter(
             ScheduledMessage.status == 'FAILED'
-        ).count()
-        recent_responses = session.query(Availability).filter(
-            Availability.match_id.in_(recent_match_ids),
-            Availability.responded_at >= datetime.utcnow() - timedelta(hours=24)
-        ).count()
+        ).scalar()
 
         metrics = {
             'total_availabilities': total_avail,
@@ -956,22 +998,128 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=30)
 
 
+def _extract_failed_rsvp_records(session):
+    """Extract data for failed RSVP records from database (Phase 1)."""
+    week_ago = datetime.utcnow().date() - timedelta(days=7)
+    
+    # OPTIMIZED: Use EXISTS and only select IDs, not full objects
+    from sqlalchemy import exists
+    
+    # FIXED: Use proper JOIN instead of exists() for better compatibility
+    failed_record_ids = session.query(Availability.id).join(
+        Match, Match.id == Availability.match_id
+    ).filter(
+        Availability.discord_sync_status == 'failed',
+        Match.date >= week_ago
+    ).limit(200).all()  # Process max 200 at a time
+    
+    # Extract just the ID values from the result tuples
+    failed_ids = [record_id for (record_id,) in failed_record_ids]
+    
+    return {
+        'failed_record_ids': failed_ids,
+        'total_found': len(failed_ids)
+    }
+
+
+async def _execute_discord_sync_async(data):
+    """Execute Discord API call without holding database session (Phase 2)."""
+    import aiohttp
+    import asyncio
+    
+    logger.info("Starting Discord RSVP sync API call")
+    
+    discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"
+    
+    try:
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with aiohttp.ClientSession(timeout=timeout) as client:
+            async with client.post(discord_bot_url) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    logger.info(f"Discord RSVP sync triggered successfully: {result}")
+                    return {
+                        'success': True,
+                        'message': 'Discord RSVP sync triggered successfully',
+                        'discord_response': result,
+                        'api_call_success': True
+                    }
+                else:
+                    error_text = await response.text()
+                    error_msg = f"Failed to trigger Discord RSVP sync: {response.status} - {error_text}"
+                    logger.error(error_msg)
+                    return {
+                        'success': False,
+                        'message': error_msg,
+                        'api_call_success': False
+                    }
+                    
+    except asyncio.TimeoutError:
+        error_msg = "Discord API call timed out after 15 seconds"
+        logger.error(error_msg)
+        return {
+            'success': False,
+            'message': error_msg,
+            'api_call_success': False,
+            'timeout': True
+        }
+    except Exception as e:
+        error_msg = f"Error connecting to Discord bot for RSVP sync: {str(e)}"
+        logger.error(error_msg)
+        return {
+            'success': False,
+            'message': error_msg,
+            'api_call_success': False,
+            'connection_error': True
+        }
+
+
+def _update_failed_records_after_sync(session, extract_result, api_result):
+    """Update failed records after API call (Phase 3)."""
+    failed_record_ids = extract_result.get('failed_record_ids', [])
+    
+    if not failed_record_ids:
+        return {'updated_records': 0}
+    
+    # Process records in smaller batches to avoid long-running transactions
+    batch_size = 50
+    total_updated = 0
+    
+    for i in range(0, len(failed_record_ids), batch_size):
+        batch_ids = failed_record_ids[i:i + batch_size]
+        
+        # Update this batch of records
+        batch_records = session.query(Availability).filter(
+            Availability.id.in_(batch_ids)
+        ).all()
+        
+        for record in batch_records:
+            record.discord_sync_status = None  # Mark as needing sync
+            record.last_sync_attempt = None
+            record.sync_error = None
+            total_updated += 1
+        
+        # Commit this batch immediately to release locks
+        session.commit()
+        logger.debug(f"Updated batch of {len(batch_records)} records for resync")
+    
+    logger.info(f"Marked {total_updated} failed records for resync (last 7 days only)")
+    return {'updated_records': total_updated}
+
+
 @celery_task(name='app.tasks.tasks_rsvp.force_discord_rsvp_sync', max_retries=3, queue='discord')
 def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
     """
-    Force a full synchronization between Discord and Flask RSVP data.
+    Force a full synchronization between Discord and Flask RSVP data using three-phase pattern.
     
-    This task sends a request to the Discord bot to perform a full synchronization
-    of all RSVPs for all managed messages. This ensures consistency after bot crashes
-    or network issues.
+    Phase 1: Extract failed record IDs from database (quick, minimal lock time)
+    Phase 2: Call Discord API without holding database connection (async, no locks)
+    Phase 3: Update records in small batches (quick, frequent commits)
     
-    The task will:
-    1. Call the Discord bot's force_rsvp_sync API endpoint
-    2. Log the result of the sync operation
-    3. Update unsynced availability records to trigger retry
+    This approach prevents long-running transactions and connection timeouts.
     
     Args:
-        session: Database session.
+        session: Database session (used only in phases 1 and 3).
         
     Returns:
         A dictionary with the result of the sync operation.
@@ -980,72 +1128,41 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
         Retries the task on SQLAlchemy or general errors.
     """
     try:
-        import requests
+        logger.info("Starting forced Discord RSVP synchronization (batched)")
         
-        logger.info("Starting forced Discord RSVP synchronization")
+        # Phase 1: Extract failed record data (quick DB operation)
+        extract_result = _extract_failed_rsvp_records(session)
         
-        # Only sync RSVPs for matches within the last week to avoid massive backlogs
-        week_ago = datetime.utcnow().date() - timedelta(days=7)
-        recent_match_ids = session.query(Match.id).filter(
-            Match.date >= week_ago
-        ).subquery()
+        # Commit phase 1 data extraction to release locks
+        session.commit()
         
-        # First, mark failed records for retry by changing their sync status (recent matches only)
-        failed_records = session.query(Availability).filter(
-            Availability.discord_sync_status == 'failed',
-            Availability.match_id.in_(recent_match_ids)
-        ).all()
+        # Phase 2: Call Discord API without holding database session
+        from app.api_utils import async_to_sync
+        api_result = async_to_sync(_execute_discord_sync_async(extract_result))
         
-        update_count = 0
-        for record in failed_records:
-            record.discord_sync_status = None  # Mark as needing sync
-            record.last_sync_attempt = None
-            record.sync_error = None
-            update_count += 1
+        # Phase 3: Update records in batches with frequent commits
+        update_result = _update_failed_records_after_sync(session, extract_result, api_result)
+        
+        # Combine results
+        final_result = {
+            'success': api_result.get('success', False),
+            'message': api_result.get('message', 'Unknown result'),
+            'discord_response': api_result.get('discord_response'),
+            'updated_records': update_result.get('updated_records', 0),
+            'total_found': extract_result.get('total_found', 0),
+            'api_call_success': api_result.get('api_call_success', False),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        # Add specific error details if available
+        if api_result.get('timeout'):
+            final_result['timeout'] = True
+        if api_result.get('connection_error'):
+            final_result['connection_error'] = True
             
-        logger.info(f"Marked {update_count} failed records for resync (last 7 days only)")
+        logger.info(f"Force Discord RSVP sync completed: {final_result['message']}")
+        return final_result
         
-        # Note: Database changes are automatically committed by @celery_task decorator
-        # This ensures proper transaction handling without holding locks during external calls
-        
-        # Call the Discord bot API to force a full sync
-        discord_bot_url = "http://discord-bot:5001/api/force_rsvp_sync"
-        
-        try:
-            response = requests.post(discord_bot_url, timeout=10)
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.info(f"Discord RSVP sync triggered successfully: {result}")
-                return {
-                    'success': True,
-                    'message': 'Discord RSVP sync triggered successfully',
-                    'discord_response': result,
-                    'updated_records': update_count,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-            else:
-                error_msg = f"Failed to trigger Discord RSVP sync: {response.status_code} - {response.text}"
-                logger.error(error_msg)
-                return {
-                    'success': False,
-                    'message': error_msg,
-                    'updated_records': update_count,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-        except requests.RequestException as e:
-            error_msg = f"Error connecting to Discord bot for RSVP sync: {str(e)}"
-            logger.error(error_msg)
-            
-            # Even if we can't connect to Discord, we still updated the records
-            return {
-                'success': False,
-                'message': error_msg,
-                'updated_records': update_count,
-                'connection_error': True,
-                'timestamp': datetime.utcnow().isoformat()
-            }
-            
     except SQLAlchemyError as e:
         logger.error(f"Database error during Discord RSVP sync: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=60)
@@ -1054,16 +1171,74 @@ def force_discord_rsvp_sync(self, session) -> Dict[str, Any]:
         raise self.retry(exc=e, countdown=30)
 
 
+async def _execute_direct_discord_update_async(data):
+    """Execute direct Discord reaction update without holding database session."""
+    import aiohttp
+    import asyncio
+    
+    discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
+    reaction_data = {
+        "match_id": str(data['match_id']),
+        "discord_id": str(data['discord_id']),
+        "new_response": data['new_response'],
+        "old_response": data['old_response']
+    }
+    
+    logger.info(f"Sending direct reaction update to Discord: {reaction_data}")
+    
+    try:
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as client:
+            async with client.post(discord_api_url, json=reaction_data) as response:
+                if response.status == 200:
+                    logger.info(f"Successfully sent direct reaction update for user {data['discord_id']}")
+                    return {
+                        'success': True,
+                        'message': 'Discord reaction updated successfully',
+                        'discord_id': data['discord_id'],
+                        'match_id': data['match_id']
+                    }
+                else:
+                    error_text = await response.text()
+                    logger.warning(f"Direct reaction update failed: {response.status} - {error_text}")
+                    return {
+                        'success': False,
+                        'message': f'Discord API returned {response.status}',
+                        'discord_id': data['discord_id'],
+                        'match_id': data['match_id'],
+                        'api_error': error_text
+                    }
+                    
+    except asyncio.TimeoutError:
+        logger.warning(f"Direct reaction update timed out after 8 seconds for user {data['discord_id']}")
+        return {
+            'success': False,
+            'message': 'Discord API request timed out',
+            'discord_id': data['discord_id'],
+            'match_id': data['match_id'],
+            'timeout': True
+        }
+    except Exception as e:
+        logger.warning(f"Could not send direct reaction update: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Network error: {str(e)}',
+            'discord_id': data['discord_id'],
+            'match_id': data['match_id'],
+            'connection_error': True
+        }
+
+
 @celery_task(name='app.tasks.tasks_rsvp.direct_discord_update_task', max_retries=3, queue='discord')
 def direct_discord_update_task(self, session, match_id: str, discord_id: str, new_response: str, old_response: str) -> Dict[str, Any]:
     """
-    Directly update Discord reaction via API call.
+    Directly update Discord reaction via async API call without holding database session.
     
-    This task is used to provide immediate Discord reaction updates without holding
-    database sessions during HTTP requests.
+    This task provides immediate Discord reaction updates using async HTTP calls
+    to prevent blocking the database session during network requests.
     
     Args:
-        session: Database session (not used, but required by @celery_task)
+        session: Database session (not used for this task)
         match_id: ID of the match
         discord_id: Discord ID of the user
         new_response: New RSVP response
@@ -1073,44 +1248,28 @@ def direct_discord_update_task(self, session, match_id: str, discord_id: str, ne
         Dictionary with success status and message
     """
     try:
-        import requests
-        
-        discord_api_url = "http://discord-bot:5001/api/update_user_reaction"
-        reaction_data = {
-            "match_id": str(match_id),
-            "discord_id": str(discord_id),
-            "new_response": new_response,
-            "old_response": old_response
-        }
-        
-        logger.info(f"Sending direct reaction update to Discord: {reaction_data}")
-        response = requests.post(discord_api_url, json=reaction_data, timeout=5)
-        
-        if response.status_code == 200:
-            logger.info(f"Successfully sent direct reaction update for user {discord_id}")
-            return {
-                'success': True,
-                'message': 'Discord reaction updated successfully',
-                'discord_id': discord_id,
-                'match_id': match_id
-            }
-        else:
-            logger.warning(f"Direct reaction update failed: {response.status_code} - {response.text}")
-            return {
-                'success': False,
-                'message': f'Discord API returned {response.status_code}',
-                'discord_id': discord_id,
-                'match_id': match_id
-            }
-            
-    except requests.RequestException as e:
-        logger.warning(f"Could not send direct reaction update: {str(e)}")
-        return {
-            'success': False,
-            'message': f'Network error: {str(e)}',
+        # Prepare data for async API call - no database session needed
+        data = {
+            'match_id': match_id,
             'discord_id': discord_id,
-            'match_id': match_id
+            'new_response': new_response,
+            'old_response': old_response
         }
+        
+        # Execute async Discord API call without holding database session
+        from app.api_utils import async_to_sync
+        result = async_to_sync(_execute_direct_discord_update_async(data))
+        
+        # Retry on timeout or connection errors (but not on API errors)
+        if not result.get('success'):
+            if result.get('timeout') or result.get('connection_error'):
+                if self.request.retries < self.max_retries - 1:
+                    retry_delay = min(2 ** self.request.retries * 2, 30)  # Exponential backoff, max 30s
+                    logger.info(f"Retrying direct Discord update after {retry_delay}s due to: {result['message']}")
+                    raise self.retry(countdown=retry_delay)
+        
+        return result
+        
     except Exception as e:
         logger.error(f"Unexpected error in direct Discord update: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=5)

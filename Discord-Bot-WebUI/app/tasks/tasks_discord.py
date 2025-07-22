@@ -26,12 +26,23 @@ import aiohttp
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
+
+# Import optimized utilities
+from app.utils.cache_manager import reference_cache, clear_player_cache
+from app.utils.query_optimizer import (
+    QueryOptimizer, 
+    memory_efficient_session, 
+    efficient_player_discord_batch,
+    stream_players_with_discord_ids,
+    BatchConfig
+)
+import traceback
 
 from app.core import socketio
 from app.decorators import celery_task
-from app.models import Player, Team, User
+from app.models import Player, Team, User, PlayerTeamSeason, Season
 from app.utils.task_session_manager import task_session
 from app.discord_utils import (
     update_player_roles,
@@ -41,12 +52,63 @@ from app.discord_utils import (
     fetch_user_roles,
     process_single_player_update,
     remove_role_from_member,
-    get_role_id
+    get_role_id,
+    get_member_roles
 )
 from web_config import Config
 from app.utils.discord_request_handler import make_discord_request
 
 logger = logging.getLogger(__name__)
+
+
+def get_current_season_teams(session, player):
+    """
+    Get current season teams for a player using PlayerTeamSeason records.
+    Falls back to direct team relationships if no current season records exist.
+    
+    Args:
+        session: Database session
+        player: Player object
+        
+    Returns:
+        List of current season team dictionaries with id, name, and league_name
+    """
+    try:
+        # First, try to get current season
+        current_season = session.query(Season).filter_by(is_current=True).first()
+        
+        if current_season:
+            # Query teams through PlayerTeamSeason for current season only
+            current_season_teams = session.query(Team).join(
+                PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+            ).filter(
+                PlayerTeamSeason.player_id == player.id,
+                PlayerTeamSeason.season_id == current_season.id
+            ).all()
+            
+            if current_season_teams:
+                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                        for team in current_season_teams]
+        
+        # Fallback: Filter teams by leagues from current seasons
+        # This handles cases where PlayerTeamSeason records haven't been created yet
+        current_seasons = session.query(Season).filter_by(is_current=True).all()
+        if current_seasons:
+            current_season_league_ids = [league.id for season in current_seasons for league in season.leagues]
+            current_teams = [team for team in player.teams 
+                            if team.league_id in current_season_league_ids]
+            
+            if current_teams:
+                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                        for team in current_teams]
+        
+        # Final fallback: return empty list to avoid assigning old roles
+        logger.warning(f"No current season teams found for player {player.id}, returning empty list to avoid old roles")
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error getting current season teams for player {player.id}: {e}")
+        return []
 
 
 def get_status_html(roles_match: bool) -> str:
@@ -91,20 +153,31 @@ def create_error_result(player_info: Dict[str, Any]) -> Dict[str, Any]:
 
 def _extract_player_role_data(session, player_id: int):
     """Extract player data for Discord role update."""
-    player = session.query(Player).get(player_id)
-    if not player:
-        raise ValueError(f"Player {player_id} not found")
+    try:
+        player = session.query(Player).options(joinedload(Player.user)).get(player_id)
+        if not player:
+            raise ValueError(f"Player {player_id} not found")
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in _extract_player_role_data: {e}")
+        raise
     
     # Get all required data from database while session is available
     try:
         # Extract the basic player data and calculate roles in async phase
-        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams]
+        # Use helper function to get only current season teams
+        teams = get_current_season_teams(session, player)
         
         # Get Flask user roles for division role assignment
         user_roles = []
-        if player.user and player.user.roles:
-            user_roles = [role.name for role in player.user.roles]
+        try:
+            if player.user:
+                # Safely load roles with a separate query to avoid joinedload issues
+                user_with_roles = session.query(User).options(joinedload(User.roles)).filter_by(id=player.user.id).first()
+                if user_with_roles and user_with_roles.roles:
+                    user_roles = [role.name for role in user_with_roles.roles]
+        except SQLAlchemyError as e:
+            logger.warning(f"Could not load user roles for player {player.id}: {e}")
+            user_roles = []
         
         # Get league information for division role assignment
         league_names = []
@@ -330,37 +403,17 @@ async def _update_player_discord_roles_async(session, player_id: int) -> Dict[st
 
 
 def _extract_batch_role_update_data(session, discord_ids: List[str]):
-    """Extract player data for batch Discord role updates."""
-    players = session.query(Player).filter(
-        Player.discord_id.in_(discord_ids)
-    ).options(
-        joinedload(Player.teams),
-        joinedload(Player.teams).joinedload(Team.league),
-        joinedload(Player.user).joinedload(User.roles)
-    ).all()
-    
-    players_data = []
-    for player in players:
-        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams]
+    """Extract player data for batch Discord role updates using optimized batch processing."""
+    try:
+        # Use optimized batch processing from query optimizer
+        players_data = efficient_player_discord_batch(session, discord_ids)
         
-        # Get Flask user roles for division role assignment
-        user_roles = []
-        if player.user and player.user.roles:
-            user_roles = [role.name for role in player.user.roles]
+        logger.info(f"Extracted batch role update data for {len(players_data)} players from {len(discord_ids)} Discord IDs using optimized processing")
+        return {'players': players_data}
         
-        players_data.append({
-            'id': player.id,
-            'discord_id': player.discord_id,
-            'name': player.name,
-            'is_active': player.is_current_player,
-            'is_coach': player.is_coach,
-            'current_roles': player.discord_roles or [],
-            'teams': teams,
-            'user_roles': user_roles
-        })
-    
-    return {'players': players_data}
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in _extract_batch_role_update_data: {e}", exc_info=True)
+        raise
 
 
 async def _execute_batch_role_update_async(data):
@@ -465,9 +518,8 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
                 'league_name': target_team.league.name if target_team.league else None
             }
     
-    # Get all player teams
-    teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-            for team in player.teams]
+    # Get all player teams (current season only)
+    teams = get_current_season_teams(session, player)
     
     # Get Flask user roles for division role assignment
     user_roles = []
@@ -662,34 +714,21 @@ async def _assign_roles_async(session, player_id: int, team_id: Optional[int], o
 
 
 def _extract_fetch_role_status_data(session):
-    """Extract player data for role status fetching."""
-    players = session.query(Player).filter(
-        Player.discord_id.isnot(None)
-    ).options(
-        joinedload(Player.teams),
-        joinedload(Player.teams).joinedload(Team.league),
-        joinedload(Player.user).joinedload(User.roles)
-    ).all()
-    
-    players_data = []
-    for player in players:
-        teams = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
-                for team in player.teams]
+    """Extract player data for role status fetching using optimized streaming."""
+    try:
+        # Use memory-efficient streaming from query optimizer
+        all_players_data = []
         
-        # Get Flask user roles for division role assignment
-        user_roles = []
-        if player.user and player.user.roles:
-            user_roles = [role.name for role in player.user.roles]
+        with memory_efficient_session(session, BatchConfig(batch_size=100)) as efficient_session:
+            for batch_data in stream_players_with_discord_ids(efficient_session, batch_size=100):
+                all_players_data.extend(batch_data)
         
-        players_data.append({
-            'id': player.id,
-            'discord_id': player.discord_id,
-            'name': player.name,
-            'teams': teams,
-            'user_roles': user_roles
-        })
-    
-    return {'players': players_data}
+        logger.info(f"Successfully processed {len(all_players_data)} players using optimized streaming")
+        return {'players': all_players_data}
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in _extract_fetch_role_status_data: {e}", exc_info=True)
+        raise
 
 
 async def _execute_fetch_role_status_async(data):
@@ -1063,23 +1102,32 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
 
 def _extract_remove_roles_data(session, player_id: int, team_id: int):
     """Extract player data for role removal."""
-    player = session.query(Player).options(
-        joinedload(Player.teams),
-        joinedload(Player.teams).joinedload(Team.league),
-        joinedload(Player.user).joinedload(User.roles)
-    ).get(player_id)
+    try:
+        # OPTIMIZED: Load minimal player data, avoid nested joinedloads
+        player = session.query(Player).options(
+            selectinload(Player.user).selectinload(User.roles)
+        ).get(player_id)
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in _extract_remove_roles_data: {e}")
+        raise
     if not player:
         raise ValueError(f"Player {player_id} not found")
     
-    # Get team info
-    target_team = session.query(Team).get(team_id)
+    # Get team info with minimal data
+    target_team = session.query(Team).options(
+        joinedload(Team.league)
+    ).get(team_id)
     if not target_team:
         raise ValueError(f"Team {team_id} not found")
     
     # Get Flask user roles for division role assignment
     user_roles = []
-    if player.user and player.user.roles:
-        user_roles = [role.name for role in player.user.roles]
+    try:
+        if player.user and player.user.roles:
+            user_roles = [role.name for role in player.user.roles]
+    except Exception as e:
+        logger.warning(f"Could not load user roles for player {player.id}: {e}")
+        user_roles = []
     
     return {
         'player_id': player_id,
