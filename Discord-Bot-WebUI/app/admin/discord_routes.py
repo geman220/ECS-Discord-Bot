@@ -285,20 +285,35 @@ def refresh_all_discord_status():
 
         success_count = 0
         error_count = 0
+        batch_size = 10  # Process in smaller batches to avoid timeout
         
-        for player in players_with_discord:
-            try:
-                if player.check_discord_status():
-                    success_count += 1
-                    session.add(player)  # Mark for update
-                else:
+        for i in range(0, len(players_with_discord), batch_size):
+            batch = players_with_discord[i:i + batch_size]
+            batch_updates = []
+            
+            # Process batch of players
+            for player in batch:
+                try:
+                    if player.check_discord_status():
+                        success_count += 1
+                        batch_updates.append(player)
+                    else:
+                        error_count += 1
+                except Exception as e:
+                    logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
                     error_count += 1
-            except Exception as e:
-                logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
-                error_count += 1
-
-        # Commit all updates
-        session.commit()
+            
+            # Commit this batch
+            if batch_updates:
+                for player in batch_updates:
+                    session.add(player)
+                try:
+                    session.commit()
+                    logger.info(f"Committed batch {i//batch_size + 1}: {len(batch_updates)} players updated")
+                except Exception as e:
+                    logger.error(f"Error committing batch {i//batch_size + 1}: {e}")
+                    session.rollback()
+                    # Continue with next batch even if this one fails
 
         return jsonify({
             'success': True,
@@ -331,20 +346,35 @@ def refresh_unknown_discord_status():
 
         success_count = 0
         error_count = 0
+        batch_size = 10  # Process in smaller batches to avoid timeout
         
-        for player in players_unknown_status:
-            try:
-                if player.check_discord_status():
-                    success_count += 1
-                    session.add(player)  # Mark for update
-                else:
+        for i in range(0, len(players_unknown_status), batch_size):
+            batch = players_unknown_status[i:i + batch_size]
+            batch_updates = []
+            
+            # Process batch of players
+            for player in batch:
+                try:
+                    if player.check_discord_status():
+                        success_count += 1
+                        batch_updates.append(player)
+                    else:
+                        error_count += 1
+                except Exception as e:
+                    logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
                     error_count += 1
-            except Exception as e:
-                logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
-                error_count += 1
-
-        # Commit all updates
-        session.commit()
+            
+            # Commit this batch
+            if batch_updates:
+                for player in batch_updates:
+                    session.add(player)
+                try:
+                    session.commit()
+                    logger.info(f"Committed batch {i//batch_size + 1}: {len(batch_updates)} players updated")
+                except Exception as e:
+                    logger.error(f"Error committing batch {i//batch_size + 1}: {e}")
+                    session.rollback()
+                    # Continue with next batch even if this one fails
 
         return jsonify({
             'success': True,
