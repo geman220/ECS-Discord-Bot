@@ -70,6 +70,7 @@ class DraftHistoryManager {
         const pickId = document.getElementById('editPickId').value;
         const position = parseInt(document.getElementById('editDraftPosition').value);
         const notes = document.getElementById('editNotes').value.trim();
+        const absoluteMode = document.getElementById('absoluteMode').checked;
         
         try {
             const headers = {
@@ -86,7 +87,8 @@ class DraftHistoryManager {
                 headers: headers,
                 body: JSON.stringify({
                     position: position,
-                    notes: notes
+                    notes: notes,
+                    absolute: absoluteMode
                 })
             });
 

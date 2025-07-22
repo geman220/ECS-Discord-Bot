@@ -266,6 +266,72 @@ class DraftService:
             raise
     
     @staticmethod
+    def set_absolute_draft_position(session, pick_id, new_position):
+        """Set absolute draft position without cascading shifts to other picks."""
+        try:
+            pick_to_move = session.query(DraftOrderHistory).get(pick_id)
+            if not pick_to_move:
+                return {'success': False, 'message': 'Draft pick not found'}
+            
+            season_id = pick_to_move.season_id
+            league_id = pick_to_move.league_id
+            old_position = pick_to_move.draft_position
+            player_name = pick_to_move.player.full_name if pick_to_move.player else 'Unknown Player'
+            
+            if old_position == new_position:
+                return {'success': True, 'message': 'No position change needed'}
+            
+            # Get max position to validate the new position
+            max_position = session.query(func.max(DraftOrderHistory.draft_position)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar() or 0
+            
+            # Validate new position is within valid range
+            if new_position < 1 or new_position > max_position:
+                return {'success': False, 'message': f'Position must be between 1 and {max_position}'}
+            
+            # Use a temporary position to avoid conflicts
+            temp_position = max_position + 1000
+            
+            # Move the pick to temporary position first
+            pick_to_move.draft_position = temp_position
+            pick_to_move.updated_at = datetime.utcnow()
+            session.flush()
+            
+            # Check if the desired position is occupied
+            existing_pick = session.query(DraftOrderHistory).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id,
+                DraftOrderHistory.draft_position == new_position
+            ).first()
+            
+            if existing_pick:
+                # Move the existing pick to the old position
+                existing_pick.draft_position = old_position
+                existing_pick.updated_at = datetime.utcnow()
+                session.flush()
+            
+            # Now move the pick to its final position
+            pick_to_move.draft_position = new_position
+            pick_to_move.updated_at = datetime.utcnow()
+            
+            logger.info(f"Set absolute position: {player_name} moved from #{old_position} to #{new_position}")
+            
+            return {
+                'success': True,
+                'message': f'Successfully set {player_name} to position #{new_position}',
+                'old_position': old_position,
+                'new_position': new_position,
+                'player_name': player_name,
+                'swapped_with': existing_pick.player.full_name if existing_pick and existing_pick.player else None
+            }
+            
+        except Exception as e:
+            logger.error(f"Error setting absolute draft position: {str(e)}")
+            raise
+
+    @staticmethod
     def get_enhanced_player_data(players: List[Player], current_season_id: Optional[int] = None) -> List[Dict]:
         """Get enhanced player data with comprehensive stats and profile info - OPTIMIZED."""
         if not players:
