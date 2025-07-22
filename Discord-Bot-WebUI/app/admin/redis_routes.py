@@ -183,3 +183,83 @@ def cleanup_connections():
     except Exception as e:
         logger.error(f"Error during connection cleanup: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@redis_bp.route('/draft-cache-stats')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_cache_stats():
+    """Display draft cache statistics and performance metrics."""
+    try:
+        from app.draft_cache_service import DraftCacheService
+        
+        # Get draft cache statistics
+        cache_stats = DraftCacheService.get_cache_stats()
+        
+        # Get cache warmth for each league
+        from app.models import League
+        from flask import g
+        session = g.db_session
+        leagues = session.query(League).filter(League.is_active == True).all()
+        
+        league_cache_status = {}
+        for league in leagues:
+            league_cache_status[league.name] = DraftCacheService.warm_cache_for_league(league.name)
+        
+        return render_template('admin/draft_cache_stats.html',
+                             cache_stats=cache_stats,
+                             league_cache_status=league_cache_status,
+                             leagues=[l.name for l in leagues])
+    
+    except Exception as e:
+        logger.error(f"Error getting draft cache stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@redis_bp.route('/api/draft-cache-stats')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_cache_stats_api():
+    """API endpoint for draft cache statistics (for AJAX updates)."""
+    try:
+        from app.draft_cache_service import DraftCacheService
+        
+        # Get comprehensive cache statistics
+        cache_stats = DraftCacheService.get_cache_stats()
+        
+        # Add TTL information
+        cache_stats['ttl_settings'] = {
+            'player_data': DraftCacheService.PLAYER_DATA_TTL,
+            'analytics': DraftCacheService.DRAFT_ANALYTICS_TTL,
+            'team_data': DraftCacheService.TEAM_DATA_TTL,
+            'availability': DraftCacheService.AVAILABILITY_TTL
+        }
+        
+        return jsonify(cache_stats)
+    
+    except Exception as e:
+        logger.error(f"Error getting draft cache API stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@redis_bp.route('/warm-draft-cache/<league_name>')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def warm_draft_cache(league_name: str):
+    """Manually warm draft cache for a specific league."""
+    try:
+        from app.draft_cache_service import DraftCacheService
+        
+        # Check current cache status
+        cache_status = DraftCacheService.warm_cache_for_league(league_name)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cache warming initiated for {league_name}',
+            'cache_status': cache_status,
+            'note': 'Cache will be populated on next draft page visit'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error warming draft cache for {league_name}: {e}")
+        return jsonify({'error': str(e)}), 500

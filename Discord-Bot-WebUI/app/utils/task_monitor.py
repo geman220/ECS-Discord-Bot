@@ -483,15 +483,10 @@ def clean_zombie_tasks():
                 if idx < 3:  # Only log details for first 3 sessions to avoid log spam
                     logger.warning(f"Stack trace for session {session['session_id']}:\n{session['stack_trace']}")
         
-        # Clean up database connection pool (only if we found issues)
-        if len(zombies) > 0 or len(old_sessions) > 0:
-            try:
-                from app.core import db
-                if hasattr(db, 'engine') and hasattr(db.engine, 'dispose'):
-                    logger.info("Refreshing database connection pool")
-                    db.engine.dispose()
-            except Exception as e:
-                logger.error(f"Error disposing database engine: {e}")
+        # DO NOT dispose the entire connection pool - this causes massive memory issues!
+        # The pool should manage its own connections.
+        # db.engine.dispose() was destroying and recreating the entire pool,
+        # causing huge memory allocation and deallocation cycles.
         
         # Force garbage collection (only during full cleanup)
         import gc

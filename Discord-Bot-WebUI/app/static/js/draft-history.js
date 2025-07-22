@@ -5,12 +5,36 @@
 
 class DraftHistoryManager {
     constructor() {
+        this.csrfToken = null;
         this.init();
     }
 
     init() {
         this.setupEventListeners();
+        this.getCsrfToken();
         console.log('Draft History Manager initialized');
+    }
+
+    // Get CSRF token from meta tag or cookie
+    getCsrfToken() {
+        // Try to get from meta tag first
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            this.csrfToken = metaToken.getAttribute('content');
+            return;
+        }
+        
+        // Try to get from session cookie (fallback)
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrf_token') {
+                this.csrfToken = value;
+                return;
+            }
+        }
+        
+        console.warn('CSRF token not found');
     }
 
     setupEventListeners() {
@@ -48,11 +72,18 @@ class DraftHistoryManager {
         const notes = document.getElementById('editNotes').value.trim();
         
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Add CSRF token if available
+            if (this.csrfToken) {
+                headers['X-CSRFToken'] = this.csrfToken;
+            }
+            
             const response = await fetch(`/admin/draft-history/edit/${pickId}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({
                     position: position,
                     notes: notes
@@ -84,11 +115,18 @@ class DraftHistoryManager {
         if (!confirmed) return;
 
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Add CSRF token if available
+            if (this.csrfToken) {
+                headers['X-CSRFToken'] = this.csrfToken;
+            }
+            
             const response = await fetch(`/admin/draft-history/delete/${pickId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: headers
             });
 
             const data = await response.json();
@@ -115,11 +153,18 @@ class DraftHistoryManager {
         if (!confirmed) return;
 
         try {
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Add CSRF token if available
+            if (this.csrfToken) {
+                headers['X-CSRFToken'] = this.csrfToken;
+            }
+            
             const response = await fetch('/admin/draft-history/clear', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: headers,
                 body: JSON.stringify({
                     season_id: seasonId,
                     league_id: leagueId

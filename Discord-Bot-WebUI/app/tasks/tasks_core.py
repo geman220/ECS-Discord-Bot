@@ -391,39 +391,37 @@ def cleanup_old_messages(self, session, days_old: int = 30) -> Dict[str, Any]:
             extra={'cutoff_date': cutoff_date.isoformat(), 'total_messages': total_messages, 'batch_size': batch_size}
         )
 
-        while True:
-            messages_to_delete = session.query(ScheduledMessage).filter(
-                ScheduledMessage.scheduled_send_time < cutoff_date,
-                ScheduledMessage.status.in_(['SENT', 'FAILED'])
-            ).limit(batch_size).all()
-
-            if not messages_to_delete:
-                break
-
-            batch_details = [{
-                'id': msg.id,
-                'status': msg.status,
-                'scheduled_time': msg.scheduled_send_time.isoformat(),
-                'match_id': msg.match_id
-            } for msg in messages_to_delete]
-            cleanup_stats['deletion_details'].extend(batch_details)
-
-            deleted_count = session.query(ScheduledMessage).filter(
-                ScheduledMessage.id.in_([msg.id for msg in messages_to_delete])
-            ).delete(synchronize_session=False)
-
-            cleanup_stats['total_deleted'] += deleted_count
-            cleanup_stats['batches_processed'] += 1
-            session.flush()
-
-            logger.info(
-                "Processed cleanup batch",
-                extra={
-                    'batch_number': cleanup_stats['batches_processed'],
-                    'batch_size': len(messages_to_delete),
-                    'total_deleted': cleanup_stats['total_deleted']
-                }
-            )
+        # OPTIMIZED: Use bulk delete operations instead of loading records
+        from app.utils.query_optimizer import BulkOperationHelper
+        
+        # Get sample for logging before deletion
+        sample_messages = session.query(ScheduledMessage).filter(
+            ScheduledMessage.scheduled_send_time < cutoff_date,
+            ScheduledMessage.status.in_(['SENT', 'FAILED'])
+        ).limit(50).all()
+        
+        cleanup_stats['deletion_details'] = [{
+            'id': msg.id,
+            'status': msg.status,
+            'scheduled_time': msg.scheduled_send_time.isoformat(),
+            'match_id': msg.match_id
+        } for msg in sample_messages]
+        
+        # Use bulk delete for efficiency
+        delete_conditions = [
+            ScheduledMessage.scheduled_send_time < cutoff_date,
+            ScheduledMessage.status.in_(['SENT', 'FAILED'])
+        ]
+        
+        total_deleted = BulkOperationHelper.bulk_delete_with_conditions(
+            session, ScheduledMessage, delete_conditions, batch_size=1000
+        )
+        
+        cleanup_stats['total_deleted'] = total_deleted
+        cleanup_stats['batches_processed'] = 1  # Single bulk operation
+        cleanup_stats['optimization_used'] = 'bulk_delete_operations'
+        
+        logger.info(f"Bulk deleted {total_deleted} old messages using optimized operations")
 
         result = {
             'success': True,

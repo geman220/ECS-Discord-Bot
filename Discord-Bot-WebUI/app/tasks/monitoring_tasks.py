@@ -232,18 +232,24 @@ def monitor_redis_connections():
             # Get connection pool stats
             stats = redis_manager.get_connection_stats()
             
+            # Extract pool stats
+            pool_stats = stats.get('pool_stats', {})
+            
             # Log warning if connection pool usage is high
-            if stats.get('max', 0) > 0 and stats.get('in_use', 0) > stats['max'] * 0.8:
+            max_conn = pool_stats.get('max_connections', 0)
+            in_use = pool_stats.get('in_use_connections', 0)
+            if max_conn > 0 and in_use > max_conn * 0.8:
+                utilization = (in_use / max_conn) * 100
                 logger.warning(
                     f"Redis connection pool nearing capacity: "
-                    f"{stats['in_use']}/{stats['max']} connections in use "
-                    f"({stats['utilization_percent']:.1f}%)"
+                    f"{in_use}/{max_conn} connections in use "
+                    f"({utilization:.1f}%)"
                 )
             
             # Log normal status
             logger.info(
-                f"Redis connection pool stats: {stats['in_use']} in use, "
-                f"{stats['created']} created, {stats['max']} max"
+                f"Redis connection pool stats: {in_use} in use, "
+                f"{pool_stats.get('created_connections', 0)} created, {max_conn} max"
             )
             
             return stats

@@ -38,7 +38,7 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
     and sends the update to Discord via an asynchronous helper.
 
     Args:
-        session: The database session.
+        session: The database session (provided by decorator).
         match_id: The ID of the match to update.
         match_data: Dictionary containing live match data (must include 'competitions').
 
@@ -115,7 +115,9 @@ def process_match_updates(self, session, match_id: str, match_data: Dict[str, An
     name='app.tasks.tasks_match_updates.fetch_match_and_team_id_task',
     bind=True,
     queue='discord',
-    max_retries=3
+    max_retries=3,
+    soft_time_limit=20,
+    time_limit=30
 )
 def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str) -> Dict[str, Any]:
     """
@@ -125,7 +127,7 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
     Handles both regular pub league messages and ECS FC messages.
 
     Args:
-        session: The database session.
+        session: The database session (provided by decorator).
         message_id: The ID of the Discord message.
         channel_id: The ID of the Discord channel.
 
@@ -142,7 +144,10 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
         
         # Set statement timeout for this query to prevent hanging (if not using PgBouncer)
         from app.utils.pgbouncer_utils import set_session_timeout
-        set_session_timeout(session, statement_timeout_seconds=20)
+        set_session_timeout(session, statement_timeout_seconds=15)
+        
+        # Log the incoming parameters for debugging
+        logger.info(f"Processing fetch_match_and_team_id_task for message_id={message_id}, channel_id={channel_id}")
         
         # First try regular pub league messages with optimized query
         scheduled_message = session.query(ScheduledMessage).options(
@@ -175,11 +180,17 @@ def fetch_match_and_team_id_task(self, session, message_id: str, channel_id: str
                 'match_type': 'pub_league'
             }
         
-        # Try ECS FC messages
+        # Try ECS FC messages with indexed query
+        # Note: Consider adding a GIN index on message_metadata for better performance
+        # CREATE INDEX idx_scheduled_message_metadata_gin ON scheduled_message USING gin (message_metadata);
+        from sqlalchemy import text
+        
+        # Use a more efficient query with direct JSON operators
         ecs_message = session.query(ScheduledMessage).filter(
             ScheduledMessage.message_type == 'ecs_fc_rsvp',
-            ScheduledMessage.message_metadata.op('->>')('discord_message_id') == str(message_id),
-            ScheduledMessage.message_metadata.op('->>')('discord_channel_id') == str(channel_id)
+            text("message_metadata @> :metadata")
+        ).params(
+            metadata=f'{{"discord_message_id": "{message_id}", "discord_channel_id": "{channel_id}"}}'
         ).first()
         
         if ecs_message:

@@ -18,9 +18,9 @@ if __name__ == '__main__':
             '--loglevel=INFO',
             '-Q', 'discord',
             '--pool=prefork',
-            '--concurrency=4',
-            '--max-tasks-per-child=100',
-            '--max-memory-per-child=150000'
+            '--concurrency=2',  # Reduce concurrency to lower memory pressure
+            '--max-tasks-per-child=50',  # Restart workers more frequently
+            '--max-memory-per-child=250000'  # Increase memory limit from 150MB to 250MB
         ])
     except Exception as e:
         logger.error(f"Failed to start worker: {e}", exc_info=True)

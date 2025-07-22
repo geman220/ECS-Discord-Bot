@@ -49,9 +49,8 @@ def managed_session():
             try:
                 # Force close the connection to prevent leaks
                 session.close()
-                # Also close the underlying connection if it exists
-                if hasattr(session, 'bind') and hasattr(session.bind, 'dispose'):
-                    session.bind.dispose()
+                # DO NOT dispose the engine/connection pool - this destroys the entire pool!
+                # session.bind.dispose() was causing massive memory issues
             except Exception as e:
                 logger.error(f"Error closing session: {e}")
 

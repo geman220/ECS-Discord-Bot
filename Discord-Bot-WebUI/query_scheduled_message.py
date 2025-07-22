@@ -47,7 +47,7 @@ def query_scheduled_message(message_id):
                         home_message_id,
                         away_channel_id,
                         away_message_id
-                    FROM scheduled_messages 
+                    FROM scheduled_message 
                     WHERE id = :message_id
                 """)
                 

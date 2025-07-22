@@ -14,17 +14,36 @@ from flask_socketio import emit, join_room
 from flask_login import login_required
 from sqlalchemy import and_
 import jwt
+import threading
+import time
 
 from app.core import socketio, db
 from app.core.session_manager import managed_session
 from app.sockets.session import socket_session
 from app.tasks.tasks_discord import fetch_role_status, update_player_discord_roles
 from app.utils.user_helpers import safe_current_user
+from app.models.players import Player, Team
 
 logger = logging.getLogger(__name__)
 
 print("🎯 SINGLE SOCKET HANDLERS MODULE LOADED")
 logger.info("🎯 SINGLE SOCKET HANDLERS MODULE LOADED")
+
+# Global locks for preventing race conditions in draft operations
+_draft_locks = {}  # Dictionary of player_id -> lock
+_draft_lock_mutex = threading.Lock()  # Protects _draft_locks dictionary
+
+def get_draft_lock(player_id: int) -> threading.Lock:
+    """Get or create a lock for a specific player draft operation."""
+    with _draft_lock_mutex:
+        if player_id not in _draft_locks:
+            _draft_locks[player_id] = threading.Lock()
+        return _draft_locks[player_id]
+
+def cleanup_draft_lock(player_id: int):
+    """Clean up the lock for a player after operation completes."""
+    with _draft_lock_mutex:
+        _draft_locks.pop(player_id, None)
 
 
 # =============================================================================
@@ -124,7 +143,35 @@ def handle_join_draft_room(data):
 
 @socketio.on('draft_player_enhanced', namespace='/')
 def handle_draft_player_enhanced(data):
-    """Handle player drafting with comprehensive error handling."""
+    """Handle player drafting with comprehensive error handling and race condition protection."""
+    # Data validation first (before acquiring locks)
+    player_id = data.get('player_id')
+    team_id = data.get('team_id')
+    league_name = data.get('league_name')
+    
+    if not all([player_id, team_id, league_name]):
+        print(f"🚫 Missing data: {data}")
+        emit('draft_error', {'message': 'Missing required data: player_id, team_id, or league_name'})
+        return
+    
+    # Convert to integers
+    try:
+        player_id = int(player_id)
+        team_id = int(team_id)
+    except ValueError:
+        print(f"🚫 Invalid ID format")
+        emit('draft_error', {'message': 'Invalid player or team ID format'})
+        return
+    
+    # Acquire player-specific lock to prevent race conditions
+    draft_lock = get_draft_lock(player_id)
+    
+    # Use a timeout to prevent indefinite blocking
+    if not draft_lock.acquire(timeout=5.0):
+        print(f"🚫 Draft operation timeout for player {player_id} - possibly concurrent request")
+        emit('draft_error', {'message': 'Draft operation in progress for this player, please wait'})
+        return
+    
     try:
         print(f"🎯 Draft player request: {data}")
         logger.info(f"🎯 Draft player request: {data}")
@@ -138,25 +185,6 @@ def handle_draft_player_enhanced(data):
         if not current_user.is_authenticated:
             print("🚫 Unauthenticated draft attempt")
             emit('draft_error', {'message': 'Authentication required'})
-            return
-        
-        # Data validation
-        player_id = data.get('player_id')
-        team_id = data.get('team_id')
-        league_name = data.get('league_name')
-        
-        if not all([player_id, team_id, league_name]):
-            print(f"🚫 Missing data: {data}")
-            emit('draft_error', {'message': 'Missing required data: player_id, team_id, or league_name'})
-            return
-        
-        # Convert to integers
-        try:
-            player_id = int(player_id)
-            team_id = int(team_id)
-        except ValueError:
-            print(f"🚫 Invalid ID format")
-            emit('draft_error', {'message': 'Invalid player or team ID format'})
             return
         
         # Database operations
@@ -200,17 +228,37 @@ def handle_draft_player_enhanced(data):
                     emit('draft_error', {'message': f'Team with ID {team_id} not found'})
                     return
                 
-                # Check for existing assignment
-                existing_assignment = session.query(player_teams).filter(
+                # Comprehensive check for existing assignment
+                # Check both player_teams table and PlayerTeamSeason table
+                existing_player_team = session.query(player_teams).filter(
                     player_teams.c.player_id == player_id,
                     player_teams.c.team_id.in_(
                         session.query(Team.id).filter(Team.league_id == league.id)
                     )
                 ).first()
                 
-                if existing_assignment:
-                    print(f"🚫 Player already assigned to a team in {league.name}")
-                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to a team in {league.name}'})
+                if existing_player_team:
+                    existing_team = session.query(Team).filter(Team.id == existing_player_team.team_id).first()
+                    team_name = existing_team.name if existing_team else "unknown team"
+                    print(f"🚫 Player {player.name} already assigned to {team_name} in {league.name}")
+                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name} in {league.name}'})
+                    return
+                
+                # Also check PlayerTeamSeason for current season
+                from app.models import PlayerTeamSeason
+                existing_pts = session.query(PlayerTeamSeason).filter(
+                    PlayerTeamSeason.player_id == player_id,
+                    PlayerTeamSeason.season_id == league.season_id,
+                    PlayerTeamSeason.team_id.in_(
+                        session.query(Team.id).filter(Team.league_id == league.id)
+                    )
+                ).first()
+                
+                if existing_pts:
+                    existing_team = session.query(Team).filter(Team.id == existing_pts.team_id).first()
+                    team_name = existing_team.name if existing_team else "unknown team"
+                    print(f"🚫 Player {player.name} already has PlayerTeamSeason record with {team_name} in season {league.season_id}")
+                    emit('draft_error', {'message': f'Player "{player.name}" is already assigned to {team_name} for this season'})
                     return
                 
                 # Execute the draft (check if already exists to avoid duplicates)
@@ -221,24 +269,15 @@ def handle_draft_player_enhanced(data):
                 else:
                     print(f"🎯 {player.name} already on {team.name} - skipping relationship creation")
                 
-                # Create PlayerTeamSeason record for current season (check for duplicates)
-                from app.models import PlayerTeamSeason
-                existing_pts = session.query(PlayerTeamSeason).filter(
-                    PlayerTeamSeason.player_id == player_id,
-                    PlayerTeamSeason.team_id == team_id,
-                    PlayerTeamSeason.season_id == league.season_id
-                ).first()
-                
-                if not existing_pts:
-                    player_team_season = PlayerTeamSeason(
-                        player_id=player_id,
-                        team_id=team_id,
-                        season_id=league.season_id
-                    )
-                    session.add(player_team_season)
-                    print(f"📝 Created new PlayerTeamSeason record for {player.name} to {team.name}")
-                else:
-                    print(f"📝 PlayerTeamSeason record already exists for {player.name} to {team.name}")
+                # Create PlayerTeamSeason record for current season
+                # We already checked above that no PTS record exists, so create it
+                player_team_season = PlayerTeamSeason(
+                    player_id=player_id,
+                    team_id=team_id,
+                    season_id=league.season_id
+                )
+                session.add(player_team_season)
+                print(f"📝 Created new PlayerTeamSeason record for {player.name} to {team.name}")
                 
                 # Record the draft pick in history
                 try:
@@ -317,7 +356,12 @@ def handle_draft_player_enhanced(data):
             # Trigger Discord role update task (outside the database session)
             from app.tasks.tasks_discord import update_player_discord_roles
             try:
-                task = update_player_discord_roles.delay(player_id)
+                # Add timeout and expiration to prevent task buildup
+                task = update_player_discord_roles.apply_async(
+                    args=[player_id],
+                    expires=300,  # Task expires after 5 minutes
+                    priority=3    # Medium priority
+                )
                 print(f"🤖 Discord role update task queued: {task.id}")
                 logger.info(f"🤖 Discord role update task queued for player {player_id}: {task.id}")
             except Exception as e:
@@ -333,6 +377,10 @@ def handle_draft_player_enhanced(data):
         print(f"🚫 Authentication or validation error: {str(e)}")
         logger.error(f"Authentication or validation error: {str(e)}", exc_info=True)
         emit('draft_error', {'message': 'Authentication or validation failed'})
+    finally:
+        # Always release the lock
+        draft_lock.release()
+        cleanup_draft_lock(player_id)
 
 
 # =============================================================================
@@ -1026,7 +1074,7 @@ def handle_update_player_position(data):
         league_name = data['league_name']
         
         # Validate position
-        valid_positions = ['goalkeeper', 'defender', 'midfielder', 'forward', 'bench']
+        valid_positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench']
         if position not in valid_positions:
             emit('error', {'message': f'Invalid position: {position}'})
             return

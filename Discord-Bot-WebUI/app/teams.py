@@ -1360,3 +1360,105 @@ def upload_team_background(team_id):
     else:
         show_error('Invalid file type. Allowed types: png, jpg, jpeg, gif.')
         return redirect(url_for('teams.team_details', team_id=team_id))
+
+
+@teams_bp.route('/<int:team_id>/assign-discord-roles', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def assign_discord_roles_to_team(team_id):
+    """
+    Admin endpoint to manually assign Discord roles to all players on a team.
+    This is a fix for when the automatic role assignment during draft didn't work.
+    """
+    session = g.db_session
+    
+    try:
+        # Validate CSRF token
+        validate_csrf(request.headers.get('X-CSRFToken'))
+    except CSRFError:
+        return jsonify({'success': False, 'message': 'CSRF token missing or invalid.'}), 403
+    
+    # Get the team and verify it exists
+    team = session.query(Team).options(joinedload(Team.players)).get(team_id)
+    if not team:
+        return jsonify({'success': False, 'message': 'Team not found.'}), 404
+    
+    # Get all players on this team who have Discord IDs
+    players_with_discord = [p for p in team.players if p.discord_id]
+    
+    if not players_with_discord:
+        return jsonify({
+            'success': False, 
+            'message': 'No players with Discord IDs found on this team.'
+        }), 400
+    
+    logger.info(f"Starting manual Discord role assignment for team {team.name} (ID: {team_id})")
+    logger.info(f"Found {len(players_with_discord)} players with Discord IDs: {[p.name for p in players_with_discord]}")
+    
+    # Import the existing Celery task for role assignment
+    from app.tasks.tasks_discord import assign_roles_to_player_task
+    
+    # Track results
+    assignment_results = []
+    success_count = 0
+    error_count = 0
+    
+    # Process each player with Discord ID
+    for player in players_with_discord:
+        try:
+            logger.info(f"Assigning roles to player {player.name} (ID: {player.id}, Discord: {player.discord_id})")
+            
+            # Use the existing Celery task to assign roles
+            # team_id=None means process all teams for this player (not just one specific team)
+            # only_add=False means it will also remove roles that shouldn't be there
+            task_result = assign_roles_to_player_task.delay(
+                player.id, 
+                team_id=None,  # Process all teams, not just this specific team
+                only_add=False  # Allow role removal for proper sync
+            )
+            
+            # For manual assignment, we want to know the result immediately
+            # In production, you might want to make this async and poll for results
+            result = task_result.get(timeout=30)  # Wait up to 30 seconds for result
+            
+            if result.get('success'):
+                success_count += 1
+                assignment_results.append({
+                    'player_name': player.name,
+                    'status': 'success',
+                    'roles_added': result.get('roles_added', []),
+                    'roles_removed': result.get('roles_removed', [])
+                })
+                logger.info(f"Successfully assigned roles to {player.name}: added {result.get('roles_added', [])}, removed {result.get('roles_removed', [])}")
+            else:
+                error_count += 1
+                assignment_results.append({
+                    'player_name': player.name,
+                    'status': 'error',
+                    'error': result.get('message', 'Unknown error')
+                })
+                logger.error(f"Failed to assign roles to {player.name}: {result.get('message', 'Unknown error')}")
+                
+        except Exception as e:
+            error_count += 1
+            assignment_results.append({
+                'player_name': player.name,
+                'status': 'error',
+                'error': str(e)
+            })
+            logger.error(f"Exception while assigning roles to {player.name}: {e}", exc_info=True)
+    
+    # Log final results
+    logger.info(f"Manual Discord role assignment completed for team {team.name}")
+    logger.info(f"Results: {success_count} successful, {error_count} errors")
+    
+    # Return results
+    return jsonify({
+        'success': True,
+        'message': f'Discord role assignment completed for {team.name}',
+        'team_name': team.name,
+        'processed_count': success_count,
+        'error_count': error_count,
+        'total_players': len(players_with_discord),
+        'results': assignment_results
+    })

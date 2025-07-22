@@ -99,6 +99,7 @@
                             <option value="defender">Defender</option>
                             <option value="midfielder">Midfielder</option>
                             <option value="forward">Forward</option>
+                            <option value="wing">Wing</option>
                         </select>
                     </div>
                     
@@ -169,42 +170,122 @@
                                 <!-- Position Zones -->
                                 <!-- Goalkeeper -->
                                 <div class="position-zone goalkeeper-zone" 
-                                     data-position="goalkeeper" data-max-players="1"
-                                     ondrop="handlePositionDrop(event, 'goalkeeper', {{ team.id }})" 
+                                     data-position="gk" data-max-players="1"
+                                     ondrop="handlePositionDrop(event, 'gk', {{ team.id }})" 
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
                                     <div class="position-label">GK</div>
-                                    <div class="position-players" id="position-goalkeeper-{{ team.id }}"></div>
+                                    <div class="position-players" id="position-gk-{{ team.id }}"></div>
                                 </div>
 
-                                <!-- Defenders -->
-                                <div class="position-zone defender-zone" 
-                                     data-position="defender" data-max-players="5"
-                                     ondrop="handlePositionDrop(event, 'defender', {{ team.id }})" 
+                                <!-- Left Back -->
+                                <div class="position-zone leftback-zone" 
+                                     data-position="lb" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'lb', {{ team.id }})" 
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">DEF</div>
-                                    <div class="position-players" id="position-defender-{{ team.id }}"></div>
+                                    <div class="position-label">LB</div>
+                                    <div class="position-players" id="position-lb-{{ team.id }}"></div>
                                 </div>
 
-                                <!-- Midfielders -->
-                                <div class="position-zone midfielder-zone" 
-                                     data-position="midfielder" data-max-players="5"
-                                     ondrop="handlePositionDrop(event, 'midfielder', {{ team.id }})" 
+                                <!-- Center Back -->
+                                <div class="position-zone centerback-zone" 
+                                     data-position="cb" data-max-players="3"
+                                     ondrop="handlePositionDrop(event, 'cb', {{ team.id }})" 
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">MID</div>
-                                    <div class="position-players" id="position-midfielder-{{ team.id }}"></div>
+                                    <div class="position-label">CB</div>
+                                    <div class="position-players" id="position-cb-{{ team.id }}"></div>
                                 </div>
 
-                                <!-- Forwards -->
-                                <div class="position-zone forward-zone" 
-                                     data-position="forward" data-max-players="4"
-                                     ondrop="handlePositionDrop(event, 'forward', {{ team.id }})" 
+                                <!-- Right Back -->
+                                <div class="position-zone rightback-zone" 
+                                     data-position="rb" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'rb', {{ team.id }})" 
                                      ondragover="handlePositionDragOver(event)"
                                      ondragleave="handlePositionDragLeave(event)">
-                                    <div class="position-label">FWD</div>
-                                    <div class="position-players" id="position-forward-{{ team.id }}"></div>
+                                    <div class="position-label">RB</div>
+                                    <div class="position-players" id="position-rb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Left Wing Back -->
+                                <div class="position-zone leftwingback-zone" 
+                                     data-position="lwb" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'lwb', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">LWB</div>
+                                    <div class="position-players" id="position-lwb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Right Wing Back -->
+                                <div class="position-zone rightwingback-zone" 
+                                     data-position="rwb" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'rwb', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">RWB</div>
+                                    <div class="position-players" id="position-rwb-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Center Defensive Midfielder -->
+                                <div class="position-zone cdm-zone" 
+                                     data-position="cdm" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'cdm', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">CDM</div>
+                                    <div class="position-players" id="position-cdm-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Center Midfielder -->
+                                <div class="position-zone cm-zone" 
+                                     data-position="cm" data-max-players="3"
+                                     ondrop="handlePositionDrop(event, 'cm', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">CM</div>
+                                    <div class="position-players" id="position-cm-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Center Attacking Midfielder -->
+                                <div class="position-zone cam-zone" 
+                                     data-position="cam" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'cam', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">CAM</div>
+                                    <div class="position-players" id="position-cam-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Left Wing -->
+                                <div class="position-zone leftwing-zone" 
+                                     data-position="lw" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'lw', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">LW</div>
+                                    <div class="position-players" id="position-lw-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Right Wing -->
+                                <div class="position-zone rightwing-zone" 
+                                     data-position="rw" data-max-players="2"
+                                     ondrop="handlePositionDrop(event, 'rw', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">RW</div>
+                                    <div class="position-players" id="position-rw-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Striker/Forward -->
+                                <div class="position-zone striker-zone" 
+                                     data-position="st" data-max-players="3"
+                                     ondrop="handlePositionDrop(event, 'st', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">ST</div>
+                                    <div class="position-players" id="position-st-{{ team.id }}"></div>
                                 </div>
 
                                 <!-- Bench/Substitutes -->

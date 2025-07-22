@@ -169,16 +169,30 @@ def sync_players_with_woocommerce(self, user_id=None):
                 current_seasons = session.query(Season).filter_by(is_current=True).all()
                 logger.info(f"Found {len(current_seasons)} current seasons for processing")
                 
-                # Cache leagues to avoid repeated database queries - PERFORMANCE OPTIMIZATION
-                league_cache = {}
-                all_leagues = session.query(League).all()
-                for league in all_leagues:
-                    league_cache[league.id] = league
+                # Use Redis cache for leagues instead of loading all into memory
+                from app.utils.cache_manager import reference_cache
+                league_cache = {league['id']: league for league in reference_cache.get_leagues(session)}
+                logger.info(f"Loaded {len(league_cache)} leagues from cache")
                 
-                # Cache all players with users to avoid repeated full table scans - PERFORMANCE OPTIMIZATION
-                update_task_status('cache', 'Caching player data...', 55)
-                all_players_with_users = session.query(Player).join(User).all()
-                logger.info(f"Cached {len(all_players_with_users)} players for matching")
+                # Create indexed lookup for players instead of loading all into memory
+                # Build email and name indexes for efficient player matching
+                update_task_status('cache', 'Building player lookup indexes...', 55)
+                
+                # Create efficient player lookup by email
+                player_email_lookup = {}
+                for player_id, email in session.query(Player.id, User.email).join(User).all():
+                    if email and email.strip().lower():
+                        player_email_lookup[email.strip().lower()] = player_id
+                
+                # Create efficient player lookup by name (for fuzzy matching)
+                player_name_lookup = {}
+                for player_id, name in session.query(Player.id, Player.name).filter(Player.name.isnot(None)).all():
+                    if name and name.strip():
+                        key = name.strip().lower().replace(' ', '').replace('-', '').replace('.', '')
+                        if key:
+                            player_name_lookup[key] = player_id
+                
+                logger.info(f"Built lookup indexes: {len(player_email_lookup)} emails, {len(player_name_lookup)} names")
                 
                 # Process all fetched orders
                 update_task_status('process', f'Processing {total_orders_fetched} orders...', 60)
@@ -221,9 +235,24 @@ def sync_players_with_woocommerce(self, user_id=None):
                         'jersey_size': jersey_size
                     })
 
-                    # Check if the player already exists using enhanced matching - using cached data for performance
-                    match_result = match_player_with_details_cached(player_info, all_players_with_users)
-                    existing_player = match_result['player']
+                    # Check if the player already exists using optimized lookup - no need to load full objects
+                    existing_player_id = None
+                    
+                    # First try email lookup (most reliable)
+                    if player_info.get('email'):
+                        email_key = player_info['email'].strip().lower()
+                        existing_player_id = player_email_lookup.get(email_key)
+                    
+                    # If no email match, try name-based lookup
+                    if not existing_player_id and player_info.get('name'):
+                        name_key = player_info['name'].strip().lower().replace(' ', '').replace('-', '').replace('.', '')
+                        if name_key:
+                            existing_player_id = player_name_lookup.get(name_key)
+                    
+                    # Load the actual player object only if we found a match
+                    existing_player = None
+                    if existing_player_id:
+                        existing_player = session.query(Player).get(existing_player_id)
                     
                     if existing_player:
                         existing_players.add(existing_player.id)
