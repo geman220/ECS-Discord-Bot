@@ -224,6 +224,7 @@ class DraftService:
                 for pick in affected_picks:
                     pick.draft_position += 1
                     pick.updated_at = datetime.utcnow()
+                    session.flush()  # Flush after each update to avoid constraint violations
                     
             else:
                 # Moving down (e.g., from #100 to #105)
@@ -239,9 +240,7 @@ class DraftService:
                 for pick in affected_picks:
                     pick.draft_position -= 1
                     pick.updated_at = datetime.utcnow()
-            
-            # Flush the shifts before moving the main pick
-            session.flush()
+                    session.flush()  # Flush after each update to avoid constraint violations
             
             # Now move the pick to its final position
             pick_to_move.draft_position = new_position
