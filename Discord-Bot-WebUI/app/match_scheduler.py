@@ -33,7 +33,8 @@ class MatchScheduler:
     REDIS_KEY_PREFIX = "match_scheduler:"
 
     def __init__(self):
-        self.redis = RedisManager().client
+        self.redis_manager = RedisManager()
+        self.redis = self.redis_manager.client
 
     def _get_match(self, match_id: int) -> Optional[MLSMatch]:
         """

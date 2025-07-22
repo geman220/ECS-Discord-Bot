@@ -64,7 +64,7 @@ def configure_celery(app):
             'visibility_timeout': 3600,  # 1 hour
             'socket_timeout': 5,
             'socket_connect_timeout': 5,
-            'max_connections': 20
+            'max_connections': 5  # Further reduced for unified architecture
         },
         result_backend_transport_options={
             'socket_timeout': 5,

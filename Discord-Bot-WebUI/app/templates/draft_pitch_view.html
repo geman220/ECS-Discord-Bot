@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Pitch View{% endblock %}
+
+{% block custom_css %}
+<!-- Draft System Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/draft-system.css') }}?v={{ range(1, 1000000) | random }}">
+<!-- Pitch View Styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pitch-view.css') }}?v={{ range(1, 1000000) | random }}">
+{% endblock %}
+
+{% block main_content %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="text-primary mb-1">{{ title }} - Pitch View</h2>
+                            <p class="text-muted mb-0">Visualize your team formation and draft players to positions</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('draft_enhanced.draft_league', league_name=league_name) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="ti ti-list me-1"></i>List View
+                            </a>
+                            <div class="dropdown">
+                                <button class="btn btn-primary dropdown-toggle" type="button" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="ti ti-user-check me-1"></i>Coach View
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% for team in teams %}
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="switchTeamView({{ team.id }})">
+                                            {{ team.name }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Selection / Current Team View -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="nav nav-pills" id="team-tabs" role="tablist">
+                        {% for team in teams %}
+                        <button class="nav-link {% if loop.first %}active{% endif %}" 
+                                id="team-{{ team.id }}-tab" data-bs-toggle="pill" 
+                                data-bs-target="#team-{{ team.id }}-pitch" type="button" 
+                                role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}"
+                                data-team-id="{{ team.id }}">
+                            {{ team.name }}
+                            <span class="badge bg-secondary ms-2" id="teamPitchCount{{ team.id }}">
+                                {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
+                            </span>
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Available Players Pool -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="ti ti-users me-2"></i>
+                        Available Players
+                    </h5>
+                    <span class="badge bg-primary" id="availablePlayerCount">{{ available_players|length }}</span>
+                </div>
+                <div class="card-body p-2">
+                    <!-- Search and Filter -->
+                    <div class="mb-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="ti ti-search"></i></span>
+                            <input type="text" id="playerSearchPitch" class="form-control" 
+                                   placeholder="Search players..." autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <select id="positionFilterPitch" class="form-select form-select-sm">
+                            <option value="">All Positions</option>
+                            <option value="goalkeeper">Goalkeeper</option>
+                            <option value="defender">Defender</option>
+                            <option value="midfielder">Midfielder</option>
+                            <option value="forward">Forward</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Players List -->
+                    <div id="availablePlayersList" class="available-players-list">
+                        {% for player in available_players %}
+                        <div class="player-item" data-player-id="{{ player.id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-position="{{ (player.favorite_position or '')|lower }}"
+                             draggable="true" 
+                             ondragstart="handlePlayerDragStart(event, {{ player.id }})"
+                             ondragend="handlePlayerDragEnd(event)">
+                            <div class="player-avatar-container">
+                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" 
+                                     alt="{{ player.name }}" class="player-avatar"
+                                     onerror="this.src='/static/img/default_player.png';">
+                            </div>
+                            <div class="player-info">
+                                <div class="player-name">{{ player.name }}</div>
+                                <div class="player-position">{{ player.favorite_position or 'Any' }}</div>
+                                <div class="player-stats">
+                                    <span class="stat-item">{{ player.career_goals }}G</span>
+                                    <span class="stat-item">{{ player.career_assists }}A</span>
+                                    {% if player.attendance_estimate is not none %}
+                                    <span class="stat-item attendance-{{ 'high' if player.attendance_estimate >= 80 else 'medium' if player.attendance_estimate >= 60 else 'low' }}">
+                                        {{ "%.0f"|format(player.attendance_estimate) }}%
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Soccer Pitch Views -->
+        <div class="col-lg-8">
+            <div class="tab-content" id="team-pitch-content">
+                {% for team in teams %}
+                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" 
+                     id="team-{{ team.id }}-pitch" role="tabpanel" 
+                     aria-labelledby="team-{{ team.id }}-tab">
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ team.name }} Formation</h5>
+                        </div>
+                        <div class="card-body p-3">
+                            <!-- Soccer Pitch -->
+                            <div class="soccer-pitch" id="pitch-{{ team.id }}" data-team-id="{{ team.id }}">
+                                <!-- Pitch Background -->
+                                <div class="pitch-background">
+                                    <!-- Goal Areas -->
+                                    <div class="goal-area goal-area-top"></div>
+                                    <div class="goal-area goal-area-bottom"></div>
+                                    
+                                    <!-- Center Circle -->
+                                    <div class="center-circle"></div>
+                                    <div class="center-line"></div>
+                                    
+                                    <!-- Penalty Areas -->
+                                    <div class="penalty-area penalty-area-top"></div>
+                                    <div class="penalty-area penalty-area-bottom"></div>
+                                </div>
+
+                                <!-- Position Zones -->
+                                <!-- Goalkeeper -->
+                                <div class="position-zone goalkeeper-zone" 
+                                     data-position="goalkeeper" data-max-players="1"
+                                     ondrop="handlePositionDrop(event, 'goalkeeper', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">GK</div>
+                                    <div class="position-players" id="position-goalkeeper-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Defenders -->
+                                <div class="position-zone defender-zone" 
+                                     data-position="defender" data-max-players="5"
+                                     ondrop="handlePositionDrop(event, 'defender', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">DEF</div>
+                                    <div class="position-players" id="position-defender-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Midfielders -->
+                                <div class="position-zone midfielder-zone" 
+                                     data-position="midfielder" data-max-players="5"
+                                     ondrop="handlePositionDrop(event, 'midfielder', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">MID</div>
+                                    <div class="position-players" id="position-midfielder-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Forwards -->
+                                <div class="position-zone forward-zone" 
+                                     data-position="forward" data-max-players="4"
+                                     ondrop="handlePositionDrop(event, 'forward', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">FWD</div>
+                                    <div class="position-players" id="position-forward-{{ team.id }}"></div>
+                                </div>
+
+                                <!-- Bench/Substitutes -->
+                                <div class="position-zone bench-zone" 
+                                     data-position="bench" data-max-players="10"
+                                     ondrop="handlePositionDrop(event, 'bench', {{ team.id }})" 
+                                     ondragover="handlePositionDragOver(event)"
+                                     ondragleave="handlePositionDragLeave(event)">
+                                    <div class="position-label">BENCH</div>
+                                    <div class="position-players" id="position-bench-{{ team.id }}"></div>
+                                </div>
+                            </div>
+
+                            <!-- Formation Stats -->
+                            <div class="formation-stats mt-3">
+                                <div class="row text-center">
+                                    <div class="col">
+                                        <div class="stat-box">
+                                            <div class="stat-number" id="gk-count-{{ team.id }}">0</div>
+                                            <div class="stat-label">GK</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="stat-box">
+                                            <div class="stat-number" id="def-count-{{ team.id }}">0</div>
+                                            <div class="stat-label">DEF</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="stat-box">
+                                            <div class="stat-number" id="mid-count-{{ team.id }}">0</div>
+                                            <div class="stat-label">MID</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="stat-box">
+                                            <div class="stat-number" id="fwd-count-{{ team.id }}">0</div>
+                                            <div class="stat-label">FWD</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="stat-box">
+                                            <div class="stat-number" id="bench-count-{{ team.id }}">0</div>
+                                            <div class="stat-label">BENCH</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="text-center">
+        <div class="loading-spinner mx-auto mb-3"></div>
+        <p class="text-muted">Processing...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<!-- Socket.IO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<!-- Pitch View JavaScript -->
+<script src="{{ url_for('static', filename='js/pitch-view.js') }}?v={{ range(1, 1000000) | random }}"></script>
+
+<script>
+// Initialize the pitch view system
+document.addEventListener('DOMContentLoaded', function() {
+    initializePitchView('{{ league_name }}', {{ teams_json|tojson }}, {{ drafted_players_by_team|tojson }});
+    
+    console.log('🏟️ Pitch View System loaded successfully');
+});
+
+// Team data for JavaScript
+window.teamsData = {{ teams_json|tojson }};
+window.draftedPlayersByTeam = {{ drafted_players_by_team|tojson }};
+window.leagueName = '{{ league_name }}';
+</script>
+{% endblock %}

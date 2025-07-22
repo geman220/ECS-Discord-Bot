@@ -1,0 +1,569 @@
+/* Soccer Pitch View Styles */
+
+/* Available Players List */
+.available-players-list {
+    max-height: 600px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bs-border-color) transparent;
+}
+
+.available-players-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.available-players-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.available-players-list::-webkit-scrollbar-thumb {
+    background: var(--bs-border-color);
+    border-radius: 3px;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    cursor: grab;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.player-item:hover {
+    background: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.player-item.dragging {
+    opacity: 0.6;
+    transform: rotate(5deg) scale(0.95);
+    cursor: grabbing;
+}
+
+.player-avatar-container {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.player-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bs-border-color);
+}
+
+.player-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.player-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--bs-body-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-position {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    margin-bottom: 2px;
+}
+
+.player-stats {
+    display: flex;
+    gap: 6px;
+    font-size: 0.7rem;
+}
+
+.stat-item {
+    background: var(--bs-secondary-bg);
+    color: var(--bs-secondary);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+}
+
+.stat-item.attendance-high {
+    background: var(--bs-success-bg-subtle);
+    color: var(--bs-success);
+}
+
+.stat-item.attendance-medium {
+    background: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning);
+}
+
+.stat-item.attendance-low {
+    background: var(--bs-danger-bg-subtle);
+    color: var(--bs-danger);
+}
+
+/* Soccer Pitch */
+.soccer-pitch {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+    border: 3px solid #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 0 auto;
+}
+
+.pitch-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+/* Pitch Markings */
+.center-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #ffffff;
+    transform: translateY(-50%);
+}
+
+.center-circle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120px;
+    height: 120px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.goal-area {
+    position: absolute;
+    left: 50%;
+    width: 80px;
+    height: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffffff;
+    border-radius: 4px;
+    transform: translateX(-50%);
+}
+
+.goal-area-top {
+    top: -2px;
+    border-top: none;
+}
+
+.goal-area-bottom {
+    bottom: -2px;
+    border-bottom: none;
+}
+
+.penalty-area {
+    position: absolute;
+    left: 50%;
+    width: 200px;
+    height: 80px;
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.penalty-area-top {
+    top: 8px;
+    border-top: none;
+}
+
+.penalty-area-bottom {
+    bottom: 8px;
+    border-bottom: none;
+}
+
+/* Position Zones */
+.position-zone {
+    position: absolute;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px;
+    min-height: 80px;
+}
+
+.position-zone:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+.position-zone.drag-over {
+    background: rgba(0, 123, 255, 0.2) !important;
+    border-color: #007bff !important;
+    border-style: solid !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(0, 123, 255, 0.3);
+}
+
+.position-label {
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.position-players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    width: 100%;
+}
+
+/* Position Zone Layouts */
+.goalkeeper-zone {
+    bottom: 15px;
+    left: 50%;
+    width: 100px;
+    height: 80px;
+    transform: translateX(-50%);
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.5);
+}
+
+.defender-zone {
+    bottom: 120px;
+    left: 50%;
+    width: 280px;
+    height: 90px;
+    transform: translateX(-50%);
+    background: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.4);
+}
+
+.midfielder-zone {
+    top: 50%;
+    left: 50%;
+    width: 320px;
+    height: 100px;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 123, 255, 0.15);
+    border-color: rgba(0, 123, 255, 0.4);
+}
+
+.forward-zone {
+    top: 120px;
+    left: 50%;
+    width: 240px;
+    height: 85px;
+    transform: translateX(-50%);
+    background: rgba(40, 167, 69, 0.15);
+    border-color: rgba(40, 167, 69, 0.4);
+}
+
+.bench-zone {
+    top: 10px;
+    right: 10px;
+    width: 120px;
+    height: 100px;
+    background: rgba(108, 117, 125, 0.15);
+    border-color: rgba(108, 117, 125, 0.4);
+}
+
+/* Positioned Players */
+.positioned-player {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--bs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    transition: all 0.2s ease;
+    position: relative;
+    margin: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.positioned-player:hover {
+    transform: scale(1.1);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.positioned-player.dragging {
+    opacity: 0.6;
+    cursor: grabbing;
+    transform: rotate(5deg) scale(0.9);
+}
+
+.positioned-player img {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.positioned-player .player-initials {
+    font-weight: bold;
+    font-size: 0.7rem;
+    color: var(--bs-primary);
+    text-align: center;
+    line-height: 1;
+}
+
+.positioned-player .remove-btn {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    background: var(--bs-danger);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.positioned-player:hover .remove-btn {
+    display: flex;
+}
+
+.remove-btn:hover {
+    background: var(--bs-danger);
+    transform: scale(1.1);
+}
+
+/* Formation Stats */
+.formation-stats {
+    background: var(--bs-light);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.stat-box {
+    padding: 8px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--bs-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+/* Loading States */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--bs-border-color);
+    border-top-color: var(--bs-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 991.98px) {
+    .soccer-pitch {
+        height: 500px;
+    }
+    
+    .defender-zone,
+    .midfielder-zone,
+    .forward-zone {
+        width: 90%;
+    }
+    
+    .positioned-player {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .positioned-player img {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .soccer-pitch {
+        height: 400px;
+    }
+    
+    .position-zone {
+        min-height: 60px;
+        padding: 4px;
+    }
+    
+    .positioned-player {
+        width: 32px;
+        height: 32px;
+        margin: 1px;
+    }
+    
+    .positioned-player img {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .position-label {
+        font-size: 0.65rem;
+    }
+    
+    .bench-zone {
+        width: 100px;
+        height: 80px;
+    }
+}
+
+/* Dark Mode Support */
+[data-style="dark"] .player-item {
+    background: var(--bs-dark);
+    border-color: var(--bs-border-color-translucent);
+}
+
+[data-style="dark"] .player-item:hover {
+    background: var(--bs-primary-bg-subtle);
+}
+
+[data-style="dark"] .formation-stats {
+    background: var(--bs-dark);
+    border: 1px solid var(--bs-border-color);
+}
+
+[data-style="dark"] .positioned-player {
+    background: var(--bs-dark);
+    border-color: var(--bs-primary);
+}
+
+/* Animation for newly added players */
+@keyframes playerAddition {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.positioned-player.newly-added {
+    animation: playerAddition 0.5s ease-out;
+}
+
+/* Hover effects for better UX */
+.position-zone .position-label {
+    transition: all 0.2s ease;
+}
+
+.position-zone:hover .position-label {
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+}
+
+/* Team tabs styling */
+.nav-pills .nav-link {
+    border-radius: 8px;
+    margin-right: 4px;
+    transition: all 0.2s ease;
+}
+
+.nav-pills .nav-link:hover {
+    background-color: var(--bs-primary-bg-subtle);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Empty state for position zones */
+.position-zone:empty::after {
+    content: "Drop players here";
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.7rem;
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
+}
+
+/* Tooltip-like information on hover */
+.positioned-player::before {
+    content: attr(data-player-name);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 20;
+}
+
+.positioned-player:hover::before {
+    opacity: 1;
+}
