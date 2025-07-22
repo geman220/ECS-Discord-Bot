@@ -129,12 +129,13 @@ class PitchViewSystem {
     }
     
     populateExistingPlayers() {
-        // Populate already drafted players into their teams
-        // For now, place them all in bench - later we can enhance this to remember positions
+        // Populate already drafted players into their saved positions
         Object.keys(this.draftedPlayersByTeam).forEach(teamId => {
             const players = this.draftedPlayersByTeam[teamId];
             players.forEach(player => {
-                this.addPlayerToPosition(player, 'bench', teamId, false); // false = don't emit socket event
+                // Use the saved position or default to bench
+                const position = player.current_position || 'bench';
+                this.addPlayerToPosition(player, position, teamId, false); // false = don't emit socket event
             });
         });
     }

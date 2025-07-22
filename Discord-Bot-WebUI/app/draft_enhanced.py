@@ -691,13 +691,26 @@ def draft_league_pitch_view(league_name: str):
         current_league.season_id
     )
     
-    # Organize drafted players by team
+    # Organize drafted players by team with positions
     drafted_by_team = {team.id: [] for team in teams}
     
     for player in drafted_players:
         for team_info in player['current_teams']:
             team_id = team_info['id']
             if team_id in drafted_by_team:
+                # Get the player's position from player_teams table
+                try:
+                    position_result = g.db_session.execute(text("""
+                        SELECT position FROM player_teams 
+                        WHERE player_id = :player_id AND team_id = :team_id
+                    """), {'player_id': player['id'], 'team_id': team_id}).fetchone()
+                    
+                    position = position_result[0] if position_result else 'bench'
+                except:
+                    position = 'bench'  # Default if query fails
+                
+                # Add position to player data
+                player['current_position'] = position
                 drafted_by_team[team_id].append(player)
                 break
     

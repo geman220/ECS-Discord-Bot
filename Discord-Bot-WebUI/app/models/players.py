@@ -37,7 +37,8 @@ player_teams = db.Table(
     'player_teams',
     db.Column('player_id', db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), primary_key=True),
     db.Column('team_id', db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), primary_key=True),
-    db.Column('is_coach', db.Boolean, default=False)
+    db.Column('is_coach', db.Boolean, default=False),
+    db.Column('position', db.String(20), default='bench')
 )
 
 
