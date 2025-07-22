@@ -1110,9 +1110,10 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
 async def get_app_managed_roles(session: Session) -> List[str]:
     """
     Get a list of roles that are managed by the application.
+    Only includes current season teams to avoid managing old team roles.
 
     Returns:
-        List[str]: Combined list of static and team-specific roles.
+        List[str]: Combined list of static and current season team-specific roles.
     """
     static_roles = [
         "ECS-FC-PL-PREMIER",
@@ -1126,8 +1127,23 @@ async def get_app_managed_roles(session: Session) -> List[str]:
         "ECS-FC-LEAGUE-SUB",  # ECS FC substitute role
         "Referee"
     ]
-    teams = session.query(Team).all()
-    team_roles = [f"ECS-FC-PL-{normalize_name(team.name)}-Player" for team in teams]
+    
+    # Only include current season teams to avoid managing old team roles
+    from app.models import Season, PlayerTeamSeason
+    
+    current_season = session.query(Season).filter_by(is_current=True).first()
+    if current_season:
+        # Get teams that are active in the current season
+        current_teams = session.query(Team).join(
+            PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+        ).filter(
+            PlayerTeamSeason.season_id == current_season.id
+        ).distinct().all()
+        team_roles = [f"ECS-FC-PL-{normalize_name(team.name)}-Player" for team in current_teams]
+    else:
+        # Fallback: if no current season, don't include any team roles
+        team_roles = []
+        
     return static_roles + team_roles
 
 
