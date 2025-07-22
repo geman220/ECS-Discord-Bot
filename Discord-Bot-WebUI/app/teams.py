@@ -211,6 +211,53 @@ def team_details(team_id):
 
     # Choose to display current players if available or if the season is current.
     players = current_players if current_players or (season and season.is_current) else historical_players
+    
+    # Check Discord status for players who have Discord IDs
+    # Smart checking: longer intervals for players in server, shorter for those not in server
+    from datetime import datetime, timedelta
+    now = datetime.utcnow()
+    
+    for player in players:
+        if not player.discord_id:
+            continue
+            
+        # Determine when to recheck based on current status
+        should_check = False
+        
+        if not player.discord_last_checked:
+            # Never checked before - always check
+            should_check = True
+            reason = "never checked"
+        elif player.discord_in_server is True:
+            # Player is in server - check every 30 days
+            check_threshold = now - timedelta(days=30)
+            should_check = player.discord_last_checked < check_threshold
+            reason = "in server, 30 day recheck"
+        elif player.discord_in_server is False:
+            # Player is NOT in server - check every 24 hours
+            check_threshold = now - timedelta(hours=24)
+            should_check = player.discord_last_checked < check_threshold
+            reason = "not in server, 24 hour recheck"
+        else:
+            # Status is unknown (null) - check every 7 days
+            check_threshold = now - timedelta(days=7)
+            should_check = player.discord_last_checked < check_threshold
+            reason = "unknown status, 7 day recheck"
+        
+        if should_check:
+            try:
+                player.check_discord_status()
+                session.add(player)  # Mark for update
+                logger.info(f"Updated Discord status for player {player.name} (ID: {player.id}) - {reason}")
+            except Exception as e:
+                logger.error(f"Failed to check Discord status for player {player.name} (ID: {player.id}): {e}")
+    
+    # Commit any Discord status updates
+    try:
+        session.commit()
+    except Exception as e:
+        logger.error(f"Failed to commit Discord status updates: {e}")
+        session.rollback()
 
     report_form = ReportMatchForm()
 
@@ -1360,6 +1407,199 @@ def upload_team_background(team_id):
     else:
         show_error('Invalid file type. Allowed types: png, jpg, jpeg, gif.')
         return redirect(url_for('teams.team_details', team_id=team_id))
+
+
+@teams_bp.route('/<int:team_id>/refresh-discord-status', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def refresh_discord_status(team_id):
+    """
+    Admin endpoint to manually refresh Discord status for all players on a team.
+    Useful when you need to force-check players regardless of when they were last checked.
+    """
+    session = g.db_session
+    
+    try:
+        # Validate CSRF token
+        validate_csrf(request.headers.get('X-CSRFToken'))
+    except CSRFError:
+        return jsonify({'success': False, 'message': 'CSRF token missing or invalid.'}), 403
+    
+    # Get the team and verify it exists
+    team = session.query(Team).options(joinedload(Team.players)).get(team_id)
+    if not team:
+        return jsonify({'success': False, 'message': 'Team not found.'}), 404
+    
+    # Get all players on this team who have Discord IDs
+    players_with_discord = [p for p in team.players if p.discord_id]
+    
+    if not players_with_discord:
+        return jsonify({
+            'success': False, 
+            'message': 'No players with Discord IDs found on this team.'
+        }), 400
+    
+    logger.info(f"Manually refreshing Discord status for team {team.name} (ID: {team_id})")
+    logger.info(f"Found {len(players_with_discord)} players with Discord IDs: {[p.name for p in players_with_discord]}")
+    
+    # Track results
+    refresh_results = []
+    success_count = 0
+    error_count = 0
+    
+    # Check each player's Discord status
+    for player in players_with_discord:
+        try:
+            logger.info(f"Refreshing Discord status for player {player.name} (ID: {player.id}, Discord: {player.discord_id})")
+            
+            old_status = player.discord_in_server
+            success = player.check_discord_status()
+            
+            if success:
+                success_count += 1
+                session.add(player)  # Mark for update
+                
+                # Determine status change
+                if old_status is None and player.discord_in_server is not None:
+                    status_change = f"Unknown -> {'In Server' if player.discord_in_server else 'Not in Server'}"
+                elif old_status != player.discord_in_server:
+                    old_text = 'In Server' if old_status else 'Not in Server'
+                    new_text = 'In Server' if player.discord_in_server else 'Not in Server'
+                    status_change = f"{old_text} -> {new_text}"
+                else:
+                    status_change = 'In Server' if player.discord_in_server else 'Not in Server' if player.discord_in_server is not None else 'Unknown'
+                
+                refresh_results.append({
+                    'player_name': player.name,
+                    'discord_username': player.discord_username,
+                    'status': 'success',
+                    'in_server': player.discord_in_server,
+                    'status_change': status_change
+                })
+                logger.info(f"Successfully refreshed Discord status for {player.name}: {status_change}")
+            else:
+                error_count += 1
+                refresh_results.append({
+                    'player_name': player.name,
+                    'status': 'error',
+                    'error': 'Discord API error or player not found'
+                })
+                logger.error(f"Failed to refresh Discord status for {player.name}: API error")
+                
+        except Exception as e:
+            error_count += 1
+            refresh_results.append({
+                'player_name': player.name,
+                'status': 'error',
+                'error': str(e)
+            })
+            logger.error(f"Exception while refreshing Discord status for {player.name}: {e}", exc_info=True)
+    
+    # Commit the updates
+    try:
+        session.commit()
+        logger.info(f"Committed Discord status updates for team {team.name}")
+    except Exception as e:
+        logger.error(f"Failed to commit Discord status updates: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to save Discord status updates.'}), 500
+    
+    # Log final results
+    logger.info(f"Manual Discord status refresh completed for team {team.name}")
+    logger.info(f"Results: {success_count} successful, {error_count} errors")
+    
+    # Return results
+    return jsonify({
+        'success': True,
+        'message': f'Discord status refresh completed for {team.name}',
+        'team_name': team.name,
+        'processed_count': success_count,
+        'error_count': error_count,
+        'total_players': len(players_with_discord),
+        'results': refresh_results
+    })
+
+
+@teams_bp.route('/player/<int:player_id>/refresh-discord-status', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def refresh_player_discord_status(player_id):
+    """
+    Admin endpoint to manually refresh Discord status for a single player.
+    Useful when you need to check if a specific player has joined the server.
+    """
+    session = g.db_session
+    
+    try:
+        # Validate CSRF token
+        validate_csrf(request.headers.get('X-CSRFToken'))
+    except CSRFError:
+        return jsonify({'success': False, 'message': 'CSRF token missing or invalid.'}), 403
+    
+    # Get the player and verify they exist
+    player = session.query(Player).get(player_id)
+    if not player:
+        return jsonify({'success': False, 'message': 'Player not found.'}), 404
+    
+    if not player.discord_id:
+        return jsonify({
+            'success': False, 
+            'message': f'Player {player.name} does not have a Discord ID linked.'
+        }), 400
+    
+    logger.info(f"Manually refreshing Discord status for player {player.name} (ID: {player_id}, Discord: {player.discord_id})")
+    
+    try:
+        old_status = player.discord_in_server
+        old_username = player.discord_username
+        
+        success = player.check_discord_status()
+        
+        if success:
+            session.add(player)  # Mark for update
+            session.commit()
+            
+            # Determine status change
+            if old_status is None and player.discord_in_server is not None:
+                status_change = f"Unknown → {'In Server' if player.discord_in_server else 'Not in Server'}"
+            elif old_status != player.discord_in_server:
+                old_text = 'In Server' if old_status else 'Not in Server'
+                new_text = 'In Server' if player.discord_in_server else 'Not in Server'
+                status_change = f"{old_text} → {new_text}"
+            else:
+                status_change = 'In Server' if player.discord_in_server else 'Not in Server' if player.discord_in_server is not None else 'Unknown'
+            
+            # Check if username changed
+            username_change = None
+            if old_username != player.discord_username:
+                username_change = f"{old_username or 'Unknown'} → {player.discord_username or 'Unknown'}"
+            
+            logger.info(f"Successfully refreshed Discord status for {player.name}: {status_change}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Discord status updated for {player.name}',
+                'player_name': player.name,
+                'discord_username': player.discord_username,
+                'in_server': player.discord_in_server,
+                'status_change': status_change,
+                'username_change': username_change,
+                'last_checked': player.discord_last_checked.isoformat() if player.discord_last_checked else None
+            })
+        else:
+            logger.error(f"Failed to refresh Discord status for {player.name}: API error")
+            return jsonify({
+                'success': False,
+                'message': f'Failed to check Discord status for {player.name}. They may not exist on Discord or there was an API error.'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Exception while refreshing Discord status for {player.name}: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Error checking Discord status: {str(e)}'
+        }), 500
 
 
 @teams_bp.route('/<int:team_id>/assign-discord-roles', methods=['POST'])
