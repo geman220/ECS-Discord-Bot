@@ -1191,13 +1191,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const teamId = this.dataset.teamId;
             const teamName = '{{ team.name|escape }}';
             
+            // Normalize team name for Discord role display (same as backend normalization)
+            const normalizedTeamName = teamName.trim().toUpperCase().replace(/ /g, '-').replace(/_/g, '-');
+            
             // Show confirmation dialog
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     title: 'Assign Discord Roles?',
                     html: `This will assign Discord roles to all players on <strong>${teamName}</strong>.<br><br>` +
                           `Players will receive:<br>` +
-                          `• <strong>ECS-FC-PL-${teamName}-Player</strong> role<br>` +
+                          `• <strong>ECS-FC-PL-${normalizedTeamName}-Player</strong> role<br>` +
                           `• Division role (Premier/Classic) based on their user permissions<br><br>` +
                           `<small class="text-info">This is a manual fix for the draft role assignment issue.</small>`,
                     icon: 'question',

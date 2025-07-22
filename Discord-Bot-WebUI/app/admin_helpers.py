@@ -30,7 +30,7 @@ from sqlalchemy.orm import joinedload
 from flask import current_app, g
 
 from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, SubRequest, Schedule
-from app.discord_utils import get_expected_roles
+from app.discord_utils import get_expected_roles, normalize_name
 from app.core import db
 
 logger = logging.getLogger(__name__)
@@ -873,7 +873,7 @@ def get_initial_expected_roles(player: Player) -> List[str]:
     
     if player.primary_team:
         role_suffix = 'Coach' if player.is_coach else 'Player'
-        roles.append(f"ECS-FC-PL-{player.primary_team.name}-{role_suffix}")
+        roles.append(f"ECS-FC-PL-{normalize_name(player.primary_team.name)}-{role_suffix}")
         if player.primary_team.league:
             league_map = {
                 'Premier': 'ECS-FC-PL-PREMIER',

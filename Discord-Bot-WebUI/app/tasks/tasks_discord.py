@@ -53,7 +53,8 @@ from app.discord_utils import (
     process_single_player_update,
     remove_role_from_member,
     get_role_id,
-    get_member_roles
+    get_member_roles,
+    normalize_name
 )
 from web_config import Config
 from app.utils.discord_request_handler import make_discord_request
@@ -215,7 +216,7 @@ async def _execute_player_role_update_async(data):
     for team in data.get('teams', []):
         if team.get('league_name') in ['Premier', 'Classic']:
             # Add player role
-            expected_roles.append(f"ECS-FC-PL-{team['name']}-Player")
+            expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
     
     # Add league division roles based on Flask user roles AND database league fields
     user_roles = data.get('user_roles', [])
@@ -265,7 +266,7 @@ async def _execute_player_role_update_async(data):
     
     # Add team-specific player roles to managed roles
     for team in data.get('teams', []):
-        app_managed_roles.append(f"ECS-FC-PL-{team['name']}-Player")
+        app_managed_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
     
     # Prepare data for async-only function
     player_data = {
@@ -551,7 +552,7 @@ async def _execute_assign_roles_async(data):
     # Add team roles
     for team in teams_to_process:
         if team and team.get('league_name') in ['Premier', 'Classic']:
-            expected_roles.append(f"ECS-FC-PL-{team['name']}-Player")
+            expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
     
     # Add league division roles if processing all teams (based on Flask user roles)
     if not target_team:
@@ -586,7 +587,7 @@ async def _execute_assign_roles_async(data):
             'ECS-FC-PL-CLASSIC-COACH',
             'Substitute Pool - Premier',
             'Substitute Pool - Classic'
-        ] + [f"ECS-FC-PL-{team['name']}-Player" for team in data.get('teams', [])]
+        ] + [f"ECS-FC-PL-{normalize_name(team['name'])}-Player" for team in data.get('teams', [])]
     }
     
     # Execute role assignment
@@ -682,7 +683,7 @@ async def _assign_roles_async(session, player_id: int, team_id: Optional[int], o
         async with aiohttp.ClientSession() as aio_session:
             if team_id:
                 team = session.query(Team).get(team_id)
-                role_name = f"ECS-FC-PL-{team.name}-PLAYER"
+                role_name = f"ECS-FC-PL-{normalize_name(team.name)}-Player"
                 league_role_name = f"ECS-FC-PL-{team.league.name}"
                 guild_id = Config.SERVER_ID
 
@@ -955,7 +956,7 @@ async def _fetch_roles_batch(session, players: List[Player]) -> Dict[str, Any]:
                             expected_roles.add("ECS-FC-PL-CLASSIC")
                             if player.is_coach:
                                 expected_roles.add("ECS-FC-PL-CLASSIC-COACH")
-                    expected_roles.add(f"ECS-FC-PL-{team.name}-PLAYER")
+                    expected_roles.add(f"ECS-FC-PL-{normalize_name(team.name)}-Player")
                 
                 if player.is_ref:
                     expected_roles.add("Referee")
@@ -1036,7 +1037,7 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
                             expected_roles.add("ECS-FC-PL-CLASSIC")
                             if player.is_coach:
                                 expected_roles.add("ECS-FC-PL-CLASSIC-COACH")
-                    expected_roles.add(f"ECS-FC-PL-{team.name}-PLAYER")
+                    expected_roles.add(f"ECS-FC-PL-{normalize_name(team.name)}-Player")
                 
                 if player.is_ref:
                     expected_roles.add("Referee")
@@ -1152,8 +1153,8 @@ async def _execute_remove_roles_async(data):
     roles_to_remove = []
     if target_team and target_team.get('league_name') in ['Premier', 'Classic']:
         roles_to_remove.extend([
-            f"ECS-FC-PL-{target_team['name']}-Player",
-            f"ECS-FC-PL-{target_team['name']}-Coach"
+            f"ECS-FC-PL-{normalize_name(target_team['name'])}-Player",
+            f"ECS-FC-PL-{normalize_name(target_team['name'])}-Coach"
         ])
     
     # Prepare data for role removal
@@ -1259,7 +1260,7 @@ async def _remove_player_roles_async(session, player_id: int, team_id: Optional[
         async with aiohttp.ClientSession() as aio_session:
             if team_id:
                 team = session.query(Team).get(team_id)
-                role_name = f"ECS-FC-PL-{team.name}-PLAYER"
+                role_name = f"ECS-FC-PL-{normalize_name(team.name)}-Player"
                 guild_id = int(Config.SERVER_ID)
 
                 url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{player.discord_id}/roles"
