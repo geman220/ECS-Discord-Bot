@@ -1011,25 +1011,17 @@ def get_match_room_coaches(match_id, session):
 @socketio.on('update_player_position', namespace='/')
 def handle_update_player_position(data):
     """Handle updating a player's position on the pitch."""
-    session = None
-    logger.info(f"Received position update request from {current_user.username}: {data}")
+    logger.info(f"Received position update request: {data}")
     
     try:
-        # Get session safely
-        session = socket_session.get_db_session()
-        if not session:
-            logger.error("No database session available")
-            emit('error', {'message': 'Database connection error'})
-            return
-        
         # Validate required data
         required_fields = ['player_id', 'team_id', 'position', 'league_name']
         if not all(field in data for field in required_fields):
             emit('error', {'message': 'Missing required data'})
             return
         
-        player_id = data['player_id']
-        team_id = data['team_id']
+        player_id = int(data['player_id'])
+        team_id = int(data['team_id'])
         position = data['position']
         league_name = data['league_name']
         
@@ -1039,69 +1031,68 @@ def handle_update_player_position(data):
             emit('error', {'message': f'Invalid position: {position}'})
             return
         
-        # Get player and team
-        player = session.query(Player).filter(Player.id == player_id).first()
-        team = session.query(Team).filter(Team.id == team_id).first()
-        
-        if not player:
-            emit('error', {'message': 'Player not found'})
-            return
-        
-        if not team:
-            emit('error', {'message': 'Team not found'})
-            return
-        
-        # Check if player is on this team
-        if team not in player.teams:
-            emit('error', {'message': 'Player is not on this team'})
-            return
-        
-        # Update the position in player_teams table
-        from sqlalchemy import text, update
-        
-        # Update the position field in the player_teams association table
-        update_stmt = text("""
-            UPDATE player_teams 
-            SET position = :position 
-            WHERE player_id = :player_id AND team_id = :team_id
-        """)
-        
-        result = session.execute(update_stmt, {
-            'position': position,
-            'player_id': player_id,
-            'team_id': team_id
-        })
-        
-        if result.rowcount == 0:
-            # Player might not be on the team yet - this shouldn't happen but let's handle it
-            emit('error', {'message': 'Player-team relationship not found'})
-            return
-        
-        session.commit()
-        
-        # Emit to all clients in the draft room
-        room = f"draft_{league_name}"
-        player_data = {
-            'id': player.id,
-            'name': player.name,
-            'profile_picture_url': player.profile_picture_url,
-            'favorite_position': player.favorite_position
-        }
-        
-        emit('player_position_updated', {
-            'player': player_data,
-            'team_id': team_id,
-            'team_name': team.name,
-            'position': position,
-            'league_name': league_name
-        }, room=room)
-        
-        logger.info(f"Updated {player.name} position to {position} on team {team.name}")
+        with managed_session() as session:
+            # Get player and team
+            player = session.query(Player).filter(Player.id == player_id).first()
+            team = session.query(Team).filter(Team.id == team_id).first()
+            
+            if not player:
+                emit('error', {'message': 'Player not found'})
+                return
+            
+            if not team:
+                emit('error', {'message': 'Team not found'})
+                return
+            
+            # Check if player is on this team
+            if team not in player.teams:
+                emit('error', {'message': 'Player is not on this team'})
+                return
+            
+            # Update the position in player_teams table
+            from sqlalchemy import text
+            
+            # Update the position field in the player_teams association table
+            update_stmt = text("""
+                UPDATE player_teams 
+                SET position = :position 
+                WHERE player_id = :player_id AND team_id = :team_id
+            """)
+            
+            result = session.execute(update_stmt, {
+                'position': position,
+                'player_id': player_id,
+                'team_id': team_id
+            })
+            
+            if result.rowcount == 0:
+                # Player might not be on the team yet - this shouldn't happen but let's handle it
+                emit('error', {'message': 'Player-team relationship not found'})
+                return
+            
+            session.commit()
+            
+            # Emit to all clients in the draft room
+            room = f"draft_{league_name}"
+            player_data = {
+                'id': player.id,
+                'name': player.name,
+                'profile_picture_url': player.profile_picture_url,
+                'favorite_position': player.favorite_position
+            }
+            
+            emit('player_position_updated', {
+                'player': player_data,
+                'team_id': team_id,
+                'team_name': team.name,
+                'position': position,
+                'league_name': league_name
+            }, room=room)
+            
+            logger.info(f"Updated {player.name} position to {position} on team {team.name}")
         
     except Exception as e:
         logger.error(f"Error updating player position: {str(e)}", exc_info=True)
-        if session:
-            session.rollback()
         emit('error', {'message': 'Failed to update player position'})
 
 
