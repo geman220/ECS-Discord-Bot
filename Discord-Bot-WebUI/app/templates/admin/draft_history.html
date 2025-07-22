@@ -237,17 +237,24 @@
                     <div class="mb-3">
                         <label class="form-label">Position Change Mode</label>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="positionMode" id="cascadingMode" value="cascading" checked>
+                            <input class="form-check-input" type="radio" name="positionMode" id="insertMode" value="insert" checked>
+                            <label class="form-check-label" for="insertMode">
+                                <strong>Smart Insert (Recommended)</strong> - Natural directional shifting
+                                <br><small class="text-muted">Tim #1→#10: Bob (#10) goes to #9, Tim lands at #10. Tim #10→#1: Everyone #1-9 shifts to #2-10, Tim lands at #1</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="positionMode" id="cascadingMode" value="cascading">
                             <label class="form-check-label" for="cascadingMode">
-                                <strong>Cascading (Default)</strong> - Move player and shift everyone else
-                                <br><small class="text-muted">Example: Move Bill from #20 to #10, everyone #10-19 shifts down to #11-20</small>
+                                <strong>Legacy Cascading</strong> - Always shifts in one direction
+                                <br><small class="text-muted">Move Bill from #20 to #10, everyone #10-19 shifts down to #11-20</small>
                             </label>
                         </div>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="radio" name="positionMode" id="absoluteMode" value="absolute">
                             <label class="form-check-label" for="absoluteMode">
-                                <strong>Absolute (Swap)</strong> - Just swap positions with whoever is there
-                                <br><small class="text-muted">Example: Move Bill from #20 to #10, Bill and whoever was at #10 swap places</small>
+                                <strong>Simple Swap</strong> - Just swap positions
+                                <br><small class="text-muted">Move Bill from #20 to #10, Bill and whoever was at #10 swap places</small>
                             </label>
                         </div>
                     </div>

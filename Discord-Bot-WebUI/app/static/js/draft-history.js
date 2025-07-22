@@ -70,7 +70,14 @@ class DraftHistoryManager {
         const pickId = document.getElementById('editPickId').value;
         const position = parseInt(document.getElementById('editDraftPosition').value);
         const notes = document.getElementById('editNotes').value.trim();
-        const absoluteMode = document.getElementById('absoluteMode').checked;
+        
+        // Determine which mode is selected
+        let mode = 'insert'; // new default - smart insert
+        if (document.getElementById('cascadingMode').checked) {
+            mode = 'cascading';
+        } else if (document.getElementById('absoluteMode').checked) {
+            mode = 'absolute';
+        }
         
         try {
             const headers = {
@@ -88,7 +95,7 @@ class DraftHistoryManager {
                 body: JSON.stringify({
                     position: position,
                     notes: notes,
-                    absolute: absoluteMode
+                    mode: mode
                 })
             });
 

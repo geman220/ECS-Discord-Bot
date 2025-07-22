@@ -332,6 +332,92 @@ class DraftService:
             raise
 
     @staticmethod
+    def insert_draft_position(session, pick_id, new_position):
+        """Insert player at new position and shift everyone else up (toward #1)."""
+        try:
+            pick_to_move = session.query(DraftOrderHistory).get(pick_id)
+            if not pick_to_move:
+                return {'success': False, 'message': 'Draft pick not found'}
+            
+            season_id = pick_to_move.season_id
+            league_id = pick_to_move.league_id
+            old_position = pick_to_move.draft_position
+            player_name = pick_to_move.player.full_name if pick_to_move.player else 'Unknown Player'
+            
+            if old_position == new_position:
+                return {'success': True, 'message': 'No position change needed'}
+            
+            # Get max position to validate the new position
+            max_position = session.query(func.max(DraftOrderHistory.draft_position)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar() or 0
+            
+            # Validate new position is within valid range
+            if new_position < 1 or new_position > max_position:
+                return {'success': False, 'message': f'Position must be between 1 and {max_position}'}
+            
+            # Use a temporary position to avoid conflicts
+            temp_position = max_position + 1000
+            
+            # Move the pick to temporary position first
+            pick_to_move.draft_position = temp_position
+            pick_to_move.updated_at = datetime.utcnow()
+            session.flush()
+            
+            # Natural directional shifting - no swapping
+            if old_position < new_position:
+                # Moving down the draft order (e.g., from #1 to #10)
+                # Everyone between old and new position shifts UP (toward #1)
+                affected_picks = session.query(DraftOrderHistory).filter(
+                    DraftOrderHistory.season_id == season_id,
+                    DraftOrderHistory.league_id == league_id,
+                    DraftOrderHistory.draft_position > old_position,
+                    DraftOrderHistory.draft_position <= new_position
+                ).order_by(DraftOrderHistory.draft_position).all()
+                
+                # Shift affected picks up (toward #1) - they get better positions
+                for pick in affected_picks:
+                    pick.draft_position -= 1
+                    pick.updated_at = datetime.utcnow()
+                    session.flush()
+                    
+            else:
+                # Moving up the draft order (e.g., from #10 to #1)  
+                # Everyone from new position to old position shifts DOWN (away from #1)
+                affected_picks = session.query(DraftOrderHistory).filter(
+                    DraftOrderHistory.season_id == season_id,
+                    DraftOrderHistory.league_id == league_id,
+                    DraftOrderHistory.draft_position >= new_position,
+                    DraftOrderHistory.draft_position < old_position
+                ).order_by(desc(DraftOrderHistory.draft_position)).all()
+                
+                # Shift affected picks down (away from #1) - they get worse positions
+                for pick in affected_picks:
+                    pick.draft_position += 1
+                    pick.updated_at = datetime.utcnow()
+                    session.flush()
+            
+            # Now move the pick to its final position
+            pick_to_move.draft_position = new_position
+            pick_to_move.updated_at = datetime.utcnow()
+            
+            logger.info(f"Inserted draft position: {player_name} moved from #{old_position} to #{new_position}, shifted {len(affected_picks)} picks")
+            
+            return {
+                'success': True,
+                'message': f'Successfully inserted {player_name} at position #{new_position}',
+                'old_position': old_position,
+                'new_position': new_position,
+                'player_name': player_name,
+                'affected_picks': len(affected_picks)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error inserting draft position: {str(e)}")
+            raise
+
+    @staticmethod
     def get_enhanced_player_data(players: List[Player], current_season_id: Optional[int] = None) -> List[Dict]:
         """Get enhanced player data with comprehensive stats and profile info - OPTIMIZED."""
         if not players:
