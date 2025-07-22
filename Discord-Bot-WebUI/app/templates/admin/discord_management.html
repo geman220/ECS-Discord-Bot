@@ -343,11 +343,17 @@
                     </h4>
                     <p class="text-muted mb-0">Track and manage players who haven't joined the Discord server yet</p>
                 </div>
-                <div>
+                <div class="d-flex gap-2">
                     <button class="btn btn-primary btn-sm" onclick="refreshAllStatus()">
                         <i class="ti ti-refresh me-1"></i>
                         Refresh All
                     </button>
+                    {% if stats.unknown_status > 0 %}
+                    <button class="btn btn-warning btn-sm" onclick="refreshUnknownStatus()">
+                        <i class="ti ti-question-mark me-1"></i>
+                        Check Unknown ({{ stats.unknown_status }})
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -820,6 +826,61 @@ function submitDM() {
     }).finally(() => {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+    });
+}
+
+function refreshUnknownStatus() {
+    Swal.fire({
+        title: 'Check Unknown Discord Status',
+        text: 'This will check Discord status for all players with unknown status. Continue?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, check unknown',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ffab00',
+        cancelButtonColor: '#ea5455'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ti ti-loader ti-spin me-1"></i>Checking...';
+            btn.disabled = true;
+            
+            // Check unknown Discord status
+            fetch('/admin/refresh_unknown_discord_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': $('meta[name=csrf-token]').attr('content')
+                }
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Status Checked',
+                        text: `Checked Discord status for ${data.success_count} players with unknown status`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to check unknown status');
+                }
+            }).catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to check unknown status: ' + error.message,
+                    confirmButtonColor: '#ea5455'
+                });
+            }).finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
     });
 }
 </script>
