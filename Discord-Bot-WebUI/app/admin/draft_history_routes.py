@@ -112,12 +112,17 @@ def edit_draft_pick(pick_id: int):
         if new_position is not None:
             new_position = int(new_position)
         new_notes = data.get('notes', '').strip()
+        absolute_mode = data.get('absolute', False)  # New parameter for absolute positioning
         
         position_changed = False
         swap_result = None
         if new_position and new_position != pick.draft_position:
-            # Use the new swap functionality to handle position changes
-            swap_result = DraftService.swap_draft_positions(db.session, pick_id, new_position)
+            # Choose between absolute positioning or cascading swap
+            if absolute_mode:
+                swap_result = DraftService.set_absolute_draft_position(db.session, pick_id, new_position)
+            else:
+                # Use the cascading swap functionality to handle position changes
+                swap_result = DraftService.swap_draft_positions(db.session, pick_id, new_position)
             
             if not swap_result['success']:
                 return jsonify(swap_result), 400

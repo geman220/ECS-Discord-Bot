@@ -235,6 +235,23 @@
                         <input type="number" class="form-control" id="editDraftPosition" min="1" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Position Change Mode</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="positionMode" id="cascadingMode" value="cascading" checked>
+                            <label class="form-check-label" for="cascadingMode">
+                                <strong>Cascading (Default)</strong> - Move player and shift everyone else
+                                <br><small class="text-muted">Example: Move Bill from #20 to #10, everyone #10-19 shifts down to #11-20</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="positionMode" id="absoluteMode" value="absolute">
+                            <label class="form-check-label" for="absoluteMode">
+                                <strong>Absolute (Swap)</strong> - Just swap positions with whoever is there
+                                <br><small class="text-muted">Example: Move Bill from #20 to #10, Bill and whoever was at #10 swap places</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label for="editNotes" class="form-label">Notes</label>
                         <textarea class="form-control" id="editNotes" rows="3"></textarea>
                     </div>
