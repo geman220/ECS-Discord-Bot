@@ -181,6 +181,9 @@ class Player(db.Model):
     is_sub = db.Column(db.Boolean, default=False)
     interested_in_sub = db.Column(db.Boolean, default=False)
     discord_id = db.Column(db.String(100), unique=True)
+    discord_username = db.Column(db.String(150), nullable=True)
+    discord_in_server = db.Column(db.Boolean, nullable=True)
+    discord_last_checked = db.Column(db.DateTime, nullable=True)
     needs_manual_review = db.Column(db.Boolean, default=False)
     linked_primary_player_id = db.Column(db.Integer, nullable=True)
     order_id = db.Column(db.String, nullable=True)
@@ -274,6 +277,9 @@ class Player(db.Model):
                 'is_phone_verified': self.is_phone_verified,
                 'jersey_size': self.jersey_size,
                 'discord_id': self.discord_id,
+                'discord_username': self.discord_username,
+                'discord_in_server': self.discord_in_server,
+                'discord_last_checked': self.discord_last_checked,
                 'pronouns': self.pronouns,
                 'expected_weeks_available': self.expected_weeks_available,
                 'unavailable_dates': self.unavailable_dates,
@@ -430,6 +436,61 @@ class Player(db.Model):
     def get_all_match_stats(self, session=None):
         from app.models.stats import PlayerEvent
         return PlayerEvent.query.filter_by(player_id=self.id).all()
+
+    def check_discord_status(self):
+        """Check if player is in Discord server and update username via Discord bot API."""
+        if not self.discord_id:
+            return False
+        
+        try:
+            import asyncio
+            import aiohttp
+            import os
+            from web_config import Config
+            from app.utils.discord_request_handler import make_discord_request
+            
+            guild_id = os.getenv('SERVER_ID')
+            bot_api_url = Config.BOT_API_URL
+            
+            if not guild_id or not bot_api_url:
+                logger.warning("Server ID or Bot API URL not configured")
+                return False
+                
+            # Check Discord member status via Discord bot API
+            async def check_user_status():
+                async with aiohttp.ClientSession() as session:
+                    # Use the new Discord bot API endpoint
+                    url = f"{bot_api_url}/api/server/guilds/{guild_id}/members/{self.discord_id}/status"
+                    response = await make_discord_request('GET', url, session)
+                    
+                    if response:
+                        # Update player information from Discord bot API response
+                        self.discord_in_server = response.get('in_server', False)
+                        
+                        if response.get('username'):
+                            self.discord_username = response.get('username')
+                        elif response.get('display_name'):
+                            self.discord_username = response.get('display_name')
+                        
+                        self.discord_last_checked = datetime.utcnow()
+                        return True
+                    else:
+                        # API call failed
+                        logger.warning(f"Discord bot API failed to check status for user {self.discord_id}")
+                        return False
+            
+            # Run the async function
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(check_user_status())
+                return result
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            logger.error(f"Error checking Discord status for player {self.id}: {str(e)}")
+            return False
 
 
 class PlayerTeamSeason(db.Model):

@@ -71,9 +71,12 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Team Members</h5>
                         <div class="btn-group" role="group">
-                            {% if is_global_admin %}
+                            {% if has_role('Global Admin') or has_role('Pub League Admin') %}
                             <button class="btn btn-warning btn-sm" id="assignDiscordRolesBtn" data-team-id="{{ team.id }}">
                                 <i class="ti ti-brand-discord me-1"></i>Assign Discord Roles
+                            </button>
+                            <button class="btn btn-info btn-sm" id="refreshDiscordStatusBtn" data-team-id="{{ team.id }}">
+                                <i class="ti ti-refresh me-1"></i>Refresh Discord Status
                             </button>
                             {% endif %}
                             {% if can_add_player %}
@@ -120,6 +123,26 @@
                                 <div class="stat-badge" data-bs-toggle="tooltip" data-bs-placement="top" title="Red Cards">
                                     <span class="card-indicator card-red"></span> {{ player.season_red_cards(season.id) }}
                                 </div>
+                                {% endif %}
+                                
+                                {% if player.discord_id %}
+                                    {% if has_role('Global Admin') or has_role('Pub League Admin') %}
+                                    <!-- Admin view: Full Discord info with refresh capability -->
+                                    <div class="discord-status-badge clickable-discord-status" 
+                                         data-bs-toggle="tooltip" data-bs-placement="top" 
+                                         data-player-id="{{ player.id }}"
+                                         data-player-name="{{ player.name }}"
+                                         title="Discord: {{ player.discord_username or player.discord_id }}{% if player.discord_in_server is not none %} - {% if player.discord_in_server %}In Server{% else %}Not in Server{% endif %}{% endif %} (Click to refresh)">
+                                        <i class="ti ti-brand-discord {% if player.discord_in_server %}text-success{% elif player.discord_in_server is false %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    </div>
+                                    {% elif has_role('Pub League Coach') %}
+                                    <!-- Coach view: Read-only Discord status -->
+                                    <div class="discord-status-badge" 
+                                         data-bs-toggle="tooltip" data-bs-placement="top" 
+                                         title="Discord Status: {% if player.discord_in_server %}In Server{% elif player.discord_in_server is false %}Not in Server{% else %}Unknown{% endif %}">
+                                        <i class="ti ti-brand-discord {% if player.discord_in_server %}text-success{% elif player.discord_in_server is false %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    </div>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>
@@ -706,6 +729,39 @@
         font-size: 0.75rem;
     }
     
+    .discord-status-badge {
+        display: flex;
+        align-items: center;
+        background-color: var(--bs-body-bg);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+    
+    .clickable-discord-status {
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+    
+    .clickable-discord-status:hover {
+        background-color: var(--bs-primary-bg-subtle);
+        transform: scale(1.05);
+    }
+    
+    .clickable-discord-status.checking {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .clickable-discord-status.checking i {
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
     .card-indicator {
         display: inline-block;
         width: 10px;
@@ -1185,6 +1241,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Handle Discord role assignment for team
     const assignDiscordRolesBtn = document.getElementById('assignDiscordRolesBtn');
+    const refreshDiscordStatusBtn = document.getElementById('refreshDiscordStatusBtn');
     
     if (assignDiscordRolesBtn) {
         assignDiscordRolesBtn.addEventListener('click', function() {
@@ -1221,6 +1278,145 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (confirmed) {
                     assignDiscordRolesToTeam(teamId, teamName);
                 }
+            }
+        });
+    }
+    
+    // Handle Discord status refresh for team
+    if (refreshDiscordStatusBtn) {
+        refreshDiscordStatusBtn.addEventListener('click', function() {
+            const teamId = this.dataset.teamId;
+            const teamName = '{{ team.name|escape }}';
+            
+            // Show confirmation dialog
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Refresh Discord Status?',
+                    html: `This will check the current Discord server status for all players on <strong>${teamName}</strong>.<br><br>` +
+                          `This will force-refresh their status regardless of when it was last checked.<br><br>` +
+                          `<small class="text-info">Players not in the server will be checked every 24 hours automatically.<br>` +
+                          `Players in the server will be checked every 30 days automatically.</small>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#17a2b8',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Refresh Status',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        refreshDiscordStatusForTeam(teamId, teamName);
+                    }
+                });
+            } else {
+                // Fallback to native confirm dialog
+                const confirmed = confirm(`Are you sure you want to refresh Discord status for all players on ${teamName}?`);
+                if (confirmed) {
+                    refreshDiscordStatusForTeam(teamId, teamName);
+                }
+            }
+        });
+    }
+    
+    function refreshDiscordStatusForTeam(teamId, teamName) {
+        // Show loading state
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Refreshing Discord Status...',
+                html: `Checking Discord server status for all players on <strong>${teamName}</strong>.<br><br>` +
+                      `This may take a moment to complete.`,
+                icon: 'info',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+        
+        // Send refresh request
+        fetch(`/teams/${teamId}/refresh-discord-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            console.log('Discord status refresh response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Response is not JSON, content-type:', contentType);
+                return response.text().then(text => {
+                    console.error('Response body:', text);
+                    throw new Error('Server returned non-JSON response');
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const processedCount = data.processed_count || 0;
+                const errorCount = data.error_count || 0;
+                const totalPlayers = data.total_players || 0;
+                
+                // Build results summary
+                let resultsSummary = '';
+                if (data.results && data.results.length > 0) {
+                    resultsSummary = '<div class="text-start mt-3"><strong>Status Updates:</strong><ul class="mb-0">';
+                    data.results.forEach(result => {
+                        if (result.status === 'success') {
+                            const statusIcon = result.in_server ? '✅' : '⚠️';
+                            resultsSummary += `<li>${statusIcon} <strong>${result.player_name}</strong>: ${result.status_change}</li>`;
+                        } else {
+                            resultsSummary += `<li>❌ <strong>${result.player_name}</strong>: ${result.error}</li>`;
+                        }
+                    });
+                    resultsSummary += '</ul></div>';
+                }
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Discord Status Refreshed!',
+                        html: `Successfully refreshed Discord status for <strong>${teamName}</strong>.<br><br>` +
+                              `<strong>${processedCount}</strong> players checked successfully<br>` +
+                              (errorCount > 0 ? `<strong class="text-warning">${errorCount}</strong> players had errors<br>` : '') +
+                              resultsSummary,
+                        timer: 8000,
+                        showConfirmButton: true,
+                        confirmButtonText: 'OK',
+                        width: '600px'
+                    }).then(() => {
+                        // Refresh the page to show updated Discord status icons
+                        window.location.reload();
+                    });
+                } else {
+                    alert(`Discord status refreshed successfully for ${teamName}! ${processedCount}/${totalPlayers} players processed.`);
+                    window.location.reload();
+                }
+            } else {
+                throw new Error(data.message || 'Failed to refresh Discord status');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing Discord status:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to refresh Discord status. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                alert('Error: ' + (error.message || 'Failed to refresh Discord status. Please try again.'));
             }
         });
     }
@@ -1303,6 +1499,155 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Error: ' + (error.message || 'Failed to assign Discord roles. Please try again.'));
             }
+        });
+    }
+    
+    // Handle individual Discord status refresh
+    const discordStatusBadges = document.querySelectorAll('.clickable-discord-status');
+    
+    discordStatusBadges.forEach(badge => {
+        badge.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName;
+            
+            // Show confirmation dialog
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Refresh Discord Status?',
+                    html: `Check if <strong>${playerName}</strong> has joined the Discord server?<br><br>` +
+                          `<small class="text-info">This will immediately check their current status.</small>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#17a2b8',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Check Now',
+                    cancelButtonText: 'Cancel',
+                    focusCancel: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        refreshSinglePlayerDiscordStatus(playerId, playerName, badge);
+                    }
+                });
+            } else {
+                // Fallback to native confirm dialog
+                const confirmed = confirm(`Check Discord status for ${playerName}?`);
+                if (confirmed) {
+                    refreshSinglePlayerDiscordStatus(playerId, playerName, badge);
+                }
+            }
+        });
+    });
+    
+    function refreshSinglePlayerDiscordStatus(playerId, playerName, badgeElement) {
+        // Add checking state
+        badgeElement.classList.add('checking');
+        
+        // Send refresh request
+        fetch(`/teams/player/${playerId}/refresh-discord-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
+            }
+        })
+        .then(response => {
+            console.log('Player Discord status refresh response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                console.error('Response is not JSON, content-type:', contentType);
+                return response.text().then(text => {
+                    console.error('Response body:', text);
+                    throw new Error('Server returned non-JSON response');
+                });
+            }
+            
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update the Discord icon based on status
+                const discordIcon = badgeElement.querySelector('i');
+                
+                if (data.in_server === true) {
+                    discordIcon.className = 'ti ti-brand-discord text-success';
+                } else if (data.in_server === false) {
+                    discordIcon.className = 'ti ti-brand-discord text-warning';
+                } else {
+                    discordIcon.className = 'ti ti-brand-discord text-muted';
+                }
+                
+                // Update tooltip
+                let tooltipText = `Discord: ${data.discord_username || 'Unknown'}`;
+                if (data.in_server === true) {
+                    tooltipText += ' - In Server';
+                } else if (data.in_server === false) {
+                    tooltipText += ' - Not in Server';
+                }
+                tooltipText += ' (Click to refresh)';
+                
+                badgeElement.setAttribute('title', tooltipText);
+                badgeElement.setAttribute('data-bs-original-title', tooltipText);
+                
+                // Update tooltip instance if it exists
+                const tooltip = bootstrap.Tooltip.getInstance(badgeElement);
+                if (tooltip) {
+                    tooltip.dispose();
+                    new bootstrap.Tooltip(badgeElement, {
+                        delay: { show: 500, hide: 100 }
+                    });
+                }
+                
+                // Show success message
+                let statusMessage = data.status_change;
+                let usernameMessage = data.username_change ? `<br><small>Username: ${data.username_change}</small>` : '';
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: data.in_server ? 'success' : 'warning',
+                        title: 'Discord Status Updated!',
+                        html: `<strong>${playerName}</strong><br>` +
+                              `Status: ${statusMessage}` + usernameMessage,
+                        timer: 3000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                } else {
+                    alert(`${playerName}: ${statusMessage}`);
+                }
+                
+                console.log(`Discord status updated for ${playerName}: ${statusMessage}`);
+            } else {
+                throw new Error(data.message || 'Failed to refresh Discord status');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing Discord status:', error);
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || `Failed to check Discord status for ${playerName}. Please try again.`,
+                    confirmButtonText: 'OK',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 5000
+                });
+            } else {
+                alert('Error: ' + (error.message || `Failed to check Discord status for ${playerName}. Please try again.`));
+            }
+        })
+        .finally(() => {
+            // Remove checking state
+            badgeElement.classList.remove('checking');
         });
     }
 

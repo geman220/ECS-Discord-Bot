@@ -318,6 +318,41 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
         logger.error(f"Failed to remove role: {e}")
         raise HTTPException(status_code=500, detail="Failed to remove role")
 
+@router.get("/guilds/{guild_id}/members/{user_id}/status")
+async def check_member_status(guild_id: int, user_id: int, bot: commands.Bot = Depends(get_bot)):
+    """Check if a user is a member of the guild."""
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        logger.error(f"Guild with ID {guild_id} not found.")
+        raise HTTPException(status_code=404, detail="Guild not found")
+    
+    try:
+        member = await guild.fetch_member(user_id)
+        return {
+            "user_id": str(user_id),
+            "guild_id": str(guild_id),
+            "in_server": True,
+            "username": member.name,
+            "display_name": member.display_name
+        }
+    except discord.NotFound:
+        return {
+            "user_id": str(user_id),
+            "guild_id": str(guild_id),
+            "in_server": False,
+            "username": None,
+            "display_name": None
+        }
+    except discord.Forbidden as e:
+        logger.error(f"Bot lacks permissions to fetch member {user_id} in guild {guild_id}: {e}")
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to access this member")
+    except discord.HTTPException as e:
+        logger.error(f"HTTPException while fetching member {user_id} in guild {guild_id}: {e}")
+        raise HTTPException(status_code=e.status, detail=f"Discord API error: {e.text}")
+    except Exception as e:
+        logger.exception(f"Unexpected error while checking member status {user_id} in guild {guild_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to check member status")
+
 @router.post("/guilds/{guild_id}/invites")
 async def create_invite(guild_id: int, request: dict, bot: commands.Bot = Depends(get_bot)):
     """Create a server invite."""
