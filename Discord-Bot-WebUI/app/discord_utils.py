@@ -605,7 +605,7 @@ async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, c
             # Rename coach role
             if coach_role_id:
                 total_roles += 1
-                new_coach_name = f"{new_team_name} Coach"
+                new_coach_name = f"ECS-FC-PL-{normalize_name(new_team_name)}-Coach"
                 url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{coach_role_id}"
                 async with session.patch(url, json={'name': new_coach_name}) as response:
                     if response.status == 200:
@@ -618,7 +618,7 @@ async def rename_team_roles_async_only(old_team_name: str, new_team_name: str, c
             # Rename player role
             if player_role_id:
                 total_roles += 1
-                new_player_name = f"{new_team_name} Player"
+                new_player_name = f"ECS-FC-PL-{normalize_name(new_team_name)}-Player"
                 url = f"{bot_api_url}/api/server/guilds/{guild_id}/roles/{player_role_id}"
                 async with session.patch(url, json={'name': new_player_name}) as response:
                     if response.status == 200:
@@ -823,7 +823,7 @@ async def rename_team_roles(session: Session, team: Team, new_team_name: str) ->
     async with aiohttp.ClientSession() as http_session:
         tasks = []
         if team.discord_player_role_id:
-            new_player_role_name = f"ECS-FC-PL-{new_team_name}-Player"
+            new_player_role_name = f"ECS-FC-PL-{normalize_name(new_team_name)}-Player"
             tasks.append(rename_role(guild_id, team.discord_player_role_id, new_player_role_name, http_session))
         if team.discord_channel_id:
             url = f"{Config.BOT_API_URL}/api/server/channels/{team.discord_channel_id}"
@@ -1127,7 +1127,7 @@ async def get_app_managed_roles(session: Session) -> List[str]:
         "Referee"
     ]
     teams = session.query(Team).all()
-    team_roles = [f"ECS-FC-PL-{team.name}-PLAYER" for team in teams]
+    team_roles = [f"ECS-FC-PL-{normalize_name(team.name)}-Player" for team in teams]
     return static_roles + team_roles
 
 

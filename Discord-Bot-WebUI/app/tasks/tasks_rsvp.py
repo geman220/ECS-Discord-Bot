@@ -915,16 +915,16 @@ def monitor_rsvp_health(self, session) -> Dict[str, Any]:
         availability_stats = session.query(
             func.count(Availability.id).label('total_avail'),
             func.sum(case(
-                [(Availability.discord_sync_status != 'synced', 1),
-                 (Availability.discord_sync_status.is_(None), 1)],
+                (Availability.discord_sync_status != 'synced', 1),
+                (Availability.discord_sync_status.is_(None), 1),
                 else_=0
             )).label('unsynced_count'),
             func.sum(case(
-                [(Availability.discord_sync_status == 'failed', 1)],
+                (Availability.discord_sync_status == 'failed', 1),
                 else_=0
             )).label('failed_count'),
             func.sum(case(
-                [(Availability.responded_at >= yesterday, 1)],
+                (Availability.responded_at >= yesterday, 1),
                 else_=0
             )).label('recent_responses')
         ).join(

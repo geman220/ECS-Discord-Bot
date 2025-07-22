@@ -11,6 +11,7 @@ import aiohttp
 import asyncio
 import os
 from app.models import Team, League, Season
+from app.discord_utils import normalize_name
 
 logger = logging.getLogger(__name__)
 
@@ -263,7 +264,7 @@ async def _cleanup_discord_resources_async(team_cleanup_data: list, season_id: i
                     # Clean up team player role
                     if team_data['discord_player_role_id']:
                         role_deleted = await _delete_discord_role_api(
-                            session_http, bot_api_url, guild_id, team_data['discord_player_role_id'], f"ECS-FC-PL-{team_data['name']}-Player"
+                            session_http, bot_api_url, guild_id, team_data['discord_player_role_id'], f"ECS-FC-PL-{normalize_name(team_data['name'])}-Player"
                         )
                         if role_deleted:
                             roles_deleted += 1
@@ -398,7 +399,7 @@ async def _cleanup_league_discord_resources_async(team_cleanup_data: list, leagu
                     # Clean up team player role
                     if team_data['discord_player_role_id']:
                         role_deleted = await _delete_discord_role_api(
-                            session_http, bot_api_url, guild_id, team_data['discord_player_role_id'], f"ECS-FC-PL-{team_data['name']}-Player"
+                            session_http, bot_api_url, guild_id, team_data['discord_player_role_id'], f"ECS-FC-PL-{normalize_name(team_data['name'])}-Player"
                         )
                         if role_deleted:
                             roles_deleted += 1
