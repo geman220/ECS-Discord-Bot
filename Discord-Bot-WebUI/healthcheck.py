@@ -38,14 +38,11 @@ def check_redis_health():
         pass
     
     try:
-        # Use Redis Python library instead of redis-cli command
-        import redis
+        # Use shared Redis connection manager to prevent connection leaks
+        from app.utils.redis_manager import get_redis_connection
         
-        # Get Redis host and port from environment or use defaults
-        redis_url = os.getenv('REDIS_URL', 'redis://redis:6379/0')
-        
-        # Connect to Redis with a short timeout
-        r = redis.from_url(redis_url, socket_timeout=1)
+        # Get Redis connection using the singleton manager
+        r = get_redis_connection()
         
         # Ping Redis to check if it's responsive
         result = r.ping()

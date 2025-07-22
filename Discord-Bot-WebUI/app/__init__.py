@@ -108,59 +108,39 @@ def create_app(config_object='web_config.Config'):
     if not app.config.get('SECRET_KEY'):
         raise RuntimeError('SECRET_KEY must be set')
 
-    # Initialize Redis clients using RedisManager for persistent connections
-    from app.utils.redis_manager import RedisManager
+    # Initialize unified Redis connection manager
+    from app.utils.redis_manager import get_redis_manager, get_redis_connection
     
-    # Initialize a single Redis manager for the application
-    redis_manager = RedisManager()
-    app.redis = redis_manager.client
+    # Get the unified Redis manager instance
+    redis_manager = get_redis_manager()
     
-    # Create a dedicated connection pool for Flask sessions that doesn't use decode_responses
-    # Use smaller connection pool to prevent exhaustion
-    from redis import ConnectionPool, Redis
-    redis_url = app.config['REDIS_URL']
-    session_pool = ConnectionPool.from_url(
-        redis_url,
-        decode_responses=False,
-        socket_timeout=5,
-        socket_connect_timeout=5,
-        socket_keepalive=True,
-        socket_keepalive_options={},
-        health_check_interval=30,
-        retry_on_timeout=True,
-        max_connections=25  # Restored to original value - connection leak fixed
-    )
-    session_redis = Redis(connection_pool=session_pool)
+    # Use the unified manager for all Redis operations
+    app.redis = redis_manager.client  # Decoded client for general use
+    app.session_redis = redis_manager.raw_client  # Raw client for sessions
+    app.redis_manager = redis_manager
     
-    # Test connections once during startup
+    # Test unified Redis connections
     try:
         app.redis.ping()
-        session_redis.ping()
-        logger.info("Redis connections established successfully")
+        app.session_redis.ping()
+        logger.info("Unified Redis connections established successfully")
         
-        # Log initial connection pool stats
-        if hasattr(redis_manager, 'get_connection_stats'):
-            stats = redis_manager.get_connection_stats()
-            logger.info(f"Redis connection pool initialized: {stats}")
+        # Log connection pool statistics
+        stats = redis_manager.get_connection_stats()
+        logger.info(f"Unified Redis connection pool: {stats}")
             
     except Exception as e:
         logger.error(f"Redis connection failed: {e}")
-        # Continue anyway - the Redis manager will handle reconnection attempts
-    
-    # Store the Redis manager instance on the app for access
-    app.redis_manager = redis_manager
-    app.session_redis = session_redis
+        # Continue anyway - the unified manager will handle reconnection attempts
     
     # Register shutdown handler only for application shutdown (not request teardown)
     import atexit
     def cleanup_redis_on_shutdown():
         try:
-            redis_manager.shutdown()
-            if hasattr(session_redis, 'connection_pool'):
-                session_redis.connection_pool.disconnect()
-            logger.info("Redis connections closed on application shutdown")
+            redis_manager.cleanup()
+            logger.info("Unified Redis connections cleaned up on application shutdown")
         except Exception as e:
-            logger.error(f"Error closing Redis connections: {e}")
+            logger.error(f"Error during Redis shutdown: {e}")
     
     atexit.register(cleanup_redis_on_shutdown)
     
@@ -387,7 +367,7 @@ def create_app(config_object='web_config.Config'):
     if not app.config.get('TESTING'):
         app.config.update({
             'SESSION_TYPE': 'redis',
-            'SESSION_REDIS': session_redis,
+            'SESSION_REDIS': app.session_redis,
             'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
             'SESSION_KEY_PREFIX': 'session:',
             'SESSION_USE_SIGNER': True
@@ -662,6 +642,7 @@ def init_blueprints(app):
     from app.role_impersonation import role_impersonation_bp
     from app.ecs_fc_api import ecs_fc_api
     from app.admin.substitute_pool_routes import substitute_pool_bp
+    from app.admin.redis_routes import redis_bp
     from app.batch_api import batch_bp
     from app.store import store_bp
     from app.draft_predictions_routes import draft_predictions_bp
@@ -698,6 +679,7 @@ def init_blueprints(app):
     app.register_blueprint(role_impersonation_bp)
     app.register_blueprint(ecs_fc_api)  # Blueprint has url_prefix='/api/ecs-fc'
     app.register_blueprint(substitute_pool_bp)
+    app.register_blueprint(redis_bp)
     app.register_blueprint(store_bp)  # Blueprint has url_prefix='/store'
     app.register_blueprint(draft_predictions_bp)  # Blueprint has url_prefix='/draft-predictions'
     

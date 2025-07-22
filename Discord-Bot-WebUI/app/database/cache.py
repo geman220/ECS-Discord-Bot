@@ -16,21 +16,21 @@ cache = Cache()
 
 def init_cache(app):
     """
-    Initialize the cache for the Flask app using Redis as the backend.
+    Initialize the cache for the Flask app using the unified Redis connection.
 
     :param app: The Flask application instance.
     """
+    # Use the unified Redis manager instead of creating a separate connection pool
+    from app.utils.redis_manager import get_redis_connection
+    
     cache_config = {
-        'CACHE_TYPE': 'redis',
-        'CACHE_REDIS_URL': app.config['REDIS_URL'],
+        'CACHE_TYPE': 'SimpleCache',  # Use in-memory cache to avoid additional Redis connections
         'CACHE_DEFAULT_TIMEOUT': 600,
         'CACHE_KEY_PREFIX': 'ecs_',
-        'CACHE_OPTIONS': {
-            'CONNECTION_POOL': {
-                'max_connections': 20
-            }
-        }
     }
+    
+    # Alternative: Use Redis cache but with existing connection
+    # This would require custom cache backend implementation
     cache.init_app(app, config=cache_config)
 
 

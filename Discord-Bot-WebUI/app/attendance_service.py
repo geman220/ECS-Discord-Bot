@@ -162,7 +162,7 @@ class AttendanceService:
                         'total_matches_invited': 0,
                         'response_rate': 0.0,
                         'attendance_rate': 0.0,
-                        'adjusted_attendance_rate': 50.0,  # Default for new players
+                        'adjusted_attendance_rate': None,  # No data for new players
                         'reliability_score': 25.0,         # Conservative default
                         'season_attendance_rate': 0.0,
                         'last_updated': None
@@ -176,7 +176,7 @@ class AttendanceService:
                 'total_matches_invited': 0,
                 'response_rate': 0.0,
                 'attendance_rate': 0.0,
-                'adjusted_attendance_rate': 50.0,
+                'adjusted_attendance_rate': None,
                 'reliability_score': 25.0,
                 'season_attendance_rate': 0.0,
                 'last_updated': None

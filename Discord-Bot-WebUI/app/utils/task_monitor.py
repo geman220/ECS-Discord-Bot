@@ -32,7 +32,8 @@ class TaskMonitor:
     
     def __init__(self):
         """Initialize the TaskMonitor with Redis-backed storage."""
-        self.redis = RedisManager().client
+        self.redis_manager = RedisManager()
+        self.redis = self.redis_manager.client
         self.task_prefix = "task_monitor:"
         self.zombie_threshold = 3600  # 1 hour
     
@@ -300,7 +301,8 @@ def get_task_info(task_id: str) -> Dict[str, Any]:
         
         # Try to get additional info from our task monitor
         try:
-            redis = RedisManager().client
+            redis_manager = RedisManager()
+            redis = redis_manager.client
             monitor_key = f"task_monitor:{task_id}"
             monitor_info = redis.hgetall(monitor_key)
             

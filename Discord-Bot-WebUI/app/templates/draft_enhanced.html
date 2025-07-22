@@ -173,7 +173,7 @@
                             <h2 class="text-primary mb-1">{{ title }}</h2>
                             <p class="text-muted mb-0">Draft and manage players for your teams</p>
                         </div>
-                        <div class="d-flex gap-3">
+                        <div class="d-flex align-items-center gap-3">
                             <div class="text-center">
                                 <div class="h4 text-primary mb-0">{{ analytics.total_teams }}</div>
                                 <small class="text-muted">Teams</small>
@@ -185,6 +185,12 @@
                             <div class="text-center">
                                 <div class="h4 text-info mb-0" id="availableCount">{{ available_players|length }}</div>
                                 <small class="text-muted">Available</small>
+                            </div>
+                            <div class="ms-auto">
+                                <a href="{{ url_for('draft_enhanced.draft_league_pitch_view', league_name=league_name) }}" 
+                                   class="btn btn-outline-primary">
+                                    <i class="ti ti-layout-dashboard me-1"></i>Pitch View
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -357,13 +363,13 @@
                                 </div>
                                 
                                 <!-- Availability Info -->
-                                {% if player.expected_weeks_available and player.expected_weeks_available != 'All weeks' %}
+                                {% if player.expected_weeks_available %}
                                 <div class="small text-info mb-3">
                                     <i class="ti ti-calendar-event me-1"></i><strong>Expected:</strong> {{ player.expected_weeks_available }}
                                 </div>
                                 {% else %}
-                                <div class="small text-success mb-3">
-                                    <i class="ti ti-calendar-check me-1"></i><strong>Available:</strong> All weeks
+                                <div class="small text-muted mb-3">
+                                    <i class="ti ti-calendar-question me-1"></i><strong>Expected:</strong> N/A
                                 </div>
                                 {% endif %}
                             </div>

@@ -1,0 +1,321 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Redis Connection Statistics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #495057;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    .health-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .health-healthy { background-color: #28a745; }
+    .health-unhealthy { background-color: #dc3545; }
+    .health-warning { background-color: #ffc107; }
+    .auto-refresh {
+        background: #e9ecef;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Redis Connection Statistics</h2>
+                <div>
+                    <button id="refresh-btn" class="btn btn-primary btn-sm me-2">Refresh</button>
+                    <button id="cleanup-btn" class="btn btn-warning btn-sm me-2">Cleanup Connections</button>
+                    <button id="test-btn" class="btn btn-info btn-sm">Test Connection</button>
+                </div>
+            </div>
+
+            <div class="auto-refresh">
+                <label>
+                    <input type="checkbox" id="auto-refresh" checked> Auto-refresh every 5 seconds
+                </label>
+                <span id="last-updated" class="ms-3 text-muted"></span>
+            </div>
+
+            <!-- Connection Health Status -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <h5>Connection Health</h5>
+                        <div id="health-status">
+                            {% if connection_health.overall %}
+                                <span class="health-indicator health-healthy"></span>All connections healthy
+                            {% else %}
+                                <span class="health-indicator health-unhealthy"></span>Connection issues detected
+                            {% endif %}
+                        </div>
+                        <div class="mt-2">
+                            <small>
+                                Decoded: <span id="decoded-status">{{ "✓" if connection_health.decoded_client else "✗" }}</span> |
+                                Raw: <span id="raw-status">{{ "✓" if connection_health.raw_client else "✗" }}</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-value" id="max-connections">{{ stats.pool_stats.max_connections|default(0) }}</div>
+                        <div class="stat-label">Max Connections</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-value" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</div>
+                        <div class="stat-label">Pool Utilization</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connection Pool Details -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Connection Pool Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td>Pool Initialized</td>
+                                        <td><span id="pool-initialized">{{ "Yes" if stats.connection_pool_initialized else "No" }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Created Connections</td>
+                                        <td><span id="created-connections">{{ stats.pool_stats.created_connections|default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Available Connections</td>
+                                        <td><span id="available-connections">{{ stats.pool_stats.available_connections|default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>In-Use Connections</td>
+                                        <td><span id="in-use-connections">{{ stats.pool_stats.in_use_connections|default(0) }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Last Health Check</td>
+                                        <td><span id="last-health-check">{{ stats.last_health_check|default("Never") }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Redis Server Metrics</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td>Connected Clients</td>
+                                        <td><span id="connected-clients">{{ server_info.connected_clients|default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Memory Usage</td>
+                                        <td><span id="memory-usage">{{ server_info.used_memory_human|default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Commands Processed</td>
+                                        <td><span id="commands-processed">{{ server_info.total_commands_processed|default("N/A") }}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Ops/sec</td>
+                                        <td><span id="ops-per-sec">{{ server_info.instantaneous_ops_per_sec|default("N/A") }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Connection Test Results</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="test-results">
+                                <p class="text-muted">Click "Test Connection" to run connection tests</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let autoRefreshInterval;
+
+function updateStats() {
+    fetch('/admin/redis/api/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                console.error('Error fetching stats:', data.error);
+                return;
+            }
+            
+            // Update health status
+            const healthIndicator = data.health?.overall ? 'health-healthy' : 'health-unhealthy';
+            const healthText = data.health?.overall ? 'All connections healthy' : 'Connection issues detected';
+            document.getElementById('health-status').innerHTML = 
+                `<span class="health-indicator ${healthIndicator}"></span>${healthText}`;
+            
+            // Update client status
+            document.getElementById('decoded-status').textContent = data.health?.decoded_client ? "✓" : "✗";
+            document.getElementById('raw-status').textContent = data.health?.raw_client ? "✓" : "✗";
+            
+            // Update pool stats
+            if (data.pool_stats) {
+                document.getElementById('max-connections').textContent = data.pool_stats.max_connections || 0;
+                document.getElementById('utilization').textContent = (data.pool_stats.utilization_percent || 0) + '%';
+                document.getElementById('created-connections').textContent = data.pool_stats.created_connections || 0;
+                document.getElementById('available-connections').textContent = data.pool_stats.available_connections || 0;
+                document.getElementById('in-use-connections').textContent = data.pool_stats.in_use_connections || 0;
+            }
+            
+            // Update server metrics
+            if (data.server_metrics) {
+                document.getElementById('connected-clients').textContent = data.server_metrics.connected_clients || 'N/A';
+                document.getElementById('memory-usage').textContent = data.server_metrics.used_memory_human || 'N/A';
+                document.getElementById('commands-processed').textContent = data.server_metrics.total_commands_processed || 'N/A';
+                document.getElementById('ops-per-sec').textContent = data.server_metrics.instantaneous_ops_per_sec || 'N/A';
+            }
+            
+            // Update last updated time
+            document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+}
+
+function testConnection() {
+    const testButton = document.getElementById('test-btn');
+    const originalText = testButton.textContent;
+    testButton.textContent = 'Testing...';
+    testButton.disabled = true;
+    
+    fetch('/admin/redis/test-connection')
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('test-results');
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+            } else {
+                let html = '<div class="row">';
+                for (const [testName, result] of Object.entries(data.tests)) {
+                    const badgeClass = result.status === 'success' ? 'bg-success' : 'bg-danger';
+                    html += `
+                        <div class="col-md-4 mb-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6>${testName.replace('_', ' ').toUpperCase()}</h6>
+                                    <span class="badge ${badgeClass}">${result.status}</span>
+                                    <p class="mt-2 mb-0"><small>${result.message}</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+                resultsDiv.innerHTML = html;
+            }
+        })
+        .catch(error => {
+            document.getElementById('test-results').innerHTML = 
+                `<div class="alert alert-danger">Error running tests: ${error}</div>`;
+        })
+        .finally(() => {
+            testButton.textContent = originalText;
+            testButton.disabled = false;
+        });
+}
+
+function cleanupConnections() {
+    const cleanupButton = document.getElementById('cleanup-btn');
+    const originalText = cleanupButton.textContent;
+    cleanupButton.textContent = 'Cleaning...';
+    cleanupButton.disabled = true;
+    
+    fetch('/admin/redis/connection-cleanup')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error during cleanup: ' + data.error);
+            } else {
+                alert('Connection cleanup completed successfully');
+                updateStats();
+            }
+        })
+        .catch(error => {
+            alert('Error during cleanup: ' + error);
+        })
+        .finally(() => {
+            cleanupButton.textContent = originalText;
+            cleanupButton.disabled = false;
+        });
+}
+
+// Event listeners
+document.getElementById('refresh-btn').addEventListener('click', updateStats);
+document.getElementById('test-btn').addEventListener('click', testConnection);
+document.getElementById('cleanup-btn').addEventListener('click', cleanupConnections);
+
+document.getElementById('auto-refresh').addEventListener('change', function() {
+    if (this.checked) {
+        autoRefreshInterval = setInterval(updateStats, 5000);
+    } else {
+        clearInterval(autoRefreshInterval);
+    }
+});
+
+// Initialize auto-refresh
+if (document.getElementById('auto-refresh').checked) {
+    autoRefreshInterval = setInterval(updateStats, 5000);
+}
+
+// Initial load
+updateStats();
+</script>
+{% endblock %}

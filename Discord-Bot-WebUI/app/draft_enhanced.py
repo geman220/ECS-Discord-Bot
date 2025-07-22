@@ -39,6 +39,15 @@ logger = logging.getLogger(__name__)
 draft_enhanced = Blueprint('draft_enhanced', __name__, url_prefix='/draft')
 
 
+# Template filter for formatting position names
+@draft_enhanced.app_template_filter('format_position')
+def format_position(position):
+    """Format position names for display."""
+    if not position:
+        return position
+    return position.replace('_', ' ').title()
+
+
 class DraftService:
     """Service class for draft operations with enhanced functionality."""
     
@@ -192,7 +201,7 @@ class DraftService:
                 'player_notes': player.player_notes or '',
                 'favorite_position': player.favorite_position or 'Any',
                 'other_positions': player.other_positions or '',
-                'expected_weeks_available': player.expected_weeks_available or 'All weeks',
+                'expected_weeks_available': player.expected_weeks_available,
                 'unavailable_dates': player.unavailable_dates or '',
                 'jersey_number': player.jersey_number,
                 'is_sub': player.is_sub,
@@ -273,7 +282,7 @@ class DraftService:
             # Fallback to default values if service fails
             return {player_id: {
                 'response_rate': 0,
-                'attendance_estimate': 50,
+                'attendance_estimate': None,
                 'reliability_score': 25,
                 'total_invited': 0,
                 'yes_count': 0,
@@ -595,6 +604,115 @@ def draft_league(league_name: str):
         available_players=available_players,
         drafted_players_by_team=drafted_by_team,
         analytics=analytics,
+        current_season_id=current_league.season_id
+    )
+
+
+@draft_enhanced.route('/<league_name>/pitch')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach'])
+def draft_league_pitch_view(league_name: str):
+    """Soccer pitch view for visual team drafting."""
+    logger.info(f"🏟️ Pitch view route accessed: {league_name}")
+    
+    # Validate league name
+    valid_leagues = ['classic', 'premier', 'ecs_fc']
+    if league_name.lower() not in valid_leagues:
+        show_error(f'Invalid league name: {league_name}')
+        return redirect(url_for('main.index'))
+    
+    # Normalize league name for database lookup
+    db_league_name = {
+        'classic': 'Classic',
+        'premier': 'Premier', 
+        'ecs_fc': 'ECS FC'
+    }.get(league_name.lower())
+    
+    current_league, all_leagues = DraftService.get_league_data(db_league_name)
+    
+    if not current_league:
+        show_error(f'No current {db_league_name} league found.')
+        return redirect(url_for('main.index'))
+    
+    if not all_leagues:
+        show_error(f'No {db_league_name} leagues found.')
+        return redirect(url_for('main.index'))
+    
+    # Get teams (excluding Practice teams)
+    teams = [team for team in current_league.teams if team.name != "Practice"]
+    team_ids = [t.id for t in teams]
+    
+    # Get all players eligible for this league
+    league_ids = [l.id for l in all_leagues]
+    belongs_to_league = or_(
+        Player.primary_league_id.in_(league_ids),
+        exists().where(
+            and_(
+                player_league.c.player_id == Player.id,
+                player_league.c.league_id.in_(league_ids)
+            )
+        )
+    )
+    
+    # Get all eligible players
+    all_players_query = (
+        g.db_session.query(Player)
+        .filter(belongs_to_league)
+        .filter(Player.is_current_player.is_(True))
+        .options(
+            joinedload(Player.career_stats),
+            joinedload(Player.season_stats),
+            selectinload(Player.teams)
+        )
+        .order_by(Player.name.asc())
+    ).all()
+    
+    # Separate players into available/drafted
+    available_players_raw = []
+    drafted_players_raw = []
+    
+    team_ids_set = set(team_ids)
+    
+    for player in all_players_query:
+        player_team_ids = {team.id for team in player.teams}
+        if player_team_ids.intersection(team_ids_set):
+            drafted_players_raw.append(player)
+        else:
+            available_players_raw.append(player)
+    
+    # Process enhanced player data
+    available_players = DraftService.get_enhanced_player_data(
+        available_players_raw,
+        current_league.season_id
+    )
+    
+    drafted_players = DraftService.get_enhanced_player_data(
+        drafted_players_raw,
+        current_league.season_id
+    )
+    
+    # Organize drafted players by team
+    drafted_by_team = {team.id: [] for team in teams}
+    
+    for player in drafted_players:
+        for team_info in player['current_teams']:
+            team_id = team_info['id']
+            if team_id in drafted_by_team:
+                drafted_by_team[team_id].append(player)
+                break
+    
+    # Convert teams to JSON-serializable format
+    teams_json = [{'id': team.id, 'name': team.name} for team in teams]
+    
+    return render_template(
+        'draft_pitch_view.html',
+        title=f'{db_league_name} League Draft',
+        league_name=league_name,
+        db_league_name=db_league_name,
+        teams=teams,
+        teams_json=teams_json,
+        available_players=available_players,
+        drafted_players_by_team=drafted_by_team,
         current_season_id=current_league.season_id
     )
 
