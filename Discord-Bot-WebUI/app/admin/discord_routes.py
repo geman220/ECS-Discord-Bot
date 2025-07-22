@@ -312,3 +312,49 @@ def refresh_all_discord_status():
         session.rollback()
         logger.error(f"Error in refresh_all_discord_status: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/admin/refresh_unknown_discord_status', endpoint='refresh_unknown_discord_status', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def refresh_unknown_discord_status():
+    """
+    Refresh Discord status for players with unknown status only.
+    """
+    session = g.db_session
+    try:
+        # Get players with unknown Discord status (discord_in_server is None)
+        players_unknown_status = session.query(Player).filter(
+            Player.discord_id.isnot(None),
+            Player.discord_in_server.is_(None)
+        ).all()
+
+        success_count = 0
+        error_count = 0
+        
+        for player in players_unknown_status:
+            try:
+                if player.check_discord_status():
+                    success_count += 1
+                    session.add(player)  # Mark for update
+                else:
+                    error_count += 1
+            except Exception as e:
+                logger.error(f"Error refreshing Discord status for player {player.id}: {e}")
+                error_count += 1
+
+        # Commit all updates
+        session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'Checked Discord status for {success_count} players with unknown status',
+            'success_count': success_count,
+            'error_count': error_count,
+            'total_processed': len(players_unknown_status)
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error in refresh_unknown_discord_status: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
