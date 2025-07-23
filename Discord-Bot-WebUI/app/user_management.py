@@ -474,27 +474,84 @@ def edit_user(user_id):
             user.username = form.username.data
             user.email = form.email.data
 
-            # Update user roles - simplified approach that only saves what is selected
+            # Get league information for validation
+            league_id = form.league_id.data
+            selected_league = None
+            if league_id and league_id != 0:
+                selected_league = session.query(League).get(league_id)
+            
+            # Update user roles with validation
             selected_role_ids = form.roles.data if form.roles.data else []
             new_roles = session.query(Role).filter(Role.id.in_(selected_role_ids)).all() if selected_role_ids else []
             
             logger.info(f"Selected role IDs: {selected_role_ids}")
             logger.info(f"Current roles before update: {[role.name for role in user.roles]}")
             
-            # Clear all current roles and set only the selected ones
-            user.roles = new_roles
+            # Validate league/role consistency
+            role_names = [role.name for role in new_roles]
+            has_premier_role = 'pl-premier' in role_names
+            has_classic_role = 'pl-classic' in role_names
             
-            logger.info(f"New roles after update: {[role.name for role in user.roles]}")
+            if selected_league:
+                if selected_league.name == 'Premier' and has_classic_role and not has_premier_role:
+                    show_error('Cannot assign Classic role (pl-classic) to a player in Premier league without also having Premier role (pl-premier).')
+                    return redirect(url_for('user_management.manage_users'))
+                elif selected_league.name == 'Classic' and has_premier_role and not has_classic_role:
+                    show_error('Cannot assign Premier role (pl-premier) to a player in Classic league without also having Classic role (pl-classic).')
+                    return redirect(url_for('user_management.manage_users'))
             
-            # Flush to update the relationship
-            session.flush()
+            # Safely update roles to avoid StaleDataError
+            try:
+                # Clear current roles using direct SQL to avoid ORM issues
+                session.execute(
+                    user_roles.delete().where(user_roles.c.user_id == user.id)
+                )
+                session.flush()
+                
+                # Add new roles
+                if new_roles:
+                    for role in new_roles:
+                        session.execute(
+                            user_roles.insert().values(user_id=user.id, role_id=role.id)
+                        )
+                    session.flush()
+                
+                # Refresh user to get updated roles
+                session.refresh(user)
+                
+                logger.info(f"New roles after update: {[role.name for role in user.roles]}")
+            
+            except Exception as role_error:
+                logger.error(f"Error updating roles: {role_error}")
+                show_error('Failed to update user roles. Please try again.')
+                return redirect(url_for('user_management.manage_users'))
+            
+            # Auto-assign league roles if not present and league is selected
+            if selected_league and user.player:
+                current_role_names = [role.name for role in user.roles]
+                required_role = f"pl-{selected_league.name.lower()}"
+                
+                if required_role not in current_role_names:
+                    # Find the required role
+                    role_to_add = session.query(Role).filter_by(name=required_role).first()
+                    if role_to_add:
+                        try:
+                            session.execute(
+                                user_roles.insert().values(user_id=user.id, role_id=role_to_add.id)
+                            )
+                            session.flush()
+                            session.refresh(user)
+                            logger.info(f"Auto-assigned {required_role} role to user {user.username} based on league selection")
+                            show_info(f"Automatically assigned {required_role} role based on league selection.")
+                        except Exception as auto_role_error:
+                            logger.error(f"Failed to auto-assign role {required_role}: {auto_role_error}")
+                            # Don't fail the entire operation for this
             
             # Invalidate draft cache when user roles change (optimized with league context)
             from app.draft_cache_service import DraftCacheService
             league_id = form.league_id.data
             if league_id and league_id != 0:
                 # Get league name for targeted cache invalidation
-                from app.models import League
                 league = session.query(League).get(league_id)
                 league_name = league.name if league else None
                 if league_name:
@@ -614,10 +671,10 @@ def edit_user(user_id):
             from app.draft_cache_service import DraftCacheService
             # Try to get league context for targeted invalidation
             league_name = None
-            if hasattr(player, 'league') and player.league:
-                league_name = player.league.name
-            elif hasattr(player, 'primary_league') and player.primary_league:
-                league_name = player.primary_league.name
+            if hasattr(user.player, 'league') and user.player and user.player.league:
+                league_name = user.player.league.name
+            elif hasattr(user.player, 'primary_league') and user.player and user.player.primary_league:
+                league_name = user.player.primary_league.name
             
             if league_name:
                 DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)

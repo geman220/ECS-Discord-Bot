@@ -1166,8 +1166,10 @@ def api_draft_player():
         if existing_assignment:
             return jsonify({'error': 'Player already assigned to a team'}), 400
         
-        # Add player to team
+        # Add player to team and set as primary team
         team.players.append(player)
+        player.primary_team_id = team_id
+        logger.info(f"Set {player.name}'s primary team to {team.name} (ID: {team_id})")
         
         # Record the draft pick in history
         try:
