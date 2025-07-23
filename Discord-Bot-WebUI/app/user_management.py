@@ -549,7 +549,7 @@ def edit_user(user_id):
                 else:
                     user.player.other_leagues = []
             
-                # Now automatically assign league roles based on league assignments
+                # Now automatically sync league roles with league assignments
                 assigned_leagues = set()
                 
                 # Get primary league
@@ -566,6 +566,36 @@ def edit_user(user_id):
                 for team in user.player.teams:
                     if team.league:
                         assigned_leagues.add(team.league.name)
+                
+                # Automatically sync user roles with league assignments
+                logger.info(f"Player assigned to leagues: {assigned_leagues}")
+                
+                # Get current league-specific roles
+                current_league_roles = [role for role in user.roles if role.name.startswith('pl-')]
+                current_non_league_roles = [role for role in user.roles if not role.name.startswith('pl-')]
+                
+                # Determine required league roles based on assignments
+                required_league_roles = []
+                for league_name in assigned_leagues:
+                    if league_name == 'Premier':
+                        premier_role = session.query(Role).filter_by(name='pl-premier').first()
+                        if premier_role:
+                            required_league_roles.append(premier_role)
+                            logger.info(f"Adding pl-premier role for {league_name} league assignment")
+                    elif league_name == 'Classic':
+                        classic_role = session.query(Role).filter_by(name='pl-classic').first()
+                        if classic_role:
+                            required_league_roles.append(classic_role)
+                            logger.info(f"Adding pl-classic role for {league_name} league assignment")
+                    elif league_name == 'ECS FC':
+                        ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+                        if ecs_fc_role:
+                            required_league_roles.append(ecs_fc_role)
+                            logger.info(f"Adding pl-ecs-fc role for {league_name} league assignment")
+                
+                # Update user roles: keep non-league roles + add required league roles
+                user.roles = current_non_league_roles + required_league_roles
+                logger.info(f"Updated roles to: {[role.name for role in user.roles]}")
                 
                 # Update approval status if user has league roles
                 if assigned_leagues and user.approval_status != 'approved':
@@ -1134,6 +1164,18 @@ def export_player_profiles():
         if not users:
             show_warning(f'No active players found for {league_name}.')
             return redirect(url_for('user_management.manage_users'))
+        
+        # Sort users by team name for grouped export
+        def get_team_sort_key(user):
+            player = user.player
+            if player.teams:
+                if player.primary_team_id and player.primary_team:
+                    return player.primary_team.name
+                elif player.teams:
+                    return player.teams[0].name
+            return 'ZZ_No_Team'  # Sort players without teams to the end
+        
+        users.sort(key=get_team_sort_key)
         
         # Prepare data for Excel export
         export_data = []
