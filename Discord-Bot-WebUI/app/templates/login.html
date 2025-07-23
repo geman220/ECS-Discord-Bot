@@ -2,6 +2,33 @@
 
 {% block page_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+    <style>
+        /* Force authentication page background - override everything */
+        html, html.auth-page, body, body.auth-page {
+            background-color: #213e96 !important;
+            background: #213e96 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            min-height: 100vh !important;
+        }
+        
+        .authentication-wrapper {
+            background-color: #213e96 !important;
+            background: #213e96 !important;
+            height: 100vh !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 100vh !important;
+        }
+        
+        /* Make sure no other elements override this */
+        body * {
+            max-width: 100%;
+        }
+    </style>
 {% endblock %}
 
 {% block main_content %}
@@ -18,9 +45,9 @@
         </div>
 
         <!-- Login Form -->
-        <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
-            <div style="width: 100%; max-width: 320px; text-align: center;">
-                <h4 class="mb-1 text-primary">Welcome to ECS FC!</h4>
+        <div class="col-12 col-lg-6 d-flex align-items-center justify-content-center p-4 bg-white rounded-end">
+            <div style="width: 100%; max-width: 320px; text-align: center; margin: 0 auto;">
+                <h4 class="mb-1 text-primary">Welcome to the ECS FC and Pub League</h4>
                 <p class="mb-4 text-muted">Login or register to join the league.</p>
 
                 <!-- Discord Login Button -->
@@ -88,9 +115,9 @@
                 </div>
                 {% else %}
                 <div class="alert alert-info mt-3 text-left">
-                    <h6 class="alert-heading fw-bold mb-1">New to ECS FC?</h6>
+                    <h6 class="alert-heading fw-bold mb-1">New Here?</h6>
                     <p class="mb-0 small">
-                        Register with Discord to join as a substitute player. Subs can fill in for matches when teams need additional players - a great way to join the league!
+                        If you have a Discord account and haven't registered with us, click Register with Discord above. If you've already registered with us, select Login with Discord.
                     </p>
                 </div>
                 {% endif %}

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}">
+<html lang="en" class="light-style auth-page" dir="ltr" data-theme="theme-default" data-assets-path="{{ url_for('static', filename='assets/') }}">
 <head>
     <!-- Meta Tags -->
     <meta charset="utf-8" />
@@ -14,7 +14,7 @@
     <!-- Critical CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/core.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/css/rtl/theme-default.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/ecs-core.css') }}?v={{ range(1, 1000000) | random }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/foundation.css') }}?v={{ range(1, 1000000) | random }}" />
 
     <!-- Deferred CSS - these will load after the page is initially rendered -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}" media="print" onload="this.media='all'">
@@ -36,7 +36,7 @@
     <!-- SweetAlert2 for nicer notifications -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-<body>
+<body class="auth-page">
 
     {% block main_content %}
     <!-- Page-specific content will be injected here -->

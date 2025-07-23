@@ -10,18 +10,19 @@
 /* Override base layout for authentication pages */
 html.auth-page, 
 body.auth-page {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background-color: #00539F; /* Sounders Blue */
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    background-color: var(--ecs-primary) !important; /* ECS Primary Blue */
 }
 
 .authentication-wrapper {
-    height: 100%;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height: 100vh !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 100vh !important;
 }
 
 .authentication-inner {
@@ -35,6 +36,7 @@ body.auth-page {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     margin: 1rem;
+    min-height: 400px;
 }
 
 /* ===== AUTHENTICATION BUTTONS ===== */
