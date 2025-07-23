@@ -126,11 +126,17 @@ def manage_users():
 
             if form.league.data:
                 if form.league.data == 'none':
-                    query = query.outerjoin(Player).filter(Player.league_id.is_(None))
+                    query = query.outerjoin(Player).filter(
+                        (Player.primary_league_id.is_(None)) & 
+                        (~Player.other_leagues.any())
+                    )
                 else:
                     try:
                         league_id = int(form.league.data)
-                        query = query.join(Player).filter(Player.league_id == league_id)
+                        query = query.join(Player).filter(
+                            (Player.primary_league_id == league_id) |
+                            (Player.other_leagues.any(League.id == league_id))
+                        )
                     except ValueError:
                         if is_ajax:
                             return jsonify({'success': False, 'error': 'Invalid league selection.'})
@@ -1091,13 +1097,15 @@ def export_player_profiles():
     try:
         # Get the league filter from request args
         league_id = request.args.get('league_id', type=int)
+        exclude_ecsfc = request.args.get('exclude_ecsfc', type=int)
         
-        # Build base query for active players with efficient loading
-        query = session.query(Player).options(
-            selectinload(Player.user),
-            selectinload(Player.primary_league),
-            selectinload(Player.other_leagues)
-        ).filter(Player.is_current_player == True)
+        # Build base query for users with active players with efficient loading
+        query = session.query(User).options(
+            joinedload(User.player).joinedload(Player.primary_league),
+            joinedload(User.player).joinedload(Player.other_leagues),
+            joinedload(User.player).joinedload(Player.teams),
+            joinedload(User.player).joinedload(Player.primary_team)
+        ).join(Player).filter(Player.is_current_player == True)
         
         # Filter by league if specified (check both primary and secondary leagues)
         if league_id:
@@ -1109,30 +1117,55 @@ def export_player_profiles():
                 (Player.primary_league_id == league_id) |
                 (Player.other_leagues.any(League.id == league_id))
             )
+        elif exclude_ecsfc:
+            # Filter to exclude ECS FC league - only Premier and Classic
+            ecsfc_league = session.query(League).filter(League.name == 'ECS FC').first()
+            if ecsfc_league:
+                query = query.filter(
+                    (Player.primary_league_id != ecsfc_league.id) &
+                    (~Player.other_leagues.any(League.id == ecsfc_league.id))
+                )
+            league_name = "Premier and Classic"
         else:
             league_name = "All Active Players"
         
-        players = query.all()
+        users = query.all()
         
-        if not players:
+        if not users:
             show_warning(f'No active players found for {league_name}.')
             return redirect(url_for('user_management.manage_users'))
         
         # Prepare data for Excel export
         export_data = []
-        for player in players:
+        for user in users:
+            player = user.player
             # Format last updated
             last_updated = player.profile_last_updated.strftime('%Y-%m-%d %H:%M:%S') if player.profile_last_updated else 'Never'
             
+            # Get current team information
+            current_team = ''
+            all_teams = []
+            if player.teams:
+                # Find primary team if set
+                if player.primary_team_id and player.primary_team:
+                    current_team = player.primary_team.name
+                    all_teams = [team.name for team in player.teams if team.id != player.primary_team_id]
+                elif player.teams:
+                    # If no primary team set, use first team
+                    current_team = player.teams[0].name
+                    all_teams = [team.name for team in player.teams[1:]]
+            
             player_data = {
                 'Name': player.name,
-                'Username': player.user.username if player.user else '',
-                'Email': player.user.email if player.user else '',
+                'Username': user.username,
+                'Email': user.email,
                 'Phone': player.phone or '',
                 'Phone Verified': 'Yes' if player.is_phone_verified else 'No',
                 'SMS Consent': 'Yes' if player.sms_consent_given else 'No',
                 'Jersey Size': player.jersey_size or '',
                 'Jersey Number': player.jersey_number or '',
+                'Current Team': current_team,
+                'Other Teams': ', '.join(all_teams) if all_teams else '',
                 'Primary League': player.primary_league.name if player.primary_league else '',
                 'Secondary Leagues': ', '.join([league.name for league in player.other_leagues]) if player.other_leagues else '',
                 'Is Coach': 'Yes' if player.is_coach else 'No',
@@ -1152,7 +1185,7 @@ def export_player_profiles():
                 'Player Notes': player.player_notes or '',
                 'Team Swap': player.team_swap or '',
                 'Profile Last Updated': last_updated,
-                'User Approved': 'Yes' if player.user and player.user.is_approved else 'No'
+                'User Approved': 'Yes' if user.is_approved else 'No'
             }
             export_data.append(player_data)
         
@@ -1192,8 +1225,8 @@ def export_player_profiles():
         response.headers["Content-Disposition"] = f"attachment; filename={filename}"
         response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         
-        logger.info(f"Player profiles exported successfully for {league_name}: {len(players)} players")
-        show_success(f'Successfully exported {len(players)} player profiles for {league_name}.')
+        logger.info(f"Player profiles exported successfully for {league_name}: {len(users)} players")
+        show_success(f'Successfully exported {len(users)} player profiles for {league_name}.')
         
         return response
         

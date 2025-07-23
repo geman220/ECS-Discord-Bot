@@ -32,7 +32,7 @@ from datetime import datetime
 from app import csrf
 from app.models import (
     User, Player, Team, Match, Season, League, player_teams, Standings,
-    PlayerSeasonStats
+    PlayerSeasonStats, Availability
 )
 from app.decorators import (
     jwt_role_required

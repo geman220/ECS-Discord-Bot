@@ -92,6 +92,11 @@
                                     <i class="ti ti-users me-2"></i>All Leagues
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('user_management.export_player_profiles', exclude_ecsfc=1) }}">
+                                    <i class="ti ti-users-group me-2"></i>Premier & Classic Only
+                                </a>
+                            </li>
                             {% for league in leagues %}
                             {% if league.season.is_current %}
                             <li>
