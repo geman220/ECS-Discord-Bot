@@ -16,7 +16,10 @@ from sqlalchemy import func
 from typing import Optional
 import logging
 
-from app.models import Season, League, Player, PlayerTeamSeason, Team, Schedule
+from app.models import Season, League, Player, PlayerTeamSeason, Team, Schedule, User, Role
+from app.models.players import player_teams, player_league
+from app.models.core import user_roles
+from sqlalchemy import text
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -69,8 +72,13 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
     """
     Perform league rollover from an old season to a new season.
 
-    For each player, records their team history for the old season.
-    Then updates players to belong to the corresponding league in the new season.
+    This comprehensive rollover process:
+    1. Records team history for the old season in PlayerTeamSeason
+    2. Updates players to belong to corresponding leagues in the new season
+    3. Clears all current team assignments so players start as blank slates
+    4. Clears secondary league assignments 
+    5. Creates fresh season stats records starting at 0
+    6. Preserves all historical data and career stats
 
     Args:
         session: Database session.
@@ -84,6 +92,9 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         Exception: Propagates any exception after rolling back.
     """
     try:
+        logger.info(f"Starting rollover from {old_season.name} to {new_season.name}")
+        
+        # Step 1: Record team history for old season
         players = session.query(Player).all()
         history_records = []
 
@@ -108,8 +119,9 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         if history_records:
             session.bulk_save_objects(history_records)
             session.flush()
+            logger.info(f"Recorded {len(history_records)} team history records")
         
-        # Retrieve leagues from both seasons.
+        # Step 2: Update league associations 
         old_leagues = session.query(League).filter_by(season_id=old_season.id).all()
         new_leagues = session.query(League).filter_by(season_id=new_season.id).all()
 
@@ -119,22 +131,107 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
             for old_league in old_leagues
         }
 
-        # Update players' league associations.
+        # Update players' league associations - more robust approach
+        updated_players = 0
         for old_league in old_leagues:
             new_league_id = league_mapping.get(old_league.name)
             if new_league_id:
-                # Update both league_id and primary_league_id
-                session.query(Player).filter_by(league_id=old_league.id).update({
+                logger.info(f"Migrating players from {old_league.name} (ID: {old_league.id}) to new league (ID: {new_league_id})")
+                
+                # Update both league_id and primary_league_id for current players
+                # Use OR condition to catch players with either field matching
+                league_updates = session.query(Player).filter(
+                    (Player.league_id == old_league.id) | (Player.primary_league_id == old_league.id),
+                    Player.is_current_player == True
+                ).update({
                     'league_id': new_league_id,
-                }, synchronize_session=False)
-                session.query(Player).filter_by(primary_league_id=old_league.id).update({
                     'primary_league_id': new_league_id,
                 }, synchronize_session=False)
+                
+                updated_players += league_updates
+                logger.info(f"Updated {league_updates} players from {old_league.name} to new season")
+
+        logger.info(f"Updated league associations for {updated_players} players")
+
+        # Step 3: Get all players who were in the old season for cleanup
+        old_season_player_ids = session.query(Player.id).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).join(
+            Team, player_teams.c.team_id == Team.id
+        ).join(
+            League, Team.league_id == League.id
+        ).filter(
+            League.season_id == old_season.id
+        ).distinct().all()
+
+        old_season_player_ids = [pid[0] for pid in old_season_player_ids]
+        logger.info(f"Found {len(old_season_player_ids)} players in old season to clean up")
+
+        if old_season_player_ids:
+            # Step 4: Clear all team assignments (clean slate for new season)
+            logger.info("Clearing current team assignments...")
+            deleted_teams = session.execute(
+                player_teams.delete().where(
+                    player_teams.c.player_id.in_(old_season_player_ids)
+                )
+            ).rowcount
+            logger.info(f"Removed {deleted_teams} team assignments")
+            
+            # Step 5: Clear secondary league assignments 
+            logger.info("Clearing secondary league assignments...")
+            deleted_leagues = session.execute(
+                player_league.delete().where(
+                    player_league.c.player_id.in_(old_season_player_ids)
+                )
+            ).rowcount
+            logger.info(f"Removed {deleted_leagues} secondary league assignments")
+            
+            # Step 6: Reset primary team assignments to NULL
+            logger.info("Resetting primary team assignments...")
+            reset_primary = session.query(Player).filter(
+                Player.id.in_(old_season_player_ids)
+            ).update({
+                'primary_team_id': None
+            }, synchronize_session=False)
+            logger.info(f"Reset primary team for {reset_primary} players")
+
+        # Step 7: Create fresh season stats records for new season
+        logger.info("Creating fresh season stats records...")
+        from app.models.stats import PlayerSeasonStats
+        
+        # Get all players who should have season stats in the new season
+        all_active_players = session.query(Player).filter(
+            Player.id.in_(old_season_player_ids)
+        ).all() if old_season_player_ids else []
+        
+        new_season_stats = []
+        for player in all_active_players:
+            # Check if season stats already exist for this player/season
+            existing_stats = session.query(PlayerSeasonStats).filter_by(
+                player_id=player.id,
+                season_id=new_season.id
+            ).first()
+            
+            if not existing_stats:
+                new_season_stats.append(PlayerSeasonStats(
+                    player_id=player.id,
+                    season_id=new_season.id,
+                    goals=0,
+                    assists=0,
+                    yellow_cards=0,
+                    red_cards=0
+                ))
+        
+        if new_season_stats:
+            session.bulk_save_objects(new_season_stats)
+            logger.info(f"Created {len(new_season_stats)} fresh season stats records")
 
         session.commit()
+        logger.info(f"Rollover completed successfully: {old_season.name} → {new_season.name}")
         return True
 
     except Exception as e:
+        logger.error(f"Rollover failed: {str(e)}")
         session.rollback()
         raise
 
@@ -185,7 +282,88 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
         old_season.is_current = False
         rollover_league(session, old_season, new_season)
     else:
+        # No old current season found - still need to commit the new season/leagues
+        logger.warning("No current Pub League season found for rollover")
         session.commit()
+        
+    # Additional safety check: Ensure all current Pub League players are in the new season
+    # This handles edge cases where rollover might have missed some players
+    session.flush()  # Ensure new leagues are committed first
+    
+    logger.info("Performing safety check for any remaining players in old Pub League seasons...")
+    premier_league_id = session.query(League).filter_by(name="Premier", season_id=new_season.id).first().id
+    classic_league_id = session.query(League).filter_by(name="Classic", season_id=new_season.id).first().id
+    
+    # Find any current players still in old Pub League seasons
+    orphaned_premier = session.query(Player).join(League, Player.primary_league_id == League.id).join(Season, League.season_id == Season.id).filter(
+        Season.league_type == 'Pub League',
+        Season.id != new_season.id,
+        Player.is_current_player == True,
+        League.name == 'Premier'
+    ).count()
+    
+    orphaned_classic = session.query(Player).join(League, Player.primary_league_id == League.id).join(Season, League.season_id == Season.id).filter(
+        Season.league_type == 'Pub League', 
+        Season.id != new_season.id,
+        Player.is_current_player == True,
+        League.name == 'Classic'
+    ).count()
+    
+    if orphaned_premier > 0 or orphaned_classic > 0:
+        logger.warning(f"Found {orphaned_premier} Premier and {orphaned_classic} Classic players still in old seasons. Migrating them now...")
+        
+        # Migrate orphaned Premier players
+        if orphaned_premier > 0:
+            migrated_premier = session.query(Player).join(League, Player.primary_league_id == League.id).join(Season, League.season_id == Season.id).filter(
+                Season.league_type == 'Pub League',
+                Season.id != new_season.id,
+                Player.is_current_player == True,
+                League.name == 'Premier'
+            ).update({
+                Player.primary_league_id: premier_league_id,
+                Player.league_id: premier_league_id
+            }, synchronize_session=False)
+            logger.info(f"Migrated {migrated_premier} orphaned Premier players")
+        
+        # Migrate orphaned Classic players  
+        if orphaned_classic > 0:
+            migrated_classic = session.query(Player).join(League, Player.primary_league_id == League.id).join(Season, League.season_id == Season.id).filter(
+                Season.league_type == 'Pub League',
+                Season.id != new_season.id, 
+                Player.is_current_player == True,
+                League.name == 'Classic'
+            ).update({
+                Player.primary_league_id: classic_league_id,
+                Player.league_id: classic_league_id
+            }, synchronize_session=False)
+            logger.info(f"Migrated {migrated_classic} orphaned Classic players")
+        
+        session.commit()
+    else:
+        logger.info("No orphaned players found - all current players are in the new season")
+    
+    # Step 4: Role-based validation to ensure players are in correct leagues for their roles
+    logger.info("Performing role-based league validation...")
+    
+    # Find players with pl-premier role not in Premier league
+    misplaced_premier = session.query(Player).join(User, Player.user_id == User.id).join(user_roles, User.id == user_roles.c.user_id).join(Role, user_roles.c.role_id == Role.id).filter(
+        Role.name == 'pl-premier',
+        Player.is_current_player == True,
+        Player.primary_league_id != premier_league_id
+    ).count()
+    
+    # Find players with pl-classic role not in Classic league  
+    misplaced_classic = session.query(Player).join(User, Player.user_id == User.id).join(user_roles, User.id == user_roles.c.user_id).join(Role, user_roles.c.role_id == Role.id).filter(
+        Role.name == 'pl-classic',
+        Player.is_current_player == True,
+        Player.primary_league_id != classic_league_id
+    ).count()
+    
+    if misplaced_premier > 0 or misplaced_classic > 0:
+        logger.warning(f"Found {misplaced_premier} Premier-role players in wrong league and {misplaced_classic} Classic-role players in wrong league")
+        logger.info("Note: Players will stay in their current leagues as intended. Use user management to move players between leagues during the season if needed.")
+    else:
+        logger.info("All players are in leagues matching their roles")
 
     return new_season
 
