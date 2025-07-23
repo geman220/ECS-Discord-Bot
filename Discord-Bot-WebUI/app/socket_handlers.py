@@ -265,9 +265,12 @@ def handle_draft_player_enhanced(data):
                 # Check both directions: player.teams and team.players for safety
                 if player not in team.players:
                     team.players.append(player)
-                    print(f"🎯 Added {player.name} to {team.name}")
+                    player.primary_team_id = team_id
+                    print(f"🎯 Added {player.name} to {team.name} and set as primary team (ID: {team_id})")
                 else:
-                    print(f"🎯 {player.name} already on {team.name} - skipping relationship creation")
+                    # Still set primary team even if relationship exists
+                    player.primary_team_id = team_id
+                    print(f"🎯 {player.name} already on {team.name} - updated primary team ID to {team_id}")
                 
                 # Create PlayerTeamSeason record for current season
                 # We already checked above that no PTS record exists, so create it

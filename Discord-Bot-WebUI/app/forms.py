@@ -274,6 +274,29 @@ class EditUserForm(FlaskForm):
         user = User.query.filter_by(username=username.data).first()
         if user and user.id != user_id_int:
             raise ValidationError('Username is already taken. Please choose a different one.')
+    
+    def validate_roles(self, roles):
+        """Validate role and league consistency."""
+        if not roles.data or not self.league_id.data or self.league_id.data == 0:
+            return  # Skip validation if no roles or league selected
+        
+        # Get role names from IDs
+        selected_roles = Role.query.filter(Role.id.in_(roles.data)).all()
+        role_names = [role.name for role in selected_roles]
+        
+        # Get league name
+        league = League.query.get(self.league_id.data)
+        if not league:
+            return
+        
+        has_premier_role = 'pl-premier' in role_names
+        has_classic_role = 'pl-classic' in role_names
+        
+        # Validation rules
+        if league.name == 'Premier' and has_classic_role and not has_premier_role:
+            raise ValidationError('Players in Premier league cannot have only Classic role (pl-classic). They must also have Premier role (pl-premier) or have a different role combination.')
+        elif league.name == 'Classic' and has_premier_role and not has_classic_role:
+            raise ValidationError('Players in Classic league cannot have only Premier role (pl-premier). They must also have Classic role (pl-classic) or have a different role combination.')
 
 
 class FilterUsersForm(FlaskForm):
