@@ -1,0 +1,211 @@
+{% extends "base_unauthenticated.html" %}
+
+{% block page_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/authentication.css') }}" />
+{% endblock %}
+
+{% block main_content %}
+
+<div class="authentication-wrapper">
+    <div class="authentication-inner">
+        <!-- ECS Logos -->
+        <div class="d-none d-lg-flex col-lg-6 align-items-center justify-content-center p-5">
+            <div class="text-center">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS Logo" class="img-fluid mb-4" style="max-height: 180px; width: auto;">
+                <br>
+                <img src="{{ url_for('static', filename='img/ecs_pl_logo.png') }}" alt="ECS FC Pub League Logo" class="img-fluid" style="max-height: 180px; width: auto;">
+            </div>
+        </div>
+
+        <!-- Verification Content -->
+        <div class="col-12 col-lg-6 d-flex align-items-center p-4 bg-white rounded-end">
+            <div style="width: 100%; max-width: 450px;">
+                
+                {% if verification_sent %}
+                <!-- Verification Email Sent -->
+                <div class="text-center">
+                    <div class="mb-4">
+                        <i class="ti ti-mail-check text-primary" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-2 text-primary">Verification Email Sent!</h4>
+                    <p class="mb-4 text-muted">
+                        We've sent a verification email to <strong>{{ old_email }}</strong>. 
+                        Please check your inbox and click the verification link to merge your accounts.
+                    </p>
+
+                    <div class="alert alert-info text-start mb-4">
+                        <h6 class="alert-heading fw-bold mb-2">
+                            <i class="ti ti-info-circle me-1"></i>What happens next?
+                        </h6>
+                        <ol class="mb-0 small">
+                            <li>Check your email inbox (and spam folder)</li>
+                            <li>Click the verification link in the email</li>
+                            <li>Your accounts will be automatically merged</li>
+                            <li>You'll be able to log in with your new Discord email</li>
+                        </ol>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="resend-email-btn">
+                            <i class="ti ti-mail me-1"></i>Resend Email
+                        </button>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
+                            <i class="ti ti-arrow-left me-1"></i>Back to Login
+                        </a>
+                    </div>
+                </div>
+
+                {% elif verification_token %}
+                <!-- Process Verification Token -->
+                <div class="text-center">
+                    <div class="mb-4">
+                        <i class="ti ti-loader-2 text-primary rotating" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-2 text-primary">Verifying Your Account...</h4>
+                    <p class="mb-4 text-muted">Please wait while we merge your accounts.</p>
+                </div>
+
+                <form method="POST" id="verify-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="token" value="{{ verification_token }}">
+                </form>
+
+                {% else %}
+                <!-- Invalid or Expired Link -->
+                <div class="text-center">
+                    <div class="mb-4">
+                        <i class="ti ti-alert-triangle text-warning" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-2 text-warning">Invalid Verification Link</h4>
+                    <p class="mb-4 text-muted">
+                        This verification link is invalid or has expired. Verification links are only valid for 24 hours.
+                    </p>
+
+                    <div class="alert alert-warning text-start mb-4">
+                        <h6 class="alert-heading fw-bold mb-1">
+                            <i class="ti ti-clock me-1"></i>What can you do?
+                        </h6>
+                        <p class="mb-0 small">
+                            Try logging in with Discord again. If you see the duplicate check screen, 
+                            you can request a new verification email.
+                        </p>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                            <i class="ti ti-login me-1"></i>Try Logging In Again
+                        </a>
+                        <a href="mailto:support@ecsfc.com" class="btn btn-outline-secondary">
+                            <i class="ti ti-mail me-1"></i>Contact Support
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not verification_sent and not verification_token %}
+                <!-- Footer Help -->
+                <div class="text-center mt-4">
+                    <p class="text-muted small">
+                        Need help? <a href="mailto:support@ecsfc.com" class="text-primary">Contact Support</a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        {% if verification_token %}
+        // Auto-submit verification form
+        setTimeout(function() {
+            document.getElementById('verify-form').submit();
+        }, 2000);
+        {% endif %}
+
+        // Handle resend email button
+        const resendBtn = document.getElementById('resend-email-btn');
+        if (resendBtn) {
+            resendBtn.addEventListener('click', function () {
+                const btn = this;
+                const originalText = btn.innerHTML;
+                
+                Swal.fire({
+                    title: 'Resend Verification Email?',
+                    text: 'We\'ll send another verification email to {{ old_email }}.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#7367f0',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="ti ti-mail me-1"></i>Resend Email',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Disable button and show loading
+                        btn.disabled = true;
+                        btn.innerHTML = '<i class="ti ti-loader-2 rotating me-1"></i>Sending...';
+                        
+                        // Make AJAX request to resend email
+                        fetch('{{ url_for("auth.resend_merge_verification") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                'old_email': '{{ old_email }}',
+                                'merge_data': '{{ merge_data | tojson }}'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Email Sent!',
+                                    text: 'We\'ve sent another verification email. Please check your inbox.',
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                });
+                            } else {
+                                throw new Error(data.message || 'Failed to send email');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to send verification email. Please try again later.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        })
+                        .finally(() => {
+                            // Re-enable button
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                        });
+                    }
+                });
+            });
+        }
+    });
+</script>
+
+<style>
+    .rotating {
+        animation: rotate 2s linear infinite;
+    }
+    
+    @keyframes rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+{% endblock %}
