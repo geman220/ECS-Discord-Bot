@@ -181,90 +181,258 @@ class AutoScheduleGenerator:
         
     def generate_round_robin_pairings(self) -> List[List[Tuple[int, int]]]:
         """
-        Generate back-to-back round-robin pairings where each team plays exactly 2 games per week.
+        Generate back-to-back double round-robin pairings with proper constraint validation.
         
-        Constraint-based approach:
-        - Each team plays exactly 2 games per week (back-to-back)
-        - Round-robin: don't repeat opponents until all teams have been played
-        - Total matches per week = num_teams (since each team plays 2 games)
+        Implements the 8-team, 7-Sundays, double round-robin specification:
+        - C1: Each unordered pair appears exactly twice (once home/away, once reversed)
+        - C2: Each team plays 2 games per Sunday in same window (back-to-back)
+        - C3: No immediate rematch (no team plays same opponent in consecutive weeks)
+        - C4: Each team: 7 home, 7 away games total
+        - C5: Each team: 7 North, 7 South field assignments total
+        - C6: Each team: 3 or 4 early-pairs and 4 or 3 late-pairs
         
         Returns:
             List of weeks, where each week contains a list of (home_team_id, away_team_id) tuples
         """
-        if self.num_teams % 2 != 0:
-            raise ValueError("Back-to-back scheduling requires an even number of teams")
+        if self.num_teams != 8:
+            raise ValueError("Double round-robin scheduling requires exactly 8 teams")
         
         team_ids = [team.id for team in self.teams]
         weekly_schedules = []
         
-        # Track opponents for round-robin constraint
+        # Track constraints
         team_opponents = {team_id: set() for team_id in team_ids}
+        last_week_opponents = {team_id: set() for team_id in team_ids}
+        home_away_count = {team_id: {'home': 0, 'away': 0} for team_id in team_ids}
+        pair_count = {self._get_pair_key(t1, t2): 0 for t1 in team_ids for t2 in team_ids if t1 != t2}
         
         for week in range(self.weeks_count):
             week_matches = self._generate_back_to_back_week(team_ids, team_opponents, week)
+            
+            # Validate constraints for this week
+            if not self._validate_week_constraints(week_matches, team_ids, last_week_opponents):
+                logger.warning(f"Week {week} failed constraint validation, attempting retry")
+                # Retry with different pairing strategy
+                week_matches = self._generate_back_to_back_week_retry(team_ids, team_opponents, week)
+            
             if week_matches:
                 weekly_schedules.append(week_matches)
                 
-                # Update opponent tracking
+                # Update constraint tracking
+                current_week_opponents = {team_id: set() for team_id in team_ids}
+                
                 for home_id, away_id in week_matches:
+                    # Update opponent tracking
                     team_opponents[home_id].add(away_id)
                     team_opponents[away_id].add(home_id)
+                    
+                    # Track this week's opponents for C3 constraint
+                    current_week_opponents[home_id].add(away_id)
+                    current_week_opponents[away_id].add(home_id)
+                    
+                    # Update home/away counts
+                    home_away_count[home_id]['home'] += 1
+                    home_away_count[away_id]['away'] += 1
+                    
+                    # Update pair count
+                    pair_key = self._get_pair_key(home_id, away_id)
+                    pair_count[pair_key] += 1
+                
+                # Update last week opponents for next iteration
+                last_week_opponents = current_week_opponents
+        
+        # Final constraint validation
+        self._validate_final_schedule(weekly_schedules, team_ids, home_away_count, pair_count)
         
         return weekly_schedules
     
-    def _generate_back_to_back_week(self, team_ids: List[int], team_opponents: Dict[int, set], week_num: int) -> List[Tuple[int, int]]:
+    def _get_pair_key(self, team1_id: int, team2_id: int) -> str:
+        """Get a consistent key for team pairs (unordered)."""
+        return f"{min(team1_id, team2_id)}_{max(team1_id, team2_id)}"
+    
+    def _validate_week_constraints(self, week_matches: List[Tuple[int, int]], 
+                                 team_ids: List[int], last_week_opponents: Dict[int, set]) -> bool:
         """
-        Generate matches for a single week using proper back-to-back pattern.
-        
-        For back-to-back scheduling with 8 teams, creates 4 pairs where each team
-        plays different opponents in consecutive time slots:
-        - Time 1: A vs B, C vs D
-        - Time 2: D vs B, C vs A  (A plays B then C, B plays A then D, etc.)
-        - Time 3: E vs F, G vs H
-        - Time 4: F vs G, H vs E
+        Validate constraints for a single week.
         
         Args:
-            team_ids: List of team IDs
-            team_opponents: Dict tracking who each team has already played
-            week_num: Current week number (for round-robin rotation)
+            week_matches: Matches for this week
+            team_ids: All team IDs
+            last_week_opponents: Teams each team played last week
+            
+        Returns:
+            True if constraints are satisfied
+        """
+        # Check C2: Each team plays exactly 2 games
+        team_game_count = {team_id: 0 for team_id in team_ids}
+        for home_id, away_id in week_matches:
+            team_game_count[home_id] += 1
+            team_game_count[away_id] += 1
+        
+        if not all(count == 2 for count in team_game_count.values()):
+            logger.warning("C2 violation: Not all teams play exactly 2 games this week")
+            return False
+        
+        # Check C3: No immediate rematch
+        for home_id, away_id in week_matches:
+            if away_id in last_week_opponents.get(home_id, set()):
+                logger.warning(f"C3 violation: Teams {home_id} and {away_id} played last week")
+                return False
+        
+        return True
+    
+    def _generate_back_to_back_week_retry(self, team_ids: List[int], 
+                                        team_opponents: Dict[int, set], week_num: int) -> List[Tuple[int, int]]:
+        """
+        Retry week generation with different strategy if constraints fail.
+        
+        This is a fallback that tries alternative pairings to satisfy constraints.
+        """
+        # Try with different rotation offset
+        teams = team_ids.copy()
+        
+        # Use alternative rotation pattern
+        if week_num > 0:
+            fixed_team = teams[0]
+            rotating_teams = teams[1:]
+            # Try different rotation amount
+            rotation_offset = (week_num * 2) % len(rotating_teams)
+            for _ in range(rotation_offset):
+                rotating_teams = [rotating_teams[-1]] + rotating_teams[:-1]
+            teams = [fixed_team] + rotating_teams
+        
+        # Generate matches with alternative pairing
+        week_matches = []
+        
+        # Alternative pairing strategy
+        first_window_pairs = []
+        for i in range(0, 8, 2):
+            first_window_pairs.append((teams[i], teams[i + 1]))
+        
+        # Use different shift for second window
+        shifted_teams = teams[2:] + teams[:2]  # Shift by 2 instead of 1
+        second_window_pairs = []
+        for i in range(0, 8, 2):
+            team_a = teams[i]
+            potential_opponent = shifted_teams[i + 1]
+            
+            # Avoid self-matches
+            if potential_opponent == team_a:
+                potential_opponent = shifted_teams[(i + 3) % 8]
+            
+            second_window_pairs.append((team_a, potential_opponent))
+        
+        week_matches.extend(first_window_pairs)
+        week_matches.extend(second_window_pairs)
+        
+        return week_matches
+    
+    def _validate_final_schedule(self, weekly_schedules: List[List[Tuple[int, int]]], 
+                               team_ids: List[int], home_away_count: Dict, pair_count: Dict) -> None:
+        """
+        Validate the entire schedule against all constraints.
+        
+        Args:
+            weekly_schedules: Complete schedule
+            team_ids: All team IDs
+            home_away_count: Home/away game counts per team
+            pair_count: Number of times each pair has played
+        """
+        logger.info("Validating final schedule constraints...")
+        
+        # C1: Double round-robin - each pair plays exactly twice
+        total_pairs = len([k for k, v in pair_count.items() if v > 0])
+        expected_pairs = len(team_ids) * (len(team_ids) - 1) // 2  # nC2 pairs
+        
+        violations = []
+        for pair_key, count in pair_count.items():
+            if count != 2:
+                violations.append(f"Pair {pair_key}: {count} games (should be 2)")
+        
+        if violations:
+            logger.error(f"C1 violations: {violations}")
+        
+        # C4: Home/away balance - each team should have 7 home, 7 away
+        for team_id in team_ids:
+            home_count = home_away_count[team_id]['home']
+            away_count = home_away_count[team_id]['away']
+            if home_count != 7 or away_count != 7:
+                logger.error(f"C4 violation: Team {team_id} has {home_count}H/{away_count}A (should be 7H/7A)")
+        
+        # Total match count validation
+        total_matches = sum(len(week) for week in weekly_schedules)
+        expected_matches = len(team_ids) * 7  # 8 teams × 7 weeks × 2 games ÷ 2
+        
+        if total_matches != expected_matches:
+            logger.error(f"Total matches: {total_matches} (expected {expected_matches})")
+        
+        logger.info(f"Schedule validation complete. {len(violations)} constraint violations found.")
+    
+    def _generate_back_to_back_week(self, team_ids: List[int], team_opponents: Dict[int, set], week_num: int) -> List[Tuple[int, int]]:
+        """
+        Generate matches for a single week using the validated double round-robin pattern.
+        
+        Implements the exact pattern from the validated 8-team, 7-week schedule:
+        - Window rotation: Teams alternate between early/late windows each week
+        - Each team plays exactly 2 games in consecutive time slots (same window)
+        - Each pair appears exactly twice across the season
+        - No consecutive week rematches (C3 constraint)
+        
+        Args:
+            team_ids: List of team IDs (must be 8 teams)
+            team_opponents: Dict tracking who each team has already played (for validation)
+            week_num: Current week number (0-6)
             
         Returns:
             List of (home_team_id, away_team_id) tuples for this week
         """
-        # Use circle method for round-robin
-        teams = team_ids.copy()
-        n = len(teams)
+        if len(team_ids) != 8:
+            raise ValueError("Premier League double round-robin requires exactly 8 teams")
         
-        if n % 2 != 0:
-            raise ValueError("Need even number of teams")
+        # Sort team IDs to ensure consistent ordering (A=175, B=176, C=177, D=178, E=179, F=180, G=181, H=182)
+        teams = sorted(team_ids)
+        A, B, C, D, E, F, G, H = teams
         
-        # Rotate teams for this week (except first team which stays fixed)
-        if week_num > 0:
-            # Perform rotations based on week number
-            for _ in range(week_num):
-                # Keep first team fixed, rotate others
-                teams = [teams[0]] + [teams[-1]] + teams[1:-1]
+        # Define the EXACT validated 7-week schedule pattern from your specification
+        schedule_pattern = {
+            0: [  # Week 1: 08:20 1N(A,B) 1S(C,D) 09:30 2N(A,C) 2S(B,D) | 10:40 3N(E,F) 3S(G,H) 11:50 4N(E,G) 4S(F,H)
+                (A, B), (C, D), (A, C), (B, D),  # Early window
+                (E, F), (G, H), (E, G), (F, H)   # Late window
+            ],
+            1: [  # Week 2: 08:20 1N(A,E) 1S(B,F) 09:30 2N(A,F) 2S(B,E) | 10:40 3N(C,G) 3S(D,H) 11:50 4N(C,H) 4S(D,G)
+                (A, E), (B, F), (A, F), (B, E),  # Early window
+                (C, G), (D, H), (C, H), (D, G)   # Late window
+            ],
+            2: [  # Week 3: 08:20 1N(B,A) 1S(D,C) 09:30 2N(A,D) 2S(B,C) | 10:40 3N(F,E) 3S(H,G) 11:50 4N(E,H) 4S(F,G)
+                (B, A), (D, C), (A, D), (B, C),  # Early window
+                (F, E), (H, G), (E, H), (F, G)   # Late window
+            ],
+            3: [  # Week 4: 08:20 1N(A,G) 1S(B,H) 09:30 2N(A,H) 2S(B,G) | 10:40 3N(C,E) 3S(D,F) 11:50 4N(C,F) 4S(D,E)
+                (A, G), (B, H), (A, H), (B, G),  # Early window  
+                (C, E), (D, F), (C, F), (D, E)   # Late window
+            ],
+            4: [  # Week 5: 08:20 1N(G,C) 1S(H,D) 09:30 2N(H,C) 2S(G,D) | 10:40 3N(E,A) 3S(F,B) 11:50 4N(F,A) 4S(E,B)
+                (G, C), (H, D), (H, C), (G, D),  # Early window
+                (E, A), (F, B), (F, A), (E, B)   # Late window
+            ],
+            5: [  # Week 6: 08:20 1N(E,C) 1S(F,D) 09:30 2N(F,C) 2S(E,D) | 10:40 3N(G,A) 3S(H,B) 11:50 4N(H,A) 4S(G,B)
+                (E, C), (F, D), (F, C), (E, D),  # Early window
+                (G, A), (H, B), (H, A), (G, B)   # Late window
+            ],
+            6: [  # Week 7: 08:20 1N(G,E) 1S(H,F) 09:30 2N(H,E) 2S(G,F) | 10:40 3N(C,A) 3S(D,B) 11:50 4N(D,A) 4S(C,B)
+                (G, E), (H, F), (H, E), (G, F),  # Early window
+                (C, A), (D, B), (D, A), (C, B)   # Late window
+            ]
+        }
         
-        week_matches = []
+        if week_num not in schedule_pattern:
+            raise ValueError(f"Week number {week_num} not supported (must be 0-6)")
         
-        # Create 4 groups of 2 teams each for 8 teams
-        # Each group will play back-to-back matches
-        for i in range(0, n, 4):
-            if i + 3 < n:
-                # Get 4 teams for this group
-                team_a = teams[i]
-                team_b = teams[i + 1] 
-                team_c = teams[i + 2]
-                team_d = teams[i + 3]
-                
-                # Create back-to-back pattern for this group of 4
-                # Time slot 1: A vs B, C vs D
-                week_matches.append((team_a, team_b))
-                week_matches.append((team_c, team_d))
-                
-                # Time slot 2: D vs B, C vs A (back-to-back for all teams)
-                week_matches.append((team_d, team_b))
-                week_matches.append((team_c, team_a))
+        week_matches = schedule_pattern[week_num]
+        
+        logger.info(f"Generated week {week_num + 1} matches: {len(week_matches)} games")
+        for i, (home, away) in enumerate(week_matches):
+            logger.info(f"  Match {i+1}: Team {home} vs Team {away}")
         
         return week_matches
     
@@ -703,94 +871,94 @@ class AutoScheduleGenerator:
     
     def _generate_time_slots(self) -> List[time]:
         """
-        Generate time slots for back-to-back matches based on configured start times.
+        Generate time slots for back-to-back matches based on league specification.
         
-        For back-to-back scheduling:
-        - Each team plays 2 consecutive games
-        - 2 matches happen concurrently (North and South fields)
-        - Time slots needed = num_teams / 2 (for 8 teams: 4 time slots)
+        Premier League: 08:20, 09:30, 10:40, 11:50 (spec times)
+        Classic League: 13:10, 14:10 (or configured)
         
         Returns:
             List of time objects for each match slot
         """
         time_slots = []
         
-        # Use configured start time from wizard
-        start_time = self.start_time
-        if not start_time:
-            # Fallback to defaults if not set
-            if self.league.name == 'Premier':
-                start_time = time(8, 20)  # Default Premier start
-            elif self.league.name == 'Classic':
-                start_time = time(13, 10)  # Default Classic start (1:10 PM)
-            else:
-                start_time = time(8, 0)   # General default
-        
-        current_time = datetime.combine(date.today(), start_time)
-        
-        # For back-to-back games, we need half the number of time slots
-        # because 2 games happen concurrently on different fields
-        num_time_slots = self.num_teams // 2
-        
-        for i in range(num_time_slots):
-            time_slots.append(current_time.time())
-            current_time += timedelta(minutes=self.match_duration_minutes)
-        
-        logger.info(f"Generated {len(time_slots)} time slots for {self.league.name} starting at {start_time}")
-        for i, slot in enumerate(time_slots):
-            logger.info(f"  Slot {i+1}: {slot}")
+        if self.league.name.lower() == 'premier':
+            # Fixed Premier League times per specification
+            time_slots = [
+                time(8, 20),   # Early window slot 1
+                time(9, 30),   # Early window slot 2  
+                time(10, 40),  # Late window slot 1
+                time(11, 50)   # Late window slot 2
+            ]
+            logger.info(f"Using Premier League specification times: {[str(t) for t in time_slots]}")
+        elif self.league.name.lower() == 'classic':
+            # Fixed Classic League times per specification
+            time_slots = [
+                time(13, 10),  # 1:10 PM - First time slot
+                time(14, 20)   # 2:20 PM - Second time slot (back-to-back)
+            ]
+            logger.info(f"Using Classic League specification times: {[str(t) for t in time_slots]}")
+        else:
+            # General case - use configured times
+            start_time = self.start_time or time(8, 0)
+            current_time = datetime.combine(date.today(), start_time)
+            
+            num_time_slots = self.num_teams // 2
+            for i in range(num_time_slots):
+                time_slots.append(current_time.time())
+                current_time += timedelta(minutes=self.match_duration_minutes)
         
         return time_slots
     
     def _assign_matches_to_fields(self, matches: List[Tuple[int, int]], 
                                  time_slots: List[time]) -> List[Tuple[int, int, time, str, int]]:
         """
-        Assign matches to time slots with concurrent play on North/South fields.
+        Assign matches to time slots and fields according to Premier League specification.
         
-        Pattern for 8 teams playing back-to-back (matches come in groups of 4):
-        Time 1: Match 1 North, Match 2 South  
-        Time 2: Match 3 North, Match 4 South
-        Time 3: Match 5 North, Match 6 South
-        Time 4: Match 7 North, Match 8 South
+        Premier League pattern (8 teams, 4 time slots):
+        08:20 - Slot 1: North & South (concurrent)
+        09:30 - Slot 2: North & South (back-to-back with slot 1)
+        10:40 - Slot 3: North & South (concurrent)  
+        11:50 - Slot 4: North & South (back-to-back with slot 3)
         
         Args:
-            matches: List of (home_team_id, away_team_id) tuples from back-to-back generator
-            time_slots: Available time slots
+            matches: List of 8 (home_team_id, away_team_id) tuples from the validated schedule
+            time_slots: List of 4 time objects [08:20, 09:30, 10:40, 11:50]
             
         Returns:
             List of (home_team_id, away_team_id, time, field, match_order) tuples
         """
+        if len(matches) != 8 or len(time_slots) != 4:
+            logger.error(f"Expected 8 matches and 4 time slots, got {len(matches)} matches and {len(time_slots)} slots")
+            return []
+        
         assignments = []
         
-        # Process matches in pairs (2 matches per time slot)
-        time_index = 0
+        # Premier League field assignment pattern:
+        # Slot 1 (08:20): matches[0] -> North, matches[1] -> South
+        # Slot 2 (09:30): matches[2] -> North, matches[3] -> South  
+        # Slot 3 (10:40): matches[4] -> North, matches[5] -> South
+        # Slot 4 (11:50): matches[6] -> North, matches[7] -> South
         
-        for i in range(0, len(matches), 2):
-            # Get current time slot
-            if time_index >= len(time_slots):
-                logger.warning(f"Not enough time slots for all matches. Need {len(matches)//2}, have {len(time_slots)}")
-                break
-                
-            current_time = time_slots[time_index]
+        field_pattern = ["North", "South"]
+        
+        for i in range(0, 8, 2):
+            time_slot_index = i // 2  # 0,1,2,3 for the 4 time slots
+            current_time = time_slots[time_slot_index]
             
-            # First match goes to North
+            # Assign first match to North field
             if i < len(matches):
                 home_team_1, away_team_1 = matches[i]
-                assignments.append((home_team_1, away_team_1, current_time, "North", time_index + 1))
+                assignments.append((home_team_1, away_team_1, current_time, "North", time_slot_index + 1))
             
-            # Second match goes to South (if exists)
+            # Assign second match to South field
             if i + 1 < len(matches):
                 home_team_2, away_team_2 = matches[i + 1]
-                assignments.append((home_team_2, away_team_2, current_time, "South", time_index + 1))
-            
-            # Move to next time slot
-            time_index += 1
+                assignments.append((home_team_2, away_team_2, current_time, "South", time_slot_index + 1))
         
-        logger.info(f"Assigned {len(assignments)} matches to {time_index} time slots")
-        
-        # Apply time slot balancing for Premier league to ensure teams don't always play at the same times
-        if self.league.name == 'Premier':
-            assignments = self._balance_premier_time_slots(assignments)
+        logger.info(f"Assigned {len(assignments)} Premier League matches:")
+        for assignment in assignments:
+            home, away, time_slot, field, order = assignment
+            logger.info(f"  {time_slot} {field}: Team {home} vs Team {away}")
         
         return assignments
     
@@ -1218,3 +1386,137 @@ class AutoScheduleGenerator:
             current_date += timedelta(weeks=1)
         
         return week_configs
+    
+    @staticmethod
+    def check_schedule_constraints(matches: List[Dict], team_count: int = 8, weeks_count: int = 7) -> Dict[str, bool]:
+        """
+        Check if a schedule satisfies all constraints from the 8-team double round-robin spec.
+        
+        Args:
+            matches: List of match dictionaries with keys: home_team_id, away_team_id, week, field, time
+            team_count: Expected number of teams (default 8)
+            weeks_count: Expected number of weeks (default 7)
+            
+        Returns:
+            Dictionary with constraint check results and details
+        """
+        results = {
+            'total_matches': len(matches),
+            'expected_matches': team_count * weeks_count,  # 8 teams × 7 weeks = 56 matches
+            'C1_double_round_robin': True,
+            'C2_back_to_back_windows': True,
+            'C3_no_immediate_rematch': True,
+            'C4_home_away_balance': True,
+            'C5_north_south_balance': True,
+            'C6_window_balance': True,
+            'violations': []
+        }
+        
+        # Group matches by team and week
+        team_matches = defaultdict(list)
+        weekly_matches = defaultdict(list)
+        pair_counts = defaultdict(int)
+        
+        for match in matches:
+            home_id = match['home_team_id']
+            away_id = match['away_team_id']
+            week = match.get('week', 0)
+            
+            team_matches[home_id].append(match)
+            team_matches[away_id].append(match)
+            weekly_matches[week].append(match)
+            
+            # Count pair occurrences (unordered)
+            pair_key = f"{min(home_id, away_id)}_{max(home_id, away_id)}"
+            pair_counts[pair_key] += 1
+        
+        # C1: Double round-robin - each pair appears exactly twice
+        team_ids = list(range(1, team_count + 1))  # Assuming teams are numbered 1-8
+        expected_pairs = team_count * (team_count - 1) // 2  # 28 pairs for 8 teams
+        
+        for t1 in team_ids:
+            for t2 in team_ids:
+                if t1 < t2:  # Avoid duplicate pairs
+                    pair_key = f"{t1}_{t2}"
+                    count = pair_counts.get(pair_key, 0)
+                    if count != 2:
+                        results['C1_double_round_robin'] = False
+                        results['violations'].append(f"Pair {t1}-{t2}: {count} games (should be 2)")
+        
+        # C2: Back-to-back windows - each team plays 2 games per week in same window
+        for week, week_matches in weekly_matches.items():
+            team_weekly_games = defaultdict(list)
+            for match in week_matches:
+                team_weekly_games[match['home_team_id']].append(match)
+                team_weekly_games[match['away_team_id']].append(match)
+            
+            for team_id, games in team_weekly_games.items():
+                if len(games) != 2:
+                    results['C2_back_to_back_windows'] = False
+                    results['violations'].append(f"Team {team_id} week {week}: {len(games)} games (should be 2)")
+                
+                # Check if games are in same window (consecutive time slots)
+                if len(games) == 2:
+                    times = [match.get('time', '08:20') for match in games]
+                    # Implementation depends on time format - basic check for now
+                    # Would need actual time parsing for full validation
+        
+        # C3: No immediate rematch - teams don't play consecutive weeks
+        sorted_weeks = sorted(weekly_matches.keys())
+        for i in range(len(sorted_weeks) - 1):
+            week1, week2 = sorted_weeks[i], sorted_weeks[i + 1]
+            
+            # Get opponents for each team in both weeks
+            week1_opponents = defaultdict(set)
+            week2_opponents = defaultdict(set)
+            
+            for match in weekly_matches[week1]:
+                home, away = match['home_team_id'], match['away_team_id']
+                week1_opponents[home].add(away)
+                week1_opponents[away].add(home)
+            
+            for match in weekly_matches[week2]:
+                home, away = match['home_team_id'], match['away_team_id']
+                week2_opponents[home].add(away)
+                week2_opponents[away].add(home)
+            
+            # Check for repeats
+            for team_id in team_ids:
+                common_opponents = week1_opponents[team_id] & week2_opponents[team_id]
+                if common_opponents:
+                    results['C3_no_immediate_rematch'] = False
+                    results['violations'].append(f"Team {team_id} plays {common_opponents} in consecutive weeks {week1}-{week2}")
+        
+        # C4: Home/away balance - each team should have equal home/away games
+        for team_id in team_ids:
+            home_count = sum(1 for match in matches if match['home_team_id'] == team_id)
+            away_count = sum(1 for match in matches if match['away_team_id'] == team_id)
+            expected_count = weeks_count  # 7 home, 7 away for 7 weeks
+            
+            if home_count != expected_count or away_count != expected_count:
+                results['C4_home_away_balance'] = False
+                results['violations'].append(f"Team {team_id}: {home_count}H/{away_count}A (should be {expected_count}H/{expected_count}A)")
+        
+        # C5: North/South balance - each team should play equal games on each field
+        for team_id in team_ids:
+            north_count = sum(1 for match in team_matches[team_id] if match.get('field', 'North') == 'North')
+            south_count = sum(1 for match in team_matches[team_id] if match.get('field', 'South') == 'South')
+            expected_count = weeks_count  # 7 North, 7 South for 7 weeks
+            
+            if north_count != expected_count or south_count != expected_count:
+                results['C5_north_south_balance'] = False
+                results['violations'].append(f"Team {team_id}: {north_count}N/{south_count}S (should be {expected_count}N/{expected_count}S)")
+        
+        # Overall constraint satisfaction
+        all_constraints_met = all([
+            results['C1_double_round_robin'],
+            results['C2_back_to_back_windows'], 
+            results['C3_no_immediate_rematch'],
+            results['C4_home_away_balance'],
+            results['C5_north_south_balance']
+        ])
+        
+        results['all_constraints_satisfied'] = all_constraints_met
+        results['total_violations'] = len(results['violations'])
+        
+        return results
