@@ -154,3 +154,22 @@ class Note(db.Model):
 
     def __repr__(self):
         return f'<Note {self.id} by {self.author.username}>'
+
+
+class DeviceToken(db.Model):
+    """Model representing a device token for push notifications."""
+    __tablename__ = 'device_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    device_token = db.Column(db.String(255), nullable=False, unique=True)
+    device_type = db.Column(db.String(20), nullable=False)  # 'ios' or 'android'
+    app_version = db.Column(db.String(20), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    user = db.relationship('User', back_populates='device_tokens')
+
+    def __repr__(self):
+        return f'<DeviceToken {self.id} - {self.device_type} for User {self.user_id}>'

@@ -23,6 +23,7 @@ from flask_login import login_required
 # Local application imports
 from app import csrf
 from app.core import celery, db
+from app.core.session_manager import managed_session
 from app.models import Match, Availability, Team, Player, ScheduledMessage, User
 from app.tasks.tasks_rsvp import (
     notify_discord_of_rsvp_change_task,
@@ -109,31 +110,36 @@ def schedule_availability_poll():
         - match_time (validated via validate_time)
         - team_id
     """
-    logger.debug("Endpoint hit: /schedule_availability_poll")
-    session_db = g.db_session
+    logger.info(f"🔵 [AVAILABILITY_API] schedule_availability_poll called")
     data = request.json
+    logger.debug(f"🔵 [AVAILABILITY_API] Request data: {data}")
 
     required_fields = ['match_id', 'match_date', 'match_time', 'team_id']
     if not all(data.get(field) for field in required_fields):
-        logger.error("Missing required data")
+        logger.error(f"🔴 [AVAILABILITY_API] Missing required data: {data}")
         return jsonify({"error": "Missing required data"}), 400
 
     if not validate_date(data['match_date']) or not validate_time(data['match_time']):
-        logger.error("Invalid date or time format")
+        logger.error(f"🔴 [AVAILABILITY_API] Invalid date or time format: {data['match_date']}, {data['match_time']}")
         return jsonify({"error": "Invalid date or time format"}), 400
 
-    match = session_db.query(Match).get(data['match_id'])
-    if not match:
-        abort(404)
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up match {data['match_id']} and team {data['team_id']}")
+        match = session_db.query(Match).get(data['match_id'])
+        if not match:
+            logger.warning(f"🟡 [AVAILABILITY_API] Match not found: {data['match_id']}")
+            abort(404)
 
-    team = session_db.query(Team).get(data['team_id'])
-    if not team:
-        abort(404)
+        team = session_db.query(Team).get(data['team_id'])
+        if not team:
+            logger.warning(f"🟡 [AVAILABILITY_API] Team not found: {data['team_id']}")
+            abort(404)
 
-    return jsonify({
-        "message": "Poll scheduled successfully",
-        "match_id": match.id
-    }), 200
+        logger.info(f"🟢 [AVAILABILITY_API] Poll scheduled successfully for match {match.id} ({team.name})")
+        return jsonify({
+            "message": "Poll scheduled successfully",
+            "match_id": match.id
+        }), 200
 
 
 @availability_bp.route('/match_availability/<int:match_id>', methods=['GET'], endpoint='get_match_availability')
@@ -141,16 +147,22 @@ def get_match_availability(match_id):
     """
     Retrieve availability results for a given match.
     """
-    session_db = g.db_session
-    match = session_db.query(Match).get(match_id)
-    if not match:
-        abort(404)
+    logger.info(f"🔵 [AVAILABILITY_API] get_match_availability called for match {match_id}")
+    
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up match {match_id}")
+        match = session_db.query(Match).get(match_id)
+        if not match:
+            logger.warning(f"🟡 [AVAILABILITY_API] Match not found: {match_id}")
+            abort(404)
 
-    results = get_availability_results(match_id, session=session_db)
-    return jsonify({
-        "match_id": match.id,
-        "availability": results
-    }), 200
+        logger.debug(f"🔵 [AVAILABILITY_API] Getting availability results for match {match_id}")
+        results = get_availability_results(match_id, session=session_db)
+        logger.info(f"🟢 [AVAILABILITY_API] Retrieved availability for match {match_id} - {len(results) if results else 0} responses")
+        return jsonify({
+            "match_id": match.id,
+            "availability": results
+        }), 200
 
 
 @availability_bp.route('/update_availability', methods=['POST'], endpoint='update_availability')
@@ -163,31 +175,34 @@ def update_availability():
         - discord_id
         - response
     """
-    session_db = g.db_session
     data = request.json
-    logger.info(f"Received data from Discord: {data}")
+    logger.info(f"🔵 [AVAILABILITY_API] update_availability called: match_id={data.get('match_id')}, discord_id={data.get('discord_id')}, response={data.get('response')}")
 
     required_fields = ['match_id', 'discord_id', 'response']
     if not all(data.get(field) for field in required_fields):
-        logger.error("Missing required data")
+        logger.error(f"🔴 [AVAILABILITY_API] Missing required data: {data}")
         return jsonify({"error": "Invalid data"}), 400
 
-    player, message = process_availability_update(
-        match_id=data['match_id'],
-        discord_id=data['discord_id'],
-        response=data['response'],
-        session=session_db
-    )
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Processing availability update for match {data['match_id']}")
+        player, message = process_availability_update(
+            match_id=data['match_id'],
+            discord_id=data['discord_id'],
+            response=data['response'],
+            session=session_db
+        )
 
-    if not player:
-        logger.error(f"Player with Discord ID {data['discord_id']} not found")
-        return jsonify({"error": "Player not found"}), 404
+        if not player:
+            logger.error(f"🔴 [AVAILABILITY_API] Player with Discord ID {data['discord_id']} not found")
+            return jsonify({"error": "Player not found"}), 404
 
-    # Trigger notifications
-    notify_discord_of_rsvp_change_task.delay(data['match_id'])
-    notify_frontend_of_rsvp_change_task.delay(data['match_id'], player.id, data['response'])
+        # Trigger notifications
+        logger.debug(f"🔵 [AVAILABILITY_API] Triggering notifications for match {data['match_id']}, player {player.id}")
+        notify_discord_of_rsvp_change_task.delay(data['match_id'])
+        notify_frontend_of_rsvp_change_task.delay(data['match_id'], player.id, data['response'])
 
-    return jsonify({"message": "Availability updated successfully"}), 200
+        logger.info(f"🟢 [AVAILABILITY_API] Availability updated successfully for {player.name} on match {data['match_id']}")
+        return jsonify({"message": "Availability updated successfully"}), 200
 
 
 @availability_bp.route('/store_message_ids', methods=['POST'], endpoint='store_message_ids')
@@ -202,33 +217,38 @@ def store_message_ids():
         - away_channel_id
         - away_message_id
     """
-    session_db = g.db_session
     try:
         data = request.json
+        logger.info(f"🔵 [AVAILABILITY_API] store_message_ids called for match {data.get('match_id')}")
+        
         required_fields = [
             'match_id', 'home_channel_id', 'home_message_id',
             'away_channel_id', 'away_message_id'
         ]
         if not all(field in data for field in required_fields):
-            logger.error("Missing required data for message IDs")
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required data for message IDs: {data}")
             return jsonify({"error": "Missing required fields"}), 400
 
-        message, status = store_message_ids_for_match(
-            match_id=data['match_id'],
-            home_channel_id=data['home_channel_id'],
-            home_message_id=data['home_message_id'],
-            away_channel_id=data['away_channel_id'],
-            away_message_id=data['away_message_id'],
-            session=session_db
-        )
+        with managed_session() as session_db:
+            logger.debug(f"🔵 [AVAILABILITY_API] Storing message IDs for match {data['match_id']}")
+            message, status = store_message_ids_for_match(
+                match_id=data['match_id'],
+                home_channel_id=data['home_channel_id'],
+                home_message_id=data['home_message_id'],
+                away_channel_id=data['away_channel_id'],
+                away_message_id=data['away_message_id'],
+                session=session_db
+            )
 
-        if not message:
-            return jsonify({"error": status}), 400
+            if not message:
+                logger.warning(f"🟡 [AVAILABILITY_API] Failed to store message IDs: {status}")
+                return jsonify({"error": status}), 400
 
-        return jsonify({"message": status}), 200
+            logger.info(f"🟢 [AVAILABILITY_API] Message IDs stored successfully for match {data['match_id']}")
+            return jsonify({"message": status}), 200
 
     except Exception as e:
-        logger.error(f"Error storing message IDs: {str(e)}")
+        logger.error(f"🔴 [AVAILABILITY_API] Error storing message IDs: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -237,18 +257,23 @@ def get_match_id_from_message(message_id):
     """
     Retrieve a match ID based on a given message ID.
     """
-    session_db = g.db_session
-    scheduled_message = session_db.query(ScheduledMessage).filter(
-        (ScheduledMessage.home_message_id == message_id) |
-        (ScheduledMessage.away_message_id == message_id)
-    ).first()
+    logger.info(f"🔵 [AVAILABILITY_API] get_match_id_from_message called for message {message_id}")
+    
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up scheduled message for message_id {message_id}")
+        scheduled_message = session_db.query(ScheduledMessage).filter(
+            (ScheduledMessage.home_message_id == message_id) |
+            (ScheduledMessage.away_message_id == message_id)
+        ).first()
 
-    if not scheduled_message:
-        return jsonify({'error': 'Match not found'}), 404
+        if not scheduled_message:
+            logger.warning(f"🟡 [AVAILABILITY_API] No match found for message_id {message_id}")
+            return jsonify({'error': 'Match not found'}), 404
 
-    return jsonify({
-        'match_id': scheduled_message.match_id
-    }), 200
+        logger.info(f"🟢 [AVAILABILITY_API] Found match {scheduled_message.match_id} for message {message_id}")
+        return jsonify({
+            'match_id': scheduled_message.match_id
+        }), 200
 
 
 @availability_bp.route('/update_availability_web', methods=['POST'], endpoint='update_availability_web')
@@ -271,22 +296,24 @@ def update_availability_web():
         return jsonify({"error": "Invalid data"}), 400
 
     # Get the player record to check for discord_id
-    session_db = g.db_session
-    player = session_db.query(Player).get(data['player_id'])
-    discord_id = None
-    
-    if player:
-        discord_id = player.discord_id
-        logger.info(f"Found player with discord_id: {discord_id}")
-    
-    # Update RSVP in the database
-    success, message = update_rsvp(
-        data['match_id'],
-        data['player_id'],
-        data['response'],
-        discord_id=discord_id,
-        session=session_db
-    )
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up player {data['player_id']} for web update")
+        player = session_db.query(Player).get(data['player_id'])
+        discord_id = None
+        
+        if player:
+            discord_id = player.discord_id
+            logger.info(f"🔵 [AVAILABILITY_API] Found player {player.name} with discord_id: {discord_id}")
+        
+        # Update RSVP in the database
+        logger.debug(f"🔵 [AVAILABILITY_API] Updating RSVP for match {data['match_id']}, player {data['player_id']}")
+        success, message = update_rsvp(
+            data['match_id'],
+            data['player_id'],
+            data['response'],
+            discord_id=discord_id,
+            session=session_db
+        )
 
     if not success:
         logger.error("Failed to update availability")
@@ -329,32 +356,40 @@ def sync_match_rsvps(match_id):
     """
     Sync match RSVPs to update Discord and frontend data.
     """
-    session_db = g.db_session
+    logger.info(f"🔵 [AVAILABILITY_API] sync_match_rsvps called for match {match_id}")
+    
     try:
-        match = session_db.query(Match).get(match_id)
-        if not match:
-            abort(404)
+        with managed_session() as session_db:
+            logger.debug(f"🔵 [AVAILABILITY_API] Looking up match {match_id} for RSVP sync")
+            match = session_db.query(Match).get(match_id)
+            if not match:
+                logger.warning(f"🟡 [AVAILABILITY_API] Match not found for sync: {match_id}")
+                abort(404)
 
-        availabilities = session_db.query(Availability).filter_by(match_id=match_id).all()
+            logger.debug(f"🔵 [AVAILABILITY_API] Getting availabilities for match {match_id}")
+            availabilities = session_db.query(Availability).filter_by(match_id=match_id).all()
+            logger.debug(f"🔵 [AVAILABILITY_API] Found {len(availabilities)} availabilities to sync")
 
-        for availability in availabilities:
-            if availability.player.discord_id:
-                result = update_discord_rsvp(
-                    match=match,
-                    player=availability.player,
-                    new_response=availability.response,
-                    old_response=None,
-                    session=session_db
-                )
-                if result['status'] != 'success':
-                    logger.error(f"Failed to update Discord RSVP for player {availability.player_id}")
-            else:
-                logger.info(f"Player {availability.player_id} has no Discord account; skipping update.")
+            for availability in availabilities:
+                if availability.player.discord_id:
+                    logger.debug(f"🔵 [AVAILABILITY_API] Updating Discord RSVP for player {availability.player.name}")
+                    result = update_discord_rsvp(
+                        match=match,
+                        player=availability.player,
+                        new_response=availability.response,
+                        old_response=None,
+                        session=session_db
+                    )
+                    if result['status'] != 'success':
+                        logger.error(f"🔴 [AVAILABILITY_API] Failed to update Discord RSVP for player {availability.player_id}")
+                else:
+                    logger.debug(f"🟡 [AVAILABILITY_API] Player {availability.player_id} has no Discord account; skipping update.")
 
-        return jsonify({"message": "Match RSVPs synced successfully"}), 200
+            logger.info(f"🟢 [AVAILABILITY_API] Match RSVPs synced successfully for match {match_id}")
+            return jsonify({"message": "Match RSVPs synced successfully"}), 200
 
     except Exception as e:
-        logger.error(f"Error syncing match RSVPs: {str(e)}")
+        logger.error(f"🔴 [AVAILABILITY_API] Error syncing match RSVPs: {str(e)}")
         return jsonify({"error": "Internal Server Error"}), 500
 
 
@@ -366,91 +401,93 @@ def get_match_rsvps(match_id):
     Optionally filters by team_id provided as a query parameter.
     Can include discord_ids if include_discord_ids=true is provided.
     """
-    session_db = g.db_session
     team_id = request.args.get('team_id', type=int)
     include_discord_ids = request.args.get('include_discord_ids', 'false').lower() == 'true'
     
-    logger.info(f"Fetching RSVPs for match_id={match_id}, team_id={team_id}, include_discord_ids={include_discord_ids}")
+    logger.info(f"🔵 [AVAILABILITY_API] get_match_rsvps called for match {match_id}, team_id={team_id}, include_discord_ids={include_discord_ids}")
 
-    verify_availability_data(match_id, team_id, session=session_db)
-    
-    # Get detailed RSVP data with Discord IDs if requested
-    try:
-        # Start with the basic query
-        query = session_db.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Verifying availability data for match {match_id}")
+        verify_availability_data(match_id, team_id, session=session_db)
         
-        # OPTIMIZATION: Only include RSVPs for recent matches to reduce memory usage
-        from app.utils.rsvp_filters import filter_availability_active, is_match_active_for_rsvp
-        from app.models import Match
-        
-        # Check if this match is still "active" for RSVP purposes
-        match = session_db.query(Match).get(match_id)
-        if match and not is_match_active_for_rsvp(match.date):
-            logger.debug(f"Match {match_id} on {match.date} is too old for active RSVP processing")
-            # Return empty results for old matches to save memory
-            return {
-                'success': True,
-                'total_count': 0,
-                'responses': {},
-                'availability_records': [],
-                'message': f'Match on {match.date} is outside active RSVP window'
-            }
-        
-        # Apply active RSVP filtering (joins with Match table for date filtering)
-        query = filter_availability_active(query)
-        
-        # If a team_id is provided, use the player_teams association table to filter by team
-        if team_id:
-            from app.models import player_teams
-            query = query.join(player_teams, Player.id == player_teams.c.player_id).filter(player_teams.c.team_id == team_id)
-            logger.debug(f"Filtering by team_id: {team_id}")
+        # Get detailed RSVP data with Discord IDs if requested
+        try:
+            # Start with the basic query
+            logger.debug(f"🔵 [AVAILABILITY_API] Querying availabilities for match {match_id}")
+            query = session_db.query(Availability, Player).join(Player).filter(Availability.match_id == match_id)
+            
+            # OPTIMIZATION: Only include RSVPs for recent matches to reduce memory usage
+            from app.utils.rsvp_filters import filter_availability_active, is_match_active_for_rsvp
+            from app.models import Match
+            
+            # Check if this match is still "active" for RSVP purposes
+            match = session_db.query(Match).get(match_id)
+            if match and not is_match_active_for_rsvp(match.date):
+                logger.debug(f"🟡 [AVAILABILITY_API] Match {match_id} on {match.date} is too old for active RSVP processing")
+                # Return empty results for old matches to save memory
+                return {
+                    'success': True,
+                    'total_count': 0,
+                    'responses': {},
+                    'availability_records': [],
+                    'message': f'Match on {match.date} is outside active RSVP window'
+                }
+            
+            # Apply active RSVP filtering (joins with Match table for date filtering)
+            query = filter_availability_active(query)
+            
+            # If a team_id is provided, use the player_teams association table to filter by team
+            if team_id:
+                from app.models import player_teams
+                query = query.join(player_teams, Player.id == player_teams.c.player_id).filter(player_teams.c.team_id == team_id)
+                logger.debug(f"Filtering by team_id: {team_id}")
 
-        # Get the availability records with discord_ids if requested
-        if include_discord_ids:
-            availability_records = query.with_entities(
-                Availability.response, 
-                Player.name,
-                Player.id,
-                Player.discord_id
-            ).all()
-        else:
-            availability_records = query.with_entities(
-                Availability.response, 
-                Player.name,
-                Player.id
-            ).all()
-        
-        logger.debug(f"Retrieved {len(availability_records)} availability records")
-
-        # Organize data by response type
-        rsvp_data = {'yes': [], 'no': [], 'maybe': []}
-        
-        # Process each record
-        for record in availability_records:
+            # Get the availability records with discord_ids if requested
             if include_discord_ids:
-                response, player_name, player_id, discord_id = record
-                player_data = {
-                    'player_name': player_name,
-                    'player_id': player_id,
-                    'discord_id': discord_id
-                }
+                availability_records = query.with_entities(
+                    Availability.response, 
+                    Player.name,
+                    Player.id,
+                    Player.discord_id
+                ).all()
             else:
-                response, player_name, player_id = record
-                player_data = {
-                    'player_name': player_name,
-                    'player_id': player_id
-                }
-                
-            if response in rsvp_data:
-                rsvp_data[response].append(player_data)
-        
-        logger.info(f"Returning RSVP data for match {match_id}, team {team_id} with {len(availability_records)} entries")
-        return jsonify(rsvp_data), 200
-        
-    except Exception as e:
-        logger.exception(f"Error getting RSVPs for match {match_id}, team {team_id}: {str(e)}")
-        rsvp_data = {'yes': [], 'no': [], 'maybe': [], 'error': str(e)}
-        return jsonify(rsvp_data), 200
+                availability_records = query.with_entities(
+                    Availability.response, 
+                    Player.name,
+                    Player.id
+                ).all()
+            
+            logger.debug(f"Retrieved {len(availability_records)} availability records")
+
+            # Organize data by response type
+            rsvp_data = {'yes': [], 'no': [], 'maybe': []}
+            
+            # Process each record
+            for record in availability_records:
+                if include_discord_ids:
+                    response, player_name, player_id, discord_id = record
+                    player_data = {
+                        'player_name': player_name,
+                        'player_id': player_id,
+                        'discord_id': discord_id
+                    }
+                else:
+                    response, player_name, player_id = record
+                    player_data = {
+                        'player_name': player_name,
+                        'player_id': player_id
+                    }
+                    
+                if response in rsvp_data:
+                    rsvp_data[response].append(player_data)
+            
+            logger.info(f"Returning RSVP data for match {match_id}, team {team_id} with {len(availability_records)} entries")
+            return jsonify(rsvp_data), 200
+            
+        except Exception as e:
+            logger.exception(f"Error getting RSVPs for match {match_id}, team {team_id}: {str(e)}")
+            rsvp_data = {'yes': [], 'no': [], 'maybe': [], 'error': str(e)}
+            return jsonify(rsvp_data), 200
 
 
 @availability_bp.route('/update_availability_from_discord', methods=['POST'], endpoint='update_availability_from_discord')
@@ -464,45 +501,50 @@ def update_availability_from_discord():
         - response
         - optionally, responded_at
     """
-    session_db = g.db_session
+    logger.info(f"🔵 [AVAILABILITY_API] update_availability_from_discord called")
+    
     try:
         data = request.json
-        logger.info(f"Received data from Discord: {data}")
+        logger.debug(f"🔵 [AVAILABILITY_API] Received data from Discord: {data}")
 
         required_fields = ['match_id', 'discord_id', 'response']
         if not all(field in data for field in required_fields):
-            logger.error("Missing required fields")
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
             return jsonify({
                 'status': 'error',
                 'error': 'Missing required fields'
             }), 400
 
-        player_id, result = process_availability_update(
-            match_id=data['match_id'],
-            discord_id=str(data['discord_id']),
-            response=data['response'],
-            responded_at=data.get('responded_at'),
-            session=session_db
-        )
+        with managed_session() as session_db:
+            logger.debug(f"🔵 [AVAILABILITY_API] Processing availability update for match {data['match_id']}, discord_id {data['discord_id']}")
+            player_id, result = process_availability_update(
+                match_id=data['match_id'],
+                discord_id=str(data['discord_id']),
+                response=data['response'],
+                responded_at=data.get('responded_at'),
+                session=session_db
+            )
 
-        if not player_id:
-            logger.error(f"No player found for discord_id {data['discord_id']}")
+            if not player_id:
+                logger.error(f"🔴 [AVAILABILITY_API] No player found for discord_id {data['discord_id']}")
+                return jsonify({
+                    'status': 'error',
+                    'error': result.get('message', 'Player not found')
+                }), 404
+
+            if data['response'] != 'no_response':
+                logger.debug(f"🔵 [AVAILABILITY_API] Triggering notifications for match {data['match_id']}, player {player_id}")
+                notify_discord_of_rsvp_change_task.delay(data['match_id'])
+                notify_frontend_of_rsvp_change_task.delay(data['match_id'], player_id, data['response'])
+
+            logger.info(f"🟢 [AVAILABILITY_API] Availability updated successfully from Discord for match {data['match_id']}")
             return jsonify({
-                'status': 'error',
-                'error': result.get('message', 'Player not found')
-            }), 404
-
-        if data['response'] != 'no_response':
-            notify_discord_of_rsvp_change_task.delay(data['match_id'])
-            notify_frontend_of_rsvp_change_task.delay(data['match_id'], player_id, data['response'])
-
-        return jsonify({
-            'status': 'success',
-            'message': result.get('message', 'Update successful')
-        }), 200
+                'status': 'success',
+                'message': result.get('message', 'Update successful')
+            }), 200
 
     except Exception as e:
-        logger.error(f"Error in update_availability_from_discord: {str(e)}", exc_info=True)
+        logger.error(f"🔴 [AVAILABILITY_API] Error in update_availability_from_discord: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
             'error': str(e)
@@ -520,14 +562,15 @@ def update_poll_response_from_discord():
         - response ('yes', 'no', 'maybe')
         - optionally, responded_at
     """
-    session_db = g.db_session
+    logger.info(f"🔵 [AVAILABILITY_API] update_poll_response_from_discord called")
+    
     try:
         data = request.json
-        logger.info(f"Received poll response from Discord: {data}")
+        logger.debug(f"🔵 [AVAILABILITY_API] Received poll response from Discord: {data}")
 
         required_fields = ['poll_id', 'discord_id', 'response']
         if not all(field in data for field in required_fields):
-            logger.error("Missing required fields for poll response")
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required fields for poll response: {data}")
             return jsonify({
                 'status': 'error',
                 'error': 'Missing required fields'
@@ -538,68 +581,69 @@ def update_poll_response_from_discord():
         response = data['response']
         
         if response not in ['yes', 'no', 'maybe']:
-            logger.error(f"Invalid response value: {response}")
+            logger.error(f"🔴 [AVAILABILITY_API] Invalid response value: {response}")
             return jsonify({
                 'status': 'error',
                 'error': 'Invalid response value'
             }), 400
 
-        # Find the player by Discord ID
-        from app.models import Player, LeaguePoll, LeaguePollResponse
-        player = session_db.query(Player).filter(Player.discord_id == discord_id).first()
-        if not player:
-            logger.error(f"No player found for discord_id {discord_id}")
+        with managed_session() as session_db:
+            # Find the player by Discord ID
+            from app.models import Player, LeaguePoll, LeaguePollResponse
+            logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
+            player = session_db.query(Player).filter(Player.discord_id == discord_id).first()
+            if not player:
+                logger.error(f"🔴 [AVAILABILITY_API] No player found for discord_id {discord_id}")
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Player not found'
+                }), 404
+
+            # Check if poll exists and is active
+            logger.debug(f"🔵 [AVAILABILITY_API] Checking poll {poll_id} status")
+            poll = session_db.query(LeaguePoll).filter(
+                LeaguePoll.id == poll_id,
+                LeaguePoll.status == 'ACTIVE'
+            ).first()
+            if not poll:
+                logger.error(f"🔴 [AVAILABILITY_API] Poll {poll_id} not found or not active")
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Poll not found or not active'
+                }), 404
+
+            # Check if response already exists
+            logger.debug(f"🔵 [AVAILABILITY_API] Checking for existing response for poll {poll_id}, player {player.id}")
+            existing_response = session_db.query(LeaguePollResponse).filter(
+                LeaguePollResponse.poll_id == poll_id,
+                LeaguePollResponse.player_id == player.id
+            ).first()
+
+            if existing_response:
+                # Update existing response
+                old_response = existing_response.response
+                existing_response.response = response
+                existing_response.responded_at = datetime.utcnow()
+                logger.info(f"🟢 [AVAILABILITY_API] Updated poll response for player {player.name} (ID: {player.id}) from {old_response} to {response}")
+            else:
+                # Create new response
+                new_response = LeaguePollResponse(
+                    poll_id=poll_id,
+                    player_id=player.id,
+                    discord_id=discord_id,
+                    response=response
+                )
+                session_db.add(new_response)
+                logger.info(f"🟢 [AVAILABILITY_API] Created new poll response for player {player.name} (ID: {player.id}): {response}")
+
             return jsonify({
-                'status': 'error',
-                'error': 'Player not found'
-            }), 404
-
-        # Check if poll exists and is active
-        poll = session_db.query(LeaguePoll).filter(
-            LeaguePoll.id == poll_id,
-            LeaguePoll.status == 'ACTIVE'
-        ).first()
-        if not poll:
-            logger.error(f"Poll {poll_id} not found or not active")
-            return jsonify({
-                'status': 'error',
-                'error': 'Poll not found or not active'
-            }), 404
-
-        # Check if response already exists
-        existing_response = session_db.query(LeaguePollResponse).filter(
-            LeaguePollResponse.poll_id == poll_id,
-            LeaguePollResponse.player_id == player.id
-        ).first()
-
-        if existing_response:
-            # Update existing response
-            old_response = existing_response.response
-            existing_response.response = response
-            existing_response.responded_at = datetime.utcnow()
-            logger.info(f"Updated poll response for player {player.name} (ID: {player.id}) from {old_response} to {response}")
-        else:
-            # Create new response
-            new_response = LeaguePollResponse(
-                poll_id=poll_id,
-                player_id=player.id,
-                discord_id=discord_id,
-                response=response
-            )
-            session_db.add(new_response)
-            logger.info(f"Created new poll response for player {player.name} (ID: {player.id}): {response}")
-
-        session_db.commit()
-
-        return jsonify({
-            'status': 'success',
-            'message': f'Poll response recorded: {response}',
-            'player_name': player.name
-        }), 200
+                'status': 'success',
+                'message': f'Poll response recorded: {response}',
+                'player_name': player.name
+            }), 200
 
     except Exception as e:
-        logger.error(f"Error in update_poll_response_from_discord: {str(e)}", exc_info=True)
-        session_db.rollback()
+        logger.error(f"🔴 [AVAILABILITY_API] Error in update_poll_response_from_discord: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
             'error': str(e)
@@ -612,14 +656,17 @@ def get_message_ids(match_id):
     """
     Retrieve message IDs associated with a match.
     """
-    session_db = g.db_session
-    logger.info(f"Received request for message IDs for match_id {match_id}")
-    message_data = get_message_data(match_id, session=session_db)
-    if not message_data:
-        logger.warning(f"No scheduled message found for match_id {match_id}")
-        return jsonify({'error': 'No scheduled message found'}), 404
-    logger.info(f"Returning message data for match_id {match_id}: {message_data}")
-    return jsonify(message_data), 200
+    logger.info(f"🔵 [AVAILABILITY_API] get_message_ids called for match {match_id}")
+    
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Getting message data for match {match_id}")
+        message_data = get_message_data(match_id, session=session_db)
+        if not message_data:
+            logger.warning(f"🟡 [AVAILABILITY_API] No scheduled message found for match_id {match_id}")
+            return jsonify({'error': 'No scheduled message found'}), 404
+            
+        logger.info(f"🟢 [AVAILABILITY_API] Returning message data for match_id {match_id}: {message_data}")
+        return jsonify(message_data), 200
 
 
 # Simple circuit breaker to prevent overload
@@ -692,30 +739,32 @@ def get_match_and_team_id_from_message():
             from app.models import ScheduledMessage
             from sqlalchemy import or_
             
-            scheduled_msg = g.db_session.query(ScheduledMessage).filter(
-                or_(
-                    (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
-                    (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
-                )
-            ).first()
-            
-            if scheduled_msg:
-                # Found in direct query - return immediately without using Celery
-                if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
-                    team_id = scheduled_msg.match.home_team_id
-                else:
-                    team_id = scheduled_msg.match.away_team_id
+            with managed_session() as session_db:
+                logger.debug(f"🔵 [AVAILABILITY_API] Trying direct query for message_id {message_id}, channel_id {channel_id}")
+                scheduled_msg = session_db.query(ScheduledMessage).filter(
+                    or_(
+                        (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
+                        (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
+                    )
+                ).first()
                 
-                logger.info(f"Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
-                return jsonify({
-                    'status': 'success',
-                    'data': {
-                        'match_id': scheduled_msg.match_id,
-                        'team_id': team_id
-                    }
-                }), 200
+                if scheduled_msg:
+                    # Found in direct query - return immediately without using Celery
+                    if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
+                        team_id = scheduled_msg.match.home_team_id
+                    else:
+                        team_id = scheduled_msg.match.away_team_id
+                    
+                    logger.info(f"🟢 [AVAILABILITY_API] Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
+                    return jsonify({
+                        'status': 'success',
+                        'data': {
+                            'match_id': scheduled_msg.match_id,
+                            'team_id': team_id
+                        }
+                    }), 200
         except Exception as e:
-            logger.warning(f"Direct query failed, falling back to Celery task: {e}")
+            logger.warning(f"🟡 [AVAILABILITY_API] Direct query failed, falling back to Celery task: {e}")
         
         # Use a lower priority queue to avoid blocking other critical tasks
         task = fetch_match_and_team_id_task.apply_async(
@@ -816,27 +865,36 @@ def is_user_on_team():
         - discord_id
         - team_id
     """
-    session_db = g.db_session
+    logger.info(f"🔵 [AVAILABILITY_API] is_user_on_team called")
+    
     data = request.json
     discord_id = data.get('discord_id')
     team_id = data.get('team_id')
+    
+    logger.debug(f"🔵 [AVAILABILITY_API] Checking if discord_id {discord_id} is on team {team_id}")
 
     if not discord_id or not team_id:
+        logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: discord_id={discord_id}, team_id={team_id}")
         return jsonify({'error': 'Missing required fields'}), 400
 
-    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-    
-    # Check if player exists and if they're on the specified team
-    is_team_member = False
-    if player:
-        # Use the teams relationship to check if the player is on the team
-        team_ids = [team.id for team in player.teams]
-        is_team_member = int(team_id) in team_ids
-        logger.debug(f"Player {player.id} teams: {team_ids}, checking team_id: {team_id}, is_member: {is_team_member}")
-    
-    return jsonify({
-        'is_team_member': is_team_member
-    }), 200
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        
+        # Check if player exists and if they're on the specified team
+        is_team_member = False
+        if player:
+            # Use the teams relationship to check if the player is on the team
+            team_ids = [team.id for team in player.teams]
+            is_team_member = int(team_id) in team_ids
+            logger.debug(f"🔵 [AVAILABILITY_API] Player {player.id} teams: {team_ids}, checking team_id: {team_id}, is_member: {is_team_member}")
+        else:
+            logger.warning(f"🟡 [AVAILABILITY_API] No player found for discord_id {discord_id}")
+        
+        logger.info(f"🟢 [AVAILABILITY_API] Team membership check result: {is_team_member}")
+        return jsonify({
+            'is_team_member': is_team_member
+        }), 200
 
 
 @availability_bp.route('/get_scheduled_messages', methods=['GET'])
@@ -845,8 +903,6 @@ def get_scheduled_messages():
     Retrieve all scheduled messages along with associated match and team IDs.
     Includes both pub league matches and ECS FC matches.
     """
-    from app.core.session_manager import managed_session
-
     with managed_session() as session_db:
         # Get pub league messages (existing logic)
         pub_league_messages = (
@@ -922,23 +978,29 @@ def get_player_id_from_discord(discord_id):
     """
     Retrieve a player's ID and basic profile data based on their Discord ID.
     """
-    session_db = g.db_session
-    player = session_db.query(Player).filter_by(discord_id=discord_id).first()
-    if not player:
-        return jsonify({'error': 'Player not found'}), 404
+    logger.info(f"🔵 [AVAILABILITY_API] get_player_id_from_discord called for discord_id {discord_id}")
+    
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=discord_id).first()
+        if not player:
+            logger.warning(f"🟡 [AVAILABILITY_API] Player not found for discord_id {discord_id}")
+            return jsonify({'error': 'Player not found'}), 404
 
-    base_url = os.getenv("WEBUI_BASE_URL", "https://portal.ecsfc.com").rstrip('/')
-    raw_pic_path = player.profile_picture_url or ""
-    if raw_pic_path and not raw_pic_path.startswith("http"):
-        raw_pic_path = f"{base_url}/{raw_pic_path.lstrip('/')}"
+        base_url = os.getenv("WEBUI_BASE_URL", "https://portal.ecsfc.com").rstrip('/')
+        raw_pic_path = player.profile_picture_url or ""
+        if raw_pic_path and not raw_pic_path.startswith("http"):
+            raw_pic_path = f"{base_url}/{raw_pic_path.lstrip('/')}"
 
-    final_data = {
-        'player_id': player.id,
-        'player_name': player.name,
-        'teams': [team.name for team in player.teams],
-        'profile_picture_url': raw_pic_path
-    }
-    return jsonify(final_data), 200
+        final_data = {
+            'player_id': player.id,
+            'player_name': player.name,
+            'teams': [team.name for team in player.teams],
+            'profile_picture_url': raw_pic_path
+        }
+        
+        logger.info(f"🟢 [AVAILABILITY_API] Retrieved player data for {player.name} (ID: {player.id})")
+        return jsonify(final_data), 200
 
 
 @availability_bp.route('/task_status/<task_id>', methods=['GET'], endpoint='task_status')
@@ -963,11 +1025,17 @@ def get_match_request(match_id):
     """
     Retrieve match request data for a specific match.
     """
-    session_db = g.db_session
-    match_data = get_match_request_data(match_id, session=session_db)
-    if not match_data:
-        return jsonify({'error': 'Match not found'}), 404
-    return jsonify(match_data), 200
+    logger.info(f"🔵 [AVAILABILITY_API] get_match_request called for match {match_id}")
+    
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [AVAILABILITY_API] Getting match request data for match {match_id}")
+        match_data = get_match_request_data(match_id, session=session_db)
+        if not match_data:
+            logger.warning(f"🟡 [AVAILABILITY_API] Match not found: {match_id}")
+            return jsonify({'error': 'Match not found'}), 404
+            
+        logger.info(f"🟢 [AVAILABILITY_API] Retrieved match request data for match {match_id}")
+        return jsonify(match_data), 200
 
 
 def _get_task_status(task):
@@ -997,76 +1065,77 @@ def get_message_info(message_id):
     Returns:
         JSON response containing channel_id, match_id, and team_id if found
     """
-    logger.info(f"Looking up message info for message ID: {message_id}")
+    logger.info(f"🔵 [AVAILABILITY_API] get_message_info called for message ID: {message_id}")
+    
     try:
         # Try cache first to reduce database connections
         from app.cache_helpers import get_cached_message_info
         cached_result = get_cached_message_info(message_id)
         if cached_result:
-            logger.info(f"Found cached message info for {message_id}: {cached_result}")
+            logger.info(f"🔵 [AVAILABILITY_API] Found cached message info for {message_id}: {cached_result}")
             return jsonify(cached_result)
         
         # Cache miss - continue with database lookup
         # Convert the message ID to a string for lookups (database columns are VARCHAR)
         message_id_str = str(message_id)
         
-        # Find a scheduled message with this home or away message ID
-        logger.debug(f"Querying for scheduled message with home_message_id or away_message_id = {message_id_str}")
-        session_db = g.db_session
-        scheduled_msg = session_db.query(ScheduledMessage).filter(
-            (ScheduledMessage.home_message_id == message_id_str) | 
-            (ScheduledMessage.away_message_id == message_id_str)
-        ).first()
-        
-        if not scheduled_msg:
-            # Let's log all message IDs for debugging
-            all_msgs = session_db.query(
-                ScheduledMessage.id, 
-                ScheduledMessage.home_message_id, 
-                ScheduledMessage.away_message_id
-            ).all()
-            logger.warning(f"No scheduled message found for message ID {message_id}. Available IDs: {all_msgs}")
-            return jsonify({'error': 'Message not found'}), 404
+        with managed_session() as session_db:
+            # Find a scheduled message with this home or away message ID
+            logger.debug(f"🔵 [AVAILABILITY_API] Querying for scheduled message with home_message_id or away_message_id = {message_id_str}")
+            scheduled_msg = session_db.query(ScheduledMessage).filter(
+                (ScheduledMessage.home_message_id == message_id_str) | 
+                (ScheduledMessage.away_message_id == message_id_str)
+            ).first()
             
-        # Determine if this is a home or away message
-        is_home = scheduled_msg.home_message_id == message_id
-        
-        # Get the associated match
-        match = scheduled_msg.match
-        if not match:
-            logger.warning(f"No match associated with scheduled message {scheduled_msg.id}")
-            return jsonify({'error': 'No match associated with this message'}), 404
+            if not scheduled_msg:
+                # Let's log all message IDs for debugging
+                all_msgs = session_db.query(
+                    ScheduledMessage.id, 
+                    ScheduledMessage.home_message_id, 
+                    ScheduledMessage.away_message_id
+                ).all()
+                logger.warning(f"🟡 [AVAILABILITY_API] No scheduled message found for message ID {message_id}. Available IDs: {all_msgs}")
+                return jsonify({'error': 'Message not found'}), 404
+                
+            # Determine if this is a home or away message
+            is_home = scheduled_msg.home_message_id == message_id
             
-        # Get the appropriate team ID and channel ID
-        team_id = match.home_team_id if is_home else match.away_team_id
-        channel_id = scheduled_msg.home_channel_id if is_home else scheduled_msg.away_channel_id
-        
-        # Check if match is recent (within last 7 days) to avoid processing old matches
-        from datetime import datetime, timedelta
-        week_ago = datetime.utcnow().date() - timedelta(days=7) 
-        is_recent_match = match.date >= week_ago
-        
-        # Build response
-        response = {
-            'channel_id': channel_id,
-            'match_id': match.id,
-            'team_id': team_id,
-            'is_home': is_home,
-            'message_type': 'home' if is_home else 'away',
-            'match_date': match.date.isoformat(),
-            'match_time': match.time.isoformat() if match.time else None,
-            'is_recent_match': is_recent_match
-        }
-        logger.info(f"Found message info for {message_id}: {response}")
-        
-        # Return the information needed for syncing
-        return jsonify(response)
+            # Get the associated match
+            match = scheduled_msg.match
+            if not match:
+                logger.warning(f"🟡 [AVAILABILITY_API] No match associated with scheduled message {scheduled_msg.id}")
+                return jsonify({'error': 'No match associated with this message'}), 404
+                
+            # Get the appropriate team ID and channel ID
+            team_id = match.home_team_id if is_home else match.away_team_id
+            channel_id = scheduled_msg.home_channel_id if is_home else scheduled_msg.away_channel_id
+            
+            # Check if match is recent (within last 7 days) to avoid processing old matches
+            from datetime import datetime, timedelta
+            week_ago = datetime.utcnow().date() - timedelta(days=7) 
+            is_recent_match = match.date >= week_ago
+            
+            # Build response
+            response = {
+                'channel_id': channel_id,
+                'match_id': match.id,
+                'team_id': team_id,
+                'is_home': is_home,
+                'message_type': 'home' if is_home else 'away',
+                'match_date': match.date.isoformat(),
+                'match_time': match.time.isoformat() if match.time else None,
+                'is_recent_match': is_recent_match
+            }
+            logger.info(f"🟢 [AVAILABILITY_API] Found message info for {message_id}: {response}")
+            
+            # Return the information needed for syncing
+            return jsonify(response)
         
     except ValueError:
-        logger.error(f"Invalid message ID format: {message_id}")
+        logger.error(f"🔴 [AVAILABILITY_API] Invalid message ID format: {message_id}")
         return jsonify({'error': 'Invalid message ID format'}), 400
     except Exception as e:
-        logger.exception(f"Error retrieving message info for {message_id}: {str(e)}")
+        logger.error(f"🔴 [AVAILABILITY_API] Error retrieving message info for {message_id}: {str(e)}", exc_info=True)
         return jsonify({'error': f'Server error: {str(e)}'}), 500
 
 
@@ -1146,91 +1215,107 @@ def sync_discord_rsvps():
     Returns:
         JSON response indicating success or failure
     """
+    logger.info(f"🔵 [AVAILABILITY_API] sync_discord_rsvps called")
+    
     try:
         data = request.json
+        logger.debug(f"🔵 [AVAILABILITY_API] Received Discord RSVP sync data: {data}")
+        
         if not data:
+            logger.error(f"🔴 [AVAILABILITY_API] No JSON data provided")
             return jsonify({'error': 'No JSON data provided'}), 400
             
         match_id = data.get('match_id')
         rsvps = data.get('rsvps', [])
         
         if not match_id or not isinstance(rsvps, list):
+            logger.error(f"🔴 [AVAILABILITY_API] Invalid data format: match_id={match_id}, rsvps={type(rsvps)}")
             return jsonify({'error': 'Invalid data format'}), 400
             
-        # Verify the match exists
-        match = g.db_session.query(Match).get(match_id)
-        if not match:
-            return jsonify({'error': f'Match {match_id} not found'}), 404
-            
-        # Process each RSVP update
-        updates = []
-        for rsvp_data in rsvps:
-            discord_id = rsvp_data.get('discord_id')
-            response = rsvp_data.get('response')
-            
-            if not discord_id or not response:
-                continue
+        with managed_session() as session_db:
+            # Verify the match exists
+            logger.debug(f"🔵 [AVAILABILITY_API] Verifying match {match_id} exists")
+            match = session_db.query(Match).get(match_id)
+            if not match:
+                logger.warning(f"🟡 [AVAILABILITY_API] Match {match_id} not found")
+                return jsonify({'error': f'Match {match_id} not found'}), 404
                 
-            # Find the player by Discord ID
-            player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
-            if not player:
-                logger.warning(f"Player with Discord ID {discord_id} not found")
-                continue
-                
-            # Check if an availability record exists
-            availability = g.db_session.query(Availability).filter_by(
-                match_id=match_id, 
-                player_id=player.id
-            ).first()
+            # Process each RSVP update
+            updates = []
+            logger.debug(f"🔵 [AVAILABILITY_API] Processing {len(rsvps)} RSVP updates")
             
-            if availability:
-                if availability.response != response:
-                    availability.response = response
-                    availability.responded_at = datetime.utcnow()
+            for rsvp_data in rsvps:
+                discord_id = rsvp_data.get('discord_id')
+                response = rsvp_data.get('response')
+                
+                if not discord_id or not response:
+                    logger.debug(f"🟡 [AVAILABILITY_API] Skipping incomplete RSVP data: {rsvp_data}")
+                    continue
+                    
+                # Find the player by Discord ID
+                logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
+                player = session_db.query(Player).filter_by(discord_id=discord_id).first()
+                if not player:
+                    logger.warning(f"🟡 [AVAILABILITY_API] Player with Discord ID {discord_id} not found")
+                    continue
+                    
+                # Check if an availability record exists
+                logger.debug(f"🔵 [AVAILABILITY_API] Checking availability for match {match_id}, player {player.id}")
+                availability = session_db.query(Availability).filter_by(
+                    match_id=match_id, 
+                    player_id=player.id
+                ).first()
+                
+                if availability:
+                    if availability.response != response:
+                        old_response = availability.response
+                        availability.response = response
+                        availability.responded_at = datetime.utcnow()
+                        updates.append({
+                            'player_id': player.id,
+                            'name': player.name,
+                            'old_response': old_response,
+                            'new_response': response,
+                            'action': 'updated'
+                        })
+                        logger.debug(f"🔵 [AVAILABILITY_API] Updated availability for {player.name}: {old_response} -> {response}")
+                else:
+                    # Create new availability record
+                    new_availability = Availability(
+                        match_id=match_id,
+                        player_id=player.id,
+                        response=response,
+                        discord_id=discord_id,
+                        responded_at=datetime.utcnow()
+                    )
+                    session_db.add(new_availability)
                     updates.append({
                         'player_id': player.id,
                         'name': player.name,
-                        'old_response': availability.response,
                         'new_response': response,
-                        'action': 'updated'
+                        'action': 'created'
                     })
-            else:
-                # Create new availability record
-                new_availability = Availability(
-                    match_id=match_id,
-                    player_id=player.id,
-                    response=response,
-                    discord_id=discord_id,
-                    responded_at=datetime.utcnow()
-                )
-                g.db_session.add(new_availability)
-                updates.append({
-                    'player_id': player.id,
-                    'name': player.name,
-                    'new_response': response,
-                    'action': 'created'
-                })
+                    logger.debug(f"🔵 [AVAILABILITY_API] Created new availability for {player.name}: {response}")
+                    
+            # If we made any updates, notify the frontend
+            if updates:
+                logger.debug(f"🔵 [AVAILABILITY_API] Triggering frontend notifications for {len(updates)} updates")
+                for update in updates:
+                    notify_frontend_of_rsvp_change_task.delay(
+                        match_id=match_id,
+                        player_id=update['player_id'],
+                        response=update['new_response']
+                    )
                 
-        # Commit all changes
-        g.db_session.commit()
-        
-        # If we made any updates, notify the frontend
-        if updates:
-            for update in updates:
-                notify_frontend_of_rsvp_change_task.delay(
-                    match_id=match_id,
-                    player_id=update['player_id'],
-                    response=update['new_response']
-                )
-            
-        return jsonify({
-            'success': True,
-            'message': f'Successfully processed {len(updates)} RSVP updates',
-            'updates': updates
-        })
+            logger.info(f"🟢 [AVAILABILITY_API] Successfully processed {len(updates)} RSVP updates for match {match_id}")
+            return jsonify({
+                'success': True,
+                'message': f'Successfully processed {len(updates)} RSVP updates',
+                'updates': updates
+            })
             
     except Exception as e:
-        logger.exception(f"Error syncing Discord RSVPs: {str(e)}")
+        logger.error(f"🔴 [AVAILABILITY_API] Error syncing Discord RSVPs: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'message': f'Error processing RSVP updates: {str(e)}'
@@ -1250,9 +1335,14 @@ def record_poll_response():
         "responded_at": str (ISO datetime)
     }
     """
+    logger.info(f"🔵 [AVAILABILITY_API] record_poll_response called")
+    
     try:
         data = request.get_json()
+        logger.debug(f"🔵 [AVAILABILITY_API] Recording poll response: {data}")
+        
         if not data:
+            logger.error(f"🔴 [AVAILABILITY_API] No data provided")
             return jsonify({'error': 'No data provided'}), 400
         
         poll_id = data.get('poll_id')
@@ -1261,75 +1351,82 @@ def record_poll_response():
         responded_at = data.get('responded_at')
         
         if not all([poll_id, discord_id, response]):
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: poll_id={poll_id}, discord_id={discord_id}, response={response}")
             return jsonify({'error': 'Missing required fields'}), 400
         
         if response not in ['yes', 'no', 'maybe']:
+            logger.error(f"🔴 [AVAILABILITY_API] Invalid response: {response}")
             return jsonify({'error': 'Invalid response. Must be yes, no, or maybe'}), 400
         
-        # Import models
-        from app.models import LeaguePoll, LeaguePollResponse, Player
-        from datetime import datetime
-        
-        # Check if poll exists and is active
-        poll = LeaguePoll.query.get(poll_id)
-        if not poll:
-            return jsonify({'error': 'Poll not found'}), 404
+        with managed_session() as session_db:
+            # Import models
+            from app.models import LeaguePoll, LeaguePollResponse, Player
+            from datetime import datetime
             
-        if poll.status != 'ACTIVE':
-            return jsonify({'error': 'Poll is not active'}), 400
-        
-        # Find player by Discord ID
-        player = Player.query.filter_by(discord_id=discord_id).first()
-        if not player:
-            return jsonify({'error': 'Player not found with this Discord ID'}), 403
-        
-        # Check if player has already responded
-        existing_response = LeaguePollResponse.query.filter_by(
-            poll_id=poll_id,
-            player_id=player.id
-        ).first()
-        
-        if existing_response:
-            # Update existing response
-            old_response = existing_response.response
-            existing_response.response = response
-            existing_response.responded_at = datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
-            action = 'updated'
+            # Check if poll exists and is active
+            logger.debug(f"🔵 [AVAILABILITY_API] Checking poll {poll_id} status")
+            poll = session_db.query(LeaguePoll).get(poll_id)
+            if not poll:
+                logger.error(f"🔴 [AVAILABILITY_API] Poll {poll_id} not found")
+                return jsonify({'error': 'Poll not found'}), 404
+                
+            if poll.status != 'ACTIVE':
+                logger.error(f"🔴 [AVAILABILITY_API] Poll {poll_id} is not active (status: {poll.status})")
+                return jsonify({'error': 'Poll is not active'}), 400
             
-            logger.info(f"Updated poll response for player {player.name} ({player.id}) "
-                       f"from {old_response} to {response} for poll {poll_id}")
-        else:
-            # Create new response
-            new_response = LeaguePollResponse(
+            # Find player by Discord ID
+            logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
+            player = session_db.query(Player).filter_by(discord_id=discord_id).first()
+            if not player:
+                logger.error(f"🔴 [AVAILABILITY_API] Player not found with Discord ID {discord_id}")
+                return jsonify({'error': 'Player not found with this Discord ID'}), 403
+            
+            # Check if player has already responded
+            logger.debug(f"🔵 [AVAILABILITY_API] Checking for existing response for poll {poll_id}, player {player.id}")
+            existing_response = session_db.query(LeaguePollResponse).filter_by(
                 poll_id=poll_id,
-                player_id=player.id,
-                discord_id=discord_id,
-                response=response,
-                responded_at=datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
-            )
-            g.db_session.add(new_response)
-            action = 'created'
+                player_id=player.id
+            ).first()
             
-            logger.info(f"Created new poll response for player {player.name} ({player.id}) "
-                       f"with response {response} for poll {poll_id}")
-        
-        g.db_session.commit()
-        
-        # Get updated response counts
-        response_counts = poll.get_response_counts()
-        
-        return jsonify({
-            'success': True,
-            'action': action,
-            'player_name': player.name,
-            'response': response,
-            'poll_id': poll_id,
-            'response_counts': response_counts
-        })
+            if existing_response:
+                # Update existing response
+                old_response = existing_response.response
+                existing_response.response = response
+                existing_response.responded_at = datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
+                action = 'updated'
+                
+                logger.info(f"🟢 [AVAILABILITY_API] Updated poll response for player {player.name} ({player.id}) "
+                           f"from {old_response} to {response} for poll {poll_id}")
+            else:
+                # Create new response
+                new_response = LeaguePollResponse(
+                    poll_id=poll_id,
+                    player_id=player.id,
+                    discord_id=discord_id,
+                    response=response,
+                    responded_at=datetime.fromisoformat(responded_at) if responded_at else datetime.utcnow()
+                )
+                session_db.add(new_response)
+                action = 'created'
+                
+                logger.info(f"🟢 [AVAILABILITY_API] Created new poll response for player {player.name} ({player.id}) "
+                           f"with response {response} for poll {poll_id}")
+            
+            # Get updated response counts
+            response_counts = poll.get_response_counts()
+            
+            logger.info(f"🟢 [AVAILABILITY_API] Poll response recorded successfully for poll {poll_id}")
+            return jsonify({
+                'success': True,
+                'action': action,
+                'player_name': player.name,
+                'response': response,
+                'poll_id': poll_id,
+                'response_counts': response_counts
+            })
         
     except Exception as e:
-        logger.exception(f"Error recording poll response: {str(e)}")
-        g.db_session.rollback()
+        logger.error(f"🔴 [AVAILABILITY_API] Error recording poll response: {str(e)}", exc_info=True)
         return jsonify({
             'error': f'Error recording poll response: {str(e)}'
         }), 500
@@ -1347,9 +1444,14 @@ def update_poll_message():
         "sent_at": str (ISO datetime)
     }
     """
+    logger.info(f"🔵 [AVAILABILITY_API] update_poll_message called")
+    
     try:
         data = request.get_json()
+        logger.debug(f"🔵 [AVAILABILITY_API] Updating poll message: {data}")
+        
         if not data:
+            logger.error(f"🔴 [AVAILABILITY_API] No data provided")
             return jsonify({'error': 'No data provided'}), 400
         
         message_record_id = data.get('message_record_id')
@@ -1357,32 +1459,33 @@ def update_poll_message():
         sent_at = data.get('sent_at')
         
         if not all([message_record_id, message_id]):
+            logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: message_record_id={message_record_id}, message_id={message_id}")
             return jsonify({'error': 'Missing required fields'}), 400
         
-        from app.models import LeaguePollDiscordMessage
-        from datetime import datetime
-        
-        # Find the message record
-        message_record = LeaguePollDiscordMessage.query.get(message_record_id)
-        if not message_record:
-            return jsonify({'error': 'Message record not found'}), 404
-        
-        # Update the message ID and sent timestamp
-        message_record.message_id = message_id
-        message_record.sent_at = datetime.fromisoformat(sent_at) if sent_at else datetime.utcnow()
-        
-        g.db_session.commit()
-        
-        logger.info(f"Updated poll message record {message_record_id} with Discord message ID {message_id}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Poll message record updated successfully'
-        })
+        with managed_session() as session_db:
+            from app.models import LeaguePollDiscordMessage
+            from datetime import datetime
+            
+            # Find the message record
+            logger.debug(f"🔵 [AVAILABILITY_API] Looking up message record {message_record_id}")
+            message_record = session_db.query(LeaguePollDiscordMessage).get(message_record_id)
+            if not message_record:
+                logger.error(f"🔴 [AVAILABILITY_API] Message record {message_record_id} not found")
+                return jsonify({'error': 'Message record not found'}), 404
+            
+            # Update the message ID and sent timestamp
+            message_record.message_id = message_id
+            message_record.sent_at = datetime.fromisoformat(sent_at) if sent_at else datetime.utcnow()
+            
+            logger.info(f"🟢 [AVAILABILITY_API] Updated poll message record {message_record_id} with Discord message ID {message_id}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Poll message record updated successfully'
+            })
         
     except Exception as e:
-        logger.exception(f"Error updating poll message: {str(e)}")
-        g.db_session.rollback()
+        logger.error(f"🔴 [AVAILABILITY_API] Error updating poll message: {str(e)}", exc_info=True)
         return jsonify({
             'error': f'Error updating poll message: {str(e)}'
         }), 500
@@ -1394,33 +1497,37 @@ def get_active_poll_messages():
     Get all active poll messages with their Discord message IDs.
     Returns data needed by the Discord bot to track poll reactions.
     """
+    logger.info(f"🔵 [AVAILABILITY_API] get_active_poll_messages called")
+    
     try:
-        from app.models import LeaguePoll, LeaguePollDiscordMessage
-        
-        # Get all active polls with their Discord messages
-        active_poll_messages = g.db_session.query(
-            LeaguePollDiscordMessage
-        ).join(
-            LeaguePoll, LeaguePoll.id == LeaguePollDiscordMessage.poll_id
-        ).filter(
-            LeaguePoll.status == 'ACTIVE',
-            LeaguePollDiscordMessage.message_id.isnot(None)
-        ).all()
-        
-        result = []
-        for msg in active_poll_messages:
-            result.append({
-                'poll_id': msg.poll_id,
-                'team_id': msg.team_id,
-                'channel_id': msg.channel_id,
-                'message_id': msg.message_id
-            })
-        
-        logger.info(f"Returning {len(result)} active poll messages")
-        return jsonify(result)
+        with managed_session() as session_db:
+            from app.models import LeaguePoll, LeaguePollDiscordMessage
+            
+            # Get all active polls with their Discord messages
+            logger.debug(f"🔵 [AVAILABILITY_API] Querying for active poll messages")
+            active_poll_messages = session_db.query(
+                LeaguePollDiscordMessage
+            ).join(
+                LeaguePoll, LeaguePoll.id == LeaguePollDiscordMessage.poll_id
+            ).filter(
+                LeaguePoll.status == 'ACTIVE',
+                LeaguePollDiscordMessage.message_id.isnot(None)
+            ).all()
+            
+            result = []
+            for msg in active_poll_messages:
+                result.append({
+                    'poll_id': msg.poll_id,
+                    'team_id': msg.team_id,
+                    'channel_id': msg.channel_id,
+                    'message_id': msg.message_id
+                })
+            
+            logger.info(f"🟢 [AVAILABILITY_API] Returning {len(result)} active poll messages")
+            return jsonify(result)
         
     except Exception as e:
-        logger.exception(f"Error getting active poll messages: {str(e)}")
+        logger.error(f"🔴 [AVAILABILITY_API] Error getting active poll messages: {str(e)}", exc_info=True)
         return jsonify({
             'error': f'Error getting active poll messages: {str(e)}'
         }), 500

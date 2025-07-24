@@ -117,9 +117,11 @@ def edit_draft_pick(pick_id: int):
         position_changed = False
         swap_result = None
         if new_position and new_position != pick.draft_position:
-            # Choose between the three positioning modes
+            # Choose between the positioning modes
             if position_mode == 'absolute':
                 swap_result = DraftService.set_absolute_draft_position(db.session, pick_id, new_position)
+            elif position_mode == 'smart':
+                swap_result = DraftService.insert_draft_position_smart(db.session, pick_id, new_position)
             elif position_mode == 'insert':
                 swap_result = DraftService.insert_draft_position(db.session, pick_id, new_position)
             else:
@@ -276,3 +278,46 @@ def clear_draft_history():
         logger.error(f"Error clearing draft history: {str(e)}", exc_info=True)
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to clear draft history'}), 500
+
+
+@admin_bp.route('/admin/draft-history/normalize', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def normalize_draft_positions():
+    """
+    Normalize draft positions to remove gaps and ensure sequential numbering (1, 2, 3, ...).
+    """
+    try:
+        data = request.get_json()
+        season_id = data.get('season_id')
+        league_id = data.get('league_id')
+        
+        # Convert to int if they exist
+        if season_id:
+            season_id = int(season_id)
+        if league_id:
+            league_id = int(league_id)
+        
+        if not season_id or not league_id:
+            return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400
+        
+        # Get season and league names for logging
+        season = db.session.query(Season).filter_by(id=season_id).first()
+        league = db.session.query(League).filter_by(id=league_id).first()
+        
+        if not season or not league:
+            return jsonify({'success': False, 'message': 'Season or League not found'}), 404
+        
+        # Normalize the draft positions using the DraftService
+        result = DraftService.normalize_draft_positions(db.session, season_id, league_id)
+        
+        if result['success']:
+            db.session.commit()
+            logger.info(f"Normalized draft positions for {season.name} - {league.name}: {result['changes_made']} changes made by user {current_user.username}")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error normalizing draft positions: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'message': 'Failed to normalize draft positions'}), 500

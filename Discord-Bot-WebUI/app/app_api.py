@@ -37,6 +37,7 @@ from app.models import (
 from app.decorators import (
     jwt_role_required
 )
+from app.core.session_manager import managed_session
 from app.app_api_helpers import (
     build_player_response, get_player_response_data, exchange_discord_code,
     get_discord_user_data, process_discord_user, build_match_response,
@@ -255,22 +256,22 @@ def discord_callback():
             return jsonify({"msg": "Failed to get Discord user data"}), 400
             
         # Find or create user based on Discord data
-        session_db = g.db_session
-        user = process_discord_user(session_db, discord_user)
-        
-        if not user:
-            return jsonify({"msg": "Failed to process Discord user"}), 500
+        with managed_session() as session_db:
+            user = process_discord_user(session_db, discord_user)
             
-        # Create JWT access token for the user
-        access_token = create_access_token(identity=user.id)
-        
-        # Return the token to the mobile app
-        return jsonify({
-            "access_token": access_token,
-            "user_id": user.id,
-            "username": user.username,
-            "discord_id": discord_user['id']
-        }), 200
+            if not user:
+                return jsonify({"msg": "Failed to process Discord user"}), 500
+                
+            # Create JWT access token for the user
+            access_token = create_access_token(identity=user.id)
+            
+            # Return the token to the mobile app
+            return jsonify({
+                "access_token": access_token,
+                "user_id": user.id,
+                "username": user.username,
+                "discord_id": discord_user['id']
+            }), 200
         
     except Exception as e:
         logger.exception(f"Error in Discord callback: {e}")
@@ -282,26 +283,26 @@ def login():
     """
     Authenticate a user and return a JWT access token.
     """
-    session_db = g.db_session
     email = request.json.get('email')
     password = request.json.get('password')
 
     if not email or not password:
         return jsonify({"msg": "Missing username or password"}), 400
 
-    user = session_db.query(User).filter_by(email=email.lower()).first()
-    if not user or not user.check_password(password):
-        return jsonify({"msg": "Bad username or password"}), 401
+    with managed_session() as session_db:
+        user = session_db.query(User).filter_by(email=email.lower()).first()
+        if not user or not user.check_password(password):
+            return jsonify({"msg": "Bad username or password"}), 401
 
-    if not user.is_approved:
-        return jsonify({"msg": "Account not approved"}), 403
+        if not user.is_approved:
+            return jsonify({"msg": "Account not approved"}), 403
 
-    # If 2FA is enabled, prompt for 2FA verification
-    if user.is_2fa_enabled:
-        return jsonify({"msg": "2FA required", "user_id": user.id}), 200
+        # If 2FA is enabled, prompt for 2FA verification
+        if user.is_2fa_enabled:
+            return jsonify({"msg": "2FA required", "user_id": user.id}), 200
 
-    access_token = create_access_token(identity=user.id)
-    return jsonify(access_token=access_token), 200
+        access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=access_token), 200
 
 
 @mobile_api.route('/verify_2fa', endpoint='verify_2fa', methods=['POST'])
@@ -309,7 +310,6 @@ def verify_2fa():
     """
     Verify a user's 2FA token and return a JWT access token if valid.
     """
-    session_db = g.db_session
     user_id = request.json.get('user_id')
     token = request.json.get('token')
     logger.debug(f"Received user_id: {user_id}, token: {token}")
@@ -317,12 +317,13 @@ def verify_2fa():
     if not user_id or not token:
         return jsonify({"msg": "Missing user_id or token"}), 400
 
-    user = session_db.query(User).get(user_id)
-    if not user or not user.verify_totp(token):
-        return jsonify({"msg": "Invalid 2FA token"}), 401
+    with managed_session() as session_db:
+        user = session_db.query(User).get(user_id)
+        if not user or not user.verify_totp(token):
+            return jsonify({"msg": "Invalid 2FA token"}), 401
 
-    access_token = create_access_token(identity=user.id)
-    return jsonify(access_token=access_token), 200
+        access_token = create_access_token(identity=user.id)
+        return jsonify(access_token=access_token), 200
 
 
 @mobile_api.route('/user_profile', endpoint='get_user_profile', methods=['GET'])
@@ -332,77 +333,85 @@ def get_user_profile():
     Retrieve the profile of the currently authenticated user,
     including associated player data and optional stats.
     """
-    session_db = g.db_session
     current_user_id = get_jwt_identity()
-    user = session_db.query(User).get(current_user_id)
-    if not user:
-        logger.error(f"User not found for ID: {current_user_id}")
-        return jsonify({"error": "User not found"}), 404
+    logger.info(f"🔵 [MOBILE_API] get_user_profile called for user_id: {current_user_id}")
+    logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
+    
+    with managed_session() as session_db:
+        user = session_db.query(User).get(current_user_id)
+        if not user:
+            logger.error(f"🔴 [MOBILE_API] User not found for ID: {current_user_id}")
+            return jsonify({"error": "User not found"}), 404
 
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-    base_url = request.host_url.rstrip('/')
+        logger.debug(f"🔵 [MOBILE_API] Found user: {user.username} (ID: {user.id})")
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'} (ID: {player.id if player else 'None'})")
+        base_url = request.host_url.rstrip('/')
 
-    response_data = {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "is_approved": user.is_approved,
-        "roles": [role.name for role in user.roles],
-        "has_completed_onboarding": user.has_completed_onboarding,
-        "has_completed_tour": user.has_completed_tour,
-        "has_skipped_profile_creation": user.has_skipped_profile_creation,
-        "league_id": user.league_id,
-        "is_2fa_enabled": user.is_2fa_enabled,
-        "email_notifications": user.email_notifications,
-        "sms_notifications": user.sms_notifications,
-        "discord_notifications": user.discord_notifications,
-        "profile_visibility": user.profile_visibility,
-        "last_login": user.last_login.isoformat() if user.last_login else None,
-    }
-
-    if player:
-        profile_picture_url = player.profile_picture_url
-        if profile_picture_url:
-            full_profile_picture_url = (
-                profile_picture_url if profile_picture_url.startswith('http')
-                else f"{base_url}{profile_picture_url}"
-            )
-        else:
-            full_profile_picture_url = f"{base_url}/static/img/default_player.png"
-
-        player_data = {
-            "player_id": player.id,
-            "player_name": player.name,
-            "phone": player.phone,
-            "is_phone_verified": player.is_phone_verified,
-            "jersey_size": player.jersey_size,
-            "jersey_number": player.jersey_number,
-            "is_coach": player.is_coach,
-            "is_ref": player.is_ref,
-            "discord_id": player.discord_id,
-            "pronouns": player.pronouns,
-            "favorite_position": player.favorite_position,
-            "other_positions": player.other_positions,
-            "positions_not_to_play": player.positions_not_to_play,
-            "expected_weeks_available": player.expected_weeks_available,
-            "unavailable_dates": player.unavailable_dates,
-            "willing_to_referee": player.willing_to_referee,
-            "frequency_play_goal": player.frequency_play_goal,
-            "additional_info": player.additional_info,
-            "is_current_player": player.is_current_player,
-            "profile_picture_url": full_profile_picture_url,
-            "team_id": player.primary_team_id,
-            "team_name": player.primary_team.name if player.primary_team else None,
-            "league_name": player.league.name if player.league else None,
+        response_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "is_approved": user.is_approved,
+            "roles": [role.name for role in user.roles],
+            "has_completed_onboarding": user.has_completed_onboarding,
+            "has_completed_tour": user.has_completed_tour,
+            "has_skipped_profile_creation": user.has_skipped_profile_creation,
+            "league_id": user.league_id,
+            "is_2fa_enabled": user.is_2fa_enabled,
+            "email_notifications": user.email_notifications,
+            "sms_notifications": user.sms_notifications,
+            "discord_notifications": user.discord_notifications,
+            "profile_visibility": user.profile_visibility,
+            "last_login": user.last_login.isoformat() if user.last_login else None,
         }
-        response_data.update(player_data)
 
-        include_stats = request.args.get('include_stats', 'false').lower() == 'true'
-        if include_stats:
-            current_season = session_db.query(Season).filter_by(is_current=True).first()
-            response_data.update(get_player_stats(player, current_season, session=session_db))
+        if player:
+            profile_picture_url = player.profile_picture_url
+            if profile_picture_url:
+                full_profile_picture_url = (
+                    profile_picture_url if profile_picture_url.startswith('http')
+                    else f"{base_url}{profile_picture_url}"
+                )
+            else:
+                full_profile_picture_url = f"{base_url}/static/img/default_player.png"
 
-    return jsonify(response_data), 200
+            player_data = {
+                "player_id": player.id,
+                "player_name": player.name,
+                "phone": player.phone,
+                "is_phone_verified": player.is_phone_verified,
+                "jersey_size": player.jersey_size,
+                "jersey_number": player.jersey_number,
+                "is_coach": player.is_coach,
+                "is_ref": player.is_ref,
+                "discord_id": player.discord_id,
+                "pronouns": player.pronouns,
+                "favorite_position": player.favorite_position,
+                "other_positions": player.other_positions,
+                "positions_not_to_play": player.positions_not_to_play,
+                "expected_weeks_available": player.expected_weeks_available,
+                "unavailable_dates": player.unavailable_dates,
+                "willing_to_referee": player.willing_to_referee,
+                "frequency_play_goal": player.frequency_play_goal,
+                "additional_info": player.additional_info,
+                "is_current_player": player.is_current_player,
+                "profile_picture_url": full_profile_picture_url,
+                "team_id": player.primary_team_id,
+                "team_name": player.primary_team.name if player.primary_team else None,
+                "league_name": player.league.name if player.league else None,
+            }
+            response_data.update(player_data)
+
+            include_stats = request.args.get('include_stats', 'false').lower() == 'true'
+            if include_stats:
+                logger.debug(f"🔵 [MOBILE_API] Including stats for player {player.name}")
+                current_season = session_db.query(Season).filter_by(is_current=True).first()
+                logger.debug(f"🔵 [MOBILE_API] Current season: {current_season.name if current_season else 'None'}")
+                response_data.update(get_player_stats(player, current_season, session=session_db))
+
+        logger.info(f"🟢 [MOBILE_API] get_user_profile successful for user {user.username} - returning {len(response_data)} fields")
+        return jsonify(response_data), 200
 
 
 @mobile_api.route('/player/update', endpoint='update_player_profile', methods=['PUT'])
@@ -411,32 +420,31 @@ def update_player_profile():
     """
     Update the profile of the currently authenticated player.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-    if not player:
-        return jsonify({"msg": "Player not found"}), 404
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player not found"}), 404
 
-    data = request.json
-    allowed_fields = [
-        'name', 'phone', 'jersey_size', 'jersey_number', 'pronouns',
-        'favorite_position', 'other_positions', 'positions_not_to_play',
-        'frequency_play_goal', 'expected_weeks_available', 'unavailable_dates',
-        'willing_to_referee', 'additional_info'
-    ]
+        data = request.json
+        allowed_fields = [
+            'name', 'phone', 'jersey_size', 'jersey_number', 'pronouns',
+            'favorite_position', 'other_positions', 'positions_not_to_play',
+            'frequency_play_goal', 'expected_weeks_available', 'unavailable_dates',
+            'willing_to_referee', 'additional_info'
+        ]
 
-    try:
-        for field in allowed_fields:
-            if field in data:
-                setattr(player, field, data[field])
-        # Changes will be committed at teardown.
-        return jsonify({
-            "msg": "Profile updated successfully",
-            "player": player.to_dict()
-        }), 200
-    except Exception as e:
-        logger.error(f"Error updating player profile: {str(e)}")
-        return jsonify({"msg": f"Error updating profile: {str(e)}"}), 500
+        try:
+            for field in allowed_fields:
+                if field in data:
+                    setattr(player, field, data[field])
+            return jsonify({
+                "msg": "Profile updated successfully",
+                "player": player.to_dict()
+            }), 200
+        except Exception as e:
+            logger.error(f"Error updating player profile: {str(e)}")
+            return jsonify({"msg": f"Error updating profile: {str(e)}"}), 500
 
 
 @mobile_api.route('/players/<int:player_id>', endpoint='get_player', methods=['GET'])
@@ -446,32 +454,32 @@ def get_player(player_id: int):
     Retrieve details for a specific player, ensuring proper access
     based on user roles and ownership.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    safe_current_user = session_db.query(User).get(current_user_id)
-    player = session_db.query(Player).get(player_id)
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        safe_current_user = session_db.query(User).get(current_user_id)
+        player = session_db.query(Player).get(player_id)
 
-    if not player:
-        return jsonify({"msg": "Player not found"}), 404
+        if not player:
+            return jsonify({"msg": "Player not found"}), 404
 
-    # Check viewing permissions: Admin/Coach or owner can view full profile.
-    user_roles = [r.name for r in safe_current_user.roles]
-    is_admin = any(r in ['Coach', 'Admin'] for r in user_roles)
-    is_owner = current_user_id == player.user_id
-    is_full_profile = is_admin or is_owner
+        # Check viewing permissions: Admin/Coach or owner can view full profile.
+        user_roles = [r.name for r in safe_current_user.roles]
+        is_admin = any(r in ['Coach', 'Admin'] for r in user_roles)
+        is_owner = current_user_id == player.user_id
+        is_full_profile = is_admin or is_owner
 
-    # Get include_stats parameter
-    include_stats = request.args.get('include_stats', 'false').lower() == 'true'
-    
-    # Get the player profile data
-    response_data = get_player_response_data(player, is_full_profile, session=session_db)
-    
-    # Add stats if requested
-    if include_stats:
-        current_season = session_db.query(Season).filter_by(is_current=True).first()
-        response_data.update(get_player_stats(player, current_season, session=session_db))
+        # Get include_stats parameter
+        include_stats = request.args.get('include_stats', 'false').lower() == 'true'
         
-    return jsonify(response_data), 200
+        # Get the player profile data
+        response_data = get_player_response_data(player, is_full_profile, session=session_db)
+        
+        # Add stats if requested
+        if include_stats:
+            current_season = session_db.query(Season).filter_by(is_current=True).first()
+            response_data.update(get_player_stats(player, current_season, session=session_db))
+            
+        return jsonify(response_data), 200
 
 
 @mobile_api.route('/teams', endpoint='get_teams', methods=['GET'])
@@ -480,57 +488,56 @@ def get_teams():
     """
     Retrieve a list of teams for the current season with associated league names.
     """
-    session_db = g.db_session
+    with managed_session() as session_db:
+        # Retrieve current seasons for Pub League and ECS FC.
+        current_pub_season = session_db.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+        current_ecs_season = session_db.query(Season).filter_by(is_current=True, league_type='ECS FC').first()
 
-    # Retrieve current seasons for Pub League and ECS FC.
-    current_pub_season = session_db.query(Season).filter_by(is_current=True, league_type='Pub League').first()
-    current_ecs_season = session_db.query(Season).filter_by(is_current=True, league_type='ECS FC').first()
+        # Build conditions based on which current seasons exist.
+        conditions = []
+        if current_pub_season:
+            conditions.append(League.season_id == current_pub_season.id)
+        if current_ecs_season:
+            conditions.append(League.season_id == current_ecs_season.id)
 
-    # Build conditions based on which current seasons exist.
-    conditions = []
-    if current_pub_season:
-        conditions.append(League.season_id == current_pub_season.id)
-    if current_ecs_season:
-        conditions.append(League.season_id == current_ecs_season.id)
+        # Query teams by joining with League and applying the conditions.
+        teams_query = session_db.query(Team).join(League, Team.league_id == League.id)
+        if len(conditions) == 1:
+            teams_query = teams_query.filter(conditions[0])
+        elif len(conditions) == 2:
+            teams_query = teams_query.filter(or_(*conditions))
 
-    # Query teams by joining with League and applying the conditions.
-    teams_query = session_db.query(Team).join(League, Team.league_id == League.id)
-    if len(conditions) == 1:
-        teams_query = teams_query.filter(conditions[0])
-    elif len(conditions) == 2:
-        teams_query = teams_query.filter(or_(*conditions))
+        teams = teams_query.order_by(Team.name).all()
 
-    teams = teams_query.order_by(Team.name).all()
-
-    # Check cache first
-    from app.performance_cache import cache_match_results, set_match_results_cache
-    import hashlib
-    
-    # Create cache key based on query parameters
-    cache_key_data = f"{request.args.get('league_id', 'all')}:{request.args.get('season_id', 'current')}"
-    cache_hash = hashlib.md5(cache_key_data.encode()).hexdigest()
-    
-    cached_teams = cache_match_results(league_id=f"teams_{cache_hash}")
-    
-    if cached_teams:
-        teams_data = cached_teams
-    else:
-        # Preload team stats to avoid N+1 queries
-        from app.team_performance_helpers import preload_team_stats_for_request
-        team_ids = [team.id for team in teams]
-        preload_team_stats_for_request(team_ids)
-
-        teams_data = [
-            {
-                **team.to_dict(),
-                'league_name': team.league.name if team.league else "Unknown League"
-            }
-            for team in teams
-        ]
+        # Check cache first
+        from app.performance_cache import cache_match_results, set_match_results_cache
+        import hashlib
         
-        # Cache the results for 10 minutes
-        set_match_results_cache(teams_data, league_id=f"teams_{cache_hash}", ttl=600)
-    return jsonify(teams_data), 200
+        # Create cache key based on query parameters
+        cache_key_data = f"{request.args.get('league_id', 'all')}:{request.args.get('season_id', 'current')}"
+        cache_hash = hashlib.md5(cache_key_data.encode()).hexdigest()
+        
+        cached_teams = cache_match_results(league_id=f"teams_{cache_hash}")
+        
+        if cached_teams:
+            teams_data = cached_teams
+        else:
+            # Preload team stats to avoid N+1 queries
+            from app.team_performance_helpers import preload_team_stats_for_request
+            team_ids = [team.id for team in teams]
+            preload_team_stats_for_request(team_ids)
+
+            teams_data = [
+                {
+                    **team.to_dict(),
+                    'league_name': team.league.name if team.league else "Unknown League"
+                }
+                for team in teams
+            ]
+            
+            # Cache the results for 10 minutes
+            set_match_results_cache(teams_data, league_id=f"teams_{cache_hash}", ttl=600)
+        return jsonify(teams_data), 200
 
 
 @mobile_api.route('/teams/<int:team_id>', endpoint='get_team_details', methods=['GET'])
@@ -540,22 +547,22 @@ def get_team_details(team_id: int):
     Retrieve details for a specific team. Optionally includes players
     and upcoming matches.
     """
-    session_db = g.db_session
-    team = session_db.query(Team).get(team_id)
-    if not team:
-        return jsonify({"msg": "Team not found"}), 404
+    with managed_session() as session_db:
+        team = session_db.query(Team).get(team_id)
+        if not team:
+            return jsonify({"msg": "Team not found"}), 404
 
-    include_players = request.args.get('include_players', 'false').lower() == 'true'
-    team_data = team.to_dict(include_players=include_players)
+        include_players = request.args.get('include_players', 'false').lower() == 'true'
+        team_data = team.to_dict(include_players=include_players)
 
-    base_url = request.host_url.rstrip('/')
-    if team_data.get('logo_url') and not team_data['logo_url'].startswith('http'):
-        team_data['logo_url'] = f"{base_url}{team_data['logo_url']}"
+        base_url = request.host_url.rstrip('/')
+        if team_data.get('logo_url') and not team_data['logo_url'].startswith('http'):
+            team_data['logo_url'] = f"{base_url}{team_data['logo_url']}"
 
-    if request.args.get('include_matches', 'false').lower() == 'true':
-        team_data['upcoming_matches'] = get_team_upcoming_matches(team_id, session=session_db)
+        if request.args.get('include_matches', 'false').lower() == 'true':
+            team_data['upcoming_matches'] = get_team_upcoming_matches(team_id, session=session_db)
 
-    return jsonify(team_data), 200
+        return jsonify(team_data), 200
 
 
 @mobile_api.route('/teams/<int:team_id>/players', endpoint='get_team_players', methods=['GET'])
@@ -564,64 +571,64 @@ def get_team_players(team_id: int):
     """
     Retrieve roster details for a specific team.
     """
-    session_db = g.db_session
-    team = session_db.query(Team).get(team_id)
-    if not team:
-        return jsonify({"msg": "Team not found"}), 404
+    with managed_session() as session_db:
+        team = session_db.query(Team).get(team_id)
+        if not team:
+            return jsonify({"msg": "Team not found"}), 404
 
-    # Fetch players for this team
-    players = (session_db.query(Player)
-              .join(player_teams)
-              .filter(player_teams.c.team_id == team_id)
-              .order_by(Player.name)
-              .all())
-    
-    base_url = request.host_url.rstrip('/')
-    default_image = f"{base_url}/static/img/default_player.png"
-    
-    # Build detailed player list with role information
-    detailed_players = []
-    for player in players:
-        # Get coach status for this specific team - this is the correct way to determine coach status
-        is_coach = session_db.query(player_teams.c.is_coach).filter(
-            player_teams.c.player_id == player.id,
-            player_teams.c.team_id == team_id
-        ).scalar() or False  # Use the team-specific coach relationship
+        # Fetch players for this team
+        players = (session_db.query(Player)
+                  .join(player_teams)
+                  .filter(player_teams.c.team_id == team_id)
+                  .order_by(Player.name)
+                  .all())
         
-        profile_picture_url = player.profile_picture_url
-        if profile_picture_url:
-            full_profile_picture_url = (
-                profile_picture_url if profile_picture_url.startswith('http')
-                else f"{base_url}{profile_picture_url}"
-            )
-        else:
-            full_profile_picture_url = default_image
+        base_url = request.host_url.rstrip('/')
+        default_image = f"{base_url}/static/img/default_player.png"
+        
+        # Build detailed player list with role information
+        detailed_players = []
+        for player in players:
+            # Get coach status for this specific team - this is the correct way to determine coach status
+            is_coach = session_db.query(player_teams.c.is_coach).filter(
+                player_teams.c.player_id == player.id,
+                player_teams.c.team_id == team_id
+            ).scalar() or False  # Use the team-specific coach relationship
             
-        player_data = {
-            "id": player.id,
-            "name": player.name,
-            "jersey_number": player.jersey_number,
-            "is_coach": is_coach,  # This is from the team-specific relationship
-            "is_ref": player.is_ref,
-            "is_current_player": player.is_current_player,
-            "favorite_position": player.favorite_position,
-            "profile_picture_url": full_profile_picture_url,
-            "discord_id": player.discord_id,
-            # Add primary if this is the player's primary team
-            "is_primary_team": (player.primary_team_id == team_id)
-        }
+            profile_picture_url = player.profile_picture_url
+            if profile_picture_url:
+                full_profile_picture_url = (
+                    profile_picture_url if profile_picture_url.startswith('http')
+                    else f"{base_url}{profile_picture_url}"
+                )
+            else:
+                full_profile_picture_url = default_image
+                
+            player_data = {
+                "id": player.id,
+                "name": player.name,
+                "jersey_number": player.jersey_number,
+                "is_coach": is_coach,  # This is from the team-specific relationship
+                "is_ref": player.is_ref,
+                "is_current_player": player.is_current_player,
+                "favorite_position": player.favorite_position,
+                "profile_picture_url": full_profile_picture_url,
+                "discord_id": player.discord_id,
+                # Add primary if this is the player's primary team
+                "is_primary_team": (player.primary_team_id == team_id)
+            }
+            
+            detailed_players.append(player_data)
         
-        detailed_players.append(player_data)
-    
-    return jsonify({
-        "team": {
-            "id": team.id,
-            "name": team.name,
-            "logo_url": team.kit_url if team.kit_url and team.kit_url.startswith('http') else 
-                      f"{base_url}{team.kit_url}" if team.kit_url else None
-        },
-        "players": detailed_players
-    }), 200
+        return jsonify({
+            "team": {
+                "id": team.id,
+                "name": team.name,
+                "logo_url": team.kit_url if team.kit_url and team.kit_url.startswith('http') else 
+                          f"{base_url}{team.kit_url}" if team.kit_url else None
+            },
+            "players": detailed_players
+        }), 200
 
 
 @mobile_api.route('/teams/<int:team_id>/matches', endpoint='get_team_matches', methods=['GET'])
@@ -630,51 +637,51 @@ def get_team_matches(team_id: int):
     """
     Retrieve matches for a specific team.
     """
-    session_db = g.db_session
-    team = session_db.query(Team).get(team_id)
-    if not team:
-        return jsonify({"msg": "Team not found"}), 404
-    
-    # Get optional parameters
-    upcoming = request.args.get('upcoming', 'false').lower() == 'true'
-    completed = request.args.get('completed', 'false').lower() == 'true'
-    include_events = request.args.get('include_events', 'false').lower() == 'true'
-    limit = request.args.get('limit')
-    if limit and limit.isdigit():
-        limit = int(limit)
-    
-    # Build match query
-    query = session_db.query(Match).filter(
-        or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
-    )
-    
-    # Apply upcoming/completed filters
-    if upcoming:
-        query = query.filter(Match.date >= datetime.now().date())
-    if completed:
-        query = query.filter(Match.date < datetime.now().date())
+    with managed_session() as session_db:
+        team = session_db.query(Team).get(team_id)
+        if not team:
+            return jsonify({"msg": "Team not found"}), 404
         
-    # Order by date
-    query = query.order_by(Match.date)
-    
-    # Apply limit if specified
-    if limit:
-        query = query.limit(limit)
+        # Get optional parameters
+        upcoming = request.args.get('upcoming', 'false').lower() == 'true'
+        completed = request.args.get('completed', 'false').lower() == 'true'
+        include_events = request.args.get('include_events', 'false').lower() == 'true'
+        limit = request.args.get('limit')
+        if limit and limit.isdigit():
+            limit = int(limit)
         
-    matches = query.all()
-    
-    # Build response with match details
-    matches_data = []
-    for match in matches:
-        match_data = match.to_dict(include_teams=True)
+        # Build match query
+        query = session_db.query(Match).filter(
+            or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
+        )
         
-        # Add event data if requested
-        if include_events:
-            match_data['events'] = [event.to_dict(include_player=True) for event in match.events]
+        # Apply upcoming/completed filters
+        if upcoming:
+            query = query.filter(Match.date >= datetime.now().date())
+        if completed:
+            query = query.filter(Match.date < datetime.now().date())
             
-        matches_data.append(match_data)
-    
-    return jsonify(matches_data), 200
+        # Order by date
+        query = query.order_by(Match.date)
+        
+        # Apply limit if specified
+        if limit:
+            query = query.limit(limit)
+            
+        matches = query.all()
+        
+        # Build response with match details
+        matches_data = []
+        for match in matches:
+            match_data = match.to_dict(include_teams=True)
+            
+            # Add event data if requested
+            if include_events:
+                match_data['events'] = [event.to_dict(include_player=True) for event in match.events]
+                
+            matches_data.append(match_data)
+        
+        return jsonify(matches_data), 200
 
 
 @mobile_api.route('/matches/<int:match_id>/availability', endpoint='get_match_availability', methods=['GET'])
@@ -683,59 +690,59 @@ def get_match_availability(match_id: int):
     """
     Retrieve availability data for a specific match. Optionally filter for a specific team.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    safe_current_user = session_db.query(User).get(current_user_id)
-    match = session_db.query(Match).get(match_id)
-    
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
-    
-    # Check if user has appropriate roles or is on one of the teams
-    user_roles = [r.name for r in safe_current_user.roles]
-    is_admin_or_coach = any(r in ['Coach', 'Admin'] for r in user_roles)
-    
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-    is_on_team = False
-    
-    if player:
-        player_team_ids = [team.id for team in player.teams]
-        is_on_team = match.home_team_id in player_team_ids or match.away_team_id in player_team_ids
-    
-    # Only allow access if user is admin/coach or on one of the teams
-    if not (is_admin_or_coach or is_on_team):
-        return jsonify({"msg": "Not authorized to view match availability"}), 403
-    
-    # Get optional team_id parameter
-    team_id = request.args.get('team_id', type=int)
-    if team_id:
-        # If team_id is provided, verify it's one of the teams in the match
-        if team_id not in [match.home_team_id, match.away_team_id]:
-            return jsonify({"msg": "Invalid team ID for this match"}), 400
-    
-    # Import functions from availability_api_helpers
-    from app.availability_api_helpers import get_match_rsvp_data, verify_availability_data
-    
-    # Log detailed data for debugging
-    verify_availability_data(match_id, team_id, session=session_db)
-    
-    # Get RSVP data
-    rsvp_data = get_match_rsvp_data(match_id, team_id, session=session_db)
-    
-    # Add counts for easy reference
-    response_data = {
-        "match_id": match_id,
-        "team_id": team_id,
-        "yes": rsvp_data['yes'],
-        "yes_count": len(rsvp_data['yes']),
-        "no": rsvp_data['no'],
-        "no_count": len(rsvp_data['no']),
-        "maybe": rsvp_data['maybe'],
-        "maybe_count": len(rsvp_data['maybe']),
-        "total_responses": len(rsvp_data['yes']) + len(rsvp_data['no']) + len(rsvp_data['maybe'])
-    }
-    
-    return jsonify(response_data), 200
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        safe_current_user = session_db.query(User).get(current_user_id)
+        match = session_db.query(Match).get(match_id)
+        
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+        
+        # Check if user has appropriate roles or is on one of the teams
+        user_roles = [r.name for r in safe_current_user.roles]
+        is_admin_or_coach = any(r in ['Coach', 'Admin'] for r in user_roles)
+        
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        is_on_team = False
+        
+        if player:
+            player_team_ids = [team.id for team in player.teams]
+            is_on_team = match.home_team_id in player_team_ids or match.away_team_id in player_team_ids
+        
+        # Only allow access if user is admin/coach or on one of the teams
+        if not (is_admin_or_coach or is_on_team):
+            return jsonify({"msg": "Not authorized to view match availability"}), 403
+        
+        # Get optional team_id parameter
+        team_id = request.args.get('team_id', type=int)
+        if team_id:
+            # If team_id is provided, verify it's one of the teams in the match
+            if team_id not in [match.home_team_id, match.away_team_id]:
+                return jsonify({"msg": "Invalid team ID for this match"}), 400
+        
+        # Import functions from availability_api_helpers
+        from app.availability_api_helpers import get_match_rsvp_data, verify_availability_data
+        
+        # Log detailed data for debugging
+        verify_availability_data(match_id, team_id, session=session_db)
+        
+        # Get RSVP data
+        rsvp_data = get_match_rsvp_data(match_id, team_id, session=session_db)
+        
+        # Add counts for easy reference
+        response_data = {
+            "match_id": match_id,
+            "team_id": team_id,
+            "yes": rsvp_data['yes'],
+            "yes_count": len(rsvp_data['yes']),
+            "no": rsvp_data['no'],
+            "no_count": len(rsvp_data['no']),
+            "maybe": rsvp_data['maybe'],
+            "maybe_count": len(rsvp_data['maybe']),
+            "total_responses": len(rsvp_data['yes']) + len(rsvp_data['no']) + len(rsvp_data['maybe'])
+        }
+        
+        return jsonify(response_data), 200
 
 
 @mobile_api.route('/teams/<int:team_id>/stats', endpoint='get_team_stats', methods=['GET'])
@@ -744,123 +751,123 @@ def get_team_stats(team_id: int):
     """
     Retrieve detailed statistics for a specific team, including standings.
     """
-    session_db = g.db_session
-    team = session_db.query(Team).get(team_id)
-    if not team:
-        return jsonify({"msg": "Team not found"}), 404
-    
-    # Find current season - first check team's league's season
-    current_season = None
-    if team.league and team.league.season:
-        current_season = team.league.season
-    
-    # If not found through team's league, find any current season
-    if not current_season:
-        current_season = session_db.query(Season).filter_by(is_current=True).first()
-    
-    # Get standings data
-    standings = session_db.query(Standings).filter_by(
-        team_id=team_id,
-        season_id=current_season.id if current_season else None
-    ).first()
-    
-    # Preload team stats to avoid N+1 queries
-    from app.team_performance_helpers import preload_team_stats_for_request
-    preload_team_stats_for_request([team.id])
+    with managed_session() as session_db:
+        team = session_db.query(Team).get(team_id)
+        if not team:
+            return jsonify({"msg": "Team not found"}), 404
+        
+        # Find current season - first check team's league's season
+        current_season = None
+        if team.league and team.league.season:
+            current_season = team.league.season
+        
+        # If not found through team's league, find any current season
+        if not current_season:
+            current_season = session_db.query(Season).filter_by(is_current=True).first()
+        
+        # Get standings data
+        standings = session_db.query(Standings).filter_by(
+            team_id=team_id,
+            season_id=current_season.id if current_season else None
+        ).first()
+        
+        # Preload team stats to avoid N+1 queries
+        from app.team_performance_helpers import preload_team_stats_for_request
+        preload_team_stats_for_request([team.id])
 
-    # Get team stats from model properties
-    stats = {
-        "name": team.name,
-        "league": team.league.name if team.league else None,
-        "season": current_season.name if current_season else None,
-        "top_scorer": team.top_scorer,
-        "top_assist": team.top_assist,
-        "avg_goals_per_match": team.avg_goals_per_match,
-    }
+        # Get team stats from model properties
+        stats = {
+            "name": team.name,
+            "league": team.league.name if team.league else None,
+            "season": current_season.name if current_season else None,
+            "top_scorer": team.top_scorer,
+            "top_assist": team.top_assist,
+            "avg_goals_per_match": team.avg_goals_per_match,
+        }
+        
+        # Add recent form information
+        recent_matches = session_db.query(Match).filter(
+            or_(Match.home_team_id == team_id, Match.away_team_id == team_id),
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        ).order_by(Match.date.desc()).limit(5).all()
+        
+        form = []
+        for match in recent_matches:
+            if match.home_team_id == team_id:
+                if match.home_team_score > match.away_team_score:
+                    form.append("W")
+                elif match.home_team_score < match.away_team_score:
+                    form.append("L")
+                else:
+                    form.append("D")
+            else:  # Away team
+                if match.away_team_score > match.home_team_score:
+                    form.append("W")
+                elif match.away_team_score < match.home_team_score:
+                    form.append("L")
+                else:
+                    form.append("D")
+        
+        stats["recent_form"] = form
+        
+        # Add standings data if available
+        if standings:
+            stats.update({
+                "standings": {
+                    "played": standings.played,
+                    "wins": standings.wins,
+                    "draws": standings.draws,
+                    "losses": standings.losses,
+                    "goals_for": standings.goals_for,
+                    "goals_against": standings.goals_against,
+                    "goal_difference": standings.goal_difference,
+                    "points": standings.points,
+                }
+            })
+        else:
+            stats["standings"] = None
+        
+        # Get total goals scored by team's players
+        total_goals = session_db.query(func.sum(PlayerSeasonStats.goals)).join(
+            player_teams, PlayerSeasonStats.player_id == player_teams.c.player_id
+        ).filter(
+            player_teams.c.team_id == team_id,
+            PlayerSeasonStats.season_id == current_season.id if current_season else None
+        ).scalar() or 0
+        
+        stats["total_goals"] = total_goals
+        
+        # Get player statistics for this team
+        players_stats = []
+        team_players = session_db.query(Player).join(
+            player_teams
+        ).filter(
+            player_teams.c.team_id == team_id
+        ).all()
+        
+        for player in team_players:
+            if current_season:
+                player_stats = session_db.query(PlayerSeasonStats).filter_by(
+                    player_id=player.id,
+                    season_id=current_season.id
+                ).first()
+                
+                if player_stats and (player_stats.goals > 0 or player_stats.assists > 0):
+                    players_stats.append({
+                        "id": player.id,
+                        "name": player.name,
+                        "goals": player_stats.goals,
+                        "assists": player_stats.assists,
+                        "yellow_cards": player_stats.yellow_cards,
+                        "red_cards": player_stats.red_cards
+                    })
     
-    # Add recent form information
-    recent_matches = session_db.query(Match).filter(
-        or_(Match.home_team_id == team_id, Match.away_team_id == team_id),
-        Match.home_team_score.isnot(None),
-        Match.away_team_score.isnot(None)
-    ).order_by(Match.date.desc()).limit(5).all()
-    
-    form = []
-    for match in recent_matches:
-        if match.home_team_id == team_id:
-            if match.home_team_score > match.away_team_score:
-                form.append("W")
-            elif match.home_team_score < match.away_team_score:
-                form.append("L")
-            else:
-                form.append("D")
-        else:  # Away team
-            if match.away_team_score > match.home_team_score:
-                form.append("W")
-            elif match.away_team_score < match.home_team_score:
-                form.append("L")
-            else:
-                form.append("D")
-    
-    stats["recent_form"] = form
-    
-    # Add standings data if available
-    if standings:
-        stats.update({
-            "standings": {
-                "played": standings.played,
-                "wins": standings.wins,
-                "draws": standings.draws,
-                "losses": standings.losses,
-                "goals_for": standings.goals_for,
-                "goals_against": standings.goals_against,
-                "goal_difference": standings.goal_difference,
-                "points": standings.points,
-            }
-        })
-    else:
-        stats["standings"] = None
-    
-    # Get total goals scored by team's players
-    total_goals = session_db.query(func.sum(PlayerSeasonStats.goals)).join(
-        player_teams, PlayerSeasonStats.player_id == player_teams.c.player_id
-    ).filter(
-        player_teams.c.team_id == team_id,
-        PlayerSeasonStats.season_id == current_season.id if current_season else None
-    ).scalar() or 0
-    
-    stats["total_goals"] = total_goals
-    
-    # Get player statistics for this team
-    players_stats = []
-    team_players = session_db.query(Player).join(
-        player_teams
-    ).filter(
-        player_teams.c.team_id == team_id
-    ).all()
-    
-    for player in team_players:
-        if current_season:
-            player_stats = session_db.query(PlayerSeasonStats).filter_by(
-                player_id=player.id,
-                season_id=current_season.id
-            ).first()
-            
-            if player_stats and (player_stats.goals > 0 or player_stats.assists > 0):
-                players_stats.append({
-                    "id": player.id,
-                    "name": player.name,
-                    "goals": player_stats.goals,
-                    "assists": player_stats.assists,
-                    "yellow_cards": player_stats.yellow_cards,
-                    "red_cards": player_stats.red_cards
-                })
-    
-    # Sort by goals, then assists
-    players_stats.sort(key=lambda x: (x.get("goals", 0), x.get("assists", 0)), reverse=True)
-    stats["players_stats"] = players_stats
-    
-    return jsonify(stats), 200
+        # Sort by goals, then assists
+        players_stats.sort(key=lambda x: (x.get("goals", 0), x.get("assists", 0)), reverse=True)
+        stats["players_stats"] = players_stats
+        
+        return jsonify(stats), 200
 
 
 @mobile_api.route('/teams/my_team', endpoint='get_my_team', methods=['GET'])
@@ -868,15 +875,28 @@ def get_team_stats(team_id: int):
 def get_my_team():
     """
     Retrieve the team of the currently authenticated player.
+    Returns the primary team if set, otherwise returns the first team the player is associated with.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-    if not player or not player.primary_team:
-        return jsonify({"msg": "Team not found"}), 404
+        if not player:
+            return jsonify({"msg": "Team not found"}), 404
 
-    return get_team_details(player.primary_team.id)
+        # First try to use primary team
+        if player.primary_team:
+            return get_team_details(player.primary_team.id)
+        
+        # If no primary team, get the first team from player_teams association
+        first_team = session_db.query(Team).join(player_teams).filter(
+            player_teams.c.player_id == player.id
+        ).first()
+        
+        if not first_team:
+            return jsonify({"msg": "Team not found"}), 404
+
+        return get_team_details(first_team.id)
 
 
 @mobile_api.route('/teams/my_teams', endpoint='get_my_teams', methods=['GET'])
@@ -885,54 +905,54 @@ def get_my_teams():
     """
     Retrieve all teams the currently authenticated player is associated with.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-    if not player:
-        return jsonify({"msg": "Player not found"}), 404
-    
-    # Query all teams for this player using the player_teams association table
-    teams_query = session_db.query(Team).join(player_teams).filter(
-        player_teams.c.player_id == player.id
-    )
-    
-    teams = teams_query.all()
-    
-    if not teams:
-        return jsonify({"msg": "No teams found for this player"}), 404
+        if not player:
+            return jsonify({"msg": "Player not found"}), 404
+        
+        # Query all teams for this player using the player_teams association table
+        teams_query = session_db.query(Team).join(player_teams).filter(
+            player_teams.c.player_id == player.id
+        )
+        
+        teams = teams_query.all()
+        
+        if not teams:
+            return jsonify({"msg": "No teams found for this player"}), 404
 
-    # Preload team stats to avoid N+1 queries
-    from app.team_performance_helpers import preload_team_stats_for_request
-    team_ids = [team.id for team in teams]
-    preload_team_stats_for_request(team_ids)
+        # Preload team stats to avoid N+1 queries
+        from app.team_performance_helpers import preload_team_stats_for_request
+        team_ids = [team.id for team in teams]
+        preload_team_stats_for_request(team_ids)
 
-    base_url = request.host_url.rstrip('/')
-    teams_data = []
-    
-    for team in teams:
-        team_data = team.to_dict()
+        base_url = request.host_url.rstrip('/')
+        teams_data = []
         
-        # Add is_primary flag
-        team_data['is_primary'] = (team.id == player.primary_team_id)
-        
-        # Add is_coach flag
-        is_coach = session_db.query(player_teams.c.is_coach).filter(
-            player_teams.c.player_id == player.id,
-            player_teams.c.team_id == team.id
-        ).scalar()
-        team_data['is_coach'] = bool(is_coach)
-        
-        # Handle team logo URLs
-        if team_data.get('logo_url') and not team_data['logo_url'].startswith('http'):
-            team_data['logo_url'] = f"{base_url}{team_data['logo_url']}"
+        for team in teams:
+            team_data = team.to_dict()
             
-        teams_data.append(team_data)
-    
-    # Sort teams with primary team first, then alphabetically
-    teams_data.sort(key=lambda t: (not t['is_primary'], t['name'].lower()))
-    
-    return jsonify(teams_data), 200
+            # Add is_primary flag
+            team_data['is_primary'] = (team.id == player.primary_team_id)
+            
+            # Add is_coach flag
+            is_coach = session_db.query(player_teams.c.is_coach).filter(
+                player_teams.c.player_id == player.id,
+                player_teams.c.team_id == team.id
+            ).scalar()
+            team_data['is_coach'] = bool(is_coach)
+            
+            # Handle team logo URLs
+            if team_data.get('logo_url') and not team_data['logo_url'].startswith('http'):
+                team_data['logo_url'] = f"{base_url}{team_data['logo_url']}"
+                
+            teams_data.append(team_data)
+        
+        # Sort teams with primary team first, then alphabetically
+        teams_data.sort(key=lambda t: (not t['is_primary'], t['name'].lower()))
+        
+        return jsonify(teams_data), 200
 
 
 @mobile_api.route('/matches', endpoint='get_all_matches', methods=['GET'])
@@ -942,41 +962,57 @@ def get_all_matches():
     Retrieve a list of matches based on query parameters, including
     optional event and availability details.
     """
-    session_db = g.db_session
     current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-
-    # Get optional limit parameter
-    limit = request.args.get('limit')
-    if limit and limit.isdigit():
-        limit = int(limit)
-    else:
-        limit = None
-
-    query = build_matches_query(
-        team_id=request.args.get('team_id'),
-        player=player,
-        upcoming=request.args.get('upcoming', 'false').lower() == 'true',
-        completed=request.args.get('completed', 'false').lower() == 'true',
-        all_teams=request.args.get('all_teams', 'false').lower() == 'true',
-        session=session_db
-    )
+    logger.info(f"🔵 [MOBILE_API] get_all_matches called for user_id: {current_user_id}")
+    logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
     
-    # Apply limit if provided
-    if limit:
-        matches = query.order_by(Match.date).limit(limit).all()
-    else:
-        matches = query.order_by(Match.date).all()
+    with managed_session() as session_db:
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'}")
 
-    matches_data = process_matches_data(
-        matches=matches,
-        player=player,
-        include_events=request.args.get('include_events', 'false').lower() == 'true',
-        include_availability=request.args.get('include_availability', 'false').lower() == 'true',
-        session=session_db
-    )
+        # Get optional limit parameter - set reasonable default for performance
+        limit = request.args.get('limit')
+        if limit and limit.isdigit():
+            limit = int(limit)
+        else:
+            # Default limit to prevent expensive queries
+            limit = 50 if request.args.get('all_teams', 'false').lower() == 'true' else None
 
-    return jsonify(matches_data), 200
+        logger.debug(f"🔵 [MOBILE_API] Building matches query with limit: {limit}")
+        
+        query = build_matches_query(
+            team_id=request.args.get('team_id'),
+            player=player,
+            upcoming=request.args.get('upcoming', 'false').lower() == 'true',
+            completed=request.args.get('completed', 'false').lower() == 'true',
+            all_teams=request.args.get('all_teams', 'false').lower() == 'true',
+            session=session_db
+        )
+        
+        logger.debug(f"🔵 [MOBILE_API] Query built, executing with limit: {limit}")
+        
+        # Apply limit if provided
+        if limit:
+            matches = query.order_by(Match.date).limit(limit).all()
+        else:
+            matches = query.order_by(Match.date).all()
+
+        logger.info(f"🔵 [MOBILE_API] Found {len(matches)} matches")
+        
+        include_events = request.args.get('include_events', 'false').lower() == 'true'
+        include_availability = request.args.get('include_availability', 'false').lower() == 'true'
+        logger.debug(f"🔵 [MOBILE_API] Processing matches - include_events: {include_events}, include_availability: {include_availability}")
+
+        matches_data = process_matches_data(
+            matches=matches,
+            player=player,
+            include_events=include_events,
+            include_availability=include_availability,
+            session=session_db
+        )
+
+        logger.info(f"🟢 [MOBILE_API] get_all_matches successful - returning {len(matches_data)} matches")
+        return jsonify(matches_data), 200
 
 
 @mobile_api.route('/matches/schedule', endpoint='get_match_schedule', methods=['GET'])
@@ -985,52 +1021,57 @@ def get_match_schedule():
     """
     Retrieve the schedule of upcoming matches, grouped by date.
     """
-    session_db = g.db_session
     current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+    logger.info(f"🔵 [MOBILE_API] get_match_schedule called for user_id: {current_user_id}")
+    logger.debug(f"🔵 [MOBILE_API] Request args: {dict(request.args)}")
     
-    # Build query for upcoming matches
-    query = build_matches_query(
-        team_id=request.args.get('team_id'),
-        player=player,
-        upcoming=True,
-        session=session_db
-    )
-    
-    # Order by date and get matches
-    matches = query.order_by(Match.date).all()
-    
-    # Group matches by date
-    schedule = {}
-    for match in matches:
-        match_date = match.date.strftime('%Y-%m-%d')
-        if match_date not in schedule:
-            schedule[match_date] = []
+    with managed_session() as session_db:
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'}")
         
-        match_data = match.to_dict(include_teams=True)
-        # Add availability if requested and player exists
-        if player and request.args.get('include_availability', 'true').lower() == 'true':
-            availability = session_db.query(Availability).filter_by(
-                match_id=match.id, 
-                player_id=player.id
-            ).first()
-            match_data['availability'] = availability.to_dict() if availability else None
+        # Build query for upcoming matches
+        query = build_matches_query(
+            team_id=request.args.get('team_id'),
+            player=player,
+            upcoming=True,
+            session=session_db
+        )
         
-        schedule[match_date].append(match_data)
-    
-    # Convert to list of objects with date and matches
-    schedule_list = [
-        {
-            'date': date,
-            'matches': matches_data
-        }
-        for date, matches_data in schedule.items()
-    ]
-    
-    # Sort by date
-    schedule_list.sort(key=lambda x: x['date'])
-    
-    return jsonify(schedule_list), 200
+        # Order by date and get matches
+        matches = query.order_by(Match.date).all()
+        
+        # Group matches by date
+        schedule = {}
+        for match in matches:
+            match_date = match.date.strftime('%Y-%m-%d')
+            if match_date not in schedule:
+                schedule[match_date] = []
+            
+            match_data = match.to_dict(include_teams=True)
+            # Add availability if requested and player exists
+            if player and request.args.get('include_availability', 'true').lower() == 'true':
+                availability = session_db.query(Availability).filter_by(
+                    match_id=match.id, 
+                    player_id=player.id
+                ).first()
+                match_data['availability'] = availability.to_dict() if availability else None
+            
+            schedule[match_date].append(match_data)
+        
+        # Convert to list of objects with date and matches
+        schedule_list = [
+            {
+                'date': date,
+                'matches': matches_data
+            }
+            for date, matches_data in schedule.items()
+        ]
+        
+        # Sort by date
+        schedule_list.sort(key=lambda x: x['date'])
+        
+        logger.info(f"🟢 [MOBILE_API] get_match_schedule successful - returning {len(schedule_list)} dates with matches")
+        return jsonify(schedule_list), 200
 
 
 @mobile_api.route('/matches/<int:match_id>', endpoint='get_single_match_details', methods=['GET'])
@@ -1039,24 +1080,24 @@ def get_single_match_details(match_id: int):
     """
     Retrieve detailed information for a single match.
     """
-    session_db = g.db_session
-    match = session_db.query(Match).get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
+    with managed_session() as session_db:
+        match = session_db.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
 
-    current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-    match_data = build_match_response(
-        match=match,
-        include_events=request.args.get('include_events', 'true').lower() == 'true',
-        include_teams=request.args.get('include_teams', 'true').lower() == 'true',
-        include_players=request.args.get('include_players', 'true').lower() == 'true',
-        current_player=player,
-        session=session_db
-    )
+        match_data = build_match_response(
+            match=match,
+            include_events=request.args.get('include_events', 'true').lower() == 'true',
+            include_teams=request.args.get('include_teams', 'true').lower() == 'true',
+            include_players=request.args.get('include_players', 'true').lower() == 'true',
+            current_player=player,
+            session=session_db
+        )
 
-    return jsonify(match_data), 200
+        return jsonify(match_data), 200
 
 
 @mobile_api.route('/update_availability', endpoint='update_availability', methods=['POST'])
@@ -1065,38 +1106,38 @@ def update_availability():
     """
     Update a player's availability status for a specific match.
     """
-    session_db = g.db_session
-    current_user_id = get_jwt_identity()
-    player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-    if not player:
-        return jsonify({"msg": "Player not found"}), 404
+    with managed_session() as session_db:
+        current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player not found"}), 404
 
-    data = request.json
-    match_id = data.get('match_id')
-    availability_status = data.get('availability')
+        data = request.json
+        match_id = data.get('match_id')
+        availability_status = data.get('availability')
 
-    if not match_id or not availability_status:
-        return jsonify({"msg": "Missing match_id or availability status"}), 400
+        if not match_id or not availability_status:
+            return jsonify({"msg": "Missing match_id or availability status"}), 400
 
-    if availability_status not in ['yes', 'no', 'maybe']:
-        return jsonify({"msg": "Invalid availability status"}), 400
+        if availability_status not in ['yes', 'no', 'maybe']:
+            return jsonify({"msg": "Invalid availability status"}), 400
 
-    match = session_db.query(Match).get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
+        match = session_db.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
 
-    try:
-        update_player_availability(
-            match_id=match_id,
-            player_id=player.id,
-            discord_id=player.discord_id,
-            response=availability_status,
-            session=session_db
-        )
-        return jsonify({"msg": "Availability updated successfully"}), 200
-    except Exception as e:
-        logger.error(f"Error updating availability: {str(e)}")
-        return jsonify({"msg": "An error occurred while updating availability"}), 500
+        try:
+            update_player_availability(
+                match_id=match_id,
+                player_id=player.id,
+                discord_id=player.discord_id,
+                response=availability_status,
+                session=session_db
+            )
+            return jsonify({"msg": "Availability updated successfully"}), 200
+        except Exception as e:
+            logger.error(f"Error updating availability: {str(e)}")
+            return jsonify({"msg": "An error occurred while updating availability"}), 500
 
 
 @mobile_api.route('/report_match/<int:match_id>', endpoint='report_match', methods=['POST'])
@@ -1106,23 +1147,23 @@ def report_match(match_id: int):
     """
     Report match details and add any related events.
     """
-    session_db = g.db_session
-    match = session_db.query(Match).get(match_id)
-    if not match:
-        return jsonify({"msg": "Match not found"}), 404
+    with managed_session() as session_db:
+        match = session_db.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
 
-    try:
-        data = request.json
-        update_match_details(match, data, session=session_db)
-        add_match_events(match, data.get('events', []), session=session_db)
+        try:
+            data = request.json
+            update_match_details(match, data, session=session_db)
+            add_match_events(match, data.get('events', []), session=session_db)
 
-        return jsonify({
-            "msg": "Match reported successfully",
-            "match": match.to_dict()
-        }), 200
-    except Exception as e:
-        logger.error(f"Error reporting match: {str(e)}")
-        return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
+            return jsonify({
+                "msg": "Match reported successfully",
+                "match": match.to_dict()
+            }), 200
+        except Exception as e:
+            logger.error(f"Error reporting match: {str(e)}")
+            return jsonify({"msg": f"Error reporting match: {str(e)}"}), 500
 
 
 
@@ -1135,23 +1176,23 @@ def update_availability_web():
     """
     Update a player's match availability via a web interface and send a notification.
     """
-    session_db = g.db_session
-    data = request.json
-    logger.info(f"Received web update data: {data}")
+    with managed_session() as session_db:
+        data = request.json
+        logger.info(f"Received web update data: {data}")
 
-    match_id = data.get('match_id')
-    player_id = data.get('player_id')
-    new_response = data.get('response')
+        match_id = data.get('match_id')
+        player_id = data.get('player_id')
+        new_response = data.get('response')
 
-    if not all([match_id, player_id, new_response]):
-        logger.error("Invalid data received from web")
-        return jsonify({"error": "Invalid data"}), 400
+        if not all([match_id, player_id, new_response]):
+            logger.error("Invalid data received from web")
+            return jsonify({"error": "Invalid data"}), 400
 
-    success = update_player_match_availability(match_id, player_id, new_response, session=session_db)
+        success = update_player_match_availability(match_id, player_id, new_response, session=session_db)
 
-    if success:
-        notify_availability_update(match_id, player_id, new_response, session=session_db)
-        return jsonify({"message": "Availability updated successfully"}), 200
+        if success:
+            notify_availability_update(match_id, player_id, new_response, session=session_db)
+            return jsonify({"message": "Availability updated successfully"}), 200
 
     return jsonify({"error": "Failed to update availability"}), 500
 
@@ -1165,21 +1206,22 @@ def get_players():
     Retrieve a list of players, optionally filtered by a search query
     on player or team names.
     """
-    session_db = g.db_session
-    search_query = request.args.get('search', '').lower()
+    with managed_session() as session_db:
+        search_query = request.args.get('search', '').lower()
 
-    players_query = session_db.query(Player).join(Team, isouter=True).filter(
-        (Player.name.ilike(f"%{search_query}%")) |
-        (Team.name.ilike(f"%{search_query}%"))
-    )
+        players_query = session_db.query(Player).join(Team, isouter=True).filter(
+            (Player.name.ilike(f"%{search_query}%")) |
+            (Team.name.ilike(f"%{search_query}%"))
+        )
 
-    players_data = [build_player_response(player) for player in players_query.all()]
-    return jsonify(players_data), 200
+        players_data = [build_player_response(player) for player in players_query.all()]
+        return jsonify(players_data), 200
 
 
-@mobile_api.route('/players/<int:player_id>/profile_picture', endpoint='upload_player_profile_picture', methods=['POST'])
-@jwt_required()
-def upload_player_profile_picture(player_id: int):
+# TEMPORARILY DISABLED DUE TO SESSION MANAGEMENT ISSUES
+# @mobile_api.route('/players/<int:player_id>/profile_picture', endpoint='upload_player_profile_picture', methods=['POST'])
+# @jwt_required()
+def upload_player_profile_picture_disabled(player_id: int):
     """
     Upload and update a player's profile picture via mobile API.
     
@@ -1204,13 +1246,13 @@ def upload_player_profile_picture(player_id: int):
     import os
     
     try:
-        session_db = g.db_session
-        current_user_id = get_jwt_identity()
-        
-        # Get the player
-        player = session_db.query(Player).filter(Player.id == player_id).first()
-        if not player:
-            return jsonify({"error": "Player not found"}), 404
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+            
+            # Get the player
+            player = session_db.query(Player).filter(Player.id == player_id).first()
+            if not player:
+                return jsonify({"error": "Player not found"}), 404
         
         # Get current user to check authorization
         current_user = session_db.query(User).filter(User.id == current_user_id).first()
@@ -1340,26 +1382,281 @@ def get_player_profile_picture(player_id: int):
         JSON response with profile picture information
     """
     try:
-        session_db = g.db_session
-        
-        # Get the player
-        player = session_db.query(Player).filter(Player.id == player_id).first()
-        if not player:
-            return jsonify({"error": "Player not found"}), 404
-        
-        # Build response
-        base_url = request.host_url.rstrip('/')
-        default_image = f"{base_url}/static/img/default_player.png"
-        current_image = f"{base_url}{player.profile_picture_url}" if player.profile_picture_url else default_image
-        
-        return jsonify({
-            "player_id": player_id,
-            "player_name": player.name,
-            "profile_picture_url": current_image,
-            "has_custom_picture": bool(player.profile_picture_url),
-            "last_updated": player.profile_last_updated.isoformat() if player.profile_last_updated else None
-        }), 200
+        with managed_session() as session_db:
+            # Get the player
+            player = session_db.query(Player).filter(Player.id == player_id).first()
+            if not player:
+                return jsonify({"error": "Player not found"}), 404
+            
+            # Build response
+            base_url = request.host_url.rstrip('/')
+            default_image = f"{base_url}/static/img/default_player.png"
+            current_image = f"{base_url}{player.profile_picture_url}" if player.profile_picture_url else default_image
+            
+            return jsonify({
+                "player_id": player_id,
+                "player_name": player.name,
+                "profile_picture_url": current_image,
+                "has_custom_picture": bool(player.profile_picture_url),
+                "last_updated": player.profile_last_updated.isoformat() if player.profile_last_updated else None
+            }), 200
         
     except Exception as e:
         logger.error(f"Error getting profile picture for player {player_id}: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@mobile_api.route('/matches/<int:match_id>/live_updates', endpoint='get_match_live_updates', methods=['GET'])
+@jwt_required()
+def get_match_live_updates(match_id: int):
+    """
+    Get live match updates for mobile apps that can't maintain WebSocket connections.
+    Returns the current state of the match including score, time, and recent events.
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+        
+        # Get the match
+        match = session_db.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+        
+        # Check if user has permission to view this match
+        safe_current_user = session_db.query(User).get(current_user_id)
+        user_roles = [r.name for r in safe_current_user.roles]
+        is_admin_or_coach = any(r in ['Coach', 'Admin'] for r in user_roles)
+        
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        is_on_team = False
+        
+        if player:
+            player_team_ids = [team.id for team in player.teams]
+            is_on_team = match.home_team_id in player_team_ids or match.away_team_id in player_team_ids
+        
+        if not (is_admin_or_coach or is_on_team):
+            return jsonify({"msg": "Not authorized to view match updates"}), 403
+        
+        # Get live match data if it exists
+        from app.database.db_models import LiveMatch, MatchEvent
+        live_match = session_db.query(LiveMatch).filter_by(match_id=match_id).first()
+        
+        # Get recent events (last 10 minutes worth)
+        recent_events = session_db.query(MatchEvent).filter_by(match_id=match_id).order_by(MatchEvent.timestamp.desc()).limit(10).all()
+        
+        response_data = {
+            "match_id": match_id,
+            "match_status": "live" if live_match and live_match.is_active else "scheduled",
+            "home_team": {
+                "id": match.home_team.id,
+                "name": match.home_team.name,
+                "score": match.home_team_score or 0
+            },
+            "away_team": {
+                "id": match.away_team.id,
+                "name": match.away_team.name,
+                "score": match.away_team_score or 0
+            },
+            "current_time": live_match.current_minute if live_match else 0,
+            "period": live_match.period if live_match else "Not Started",
+            "last_updated": live_match.last_updated.isoformat() if live_match and live_match.last_updated else None,
+            "recent_events": [
+                {
+                    "id": event.id,
+                    "type": event.event_type,
+                    "minute": event.minute,
+                    "player_name": event.player_name,
+                    "team": "home" if event.team == match.home_team.name else "away",
+                    "timestamp": event.timestamp.isoformat()
+                }
+                for event in recent_events
+            ]
+        }
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting live updates for match {match_id}: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@mobile_api.route('/notifications/register', endpoint='register_device', methods=['POST'])
+@jwt_required()
+def register_device():
+    """
+    Register a mobile device for push notifications.
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+        data = request.json
+        
+        device_token = data.get('device_token')
+        device_type = data.get('device_type')  # 'ios' or 'android'
+        app_version = data.get('app_version', '1.0')
+        
+        if not device_token or not device_type:
+            return jsonify({"msg": "Missing device_token or device_type"}), 400
+        
+        if device_type not in ['ios', 'android']:
+            return jsonify({"msg": "Invalid device_type. Must be 'ios' or 'android'"}), 400
+        
+        # Check if device already exists
+        from app.models import DeviceToken
+        device = session_db.query(DeviceToken).filter_by(
+            user_id=current_user_id,
+            device_token=device_token
+        ).first()
+        
+        if device:
+            # Update existing device
+            device.device_type = device_type
+            device.app_version = app_version
+            device.is_active = True
+            device.updated_at = datetime.utcnow()
+        else:
+            # Create new device registration
+            device = DeviceToken(
+                user_id=current_user_id,
+                device_token=device_token,
+                device_type=device_type,
+                app_version=app_version,
+                is_active=True
+            )
+            session_db.add(device)
+        
+        return jsonify({"msg": "Device registered successfully"}), 200
+        
+    except Exception as e:
+        logger.error(f"Error registering device: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@mobile_api.route('/notifications/preferences', endpoint='notification_preferences', methods=['GET', 'PUT'])
+@jwt_required()
+def notification_preferences():
+    """
+    Get or update notification preferences for the current user.
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+        user = session_db.query(User).get(current_user_id)
+        
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+        
+        if request.method == 'GET':
+            return jsonify({
+                "email_notifications": user.email_notifications,
+                "sms_notifications": user.sms_notifications,
+                "discord_notifications": user.discord_notifications,
+                "push_notifications": getattr(user, 'push_notifications', True),
+                "match_reminders": getattr(user, 'match_reminders', True),
+                "availability_requests": getattr(user, 'availability_requests', True),
+                "team_updates": getattr(user, 'team_updates', True)
+            }), 200
+        
+        elif request.method == 'PUT':
+            data = request.json
+            
+            # Update preferences that exist in the User model
+            if 'email_notifications' in data:
+                user.email_notifications = bool(data['email_notifications'])
+            if 'sms_notifications' in data:
+                user.sms_notifications = bool(data['sms_notifications'])
+            if 'discord_notifications' in data:
+                user.discord_notifications = bool(data['discord_notifications'])
+            
+            # For additional preferences, you might want to add columns to User model
+            # or create a separate UserPreferences table
+            
+            return jsonify({"msg": "Preferences updated successfully"}), 200
+            
+    except Exception as e:
+        logger.error(f"Error handling notification preferences: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@mobile_api.route('/matches/availability/bulk', endpoint='bulk_availability_update', methods=['POST'])
+@jwt_required()
+def bulk_availability_update():
+    """
+    Update availability for multiple matches at once (useful for offline sync).
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+        
+        if not player:
+            return jsonify({"msg": "Player not found"}), 404
+        
+        data = request.json
+        updates = data.get('updates', [])
+        
+        if not updates or not isinstance(updates, list):
+            return jsonify({"msg": "Missing or invalid updates array"}), 400
+        
+        successful_updates = []
+        failed_updates = []
+        
+        for update in updates:
+            try:
+                match_id = update.get('match_id')
+                availability_status = update.get('availability')
+                
+                if not match_id or not availability_status:
+                    failed_updates.append({
+                        "match_id": match_id,
+                        "error": "Missing match_id or availability"
+                    })
+                    continue
+                
+                if availability_status not in ['yes', 'no', 'maybe']:
+                    failed_updates.append({
+                        "match_id": match_id,
+                        "error": "Invalid availability status"
+                    })
+                    continue
+                
+                # Verify match exists
+                match = session_db.query(Match).get(match_id)
+                if not match:
+                    failed_updates.append({
+                        "match_id": match_id,
+                        "error": "Match not found"
+                    })
+                    continue
+                
+                # Update availability
+                update_player_availability(
+                    match_id=match_id,
+                    player_id=player.id,
+                    discord_id=player.discord_id,
+                    response=availability_status,
+                    session=session_db
+                )
+                
+                successful_updates.append({
+                    "match_id": match_id,
+                    "availability": availability_status
+                })
+                
+            except Exception as e:
+                failed_updates.append({
+                    "match_id": update.get('match_id'),
+                    "error": str(e)
+                })
+        
+        return jsonify({
+            "msg": "Bulk update completed",
+            "successful_updates": len(successful_updates),
+            "failed_updates": len(failed_updates),
+            "successes": successful_updates,
+            "failures": failed_updates
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error in bulk availability update: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500

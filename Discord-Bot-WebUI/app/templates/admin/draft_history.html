@@ -56,6 +56,93 @@
     padding: 3rem;
     color: var(--bs-secondary);
 }
+
+/* Drag and Drop Styles */
+.draggable-card {
+    cursor: move;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.draggable-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transform: translateY(-3px);
+}
+
+.draggable-card:hover::after {
+    content: "🔀 Drag to reorder";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,123,255,0.9);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    z-index: 100;
+    animation: fadeInPulse 0.3s ease-in;
+}
+
+@keyframes fadeInPulse {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.draggable-card.dragging {
+    opacity: 0.6;
+    transform: rotate(3deg) scale(1.05);
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border: 2px dashed #007bff;
+}
+
+.sortable-item {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.sortable-item.drag-over {
+    transform: scale(1.02);
+    z-index: 999;
+}
+
+.sortable-item.drag-over::before {
+    content: "📍 Drop here to insert at position #" attr(data-position);
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    z-index: 1001;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(40,167,69,0.4);
+    animation: dropZonePulse 0.3s ease-in;
+}
+
+@keyframes dropZonePulse {
+    0% { opacity: 0; transform: translateX(-50%) translateY(-10px) scale(0.8); }
+    100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.sortable-item.drag-over .card {
+    border: 2px solid #28a745;
+    background: rgba(40,167,69,0.05);
+}
+
+.drag-active {
+    background: rgba(0,123,255,0.05);
+}
+
+.drag-active .sortable-item:not(.dragging) {
+    opacity: 0.8;
+}
 </style>
 {% endblock %}
 
@@ -134,16 +221,22 @@
                             <i class="ti ti-trophy me-1"></i>{{ league_name }}
                             <span class="badge bg-secondary ms-2">{{ picks|length }} picks</span>
                         </h6>
-                        <button class="btn btn-outline-danger btn-sm" 
-                                onclick="clearSeasonLeague({{ picks[0].season_id }}, {{ picks[0].league_id }}, '{{ season_name }}', '{{ league_name }}')">
-                            <i class="ti ti-trash me-1"></i>Clear All
-                        </button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" 
+                                    onclick="normalizeDraftPositions({{ picks[0].season_id }}, {{ picks[0].league_id }}, '{{ season_name }}', '{{ league_name }}')">
+                                <i class="ti ti-arrows-sort me-1"></i>Fix Order
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="clearSeasonLeague({{ picks[0].season_id }}, {{ picks[0].league_id }}, '{{ season_name }}', '{{ league_name }}')">
+                                <i class="ti ti-trash me-1"></i>Clear All
+                            </button>
+                        </div>
                     </div>
                     
-                    <div class="row g-3">
+                    <div class="row g-3 sortable-draft-picks" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
                         {% for pick in picks %}
-                        <div class="col-lg-6 col-xl-4">
-                            <div class="card draft-pick-card h-100" data-pick-id="{{ pick.id }}">
+                        <div class="col-lg-6 col-xl-4 sortable-item" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}">
+                            <div class="card draft-pick-card h-100 draggable-card" draggable="true">
                                 <div class="card-body">
                                     <div class="d-flex align-items-start">
                                         <div class="draft-position-badge bg-primary text-white me-3">
@@ -237,9 +330,16 @@
                     <div class="mb-3">
                         <label class="form-label">Position Change Mode</label>
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="positionMode" id="insertMode" value="insert" checked>
+                            <input class="form-check-input" type="radio" name="positionMode" id="smartMode" value="smart" checked>
+                            <label class="form-check-label" for="smartMode">
+                                <strong>Smart Reorder (Recommended)</strong> - Handles gaps intelligently
+                                <br><small class="text-muted">Move Kieran to position 5: Everyone gets renumbered cleanly (1,2,3,4,5,6...) with Kieran at 5</small>
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="positionMode" id="insertMode" value="insert">
                             <label class="form-check-label" for="insertMode">
-                                <strong>Smart Insert (Recommended)</strong> - Natural directional shifting
+                                <strong>Directional Insert</strong> - Natural directional shifting
                                 <br><small class="text-muted">Tim #1→#10: Bob (#10) goes to #9, Tim lands at #10. Tim #10→#1: Everyone #1-9 shifts to #2-10, Tim lands at #1</small>
                             </label>
                         </div>
