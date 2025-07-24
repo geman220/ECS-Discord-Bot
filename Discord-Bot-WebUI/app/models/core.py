@@ -102,6 +102,7 @@ class User(UserMixin, db.Model):
     notes = db.relationship('Note', back_populates='author', lazy=True)
     last_login = db.Column(db.DateTime, default=datetime.utcnow)
     feedback_replies = db.relationship('FeedbackReply', back_populates='user', lazy=True)
+    device_tokens = db.relationship('DeviceToken', back_populates='user', lazy=True)
     
     # User approval fields
     approval_status = db.Column(db.String(20), nullable=False, default='pending')

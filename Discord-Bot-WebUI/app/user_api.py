@@ -16,6 +16,7 @@ from flask import Blueprint, request, jsonify, g, url_for, current_app
 from app import csrf
 from app.models import User, Player, Team, player_teams
 from app.discord_utils import get_expected_roles
+from app.core.session_manager import managed_session
 from app.sms_helpers import (
     send_sms,
     verify_sms_confirmation,
@@ -89,20 +90,26 @@ def player_lookup():
         or an error message if not found or if the parameter is missing.
     """
     name_query = request.args.get("name")
+    logger.info(f"🔵 [USER_API] player_lookup called with name: '{name_query}'")
+    
     if not name_query:
+        logger.warning(f"🔴 [USER_API] player_lookup missing name parameter")
         return jsonify({"error": "Missing name parameter"}), 400
 
-    session_db = g.db_session
-    # Perform a case-insensitive search using a partial match.
-    player = session_db.query(Player).filter(Player.name.ilike(f"%{name_query}%")).first()
-    if not player:
-        return jsonify({"error": "Player not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Searching for player with name containing: '{name_query}'")
+        # Perform a case-insensitive search using a partial match.
+        player = session_db.query(Player).filter(Player.name.ilike(f"%{name_query}%")).first()
+        if not player:
+            logger.info(f"🟡 [USER_API] No player found for name query: '{name_query}'")
+            return jsonify({"error": "Player not found"}), 404
 
-    return jsonify({
-        "id": player.id,
-        "name": player.name,
-        "discord_id": player.discord_id
-    }), 200
+        logger.info(f"🟢 [USER_API] Found player: {player.name} (ID: {player.id}, Discord: {player.discord_id})")
+        return jsonify({
+            "id": player.id,
+            "name": player.name,
+            "discord_id": player.discord_id
+        }), 200
 
 
 @user_bp.route('/get_notifications', methods=['GET'])
@@ -118,30 +125,39 @@ def get_notifications():
         SMS enrollment status, and phone verification status.
     """
     discord_id = request.args.get("discord_id")
+    logger.info(f"🔵 [USER_API] get_notifications called for discord_id: {discord_id}")
+    
     if not discord_id:
+        logger.warning(f"🔴 [USER_API] get_notifications missing discord_id parameter")
         return jsonify({"error": "Missing discord_id parameter"}), 400
 
-    session_db = g.db_session
-    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-    if not player:
-        return jsonify({"error": "Player not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Looking up player with discord_id: {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            logger.warning(f"🔴 [USER_API] Player not found for discord_id: {discord_id}")
+            return jsonify({"error": "Player not found"}), 404
 
-    user = session_db.query(User).filter_by(id=player.user_id).first()
-    if not user:
-        return jsonify({"error": "Associated user not found"}), 404
+        logger.debug(f"🔵 [USER_API] Found player {player.name}, looking up user {player.user_id}")
+        user = session_db.query(User).filter_by(id=player.user_id).first()
+        if not user:
+            logger.error(f"🔴 [USER_API] Associated user not found for player {player.name} (user_id: {player.user_id})")
+            return jsonify({"error": "Associated user not found"}), 404
 
-    notifications = {
-        "discord": user.discord_notifications,
-        "email": user.email_notifications,
-        "sms": user.sms_notifications
-    }
-    sms_enrolled = bool(player.phone and user.sms_confirmation_code is None)
-    phone_verified = bool(player.phone and player.is_phone_verified)
-    return jsonify({
-        "notifications": notifications,
-        "sms_enrolled": sms_enrolled,
-        "phone_verified": phone_verified
-    }), 200
+        notifications = {
+            "discord": user.discord_notifications,
+            "email": user.email_notifications,
+            "sms": user.sms_notifications
+        }
+        sms_enrolled = bool(player.phone and user.sms_confirmation_code is None)
+        phone_verified = bool(player.phone and player.is_phone_verified)
+        
+        logger.info(f"🟢 [USER_API] Retrieved notifications for {player.name}: discord={notifications['discord']}, email={notifications['email']}, sms={notifications['sms']}, enrolled={sms_enrolled}, verified={phone_verified}")
+        return jsonify({
+            "notifications": notifications,
+            "sms_enrolled": sms_enrolled,
+            "phone_verified": phone_verified
+        }), 200
 
 
 @user_bp.route('/update_notifications', methods=['POST'])
@@ -156,46 +172,58 @@ def update_notifications():
     Returns:
         JSON response confirming successful update or describing errors.
     """
-    session_db = g.db_session
     data = request.json
-    discord_id = data.get("discord_id")
-    notifications = data.get("notifications")
+    discord_id = data.get("discord_id") if data else None
+    notifications = data.get("notifications") if data else None
+    
+    logger.info(f"🔵 [USER_API] update_notifications called for discord_id: {discord_id} with settings: {notifications}")
 
     if not discord_id or notifications is None:
+        logger.warning(f"🔴 [USER_API] update_notifications missing required fields - discord_id: {discord_id}, notifications: {notifications}")
         return jsonify({"error": "Missing required fields"}), 400
 
-    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-    if not player:
-        return jsonify({"error": "Player not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Looking up player for notification update: {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            logger.warning(f"🔴 [USER_API] Player not found for notification update: {discord_id}")
+            return jsonify({"error": "Player not found"}), 404
 
-    user = session_db.query(User).filter_by(id=player.user_id).first()
-    if not user:
-        return jsonify({"error": "Associated user not found"}), 404
+        user = session_db.query(User).filter_by(id=player.user_id).first()
+        if not user:
+            logger.error(f"🔴 [USER_API] Associated user not found for notification update - player: {player.name}")
+            return jsonify({"error": "Associated user not found"}), 404
 
-    # Save previous SMS state to detect changes.
-    previous_sms = user.sms_notifications
+        # Save previous SMS state to detect changes.
+        previous_sms = user.sms_notifications
+        logger.debug(f"🔵 [USER_API] Previous notification state for {player.name}: discord={user.discord_notifications}, email={user.email_notifications}, sms={previous_sms}")
 
-    user.discord_notifications = notifications.get("discord", False)
-    user.email_notifications = notifications.get("email", False)
-    user.sms_notifications = notifications.get("sms", False)
+        user.discord_notifications = notifications.get("discord", False)
+        user.email_notifications = notifications.get("email", False)
+        user.sms_notifications = notifications.get("sms", False)
 
-    if not notifications.get("sms", False) and previous_sms:
-        # User has disabled SMS notifications.
-        player.is_phone_verified = False
-        player.sms_opt_out_timestamp = datetime.utcnow()
-    session_db.commit()
+        if not notifications.get("sms", False) and previous_sms:
+            # User has disabled SMS notifications.
+            logger.info(f"🟡 [USER_API] Disabling SMS for {player.name} - marking phone as unverified")
+            player.is_phone_verified = False
+            player.sms_opt_out_timestamp = datetime.utcnow()
+        
+        session_db.commit()
+        logger.info(f"🟢 [USER_API] Notification preferences updated for {player.name}: discord={user.discord_notifications}, email={user.email_notifications}, sms={user.sms_notifications}")
 
-    # Notify the user via SMS about changes in SMS notification status.
-    if notifications.get("sms", False) and not previous_sms:
-        success, sid = send_sms(player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.")
-        if not success:
-            logger.error(f"Failed to send SMS confirmation for user {user.id}: {sid}")
-    elif not notifications.get("sms", False) and previous_sms:
-        success, sid = send_sms(player.phone, "SMS notifications disabled for ECS FC. Reply START to re-subscribe.")
-        if not success:
-            logger.error(f"Failed to send SMS disable confirmation for user {user.id}: {sid}")
+        # Notify the user via SMS about changes in SMS notification status.
+        if notifications.get("sms", False) and not previous_sms:
+            logger.debug(f"🔵 [USER_API] Sending SMS enable confirmation to {player.phone}")
+            success, sid = send_sms(player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.")
+            if not success:
+                logger.error(f"🔴 [USER_API] Failed to send SMS confirmation for user {user.id}: {sid}")
+        elif not notifications.get("sms", False) and previous_sms:
+            logger.debug(f"🔵 [USER_API] Sending SMS disable confirmation to {player.phone}")
+            success, sid = send_sms(player.phone, "SMS notifications disabled for ECS FC. Reply START to re-subscribe.")
+            if not success:
+                logger.error(f"🔴 [USER_API] Failed to send SMS disable confirmation for user {user.id}: {sid}")
 
-    return jsonify({"message": "Notification preferences updated successfully"}), 200
+        return jsonify({"message": "Notification preferences updated successfully"}), 200
 
 
 @user_bp.route('/sms_enroll', methods=['POST'])
@@ -213,28 +241,40 @@ def sms_enroll():
     Returns:
         JSON response indicating success or error.
     """
-    session_db = g.db_session
     data = request.json
-    discord_id = data.get("discord_id")
-    phone = data.get("phone")
+    discord_id = data.get("discord_id") if data else None
+    phone = data.get("phone") if data else None
+    
+    logger.info(f"🔵 [USER_API] sms_enroll called for discord_id: {discord_id} with phone: {phone}")
+    
     if not discord_id or not phone:
+        logger.warning(f"🔴 [USER_API] sms_enroll missing required fields - discord_id: {discord_id}, phone: {phone}")
         return jsonify({"error": "Missing required fields"}), 400
 
-    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-    if not player:
-        return jsonify({"error": "Player not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Looking up player for SMS enrollment: {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            logger.warning(f"🔴 [USER_API] Player not found for SMS enrollment: {discord_id}")
+            return jsonify({"error": "Player not found"}), 404
 
-    user = session_db.query(User).filter_by(id=player.user_id).first()
-    if not user:
-        return jsonify({"error": "Associated user not found"}), 404
+        user = session_db.query(User).filter_by(id=player.user_id).first()
+        if not user:
+            logger.error(f"🔴 [USER_API] Associated user not found for SMS enrollment - player: {player.name}")
+            return jsonify({"error": "Associated user not found"}), 404
 
-    player.phone = phone
-    success, msg_info = send_confirmation_sms(user)
-    if success:
-        session_db.commit()
-        return jsonify({"message": "SMS enrollment initiated. Please check your phone for a confirmation code."}), 200
-    else:
-        return jsonify({"error": msg_info}), 400
+        logger.debug(f"🔵 [USER_API] Updating phone number for {player.name}: {phone}")
+        player.phone = phone
+        
+        logger.debug(f"🔵 [USER_API] Sending confirmation SMS to {phone}")
+        success, msg_info = send_confirmation_sms(user)
+        if success:
+            session_db.commit()
+            logger.info(f"🟢 [USER_API] SMS enrollment initiated successfully for {player.name} at {phone}")
+            return jsonify({"message": "SMS enrollment initiated. Please check your phone for a confirmation code."}), 200
+        else:
+            logger.error(f"🔴 [USER_API] Failed to send confirmation SMS for {player.name}: {msg_info}")
+            return jsonify({"error": msg_info}), 400
 
 
 @user_bp.route('/sms_confirm', methods=['POST'])
@@ -251,27 +291,37 @@ def sms_confirm():
     Returns:
         JSON response confirming the SMS enrollment or an error message.
     """
-    session_db = g.db_session
     data = request.json
-    discord_id = data.get("discord_id")
-    code = data.get("code")
+    discord_id = data.get("discord_id") if data else None
+    code = data.get("code") if data else None
+    
+    logger.info(f"🔵 [USER_API] sms_confirm called for discord_id: {discord_id} with code: {'***' if code else 'None'}")
+    
     if not discord_id or not code:
+        logger.warning(f"🔴 [USER_API] sms_confirm missing required fields - discord_id: {discord_id}, code: {'provided' if code else 'missing'}")
         return jsonify({"error": "Missing required fields"}), 400
 
-    player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
-    if not player:
-        return jsonify({"error": "Player not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Looking up player for SMS confirmation: {discord_id}")
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            logger.warning(f"🔴 [USER_API] Player not found for SMS confirmation: {discord_id}")
+            return jsonify({"error": "Player not found"}), 404
 
-    user = session_db.query(User).filter_by(id=player.user_id).first()
-    if not user:
-        return jsonify({"error": "Associated user not found"}), 404
+        user = session_db.query(User).filter_by(id=player.user_id).first()
+        if not user:
+            logger.error(f"🔴 [USER_API] Associated user not found for SMS confirmation - player: {player.name}")
+            return jsonify({"error": "Associated user not found"}), 404
 
-    if verify_sms_confirmation(user, code):
-        player.is_phone_verified = True
-        session_db.commit()
-        return jsonify({"message": "SMS enrollment confirmed and notifications enabled."}), 200
-    else:
-        return jsonify({"error": "Invalid confirmation code."}), 400
+        logger.debug(f"🔵 [USER_API] Verifying SMS confirmation code for {player.name}")
+        if verify_sms_confirmation(user, code):
+            player.is_phone_verified = True
+            session_db.commit()
+            logger.info(f"🟢 [USER_API] SMS confirmation successful for {player.name} - phone verified and notifications enabled")
+            return jsonify({"message": "SMS enrollment confirmed and notifications enabled."}), 200
+        else:
+            logger.warning(f"🟡 [USER_API] Invalid SMS confirmation code for {player.name}")
+            return jsonify({"error": "Invalid confirmation code."}), 400
 
 
 @user_bp.route('/team_lookup', methods=['GET'])
@@ -287,61 +337,71 @@ def team_lookup():
         (each with their id, name, and discord_id), or an error message.
     """
     team_name_query = request.args.get("name")
+    logger.info(f"🔵 [USER_API] team_lookup called with name: '{team_name_query}'")
+    
     if not team_name_query:
+        logger.warning(f"🔴 [USER_API] team_lookup missing name parameter")
         return jsonify({"error": "Missing name parameter"}), 400
 
-    session_db = g.db_session
-    # Find the team using a case-insensitive partial match.
-    team = session_db.query(Team).filter(Team.name.ilike(f"%{team_name_query}%")).first()
-    if not team:
-        return jsonify({"error": "Team not found"}), 404
+    with managed_session() as session_db:
+        logger.debug(f"🔵 [USER_API] Searching for team with name containing: '{team_name_query}'")
+        # Find the team using a case-insensitive partial match.
+        team = session_db.query(Team).filter(Team.name.ilike(f"%{team_name_query}%")).first()
+        if not team:
+            logger.info(f"🟡 [USER_API] No team found for name query: '{team_name_query}'")
+            return jsonify({"error": "Team not found"}), 404
 
-    # Retrieve players associated with the team who are marked as current.
-    # NOTE: Uses a join on the association table since Player no longer has a direct "team_id" column.
-    players = (
-        session_db.query(Player)
-        .join(player_teams)
-        .filter(
-            player_teams.c.team_id == team.id,
-            Player.is_current_player == True
+        logger.debug(f"🔵 [USER_API] Found team {team.name} (ID: {team.id}), retrieving current players")
+        # Retrieve players associated with the team who are marked as current.
+        # NOTE: Uses a join on the association table since Player no longer has a direct "team_id" column.
+        players = (
+            session_db.query(Player)
+            .join(player_teams)
+            .filter(
+                player_teams.c.team_id == team.id,
+                Player.is_current_player == True
+            )
+            .all()
         )
-        .all()
-    )
 
-    players_list = [{
-        "id": player.id,
-        "name": player.name,
-        "discord_id": player.discord_id,
-        "is_current_player": player.is_current_player
-    } for player in players]
+        players_list = [{
+            "id": player.id,
+            "name": player.name,
+            "discord_id": player.discord_id,
+            "is_current_player": player.is_current_player
+        } for player in players]
 
-    return jsonify({
-        "team": {
-            "id": team.id,
-            "name": team.name
-        },
-        "players": players_list
-    }), 200
+        logger.info(f"🟢 [USER_API] Team lookup successful for '{team.name}' - returning {len(players_list)} current players")
+        return jsonify({
+            "team": {
+                "id": team.id,
+                "name": team.name
+            },
+            "players": players_list
+        }), 200
 
 @user_bp.route('/player/by_discord/<discord_id>', methods=['GET'])
 def get_player_by_discord(discord_id: str):
+    logger.info(f"🔵 [USER_API] get_player_by_discord called for discord_id: {discord_id}")
+    
     try:
-        logger.info(f"Looking up player with discord_id: {discord_id}")
-        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
-        if not player:
-            logger.info(f"No player found for discord_id: {discord_id}")
-            return jsonify({"exists": False}), 404
+        with managed_session() as session_db:
+            logger.debug(f"🔵 [USER_API] Looking up player with discord_id: {discord_id}")
+            player = session_db.query(Player).filter_by(discord_id=discord_id).first()
+            if not player:
+                logger.info(f"🟡 [USER_API] No player found for discord_id: {discord_id}")
+                return jsonify({"exists": False}), 404
 
-        logger.info(f"Found player: {player.name} (ID: {player.id}). Calculating expected roles...")
-        import asyncio
-        expected_roles = asyncio.run(get_expected_roles(g.db_session, player))
-        logger.info(f"Expected roles for player {player.name}: {expected_roles}")
-        return jsonify({
-            "exists": True,
-            "player_name": player.name,
-            "expected_roles": expected_roles
-        }), 200
+            logger.debug(f"🔵 [USER_API] Found player: {player.name} (ID: {player.id}). Calculating expected roles...")
+            import asyncio
+            expected_roles = asyncio.run(get_expected_roles(session_db, player))
+            logger.info(f"🟢 [USER_API] Player lookup successful for {player.name} - expected roles: {expected_roles}")
+            return jsonify({
+                "exists": True,
+                "player_name": player.name,
+                "expected_roles": expected_roles
+            }), 200
 
     except Exception as e:
-        logger.exception(f"Error in get_player_by_discord for discord_id: {discord_id}: {e}")
+        logger.exception(f"🔴 [USER_API] Error in get_player_by_discord for discord_id: {discord_id}: {e}")
         return jsonify({"error": "Internal server error"}), 500

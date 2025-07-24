@@ -351,6 +351,8 @@ class PubLeagueCommands(commands.Cog):
                 prefix = "ECS-FC-PL-"
                 suffix = "-Player"
                 team_name = role_name[len(prefix):-len(suffix)].strip()
+                # Replace hyphens with spaces to match database format
+                team_name = team_name.replace("-", " ")
                 logger.debug("Extracted team name: %s", team_name)
                 lookup_url = f"{WEBUI_API_URL}/team_lookup?name={team_name}"
                 logger.debug("Lookup URL: %s", lookup_url)

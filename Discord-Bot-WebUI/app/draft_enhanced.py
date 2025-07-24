@@ -276,7 +276,7 @@ class DraftService:
             season_id = pick_to_move.season_id
             league_id = pick_to_move.league_id
             old_position = pick_to_move.draft_position
-            player_name = pick_to_move.player.full_name if pick_to_move.player else 'Unknown Player'
+            player_name = pick_to_move.player.name if pick_to_move.player else 'Unknown Player'
             
             if old_position == new_position:
                 return {'success': True, 'message': 'No position change needed'}
@@ -324,11 +324,86 @@ class DraftService:
                 'old_position': old_position,
                 'new_position': new_position,
                 'player_name': player_name,
-                'swapped_with': existing_pick.player.full_name if existing_pick and existing_pick.player else None
+                'swapped_with': existing_pick.player.name if existing_pick and existing_pick.player else None
             }
             
         except Exception as e:
             logger.error(f"Error setting absolute draft position: {str(e)}")
+            raise
+
+    @staticmethod
+    def insert_draft_position_smart(session, pick_id, new_position):
+        """Smart insert that handles gaps and provides intuitive positioning."""
+        try:
+            pick_to_move = session.query(DraftOrderHistory).get(pick_id)
+            if not pick_to_move:
+                return {'success': False, 'message': 'Draft pick not found'}
+            
+            season_id = pick_to_move.season_id
+            league_id = pick_to_move.league_id
+            old_position = pick_to_move.draft_position
+            player_name = pick_to_move.player.name if pick_to_move.player else 'Unknown Player'
+            
+            if old_position == new_position:
+                return {'success': True, 'message': 'No position change needed'}
+            
+            # Get all picks in order (excluding the one we're moving)
+            all_picks = session.query(DraftOrderHistory).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id,
+                DraftOrderHistory.id != pick_id
+            ).order_by(DraftOrderHistory.draft_position).all()
+            
+            # Create new ordered list with the pick inserted at the desired position
+            new_order = []
+            pick_inserted = False
+            
+            for i, pick in enumerate(all_picks):
+                # If we should insert our pick before this position
+                if not pick_inserted and (i + 1) >= new_position:
+                    new_order.append(pick_to_move)
+                    pick_inserted = True
+                new_order.append(pick)
+            
+            # If we haven't inserted yet (inserting at the end)
+            if not pick_inserted:
+                new_order.append(pick_to_move)
+            
+            # Use temporary positions to avoid unique constraint violations
+            max_position = len(new_order) + 1000
+            
+            # First, move all picks to temporary positions
+            for index, pick in enumerate(new_order):
+                pick.draft_position = max_position + index
+                pick.updated_at = datetime.utcnow()
+            
+            session.flush()
+            
+            # Now update all positions sequentially
+            changes_made = 0
+            for index, pick in enumerate(new_order, start=1):
+                old_pos = pick.draft_position
+                pick.draft_position = index
+                pick.updated_at = datetime.utcnow()
+                changes_made += 1
+                logger.debug(f"Updated {pick.player.name if pick.player else 'Unknown'} from temp #{old_pos} to #{index}")
+            
+            session.flush()
+            
+            logger.info(f"Smart insert: {player_name} moved from #{old_position} to #{pick_to_move.draft_position}, {changes_made} total changes")
+            
+            return {
+                'success': True,
+                'message': f'Successfully moved {player_name} to position #{pick_to_move.draft_position}',
+                'old_position': old_position,
+                'new_position': pick_to_move.draft_position,
+                'player_name': player_name,
+                'changes_made': changes_made,
+                'affected_picks': changes_made - 1  # Total changes minus the moved player
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in smart insert: {str(e)}")
             raise
 
     @staticmethod
@@ -342,7 +417,7 @@ class DraftService:
             season_id = pick_to_move.season_id
             league_id = pick_to_move.league_id
             old_position = pick_to_move.draft_position
-            player_name = pick_to_move.player.full_name if pick_to_move.player else 'Unknown Player'
+            player_name = pick_to_move.player.name if pick_to_move.player else 'Unknown Player'
             
             if old_position == new_position:
                 return {'success': True, 'message': 'No position change needed'}
@@ -415,6 +490,58 @@ class DraftService:
             
         except Exception as e:
             logger.error(f"Error inserting draft position: {str(e)}")
+            raise
+
+    @staticmethod
+    def normalize_draft_positions(session, season_id, league_id):
+        """Fix gaps in draft positions by renumbering them sequentially starting from 1."""
+        try:
+            picks = session.query(DraftOrderHistory).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).order_by(DraftOrderHistory.draft_position).all()
+            
+            if not picks:
+                return {'success': True, 'message': 'No draft picks found to normalize'}
+            
+            # Use temporary positions to avoid unique constraint violations
+            max_position = len(picks) + 2000
+            
+            # First, move all picks to temporary positions
+            for index, pick in enumerate(picks):
+                pick.draft_position = max_position + index
+                pick.updated_at = datetime.utcnow()
+            
+            session.flush()
+            
+            # Renumber positions sequentially
+            changes_made = 0
+            for index, pick in enumerate(picks, start=1):
+                old_position = pick.draft_position
+                pick.draft_position = index
+                pick.updated_at = datetime.utcnow()
+                changes_made += 1
+                logger.debug(f"Normalized {pick.player.name if pick.player else 'Unknown'} from temp #{old_position} to #{index}")
+            
+            if changes_made > 0:
+                session.flush()
+                logger.info(f"Normalized {changes_made} draft positions for season {season_id}, league {league_id}")
+                return {
+                    'success': True, 
+                    'message': f'Successfully normalized {changes_made} draft positions. Positions now run from 1-{len(picks)} with no gaps.',
+                    'changes_made': changes_made,
+                    'total_picks': len(picks)
+                }
+            else:
+                return {
+                    'success': True,
+                    'message': 'Draft positions were already properly ordered with no gaps.',
+                    'changes_made': 0,
+                    'total_picks': len(picks)
+                }
+                
+        except Exception as e:
+            logger.error(f"Error normalizing draft positions: {str(e)}")
             raise
 
     @staticmethod
