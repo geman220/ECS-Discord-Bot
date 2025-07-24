@@ -1604,7 +1604,7 @@ def refresh_player_discord_status(player_id):
 
 @teams_bp.route('/<int:team_id>/assign-discord-roles', methods=['POST'])
 @login_required
-@role_required(['Global Admin'])
+@role_required(['Global Admin', 'Pub League Admin'])
 def assign_discord_roles_to_team(team_id):
     """
     Admin endpoint to manually assign Discord roles to all players on a team.
