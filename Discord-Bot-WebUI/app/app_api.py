@@ -38,6 +38,7 @@ from app.decorators import (
     jwt_role_required
 )
 from app.core.session_manager import managed_session
+import signal
 from app.app_api_helpers import (
     build_player_response, get_player_response_data, exchange_discord_code,
     get_discord_user_data, process_discord_user, build_match_response,
@@ -877,26 +878,37 @@ def get_my_team():
     Retrieve the team of the currently authenticated player.
     Returns the primary team if set, otherwise returns the first team the player is associated with.
     """
-    with managed_session() as session_db:
-        current_user_id = get_jwt_identity()
-        player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+    try:
+        with managed_session() as session_db:
+            current_user_id = get_jwt_identity()
+            logger.info(f"🔵 [MOBILE_API] get_my_team called for user_id: {current_user_id}")
+            
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
-        if not player:
-            return jsonify({"msg": "Team not found"}), 404
+            if not player:
+                logger.warning(f"🟡 [MOBILE_API] Player not found for user_id: {current_user_id}")
+                return jsonify({"msg": "Team not found"}), 404
 
-        # First try to use primary team
-        if player.primary_team:
-            return get_team_details(player.primary_team.id)
-        
-        # If no primary team, get the first team from player_teams association
-        first_team = session_db.query(Team).join(player_teams).filter(
-            player_teams.c.player_id == player.id
-        ).first()
-        
-        if not first_team:
-            return jsonify({"msg": "Team not found"}), 404
+            # First try to use primary team
+            if player.primary_team:
+                logger.info(f"🟢 [MOBILE_API] Using primary team for {player.name}: {player.primary_team.name}")
+                return get_team_details(player.primary_team.id)
+            
+            # If no primary team, get the first team from player_teams association
+            first_team = session_db.query(Team).join(player_teams).filter(
+                player_teams.c.player_id == player.id
+            ).first()
+            
+            if not first_team:
+                logger.warning(f"🟡 [MOBILE_API] No teams found for player {player.name}")
+                return jsonify({"msg": "Team not found"}), 404
 
-        return get_team_details(first_team.id)
+            logger.info(f"🟢 [MOBILE_API] Using first team for {player.name}: {first_team.name}")
+            return get_team_details(first_team.id)
+            
+    except Exception as e:
+        logger.error(f"🔴 [MOBILE_API] Error in get_my_team: {str(e)}")
+        return jsonify({"msg": "Internal server error"}), 500
 
 
 @mobile_api.route('/teams/my_teams', endpoint='get_my_teams', methods=['GET'])
@@ -970,32 +982,40 @@ def get_all_matches():
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
         logger.debug(f"🔵 [MOBILE_API] Player found: {player.name if player else 'None'}")
 
-        # Get optional limit parameter - set reasonable default for performance
+        # Get query parameters with performance defaults
+        upcoming = request.args.get('upcoming', 'false').lower() == 'true'
+        completed = request.args.get('completed', 'false').lower() == 'true'
+        all_teams = request.args.get('all_teams', 'false').lower() == 'true'
+        
+        # Set reasonable default limits for performance
         limit = request.args.get('limit')
         if limit and limit.isdigit():
             limit = int(limit)
         else:
-            # Default limit to prevent expensive queries
-            limit = 50 if request.args.get('all_teams', 'false').lower() == 'true' else None
+            # Performance-based defaults
+            if completed:
+                limit = 50  # Limit match history to prevent 15s queries
+            elif upcoming:
+                limit = 25  # Upcoming matches should be fewer
+            elif all_teams:
+                limit = 50  # All teams can be many matches
+            else:
+                limit = 75  # General default
 
         logger.debug(f"🔵 [MOBILE_API] Building matches query with limit: {limit}")
         
         query = build_matches_query(
             team_id=request.args.get('team_id'),
             player=player,
-            upcoming=request.args.get('upcoming', 'false').lower() == 'true',
-            completed=request.args.get('completed', 'false').lower() == 'true',
-            all_teams=request.args.get('all_teams', 'false').lower() == 'true',
+            upcoming=upcoming,
+            completed=completed,
+            all_teams=all_teams,
+            limit=limit,
             session=session_db
         )
         
         logger.debug(f"🔵 [MOBILE_API] Query built, executing with limit: {limit}")
-        
-        # Apply limit if provided
-        if limit:
-            matches = query.order_by(Match.date).limit(limit).all()
-        else:
-            matches = query.order_by(Match.date).all()
+        matches = query.all()
 
         logger.info(f"🔵 [MOBILE_API] Found {len(matches)} matches")
         

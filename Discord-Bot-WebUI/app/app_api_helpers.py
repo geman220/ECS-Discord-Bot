@@ -423,7 +423,7 @@ def get_player_availability(match: Match, player: Player, session=None) -> Optio
 
 def build_matches_query(team_id: Optional[int], player: Optional[Player], 
                         upcoming: bool = False, completed: bool = False, 
-                        all_teams: bool = False, session=None) -> Query:
+                        all_teams: bool = False, limit: Optional[int] = None, session=None) -> Query:
     """
     Build a SQLAlchemy query for matches based on filters.
 
@@ -433,6 +433,7 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         upcoming (bool): If True, only include matches scheduled in the future.
         completed (bool): If True, only include matches that have already been played.
         all_teams (bool): If True, include matches for all player's teams, not just primary.
+        limit (Optional[int]): Maximum number of matches to return (for performance).
         session: The database session (defaults to g.db_session).
 
     Returns:
@@ -473,6 +474,13 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         query = query.filter(Match.date >= current_time)
     elif completed:
         query = query.filter(Match.date < current_time)
+
+    # Add ordering for consistent pagination
+    query = query.order_by(Match.date.desc())
+    
+    # Add limit for performance
+    if limit:
+        query = query.limit(limit)
 
     return query
 
