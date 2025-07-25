@@ -10,10 +10,12 @@ import os
 import json
 import uuid
 import logging
-from datetime import datetime
+import requests
+from datetime import datetime, timedelta
 from io import BytesIO
 from flask import current_app
 from wallet.models import Pass, Barcode, Generic
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +25,12 @@ class WalletPassConfig:
     
     def __init__(self):
         # These should be set via environment variables or config
-        self.pass_type_identifier = os.getenv('WALLET_PASS_TYPE_ID', 'pass.com.ecsfc.membership')
-        self.team_identifier = os.getenv('WALLET_TEAM_ID', 'YOUR_TEAM_ID')
+        # Force new pass type to bypass env variable issue
+        self.pass_type_identifier = 'pass.com.ecsfc.membership.v3'
+        # Use the Apple Developer Team ID from environment (required)
+        self.team_identifier = os.getenv('WALLET_TEAM_ID')
+        if not self.team_identifier:
+            raise ValueError("WALLET_TEAM_ID environment variable is required")
         self.organization_name = 'ECS FC'
         self.certificate_path = os.getenv('WALLET_CERT_PATH', 'app/wallet_pass/certs/certificate.pem')
         self.key_path = os.getenv('WALLET_KEY_PATH', 'app/wallet_pass/certs/key.pem')
@@ -62,8 +68,8 @@ class ECSFCPassGenerator:
             # Create the pass object
             pass_obj = self._create_pass_object(pass_data, player)
             
-            # Add required assets
-            self._add_pass_assets(pass_obj)
+            # Add required assets including player profile image
+            self._add_pass_assets(pass_obj, player)
             
             # Generate and sign the pass
             pass_file = self._sign_and_create_pass(pass_obj)
@@ -77,19 +83,30 @@ class ECSFCPassGenerator:
     
     def _is_player_eligible(self, player):
         """Check if player is eligible for a membership pass"""
+        # Check if player has any team assignment (primary, current season, or any team)
+        has_any_team = (
+            (hasattr(player, 'primary_team') and player.primary_team is not None) or
+            (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
+        )
+        
         return (
             player.is_current_player and
             player.user and
             player.user.is_authenticated and
-            hasattr(player, 'primary_team') and
-            player.primary_team is not None
+            has_any_team
         )
     
     def _load_pass_template(self, player):
         """Load and customize the pass template with player data"""
         try:
+            logger.info(f"Loading template from: {self.template_path}")
+            logger.info(f"Template file exists: {os.path.exists(self.template_path)}")
+            
             with open(self.template_path, 'r') as f:
                 template = f.read()
+            
+            logger.info(f"Template contains #213e96: {'#213e96' in template}")
+            logger.info(f"Template contains backgroundColor: {'backgroundColor' in template}")
             
             # Get player data for template
             template_data = self._get_template_data(player)
@@ -98,7 +115,16 @@ class ECSFCPassGenerator:
             for key, value in template_data.items():
                 template = template.replace(f'{{{{{key}}}}}', str(value))
             
-            return json.loads(template)
+            # Debug: Log the final JSON being used
+            logger.info(f"Final pass JSON contains backgroundColor: {'#213e96' in template}")
+            logger.info(f"Pass type in final JSON: {template_data.get('pass_type_identifier', 'NOT_SET')}")
+            
+            # Log a snippet of the actual JSON
+            parsed_json = json.loads(template)
+            logger.info(f"Actual backgroundColor in JSON: {parsed_json.get('backgroundColor', 'MISSING')}")
+            logger.info(f"Actual passTypeIdentifier in JSON: {parsed_json.get('passTypeIdentifier', 'MISSING')}")
+            
+            return parsed_json
             
         except Exception as e:
             logger.error(f"Error loading pass template: {str(e)}")
@@ -114,21 +140,32 @@ class ECSFCPassGenerator:
         current_season = self._get_current_season()
         season_name = current_season.name if current_season else "Current Season"
         
-        # Team information
-        team_name = player.primary_team.name if player.primary_team else "Unassigned"
+        # Team information - get the best available team
+        team_name = "Unassigned"
+        if player.primary_team:
+            team_name = player.primary_team.name
+        elif hasattr(player, 'teams') and player.teams and len(player.teams) > 0:
+            team_name = player.teams[0].name
+            
         league_name = player.league.name if player.league else "ECS Pub League"
         
         # Player status
         status = "Active Member" if player.is_current_player else "Inactive"
         
-        # Barcode data (could be player ID, QR code data, etc.)
-        barcode_data = f"ECSFC-{player.id}-{pass_uuid[:8]}"
+        # Simple barcode data for scanning (keep it simple for QR code readability)
+        barcode_data = f"ECSFC-{player.id}-{team_name}-{season_name}-{pass_uuid[:8]}"
         
         # Set expiration date (end of current season + 1 month grace period)
         expiration_date = self._get_expiration_date(current_season)
         
         # Check if pass should be voided (player no longer current)
         voided = "false" if player.is_current_player else "true"
+        
+        # Get additional player info
+        season_history = self._get_season_history(player)
+        
+        # Debug logging
+        logger.info(f"Generating pass with ECS blue background and season history: {season_history}")
         
         return {
             'uuid': pass_uuid,
@@ -144,7 +181,11 @@ class ECSFCPassGenerator:
             'web_service_url': self.config.web_service_url,
             'auth_token': auth_token,
             'expiration_date': expiration_date,
-            'voided': voided
+            'voided': voided,
+            'team_identifier': self.config.team_identifier,
+            'pass_type_identifier': self.config.pass_type_identifier,
+            'organization_name': self.config.organization_name,
+            'season_history': season_history
         }
     
     def _get_current_season(self):
@@ -179,6 +220,32 @@ class ECSFCPassGenerator:
             logger.warning(f"Error calculating expiration date: {str(e)}")
             # Default: 1 year from now
             return (datetime.now() + timedelta(days=365)).strftime('%Y-%m-%dT%H:%M:%SZ')
+    
+    def _get_season_history(self, player):
+        """Get player's season history"""
+        try:
+            from app.models import PlayerTeamSeason, Season, Team
+            
+            # Get player's season assignments
+            assignments = PlayerTeamSeason.query\
+                .join(Season).join(Team)\
+                .filter(PlayerTeamSeason.player_id == player.id)\
+                .order_by(Season.start_date.desc())\
+                .limit(5).all()
+            
+            if not assignments:
+                return "New player - first season"
+            
+            history_parts = []
+            for assignment in assignments:
+                season_name = assignment.season.name if assignment.season else "Unknown Season"
+                team_name = assignment.team.name if assignment.team else "Unknown Team"
+                history_parts.append(f"{season_name}: {team_name}")
+            
+            return " • ".join(history_parts[:3])  # Limit to 3 most recent
+        except Exception as e:
+            logger.warning(f"Error getting season history: {str(e)}")
+            return "History unavailable"
     
     def _create_pass_object(self, pass_data, player):
         """Create the wallet pass object"""
@@ -246,7 +313,7 @@ class ECSFCPassGenerator:
             logger.error(f"Error creating pass object: {str(e)}")
             raise
     
-    def _add_pass_assets(self, pass_obj):
+    def _add_pass_assets(self, pass_obj, player=None):
         """Add required image assets to the pass"""
         assets = {
             'icon.png': 'icon.png',
@@ -255,6 +322,7 @@ class ECSFCPassGenerator:
             'logo@2x.png': 'logo@2x.png'
         }
         
+        # Add standard assets
         for pass_filename, asset_filename in assets.items():
             asset_path = os.path.join(self.assets_path, asset_filename)
             if os.path.exists(asset_path):
@@ -263,6 +331,86 @@ class ECSFCPassGenerator:
                 logger.debug(f"Added asset: {pass_filename}")
             else:
                 logger.warning(f"Asset not found: {asset_path}")
+        
+        # Add player profile image if available
+        if player and self._add_player_profile_image(pass_obj, player):
+            logger.info(f"Successfully added player profile image for {player.name}")
+        else:
+            logger.warning(f"Could not add profile image for {player.name if player else 'unknown player'}")
+    
+    def _add_player_profile_image(self, pass_obj, player):
+        """Add player's profile image to the pass"""
+        try:
+            if not player.profile_picture_url:
+                return False
+            
+            # Get the profile image
+            image_data = self._get_player_image_data(player.profile_picture_url)
+            if not image_data:
+                return False
+            
+            # Process image for wallet pass (Apple recommends 180x180 for thumbnail)
+            processed_image = self._process_image_for_wallet(image_data)
+            if not processed_image:
+                return False
+            
+            # Try both strip and thumbnail to see which works
+            pass_obj.addFile('strip.png', processed_image)
+            pass_obj.addFile('strip@2x.png', processed_image)
+            pass_obj.addFile('thumbnail.png', processed_image)
+            pass_obj.addFile('thumbnail@2x.png', processed_image)
+            
+            return True
+        except Exception as e:
+            logger.warning(f"Error adding player profile image: {str(e)}")
+            return False
+    
+    def _get_player_image_data(self, image_url):
+        """Download and return player's profile image data"""
+        try:
+            if image_url.startswith('/static/'):
+                # Local file
+                local_path = os.path.join('app', image_url.lstrip('/'))
+                if os.path.exists(local_path):
+                    with open(local_path, 'rb') as f:
+                        return BytesIO(f.read())
+            elif image_url.startswith('http'):
+                # Remote image
+                response = requests.get(image_url, timeout=10)
+                if response.status_code == 200:
+                    return BytesIO(response.content)
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Error downloading image from {image_url}: {str(e)}")
+            return None
+    
+    def _process_image_for_wallet(self, image_data):
+        """Process image for Apple Wallet (resize, format, etc.)"""
+        try:
+            # Open image with PIL
+            img = Image.open(image_data)
+            
+            # Convert to RGB if needed
+            if img.mode in ('RGBA', 'LA', 'P'):
+                background = Image.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = background
+            
+            # Resize to Apple Wallet strip image size (320x84 for main visual element)
+            img = img.resize((320, 84), Image.Resampling.LANCZOS)
+            
+            # Save as PNG
+            output = BytesIO()
+            img.save(output, format='PNG', optimize=True)
+            output.seek(0)
+            
+            return output
+        except Exception as e:
+            logger.warning(f"Error processing image for wallet: {str(e)}")
+            return None
     
     def _sign_and_create_pass(self, pass_obj):
         """Sign and create the final .pkpass file"""
@@ -274,6 +422,9 @@ class ECSFCPassGenerator:
                 self.config.wwdr_path
             ]):
                 raise FileNotFoundError("Required certificate files not found")
+            
+            # Validate configuration before creating pass
+            self._validate_pass_configuration()
             
             # Create pass file in memory
             pass_buffer = BytesIO()
@@ -293,6 +444,30 @@ class ECSFCPassGenerator:
         except Exception as e:
             logger.error(f"Error signing pass: {str(e)}")
             raise
+    
+    def _validate_pass_configuration(self):
+        """Validate that the pass configuration meets Apple requirements"""
+        errors = []
+        
+        # Check team identifier format (should be 10 characters)
+        if len(self.config.team_identifier) != 10:
+            errors.append(f"Team identifier must be exactly 10 characters, got {len(self.config.team_identifier)}")
+        
+        # Check pass type identifier format
+        if not self.config.pass_type_identifier.startswith('pass.'):
+            errors.append("Pass type identifier must start with 'pass.'")
+        
+        # Verify certificates are properly formatted
+        try:
+            with open(self.config.certificate_path, 'r') as f:
+                cert_content = f.read()
+                if not ('-----BEGIN CERTIFICATE-----' in cert_content and '-----END CERTIFICATE-----' in cert_content):
+                    errors.append("Certificate file appears to be invalid")
+        except Exception as e:
+            errors.append(f"Cannot read certificate file: {str(e)}")
+        
+        if errors:
+            raise ValueError(f"Pass configuration errors: {'; '.join(errors)}")
 
 
 def create_pass_for_player(player_id):

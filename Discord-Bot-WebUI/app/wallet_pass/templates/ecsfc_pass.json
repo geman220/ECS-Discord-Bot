@@ -1,14 +1,14 @@
 {
   "formatVersion": 1,
-  "passTypeIdentifier": "pass.com.ecsfc.membership",
-  "teamIdentifier": "YOUR_TEAM_ID",
+  "passTypeIdentifier": "pass.com.ecsfc.membership.v3",
+  "teamIdentifier": "{{team_identifier}}",
   "organizationName": "ECS FC",
-  "serialNumber": "ecsfc-{{uuid}}",
+  "serialNumber": "ecsfc-v2-{{uuid}}",
   "description": "ECS Pub League Membership",
   "barcode": {
     "format": "PKBarcodeFormatQR",
     "message": "{{barcode_data}}",
-    "messageEncoding": "iso-8859-1"
+    "messageEncoding": "utf-8"
   },
   "generic": {
     "primaryFields": [
@@ -49,20 +49,30 @@
         "value": "{{league_name}}"
       },
       {
-        "key": "phone",
+        "key": "phone", 
         "label": "Contact",
         "value": "{{phone}}"
+      },
+      {
+        "key": "season_history",
+        "label": "Season History",
+        "value": "{{season_history}}"
       },
       {
         "key": "issued",
         "label": "Issued",
         "value": "{{issue_date}}"
+      },
+      {
+        "key": "qr_purpose",
+        "label": "QR Code Info",
+        "value": "Present this pass for match check-in, team verification, and membership validation."
       }
     ]
   },
-  "backgroundColor": "rgb(115, 103, 240)",
-  "foregroundColor": "rgb(255, 255, 255)",
-  "labelColor": "rgb(200, 200, 200)",
+  "backgroundColor": "#213e96",
+  "foregroundColor": "#ffffff",
+  "labelColor": "#c8c8c8",
   "logoText": "ECS FC",
   "webServiceURL": "{{web_service_url}}",
   "authenticationToken": "{{auth_token}}",
