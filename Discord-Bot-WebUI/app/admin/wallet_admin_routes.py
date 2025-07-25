@@ -34,13 +34,19 @@ def wallet_management():
         # Get configuration status
         config_status = validate_pass_configuration()
         
-        # Get eligible players (current players with teams)
+        # Get eligible players (current players with any team assignment)
+        from sqlalchemy.orm import joinedload
+        
+        # Get all current players with user accounts
         eligible_players = Player.query.filter(
-            and_(
-                Player.is_current_player == True,
-                Player.primary_team_id.isnot(None)
-            )
-        ).join(User).join(Team).all()
+            Player.is_current_player == True
+        ).join(User).options(joinedload(Player.teams)).all()
+        
+        # Filter to only include players with at least one team
+        eligible_players = [
+            player for player in eligible_players 
+            if player.primary_team or (player.teams and len(player.teams) > 0)
+        ]
         
         # Get current seasons for both league types
         pub_league_season = Season.query.filter_by(
@@ -53,22 +59,18 @@ def wallet_management():
             is_current=True
         ).first()
         
-        # Stats
+        # Stats  
+        all_active_players = Player.query.filter_by(is_current_player=True).options(joinedload(Player.teams)).all()
+        players_with_any_team = [
+            player for player in all_active_players 
+            if player.primary_team or (player.teams and len(player.teams) > 0)
+        ]
+        
         stats = {
             'total_eligible': len(eligible_players),
-            'total_players': Player.query.filter_by(is_current_player=True).count(),
-            'players_with_teams': Player.query.filter(
-                and_(
-                    Player.is_current_player == True,
-                    Player.primary_team_id.isnot(None)
-                )
-            ).count(),
-            'players_without_teams': Player.query.filter(
-                and_(
-                    Player.is_current_player == True,
-                    Player.primary_team_id.is_(None)
-                )
-            ).count()
+            'total_players': len(all_active_players),
+            'players_with_teams': len(players_with_any_team),
+            'players_without_teams': len(all_active_players) - len(players_with_any_team)
         }
         
         return render_template(
@@ -211,15 +213,25 @@ def check_player_eligibility(player_id):
         elif not player.user.is_authenticated:
             eligibility['issues'].append('User account is not verified')
         
-        if not player.primary_team:
-            eligibility['issues'].append('Player is not assigned to a primary team')
+        has_any_team = player.primary_team or (player.teams and len(player.teams) > 0)
+        if not has_any_team:
+            eligibility['issues'].append('Player is not assigned to any team (primary or secondary)')
         
         # Add info
+        all_team_names = []
+        if player.primary_team:
+            all_team_names.append(f"{player.primary_team.name} (Primary)")
+        if player.teams:
+            for team in player.teams:
+                if not player.primary_team or team.id != player.primary_team.id:
+                    all_team_names.append(team.name)
+                    
         eligibility['info'] = {
             'is_current_player': player.is_current_player,
             'has_user_account': player.user is not None,
             'user_email': player.user.email if player.user else None,
             'primary_team': player.primary_team.name if player.primary_team else None,
+            'all_teams': ', '.join(all_team_names) if all_team_names else None,
             'league': player.league.name if player.league else None,
             'phone': player.phone,
             'jersey_number': player.jersey_number
@@ -269,11 +281,12 @@ def generate_bulk_passes():
                     continue
                 
                 # Check eligibility
-                if not player.is_current_player or not player.primary_team:
+                has_any_team = player.primary_team or (player.teams and len(player.teams) > 0)
+                if not player.is_current_player or not has_any_team:
                     results['failed'].append({
                         'player_id': player_id,
                         'player_name': player.name,
-                        'error': 'Player not eligible'
+                        'error': 'Player not eligible (inactive or no team assignment)'
                     })
                     continue
                 
