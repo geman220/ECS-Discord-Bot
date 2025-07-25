@@ -1,6 +1,12 @@
 # Environment variables
 .env
 
+# Apple Wallet Certificates
+Discord-Bot-WebUI/app/wallet_pass/certs/*.pem
+Discord-Bot-WebUI/app/wallet_pass/certs/*.p12
+Discord-Bot-WebUI/app/wallet_pass/certs/*.cer
+Discord-Bot-WebUI/app/wallet_pass/certs/*.key
+
 # Custom Files
 ECS-Discord-Bot.pyproj
 current_role.json
@@ -72,3 +78,4 @@ Discord-Bot-WebUI/test-results.xml
 # Flask session files during testing
 Discord-Bot-WebUI/flask_session/
 /Discord-Bot-WebUI/app/models_DEP.py
+/Discord-Bot-WebUI/AppleWWDRCAG3.cer
