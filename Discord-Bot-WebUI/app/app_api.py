@@ -48,6 +48,11 @@ from app.app_api_helpers import (
     notify_availability_update, update_player_match_availability, get_team_upcoming_matches
 )
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
+from app.ispy_helpers import (
+    validate_shot_submission, create_shot_with_targets, disallow_shot,
+    recategorize_shot, jail_user, get_leaderboard, get_user_personal_stats,
+    get_category_leaderboard, get_all_categories
+)
 
 logger = logging.getLogger(__name__)
 mobile_api = Blueprint('mobile_api', __name__)
@@ -1841,3 +1846,284 @@ def bulk_availability_update():
     except Exception as e:
         logger.error(f"Error in bulk availability update: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+# I-Spy API Endpoints
+
+@mobile_api.route('/ispy/submit', methods=['POST'])
+@jwt_required()
+def ispy_submit_shot():
+    """
+    Submit a new I-Spy shot.
+    
+    Expected JSON payload:
+    {
+        "targets": ["discord_id1", "discord_id2"],
+        "category": "bar",
+        "location": "Local Pub",
+        "image_url": "https://discord.com/..."
+    }
+    """
+    try:
+        data = request.get_json()
+        current_user_id = get_jwt_identity()
+        
+        # Validate required fields
+        required_fields = ['targets', 'category', 'location', 'image_url']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Get image data for hash calculation (simplified for Discord CDN)
+        image_url = data['image_url']
+        if not image_url.startswith('https://cdn.discordapp.com/'):
+            return jsonify({'error': 'Only Discord CDN images are allowed'}), 400
+        
+        # For Discord images, use URL as hash (simplified approach)
+        image_data = image_url.encode('utf-8')
+        
+        # Validate submission
+        validation = validate_shot_submission(
+            author_discord_id=current_user_id,
+            target_discord_ids=data['targets'],
+            category_key=data['category'],
+            location=data['location'],
+            image_data=image_data
+        )
+        
+        if not validation['valid']:
+            return jsonify({
+                'success': False,
+                'errors': validation['errors'],
+                'warnings': validation.get('warnings', [])
+            }), 400
+        
+        # Create the shot
+        shot = create_shot_with_targets(
+            author_discord_id=current_user_id,
+            target_discord_ids=data['targets'],
+            category_id=validation['category_id'],
+            location=data['location'],
+            image_url=image_url,
+            image_hash=validation['image_hash'],
+            season_id=validation['season_id']
+        )
+        
+        return jsonify({
+            'success': True,
+            'shot_id': shot.id,
+            'points_awarded': shot.total_points,
+            'breakdown': {
+                'base_points': shot.base_points,
+                'bonus_points': shot.bonus_points,
+                'streak_bonus': shot.streak_bonus
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error submitting I-Spy shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/leaderboard')
+@jwt_required()
+def ispy_leaderboard():
+    """Get current season leaderboard."""
+    try:
+        from app.ispy_helpers import get_active_season
+        
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active season'}), 404
+        
+        limit = request.args.get('limit', 10, type=int)
+        limit = min(limit, 50)  # Cap at 50
+        
+        leaderboard = get_leaderboard(season.id, limit)
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'leaderboard': leaderboard
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting I-Spy leaderboard: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/me')
+@jwt_required() 
+def ispy_personal_stats():
+    """Get personal I-Spy statistics for current user."""
+    try:
+        from app.ispy_helpers import get_active_season
+        
+        current_user_id = get_jwt_identity()
+        season = get_active_season()
+        
+        if not season:
+            return jsonify({'error': 'No active season'}), 404
+        
+        stats = get_user_personal_stats(current_user_id, season.id)
+        
+        if not stats:
+            # Return empty stats for new users
+            stats = {
+                'total_points': 0,
+                'total_shots': 0,
+                'approved_shots': 0,
+                'disallowed_shots': 0,
+                'current_streak': 0,
+                'max_streak': 0,
+                'unique_targets': 0,
+                'first_shot_at': None,
+                'last_shot_at': None
+            }
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'stats': stats
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting personal I-Spy stats: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/categories')
+@jwt_required()
+def ispy_categories():
+    """Get all available venue categories."""
+    try:
+        categories = get_all_categories()
+        return jsonify({'categories': categories})
+        
+    except Exception as e:
+        logger.error(f"Error getting I-Spy categories: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/stats/category/<category_key>')
+@jwt_required()
+def ispy_category_stats(category_key):
+    """Get leaderboard for a specific category."""
+    try:
+        from app.ispy_helpers import get_active_season
+        
+        season = get_active_season()
+        if not season:
+            return jsonify({'error': 'No active season'}), 404
+        
+        limit = request.args.get('limit', 10, type=int)
+        limit = min(limit, 50)  # Cap at 50
+        
+        leaderboard = get_category_leaderboard(season.id, category_key, limit)
+        
+        if not leaderboard:
+            return jsonify({'error': 'Category not found or no data'}), 404
+        
+        return jsonify({
+            'season': {
+                'id': season.id,
+                'name': season.name
+            },
+            'category': category_key,
+            'leaderboard': leaderboard
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting category stats: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# Admin I-Spy endpoints (for moderators)
+
+@mobile_api.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
+@jwt_required()
+def ispy_admin_disallow(shot_id):
+    """Disallow a shot (admin only)."""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # TODO: Add role check for admin/moderator
+        # For now, assuming API access implies admin rights
+        
+        data = request.get_json() or {}
+        reason = data.get('reason', 'No reason provided')
+        penalty = data.get('penalty', 5)
+        
+        success = disallow_shot(shot_id, current_user_id, reason, penalty)
+        
+        if not success:
+            return jsonify({'error': 'Shot not found or already disallowed'}), 404
+        
+        return jsonify({'success': True, 'message': 'Shot disallowed successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error disallowing shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/admin/recategorize/<int:shot_id>', methods=['POST'])
+@jwt_required()
+def ispy_admin_recategorize(shot_id):
+    """Recategorize a shot (admin only)."""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        if not data or 'new_category' not in data:
+            return jsonify({'error': 'Missing new_category'}), 400
+        
+        # Get category ID
+        from app.ispy_helpers import get_category_by_key
+        category = get_category_by_key(data['new_category'])
+        if not category:
+            return jsonify({'error': 'Invalid category'}), 400
+        
+        success = recategorize_shot(shot_id, category.id, current_user_id)
+        
+        if not success:
+            return jsonify({'error': 'Shot not found'}), 404
+        
+        return jsonify({'success': True, 'message': 'Shot recategorized successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error recategorizing shot: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api.route('/ispy/admin/jail', methods=['POST'])
+@jwt_required()
+def ispy_admin_jail():
+    """Jail a user (admin only)."""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        required_fields = ['discord_id', 'hours']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        success = jail_user(
+            discord_id=data['discord_id'],
+            hours=data['hours'],
+            moderator_discord_id=current_user_id,
+            reason=data.get('reason', 'No reason provided')
+        )
+        
+        if not success:
+            return jsonify({'error': 'Failed to jail user'}), 500
+        
+        return jsonify({'success': True, 'message': 'User jailed successfully'})
+        
+    except Exception as e:
+        logger.error(f"Error jailing user: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500

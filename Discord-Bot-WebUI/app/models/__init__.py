@@ -77,6 +77,11 @@ from .league_features import (
     DraftOrderHistory, MessageCategory, MessageTemplate
 )
 
+from .ispy import (
+    ISpySeason, ISpyCategory, ISpyShot, ISpyShotTarget, ISpyCooldown,
+    ISpyUserJail, ISpyUserStats
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -127,5 +132,9 @@ __all__ = [
     
     # League features models
     'SubRequest', 'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
-    'DraftOrderHistory', 'MessageCategory', 'MessageTemplate'
+    'DraftOrderHistory', 'MessageCategory', 'MessageTemplate',
+    
+    # I-Spy models
+    'ISpySeason', 'ISpyCategory', 'ISpyShot', 'ISpyShotTarget', 'ISpyCooldown',
+    'ISpyUserJail', 'ISpyUserStats'
 ]
